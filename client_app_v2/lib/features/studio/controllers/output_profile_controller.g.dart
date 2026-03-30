@@ -8,21 +8,18 @@ part of 'output_profile_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Controller managing Studio Output Profiles strictly using `Map<String, dynamic>`.
+/// Controller managing Studio Output Profiles using Strict Freezed models.
 /// Implements Optimistic UI principles where possible.
 
 @ProviderFor(OutputProfilesController)
 final outputProfilesControllerProvider = OutputProfilesControllerProvider._();
 
-/// Controller managing Studio Output Profiles strictly using `Map<String, dynamic>`.
+/// Controller managing Studio Output Profiles using Strict Freezed models.
 /// Implements Optimistic UI principles where possible.
 final class OutputProfilesControllerProvider
     extends
-        $AsyncNotifierProvider<
-          OutputProfilesController,
-          List<Map<String, dynamic>>
-        > {
-  /// Controller managing Studio Output Profiles strictly using `Map<String, dynamic>`.
+        $AsyncNotifierProvider<OutputProfilesController, List<OutputProfile>> {
+  /// Controller managing Studio Output Profiles using Strict Freezed models.
   /// Implements Optimistic UI principles where possible.
   OutputProfilesControllerProvider._()
     : super(
@@ -44,31 +41,24 @@ final class OutputProfilesControllerProvider
 }
 
 String _$outputProfilesControllerHash() =>
-    r'514cf41d0e1806c7fc8ebfb2e85021804bb2e470';
+    r'1994024ebd8c055c11658ea3a39218ba4b0807f0';
 
-/// Controller managing Studio Output Profiles strictly using `Map<String, dynamic>`.
+/// Controller managing Studio Output Profiles using Strict Freezed models.
 /// Implements Optimistic UI principles where possible.
 
 abstract class _$OutputProfilesController
-    extends $AsyncNotifier<List<Map<String, dynamic>>> {
-  FutureOr<List<Map<String, dynamic>>> build();
+    extends $AsyncNotifier<List<OutputProfile>> {
+  FutureOr<List<OutputProfile>> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final ref =
-        this.ref
-            as $Ref<
-              AsyncValue<List<Map<String, dynamic>>>,
-              List<Map<String, dynamic>>
-            >;
+        this.ref as $Ref<AsyncValue<List<OutputProfile>>, List<OutputProfile>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<List<Map<String, dynamic>>>,
-                List<Map<String, dynamic>>
-              >,
-              AsyncValue<List<Map<String, dynamic>>>,
+              AnyNotifier<AsyncValue<List<OutputProfile>>, List<OutputProfile>>,
+              AsyncValue<List<OutputProfile>>,
               Object?,
               Object?
             >;
@@ -86,13 +76,11 @@ final outputProfileByIdProvider = OutputProfileByIdFamily._();
 final class OutputProfileByIdProvider
     extends
         $FunctionalProvider<
-          AsyncValue<Map<String, dynamic>>,
-          Map<String, dynamic>,
-          FutureOr<Map<String, dynamic>>
+          AsyncValue<OutputProfile>,
+          OutputProfile,
+          FutureOr<OutputProfile>
         >
-    with
-        $FutureModifier<Map<String, dynamic>>,
-        $FutureProvider<Map<String, dynamic>> {
+    with $FutureModifier<OutputProfile>, $FutureProvider<OutputProfile> {
   /// Fetches a single Output Profile natively by ID
   OutputProfileByIdProvider._({
     required OutputProfileByIdFamily super.from,
@@ -117,12 +105,12 @@ final class OutputProfileByIdProvider
 
   @$internal
   @override
-  $FutureProviderElement<Map<String, dynamic>> $createElement(
+  $FutureProviderElement<OutputProfile> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<Map<String, dynamic>> create(Ref ref) {
+  FutureOr<OutputProfile> create(Ref ref) {
     final argument = this.argument as String;
     return outputProfileById(ref, argument);
   }
@@ -138,12 +126,12 @@ final class OutputProfileByIdProvider
   }
 }
 
-String _$outputProfileByIdHash() => r'7bdc2c14f9d0631fc83959621253eef5d201ad27';
+String _$outputProfileByIdHash() => r'e2934f4d84ee5fa754cc79041bd2df52cc7407a1';
 
 /// Fetches a single Output Profile natively by ID
 
 final class OutputProfileByIdFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<Map<String, dynamic>>, String> {
+    with $FunctionalFamilyOverride<FutureOr<OutputProfile>, String> {
   OutputProfileByIdFamily._()
     : super(
         retry: null,
@@ -166,7 +154,7 @@ final class OutputProfileByIdFamily extends $Family
 final outputProfileFormProvider = OutputProfileFormFamily._();
 
 final class OutputProfileFormProvider
-    extends $AsyncNotifierProvider<OutputProfileForm, Map<String, dynamic>> {
+    extends $AsyncNotifierProvider<OutputProfileForm, OutputProfile> {
   OutputProfileFormProvider._({
     required OutputProfileFormFamily super.from,
     required String super.argument,
@@ -203,15 +191,15 @@ final class OutputProfileFormProvider
   }
 }
 
-String _$outputProfileFormHash() => r'02d7117691a277fcdfc464ba35f88f5729f55a41';
+String _$outputProfileFormHash() => r'3a500108051423df9080e597a7e7102eeda1d7a1';
 
 final class OutputProfileFormFamily extends $Family
     with
         $ClassFamilyOverride<
           OutputProfileForm,
-          AsyncValue<Map<String, dynamic>>,
-          Map<String, dynamic>,
-          FutureOr<Map<String, dynamic>>,
+          AsyncValue<OutputProfile>,
+          OutputProfile,
+          FutureOr<OutputProfile>,
           String
         > {
   OutputProfileFormFamily._()
@@ -230,26 +218,20 @@ final class OutputProfileFormFamily extends $Family
   String toString() => r'outputProfileFormProvider';
 }
 
-abstract class _$OutputProfileForm
-    extends $AsyncNotifier<Map<String, dynamic>> {
+abstract class _$OutputProfileForm extends $AsyncNotifier<OutputProfile> {
   late final _$args = ref.$arg as String;
   String get configId => _$args;
 
-  FutureOr<Map<String, dynamic>> build(String configId);
+  FutureOr<OutputProfile> build(String configId);
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref =
-        this.ref
-            as $Ref<AsyncValue<Map<String, dynamic>>, Map<String, dynamic>>;
+    final ref = this.ref as $Ref<AsyncValue<OutputProfile>, OutputProfile>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<Map<String, dynamic>>,
-                Map<String, dynamic>
-              >,
-              AsyncValue<Map<String, dynamic>>,
+              AnyNotifier<AsyncValue<OutputProfile>, OutputProfile>,
+              AsyncValue<OutputProfile>,
               Object?,
               Object?
             >;

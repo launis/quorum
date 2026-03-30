@@ -104,93 +104,6 @@ Map<String, dynamic> _$ExpectedInputToJson(_ExpectedInput instance) =>
           .toList(),
     };
 
-_OutputLayoutBlock _$OutputLayoutBlockFromJson(
-  Map<String, dynamic> json,
-) => $checkedCreate(
-  '_OutputLayoutBlock',
-  json,
-  ($checkedConvert) {
-    $checkKeys(
-      json,
-      allowedKeys: const [
-        'preset_view',
-        'title',
-        'description',
-        'steps',
-        'target_blocks',
-        'show_text',
-      ],
-    );
-    final val = _OutputLayoutBlock(
-      presetView: $checkedConvert('preset_view', (v) => v as String),
-      title: $checkedConvert(
-        'title',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-      ),
-      description: $checkedConvert(
-        'description',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-      ),
-      steps: $checkedConvert(
-        'steps',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
-      ),
-      targetBlocks: $checkedConvert(
-        'target_blocks',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
-      ),
-      showText: $checkedConvert('show_text', (v) => v as bool? ?? true),
-    );
-    return val;
-  },
-  fieldKeyMap: const {
-    'presetView': 'preset_view',
-    'targetBlocks': 'target_blocks',
-    'showText': 'show_text',
-  },
-);
-
-Map<String, dynamic> _$OutputLayoutBlockToJson(_OutputLayoutBlock instance) =>
-    <String, dynamic>{
-      'preset_view': instance.presetView,
-      'title': instance.title?.toJson(),
-      'description': instance.description?.toJson(),
-      'steps': instance.steps,
-      'target_blocks': instance.targetBlocks,
-      'show_text': instance.showText,
-    };
-
-_OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('_OutputProfile', json, ($checkedConvert) {
-      $checkKeys(json, allowedKeys: const ['name', 'layouts']);
-      final val = _OutputProfile(
-        name: $checkedConvert(
-          'name',
-          (v) => I18nText.fromJson(v as Map<String, dynamic>),
-        ),
-        layouts: $checkedConvert(
-          'layouts',
-          (v) =>
-              (v as List<dynamic>?)
-                  ?.map(
-                    (e) =>
-                        OutputLayoutBlock.fromJson(e as Map<String, dynamic>),
-                  )
-                  .toList() ??
-              const [],
-        ),
-      );
-      return val;
-    });
-
-Map<String, dynamic> _$OutputProfileToJson(_OutputProfile instance) =>
-    <String, dynamic>{
-      'name': instance.name.toJson(),
-      'layouts': instance.layouts.map((e) => e.toJson()).toList(),
-    };
-
 _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
   '_StepRule',
   json,
@@ -280,6 +193,8 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'slug',
         'name',
         'description',
+        'hook',
+        'task_key',
         'prompt_blocks',
         'pre_hooks',
         'post_hooks',
@@ -303,6 +218,8 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'description',
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
+      hook: $checkedConvert('hook', (v) => v as String?),
+      taskKey: $checkedConvert('task_key', (v) => v as String?),
       promptBlocks: $checkedConvert(
         'prompt_blocks',
         (v) =>
@@ -330,6 +247,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
     return val;
   },
   fieldKeyMap: const {
+    'taskKey': 'task_key',
     'promptBlocks': 'prompt_blocks',
     'preHooks': 'pre_hooks',
     'postHooks': 'post_hooks',
@@ -345,6 +263,8 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       'slug': instance.slug,
       'name': instance.name.toJson(),
       'description': instance.description?.toJson(),
+      'hook': instance.hook,
+      'task_key': instance.taskKey,
       'prompt_blocks': instance.promptBlocks,
       'pre_hooks': instance.preHooks,
       'post_hooks': instance.postHooks,
@@ -369,10 +289,12 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'description',
         'hook',
         'task_key',
+        'prompt_blocks',
         'pre_hooks',
         'post_hooks',
         'safety',
         'allowed_mcp_tools',
+        'model_strategy',
         'type',
       ],
     );
@@ -392,6 +314,11 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
       ),
       hook: $checkedConvert('hook', (v) => v as String),
       taskKey: $checkedConvert('task_key', (v) => v as String?),
+      promptBlocks: $checkedConvert(
+        'prompt_blocks',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
       preHooks: $checkedConvert(
         'pre_hooks',
         (v) =>
@@ -408,15 +335,18 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
+      modelStrategy: $checkedConvert('model_strategy', (v) => v as String?),
       $type: $checkedConvert('type', (v) => v as String?),
     );
     return val;
   },
   fieldKeyMap: const {
     'taskKey': 'task_key',
+    'promptBlocks': 'prompt_blocks',
     'preHooks': 'pre_hooks',
     'postHooks': 'post_hooks',
     'allowedMcpTools': 'allowed_mcp_tools',
+    'modelStrategy': 'model_strategy',
     r'$type': 'type',
   },
 );
@@ -429,10 +359,12 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       'description': instance.description?.toJson(),
       'hook': instance.hook,
       'task_key': instance.taskKey,
+      'prompt_blocks': instance.promptBlocks,
       'pre_hooks': instance.preHooks,
       'post_hooks': instance.postHooks,
       'safety': instance.safety,
       'allowed_mcp_tools': instance.allowedMcpTools,
+      'model_strategy': instance.modelStrategy,
       'type': instance.$type,
     };
 
@@ -486,7 +418,7 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
             (v as Map<String, dynamic>?)?.map(
               (k, e) => MapEntry(
                 k,
-                OutputProfile.fromJson(e as Map<String, dynamic>),
+                EmbeddedOutputProfile.fromJson(e as Map<String, dynamic>),
               ),
             ) ??
             const {},

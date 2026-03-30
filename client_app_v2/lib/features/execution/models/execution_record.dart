@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:isolate';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
-import 'package:client_app/utils/safe_cast.dart';
 
 /// Represents the status and metadata of an execution.
 /// Follows The De-Generator Mandate: Replaces the old dynamic 'results' map
@@ -32,7 +31,11 @@ class ExecutionRecord {
       status: (json['status'] as String).toUpperCase(),
       traceVersion: json['trace_version']?.toString(),
       reportData: json['report_data'] != null
-          ? ReportDataDTO.fromJson(SafeCast.safeMap(json['report_data']))
+          ? ReportDataDTO.fromJson(
+              json['report_data'] is Map
+                  ? json['report_data'] as Map<String, dynamic>
+                  : <String, dynamic>{},
+            )
           : null,
     );
   }

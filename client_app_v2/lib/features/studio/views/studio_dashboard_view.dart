@@ -12,6 +12,7 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 
 /// **Studio Dashboard View**
@@ -31,7 +32,13 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
   late TabController _tabController;
 
   String _getLocalizedName(dynamic entity, String currentLocale) {
-    if (entity == null || entity is! Map) return 'Unknown';
+    if (entity == null) return 'Unknown';
+    if (entity is NodeStrategy) {
+      final name = entity.name.translations[currentLocale];
+      final defaultName = entity.name.translations['en'];
+      return name ?? defaultName ?? entity.id;
+    }
+    if (entity is! Map) return 'Unknown';
     final nameVal = entity['name'] ?? entity['label'];
     if (nameVal is String) return nameVal;
     if (nameVal is Map) {
@@ -403,30 +410,23 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                 itemBuilder: (context, index) {
                   try {
                     final blueprint = blueprints[index];
-                    final blueprintId = blueprint['id']?.toString();
-                    if (blueprintId == null) {
+                    final blueprintId = blueprint.id;
+                    if (blueprintId.isEmpty) {
                       throw AppException.validation(
                         'Blueprint step is corrupted: missing ID.',
                       );
                     }
-                    final blocks = blueprint['prompt_blocks'] as List?;
-                    if (blocks == null) {
-                      throw AppException.validation(
-                        'Blueprint prompt_blocks is missing for ID: $blueprintId',
-                      );
-                    }
-                    final hooks = blueprint['pre_hooks'] as List?;
-                    if (hooks == null) {
-                      throw AppException.validation(
-                        'Blueprint pre_hooks is missing for ID: $blueprintId',
-                      );
-                    }
-                    final blockCount = blocks.length;
-                    final hookCount = hooks.length;
+
                     final stepName = _getLocalizedName(
                       blueprint,
                       Localizations.localeOf(context).languageCode,
                     );
+
+                    final String typeLabel = switch (blueprint) {
+                      NodeStrategyLogic() => 'Logic: ${blueprint.hook}',
+                      NodeStrategyLlm() =>
+                        'LLM: ${blueprint.modelStrategy ?? 'default'}',
+                    };
 
                     return Card(
                       child: ListTile(
@@ -435,7 +435,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          '$blueprintId\n${l10n.studioViewsSlugSubtitle(blueprint['slug']?.toString() ?? '')}\n${l10n.studioViewsStepsSubtitle(blockCount, hookCount)}',
+                          '$blueprintId\n${l10n.studioViewsSlugSubtitle(blueprint.slug)}\n$typeLabel',
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -452,7 +452,9 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                           ],
                         ),
                         onTap: () {
-                          StepEditRoute($extra: blueprint).go(context);
+                          // TODO: Implement StepEditRoute for Freezed NodeStrategy
+                          // For now, pass null or specific data as required.
+                          StepEditRoute($extra: {}).go(context);
                         },
                       ),
                     );
@@ -510,18 +512,13 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                 itemBuilder: (context, index) {
                   try {
                     final config = configs[index];
-                    final configId = config['id']?.toString();
-                    if (configId == null) {
+                    final configId = config.id;
+                    if (configId.isEmpty) {
                       throw AppException.validation(
                         'Model Registry config is missing ID.',
                       );
                     }
-                    final modelsMap = config['models'] as Map?;
-                    if (modelsMap == null) {
-                      throw AppException.validation(
-                        'Model Registry models object is missing for ID: $configId',
-                      );
-                    }
+                    final modelsMap = config.models;
                     final modelCount = modelsMap.length;
 
                     return Card(
@@ -547,10 +544,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                           ],
                         ),
                         onTap: () {
-                          ModelRegistryEditRoute(
-                            id: configId,
-                            $extra: config,
-                          ).go(context);
+                          ModelRegistryEditRoute(id: configId).go(context);
                         },
                       ),
                     );

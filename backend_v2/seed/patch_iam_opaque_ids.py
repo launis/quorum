@@ -24,7 +24,7 @@ def main():
         if old_id in org_id_map:
             org["id"] = org_id_map[old_id]
             modifications += 1
-        elif old_id and not re.match(r"^([a-z]+)_[a-zA-Z0-9]{8,}$", old_id):
+        elif old_id and not re.match(r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$", old_id):
             # Pakotetaan väkisin Opaque ID muodostus jos failfast uhkaa
             new_id = f"org_{old_id.replace('-', '')}00000000"[:16]
             org["id"] = new_id
@@ -35,7 +35,7 @@ def main():
     for user in data.get("users", []):
         old_id = user.get("id", "")
         # Opaque ID check for Users
-        if old_id and not re.match(r"^([a-z]+)_[a-zA-Z0-9]{8,}$", old_id):
+        if old_id and not re.match(r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$", old_id):
             user["id"] = f"usr_{old_id.replace('-', '')}00000000"[:16]
             modifications += 1
             

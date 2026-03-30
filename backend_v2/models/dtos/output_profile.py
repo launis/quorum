@@ -5,8 +5,7 @@ These models handle the ingestion and output formats for the Output Profile REST
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from backend_v2.models.domain.output_profile import OutputProfileLayout
-from backend_v2.models.v2_core import I18nText
+from backend_v2.models.v2_core import I18nText, OutputLayoutBlock
 
 
 class OutputProfileCreateDTO(BaseModel):
@@ -14,14 +13,14 @@ class OutputProfileCreateDTO(BaseModel):
 
     id: str = Field(
         ...,
-        pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$",
+        pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
         description="Unique string ID for the profile. Must follow Stripe Pattern",
     )
     slug: str = Field(..., description="Human-readable routing identifier.")
     workflow_id: str = Field(..., description="References the execution DAG to scope Target Matrices.")
     name: I18nText = Field(..., description="Localized name.")
     description: I18nText | None = Field(default=None, description="Localized description.")
-    layouts: list[OutputProfileLayout] = Field(default_factory=list, description="Sequence of layouts.")
+    layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Sequence of layouts.")
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -33,7 +32,7 @@ class OutputProfileUpdateDTO(BaseModel):
     workflow_id: str | None = Field(default=None, description="Optional workflow reassignment.")
     name: I18nText | None = Field(default=None, description="Localized name.")
     description: I18nText | None = Field(default=None, description="Localized description.")
-    layouts: list[OutputProfileLayout] | None = Field(default=None, description="Sequence of layouts.")
+    layouts: list[OutputLayoutBlock] | None = Field(default=None, description="Sequence of layouts.")
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -46,6 +45,6 @@ class OutputProfileResponseDTO(BaseModel):
     workflow_id: str
     name: I18nText
     description: I18nText | None = None
-    layouts: list[OutputProfileLayout]
+    layouts: list[OutputLayoutBlock]
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

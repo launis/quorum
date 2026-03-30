@@ -119,7 +119,7 @@ class PromptBlock(V2CoreBase):
     """
 
     id: str = Field(
-        pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$",
+        pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
         description=(
             "Unique identifier for the prompt block. MUST be a valid Stripe Pattern Opaque ID "
             "to guarantee dynamic schema compilation."
@@ -253,7 +253,7 @@ class ModelProfile(V2CoreBase):
 class SystemConfigModelRegistry(V2CoreBase):
     """V2 Flattened Model Registry System Config."""
 
-    id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="System config ID")
+    id: str = Field(pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$", description="System config ID")
     slug: str = Field(description="Slug identifier")
     type: str = Field(default="model_registry", description="Type of config")
     models: dict[str, ModelProfile] = Field(
@@ -289,7 +289,7 @@ class MCPAuditTrace(V2CoreBase):
 class SystemConfigMCPGateways(V2CoreBase):
     """System-level registry of available MCP tool gateways."""
 
-    id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="System config ID")
+    id: str = Field(pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$", description="System config ID")
     slug: str = Field(description="Slug identifier.")
     type: str = Field(default="mcp_gateways", description="Config type discriminator.")
     tools: list[AllowedMCPTool] = Field(
@@ -302,7 +302,7 @@ class Step(V2CoreBase):
     Formerly known as TaskBlueprint.
     """
 
-    id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Unique UUID for storage optionally")
+    id: str = Field(pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$", description="Unique UUID for storage optionally")
     slug: str = Field(description="Human-readable identifier (e.g., 'step_guard')")
     name: I18nText | str = Field(description="Localized step name or string name")
     description: I18nText | str | None = Field(default=None, description="Detailed step context")
@@ -357,7 +357,7 @@ class StepRule(V2CoreBase):
     """Execution step mapping (DAG Router Node)."""
 
     id: str = Field(
-        pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Unique node ID in the workflow (e.g. blk_node_1)."
+        pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$", description="Unique node ID in the workflow (e.g. blk_node_1)."
     )
     task_blueprint: str = Field(
         min_length=1, description="ID reference to the isolated Step (e.g., 'step_f15853d2584e4096aeb60f11a3e6ea7c')"
@@ -388,7 +388,7 @@ class StepRule(V2CoreBase):
 class Role(V2CoreBase):
     """Role definition that locks physical models and pre_hooks."""
 
-    id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Unique Role ID")
+    id: str = Field(pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$", description="Unique Role ID")
     name: I18nText
     model_role: str = Field(description='Maps to SystemConfig.model_mappings (e.g., "analyst_model").')
     pre_hooks: list[str] = Field(default_factory=list, description="List of registered hook logic to run BEFORE llm.")
@@ -511,10 +511,9 @@ class ReportDataDTO(V2CoreBase):
     reasoning_tokens: int | None = None
 
     # MCP Tool Loop Audit Trail (XAI Evidence for Frontend)
-    mcp_tool_audit: list[dict[str, Any]] = Field(
+    mcp_tool_audit: list[MCPAuditTrace] = Field(
         default_factory=list, description="Serialized MCPAuditTrace entries for XAI Evidence Box rendering."
     )
-
 
 class OutputLayoutBlock(V2CoreBase):
     """A single sequential rendering block for a report profile."""
@@ -537,11 +536,17 @@ class OutputProfile(V2CoreBase):
     name: I18nText = Field(description="Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})")
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
 
+class EmbeddedOutputProfile(V2CoreBase):
+    """Embedded configuration mapping for workflow output profiles."""
+
+    name: I18nText = Field(description="Localized name of the profile.")
+    layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
+
 
 class Workflow(V2CoreBase):
     """Dynamic Directed Acyclic Graph orchestrator model."""
 
-    id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Unique Workflow ID")
+    id: str = Field(pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$", description="Unique Workflow ID")
     slug: str
     name: I18nText | str
     description: I18nText | str
@@ -550,7 +555,7 @@ class Workflow(V2CoreBase):
     is_public: bool = Field(default=False)
     organization_id: str | None = Field(default=None)
     ui_schema: dict[str, Any] = Field(default_factory=dict)
-    output_profiles: dict[str, OutputProfile] = Field(
+    output_profiles: dict[str, EmbeddedOutputProfile] = Field(
         default_factory=dict, description="Dictionary of named output profiles for reporting."
     )
     default_profile_id: str = Field(default="default", description="The ID of the default output profile to use.")
@@ -640,7 +645,7 @@ class ExecutionCreate(V2CoreBase):
 class ExecutionStepState(V2CoreBase):
     """Real-time status tracking for a single DAG node."""
 
-    id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Step ID")
+    id: str = Field(pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$", description="Step ID")
     label: str = Field(description="Localized label for UI tracking")
     status: str = Field(default="pending", description="Status: pending, running, completed, failed")
     last_error: str | None = Field(default=None, description="Error message if the step failed")
@@ -649,7 +654,7 @@ class ExecutionStepState(V2CoreBase):
 class ExecutionRecord(V2CoreBase):
     """Record of a workflow execution, including the frozen context and results."""
 
-    id: str = Field(pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$", description="Execution ID, usually a uuid")
+    id: str = Field(pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$", description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")
     status: ExecutionStatus = Field(description="Current status of execution", strict=False)
     active_profile_id: str | None = Field(

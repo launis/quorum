@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/network/api_client.dart';
-import 'package:client_app/utils/safe_cast.dart';
+
 import 'package:client_app/router/router.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -27,7 +27,7 @@ class DashboardSettings {
   static const Duration downloadTimeout = Duration(seconds: 15);
 }
 
-// Provider to fetch executions using SafeCast (No Freezed API DTOs)
+// Provider to fetch executions using native casting (No Freezed API DTOs)
 final executionListProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
       // 1. Riverpod Polling (Auto-Refresh)
@@ -41,8 +41,14 @@ final executionListProvider =
       final dio = ref.watch(apiClientProvider);
       final response = await dio.get('/execution/executions');
 
-      final List<dynamic> data = SafeCast.safeList(response.data);
-      return data.map((e) => SafeCast.safeMap(e)).toList();
+      final List<dynamic> data = response.data is List
+          ? response.data as List
+          : [];
+      return data
+          .map(
+            (e) => e is Map ? e as Map<String, dynamic> : <String, dynamic>{},
+          )
+          .toList();
     });
 
 class DashboardView extends ConsumerStatefulWidget {
@@ -119,10 +125,10 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
             itemCount: executions.length,
             itemBuilder: (context, index) {
               final exec = executions[index];
-              final id = SafeCast.safeString(exec['id']);
-              final status = SafeCast.safeString(exec['status']);
-              final workflowId = SafeCast.safeString(exec['workflow_id']);
-              final createdAt = SafeCast.safeString(exec['created_at']);
+              final id = exec['id']?.toString() ?? '';
+              final status = exec['status']?.toString() ?? '';
+              final workflowId = exec['workflow_id']?.toString() ?? '';
+              final createdAt = exec['created_at']?.toString() ?? '';
 
               // Formatting date
               String dateStr = createdAt;
@@ -147,8 +153,9 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
               }
 
               // Metrics
-              final costEstimate = SafeCast.safeDouble(exec['cost_estimate']);
-              final totalTokens = SafeCast.safeInt(exec['total_tokens']);
+              final costEstimate =
+                  (exec['cost_estimate'] as num?)?.toDouble() ?? 0.0;
+              final totalTokens = (exec['total_tokens'] as num?)?.toInt() ?? 0;
 
               String metricsStr = '';
               if (totalTokens > 0 || costEstimate > 0) {
@@ -164,16 +171,17 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
               if (asyncWorkflows is AsyncData && asyncWorkflows.value != null) {
                 final workflows = asyncWorkflows.value!;
                 final wf = workflows
-                    .where((w) => SafeCast.safeString(w['id']) == workflowId)
+                    .where((w) => w['id']?.toString() == workflowId)
                     .firstOrNull;
                 if (wf != null) {
-                  final nameMap = SafeCast.safeMap(wf['name']);
+                  final nameMapRaw = wf['name'];
+                  final nameMap = nameMapRaw is Map ? nameMapRaw : {};
                   final titleStr = nameMap.isNotEmpty
                       ? (nameMap['translations']?[nameMap['default_locale']] ??
                             nameMap['default_locale'] ??
                             workflowId)
-                      : (SafeCast.safeString(wf['name']).isNotEmpty
-                            ? SafeCast.safeString(wf['name'])
+                      : ((wf['name']?.toString() ?? '').isNotEmpty
+                            ? wf['name']?.toString() ?? ''
                             : workflowId);
                   workflowDisplay = AppLocalizations.of(
                     context,
@@ -260,7 +268,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
 
     final workflows = asyncWorkflows.asData?.value ?? [];
     final wf = workflows.firstWhere(
-      (w) => SafeCast.safeString(w['id']) == workflowId,
+      (w) => w['id']?.toString() == workflowId,
       orElse: () => <String, dynamic>{},
     );
 
@@ -269,7 +277,8 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
       return;
     }
 
-    final outputProfiles = SafeCast.safeMap(wf['output_profiles']);
+    final opRaw = wf['output_profiles'];
+    final outputProfiles = opRaw is Map ? opRaw : {};
     final variants = outputProfiles.keys.toList();
     if (variants.isEmpty) variants.add('default');
 
@@ -324,7 +333,13 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                               v == 'default' ? Icons.star : Icons.description,
                               color: Colors.blue,
                             ),
-                            title: Text(v),
+                            title: Text(
+                              _getVariantDisplayName(
+                                context,
+                                v,
+                                outputProfiles,
+                              ),
+                            ),
                             onTap: () {
                               Navigator.of(ctx).pop();
                               ExecutionReportRoute(
@@ -344,6 +359,33 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
         );
       },
     );
+  }
+
+  String _getVariantDisplayName(
+    BuildContext context,
+    String key,
+    Map outputProfiles,
+  ) {
+    if (key == 'default') {
+      return AppLocalizations.of(context)!.reportTitleMain;
+    }
+
+    final profile = outputProfiles[key];
+    if (profile is Map) {
+      final nameObj = profile['name'];
+      if (nameObj is Map) {
+        final translations = nameObj['translations'];
+        final locale = Localizations.localeOf(context).languageCode;
+        final defLocale = nameObj['default_locale']?.toString() ?? 'en';
+        if (translations is Map) {
+          return translations[locale]?.toString() ??
+              translations[defLocale]?.toString() ??
+              translations['en']?.toString() ??
+              key;
+        }
+      }
+    }
+    return key;
   }
 
   Future<void> _downloadPdf(String executionId, String profileId) async {

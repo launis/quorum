@@ -1,5 +1,6 @@
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,14 +9,26 @@ import 'package:mocktail/mocktail.dart';
 
 class MockStudioClient extends Mock implements StudioClient {}
 
+class MockLoggerService extends Mock implements LoggerService {}
+
 void main() {
   late MockStudioClient mockClient;
+  late MockLoggerService mockLogger;
   late ProviderContainer container;
 
   setUp(() {
     mockClient = MockStudioClient();
+    mockLogger = MockLoggerService();
+
+    // Add default mock behavior for logger
+    when(() => mockLogger.error(any(), any(), any(), any())).thenReturn(null);
+    when(() => mockLogger.info(any(), any())).thenReturn(null);
+
     container = ProviderContainer(
-      overrides: [studioClientProvider.overrideWithValue(mockClient)],
+      overrides: [
+        studioClientProvider.overrideWithValue(mockClient),
+        loggerServiceProvider.overrideWithValue(mockLogger),
+      ],
     );
   });
 

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
 
 class InspectorPane extends StatelessWidget {
   final String? selectedStepId;
-  final Map<String, dynamic> workflow;
-  final List<Map<String, dynamic>> availableBlueprints;
-  final Function(String stepId, Map<String, dynamic> updatedStep) onStepUpdated;
+  final Workflow workflow;
+  final List<NodeStrategy> availableBlueprints;
+  final Function(String stepId, StepRule updatedStep) onStepUpdated;
   final VoidCallback onAddStep;
   final Function(String stepId) onDeleteStep;
 
@@ -59,13 +59,13 @@ class InspectorPane extends StatelessWidget {
       );
     }
 
-    final steps = SafeCast.safeList(workflow['steps']);
+    final steps = workflow.steps;
     final stepDef = steps.firstWhere(
-      (s) => SafeCast.safeString(SafeCast.safeMap(s)['id']) == selectedStepId,
-      orElse: () => <String, dynamic>{},
+      (s) => s.id == selectedStepId,
+      orElse: () => const StepRule(id: '', taskBlueprint: ''),
     );
 
-    if (stepDef.isEmpty) {
+    if (stepDef.id.isEmpty) {
       throw AppException.validation(
         'Selected step definition not found: $selectedStepId. Data is corrupted.',
       );
@@ -99,11 +99,7 @@ class InspectorPane extends StatelessWidget {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
-              child: _buildInspectorForm(
-                context,
-                SafeCast.safeMap(stepDef),
-                l10n,
-              ),
+              child: _buildInspectorForm(context, stepDef, l10n),
             ),
           ),
         ],
@@ -113,15 +109,13 @@ class InspectorPane extends StatelessWidget {
 
   Widget _buildInspectorForm(
     BuildContext context,
-    Map<String, dynamic> stepDef,
+    StepRule stepDef,
     AppLocalizations l10n,
   ) {
-    final rawId = stepDef['id'];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (rawId != null) ...[
+        if (stepDef.id.isNotEmpty) ...[
           Text(
             'Node ID',
             style: TextStyle(
@@ -131,7 +125,7 @@ class InspectorPane extends StatelessWidget {
             ),
           ),
           SelectableText(
-            SafeCast.safeString(rawId),
+            stepDef.id,
             style: const TextStyle(fontFamily: 'monospace'),
           ),
           const SizedBox(height: 16),
@@ -143,22 +137,18 @@ class InspectorPane extends StatelessWidget {
           ),
           isExpanded: true,
           initialValue:
-              availableBlueprints.any(
-                (bp) => bp['id'] == stepDef['task_blueprint'],
-              )
-              ? SafeCast.safeString(stepDef['task_blueprint'])
+              availableBlueprints.any((bp) => bp.id == stepDef.taskBlueprint)
+              ? stepDef.taskBlueprint
               : null,
           items: availableBlueprints.map((bp) {
-            final id = SafeCast.safeString(bp['id']);
-            final nameMap = SafeCast.safeMap(bp['name']);
-            final transMap = SafeCast.safeMap(nameMap['translations']);
+            final id = bp.id;
 
             // Nomenclature Resolution: Fetch based on locale, fallback to 'en', then id.
             final currentLocale = Localizations.localeOf(context).languageCode;
-            final label = SafeCast.safeString(
-              transMap[currentLocale],
-              SafeCast.safeString(transMap['en'], id),
-            );
+            final label =
+                bp.name.translations[currentLocale] ??
+                bp.name.translations['en'] ??
+                id;
 
             return DropdownMenuItem(
               value: id,
@@ -166,9 +156,12 @@ class InspectorPane extends StatelessWidget {
             );
           }).toList(),
           onChanged: (val) {
-            final copy = Map<String, dynamic>.from(stepDef);
-            copy['task_blueprint'] = val;
-            onStepUpdated(selectedStepId!, copy);
+            if (val != null) {
+              onStepUpdated(
+                selectedStepId!,
+                stepDef.copyWith(taskBlueprint: val),
+              );
+            }
           },
         ),
         const SizedBox(height: 16),
@@ -178,19 +171,21 @@ class InspectorPane extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         TextFormField(
-          initialValue: SafeCast.safeList(stepDef['depends_on']).join(', '),
+          initialValue: stepDef.dependsOn.join(', '),
           decoration: const InputDecoration(
             isDense: true,
             border: OutlineInputBorder(),
           ),
           onFieldSubmitted: (val) {
-            final copy = Map<String, dynamic>.from(stepDef);
-            copy['depends_on'] = val
+            final newDependsOn = val
                 .split(',')
                 .map((e) => e.trim())
                 .where((e) => e.isNotEmpty)
                 .toList();
-            onStepUpdated(selectedStepId!, copy);
+            onStepUpdated(
+              selectedStepId!,
+              stepDef.copyWith(dependsOn: newDependsOn),
+            );
           },
         ),
         const SizedBox(height: 16),
@@ -198,7 +193,7 @@ class InspectorPane extends StatelessWidget {
           'Input Mappings (Press Enter to apply)',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
         ),
-        ...SafeCast.safeMap(stepDef['input_mappings']).entries.map((e) {
+        ...stepDef.inputMappings.entries.map((e) {
           return Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Row(
@@ -215,12 +210,15 @@ class InspectorPane extends StatelessWidget {
                     onFieldSubmitted: (newKey) {
                       newKey = newKey.trim();
                       if (newKey.isNotEmpty && newKey != e.key) {
-                        final copy = Map<String, dynamic>.from(stepDef);
-                        final maps = SafeCast.safeMap(copy['input_mappings']);
-                        final val = maps.remove(e.key);
-                        maps[newKey] = val;
-                        copy['input_mappings'] = maps;
-                        onStepUpdated(selectedStepId!, copy);
+                        final newMappings = Map<String, String>.from(
+                          stepDef.inputMappings,
+                        );
+                        final val = newMappings.remove(e.key);
+                        newMappings[newKey] = val ?? '';
+                        onStepUpdated(
+                          selectedStepId!,
+                          stepDef.copyWith(inputMappings: newMappings),
+                        );
                       }
                     },
                   ),
@@ -229,18 +227,21 @@ class InspectorPane extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: TextFormField(
-                    initialValue: e.value.toString(),
+                    initialValue: e.value,
                     decoration: const InputDecoration(
                       isDense: true,
                       border: OutlineInputBorder(),
                       hintText: '\$inputs.value',
                     ),
                     onFieldSubmitted: (newVal) {
-                      final copy = Map<String, dynamic>.from(stepDef);
-                      final maps = SafeCast.safeMap(copy['input_mappings']);
-                      maps[e.key] = newVal.trim();
-                      copy['input_mappings'] = maps;
-                      onStepUpdated(selectedStepId!, copy);
+                      final newMappings = Map<String, String>.from(
+                        stepDef.inputMappings,
+                      );
+                      newMappings[e.key] = newVal.trim();
+                      onStepUpdated(
+                        selectedStepId!,
+                        stepDef.copyWith(inputMappings: newMappings),
+                      );
                     },
                   ),
                 ),
@@ -251,11 +252,14 @@ class InspectorPane extends StatelessWidget {
                     size: 20,
                   ),
                   onPressed: () {
-                    final copy = Map<String, dynamic>.from(stepDef);
-                    final maps = SafeCast.safeMap(copy['input_mappings']);
-                    maps.remove(e.key);
-                    copy['input_mappings'] = maps;
-                    onStepUpdated(selectedStepId!, copy);
+                    final newMappings = Map<String, String>.from(
+                      stepDef.inputMappings,
+                    );
+                    newMappings.remove(e.key);
+                    onStepUpdated(
+                      selectedStepId!,
+                      stepDef.copyWith(inputMappings: newMappings),
+                    );
                   },
                 ),
               ],
@@ -267,11 +271,14 @@ class InspectorPane extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
             onPressed: () {
-              final copy = Map<String, dynamic>.from(stepDef);
-              final maps = SafeCast.safeMap(copy['input_mappings']);
-              maps['new_param_${maps.length}'] = '\$inputs.';
-              copy['input_mappings'] = maps;
-              onStepUpdated(selectedStepId!, copy);
+              final newMappings = Map<String, String>.from(
+                stepDef.inputMappings,
+              );
+              newMappings['new_param_${newMappings.length}'] = '\$inputs.';
+              onStepUpdated(
+                selectedStepId!,
+                stepDef.copyWith(inputMappings: newMappings),
+              );
             },
             icon: const Icon(Icons.add, size: 16),
             label: Text(l10n.workflowAddMappingBtn),

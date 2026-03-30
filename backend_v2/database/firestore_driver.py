@@ -4,7 +4,7 @@ import logging
 import uuid
 from typing import Any
 
-from google.cloud import firestore  # type: ignore[attr-defined]
+from google.cloud import firestore
 
 from backend_v2.database.driver import Filter, StorageDriver
 

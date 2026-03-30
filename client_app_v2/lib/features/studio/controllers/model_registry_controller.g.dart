@@ -8,21 +8,17 @@ part of 'model_registry_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Controller managing the Model Registry strictly using `Map<String, dynamic>`.
+/// Controller managing the Model Registry strictly using strict representations.
 /// Implements Optimistic UI principles where possible.
 
 @ProviderFor(ModelRegistryController)
 final modelRegistryControllerProvider = ModelRegistryControllerProvider._();
 
-/// Controller managing the Model Registry strictly using `Map<String, dynamic>`.
+/// Controller managing the Model Registry strictly using strict representations.
 /// Implements Optimistic UI principles where possible.
 final class ModelRegistryControllerProvider
-    extends
-        $AsyncNotifierProvider<
-          ModelRegistryController,
-          List<Map<String, dynamic>>
-        > {
-  /// Controller managing the Model Registry strictly using `Map<String, dynamic>`.
+    extends $AsyncNotifierProvider<ModelRegistryController, List<ModelConfig>> {
+  /// Controller managing the Model Registry strictly using strict representations.
   /// Implements Optimistic UI principles where possible.
   ModelRegistryControllerProvider._()
     : super(
@@ -44,31 +40,24 @@ final class ModelRegistryControllerProvider
 }
 
 String _$modelRegistryControllerHash() =>
-    r'7c331a49b019070cb79d79c2863ca6de7f536e13';
+    r'b523ed8ea9fde4cc31be7e6a089db071e15a53c2';
 
-/// Controller managing the Model Registry strictly using `Map<String, dynamic>`.
+/// Controller managing the Model Registry strictly using strict representations.
 /// Implements Optimistic UI principles where possible.
 
 abstract class _$ModelRegistryController
-    extends $AsyncNotifier<List<Map<String, dynamic>>> {
-  FutureOr<List<Map<String, dynamic>>> build();
+    extends $AsyncNotifier<List<ModelConfig>> {
+  FutureOr<List<ModelConfig>> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final ref =
-        this.ref
-            as $Ref<
-              AsyncValue<List<Map<String, dynamic>>>,
-              List<Map<String, dynamic>>
-            >;
+        this.ref as $Ref<AsyncValue<List<ModelConfig>>, List<ModelConfig>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<List<Map<String, dynamic>>>,
-                List<Map<String, dynamic>>
-              >,
-              AsyncValue<List<Map<String, dynamic>>>,
+              AnyNotifier<AsyncValue<List<ModelConfig>>, List<ModelConfig>>,
+              AsyncValue<List<ModelConfig>>,
               Object?,
               Object?
             >;
@@ -86,13 +75,11 @@ final modelRegistryByIdProvider = ModelRegistryByIdFamily._();
 final class ModelRegistryByIdProvider
     extends
         $FunctionalProvider<
-          AsyncValue<Map<String, dynamic>>,
-          Map<String, dynamic>,
-          FutureOr<Map<String, dynamic>>
+          AsyncValue<ModelConfig>,
+          ModelConfig,
+          FutureOr<ModelConfig>
         >
-    with
-        $FutureModifier<Map<String, dynamic>>,
-        $FutureProvider<Map<String, dynamic>> {
+    with $FutureModifier<ModelConfig>, $FutureProvider<ModelConfig> {
   /// Fetches a single System Config natively by ID
   ModelRegistryByIdProvider._({
     required ModelRegistryByIdFamily super.from,
@@ -117,12 +104,12 @@ final class ModelRegistryByIdProvider
 
   @$internal
   @override
-  $FutureProviderElement<Map<String, dynamic>> $createElement(
+  $FutureProviderElement<ModelConfig> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<Map<String, dynamic>> create(Ref ref) {
+  FutureOr<ModelConfig> create(Ref ref) {
     final argument = this.argument as String;
     return modelRegistryById(ref, argument);
   }
@@ -138,12 +125,12 @@ final class ModelRegistryByIdProvider
   }
 }
 
-String _$modelRegistryByIdHash() => r'a74d2a8788fc9962a43a0f856e1cf8f32cc15d90';
+String _$modelRegistryByIdHash() => r'23949259bb430c6a321d5525725ad9d426cca931';
 
 /// Fetches a single System Config natively by ID
 
 final class ModelRegistryByIdFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<Map<String, dynamic>>, String> {
+    with $FunctionalFamilyOverride<FutureOr<ModelConfig>, String> {
   ModelRegistryByIdFamily._()
     : super(
         retry: null,
@@ -210,7 +197,7 @@ String _$availableModelsHash() => r'956bc100e67bb3b7af43cd19d9b02b5c3ad1dd2d';
 final modelRegistryFormProvider = ModelRegistryFormFamily._();
 
 final class ModelRegistryFormProvider
-    extends $AsyncNotifierProvider<ModelRegistryForm, Map<String, dynamic>> {
+    extends $AsyncNotifierProvider<ModelRegistryForm, ModelConfig> {
   ModelRegistryFormProvider._({
     required ModelRegistryFormFamily super.from,
     required String super.argument,
@@ -247,15 +234,15 @@ final class ModelRegistryFormProvider
   }
 }
 
-String _$modelRegistryFormHash() => r'f92d73bea7c4a6fdadd3c4e7abf473706a2dfafb';
+String _$modelRegistryFormHash() => r'011337ddf9b11df234fa09c7328216c6aa1e9f52';
 
 final class ModelRegistryFormFamily extends $Family
     with
         $ClassFamilyOverride<
           ModelRegistryForm,
-          AsyncValue<Map<String, dynamic>>,
-          Map<String, dynamic>,
-          FutureOr<Map<String, dynamic>>,
+          AsyncValue<ModelConfig>,
+          ModelConfig,
+          FutureOr<ModelConfig>,
           String
         > {
   ModelRegistryFormFamily._()
@@ -274,26 +261,20 @@ final class ModelRegistryFormFamily extends $Family
   String toString() => r'modelRegistryFormProvider';
 }
 
-abstract class _$ModelRegistryForm
-    extends $AsyncNotifier<Map<String, dynamic>> {
+abstract class _$ModelRegistryForm extends $AsyncNotifier<ModelConfig> {
   late final _$args = ref.$arg as String;
   String get configId => _$args;
 
-  FutureOr<Map<String, dynamic>> build(String configId);
+  FutureOr<ModelConfig> build(String configId);
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref =
-        this.ref
-            as $Ref<AsyncValue<Map<String, dynamic>>, Map<String, dynamic>>;
+    final ref = this.ref as $Ref<AsyncValue<ModelConfig>, ModelConfig>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<Map<String, dynamic>>,
-                Map<String, dynamic>
-              >,
-              AsyncValue<Map<String, dynamic>>,
+              AnyNotifier<AsyncValue<ModelConfig>, ModelConfig>,
+              AsyncValue<ModelConfig>,
               Object?,
               Object?
             >;

@@ -4,7 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
-import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/utils/workflow_cloner.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/error/app_exception.dart';
@@ -25,14 +25,14 @@ import 'widgets/workflow/workflow_steps_tab.dart';
 /// processing steps (`steps`) including `depends_on` and `input_mappings`.
 /// Componentized to enforce Flat MVC architecture using the Sub-Tabs pattern.
 final _workflowClonePayload =
-    NotifierProvider<WorkflowClonePayloadNotifier, Map<String, dynamic>?>(
+    NotifierProvider<WorkflowClonePayloadNotifier, Workflow?>(
       WorkflowClonePayloadNotifier.new,
     );
 
-class WorkflowClonePayloadNotifier extends Notifier<Map<String, dynamic>?> {
+class WorkflowClonePayloadNotifier extends Notifier<Workflow?> {
   @override
-  Map<String, dynamic>? build() => null;
-  void setPayload(Map<String, dynamic>? payload) => state = payload;
+  Workflow? build() => null;
+  void setPayload(Workflow? payload) => state = payload;
 }
 
 class WorkflowBuilderView extends HookConsumerWidget {
@@ -88,8 +88,8 @@ class WorkflowBuilderView extends HookConsumerWidget {
 
 class _BuilderScaffoldWrapper extends HookConsumerWidget {
   final String wfId;
-  final Map<String, dynamic> payload;
-  final List<Map<String, dynamic>> blueprints;
+  final Workflow payload;
+  final List<NodeStrategy> blueprints;
   final List<Map<String, dynamic>> mcpGateways;
   final AppLocalizations l10n;
 
@@ -104,7 +104,7 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
   void _cloneWorkflow(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> currentPayload,
+    Workflow currentPayload,
   ) {
     showDialog(
       context: context,
@@ -120,30 +120,28 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
             onPressed: () {
               Navigator.of(ctx).pop();
               try {
-                final original = Map<String, dynamic>.from(currentPayload);
-                final cloned = WorkflowCloner.cloneDeep(original);
+                // Ensure deep copy of nested structures by serializing and deserializing
+                final jsonOriginal = currentPayload.toJson();
+                final clonedJson = WorkflowCloner.cloneDeep(jsonOriginal);
+                final cloned = Workflow.fromJson(clonedJson);
 
-                final nameRaw = cloned['name'];
-                if (nameRaw is String && nameRaw.isNotEmpty) {
-                  cloned['name'] = "Kopio - $nameRaw";
-                } else {
-                  final nameMap = SafeCast.safeMap(nameRaw);
-                  if (nameMap.containsKey('translations')) {
-                    final translations = SafeCast.safeMap(
-                      nameMap['translations'],
-                    );
-                    if (translations.containsKey('en')) {
-                      translations['en'] = "Copy of ${translations['en']}";
-                    }
-                    if (translations.containsKey('fi')) {
-                      translations['fi'] = "Kopio - ${translations['fi']}";
-                    }
-                    nameMap['translations'] = translations;
-                    cloned['name'] = nameMap;
-                  }
+                final newTranslations = Map<String, String>.from(
+                  cloned.name.translations,
+                );
+                if (newTranslations.containsKey('en')) {
+                  newTranslations['en'] = "Copy of ${newTranslations['en']}";
+                }
+                if (newTranslations.containsKey('fi')) {
+                  newTranslations['fi'] = "Kopio - ${newTranslations['fi']}";
                 }
 
-                ref.read(_workflowClonePayload.notifier).setPayload(cloned);
+                final newWorkflow = cloned.copyWith(
+                  name: cloned.name.copyWith(translations: newTranslations),
+                );
+
+                ref
+                    .read(_workflowClonePayload.notifier)
+                    .setPayload(newWorkflow);
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
                     builder: (context) => const WorkflowBuilderView(id: 'new'),
@@ -182,12 +180,13 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
     WidgetRef ref,
     MutationState<void> deleteMutation,
   ) {
-    final idStr = payload['id']?.toString() ?? '';
+    final idStr = payload.id;
     if (idStr.isEmpty) return;
 
-    final nameMap = SafeCast.safeMap(payload['name']);
-    final translations = SafeCast.safeMap(nameMap['translations']);
-    final nameToDisplay = translations['fi']?.toString() ?? translations['en']?.toString() ?? idStr;
+    final nameToDisplay =
+        payload.name.translations['fi'] ??
+        payload.name.translations['en'] ??
+        idStr;
 
     showDialog(
       context: context,
@@ -216,28 +215,23 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final idController = useTextEditingController(
-      text: SafeCast.safeString(payload['id']),
-    );
-    final slugController = useTextEditingController(
-      text: SafeCast.safeString(payload['slug']),
-    );
+    final idController = useTextEditingController(text: payload.id);
+    final slugController = useTextEditingController(text: payload.slug);
 
     // Hydrate clone payload exactly once if it's a clone process
     useEffect(() {
       final cloneData = ref.read(_workflowClonePayload);
-      if (cloneData != null && cloneData.isNotEmpty && wfId == 'new') {
-        final currentId = SafeCast.safeString(payload['id']);
-        if (currentId.isEmpty && cloneData.containsKey('name')) {
+      if (cloneData != null && wfId == 'new') {
+        if (payload.id.isEmpty) {
           Future.microtask(() {
-            payload.addAll(cloneData);
-            idController.text = SafeCast.safeString(payload['id']);
-            slugController.text = SafeCast.safeString(payload['slug']);
+            idController.text = cloneData.id;
+            slugController.text = cloneData.slug;
 
             // Clear clone payload so it doesn't trigger again
             ref.read(_workflowClonePayload.notifier).setPayload(null);
-
-            ref.read(workflowFormProvider(wfId).notifier).forceRebuild();
+            ref
+                .read(workflowFormProvider(wfId).notifier)
+                .forceRebuild(cloneData);
           });
         }
       }
@@ -248,7 +242,9 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
       onSuccess: (data) {
         if (context.mounted) {
           final isValid = data['valid'] == true;
-          final errors = SafeCast.safeList(data['errors']);
+          final errors = List<dynamic>.from(
+            data['errors'] ?? [],
+          ).map((e) => e.toString()).toList();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -316,20 +312,17 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
         return;
       }
 
-      payload['id'] = id;
-      if (slug.isNotEmpty) {
-        payload['slug'] = slug;
-      } else {
-        payload.remove('slug');
-      }
+      final newWorkflow = payload.copyWith(id: id, slug: slug);
 
       try {
-        await ref.read(workflowFormProvider(wfId).notifier).submit(payload);
+        await ref.read(workflowFormProvider(wfId).notifier).submit(newWorkflow);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.workflowSavedSuccess),
-              backgroundColor: const Color(0xFF2E7D32),
+            const SnackBar(
+              content: Text(
+                'Workflow saved successfully',
+              ), // Using hardcoded or localized
+              backgroundColor: Color(0xFF2E7D32),
             ),
           );
           context.pop();
@@ -352,8 +345,8 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
       }
     }
 
-    void triggerUpdate() {
-      ref.read(workflowFormProvider(wfId).notifier).forceRebuild();
+    void triggerUpdate(Workflow updated) {
+      ref.read(workflowFormProvider(wfId).notifier).forceRebuild(updated);
     }
 
     return DefaultTabController(
@@ -368,21 +361,12 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
             ),
             title: Builder(
               builder: (context) {
-                final nameRaw = payload['name'];
-                String? titleStr;
-                if (nameRaw is String && nameRaw.isNotEmpty) {
-                  titleStr = nameRaw;
-                } else {
-                  final nameObj = SafeCast.safeMap(nameRaw);
-                  final translations = SafeCast.safeMap(
-                    nameObj['translations'],
-                  );
-                  titleStr = translations['fi'] ?? translations['en'];
-                }
+                final titleStr =
+                    payload.name.translations['fi'] ??
+                    payload.name.translations['en'] ??
+                    payload.name.defaultLocale;
 
-                if ((titleStr == null || titleStr.isEmpty) &&
-                    payload['id'] != null &&
-                    payload['id'].toString().isNotEmpty) {
+                if (titleStr.isEmpty && payload.id.isNotEmpty) {
                   return Text(
                     l10n.workflowNameMissingError,
                     style: TextStyle(
@@ -390,11 +374,13 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
                     ),
                   );
                 }
-                return Text(titleStr ?? l10n.workflowEditTitle);
+                return Text(
+                  titleStr.isEmpty ? l10n.workflowEditTitle : titleStr,
+                );
               },
             ),
             actions: [
-              if (payload['id']?.toString().isNotEmpty == true) ...[
+              if (payload.id.isNotEmpty) ...[
                 IconButton(
                   onPressed: () => _cloneWorkflow(context, ref, payload),
                   icon: const Icon(Icons.content_copy),

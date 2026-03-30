@@ -21,7 +21,7 @@ from backend_v2.exceptions import (
     PermissionDeniedError,
     ResourceNotFoundError,
 )
-from backend_v2.models.auth import Organization, OrganizationCreate, TokenData, User, UserCreate, UserRole, UserUpdate
+from backend_v2.models.auth import Organization, OrganizationCreate, SubscriptionStatus, TokenData, User, UserCreate, UserRole, UserUpdate
 
 # Secure Secret for Local Tokens (Impersonation)
 
@@ -274,6 +274,9 @@ class AuthService:
                     role=UserRole.MEMBER,
                     organization_id=None,  # Orphan user
                     created_at=datetime.now(timezone.utc),
+                    is_active=True,
+                    language="en",
+                    theme_mode="system",
                     # Created by System/Self
                 )
 
@@ -312,6 +315,9 @@ class AuthService:
             name=org_create.name,
             created_at=datetime.now(timezone.utc),
             is_active=True,
+            tier="enterprise",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=500.0,
             tpm_limit=50000,
             rpm_limit=500,
         )
@@ -326,6 +332,9 @@ class AuthService:
             display_name=org_create.admin_name,
             role=UserRole.ADMIN,
             organization_id=org_id,
+            is_active=True,
+            language="en",
+            theme_mode="system",
         )
 
         # Bypass hierarchy check since we are ROOT acting explicitly
@@ -446,6 +455,9 @@ class AuthService:
             organization_id=target_org_id,
             created_at=datetime.now(timezone.utc),
             created_by=creator.id,
+            is_active=user_data.is_active,
+            language=user_data.language,
+            theme_mode=user_data.theme_mode,
         )
 
         saved_user = await self.repo.create(new_user)
@@ -893,7 +905,10 @@ class AuthService:
                     id="436d84de-c526-43b7-93ef-634912be0d2f",
                     name="System Administration",
                     created_at=datetime.now(timezone.utc),
+                    is_active=True,
                     tier="enterprise",
+                    subscription_status=SubscriptionStatus.ACTIVE,
+                    quota_limit=5000.0,
                     tpm_limit=50000,
                     rpm_limit=500,
                 )

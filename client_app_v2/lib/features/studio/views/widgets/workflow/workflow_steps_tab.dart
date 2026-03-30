@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
-import '../../../../../utils/safe_cast.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
 import 'workflow_step_card.dart';
 
 /// **WorkflowStepsTab**
@@ -8,10 +8,10 @@ import 'workflow_step_card.dart';
 /// Componentized UI widget representing Tab 3 of the Workflow Builder.
 /// Handles the mapping, ordering, and visualization of execution steps.
 class WorkflowStepsTab extends StatelessWidget {
-  final Map<String, dynamic> workflow;
-  final List<Map<String, dynamic>> blueprints;
+  final Workflow workflow;
+  final List<NodeStrategy> blueprints;
   final List<Map<String, dynamic>> mcpGateways;
-  final VoidCallback onChanged;
+  final Function(Workflow) onChanged;
 
   const WorkflowStepsTab({
     super.key,
@@ -22,24 +22,23 @@ class WorkflowStepsTab extends StatelessWidget {
   });
 
   void _addStep() {
-    final steps = SafeCast.safeList(workflow['steps']);
-    steps.add({
-      'id': 'step_${DateTime.now().millisecondsSinceEpoch}',
-      'task_blueprint': '',
-      'depends_on': <String>[],
-      'input_mappings': <String, dynamic>{'inputs': '\$inputs'},
-      'allowed_mcp_tools': <String>[],
-    });
-    workflow['steps'] = steps;
-    onChanged();
+    final steps = List<StepRule>.from(workflow.steps);
+    steps.add(
+      StepRule(
+        id: 'step_${DateTime.now().millisecondsSinceEpoch}',
+        taskBlueprint: '',
+        dependsOn: const [],
+        inputMappings: const {'inputs': '\$inputs'},
+        allowedMcpTools: const [],
+      ),
+    );
+    onChanged(workflow.copyWith(steps: steps));
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final allSteps = SafeCast.safeList(
-      workflow['steps'],
-    ).map((s) => SafeCast.safeMap(s)).toList();
+    final allSteps = List<StepRule>.from(workflow.steps);
 
     return SingleChildScrollView(
       child: Padding(
@@ -64,11 +63,11 @@ class WorkflowStepsTab extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             if (allSteps.isEmpty)
               Center(
                 child: Padding(
-                  padding: EdgeInsets.all(32.0),
+                  padding: const EdgeInsets.all(32.0),
                   child: Text(
                     l10n.studioWorkflowStepsEmpty,
                     style: TextStyle(
@@ -85,15 +84,15 @@ class WorkflowStepsTab extends StatelessWidget {
                 allSteps: allSteps,
                 mcpGateways: mcpGateways,
                 l10n: l10n,
-                onChanged: () {
-                  allSteps[entry.key] = entry.value;
-                  workflow['steps'] = allSteps;
-                  onChanged();
+                onChanged: (updatedStep) {
+                  final newSteps = List<StepRule>.from(allSteps);
+                  newSteps[entry.key] = updatedStep;
+                  onChanged(workflow.copyWith(steps: newSteps));
                 },
                 onDelete: () {
-                  allSteps.removeAt(entry.key);
-                  workflow['steps'] = allSteps;
-                  onChanged();
+                  final newSteps = List<StepRule>.from(allSteps);
+                  newSteps.removeAt(entry.key);
+                  onChanged(workflow.copyWith(steps: newSteps));
                 },
               );
             }),

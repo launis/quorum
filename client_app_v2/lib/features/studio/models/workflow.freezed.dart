@@ -604,606 +604,6 @@ $I18nTextCopyWith<$Res> get description {
 
 
 /// @nodoc
-mixin _$OutputLayoutBlock {
-
- String get presetView; I18nText? get title; I18nText? get description; List<String> get steps; List<String> get targetBlocks; bool get showText;
-/// Create a copy of OutputLayoutBlock
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$OutputLayoutBlockCopyWith<OutputLayoutBlock> get copyWith => _$OutputLayoutBlockCopyWithImpl<OutputLayoutBlock>(this as OutputLayoutBlock, _$identity);
-
-  /// Serializes this OutputLayoutBlock to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-
-
-@override
-String toString() {
-  return 'OutputLayoutBlock(presetView: $presetView, title: $title, description: $description, steps: $steps, targetBlocks: $targetBlocks, showText: $showText)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $OutputLayoutBlockCopyWith<$Res>  {
-  factory $OutputLayoutBlockCopyWith(OutputLayoutBlock value, $Res Function(OutputLayoutBlock) _then) = _$OutputLayoutBlockCopyWithImpl;
-@useResult
-$Res call({
- String presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks, bool showText
-});
-
-
-$I18nTextCopyWith<$Res>? get title;$I18nTextCopyWith<$Res>? get description;
-
-}
-/// @nodoc
-class _$OutputLayoutBlockCopyWithImpl<$Res>
-    implements $OutputLayoutBlockCopyWith<$Res> {
-  _$OutputLayoutBlockCopyWithImpl(this._self, this._then);
-
-  final OutputLayoutBlock _self;
-  final $Res Function(OutputLayoutBlock) _then;
-
-/// Create a copy of OutputLayoutBlock
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? showText = null,}) {
-  return _then(_self.copyWith(
-presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
-as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText?,steps: null == steps ? _self.steps : steps // ignore: cast_nullable_to_non_nullable
-as List<String>,targetBlocks: null == targetBlocks ? _self.targetBlocks : targetBlocks // ignore: cast_nullable_to_non_nullable
-as List<String>,showText: null == showText ? _self.showText : showText // ignore: cast_nullable_to_non_nullable
-as bool,
-  ));
-}
-/// Create a copy of OutputLayoutBlock
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$I18nTextCopyWith<$Res>? get title {
-    if (_self.title == null) {
-    return null;
-  }
-
-  return $I18nTextCopyWith<$Res>(_self.title!, (value) {
-    return _then(_self.copyWith(title: value));
-  });
-}/// Create a copy of OutputLayoutBlock
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$I18nTextCopyWith<$Res>? get description {
-    if (_self.description == null) {
-    return null;
-  }
-
-  return $I18nTextCopyWith<$Res>(_self.description!, (value) {
-    return _then(_self.copyWith(description: value));
-  });
-}
-}
-
-
-/// Adds pattern-matching-related methods to [OutputLayoutBlock].
-extension OutputLayoutBlockPatterns on OutputLayoutBlock {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OutputLayoutBlock value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _OutputLayoutBlock() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OutputLayoutBlock value)  $default,){
-final _that = this;
-switch (_that) {
-case _OutputLayoutBlock():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OutputLayoutBlock value)?  $default,){
-final _that = this;
-switch (_that) {
-case _OutputLayoutBlock() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks,  bool showText)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _OutputLayoutBlock() when $default != null:
-return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.showText);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks,  bool showText)  $default,) {final _that = this;
-switch (_that) {
-case _OutputLayoutBlock():
-return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.showText);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks,  bool showText)?  $default,) {final _that = this;
-switch (_that) {
-case _OutputLayoutBlock() when $default != null:
-return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.showText);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _OutputLayoutBlock extends OutputLayoutBlock {
-  const _OutputLayoutBlock({required this.presetView, this.title, this.description, final  List<String> steps = const [], final  List<String> targetBlocks = const [], this.showText = true}): _steps = steps,_targetBlocks = targetBlocks,super._();
-  factory _OutputLayoutBlock.fromJson(Map<String, dynamic> json) => _$OutputLayoutBlockFromJson(json);
-
-@override final  String presetView;
-@override final  I18nText? title;
-@override final  I18nText? description;
- final  List<String> _steps;
-@override@JsonKey() List<String> get steps {
-  if (_steps is EqualUnmodifiableListView) return _steps;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_steps);
-}
-
- final  List<String> _targetBlocks;
-@override@JsonKey() List<String> get targetBlocks {
-  if (_targetBlocks is EqualUnmodifiableListView) return _targetBlocks;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_targetBlocks);
-}
-
-@override@JsonKey() final  bool showText;
-
-/// Create a copy of OutputLayoutBlock
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$OutputLayoutBlockCopyWith<_OutputLayoutBlock> get copyWith => __$OutputLayoutBlockCopyWithImpl<_OutputLayoutBlock>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$OutputLayoutBlockToJson(this, );
-}
-
-
-
-@override
-String toString() {
-  return 'OutputLayoutBlock(presetView: $presetView, title: $title, description: $description, steps: $steps, targetBlocks: $targetBlocks, showText: $showText)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$OutputLayoutBlockCopyWith<$Res> implements $OutputLayoutBlockCopyWith<$Res> {
-  factory _$OutputLayoutBlockCopyWith(_OutputLayoutBlock value, $Res Function(_OutputLayoutBlock) _then) = __$OutputLayoutBlockCopyWithImpl;
-@override @useResult
-$Res call({
- String presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks, bool showText
-});
-
-
-@override $I18nTextCopyWith<$Res>? get title;@override $I18nTextCopyWith<$Res>? get description;
-
-}
-/// @nodoc
-class __$OutputLayoutBlockCopyWithImpl<$Res>
-    implements _$OutputLayoutBlockCopyWith<$Res> {
-  __$OutputLayoutBlockCopyWithImpl(this._self, this._then);
-
-  final _OutputLayoutBlock _self;
-  final $Res Function(_OutputLayoutBlock) _then;
-
-/// Create a copy of OutputLayoutBlock
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? showText = null,}) {
-  return _then(_OutputLayoutBlock(
-presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
-as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText?,steps: null == steps ? _self._steps : steps // ignore: cast_nullable_to_non_nullable
-as List<String>,targetBlocks: null == targetBlocks ? _self._targetBlocks : targetBlocks // ignore: cast_nullable_to_non_nullable
-as List<String>,showText: null == showText ? _self.showText : showText // ignore: cast_nullable_to_non_nullable
-as bool,
-  ));
-}
-
-/// Create a copy of OutputLayoutBlock
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$I18nTextCopyWith<$Res>? get title {
-    if (_self.title == null) {
-    return null;
-  }
-
-  return $I18nTextCopyWith<$Res>(_self.title!, (value) {
-    return _then(_self.copyWith(title: value));
-  });
-}/// Create a copy of OutputLayoutBlock
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$I18nTextCopyWith<$Res>? get description {
-    if (_self.description == null) {
-    return null;
-  }
-
-  return $I18nTextCopyWith<$Res>(_self.description!, (value) {
-    return _then(_self.copyWith(description: value));
-  });
-}
-}
-
-
-/// @nodoc
-mixin _$OutputProfile {
-
- I18nText get name; List<OutputLayoutBlock> get layouts;
-/// Create a copy of OutputProfile
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$OutputProfileCopyWith<OutputProfile> get copyWith => _$OutputProfileCopyWithImpl<OutputProfile>(this as OutputProfile, _$identity);
-
-  /// Serializes this OutputProfile to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-
-
-@override
-String toString() {
-  return 'OutputProfile(name: $name, layouts: $layouts)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $OutputProfileCopyWith<$Res>  {
-  factory $OutputProfileCopyWith(OutputProfile value, $Res Function(OutputProfile) _then) = _$OutputProfileCopyWithImpl;
-@useResult
-$Res call({
- I18nText name, List<OutputLayoutBlock> layouts
-});
-
-
-$I18nTextCopyWith<$Res> get name;
-
-}
-/// @nodoc
-class _$OutputProfileCopyWithImpl<$Res>
-    implements $OutputProfileCopyWith<$Res> {
-  _$OutputProfileCopyWithImpl(this._self, this._then);
-
-  final OutputProfile _self;
-  final $Res Function(OutputProfile) _then;
-
-/// Create a copy of OutputProfile
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? layouts = null,}) {
-  return _then(_self.copyWith(
-name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as I18nText,layouts: null == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
-as List<OutputLayoutBlock>,
-  ));
-}
-/// Create a copy of OutputProfile
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$I18nTextCopyWith<$Res> get name {
-  
-  return $I18nTextCopyWith<$Res>(_self.name, (value) {
-    return _then(_self.copyWith(name: value));
-  });
-}
-}
-
-
-/// Adds pattern-matching-related methods to [OutputProfile].
-extension OutputProfilePatterns on OutputProfile {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OutputProfile value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _OutputProfile() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OutputProfile value)  $default,){
-final _that = this;
-switch (_that) {
-case _OutputProfile():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OutputProfile value)?  $default,){
-final _that = this;
-switch (_that) {
-case _OutputProfile() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText name,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _OutputProfile() when $default != null:
-return $default(_that.name,_that.layouts);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText name,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
-switch (_that) {
-case _OutputProfile():
-return $default(_that.name,_that.layouts);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText name,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
-switch (_that) {
-case _OutputProfile() when $default != null:
-return $default(_that.name,_that.layouts);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-@JsonSerializable()
-
-class _OutputProfile extends OutputProfile {
-  const _OutputProfile({required this.name, final  List<OutputLayoutBlock> layouts = const []}): _layouts = layouts,super._();
-  factory _OutputProfile.fromJson(Map<String, dynamic> json) => _$OutputProfileFromJson(json);
-
-@override final  I18nText name;
- final  List<OutputLayoutBlock> _layouts;
-@override@JsonKey() List<OutputLayoutBlock> get layouts {
-  if (_layouts is EqualUnmodifiableListView) return _layouts;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_layouts);
-}
-
-
-/// Create a copy of OutputProfile
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$OutputProfileCopyWith<_OutputProfile> get copyWith => __$OutputProfileCopyWithImpl<_OutputProfile>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$OutputProfileToJson(this, );
-}
-
-
-
-@override
-String toString() {
-  return 'OutputProfile(name: $name, layouts: $layouts)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$OutputProfileCopyWith<$Res> implements $OutputProfileCopyWith<$Res> {
-  factory _$OutputProfileCopyWith(_OutputProfile value, $Res Function(_OutputProfile) _then) = __$OutputProfileCopyWithImpl;
-@override @useResult
-$Res call({
- I18nText name, List<OutputLayoutBlock> layouts
-});
-
-
-@override $I18nTextCopyWith<$Res> get name;
-
-}
-/// @nodoc
-class __$OutputProfileCopyWithImpl<$Res>
-    implements _$OutputProfileCopyWith<$Res> {
-  __$OutputProfileCopyWithImpl(this._self, this._then);
-
-  final _OutputProfile _self;
-  final $Res Function(_OutputProfile) _then;
-
-/// Create a copy of OutputProfile
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? layouts = null,}) {
-  return _then(_OutputProfile(
-name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as I18nText,layouts: null == layouts ? _self._layouts : layouts // ignore: cast_nullable_to_non_nullable
-as List<OutputLayoutBlock>,
-  ));
-}
-
-/// Create a copy of OutputProfile
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$I18nTextCopyWith<$Res> get name {
-  
-  return $I18nTextCopyWith<$Res>(_self.name, (value) {
-    return _then(_self.copyWith(name: value));
-  });
-}
-}
-
-
-/// @nodoc
 mixin _$StepRule {
 
 @StrictOpaqueIdConverter() String get id;@StrictOpaqueIdConverter() String get taskBlueprint; List<String> get dependsOn; Map<String, String> get inputMappings; List<String> get allowedMcpTools; double get uiPosX; double get uiPosY;
@@ -1514,7 +914,7 @@ NodeStrategy _$NodeStrategyFromJson(
 /// @nodoc
 mixin _$NodeStrategy {
 
-@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText? get description; List<String> get preHooks; List<String> get postHooks; String get safety; List<String> get allowedMcpTools;
+@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText? get description; String? get hook; String? get taskKey; List<String> get promptBlocks; List<String> get preHooks; List<String> get postHooks; String get safety; List<String> get allowedMcpTools; String? get modelStrategy;
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1527,16 +927,16 @@ $NodeStrategyCopyWith<NodeStrategy> get copyWith => _$NodeStrategyCopyWithImpl<N
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategy&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.preHooks, preHooks)&&const DeepCollectionEquality().equals(other.postHooks, postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other.allowedMcpTools, allowedMcpTools));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategy&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.taskKey, taskKey) || other.taskKey == taskKey)&&const DeepCollectionEquality().equals(other.promptBlocks, promptBlocks)&&const DeepCollectionEquality().equals(other.preHooks, preHooks)&&const DeepCollectionEquality().equals(other.postHooks, postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other.allowedMcpTools, allowedMcpTools)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,name,description,const DeepCollectionEquality().hash(preHooks),const DeepCollectionEquality().hash(postHooks),safety,const DeepCollectionEquality().hash(allowedMcpTools));
+int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,taskKey,const DeepCollectionEquality().hash(promptBlocks),const DeepCollectionEquality().hash(preHooks),const DeepCollectionEquality().hash(postHooks),safety,const DeepCollectionEquality().hash(allowedMcpTools),modelStrategy);
 
 @override
 String toString() {
-  return 'NodeStrategy(id: $id, slug: $slug, name: $name, description: $description, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools)';
+  return 'NodeStrategy(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, taskKey: $taskKey, promptBlocks: $promptBlocks, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, modelStrategy: $modelStrategy)';
 }
 
 
@@ -1547,7 +947,7 @@ abstract mixin class $NodeStrategyCopyWith<$Res>  {
   factory $NodeStrategyCopyWith(NodeStrategy value, $Res Function(NodeStrategy) _then) = _$NodeStrategyCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook, String? taskKey, List<String> promptBlocks, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, String? modelStrategy
 });
 
 
@@ -1564,17 +964,21 @@ class _$NodeStrategyCopyWithImpl<$Res>
 
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? taskKey = freezed,Object? promptBlocks = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? modelStrategy = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText?,preHooks: null == preHooks ? _self.preHooks : preHooks // ignore: cast_nullable_to_non_nullable
+as I18nText?,hook: null == hook ? _self.hook! : hook // ignore: cast_nullable_to_non_nullable
+as String,taskKey: freezed == taskKey ? _self.taskKey : taskKey // ignore: cast_nullable_to_non_nullable
+as String?,promptBlocks: null == promptBlocks ? _self.promptBlocks : promptBlocks // ignore: cast_nullable_to_non_nullable
+as List<String>,preHooks: null == preHooks ? _self.preHooks : preHooks // ignore: cast_nullable_to_non_nullable
 as List<String>,postHooks: null == postHooks ? _self.postHooks : postHooks // ignore: cast_nullable_to_non_nullable
 as List<String>,safety: null == safety ? _self.safety : safety // ignore: cast_nullable_to_non_nullable
 as String,allowedMcpTools: null == allowedMcpTools ? _self.allowedMcpTools : allowedMcpTools // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<String>,modelStrategy: freezed == modelStrategy ? _self.modelStrategy : modelStrategy // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 /// Create a copy of NodeStrategy
@@ -1680,11 +1084,11 @@ return logic(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  String? modelStrategy)?  llm,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook,  String? taskKey,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools)?  logic,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook,  String? taskKey,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  String? modelStrategy)?  llm,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook,  String? taskKey,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  String? modelStrategy)?  logic,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm() when llm != null:
-return llm(_that.id,_that.slug,_that.name,_that.description,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.modelStrategy);case NodeStrategyLogic() when logic != null:
-return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.taskKey,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools);case _:
+return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.taskKey,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.modelStrategy);case NodeStrategyLogic() when logic != null:
+return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.taskKey,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.modelStrategy);case _:
   return orElse();
 
 }
@@ -1702,11 +1106,11 @@ return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  String? modelStrategy)  llm,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook,  String? taskKey,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools)  logic,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook,  String? taskKey,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  String? modelStrategy)  llm,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook,  String? taskKey,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  String? modelStrategy)  logic,}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm():
-return llm(_that.id,_that.slug,_that.name,_that.description,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.modelStrategy);case NodeStrategyLogic():
-return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.taskKey,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools);}
+return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.taskKey,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.modelStrategy);case NodeStrategyLogic():
+return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.taskKey,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.modelStrategy);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -1720,11 +1124,11 @@ return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  String? modelStrategy)?  llm,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook,  String? taskKey,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools)?  logic,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook,  String? taskKey,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  String? modelStrategy)?  llm,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook,  String? taskKey,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  String? modelStrategy)?  logic,}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm() when llm != null:
-return llm(_that.id,_that.slug,_that.name,_that.description,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.modelStrategy);case NodeStrategyLogic() when logic != null:
-return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.taskKey,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools);case _:
+return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.taskKey,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.modelStrategy);case NodeStrategyLogic() when logic != null:
+return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.taskKey,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.modelStrategy);case _:
   return null;
 
 }
@@ -1736,15 +1140,17 @@ return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.t
 @JsonSerializable()
 
 class NodeStrategyLlm extends NodeStrategy {
-  const NodeStrategyLlm({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, final  List<String> promptBlocks = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], this.modelStrategy, final  String? $type}): _promptBlocks = promptBlocks,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,$type = $type ?? 'llm',super._();
+  const NodeStrategyLlm({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, this.hook, this.taskKey, final  List<String> promptBlocks = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], this.modelStrategy, final  String? $type}): _promptBlocks = promptBlocks,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,$type = $type ?? 'llm',super._();
   factory NodeStrategyLlm.fromJson(Map<String, dynamic> json) => _$NodeStrategyLlmFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
 @override final  String slug;
 @override final  I18nText name;
 @override final  I18nText? description;
+@override final  String? hook;
+@override final  String? taskKey;
  final  List<String> _promptBlocks;
-@JsonKey() List<String> get promptBlocks {
+@override@JsonKey() List<String> get promptBlocks {
   if (_promptBlocks is EqualUnmodifiableListView) return _promptBlocks;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_promptBlocks);
@@ -1772,7 +1178,7 @@ class NodeStrategyLlm extends NodeStrategy {
   return EqualUnmodifiableListView(_allowedMcpTools);
 }
 
- final  String? modelStrategy;
+@override final  String? modelStrategy;
 
 @JsonKey(name: 'type')
 final String $type;
@@ -1791,16 +1197,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLlm&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._promptBlocks, _promptBlocks)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLlm&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.taskKey, taskKey) || other.taskKey == taskKey)&&const DeepCollectionEquality().equals(other._promptBlocks, _promptBlocks)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,name,description,const DeepCollectionEquality().hash(_promptBlocks),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),modelStrategy);
+int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,taskKey,const DeepCollectionEquality().hash(_promptBlocks),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),modelStrategy);
 
 @override
 String toString() {
-  return 'NodeStrategy.llm(id: $id, slug: $slug, name: $name, description: $description, promptBlocks: $promptBlocks, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, modelStrategy: $modelStrategy)';
+  return 'NodeStrategy.llm(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, taskKey: $taskKey, promptBlocks: $promptBlocks, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, modelStrategy: $modelStrategy)';
 }
 
 
@@ -1811,7 +1217,7 @@ abstract mixin class $NodeStrategyLlmCopyWith<$Res> implements $NodeStrategyCopy
   factory $NodeStrategyLlmCopyWith(NodeStrategyLlm value, $Res Function(NodeStrategyLlm) _then) = _$NodeStrategyLlmCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, List<String> promptBlocks, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, String? modelStrategy
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String? hook, String? taskKey, List<String> promptBlocks, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, String? modelStrategy
 });
 
 
@@ -1828,13 +1234,15 @@ class _$NodeStrategyLlmCopyWithImpl<$Res>
 
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? promptBlocks = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? modelStrategy = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = freezed,Object? taskKey = freezed,Object? promptBlocks = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? modelStrategy = freezed,}) {
   return _then(NodeStrategyLlm(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText?,promptBlocks: null == promptBlocks ? _self._promptBlocks : promptBlocks // ignore: cast_nullable_to_non_nullable
+as I18nText?,hook: freezed == hook ? _self.hook : hook // ignore: cast_nullable_to_non_nullable
+as String?,taskKey: freezed == taskKey ? _self.taskKey : taskKey // ignore: cast_nullable_to_non_nullable
+as String?,promptBlocks: null == promptBlocks ? _self._promptBlocks : promptBlocks // ignore: cast_nullable_to_non_nullable
 as List<String>,preHooks: null == preHooks ? _self._preHooks : preHooks // ignore: cast_nullable_to_non_nullable
 as List<String>,postHooks: null == postHooks ? _self._postHooks : postHooks // ignore: cast_nullable_to_non_nullable
 as List<String>,safety: null == safety ? _self.safety : safety // ignore: cast_nullable_to_non_nullable
@@ -1872,15 +1280,22 @@ $I18nTextCopyWith<$Res>? get description {
 @JsonSerializable()
 
 class NodeStrategyLogic extends NodeStrategy {
-  const NodeStrategyLogic({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, required this.hook, this.taskKey, final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], final  String? $type}): _preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,$type = $type ?? 'logic',super._();
+  const NodeStrategyLogic({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, required this.hook, this.taskKey, final  List<String> promptBlocks = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], this.modelStrategy, final  String? $type}): _promptBlocks = promptBlocks,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,$type = $type ?? 'logic',super._();
   factory NodeStrategyLogic.fromJson(Map<String, dynamic> json) => _$NodeStrategyLogicFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
 @override final  String slug;
 @override final  I18nText name;
 @override final  I18nText? description;
- final  String hook;
- final  String? taskKey;
+@override final  String hook;
+@override final  String? taskKey;
+ final  List<String> _promptBlocks;
+@override@JsonKey() List<String> get promptBlocks {
+  if (_promptBlocks is EqualUnmodifiableListView) return _promptBlocks;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_promptBlocks);
+}
+
  final  List<String> _preHooks;
 @override@JsonKey() List<String> get preHooks {
   if (_preHooks is EqualUnmodifiableListView) return _preHooks;
@@ -1903,6 +1318,7 @@ class NodeStrategyLogic extends NodeStrategy {
   return EqualUnmodifiableListView(_allowedMcpTools);
 }
 
+@override final  String? modelStrategy;
 
 @JsonKey(name: 'type')
 final String $type;
@@ -1921,16 +1337,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLogic&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.taskKey, taskKey) || other.taskKey == taskKey)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLogic&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.taskKey, taskKey) || other.taskKey == taskKey)&&const DeepCollectionEquality().equals(other._promptBlocks, _promptBlocks)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,taskKey,const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools));
+int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,taskKey,const DeepCollectionEquality().hash(_promptBlocks),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),modelStrategy);
 
 @override
 String toString() {
-  return 'NodeStrategy.logic(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, taskKey: $taskKey, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools)';
+  return 'NodeStrategy.logic(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, taskKey: $taskKey, promptBlocks: $promptBlocks, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, modelStrategy: $modelStrategy)';
 }
 
 
@@ -1941,7 +1357,7 @@ abstract mixin class $NodeStrategyLogicCopyWith<$Res> implements $NodeStrategyCo
   factory $NodeStrategyLogicCopyWith(NodeStrategyLogic value, $Res Function(NodeStrategyLogic) _then) = _$NodeStrategyLogicCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook, String? taskKey, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook, String? taskKey, List<String> promptBlocks, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, String? modelStrategy
 });
 
 
@@ -1958,7 +1374,7 @@ class _$NodeStrategyLogicCopyWithImpl<$Res>
 
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? taskKey = freezed,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? taskKey = freezed,Object? promptBlocks = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? modelStrategy = freezed,}) {
   return _then(NodeStrategyLogic(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1966,11 +1382,13 @@ as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non
 as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,hook: null == hook ? _self.hook : hook // ignore: cast_nullable_to_non_nullable
 as String,taskKey: freezed == taskKey ? _self.taskKey : taskKey // ignore: cast_nullable_to_non_nullable
-as String?,preHooks: null == preHooks ? _self._preHooks : preHooks // ignore: cast_nullable_to_non_nullable
+as String?,promptBlocks: null == promptBlocks ? _self._promptBlocks : promptBlocks // ignore: cast_nullable_to_non_nullable
+as List<String>,preHooks: null == preHooks ? _self._preHooks : preHooks // ignore: cast_nullable_to_non_nullable
 as List<String>,postHooks: null == postHooks ? _self._postHooks : postHooks // ignore: cast_nullable_to_non_nullable
 as List<String>,safety: null == safety ? _self.safety : safety // ignore: cast_nullable_to_non_nullable
 as String,allowedMcpTools: null == allowedMcpTools ? _self._allowedMcpTools : allowedMcpTools // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<String>,modelStrategy: freezed == modelStrategy ? _self.modelStrategy : modelStrategy // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -2002,7 +1420,7 @@ $I18nTextCopyWith<$Res>? get description {
 /// @nodoc
 mixin _$Workflow {
 
-@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText get description; String get status; int get version; bool get isPublic; String? get organizationId; Map<String, dynamic> get uiSchema; Map<String, OutputProfile> get outputProfiles; String get defaultProfileId; List<ExpectedInput> get expectedInputs; List<StepRule> get steps;
+@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText get description; String get status; int get version; bool get isPublic; String? get organizationId; Map<String, dynamic> get uiSchema; Map<String, EmbeddedOutputProfile> get outputProfiles; String get defaultProfileId; List<ExpectedInput> get expectedInputs; List<StepRule> get steps;
 /// Create a copy of Workflow
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2028,7 +1446,7 @@ abstract mixin class $WorkflowCopyWith<$Res>  {
   factory $WorkflowCopyWith(Workflow value, $Res Function(Workflow) _then) = _$WorkflowCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText description, String status, int version, bool isPublic, String? organizationId, Map<String, dynamic> uiSchema, Map<String, OutputProfile> outputProfiles, String defaultProfileId, List<ExpectedInput> expectedInputs, List<StepRule> steps
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText description, String status, int version, bool isPublic, String? organizationId, Map<String, dynamic> uiSchema, Map<String, EmbeddedOutputProfile> outputProfiles, String defaultProfileId, List<ExpectedInput> expectedInputs, List<StepRule> steps
 });
 
 
@@ -2057,7 +1475,7 @@ as int,isPublic: null == isPublic ? _self.isPublic : isPublic // ignore: cast_nu
 as bool,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,uiSchema: null == uiSchema ? _self.uiSchema : uiSchema // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,outputProfiles: null == outputProfiles ? _self.outputProfiles : outputProfiles // ignore: cast_nullable_to_non_nullable
-as Map<String, OutputProfile>,defaultProfileId: null == defaultProfileId ? _self.defaultProfileId : defaultProfileId // ignore: cast_nullable_to_non_nullable
+as Map<String, EmbeddedOutputProfile>,defaultProfileId: null == defaultProfileId ? _self.defaultProfileId : defaultProfileId // ignore: cast_nullable_to_non_nullable
 as String,expectedInputs: null == expectedInputs ? _self.expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
 as List<ExpectedInput>,steps: null == steps ? _self.steps : steps // ignore: cast_nullable_to_non_nullable
 as List<StepRule>,
@@ -2163,7 +1581,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, dynamic> uiSchema,  Map<String, OutputProfile> outputProfiles,  String defaultProfileId,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, dynamic> uiSchema,  Map<String, EmbeddedOutputProfile> outputProfiles,  String defaultProfileId,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Workflow() when $default != null:
 return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_that.version,_that.isPublic,_that.organizationId,_that.uiSchema,_that.outputProfiles,_that.defaultProfileId,_that.expectedInputs,_that.steps);case _:
@@ -2184,7 +1602,7 @@ return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, dynamic> uiSchema,  Map<String, OutputProfile> outputProfiles,  String defaultProfileId,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, dynamic> uiSchema,  Map<String, EmbeddedOutputProfile> outputProfiles,  String defaultProfileId,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)  $default,) {final _that = this;
 switch (_that) {
 case _Workflow():
 return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_that.version,_that.isPublic,_that.organizationId,_that.uiSchema,_that.outputProfiles,_that.defaultProfileId,_that.expectedInputs,_that.steps);case _:
@@ -2204,7 +1622,7 @@ return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, dynamic> uiSchema,  Map<String, OutputProfile> outputProfiles,  String defaultProfileId,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, dynamic> uiSchema,  Map<String, EmbeddedOutputProfile> outputProfiles,  String defaultProfileId,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)?  $default,) {final _that = this;
 switch (_that) {
 case _Workflow() when $default != null:
 return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_that.version,_that.isPublic,_that.organizationId,_that.uiSchema,_that.outputProfiles,_that.defaultProfileId,_that.expectedInputs,_that.steps);case _:
@@ -2219,7 +1637,7 @@ return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_t
 @JsonSerializable()
 
 class _Workflow extends Workflow {
-  const _Workflow({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, required this.description, this.status = "draft", this.version = 1, this.isPublic = false, this.organizationId, final  Map<String, dynamic> uiSchema = const {}, final  Map<String, OutputProfile> outputProfiles = const {}, this.defaultProfileId = "default", final  List<ExpectedInput> expectedInputs = const [], final  List<StepRule> steps = const []}): _uiSchema = uiSchema,_outputProfiles = outputProfiles,_expectedInputs = expectedInputs,_steps = steps,super._();
+  const _Workflow({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, required this.description, this.status = "draft", this.version = 1, this.isPublic = false, this.organizationId, final  Map<String, dynamic> uiSchema = const {}, final  Map<String, EmbeddedOutputProfile> outputProfiles = const {}, this.defaultProfileId = "default", final  List<ExpectedInput> expectedInputs = const [], final  List<StepRule> steps = const []}): _uiSchema = uiSchema,_outputProfiles = outputProfiles,_expectedInputs = expectedInputs,_steps = steps,super._();
   factory _Workflow.fromJson(Map<String, dynamic> json) => _$WorkflowFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -2237,8 +1655,8 @@ class _Workflow extends Workflow {
   return EqualUnmodifiableMapView(_uiSchema);
 }
 
- final  Map<String, OutputProfile> _outputProfiles;
-@override@JsonKey() Map<String, OutputProfile> get outputProfiles {
+ final  Map<String, EmbeddedOutputProfile> _outputProfiles;
+@override@JsonKey() Map<String, EmbeddedOutputProfile> get outputProfiles {
   if (_outputProfiles is EqualUnmodifiableMapView) return _outputProfiles;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_outputProfiles);
@@ -2286,7 +1704,7 @@ abstract mixin class _$WorkflowCopyWith<$Res> implements $WorkflowCopyWith<$Res>
   factory _$WorkflowCopyWith(_Workflow value, $Res Function(_Workflow) _then) = __$WorkflowCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText description, String status, int version, bool isPublic, String? organizationId, Map<String, dynamic> uiSchema, Map<String, OutputProfile> outputProfiles, String defaultProfileId, List<ExpectedInput> expectedInputs, List<StepRule> steps
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText description, String status, int version, bool isPublic, String? organizationId, Map<String, dynamic> uiSchema, Map<String, EmbeddedOutputProfile> outputProfiles, String defaultProfileId, List<ExpectedInput> expectedInputs, List<StepRule> steps
 });
 
 
@@ -2315,7 +1733,7 @@ as int,isPublic: null == isPublic ? _self.isPublic : isPublic // ignore: cast_nu
 as bool,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,uiSchema: null == uiSchema ? _self._uiSchema : uiSchema // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,outputProfiles: null == outputProfiles ? _self._outputProfiles : outputProfiles // ignore: cast_nullable_to_non_nullable
-as Map<String, OutputProfile>,defaultProfileId: null == defaultProfileId ? _self.defaultProfileId : defaultProfileId // ignore: cast_nullable_to_non_nullable
+as Map<String, EmbeddedOutputProfile>,defaultProfileId: null == defaultProfileId ? _self.defaultProfileId : defaultProfileId // ignore: cast_nullable_to_non_nullable
 as String,expectedInputs: null == expectedInputs ? _self._expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
 as List<ExpectedInput>,steps: null == steps ? _self._steps : steps // ignore: cast_nullable_to_non_nullable
 as List<StepRule>,

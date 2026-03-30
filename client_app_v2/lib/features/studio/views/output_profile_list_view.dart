@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
-import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
@@ -47,14 +46,18 @@ class OutputProfileListView extends ConsumerWidget {
                 itemCount: profiles.length,
                 itemBuilder: (context, index) {
                   final profile = profiles[index];
-                  final layouts = SafeCast.safeList(profile['layouts']);
+                  final layouts = profile.layouts;
 
-                  final nameObj = SafeCast.safeMap(profile['name']);
+                  final currentLocale = Localizations.localeOf(
+                    context,
+                  ).languageCode;
                   final title =
-                      (nameObj['translations'] as Map?)?['fi'] ??
-                      nameObj['fi'] ??
-                      profile['id']?.toString() ??
-                      l10n.studioViewsUnnamedProfile;
+                      profile.name.translations[currentLocale] ??
+                      profile.name.translations['en'] ??
+                      profile.name.translations['fi'] ??
+                      (profile.id.isNotEmpty
+                          ? profile.id
+                          : l10n.studioViewsUnnamedProfile);
 
                   return Card(
                     child: ListTile(
@@ -67,15 +70,15 @@ class OutputProfileListView extends ConsumerWidget {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        '${l10n.studioViewsSlugSubtitle(profile['slug']?.toString() ?? '')}\n${l10n.studioViewsProfileListSubtitle(profile['id']?.toString() ?? '', profile['workflow_id']?.toString() ?? l10n.studioViewsNone, layouts.length)}',
+                        '${l10n.studioViewsSlugSubtitle(profile.slug)}\n${l10n.studioViewsProfileListSubtitle(profile.id, profile.workflowId.isEmpty ? l10n.studioViewsNone : profile.workflowId, layouts.length)}',
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           CloneEntityButton(
                             onClone: () async {
-                              final id = profile['id']?.toString();
-                              if (id == null) return;
+                              final id = profile.id;
+                              if (id.isEmpty) return;
                               await ref
                                   .read(
                                     outputProfilesControllerProvider.notifier,
@@ -87,10 +90,7 @@ class OutputProfileListView extends ConsumerWidget {
                         ],
                       ),
                       onTap: () {
-                        OutputProfileEditRoute(
-                          id: profile['id'] ?? '',
-                          $extra: profile,
-                        ).go(context);
+                        OutputProfileEditRoute(id: profile.id).go(context);
                       },
                     ),
                   );

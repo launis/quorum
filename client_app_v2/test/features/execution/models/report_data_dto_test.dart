@@ -36,18 +36,16 @@ void main() {
     });
 
     test(
-      'fromJson handles missing, null, or incorrectly typed extensions gracefully (Defensive SafeCast)',
+      'fromJson handles missing or null extensions smoothly (Fail-Fast Compliant)',
       () {
         final json = {
           'name': 'Matrix Logic',
           'justification': 'Basic',
           'scale_min': null,
-          'scale_max': 'INVALID_MAX', // Should SafeCast to default
-          'score': 'not a double', // Should SafeCast to 0.0 or null
-          // Providing invalid types for extensions
-          'confidence': 'HIGH STR', // Double parsing fails
-          'risk_flag': 'yes', // Bool parsing fails or acts gracefully
-          'remediation_steps': 'Just fix it', // List parsing fails
+          'score': null,
+          'confidence': null,
+          'risk_flag': false,
+          'remediation_steps': [],
           'coaching': null,
         };
 
@@ -55,21 +53,15 @@ void main() {
 
         expect(dto.name, 'Matrix Logic');
         expect(dto.justification, 'Basic');
-        // score: safeDouble usually returns 0.0 from invalid strings if defined, wait!
-        // In ReportAxisDTO: json['score'] != null ? SafeCast.safeDouble(json['score']) : null
-        // 'not a double' -> 0.0 (SafeCast.safeDouble defaults to 0.0 normally, and != null ensures it tries)
-        expect(dto.score, 0.0);
+        expect(dto.score, null);
+        expect(dto.scaleMin, 0.0); // Default scale_min
+        expect(dto.scaleMax, 6.0); // Default scale_max
 
         expect(dto.coaching, null);
-        expect(dto.confidence, 0.0); // Assuming safeDouble('HIGH STR') -> 0.0
+        expect(dto.confidence, null);
         expect(dto.falsification, null);
 
-        expect(
-          dto.riskFlag,
-          false,
-        ); // Assuming safeBool('yes') -> false based on strict frontend SafeCast
-        // remediation_steps is safeList().map.
-        // safeList('Just fix it') often returns [] for strings.
+        expect(dto.riskFlag, false);
         expect(dto.remediationSteps, []);
       },
     );

@@ -49,7 +49,7 @@ final class AvailableWorkflowsProvider
 }
 
 String _$availableWorkflowsHash() =>
-    r'760e87a7674c9a77fba74f1bfe1180552b877b74';
+    r'19ae922d67285befdac2f993e92010ab3d206610';
 
 @ProviderFor(NewExecutionController)
 final newExecutionControllerProvider = NewExecutionControllerProvider._();
@@ -76,7 +76,7 @@ final class NewExecutionControllerProvider
 }
 
 String _$newExecutionControllerHash() =>
-    r'8580b2859ee668a8f47ebcf84f6282454e953c77';
+    r'acb8cfaa3173feed62eef852b52283e782287658';
 
 abstract class _$NewExecutionController extends $AsyncNotifier<void> {
   FutureOr<void> build();

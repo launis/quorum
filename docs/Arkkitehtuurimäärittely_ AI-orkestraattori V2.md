@@ -268,10 +268,7 @@ Koko järjestelmän tekoälyliikenne (Vertex AI, OpenAI) reititetään keskitety
 3. **SWR Aggregaatio:** Yksittäiset kustannukset aggregoidaan lennosta organisaatiotason kuukausisaldoiksi (CQRS-malli), jotta "kuluva budjetti" voidaan kysyä O(1)-latenssilla suoraan välimuistista.
 
 ### **B. Circuit Breaker ("Denial of Wallet" -suojaus)**
-**Nykykuva (Tekninen Velka):** Järjestelmä seuraa ja tallentaa token-kuluja täydellisesti sentin murto-osien tarkkuudella (`UsageService.track_usage()`). Kuitenkin `UsageService.check_quota(org_id)` -metodia (ns. Quota Circuit Breaker) ei nykyisellään aktiivisesti kutsuta ennen FastAPI:n DAG-laukaisuja, eli asiakkaan ajoa ei vielä ohjelmallisesti katkaista, vaikka hänen kuukausibudjettinsa ylittyisi. 
-
-**Välitön Korjaustoimenpide (Arkkitehtuurimandaatti):**
-Ohjelmistoon on välittömästi asennettava automaattinen Circuit Breaker kahteen kriittiseen pisteeseen:
+Järjestelmä seuraa ja tallentaa token-kuluja täydellisesti sentin murto-osien tarkkuudella (`UsageService.track_usage()`). Alustassa on aktiivinen automaattinen Circuit Breaker kahteen kriittiseen pisteeseen suojaamassa kustannusten karkaamista:
 1. **Pre-flight Check (FastAPI Kerros):** Kun asiakas laukaisee uuden eräajon Frontendistä, API-reitittimen (`ExecutionService`) **ON PAKKO** varmentaa vuokralaisen budjetti (`check_quota`). Jos saldo ylittää määritetyn vuokralaisbudjetin (esim. 10.00 USD / kk), FastAPI hylkää HTTP-pyynnön välittömästi tilakoodilla `402 Payment Required` (RFC 7807 Standard). Pyyntöä ei koskaan päästetä edes Redis-jonoon säikeitä kuluttamaan.
 2. **Worker Cut-off (Arq Kerros):** Koska pitkät, satojen MCP-solmujen ketjut saattavat räjäyttää budjetin kesken hiljaisen tausta-ajon, Arq-workerin (`BaseNodeStrategy`) on asynkronisesti auditoitava jäljellä oleva budjetti (Rate Limit) raskaiden solmuvaiheiden välissä. Jos budjetti ylittyy kesken lennon, orkestraattorin on laukaistava Graceful Degradation (Exit Hatch) -pysäytys. Ajo jäädytetään tilaan `QUOTA_EXCEEDED` ja siihen mennessä onnistunut työ tallennetaan TraceEventinä, lukiten organisaation kunnes laskutus on kuitattu.
 

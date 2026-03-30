@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
 
 /// InteractiveViewer 2D Canvas for Workflow DAGs
 class DagCanvasView extends StatefulWidget {
-  final Map<String, dynamic> workflow;
+  final Workflow workflow;
   final Function(String stepId) onNodeSelected;
-  final Function(Map<String, dynamic> updatedWorkflow) onWorkflowUpdated;
+  final Function(Workflow updatedWorkflow) onWorkflowUpdated;
 
   const DagCanvasView({
     super.key,
@@ -22,28 +22,22 @@ class _DagCanvasViewState extends State<DagCanvasView> {
   final TransformationController _transformationController =
       TransformationController();
 
-  Map<String, dynamic> get _workflow => widget.workflow;
+  Workflow get _workflow => widget.workflow;
 
   void _updateNodePosition(String stepId, double x, double y) {
-    final steps = SafeCast.safeList(_workflow['steps']);
-    for (int i = 0; i < steps.length; i++) {
-      final step = SafeCast.safeMap(steps[i]);
-      if (step['id'] == stepId) {
-        step['ui_pos_x'] = x;
-        step['ui_pos_y'] = y;
-        steps[i] = step;
-        break;
+    final updatedSteps = _workflow.steps.map((step) {
+      if (step.id == stepId) {
+        return step.copyWith(uiPosX: x, uiPosY: y);
       }
-    }
+      return step;
+    }).toList();
 
-    final updated = Map<String, dynamic>.from(_workflow);
-    updated['steps'] = steps;
-    widget.onWorkflowUpdated(updated);
+    widget.onWorkflowUpdated(_workflow.copyWith(steps: updatedSteps));
   }
 
   @override
   Widget build(BuildContext context) {
-    final steps = SafeCast.safeList(_workflow['steps']);
+    final steps = _workflow.steps;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -63,17 +57,14 @@ class _DagCanvasViewState extends State<DagCanvasView> {
                   // TODO: Draw Edges (CustomPaint) based on depends_on
 
                   // Draw Nodes
-                  ...steps.map((rawStep) {
-                    final step = SafeCast.safeMap(rawStep);
-                    final stepId = SafeCast.safeString(step['id']);
-                    final double posX = SafeCast.safeDouble(
-                      step['ui_pos_x'],
-                      4000.0,
-                    );
-                    final double posY = SafeCast.safeDouble(
-                      step['ui_pos_y'],
-                      4000.0,
-                    );
+                  ...steps.map((step) {
+                    final stepId = step.id;
+                    final double posX = step.uiPosX == 0.0
+                        ? 4000.0
+                        : step.uiPosX;
+                    final double posY = step.uiPosY == 0.0
+                        ? 4000.0
+                        : step.uiPosY;
 
                     return Positioned(
                       left: posX,
@@ -89,9 +80,7 @@ class _DagCanvasViewState extends State<DagCanvasView> {
                         },
                         child: _DagNodeWidget(
                           stepId: stepId,
-                          blueprintId: SafeCast.safeString(
-                            step['task_blueprint'],
-                          ),
+                          blueprintId: step.taskBlueprint,
                         ),
                       ),
                     );

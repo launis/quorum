@@ -3,7 +3,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
-import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -14,7 +15,6 @@ import 'package:client_app/core/logging/logger_service.dart';
 /// **Profile Editor View**
 ///
 /// Admin UI for defining strictly-typed Output Profiles for a specific Workflow.
-/// Follows De-Generator Protocol by operating strictly on Map<String, dynamic>.
 class ProfileEditorView extends HookConsumerWidget {
   final String workflowSlug;
 
@@ -49,37 +49,40 @@ class ProfileEditorView extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    AsyncValue<Map<String, dynamic>> formState,
-    Map<String, dynamic> payload,
+    AsyncValue<Workflow> formState,
+    Workflow payload,
   ) {
-    // Profiles Dictionary
-    final rawProfiles = payload['output_profiles'];
-    final profiles = Map<String, dynamic>.from(SafeCast.safeMap(rawProfiles));
-
     // Inject initial default if entirely missing
     useMemoized(() {
-      if (profiles.isEmpty) {
-        profiles['default'] = {
-          'name': {'fi': 'Oletusraportti', 'en': 'Default Report'},
-          'layouts': [
-            {
-              'preset_view': '1d_metrics',
-              'show_text': true,
-              'target_blocks': <String>[],
-            },
-          ],
-        };
-        payload['output_profiles'] = profiles;
-        ref.read(workflowFormProvider(workflowSlug).notifier).forceRebuild();
+      if (payload.outputProfiles.isEmpty) {
+        Future.microtask(() {
+          final newProfiles = Map<String, EmbeddedOutputProfile>.from(
+            payload.outputProfiles,
+          );
+          newProfiles['default'] = const EmbeddedOutputProfile(
+            name: I18nText(
+              defaultLocale: 'en',
+              translations: {'fi': 'Oletusraportti', 'en': 'Default Report'},
+            ),
+            layouts: [
+              OutputLayoutBlock(
+                presetView: '1d_metrics',
+                title: I18nText(defaultLocale: 'en'),
+                showText: true,
+                targetBlocks: [],
+              ),
+            ],
+          );
+          ref
+              .read(workflowFormProvider(workflowSlug).notifier)
+              .forceRebuild(payload.copyWith(outputProfiles: newProfiles));
+        });
       }
     });
 
     Future<void> saveWorkflow() async {
       try {
-        final String idToSave = SafeCast.safeString(payload['id']);
-        if (idToSave.isEmpty) throw Exception("Workflow ID is missing");
-
-        payload['output_profiles'] = profiles;
+        if (payload.id.isEmpty) throw Exception("Workflow ID is missing");
 
         await ref
             .read(workflowFormProvider(workflowSlug).notifier)
@@ -125,16 +128,27 @@ class ProfileEditorView extends HookConsumerWidget {
             ),
             FilledButton(
               onPressed: () {
-                if (newId.isEmpty || profiles.containsKey(newId)) return;
+                if (newId.isEmpty ||
+                    payload.outputProfiles.containsKey(newId)) {
+                  return;
+                }
 
-                profiles[newId] = {
-                  'name': {'fi': 'Uusi profiili', 'en': 'New Profile'},
-                  'layouts': [],
-                };
-                payload['output_profiles'] = profiles;
+                final newProfiles = Map<String, EmbeddedOutputProfile>.from(
+                  payload.outputProfiles,
+                );
+                newProfiles[newId] = const EmbeddedOutputProfile(
+                  name: I18nText(
+                    defaultLocale: 'en',
+                    translations: {'fi': 'Uusi profiili', 'en': 'New Profile'},
+                  ),
+                  layouts: [],
+                );
+
                 ref
                     .read(workflowFormProvider(workflowSlug).notifier)
-                    .forceRebuild();
+                    .forceRebuild(
+                      payload.copyWith(outputProfiles: newProfiles),
+                    );
 
                 Navigator.pop(ctx);
               },
@@ -187,15 +201,14 @@ class ProfileEditorView extends HookConsumerWidget {
               ],
             ),
             const SizedBox(height: 16),
-            ...profiles.entries.map(
+            ...payload.outputProfiles.entries.map(
               (entry) => _buildProfileCard(
                 context,
                 ref,
                 l10n,
                 payload,
-                profiles,
                 entry.key,
-                SafeCast.safeMap(entry.value),
+                entry.value,
               ),
             ),
           ],
@@ -208,23 +221,32 @@ class ProfileEditorView extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    Map<String, dynamic> payload,
-    Map<String, dynamic> profilesMap,
+    Workflow payload,
     String profileId,
-    Map<String, dynamic> profileDef,
+    EmbeddedOutputProfile profileDef,
   ) {
-    final layouts = SafeCast.safeList(profileDef['layouts']);
+    final layouts = List<OutputLayoutBlock>.from(profileDef.layouts);
+
+    void rebuildProfile(EmbeddedOutputProfile updatedProfile) {
+      final newProfiles = Map<String, EmbeddedOutputProfile>.from(
+        payload.outputProfiles,
+      );
+      newProfiles[profileId] = updatedProfile;
+      ref
+          .read(workflowFormProvider(workflowSlug).notifier)
+          .forceRebuild(payload.copyWith(outputProfiles: newProfiles));
+    }
 
     void addLayout() {
-      layouts.add({
-        'preset_view': '1d_metrics',
-        'show_text': true,
-        'target_blocks': <String>[],
-      });
-      profileDef['layouts'] = layouts;
-      profilesMap[profileId] = profileDef;
-      payload['output_profiles'] = profilesMap;
-      ref.read(workflowFormProvider(workflowSlug).notifier).forceRebuild();
+      layouts.add(
+        const OutputLayoutBlock(
+          presetView: '1d_metrics',
+          title: I18nText(defaultLocale: 'en'),
+          showText: true,
+          targetBlocks: [],
+        ),
+      );
+      rebuildProfile(profileDef.copyWith(layouts: layouts));
     }
 
     return Card(
@@ -255,11 +277,15 @@ class ProfileEditorView extends HookConsumerWidget {
                     color: Theme.of(context).colorScheme.error,
                   ),
                   onPressed: () {
-                    profilesMap.remove(profileId);
-                    payload['output_profiles'] = profilesMap;
+                    final newProfiles = Map<String, EmbeddedOutputProfile>.from(
+                      payload.outputProfiles,
+                    );
+                    newProfiles.remove(profileId);
                     ref
                         .read(workflowFormProvider(workflowSlug).notifier)
-                        .forceRebuild();
+                        .forceRebuild(
+                          payload.copyWith(outputProfiles: newProfiles),
+                        );
                   },
                 ),
               ],
@@ -267,16 +293,9 @@ class ProfileEditorView extends HookConsumerWidget {
             const SizedBox(height: 12),
             I18nTextField(
               label: l10n.profileDisplayNameLabel,
-              initialData: I18nText.fromJson(
-                SafeCast.safeMap(profileDef['name']),
-              ),
+              initialData: profileDef.name,
               onChanged: (val) {
-                profileDef['name'] = val.toJson();
-                profilesMap[profileId] = profileDef;
-                payload['output_profiles'] = profilesMap;
-                ref
-                    .read(workflowFormProvider(workflowSlug).notifier)
-                    .forceRebuild();
+                rebuildProfile(profileDef.copyWith(name: val));
               },
             ),
             const SizedBox(height: 24),
@@ -306,13 +325,12 @@ class ProfileEditorView extends HookConsumerWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: layouts.length,
                 itemBuilder: (context, index) {
-                  final layout = SafeCast.safeMap(layouts[index]);
+                  final layout = layouts[index];
                   return _buildLayoutEditor(
                     context,
                     ref,
                     l10n,
                     payload,
-                    profilesMap,
                     profileId,
                     profileDef,
                     layouts,
@@ -331,22 +349,16 @@ class ProfileEditorView extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    Map<String, dynamic> payload,
-    Map<String, dynamic> profilesMap,
+    Workflow payload,
     String profileId,
-    Map<String, dynamic> profileDef,
-    List<dynamic> parentLayoutsList,
+    EmbeddedOutputProfile profileDef,
+    List<OutputLayoutBlock> parentLayoutsList,
     int index,
-    Map<String, dynamic> layout,
+    OutputLayoutBlock layout,
   ) {
-    final blocksList = SafeCast.safeList(
-      layout['target_blocks'],
-    ).map((e) => e.toString()).toList();
+    final blocksList = List<String>.from(layout.targetBlocks);
 
-    String currentPreset = SafeCast.safeString(
-      layout['preset_view'],
-      '1d_metrics',
-    );
+    String currentPreset = layout.presetView;
     if (![
       '1d_metrics',
       '2d_compare',
@@ -356,21 +368,25 @@ class ProfileEditorView extends HookConsumerWidget {
     ].contains(currentPreset)) {
       currentPreset = '1d_metrics';
     }
-    final bool showText = layout['show_text'] as bool? ?? true;
+    final bool showText = layout.showText;
 
-    void rebuild() {
-      parentLayoutsList[index] = layout;
-      profileDef['layouts'] = parentLayoutsList;
-      profilesMap[profileId] = profileDef;
-      payload['output_profiles'] = profilesMap;
-      ref.read(workflowFormProvider(workflowSlug).notifier).forceRebuild();
+    void rebuildLayout(OutputLayoutBlock updatedLayout) {
+      parentLayoutsList[index] = updatedLayout;
+      final newProfiles = Map<String, EmbeddedOutputProfile>.from(
+        payload.outputProfiles,
+      );
+      newProfiles[profileId] = profileDef.copyWith(layouts: parentLayoutsList);
+      ref
+          .read(workflowFormProvider(workflowSlug).notifier)
+          .forceRebuild(payload.copyWith(outputProfiles: newProfiles));
     }
 
     void updateCoords(String val, int idx) {
-      while (blocksList.length <= idx) blocksList.add('');
+      while (blocksList.length <= idx) {
+        blocksList.add('');
+      }
       blocksList[idx] = val;
-      layout['target_blocks'] = blocksList;
-      rebuild();
+      rebuildLayout(layout.copyWith(targetBlocks: blocksList));
     }
 
     return Container(
@@ -424,8 +440,7 @@ class ProfileEditorView extends HookConsumerWidget {
                   ],
                   onChanged: (val) {
                     if (val != null) {
-                      layout['preset_view'] = val;
-                      rebuild();
+                      rebuildLayout(layout.copyWith(presetView: val));
                     }
                   },
                 ),
@@ -437,8 +452,7 @@ class ProfileEditorView extends HookConsumerWidget {
                   Switch(
                     value: showText,
                     onChanged: (val) {
-                      layout['show_text'] = val;
-                      rebuild();
+                      rebuildLayout(layout.copyWith(showText: val));
                     },
                   ),
                 ],
@@ -450,12 +464,17 @@ class ProfileEditorView extends HookConsumerWidget {
                 ),
                 onPressed: () {
                   parentLayoutsList.removeAt(index);
-                  profileDef['layouts'] = parentLayoutsList;
-                  profilesMap[profileId] = profileDef;
-                  payload['output_profiles'] = profilesMap;
+                  final newProfiles = Map<String, EmbeddedOutputProfile>.from(
+                    payload.outputProfiles,
+                  );
+                  newProfiles[profileId] = profileDef.copyWith(
+                    layouts: parentLayoutsList,
+                  );
                   ref
                       .read(workflowFormProvider(workflowSlug).notifier)
-                      .forceRebuild();
+                      .forceRebuild(
+                        payload.copyWith(outputProfiles: newProfiles),
+                      );
                 },
               ),
             ],
@@ -463,21 +482,9 @@ class ProfileEditorView extends HookConsumerWidget {
           const SizedBox(height: 12),
           I18nTextField(
             label: l10n.sectionTitleLabel,
-            initialData: I18nText.fromJson(SafeCast.safeMap(layout['title'])),
+            initialData: layout.title ?? const I18nText(defaultLocale: 'en'),
             onChanged: (val) {
-              layout['title'] = val.toJson();
-              rebuild();
-            },
-          ),
-          const SizedBox(height: 12),
-          I18nTextField(
-            label: l10n.sectionDescLabel,
-            initialData: I18nText.fromJson(
-              SafeCast.safeMap(layout['description']),
-            ),
-            onChanged: (val) {
-              layout['description'] = val.toJson();
-              rebuild();
+              rebuildLayout(layout.copyWith(title: val));
             },
           ),
           const SizedBox(height: 12),

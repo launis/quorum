@@ -1,7 +1,7 @@
 {
   "system_config": [
     {
-      "id": "syscfg_658b86111cb44e658c2d0c868141b841",
+      "id": "sys_e26807f3bfa3454d",
       "slug": "config_model_registry",
       "type": "model_registry",
       "models": {
@@ -80,7 +80,7 @@
       }
     },
     {
-      "id": "cfg_mcpGateways01",
+      "id": "sys_8172bda70c8641c5",
       "slug": "mcp_gateways",
       "type": "mcp_gateways",
       "tools": [
@@ -111,7 +111,7 @@
   ],
   "prompt_blocks": [
     {
-      "id": "blk_371c7724eeba40218409b5a3697ac1d3",
+      "id": "blk_440a5fef9331451b",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -404,7 +404,7 @@
       ]
     },
     {
-      "id": "blk_a0405e121dbf44bfa8ee80566f8d0c2a",
+      "id": "blk_f921c7c0989b47e8",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -700,7 +700,7 @@
       ]
     },
     {
-      "id": "blk_9adcb55b7ba44baeaf8921cb2fb935dc",
+      "id": "blk_109dab5b6b3f403a",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -917,7 +917,7 @@
       ]
     },
     {
-      "id": "blk_b5ec25bb352e4dc09de386f0da991a08",
+      "id": "blk_53f32679aa514fcb",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1250,7 +1250,7 @@
       ]
     },
     {
-      "id": "blk_cf081a3325f44dc49bbe06d600f268fc",
+      "id": "blk_599645bd5baf44e2",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1281,7 +1281,7 @@
       ]
     },
     {
-      "id": "blk_0522f2416e304a54a67b99ed08398ac8",
+      "id": "blk_ad6f491a05ec4386",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1308,7 +1308,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_c84f5beb2b304d57a192833538655a1c",
+      "id": "blk_ea60cbbe3f714160",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1335,7 +1335,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_fe78c1bd751d4d7a9e9822caa4ff46d8",
+      "id": "blk_f84dc457f6184358",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1362,7 +1362,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_9bfcaa19335140faa3b610a1391ed950",
+      "id": "blk_d0d6d14d67054d00",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1389,7 +1389,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_9bfcaa19335140faa3b610a1391ed950",
+      "id": "blk_d0d6d14d67054d00",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1416,7 +1416,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_d0e240184e0a40759d37138a250bd0aa",
+      "id": "blk_fb15f8dcf23f4865",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1739,7 +1739,7 @@
       ]
     },
     {
-      "id": "blk_bf8a99a1b3514f6c93aff42a4cc52213",
+      "id": "blk_c5804a9143c34cb1",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1952,7 +1952,7 @@
       ]
     },
     {
-      "id": "blk_4373f7d92f604b26bbf1387513dae50b",
+      "id": "blk_518904fe9010453b",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -1981,7 +1981,7 @@
       ]
     },
     {
-      "id": "blk_1e33ce78623943af9d5ce39ce6620478",
+      "id": "blk_b476f89fb732448c",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -2221,7 +2221,7 @@
       ]
     },
     {
-      "id": "blk_affb26d9c21f4b52bc4e2519d3e5808a",
+      "id": "blk_4d357be1587144b8",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -2248,7 +2248,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_598f9d9fab3143e1b57ae999fc5d375d",
+      "id": "blk_ff72c2d79edb4ebf",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -2561,7 +2561,7 @@
       ]
     },
     {
-      "id": "blk_66d7a701ee29444b87cfc9e4471fdd20",
+      "id": "blk_f83f4532575a4a1a",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -2588,7 +2588,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_f033273679ad4182b8e40a2cbe35c54f",
+      "id": "blk_d997313b84fb4fd1",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -2615,7 +2615,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_d070454740614af89bedb8be6547428b",
+      "id": "blk_005d4a86fe77496d",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -2642,7 +2642,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_3c3b6a9b67bf41e88ed4b59524d6c6f3",
+      "id": "blk_6b8c766185294f7e",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -2839,7 +2839,7 @@
       ]
     },
     {
-      "id": "blk_7cf04dae33aa4bb79a20447dfcc879b3",
+      "id": "blk_bd7c5a9f27504a2c",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -2866,7 +2866,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_752ba671ee9142b98a9e8b55bf12c8f3",
+      "id": "blk_2305f4ac865a4815",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -2893,7 +2893,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_266d2532eb60479aaafc77887e23b40a",
+      "id": "blk_f2cb51b5d074419a",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -2920,7 +2920,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_6273406cff2343599b8ca54a9d7d3dec",
+      "id": "blk_f27f6d04c1f74257",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -2947,7 +2947,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_11305bc6d71541e79b83040298c89b08",
+      "id": "blk_091db241c5154336",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -2974,7 +2974,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_00f6fd66159f4b46a1743340fabaadc6",
+      "id": "blk_9d68ceff695b4196",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3001,7 +3001,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_4c19f32f1dc14672bd2951c8bb70dcc4",
+      "id": "blk_23ca73cf267d4078",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3028,7 +3028,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_cbcab98df3c34ddfb67f1c9b18acf43f",
+      "id": "blk_2cbe96bffde04571",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3055,7 +3055,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_5344befaf7914500bd3448a51523a2bb",
+      "id": "blk_665b2e223f214564",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3082,7 +3082,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_f8fbebc9ff2946649b3525d7861a49ca",
+      "id": "blk_78d110eb0bad4541",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3109,7 +3109,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_c4015fb7a10241b29d8d6d1b73021e1e",
+      "id": "blk_cc852aa44a1a464e",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3136,7 +3136,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_49360a958cc7494ebf053294fb7e2faf",
+      "id": "blk_04544fa8b5ca408f",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3163,7 +3163,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_8351c83cec084a19bb087140ffc89d79",
+      "id": "blk_c1cc56f65f6a47e1",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3190,7 +3190,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_d43a35ee942f461c9c004fd0cb9bbfa9",
+      "id": "blk_e71bcbeb90244b37",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3217,7 +3217,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_6e98f76e118a42ea992fe82778d386cd",
+      "id": "blk_9e44687dff884ff6",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3244,7 +3244,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_affd89e862e84797bd58e7323a793517",
+      "id": "blk_080a729c8b974492",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3271,7 +3271,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_f1d1c8fd31ae4553bf2dc1e225d2190e",
+      "id": "blk_5b5f6faf0144401f",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3298,7 +3298,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_a8d79342718a4ccda4ae174e9f101920",
+      "id": "blk_6a02268ad79542de",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3325,7 +3325,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_02fa8b36e54d444782f4229aa18a2f38",
+      "id": "blk_a93c517915f94e09",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3352,7 +3352,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_2a8bca2cc73a41b6b7311f5483e53e23",
+      "id": "blk_71b84ce7c6554639",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3379,7 +3379,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_c1053601349340fdb7640d38f0e97d67",
+      "id": "blk_280fd9eb2f2543f6",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3406,7 +3406,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_a8feb0560cc14de6bd474b40c06c88cf",
+      "id": "blk_608ba7099d07428f",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3433,7 +3433,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_aaf498eda1d741a3b7bd514e0b87f9a9",
+      "id": "blk_3cc672a8038144e0",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3460,7 +3460,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_0bf629b76dc64fa8b8dbdec6b8b7f5af",
+      "id": "blk_a5ce16009a514628",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3487,7 +3487,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_8b12be64227c4abd83e2f409b5c3ce28",
+      "id": "blk_80732a33fe1947ee",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3682,7 +3682,7 @@
       ]
     },
     {
-      "id": "blk_044f6bad09854aa8bb646f63c7571ceb",
+      "id": "blk_033180746a954415",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3709,7 +3709,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_da851069f1c84beb817304b0049b52e7",
+      "id": "blk_9c0c7c46568648c4",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3740,7 +3740,7 @@
       ]
     },
     {
-      "id": "blk_e1111e6ad16d4808ac2e588182101357",
+      "id": "blk_652fce41dcb54793",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3767,7 +3767,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_15baac89cc9445ec9e9bccac2680688d",
+      "id": "blk_90d0dd098757433e",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3798,7 +3798,7 @@
       ]
     },
     {
-      "id": "blk_91b3a18c67184bcabb61f35f62db1ade",
+      "id": "blk_58f750206a4c4af0",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -3825,7 +3825,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_a8e356b276f04ddeb7cc3a0eec58daf6",
+      "id": "blk_c3bc5f3eb8e74110",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4000,7 +4000,7 @@
       ]
     },
     {
-      "id": "blk_da0f1a42f08f4fb6bd23177302444f60",
+      "id": "blk_43e297666d3b4359",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4027,7 +4027,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_ea43c4bce7ed4627933edeccc1c998d6",
+      "id": "blk_3744757fbff44175",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4058,7 +4058,7 @@
       ]
     },
     {
-      "id": "blk_d2013b25926f46d7b70903e69e53a61c",
+      "id": "blk_f971def5b3864ba4",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4085,7 +4085,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_f4a4aa31ddf842f2a16915746731ae11",
+      "id": "blk_5d26dff39e574d5f",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4117,7 +4117,7 @@
       ]
     },
     {
-      "id": "blk_2878d1c8b5494180b1a5231466e2e0a9",
+      "id": "blk_f6e286f050c94d60",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4380,7 +4380,7 @@
       ]
     },
     {
-      "id": "blk_063bda6cd59f44c4b5b8e89053126af6",
+      "id": "blk_ab65a936bca34bf1",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4407,7 +4407,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_3d2b91d08aab40bebdb09d6f33615ef9",
+      "id": "blk_44b0c6cc5ec24151",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4434,7 +4434,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_d45926b33556468dad923d239855a08e",
+      "id": "blk_7260c1b6ac5648ca",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4461,7 +4461,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_2aa78045ebec4ab79b886a1b0daaf981",
+      "id": "blk_6e08842eae9146a2",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4488,7 +4488,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_666c0eb3d75e4076b064f2157d097a56",
+      "id": "blk_1ca6f187c5b04d2b",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4515,7 +4515,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_0321b720d3a240ce925c4e24206a9a11",
+      "id": "blk_2c13f67014094f3b",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4542,7 +4542,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_ea0a497f62f34da5b9e64e3c99016af2",
+      "id": "blk_fb0b98da76e046dd",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4569,7 +4569,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_217e835009874a559089c339820c127e",
+      "id": "blk_0217b0b725b54b10",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4596,7 +4596,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_7861fb4ebab6456d8475a476579fa6e4",
+      "id": "blk_cb6217bccc974cca",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4623,7 +4623,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_e9fa812ae554408e870bae2fccbcffb5",
+      "id": "blk_3568312503964aec",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4653,7 +4653,7 @@
       ]
     },
     {
-      "id": "blk_4a93e8ba4aa6440288cc93705697e9e9",
+      "id": "blk_8b6e5fba923642f2",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4680,7 +4680,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_03e4b136739f41a48ed06aab823b8b8f",
+      "id": "blk_b4912f9ff3a24b31",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4707,7 +4707,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_13c70c8e55034af78927bdcd507dbcd9",
+      "id": "blk_3584789303284f7f",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4734,7 +4734,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_6b4d8ddf42634a8f9565e6b0adb04a46",
+      "id": "blk_38cce6ca212d41d3",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4761,7 +4761,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_b17f535c936349e3bce6e7b19f505f2c",
+      "id": "blk_7904edffddb94a84",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4784,7 +4784,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_f6614ad51ed34808949d5666ef00d52d",
+      "id": "blk_aacc1668c4224040",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4811,7 +4811,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_1d60d71f9c9c418bb04f1bb62e8ad75c",
+      "id": "blk_3d7833f059084bab",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -4838,7 +4838,7 @@
       "output_extensions": []
     },
     {
-      "id": "blk_635d07ae441d41e6a274911854ef8283",
+      "id": "blk_22e3598e06414409",
       "label": {
         "default_locale": "fi",
         "translations": {
@@ -5101,7 +5101,7 @@
   ],
   "workflows": [
     {
-      "id": "wf_d653170e174847559e08af42b938d826",
+      "id": "wf_9d68c573802341db",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -5217,164 +5217,164 @@
       ],
       "steps": [
         {
-          "id": "steprule_f15853d2584e4096aeb60f11a3e6ea7c1",
-          "task_blueprint": "step_f15853d2584e4096aeb60f11a3e6ea7c",
+          "id": "sr_f0a26d17cc9b48a7",
+          "task_blueprint": "sp_db849f9790984585",
           "depends_on": [],
           "input_mappings": {
             "inputs": "$inputs"
           }
         },
         {
-          "id": "steprule_02dd32906f4145bea6f6bf0a807d60111",
-          "task_blueprint": "step_02dd32906f4145bea6f6bf0a807d6011",
+          "id": "sr_0f7947ec7007498c",
+          "task_blueprint": "sp_ddb7cf7c8a0245d4",
           "depends_on": [
-            "steprule_f15853d2584e4096aeb60f11a3e6ea7c1"
+            "sr_f0a26d17cc9b48a7"
           ],
           "input_mappings": {
             "inputs": "$inputs"
           }
         },
         {
-          "id": "steprule_factcheck1234ab",
-          "task_blueprint": "step_factchecker1234abcd",
+          "id": "sr_02b7cc1e7c2a4a62",
+          "task_blueprint": "sp_76eedbc020274f66",
           "depends_on": [
-            "steprule_f15853d2584e4096aeb60f11a3e6ea7c1",
-            "steprule_02dd32906f4145bea6f6bf0a807d60111"
+            "sr_f0a26d17cc9b48a7",
+            "sr_0f7947ec7007498c"
           ],
           "input_mappings": {
             "inputs": "$inputs"
           }
         },
         {
-          "id": "steprule_a6112fc48780491b9247683216b1c26d1",
-          "task_blueprint": "step_a6112fc48780491b9247683216b1c26d",
+          "id": "sr_5a8ae009eee44fe2",
+          "task_blueprint": "sp_b5c751d1cbe24735",
           "depends_on": [
-            "steprule_factcheck1234ab"
+            "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
             "inputs": "$inputs"
           }
         },
         {
-          "id": "steprule_95dc2243345d401b8df6def0a068e5af1",
-          "task_blueprint": "step_95dc2243345d401b8df6def0a068e5af",
+          "id": "sr_99ca8c82a5aa48cd",
+          "task_blueprint": "sp_6a45d484ad5b497c",
           "depends_on": [
-            "steprule_factcheck1234ab"
+            "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
             "inputs": "$inputs"
           }
         },
         {
-          "id": "steprule_8f3af4a2e3e14dd8bc34fca49bb0b1cb1",
-          "task_blueprint": "step_8f3af4a2e3e14dd8bc34fca49bb0b1cb",
+          "id": "sr_87f408aeee64462f",
+          "task_blueprint": "sp_8daee218c6b14f02",
           "depends_on": [
-            "steprule_factcheck1234ab"
+            "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
             "inputs": "$inputs"
           }
         },
         {
-          "id": "steprule_12fbdac607d74edbbffaec3eea62fdc31",
-          "task_blueprint": "step_12fbdac607d74edbbffaec3eea62fdc3",
+          "id": "sr_d56fb84fbe13463a",
+          "task_blueprint": "sp_6f40b964895c426b",
           "depends_on": [
-            "steprule_factcheck1234ab"
+            "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
             "inputs": "$inputs"
           }
         },
         {
-          "id": "steprule_fa42b362e50e4a30b8acb6dae391efa81",
-          "task_blueprint": "step_fa42b362e50e4a30b8acb6dae391efa8",
+          "id": "sr_4d2272d8b4864847",
+          "task_blueprint": "sp_bd0b3054fe664960",
           "depends_on": [
-            "steprule_factcheck1234ab"
+            "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
             "inputs": "$inputs"
           }
         },
         {
-          "id": "steprule_937b0c4a2819466c97277659edd2ee201",
-          "task_blueprint": "step_937b0c4a2819466c97277659edd2ee20",
+          "id": "sr_1d7e6d26b02b457b",
+          "task_blueprint": "sp_7f9649114d2344dc",
           "depends_on": [
-            "steprule_factcheck1234ab"
+            "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
             "inputs": "$inputs"
           }
         },
         {
-          "id": "steprule_038947d22fbf4677b4cb90149e358a3e1",
-          "task_blueprint": "step_038947d22fbf4677b4cb90149e358a3e",
+          "id": "sr_b4c328df1c4141c6",
+          "task_blueprint": "sp_dfc365994fa944b2",
           "depends_on": [
-            "steprule_factcheck1234ab"
+            "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
             "inputs": "$inputs"
           }
         },
         {
-          "id": "steprule_29914cfb27a9433ca2b0e78a1d88e1011",
-          "task_blueprint": "step_29914cfb27a9433ca2b0e78a1d88e101",
+          "id": "sr_566e3209a60444d3",
+          "task_blueprint": "sp_f22db9f1dde048b7",
           "depends_on": [
-            "steprule_factcheck1234ab"
+            "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
             "inputs": "$inputs"
           }
         },
         {
-          "id": "steprule_64a49f52b7394d9e99b92bb0397a60491",
-          "task_blueprint": "step_64a49f52b7394d9e99b92bb0397a6049",
+          "id": "sr_ba028623acab447a",
+          "task_blueprint": "sp_48974af1fc584407",
           "depends_on": [
-            "steprule_factcheck1234ab"
+            "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
             "inputs": "$inputs"
           }
         },
         {
-          "id": "steprule_e9dd765ba98841ddb0059b49df3527d51",
-          "task_blueprint": "step_e9dd765ba98841ddb0059b49df3527d5",
+          "id": "sr_0228db320e8f41bb",
+          "task_blueprint": "sp_25664f44773a4354",
           "depends_on": [
-            "steprule_factcheck1234ab"
+            "sr_02b7cc1e7c2a4a62"
           ],
           "input_mappings": {
             "inputs": "$inputs"
           }
         },
         {
-          "id": "steprule_8071dfe6c2a84663b4429bc44a83381e1",
-          "task_blueprint": "step_8071dfe6c2a84663b4429bc44a83381e",
+          "id": "sr_5f3dd7712a7f4bb3",
+          "task_blueprint": "sp_192910b5f5a34c79",
           "depends_on": [
-            "steprule_a6112fc48780491b9247683216b1c26d1",
-            "steprule_95dc2243345d401b8df6def0a068e5af1",
-            "steprule_8f3af4a2e3e14dd8bc34fca49bb0b1cb1",
-            "steprule_12fbdac607d74edbbffaec3eea62fdc31",
-            "steprule_fa42b362e50e4a30b8acb6dae391efa81",
-            "steprule_937b0c4a2819466c97277659edd2ee201",
-            "steprule_038947d22fbf4677b4cb90149e358a3e1",
-            "steprule_29914cfb27a9433ca2b0e78a1d88e1011",
-            "steprule_64a49f52b7394d9e99b92bb0397a60491",
-            "steprule_e9dd765ba98841ddb0059b49df3527d51"
+            "sr_5a8ae009eee44fe2",
+            "sr_99ca8c82a5aa48cd",
+            "sr_87f408aeee64462f",
+            "sr_d56fb84fbe13463a",
+            "sr_4d2272d8b4864847",
+            "sr_1d7e6d26b02b457b",
+            "sr_b4c328df1c4141c6",
+            "sr_566e3209a60444d3",
+            "sr_ba028623acab447a",
+            "sr_0228db320e8f41bb"
           ],
           "input_mappings": {
             "inputs": "$inputs"
           }
         },
         {
-          "id": "steprule_scoreengine1",
-          "task_blueprint": "step_scoreengine1",
+          "id": "sr_2fa56dc36614469a",
+          "task_blueprint": "sp_d245365e4a274b9e",
           "depends_on": [
-            "steprule_8071dfe6c2a84663b4429bc44a83381e1"
+            "sr_5f3dd7712a7f4bb3"
           ]
         }
       ],
       "slug": "kokonaisvaltainen_auditointi",
       "output_profiles": {
-        "extended_insights": {
+        "prf_e99f728368684813": {
           "name": {
             "default_locale": "fi",
             "translations": {
@@ -5401,7 +5401,7 @@
               },
               "show_text": true,
               "target_blocks": [
-                "blk_371c7724eeba40218409b5a3697ac1d3"
+                "blk_440a5fef9331451b"
               ],
               "steps": []
             },
@@ -5423,7 +5423,7 @@
               },
               "show_text": true,
               "target_blocks": [
-                "blk_a0405e121dbf44bfa8ee80566f8d0c2a"
+                "blk_f921c7c0989b47e8"
               ],
               "steps": []
             },
@@ -5445,7 +5445,7 @@
               },
               "show_text": true,
               "target_blocks": [
-                "blk_9adcb55b7ba44baeaf8921cb2fb935dc"
+                "blk_109dab5b6b3f403a"
               ],
               "steps": []
             },
@@ -5467,7 +5467,7 @@
               },
               "show_text": true,
               "target_blocks": [
-                "blk_b5ec25bb352e4dc09de386f0da991a08"
+                "blk_53f32679aa514fcb"
               ],
               "steps": []
             },
@@ -5489,7 +5489,7 @@
               },
               "show_text": true,
               "target_blocks": [
-                "blk_cf081a3325f44dc49bbe06d600f268fc"
+                "blk_599645bd5baf44e2"
               ],
               "steps": []
             },
@@ -5511,7 +5511,7 @@
               },
               "show_text": true,
               "target_blocks": [
-                "blk_d0e240184e0a40759d37138a250bd0aa"
+                "blk_fb15f8dcf23f4865"
               ],
               "steps": []
             },
@@ -5533,7 +5533,7 @@
               },
               "show_text": true,
               "target_blocks": [
-                "blk_bf8a99a1b3514f6c93aff42a4cc52213"
+                "blk_c5804a9143c34cb1"
               ],
               "steps": []
             },
@@ -5555,7 +5555,7 @@
               },
               "show_text": true,
               "target_blocks": [
-                "blk_1e33ce78623943af9d5ce39ce6620478"
+                "blk_b476f89fb732448c"
               ],
               "steps": []
             },
@@ -5577,7 +5577,7 @@
               },
               "show_text": true,
               "target_blocks": [
-                "blk_598f9d9fab3143e1b57ae999fc5d375d"
+                "blk_ff72c2d79edb4ebf"
               ],
               "steps": []
             },
@@ -5599,7 +5599,7 @@
               },
               "show_text": true,
               "target_blocks": [
-                "blk_3c3b6a9b67bf41e88ed4b59524d6c6f3"
+                "blk_6b8c766185294f7e"
               ],
               "steps": []
             },
@@ -5621,7 +5621,7 @@
               },
               "show_text": true,
               "target_blocks": [
-                "blk_8b12be64227c4abd83e2f409b5c3ce28"
+                "blk_80732a33fe1947ee"
               ],
               "steps": []
             },
@@ -5643,7 +5643,7 @@
               },
               "show_text": true,
               "target_blocks": [
-                "blk_a8e356b276f04ddeb7cc3a0eec58daf6"
+                "blk_c3bc5f3eb8e74110"
               ],
               "steps": []
             },
@@ -5665,7 +5665,7 @@
               },
               "show_text": true,
               "target_blocks": [
-                "blk_2878d1c8b5494180b1a5231466e2e0a9"
+                "blk_f6e286f050c94d60"
               ],
               "steps": []
             },
@@ -5687,7 +5687,7 @@
               },
               "show_text": true,
               "target_blocks": [
-                "blk_635d07ae441d41e6a274911854ef8283"
+                "blk_22e3598e06414409"
               ],
               "steps": []
             }
@@ -5700,7 +5700,7 @@
   ],
   "steps": [
     {
-      "id": "step_f15853d2584e4096aeb60f11a3e6ea7c",
+      "id": "sp_db849f9790984585",
       "slug": "step_input_processing",
       "name": {
         "default_locale": "fi",
@@ -5717,7 +5717,7 @@
         }
       },
       "prompt_blocks": [
-        "blk_cf081a3325f44dc49bbe06d600f268fc"
+        "blk_599645bd5baf44e2"
       ],
       "pre_hooks": [
         "inject_step_metadata"
@@ -5731,8 +5731,8 @@
       "model_strategy": "precise"
     },
     {
-      "id": "step_a6112fc48780491b9247683216b1c26d",
-      "slug": "step_analyst",
+      "id": "sp_b5c751d1cbe24735",
+      "slug": "sp_1624bd0454c9425e",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -5748,21 +5748,21 @@
         }
       },
       "prompt_blocks": [
-        "blk_0522f2416e304a54a67b99ed08398ac8",
-        "blk_6e98f76e118a42ea992fe82778d386cd",
-        "blk_7cf04dae33aa4bb79a20447dfcc879b3",
-        "blk_266d2532eb60479aaafc77887e23b40a",
-        "blk_5344befaf7914500bd3448a51523a2bb",
-        "blk_f8fbebc9ff2946649b3525d7861a49ca",
-        "blk_a8d79342718a4ccda4ae174e9f101920",
-        "blk_6273406cff2343599b8ca54a9d7d3dec",
-        "blk_3d2b91d08aab40bebdb09d6f33615ef9",
-        "blk_666c0eb3d75e4076b064f2157d097a56",
-        "blk_aaf498eda1d741a3b7bd514e0b87f9a9",
-        "blk_2a8bca2cc73a41b6b7311f5483e53e23",
-        "blk_c1053601349340fdb7640d38f0e97d67",
-        "blk_0bf629b76dc64fa8b8dbdec6b8b7f5af",
-        "blk_11305bc6d71541e79b83040298c89b08"
+        "blk_ad6f491a05ec4386",
+        "blk_9e44687dff884ff6",
+        "blk_bd7c5a9f27504a2c",
+        "blk_f2cb51b5d074419a",
+        "blk_665b2e223f214564",
+        "blk_78d110eb0bad4541",
+        "blk_6a02268ad79542de",
+        "blk_f27f6d04c1f74257",
+        "blk_44b0c6cc5ec24151",
+        "blk_1ca6f187c5b04d2b",
+        "blk_3cc672a8038144e0",
+        "blk_71b84ce7c6554639",
+        "blk_280fd9eb2f2543f6",
+        "blk_a5ce16009a514628",
+        "blk_091db241c5154336"
       ],
       "pre_hooks": [
         "calculate_text_metrics",
@@ -5780,8 +5780,8 @@
       "model_strategy": "precise"
     },
     {
-      "id": "step_29914cfb27a9433ca2b0e78a1d88e101",
-      "slug": "step_archivist",
+      "id": "sp_f22db9f1dde048b7",
+      "slug": "sp_2a81cb9e3e4b4694",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -5797,16 +5797,16 @@
         }
       },
       "prompt_blocks": [
-        "blk_6e98f76e118a42ea992fe82778d386cd",
-        "blk_7cf04dae33aa4bb79a20447dfcc879b3",
-        "blk_cbcab98df3c34ddfb67f1c9b18acf43f",
-        "blk_266d2532eb60479aaafc77887e23b40a",
-        "blk_8351c83cec084a19bb087140ffc89d79",
-        "blk_2a8bca2cc73a41b6b7311f5483e53e23",
-        "blk_0bf629b76dc64fa8b8dbdec6b8b7f5af",
-        "blk_11305bc6d71541e79b83040298c89b08",
-        "blk_d0e240184e0a40759d37138a250bd0aa",
-        "blk_ea43c4bce7ed4627933edeccc1c998d6"
+        "blk_9e44687dff884ff6",
+        "blk_bd7c5a9f27504a2c",
+        "blk_2cbe96bffde04571",
+        "blk_f2cb51b5d074419a",
+        "blk_c1cc56f65f6a47e1",
+        "blk_71b84ce7c6554639",
+        "blk_a5ce16009a514628",
+        "blk_091db241c5154336",
+        "blk_fb15f8dcf23f4865",
+        "blk_3744757fbff44175"
       ],
       "pre_hooks": [
         "retrieve_precedent",
@@ -5821,7 +5821,7 @@
       "model_strategy": "precise"
     },
     {
-      "id": "step_fa42b362e50e4a30b8acb6dae391efa8",
+      "id": "sp_bd0b3054fe664960",
       "slug": "step_causal_analyst",
       "name": {
         "default_locale": "fi",
@@ -5838,20 +5838,20 @@
         }
       },
       "prompt_blocks": [
-        "blk_e9fa812ae554408e870bae2fccbcffb5",
-        "blk_7861fb4ebab6456d8475a476579fa6e4",
-        "blk_6e98f76e118a42ea992fe82778d386cd",
-        "blk_7cf04dae33aa4bb79a20447dfcc879b3",
-        "blk_cbcab98df3c34ddfb67f1c9b18acf43f",
-        "blk_266d2532eb60479aaafc77887e23b40a",
-        "blk_8351c83cec084a19bb087140ffc89d79",
-        "blk_aaf498eda1d741a3b7bd514e0b87f9a9",
-        "blk_2a8bca2cc73a41b6b7311f5483e53e23",
-        "blk_0bf629b76dc64fa8b8dbdec6b8b7f5af",
-        "blk_11305bc6d71541e79b83040298c89b08",
-        "blk_bf8a99a1b3514f6c93aff42a4cc52213",
-        "blk_a8e356b276f04ddeb7cc3a0eec58daf6",
-        "blk_da0f1a42f08f4fb6bd23177302444f60"
+        "blk_3568312503964aec",
+        "blk_cb6217bccc974cca",
+        "blk_9e44687dff884ff6",
+        "blk_bd7c5a9f27504a2c",
+        "blk_2cbe96bffde04571",
+        "blk_f2cb51b5d074419a",
+        "blk_c1cc56f65f6a47e1",
+        "blk_3cc672a8038144e0",
+        "blk_71b84ce7c6554639",
+        "blk_a5ce16009a514628",
+        "blk_091db241c5154336",
+        "blk_c5804a9143c34cb1",
+        "blk_c3bc5f3eb8e74110",
+        "blk_43e297666d3b4359"
       ],
       "pre_hooks": [
         "inject_step_metadata"
@@ -5865,8 +5865,8 @@
       "model_strategy": "precise"
     },
     {
-      "id": "step_e9dd765ba98841ddb0059b49df3527d5",
-      "slug": "step_coach",
+      "id": "sp_25664f44773a4354",
+      "slug": "sp_744ca2e40b51424b",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -5882,31 +5882,31 @@
         }
       },
       "prompt_blocks": [
-        "blk_6e98f76e118a42ea992fe82778d386cd",
-        "blk_7cf04dae33aa4bb79a20447dfcc879b3",
-        "blk_00f6fd66159f4b46a1743340fabaadc6",
-        "blk_4c19f32f1dc14672bd2951c8bb70dcc4",
-        "blk_cbcab98df3c34ddfb67f1c9b18acf43f",
-        "blk_266d2532eb60479aaafc77887e23b40a",
-        "blk_5344befaf7914500bd3448a51523a2bb",
-        "blk_f8fbebc9ff2946649b3525d7861a49ca",
-        "blk_c4015fb7a10241b29d8d6d1b73021e1e",
-        "blk_49360a958cc7494ebf053294fb7e2faf",
-        "blk_8351c83cec084a19bb087140ffc89d79",
-        "blk_d43a35ee942f461c9c004fd0cb9bbfa9",
-        "blk_affd89e862e84797bd58e7323a793517",
-        "blk_f1d1c8fd31ae4553bf2dc1e225d2190e",
-        "blk_a8d79342718a4ccda4ae174e9f101920",
-        "blk_0321b720d3a240ce925c4e24206a9a11",
-        "blk_ea0a497f62f34da5b9e64e3c99016af2",
-        "blk_7861fb4ebab6456d8475a476579fa6e4",
-        "blk_e9fa812ae554408e870bae2fccbcffb5",
-        "blk_4a93e8ba4aa6440288cc93705697e9e9",
-        "blk_0bf629b76dc64fa8b8dbdec6b8b7f5af",
-        "blk_11305bc6d71541e79b83040298c89b08",
-        "blk_f4a4aa31ddf842f2a16915746731ae11",
-        "blk_752ba671ee9142b98a9e8b55bf12c8f3",
-        "blk_217e835009874a559089c339820c127e"
+        "blk_9e44687dff884ff6",
+        "blk_bd7c5a9f27504a2c",
+        "blk_9d68ceff695b4196",
+        "blk_23ca73cf267d4078",
+        "blk_2cbe96bffde04571",
+        "blk_f2cb51b5d074419a",
+        "blk_665b2e223f214564",
+        "blk_78d110eb0bad4541",
+        "blk_cc852aa44a1a464e",
+        "blk_04544fa8b5ca408f",
+        "blk_c1cc56f65f6a47e1",
+        "blk_e71bcbeb90244b37",
+        "blk_080a729c8b974492",
+        "blk_5b5f6faf0144401f",
+        "blk_6a02268ad79542de",
+        "blk_2c13f67014094f3b",
+        "blk_fb0b98da76e046dd",
+        "blk_cb6217bccc974cca",
+        "blk_3568312503964aec",
+        "blk_8b6e5fba923642f2",
+        "blk_a5ce16009a514628",
+        "blk_091db241c5154336",
+        "blk_5d26dff39e574d5f",
+        "blk_2305f4ac865a4815",
+        "blk_0217b0b725b54b10"
       ],
       "pre_hooks": [
         "inject_step_metadata"
@@ -5920,7 +5920,7 @@
       "model_strategy": "deep"
     },
     {
-      "id": "step_937b0c4a2819466c97277659edd2ee20",
+      "id": "sp_7f9649114d2344dc",
       "slug": "step_performativity_detector",
       "name": {
         "default_locale": "fi",
@@ -5937,17 +5937,17 @@
         }
       },
       "prompt_blocks": [
-        "blk_6e98f76e118a42ea992fe82778d386cd",
-        "blk_7cf04dae33aa4bb79a20447dfcc879b3",
-        "blk_cbcab98df3c34ddfb67f1c9b18acf43f",
-        "blk_266d2532eb60479aaafc77887e23b40a",
-        "blk_8351c83cec084a19bb087140ffc89d79",
-        "blk_aaf498eda1d741a3b7bd514e0b87f9a9",
-        "blk_2a8bca2cc73a41b6b7311f5483e53e23",
-        "blk_0bf629b76dc64fa8b8dbdec6b8b7f5af",
-        "blk_11305bc6d71541e79b83040298c89b08",
-        "blk_b5ec25bb352e4dc09de386f0da991a08",
-        "blk_03e4b136739f41a48ed06aab823b8b8f"
+        "blk_9e44687dff884ff6",
+        "blk_bd7c5a9f27504a2c",
+        "blk_2cbe96bffde04571",
+        "blk_f2cb51b5d074419a",
+        "blk_c1cc56f65f6a47e1",
+        "blk_3cc672a8038144e0",
+        "blk_71b84ce7c6554639",
+        "blk_a5ce16009a514628",
+        "blk_091db241c5154336",
+        "blk_53f32679aa514fcb",
+        "blk_b4912f9ff3a24b31"
       ],
       "pre_hooks": [
         "inject_step_metadata"
@@ -5961,8 +5961,8 @@
       "model_strategy": "strict"
     },
     {
-      "id": "step_12fbdac607d74edbbffaec3eea62fdc3",
-      "slug": "step_falsifier",
+      "id": "sp_6f40b964895c426b",
+      "slug": "sp_d948cb51bed3454c",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -5978,19 +5978,19 @@
         }
       },
       "prompt_blocks": [
-        "blk_49360a958cc7494ebf053294fb7e2faf",
-        "blk_063bda6cd59f44c4b5b8e89053126af6",
-        "blk_6e98f76e118a42ea992fe82778d386cd",
-        "blk_7cf04dae33aa4bb79a20447dfcc879b3",
-        "blk_cbcab98df3c34ddfb67f1c9b18acf43f",
-        "blk_266d2532eb60479aaafc77887e23b40a",
-        "blk_8351c83cec084a19bb087140ffc89d79",
-        "blk_aaf498eda1d741a3b7bd514e0b87f9a9",
-        "blk_2a8bca2cc73a41b6b7311f5483e53e23",
-        "blk_0bf629b76dc64fa8b8dbdec6b8b7f5af",
-        "blk_11305bc6d71541e79b83040298c89b08",
-        "blk_1e33ce78623943af9d5ce39ce6620478",
-        "blk_15baac89cc9445ec9e9bccac2680688d"
+        "blk_04544fa8b5ca408f",
+        "blk_ab65a936bca34bf1",
+        "blk_9e44687dff884ff6",
+        "blk_bd7c5a9f27504a2c",
+        "blk_2cbe96bffde04571",
+        "blk_f2cb51b5d074419a",
+        "blk_c1cc56f65f6a47e1",
+        "blk_3cc672a8038144e0",
+        "blk_71b84ce7c6554639",
+        "blk_a5ce16009a514628",
+        "blk_091db241c5154336",
+        "blk_b476f89fb732448c",
+        "blk_90d0dd098757433e"
       ],
       "pre_hooks": [
         "inject_step_metadata"
@@ -6005,8 +6005,8 @@
       "model_strategy": "deep"
     },
     {
-      "id": "step_02dd32906f4145bea6f6bf0a807d6011",
-      "slug": "step_guard",
+      "id": "sp_ddb7cf7c8a0245d4",
+      "slug": "sp_b080d22fcc2f4ff0",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -6022,19 +6022,19 @@
         }
       },
       "prompt_blocks": [
-        "blk_6e98f76e118a42ea992fe82778d386cd",
-        "blk_7cf04dae33aa4bb79a20447dfcc879b3",
-        "blk_cbcab98df3c34ddfb67f1c9b18acf43f",
-        "blk_266d2532eb60479aaafc77887e23b40a",
-        "blk_5344befaf7914500bd3448a51523a2bb",
-        "blk_f8fbebc9ff2946649b3525d7861a49ca",
-        "blk_f1d1c8fd31ae4553bf2dc1e225d2190e",
-        "blk_6273406cff2343599b8ca54a9d7d3dec",
-        "blk_2aa78045ebec4ab79b886a1b0daaf981",
-        "blk_a8feb0560cc14de6bd474b40c06c88cf",
-        "blk_0bf629b76dc64fa8b8dbdec6b8b7f5af",
-        "blk_11305bc6d71541e79b83040298c89b08",
-        "blk_8b12be64227c4abd83e2f409b5c3ce28"
+        "blk_9e44687dff884ff6",
+        "blk_bd7c5a9f27504a2c",
+        "blk_2cbe96bffde04571",
+        "blk_f2cb51b5d074419a",
+        "blk_665b2e223f214564",
+        "blk_78d110eb0bad4541",
+        "blk_5b5f6faf0144401f",
+        "blk_f27f6d04c1f74257",
+        "blk_6e08842eae9146a2",
+        "blk_608ba7099d07428f",
+        "blk_a5ce16009a514628",
+        "blk_091db241c5154336",
+        "blk_80732a33fe1947ee"
       ],
       "pre_hooks": [
         "sanitize_text",
@@ -6051,8 +6051,8 @@
       "model_strategy": "strict"
     },
     {
-      "id": "step_64a49f52b7394d9e99b92bb0397a6049",
-      "slug": "step_judge",
+      "id": "sp_48974af1fc584407",
+      "slug": "sp_282a7b15f76d4c9e",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -6068,20 +6068,20 @@
         }
       },
       "prompt_blocks": [
-        "blk_02fa8b36e54d444782f4229aa18a2f38",
-        "blk_a8d79342718a4ccda4ae174e9f101920",
-        "blk_6e98f76e118a42ea992fe82778d386cd",
-        "blk_7cf04dae33aa4bb79a20447dfcc879b3",
-        "blk_00f6fd66159f4b46a1743340fabaadc6",
-        "blk_4c19f32f1dc14672bd2951c8bb70dcc4",
-        "blk_cbcab98df3c34ddfb67f1c9b18acf43f",
-        "blk_0321b720d3a240ce925c4e24206a9a11",
-        "blk_ea0a497f62f34da5b9e64e3c99016af2",
-        "blk_0bf629b76dc64fa8b8dbdec6b8b7f5af",
-        "blk_11305bc6d71541e79b83040298c89b08",
-        "blk_598f9d9fab3143e1b57ae999fc5d375d",
-        "blk_d2013b25926f46d7b70903e69e53a61c",
-        "blk_752ba671ee9142b98a9e8b55bf12c8f3"
+        "blk_a93c517915f94e09",
+        "blk_6a02268ad79542de",
+        "blk_9e44687dff884ff6",
+        "blk_bd7c5a9f27504a2c",
+        "blk_9d68ceff695b4196",
+        "blk_23ca73cf267d4078",
+        "blk_2cbe96bffde04571",
+        "blk_2c13f67014094f3b",
+        "blk_fb0b98da76e046dd",
+        "blk_a5ce16009a514628",
+        "blk_091db241c5154336",
+        "blk_ff72c2d79edb4ebf",
+        "blk_f971def5b3864ba4",
+        "blk_2305f4ac865a4815"
       ],
       "pre_hooks": [
         "inject_step_metadata"
@@ -6097,8 +6097,8 @@
       "model_strategy": "precise"
     },
     {
-      "id": "step_8f3af4a2e3e14dd8bc34fca49bb0b1cb",
-      "slug": "step_logician",
+      "id": "sp_8daee218c6b14f02",
+      "slug": "sp_b7aea7179c1b4193",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -6114,20 +6114,20 @@
         }
       },
       "prompt_blocks": [
-        "blk_6e98f76e118a42ea992fe82778d386cd",
-        "blk_7cf04dae33aa4bb79a20447dfcc879b3",
-        "blk_cbcab98df3c34ddfb67f1c9b18acf43f",
-        "blk_266d2532eb60479aaafc77887e23b40a",
-        "blk_c4015fb7a10241b29d8d6d1b73021e1e",
-        "blk_aaf498eda1d741a3b7bd514e0b87f9a9",
-        "blk_2a8bca2cc73a41b6b7311f5483e53e23",
-        "blk_c1053601349340fdb7640d38f0e97d67",
-        "blk_0bf629b76dc64fa8b8dbdec6b8b7f5af",
-        "blk_11305bc6d71541e79b83040298c89b08",
-        "blk_371c7724eeba40218409b5a3697ac1d3",
-        "blk_a0405e121dbf44bfa8ee80566f8d0c2a",
-        "blk_e1111e6ad16d4808ac2e588182101357",
-        "blk_752ba671ee9142b98a9e8b55bf12c8f3"
+        "blk_9e44687dff884ff6",
+        "blk_bd7c5a9f27504a2c",
+        "blk_2cbe96bffde04571",
+        "blk_f2cb51b5d074419a",
+        "blk_cc852aa44a1a464e",
+        "blk_3cc672a8038144e0",
+        "blk_71b84ce7c6554639",
+        "blk_280fd9eb2f2543f6",
+        "blk_a5ce16009a514628",
+        "blk_091db241c5154336",
+        "blk_440a5fef9331451b",
+        "blk_f921c7c0989b47e8",
+        "blk_652fce41dcb54793",
+        "blk_2305f4ac865a4815"
       ],
       "pre_hooks": [
         "inject_step_metadata"
@@ -6141,8 +6141,8 @@
       "model_strategy": "strict"
     },
     {
-      "id": "step_038947d22fbf4677b4cb90149e358a3e",
-      "slug": "step_overseer",
+      "id": "sp_dfc365994fa944b2",
+      "slug": "sp_76b0dbf44e36495e",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -6158,32 +6158,32 @@
         }
       },
       "prompt_blocks": [
-        "blk_6e98f76e118a42ea992fe82778d386cd",
-        "blk_7cf04dae33aa4bb79a20447dfcc879b3",
-        "blk_00f6fd66159f4b46a1743340fabaadc6",
-        "blk_4c19f32f1dc14672bd2951c8bb70dcc4",
-        "blk_cbcab98df3c34ddfb67f1c9b18acf43f",
-        "blk_266d2532eb60479aaafc77887e23b40a",
-        "blk_5344befaf7914500bd3448a51523a2bb",
-        "blk_f8fbebc9ff2946649b3525d7861a49ca",
-        "blk_c4015fb7a10241b29d8d6d1b73021e1e",
-        "blk_49360a958cc7494ebf053294fb7e2faf",
-        "blk_8351c83cec084a19bb087140ffc89d79",
-        "blk_d43a35ee942f461c9c004fd0cb9bbfa9",
-        "blk_affd89e862e84797bd58e7323a793517",
-        "blk_f1d1c8fd31ae4553bf2dc1e225d2190e",
-        "blk_a8d79342718a4ccda4ae174e9f101920",
-        "blk_0321b720d3a240ce925c4e24206a9a11",
-        "blk_ea0a497f62f34da5b9e64e3c99016af2",
-        "blk_7861fb4ebab6456d8475a476579fa6e4",
-        "blk_e9fa812ae554408e870bae2fccbcffb5",
-        "blk_4a93e8ba4aa6440288cc93705697e9e9",
-        "blk_d45926b33556468dad923d239855a08e",
-        "blk_aaf498eda1d741a3b7bd514e0b87f9a9",
-        "blk_2a8bca2cc73a41b6b7311f5483e53e23",
-        "blk_0bf629b76dc64fa8b8dbdec6b8b7f5af",
-        "blk_11305bc6d71541e79b83040298c89b08",
-        "blk_91b3a18c67184bcabb61f35f62db1ade"
+        "blk_9e44687dff884ff6",
+        "blk_bd7c5a9f27504a2c",
+        "blk_9d68ceff695b4196",
+        "blk_23ca73cf267d4078",
+        "blk_2cbe96bffde04571",
+        "blk_f2cb51b5d074419a",
+        "blk_665b2e223f214564",
+        "blk_78d110eb0bad4541",
+        "blk_cc852aa44a1a464e",
+        "blk_04544fa8b5ca408f",
+        "blk_c1cc56f65f6a47e1",
+        "blk_e71bcbeb90244b37",
+        "blk_080a729c8b974492",
+        "blk_5b5f6faf0144401f",
+        "blk_6a02268ad79542de",
+        "blk_2c13f67014094f3b",
+        "blk_fb0b98da76e046dd",
+        "blk_cb6217bccc974cca",
+        "blk_3568312503964aec",
+        "blk_8b6e5fba923642f2",
+        "blk_7260c1b6ac5648ca",
+        "blk_3cc672a8038144e0",
+        "blk_71b84ce7c6554639",
+        "blk_a5ce16009a514628",
+        "blk_091db241c5154336",
+        "blk_58f750206a4c4af0"
       ],
       "pre_hooks": [
         "inject_step_metadata"
@@ -6197,8 +6197,8 @@
       "model_strategy": "precise"
     },
     {
-      "id": "step_95dc2243345d401b8df6def0a068e5af",
-      "slug": "step_profiler",
+      "id": "sp_6a45d484ad5b497c",
+      "slug": "sp_d86aaa8a2756481b",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -6214,20 +6214,20 @@
         }
       },
       "prompt_blocks": [
-        "blk_6e98f76e118a42ea992fe82778d386cd",
-        "blk_7cf04dae33aa4bb79a20447dfcc879b3",
-        "blk_00f6fd66159f4b46a1743340fabaadc6",
-        "blk_cbcab98df3c34ddfb67f1c9b18acf43f",
-        "blk_266d2532eb60479aaafc77887e23b40a",
-        "blk_8351c83cec084a19bb087140ffc89d79",
-        "blk_e9fa812ae554408e870bae2fccbcffb5",
-        "blk_aaf498eda1d741a3b7bd514e0b87f9a9",
-        "blk_2a8bca2cc73a41b6b7311f5483e53e23",
-        "blk_0bf629b76dc64fa8b8dbdec6b8b7f5af",
-        "blk_11305bc6d71541e79b83040298c89b08",
-        "blk_7861fb4ebab6456d8475a476579fa6e4",
-        "blk_9adcb55b7ba44baeaf8921cb2fb935dc",
-        "blk_da851069f1c84beb817304b0049b52e7"
+        "blk_9e44687dff884ff6",
+        "blk_bd7c5a9f27504a2c",
+        "blk_9d68ceff695b4196",
+        "blk_2cbe96bffde04571",
+        "blk_f2cb51b5d074419a",
+        "blk_c1cc56f65f6a47e1",
+        "blk_3568312503964aec",
+        "blk_3cc672a8038144e0",
+        "blk_71b84ce7c6554639",
+        "blk_a5ce16009a514628",
+        "blk_091db241c5154336",
+        "blk_cb6217bccc974cca",
+        "blk_109dab5b6b3f403a",
+        "blk_9c0c7c46568648c4"
       ],
       "pre_hooks": [
         "calculate_text_metrics",
@@ -6243,7 +6243,7 @@
       "model_strategy": "precise"
     },
     {
-      "id": "step_8071dfe6c2a84663b4429bc44a83381e",
+      "id": "sp_192910b5f5a34c79",
       "slug": "step_xai_reporter",
       "name": {
         "default_locale": "fi",
@@ -6260,16 +6260,16 @@
         }
       },
       "prompt_blocks": [
-        "blk_6e98f76e118a42ea992fe82778d386cd",
-        "blk_7cf04dae33aa4bb79a20447dfcc879b3",
-        "blk_00f6fd66159f4b46a1743340fabaadc6",
-        "blk_4c19f32f1dc14672bd2951c8bb70dcc4",
-        "blk_0321b720d3a240ce925c4e24206a9a11",
-        "blk_ea0a497f62f34da5b9e64e3c99016af2",
-        "blk_0bf629b76dc64fa8b8dbdec6b8b7f5af",
-        "blk_11305bc6d71541e79b83040298c89b08",
-        "blk_3c3b6a9b67bf41e88ed4b59524d6c6f3",
-        "blk_2878d1c8b5494180b1a5231466e2e0a9"
+        "blk_9e44687dff884ff6",
+        "blk_bd7c5a9f27504a2c",
+        "blk_9d68ceff695b4196",
+        "blk_23ca73cf267d4078",
+        "blk_2c13f67014094f3b",
+        "blk_fb0b98da76e046dd",
+        "blk_a5ce16009a514628",
+        "blk_091db241c5154336",
+        "blk_6b8c766185294f7e",
+        "blk_f6e286f050c94d60"
       ],
       "pre_hooks": [
         "inject_step_metadata"
@@ -6283,7 +6283,7 @@
       "model_strategy": "deep"
     },
     {
-      "id": "step_factchecker1234abcd",
+      "id": "sp_76eedbc020274f66",
       "slug": "step_fact_checker",
       "name": {
         "default_locale": "en",
@@ -6300,7 +6300,7 @@
         }
       },
       "prompt_blocks": [
-        "blk_044f6bad09854aa8bb646f63c7571ceb"
+        "blk_033180746a954415"
       ],
       "pre_hooks": [
         "inject_step_metadata"
@@ -6314,8 +6314,8 @@
       "model_strategy": "search"
     },
     {
-      "id": "step_scoreengine1",
-      "slug": "step_scoreengine1",
+      "id": "sp_d245365e4a274b9e",
+      "slug": "sp_d245365e4a274b9e",
       "type": "logic",
       "hook": "apply_scoring_logic",
       "name": {
@@ -6341,7 +6341,7 @@
   ],
   "organizations": [
     {
-      "id": "org_system000000",
+      "id": "org_649f9269fc484826",
       "slug": "system",
       "name": "System Administration",
       "created_at": "2026-01-01T00:00:00Z",
@@ -6355,7 +6355,7 @@
       "rpm_limit": 10000
     },
     {
-      "id": "org_09a2a20a8f354bdab748544c140bff3c",
+      "id": "org_e531d2ed8a6641f6",
       "slug": "demo_corp",
       "name": "Demo Corporation",
       "created_at": "2026-01-01T00:00:00Z",
@@ -6374,11 +6374,11 @@
       "email": "root@example.com",
       "display_name": "System Root",
       "role": "ROOT",
-      "organization_id": "org_06bd4256df5649199f7dea6ee7738393",
+      "organization_id": "org_d020fb7f4d68408d",
       "is_active": true,
       "language": "fi",
       "theme_mode": "system",
-      "id": "usr_43ec77a438104814bd937f28853d569c",
+      "id": "usr_a3fd6b3d77c748f4",
       "slug": "root_master",
       "created_at": "2026-01-01T00:00:00Z",
       "created_by": null
@@ -6387,11 +6387,11 @@
       "email": "admin@demo.com",
       "display_name": "Demo Admin",
       "role": "ADMIN",
-      "organization_id": "org_09a2a20a8f354bdab748544c140bff3c",
+      "organization_id": "org_e531d2ed8a6641f6",
       "is_active": true,
       "language": "fi",
       "theme_mode": "system",
-      "id": "usr_5f49041ba6e040eda49a89de35dceb80",
+      "id": "usr_18a0d5f6151349a5",
       "slug": "admin_1",
       "created_at": "2026-01-01T00:00:00Z",
       "created_by": null
@@ -6400,11 +6400,11 @@
       "email": "manager@demo.com",
       "display_name": "Demo Manager",
       "role": "MANAGER",
-      "organization_id": "org_09a2a20a8f354bdab748544c140bff3c",
+      "organization_id": "org_e531d2ed8a6641f6",
       "is_active": true,
       "language": "fi",
       "theme_mode": "dark",
-      "id": "usr_10e1f779550b439e840fc5a08942c9ea",
+      "id": "usr_936983a7a6c643ab",
       "slug": "manager_1",
       "created_at": "2026-01-01T00:00:00Z",
       "created_by": null
@@ -6413,11 +6413,11 @@
       "email": "member@demo.com",
       "display_name": "Demo Member",
       "role": "MEMBER",
-      "organization_id": "org_09a2a20a8f354bdab748544c140bff3c",
+      "organization_id": "org_e531d2ed8a6641f6",
       "is_active": true,
       "language": "fi",
       "theme_mode": "system",
-      "id": "usr_f45e1e9af7c24e7c8102852c5fa9fce5",
+      "id": "usr_1c1cf9c5178846bb",
       "slug": "member_1",
       "created_at": "2026-01-01T00:00:00Z",
       "created_by": null
@@ -6426,11 +6426,11 @@
       "email": "viewer@demo.com",
       "display_name": "Demo Viewer",
       "role": "VIEWER",
-      "organization_id": "org_09a2a20a8f354bdab748544c140bff3c",
+      "organization_id": "org_e531d2ed8a6641f6",
       "is_active": true,
       "language": "fi",
       "theme_mode": "system",
-      "id": "usr_435d9cab01f84ee4a9a9de2f60d02a9e",
+      "id": "usr_b2d6e4487afc4e69",
       "slug": "viewer_1",
       "created_at": "2026-01-01T00:00:00Z",
       "created_by": null
@@ -6438,7 +6438,7 @@
   ],
   "output_profiles": [
     {
-      "id": "prf_b99fb4976012",
+      "id": "prf_7cc661da3f9f405c",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -6455,7 +6455,6 @@
       },
       "layouts": [
         {
-          "layout_type": "automatic",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6463,17 +6462,19 @@
               "fi": "Komponentit"
             }
           },
-          "components": [
+          "show_text": true,
+          "preset_view": "default",
+          "target_blocks": [
             "*"
           ],
-          "show_text": true
+          "steps": []
         }
       ],
       "slug": "default",
-      "workflow_id": "wf_d653170e174847559e08af42b938d826"
+      "workflow_id": "wf_9d68c573802341db"
     },
     {
-      "id": "prf_7bd1af09e07e",
+      "id": "prf_94993a940850429f",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -6490,7 +6491,6 @@
       },
       "layouts": [
         {
-          "layout_type": "radar_3d",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6498,13 +6498,14 @@
               "fi": "Strateginen tilannekuva"
             }
           },
-          "components": [
+          "show_text": false,
+          "preset_view": "3d_complex",
+          "target_blocks": [
             "*"
           ],
-          "show_text": false
+          "steps": []
         },
         {
-          "layout_type": "box_1d",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6512,17 +6513,19 @@
               "fi": "Keskeiset havainnot"
             }
           },
-          "components": [
-            "blk_b5ec25bb352e4dc09de386f0da991a08"
+          "show_text": true,
+          "preset_view": "1d_metrics",
+          "target_blocks": [
+            "blk_53f32679aa514fcb"
           ],
-          "show_text": true
+          "steps": []
         }
       ],
       "slug": "executive_summary",
-      "workflow_id": "wf_d653170e174847559e08af42b938d826"
+      "workflow_id": "wf_9d68c573802341db"
     },
     {
-      "id": "prf_1e31ae0d793b",
+      "id": "prf_ce82260eee0843d0",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -6539,7 +6542,6 @@
       },
       "layouts": [
         {
-          "layout_type": "matrix_2d",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6547,14 +6549,15 @@
               "fi": "Yksityiskohtainen katsaus"
             }
           },
-          "components": [
-            "blk_371c7724eeba40218409b5a3697ac1d3",
-            "blk_9adcb55b7ba44baeaf8921cb2fb935dc"
+          "show_text": true,
+          "preset_view": "2d_compare",
+          "target_blocks": [
+            "blk_440a5fef9331451b",
+            "blk_109dab5b6b3f403a"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "automatic",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6562,19 +6565,21 @@
               "fi": "Muut ulottuvuudet"
             }
           },
-          "components": [
+          "show_text": true,
+          "preset_view": "default",
+          "target_blocks": [
             "*"
           ],
-          "show_text": true
+          "steps": []
         }
       ],
       "slug": "deep_analysis",
-      "workflow_id": "wf_d653170e174847559e08af42b938d826"
+      "workflow_id": "wf_9d68c573802341db"
     },
     {
-      "id": "prf_f05ae1cfbed3",
+      "id": "prf_6eb468b12cc64116",
       "slug": "basic_report_3d_1d",
-      "workflow_id": "wf_d653170e174847559e08af42b938d826",
+      "workflow_id": "wf_9d68c573802341db",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -6591,7 +6596,6 @@
       },
       "layouts": [
         {
-          "layout_type": "radar_3d",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6606,15 +6610,16 @@
               "fi": "Vahva argumentointi (X) ilman kognitiivista syvyyttä (Y) jää ontoksi retoriikaksi. Korkea kognitiivinen syvyys (Y) taas on välttämätön, jotta sitä voidaan arvioida hitaan ja kriittisen harkinnan (Z) kehyksessä. Kaikki kolme määrittävät aidon älykkyyden."
             }
           },
-          "components": [
-            "blk_371c7724eeba40218409b5a3697ac1d3",
-            "blk_a0405e121dbf44bfa8ee80566f8d0c2a",
-            "blk_9adcb55b7ba44baeaf8921cb2fb935dc"
+          "show_text": true,
+          "preset_view": "3d_complex",
+          "target_blocks": [
+            "blk_440a5fef9331451b",
+            "blk_f921c7c0989b47e8",
+            "blk_109dab5b6b3f403a"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "matrix_2d",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6629,18 +6634,20 @@
               "fi": "Organisaation sääntöjen noudattaminen (X) rinnakkain piilevien asenteiden tunnistamisen (Y) kanssa. Korkea sääntöjen noudattaminen (X) voi silti piilottaa taakseen vakavia kielellisiä vääristymiä (Y), jolloin todellinen implementaatioriski kasvaa."
             }
           },
-          "components": [
-            "blk_d0e240184e0a40759d37138a250bd0aa",
-            "blk_8b12be64227c4abd83e2f409b5c3ce28"
+          "show_text": true,
+          "preset_view": "2d_compare",
+          "target_blocks": [
+            "blk_fb15f8dcf23f4865",
+            "blk_80732a33fe1947ee"
           ],
-          "show_text": true
+          "steps": []
         }
       ]
     },
     {
-      "id": "prf_b25feeb3c5bc",
+      "id": "prf_6051b88056c64448",
       "slug": "analytical_synthesis",
-      "workflow_id": "wf_d653170e174847559e08af42b938d826",
+      "workflow_id": "wf_9d68c573802341db",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -6672,12 +6679,13 @@
               "fi": "Argumentin oikeutuksen (X) tulisi kasvaa rinta rinnan kognitiivisen syvyyden (Y) kanssa. Jos korkea oikeutus (X) ja syvyys (Y) saavutetaan rutiininomaisella, nopealla System 1 -prosessoinnilla (matala Z), tekoäly todennäköisesti hallusinoi itseluottamuksensa. Vahva analyysi edellyttää aina hidasta harkintaa (korkea Z)."
             }
           },
-          "layout_type": "radar_3d",
-          "components": [
-            "blk_371c7724eeba40218409b5a3697ac1d3",
-            "blk_a0405e121dbf44bfa8ee80566f8d0c2a",
-            "blk_9adcb55b7ba44baeaf8921cb2fb935dc"
-          ]
+          "preset_view": "3d_complex",
+          "target_blocks": [
+            "blk_440a5fef9331451b",
+            "blk_f921c7c0989b47e8",
+            "blk_109dab5b6b3f403a"
+          ],
+          "steps": []
         },
         {
           "show_text": true,
@@ -6695,11 +6703,12 @@
               "fi": "Korkea yrityksen sääntöjen noudattaminen (X) heikentyy merkittävästi, jos auditoitu teksti vuotaa asenteellista dataa ulos (matala Y). Sääntöjen mekaaninen seuraaminen (X) luo turvallisuudentunnetta, mutta vinoutunut kieli (Y) todentaa varsinaisen riskin compliance-valvonnalle."
             }
           },
-          "layout_type": "matrix_2d",
-          "components": [
-            "blk_d0e240184e0a40759d37138a250bd0aa",
-            "blk_8b12be64227c4abd83e2f409b5c3ce28"
-          ]
+          "preset_view": "2d_compare",
+          "target_blocks": [
+            "blk_fb15f8dcf23f4865",
+            "blk_80732a33fe1947ee"
+          ],
+          "steps": []
         },
         {
           "show_text": true,
@@ -6717,18 +6726,19 @@
               "fi": "Jos tekoäly optimoi pelkkää sisäistä indikaattoria (X), se voi samalla sokeutua ja menettää objektiivisen kriittisen etäisyytensä dataan (Y). Korkea tulos (X) yhdistettynä matalaan etäisyyteen (Y) paljastaa vaarallisen mittausharhan."
             }
           },
-          "layout_type": "matrix_2d",
-          "components": [
-            "blk_b5ec25bb352e4dc09de386f0da991a08",
-            "blk_1e33ce78623943af9d5ce39ce6620478"
-          ]
+          "preset_view": "2d_compare",
+          "target_blocks": [
+            "blk_53f32679aa514fcb",
+            "blk_b476f89fb732448c"
+          ],
+          "steps": []
         }
       ]
     },
     {
-      "id": "prf_f3e0aa555303",
+      "id": "prf_7d3ff4e40aaf4e6d",
       "slug": "causality_synthesis",
-      "workflow_id": "wf_d653170e174847559e08af42b938d826",
+      "workflow_id": "wf_9d68c573802341db",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -6760,19 +6770,20 @@
               "fi": "Kausaalisten suhteiden todellinen olemassaolo (X) menettää merkityksensä, jos tekoäly ei tunnista omia rajoituksiaan (Y). Vahva näyttö kausaatiosta (X) ylittää rehellisyyden kynnyksen vain silloin, kun malli pystyy avaamaan oman päättelynsä täydellisen läpinäkyvästi (Z)."
             }
           },
-          "layout_type": "radar_3d",
-          "components": [
-            "blk_a8e356b276f04ddeb7cc3a0eec58daf6",
-            "blk_635d07ae441d41e6a274911854ef8283",
-            "blk_2878d1c8b5494180b1a5231466e2e0a9"
-          ]
+          "preset_view": "3d_complex",
+          "target_blocks": [
+            "blk_c3bc5f3eb8e74110",
+            "blk_22e3598e06414409",
+            "blk_f6e286f050c94d60"
+          ],
+          "steps": []
         }
       ]
     },
     {
-      "id": "prf_83d2bff5524b",
+      "id": "prf_549e636055f242df",
       "slug": "final_tribunal",
-      "workflow_id": "wf_d653170e174847559e08af42b938d826",
+      "workflow_id": "wf_9d68c573802341db",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -6804,19 +6815,20 @@
               "fi": "Jos analyysin syy-seuraussuhteet ovat ristiriitaisia (X), lopullisen tuomion kovuus (Y) peilaa suoraan tekstin hylättävyyttä. Armoton tuomio (Y) on kuitenkin validi vain, jos tekoäly kykenee selittämään prosessinsa läpinäkyvästi (Z). X, Y ja Z yhdessä estävät mustan laatikon päätökset."
             }
           },
-          "layout_type": "radar_3d",
-          "components": [
-            "blk_bf8a99a1b3514f6c93aff42a4cc52213",
-            "blk_598f9d9fab3143e1b57ae999fc5d375d",
-            "blk_3c3b6a9b67bf41e88ed4b59524d6c6f3"
-          ]
+          "preset_view": "3d_complex",
+          "target_blocks": [
+            "blk_c5804a9143c34cb1",
+            "blk_ff72c2d79edb4ebf",
+            "blk_6b8c766185294f7e"
+          ],
+          "steps": []
         }
       ]
     },
     {
-      "id": "prf_4308b1aedaa541499b99338d9ef8e9e6",
+      "id": "prf_e99f728368684813",
       "slug": "extended_insights",
-      "workflow_id": "wf_d653170e174847559e08af42b938d826",
+      "workflow_id": "wf_9d68c573802341db",
       "name": {
         "default_locale": "fi",
         "translations": {
@@ -6833,7 +6845,6 @@
       },
       "layouts": [
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6848,13 +6859,14 @@
               "en": "Evaluates the quality of an argument using the Toulmin model."
             }
           },
-          "components": [
-            "blk_371c7724eeba40218409b5a3697ac1d3"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_440a5fef9331451b"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6869,13 +6881,14 @@
               "en": "Evaluates cognitive depth using Bloom's Taxonomy."
             }
           },
-          "components": [
-            "blk_a0405e121dbf44bfa8ee80566f8d0c2a"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_f921c7c0989b47e8"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6890,13 +6903,14 @@
               "en": "Evaluates the speed and depth of cognitive processing using System 1/System 2."
             }
           },
-          "components": [
-            "blk_9adcb55b7ba44baeaf8921cb2fb935dc"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_109dab5b6b3f403a"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6911,13 +6925,14 @@
               "en": "Evaluates whether the user acts as a driver or a passenger in the interaction."
             }
           },
-          "components": [
-            "blk_b5ec25bb352e4dc09de386f0da991a08"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_53f32679aa514fcb"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6932,13 +6947,14 @@
               "en": "Evaluates how thoroughly the user analyzes provided inputs."
             }
           },
-          "components": [
-            "blk_cf081a3325f44dc49bbe06d600f268fc"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_599645bd5baf44e2"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6953,13 +6969,14 @@
               "en": "Evaluates compliance with organizational standards and precedent."
             }
           },
-          "components": [
-            "blk_d0e240184e0a40759d37138a250bd0aa"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_fb15f8dcf23f4865"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6974,13 +6991,14 @@
               "en": "Evaluates causal direction and guidance quality."
             }
           },
-          "components": [
-            "blk_bf8a99a1b3514f6c93aff42a4cc52213"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_c5804a9143c34cb1"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -6995,13 +7013,14 @@
               "en": "Evaluates active testing and falsification of AI assumptions."
             }
           },
-          "components": [
-            "blk_1e33ce78623943af9d5ce39ce6620478"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_b476f89fb732448c"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -7016,13 +7035,14 @@
               "en": "Synthesizes multi-agent evaluations into a final verdict."
             }
           },
-          "components": [
-            "blk_598f9d9fab3143e1b57ae999fc5d375d"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_ff72c2d79edb4ebf"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -7037,13 +7057,14 @@
               "en": "Evaluates the transparency and clarity of the decision-making report."
             }
           },
-          "components": [
-            "blk_3c3b6a9b67bf41e88ed4b59524d6c6f3"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_6b8c766185294f7e"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -7058,13 +7079,14 @@
               "en": "Evaluates adherence to security and input guardrails."
             }
           },
-          "components": [
-            "blk_8b12be64227c4abd83e2f409b5c3ce28"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_80732a33fe1947ee"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -7079,13 +7101,14 @@
               "en": "Evaluates abductive reasoning patterns in the data."
             }
           },
-          "components": [
-            "blk_a8e356b276f04ddeb7cc3a0eec58daf6"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_c3bc5f3eb8e74110"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -7100,13 +7123,14 @@
               "en": "Evaluates the comprehensibility and transparency of the verdict."
             }
           },
-          "components": [
-            "blk_2878d1c8b5494180b1a5231466e2e0a9"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_f6e286f050c94d60"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -7121,13 +7145,14 @@
               "en": "Matrix: Recognition of the text's own limitations and risks."
             }
           },
-          "components": [
-            "blk_635d07ae441d41e6a274911854ef8283"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_22e3598e06414409"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -7142,13 +7167,14 @@
               "en": "Task definition for behavioral profiling and cognitive analysis."
             }
           },
-          "components": [
-            "blk_da851069f1c84beb817304b0049b52e7"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_9c0c7c46568648c4"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -7163,13 +7189,14 @@
               "en": "Task definition for rigorous hypothesis testing."
             }
           },
-          "components": [
-            "blk_15baac89cc9445ec9e9bccac2680688d"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_90d0dd098757433e"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -7184,13 +7211,14 @@
               "en": "Ensures the material and decision-making align with previous precedent cases and organizational standards."
             }
           },
-          "components": [
-            "blk_ea43c4bce7ed4627933edeccc1c998d6"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_3744757fbff44175"
           ],
-          "show_text": true
+          "steps": []
         },
         {
-          "layout_type": "text_only",
           "title": {
             "default_locale": "fi",
             "translations": {
@@ -7205,10 +7233,12 @@
               "en": "Provides constructive feedback based on observations."
             }
           },
-          "components": [
-            "blk_f4a4aa31ddf842f2a16915746731ae11"
+          "show_text": true,
+          "preset_view": "text_only",
+          "target_blocks": [
+            "blk_5d26dff39e574d5f"
           ],
-          "show_text": true
+          "steps": []
         }
       ]
     }

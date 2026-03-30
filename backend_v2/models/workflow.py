@@ -18,7 +18,7 @@ class WorkflowStep(BaseModel):
 
     id: str = Field(
         default_factory=lambda: f"step_{uuid.uuid4().hex}",
-        pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$",
+        pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
         description="Unique step identifier, e.g., 'step_a1b2c3d4'",
         json_schema_extra={"x-ui-label": "ID"},
     )
@@ -136,7 +136,7 @@ class WorkflowDefinition(BaseModel):
 
     id: str = Field(
         default_factory=lambda: f"wf_{uuid.uuid4().hex}",
-        pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$",
+        pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
         description="Unique Workflow ID, e.g., 'wf_123abc456'",
     )
     slug: str | None = Field(

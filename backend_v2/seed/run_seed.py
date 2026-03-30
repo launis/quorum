@@ -92,7 +92,8 @@ def _seed_tinydb(db_path: str, seed_data: dict[str, Any]) -> None:
 
         for item in seed_data.get(col_key, []):
             try:
-                validated = pyd_adapter.validate_python(item, strict=True)
+                # Let Pydantic resolve the strictness natively using model_config=ConfigDict(strict=True)
+                validated = pyd_adapter.validate_python(item)
 
                 if col_key == "workflows":
                     from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
@@ -170,7 +171,7 @@ def _seed_firestore(seed_data: dict[str, Any]) -> None:
         valid_items = []
         for item in seed_data.get(col_key, []):
             try:
-                validated = pyd_adapter.validate_python(item, strict=True)
+                validated = pyd_adapter.validate_python(item)
                 if col_key == "workflows":
                     from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 

@@ -187,7 +187,7 @@ class LoginScreen extends HookConsumerWidget {
                         onPressed: isMockLoading.value
                             ? null
                             : () => mockLogin(
-                                'usr_43ec77a438104814bd937f28853d569c', // ROOT
+                                'usr_a3fd6b3d77c748f4', // ROOT
                               ),
                         child: const Text('Mock Login (Root Master)'),
                       ),
@@ -198,7 +198,7 @@ class LoginScreen extends HookConsumerWidget {
                         onPressed: isMockLoading.value
                             ? null
                             : () => mockLogin(
-                                'usr_5f49041ba6e040eda49a89de35dceb80', // ADMIN
+                                'usr_18a0d5f6151349a5', // ADMIN
                               ),
                         child: const Text('Mock Login (Admin)'),
                       ),
@@ -209,7 +209,7 @@ class LoginScreen extends HookConsumerWidget {
                         onPressed: isMockLoading.value
                             ? null
                             : () => mockLogin(
-                                'usr_10e1f779550b439e840fc5a08942c9ea', // MANAGER
+                                'usr_936983a7a6c643ab', // MANAGER
                               ),
                         child: const Text('Mock Login (Manager)'),
                       ),

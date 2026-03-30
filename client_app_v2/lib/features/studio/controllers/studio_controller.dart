@@ -4,6 +4,8 @@ import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -15,16 +17,22 @@ part 'studio_controller.g.dart';
 
 /// Fetches a single Workflow natively by ID
 @riverpod
-Future<Map<String, dynamic>> workflowById(Ref ref, String id) async {
+Future<Workflow> workflowById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
-  return client.getWorkflow(id);
+  final rawData = await client.getWorkflow(id);
+  final str = jsonEncode(rawData);
+  return Workflow.parseInBackground(str);
 }
 
 /// Fetches a single Step natively by ID
 @riverpod
-Future<Map<String, dynamic>> stepById(Ref ref, String id) async {
+Future<NodeStrategy> stepById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
-  return client.getStep(id);
+  final rawData = await client.getStep(id);
+  final str = jsonEncode(rawData);
+  return Isolate.run(
+    () => NodeStrategy.fromJson(jsonDecode(str) as Map<String, dynamic>),
+  );
 }
 
 // --- Form State (Flat MVC) ---
@@ -32,55 +40,42 @@ Future<Map<String, dynamic>> stepById(Ref ref, String id) async {
 @riverpod
 class WorkflowForm extends _$WorkflowForm {
   @override
-  FutureOr<Map<String, dynamic>> build(String configId) async {
+  FutureOr<Workflow> build(String configId) async {
     if (configId == 'new') {
-      return Isolate.run(
-        () => {
-          'id': '',
-          'slug': '',
-          'expected_inputs': [],
-          'steps': [],
-          'output_profiles': <String, dynamic>{},
-        },
+      return const Workflow(
+        id: '',
+        slug: '',
+        name: I18nText(
+          defaultLocale: 'en',
+          translations: {'en': 'New Workflow', 'fi': 'Uusi työnkulku'},
+        ),
+        description: I18nText(
+          defaultLocale: 'en',
+          translations: {'en': '', 'fi': ''},
+        ),
       );
     }
 
-    final rawData = await ref.watch(workflowByIdProvider(configId).future);
-    final str = jsonEncode(rawData);
-    var copy = await Isolate.run(() => jsonDecode(str) as Map<String, dynamic>);
-
-    if (!copy.containsKey('expected_inputs')) copy['expected_inputs'] = [];
-    if (!copy.containsKey('steps')) copy['steps'] = [];
-    // Legacy keys cleaned if present
-    copy.remove('render_blueprints');
-    copy.remove('render_blueprint');
-    copy.remove('output_mapping');
-
-    if (!copy.containsKey('output_profiles')) {
-      copy['output_profiles'] = <String, dynamic>{};
-    }
-
-    return copy;
+    final block = await ref.watch(workflowByIdProvider(configId).future);
+    return block.copyWith();
   }
 
-  void forceRebuild() {
-    final payload = state.value;
-    if (payload != null) {
-      state = AsyncData(Map<String, dynamic>.from(payload));
-    }
+  void forceRebuild(Workflow block) {
+    state = AsyncData(block);
   }
 
-  Future<void> submit(Map<String, dynamic> updatedData) async {
+  Future<void> submit(Workflow block) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final idToSave = updatedData['id'] as String? ?? configId;
-      if (idToSave.isEmpty || idToSave == 'new')
+      final idToSave = block.id.isEmpty ? configId : block.id;
+      if (idToSave.isEmpty || idToSave == 'new') {
         throw AppException.validation("Workflow ID is required");
+      }
 
       await ref
           .read(workflowsControllerProvider.notifier)
-          .saveWorkflow(idToSave, updatedData);
-      return updatedData;
+          .saveWorkflow(idToSave, block);
+      return block;
     });
   }
 }
@@ -88,62 +83,70 @@ class WorkflowForm extends _$WorkflowForm {
 @riverpod
 class StepForm extends _$StepForm {
   @override
-  FutureOr<Map<String, dynamic>> build(String configId) async {
+  FutureOr<NodeStrategy> build(String configId) async {
     if (configId == 'new') {
-      return Isolate.run(
-        () => {
-          'id': '',
-          'slug': '',
-          'label': {'fi': 'Uusi Steppi', 'en': 'New Step'},
-          'agent_type': 'general_executive',
-          'prompt_blocks': [],
-          'enabled': true,
-        },
+      return const NodeStrategy.llm(
+        id: '',
+        slug: '',
+        name: I18nText(
+          defaultLocale: 'en',
+          translations: {'fi': 'Uusi Steppi', 'en': 'New Step'},
+        ),
+        description: I18nText(
+          defaultLocale: 'en',
+          translations: {'en': '', 'fi': ''},
+        ),
+        safety: 'safe',
       );
     }
 
-    final rawData = await ref.watch(stepByIdProvider(configId).future);
-    final str = jsonEncode(rawData);
-    return Isolate.run(() => jsonDecode(str) as Map<String, dynamic>);
-  }
+    final block = await ref.watch(stepByIdProvider(configId).future);
 
-  void forceRebuild() {
-    final payload = state.value;
-    if (payload != null) {
-      state = AsyncData(Map<String, dynamic>.from(payload));
+    // Strict Dart 3 exhaustive matching - Freezed maps are BANNED
+    switch (block) {
+      case NodeStrategyLlm l:
+        return l.copyWith();
+      case NodeStrategyLogic l:
+        return l.copyWith();
     }
   }
 
-  Future<void> submit(Map<String, dynamic> updatedData) async {
+  void forceRebuild(NodeStrategy block) {
+    state = AsyncData(block);
+  }
+
+  Future<void> submit(NodeStrategy block) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final idToSave = updatedData['id'] as String? ?? configId;
-      if (idToSave.isEmpty || idToSave == 'new')
+      final idToSave = block.id.isEmpty ? configId : block.id;
+      if (idToSave.isEmpty || idToSave == 'new') {
         throw AppException.validation("Step ID is required");
+      }
 
       await ref
           .read(stepsControllerProvider.notifier)
-          .saveStep(idToSave, updatedData);
-      return updatedData;
+          .saveStep(idToSave, block);
+      return block;
     });
   }
 }
 
 // --- Controllers ---
 
-/// Controller managing Studio Workflows (DAGs) strictly using `Map<String, dynamic>`.
+/// Controller managing Studio Workflows (DAGs) strictly using `Workflow` mapped domain model.
 /// Implements Optimistic UI principles where possible.
 @riverpod
 class WorkflowsController extends _$WorkflowsController {
   @override
-  FutureOr<List<Map<String, dynamic>>> build() async {
+  FutureOr<List<Workflow>> build() async {
     ref.cacheFor(AppDurations.cacheTimeout);
     return _fetchWorkflows();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchWorkflows() async {
+  Future<List<Workflow>> _fetchWorkflows() async {
     final client = ref.read(studioClientProvider);
-    return client.getWorkflows();
+    final rawData = await client.getWorkflows();
+    return Workflow.parseListInBackground(rawData);
   }
 
   /// Refreshes the workflow list from the backend.
@@ -161,36 +164,19 @@ class WorkflowsController extends _$WorkflowsController {
   }
 
   /// Saves a workflow utilizing Optimistic Updates.
-  Future<Map<String, dynamic>> saveWorkflow(
-    String id,
-    Map<String, dynamic> payload,
-  ) async {
+  Future<Workflow> saveWorkflow(String id, Workflow payload) async {
     final previousState = state;
+    Workflow returnData = payload.copyWith(id: id);
 
-    // Pluck orphaned questionnaire definitions to satisfy Pydantic Strict Fail-Fast
-    if (payload['expected_inputs'] is List) {
-      for (var inputDef in payload['expected_inputs']) {
-        if (inputDef is Map) {
-          final modes = inputDef['input_modes'] ?? [];
-          if (modes is List && !modes.contains('questionnaire')) {
-            inputDef.remove('questionnaire_definition');
-          }
-        }
-      }
-    }
-
-    Map<String, dynamic> returnData = {...payload, 'id': id};
-
-    // 1. Optimistic Update
+    // 1. Optimistic Update (0ms Illusion)
     if (state.hasValue && state.value != null) {
-      final currentList = List<Map<String, dynamic>>.from(state.value!);
-      final index = currentList.indexWhere((w) => w['id'] == id);
+      final currentList = List<Workflow>.from(state.value!);
+      final index = currentList.indexWhere((w) => w.id == id);
 
-      final updatedWorkflow = {...payload, 'id': id};
       if (index >= 0) {
-        currentList[index] = updatedWorkflow;
+        currentList[index] = returnData;
       } else {
-        currentList.add(updatedWorkflow);
+        currentList.add(returnData);
       }
       state = AsyncValue.data(currentList);
     }
@@ -198,12 +184,14 @@ class WorkflowsController extends _$WorkflowsController {
     try {
       // 2. Network Call
       final client = ref.read(studioClientProvider);
-      final verifiedWorkflow = await client.saveWorkflow(id, payload);
+      final rawResponse = await client.saveWorkflow(id, returnData.toJson());
+      final str = jsonEncode(rawResponse);
+      final verifiedWorkflow = await Workflow.parseInBackground(str);
 
       // 3. Confirm with Actual Data
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
-        final index = currentList.indexWhere((w) => w['id'] == id);
+        final currentList = List<Workflow>.from(state.value!);
+        final index = currentList.indexWhere((w) => w.id == id);
         if (index >= 0) {
           currentList[index] = verifiedWorkflow;
           state = AsyncValue.data(currentList);
@@ -231,8 +219,8 @@ class WorkflowsController extends _$WorkflowsController {
       await client.deleteWorkflow(id);
 
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
-        currentList.removeWhere((w) => w['id'] == id);
+        final currentList = List<Workflow>.from(state.value!);
+        currentList.removeWhere((w) => w.id == id);
         state = AsyncValue.data(currentList);
       }
     } catch (e, st) {
@@ -247,19 +235,23 @@ class WorkflowsController extends _$WorkflowsController {
   }
 
   /// Clones a workflow using the backend's Shallow-Deep Copy constraint.
-  Future<Map<String, dynamic>> cloneWorkflow(String id) async {
+  Future<Workflow> cloneWorkflow(String id) async {
+    final previousState = state;
     try {
       final client = ref.read(studioClientProvider);
-      final clonedWorkflow = await client.cloneWorkflow(id);
+      final rawResponse = await client.cloneWorkflow(id);
+      final str = jsonEncode(rawResponse);
+      final clonedWorkflow = await Workflow.parseInBackground(str);
 
       // Append cloned workflow to local state instantly
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        final currentList = List<Workflow>.from(state.value!);
         currentList.insert(0, clonedWorkflow);
         state = AsyncValue.data(currentList);
       }
       return clonedWorkflow;
     } catch (e, st) {
+      state = previousState;
       ref
           .read(loggerServiceProvider)
           .error('WorkflowsController', 'Clone failed', e, st);
@@ -271,12 +263,10 @@ class WorkflowsController extends _$WorkflowsController {
   }
 
   /// Simulates a workflow on the backend without saving it.
-  Future<Map<String, dynamic>> simulateWorkflow(
-    Map<String, dynamic> payload,
-  ) async {
+  Future<Map<String, dynamic>> simulateWorkflow(Workflow payload) async {
     try {
       final client = ref.read(studioClientProvider);
-      return await client.simulateWorkflow(payload);
+      return await client.simulateWorkflow(payload.toJson());
     } catch (e, st) {
       ref
           .read(loggerServiceProvider)
@@ -289,19 +279,23 @@ class WorkflowsController extends _$WorkflowsController {
   }
 }
 
-/// Controller managing Studio Steps strictly using `Map<String, dynamic>`.
+/// Controller managing Studio Steps strictly using `NodeStrategy` mapping.
 /// Implements Optimistic UI principles where possible.
 @riverpod
 class StepsController extends _$StepsController {
   @override
-  FutureOr<List<Map<String, dynamic>>> build() async {
+  FutureOr<List<NodeStrategy>> build() async {
     ref.cacheFor(AppDurations.cacheTimeout);
     return _fetchSteps();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchSteps() async {
+  Future<List<NodeStrategy>> _fetchSteps() async {
     final client = ref.read(studioClientProvider);
-    return client.getSteps();
+    final rawData = await client.getSteps();
+    // Isolate Mandate: Zero-Latency
+    return Isolate.run(() {
+      return rawData.map((e) => NodeStrategy.fromJson(e)).toList();
+    });
   }
 
   /// Refreshes the steps list from the backend.
@@ -319,23 +313,33 @@ class StepsController extends _$StepsController {
   }
 
   /// Saves a step utilizing Optimistic Updates.
-  Future<Map<String, dynamic>> saveStep(
-    String id,
-    Map<String, dynamic> payload,
-  ) async {
+  Future<NodeStrategy> saveStep(String id, NodeStrategy payload) async {
     final previousState = state;
-    Map<String, dynamic> returnData = {...payload, 'id': id};
+    NodeStrategy returnData = payload;
+
+    // Strict pattern matching to achieve copyWith injected parameter
+    switch (payload) {
+      case NodeStrategyLlm l:
+        returnData = l.copyWith(id: id);
+        break;
+      case NodeStrategyLogic l:
+        returnData = l.copyWith(id: id);
+        break;
+    }
 
     // 1. Optimistic Update
     if (state.hasValue && state.value != null) {
-      final currentList = List<Map<String, dynamic>>.from(state.value!);
-      final index = currentList.indexWhere((m) => m['id'] == id);
+      final currentList = List<NodeStrategy>.from(state.value!);
+      final index = currentList.indexWhere((m) {
+        if (m is NodeStrategyLlm) return m.id == id;
+        if (m is NodeStrategyLogic) return m.id == id;
+        return false;
+      });
 
-      final updatedStep = {...payload, 'id': id};
       if (index >= 0) {
-        currentList[index] = updatedStep;
+        currentList[index] = returnData;
       } else {
-        currentList.add(updatedStep);
+        currentList.add(returnData);
       }
       state = AsyncValue.data(currentList);
     }
@@ -343,12 +347,21 @@ class StepsController extends _$StepsController {
     try {
       // 2. Network Call (Append-Only)
       final client = ref.read(studioClientProvider);
-      final verifiedStep = await client.saveStep(id, payload);
+      final rawResponse = await client.saveStep(id, returnData.toJson());
+      final str = jsonEncode(rawResponse);
+      final verifiedStep = await Isolate.run(
+        () => NodeStrategy.fromJson(jsonDecode(str) as Map<String, dynamic>),
+      );
 
       // 3. Confirm with Actual Data
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
-        final index = currentList.indexWhere((m) => m['id'] == id);
+        final currentList = List<NodeStrategy>.from(state.value!);
+        final index = currentList.indexWhere((m) {
+          if (m is NodeStrategyLlm) return m.id == id;
+          if (m is NodeStrategyLogic) return m.id == id;
+          return false;
+        });
+
         if (index >= 0) {
           currentList[index] = verifiedStep;
           state = AsyncValue.data(currentList);
@@ -376,8 +389,12 @@ class StepsController extends _$StepsController {
       await client.deleteStep(id);
 
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
-        currentList.removeWhere((m) => m['id'] == id);
+        final currentList = List<NodeStrategy>.from(state.value!);
+        currentList.removeWhere((m) {
+          if (m is NodeStrategyLlm) return m.id == id;
+          if (m is NodeStrategyLogic) return m.id == id;
+          return false;
+        });
         state = AsyncValue.data(currentList);
       }
     } catch (e, st) {
@@ -392,16 +409,20 @@ class StepsController extends _$StepsController {
   }
 
   /// Clones a step utilizing Optimistic UI.
-  Future<Map<String, dynamic>> cloneStep(String id) async {
+  Future<NodeStrategy> cloneStep(String id) async {
     final previousState = state;
     try {
       // 1. Network Call
       final client = ref.read(studioClientProvider);
-      final clonedStep = await client.cloneStep(id);
+      final rawResponse = await client.cloneStep(id);
+      final str = jsonEncode(rawResponse);
+      final clonedStep = await Isolate.run(
+        () => NodeStrategy.fromJson(jsonDecode(str) as Map<String, dynamic>),
+      );
 
       // 2. Update State
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        final currentList = List<NodeStrategy>.from(state.value!);
         currentList.add(clonedStep);
         state = AsyncValue.data(currentList);
       }
@@ -419,12 +440,10 @@ class StepsController extends _$StepsController {
   }
 
   /// Simulates a step on the backend without saving it.
-  Future<Map<String, dynamic>> simulateStep(
-    Map<String, dynamic> payload,
-  ) async {
+  Future<Map<String, dynamic>> simulateStep(NodeStrategy payload) async {
     try {
       final client = ref.read(studioClientProvider);
-      return await client.simulateStep(payload);
+      return await client.simulateStep(payload.toJson());
     } catch (e, st) {
       ref
           .read(loggerServiceProvider)

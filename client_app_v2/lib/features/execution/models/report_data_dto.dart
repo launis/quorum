@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:isolate';
-import 'package:client_app/utils/safe_cast.dart';
 
 /// Strictly typed DTO for a single reporting axis (e.g., metric, category).
 class ReportAxisDTO {
@@ -48,7 +47,7 @@ class ReportAxisDTO {
   });
 
   /// Instantiates a strictly typed [ReportAxisDTO] from raw JSON.
-  /// Enforces Fail-Fast via SafeCast parsing preventing dynamic type errors.
+  /// Enforces Fail-Fast parsing preventing dynamic type errors.
   factory ReportAxisDTO.fromJson(Map<String, dynamic> json) {
     Map<String, String> parsedLabels = {};
     if (json['scale_labels'] is Map) {
@@ -58,31 +57,29 @@ class ReportAxisDTO {
     }
 
     return ReportAxisDTO(
-      name: SafeCast.safeString(json['name']),
+      name: json['name']?.toString() ?? '',
       description: json['description']?.toString(),
-      score: json['score'] != null ? SafeCast.safeDouble(json['score']) : null,
-      justification: SafeCast.safeString(json['justification']),
+      score: (json['score'] as num?)?.toDouble(),
+      justification: json['justification']?.toString() ?? '',
       citedSourceId: json['cited_source_id']?.toString(),
       citedTextQuote: json['cited_text_quote']?.toString(),
       citedWebCitation: json['cited_web_citation']?.toString(),
       coaching: json['coaching']?.toString(),
-      confidence: json['confidence'] != null
-          ? SafeCast.safeDouble(json['confidence'])
-          : null,
+      confidence: (json['confidence'] as num?)?.toDouble(),
       falsification: json['falsification']?.toString(),
       missingContext: json['missing_context']?.toString(),
-      riskFlag: json['risk_flag'] != null
-          ? SafeCast.safeBool(json['risk_flag'])
-          : null,
-      remediationSteps: json['remediation_steps'] != null
-          ? SafeCast.safeList(
-              json['remediation_steps'],
-            ).map((e) => e.toString()).toList()
+      riskFlag: json['risk_flag'] is bool
+          ? json['risk_flag'] as bool
+          : (json['risk_flag']?.toString() == 'true'),
+      remediationSteps: json['remediation_steps'] is List
+          ? (json['remediation_steps'] as List)
+                .map((e) => e.toString())
+                .toList()
           : null,
       emotionalSentiment: json['emotional_sentiment']?.toString(),
       theoryLink: json['theory_link']?.toString(),
-      scaleMin: SafeCast.safeDouble(json['scale_min'], 0.0),
-      scaleMax: SafeCast.safeDouble(json['scale_max'], 6.0),
+      scaleMin: (json['scale_min'] as num?)?.toDouble() ?? 0.0,
+      scaleMax: (json['scale_max'] as num?)?.toDouble() ?? 6.0,
       scaleLabels: parsedLabels,
     );
   }
@@ -107,29 +104,40 @@ class ReportLayoutDTO {
   });
 
   factory ReportLayoutDTO.fromJson(Map<String, dynamic> json) {
-    final preset = SafeCast.safeString(json['preset_view'], '1d_metrics');
+    final presetRaw = json['preset_view']?.toString() ?? '';
+    final preset = presetRaw.isEmpty ? '1d_metrics' : presetRaw;
     if (json['axes'] == null || json['axes'] is! List) {
       throw const FormatException(
         'CRITICAL: axes field is missing or invalid in ReportLayoutDTO payload. Fail-Fast enforced.',
       );
     }
+    final titleRaw = json['title'];
+    final descRaw = json['description'];
+    final showTextRaw = json['show_text'];
+
     return ReportLayoutDTO(
-      presetView: preset.isEmpty ? '1d_metrics' : preset,
+      presetView: preset,
       matrixType: json['matrix_type']?.toString(),
       title: Map<String, String>.from(
-        SafeCast.safeMap(
-          json['title'],
-        ).map((k, v) => MapEntry(k.toString(), v.toString())),
+        (titleRaw is Map ? titleRaw : {}).map(
+          (k, v) => MapEntry(k.toString(), v.toString()),
+        ),
       ),
       description: Map<String, String>.from(
-        SafeCast.safeMap(
-          json['description'],
-        ).map((k, v) => MapEntry(k.toString(), v.toString())),
+        (descRaw is Map ? descRaw : {}).map(
+          (k, v) => MapEntry(k.toString(), v.toString()),
+        ),
       ),
-      axes: SafeCast.safeList(
-        json['axes'],
-      ).map((e) => ReportAxisDTO.fromJson(SafeCast.safeMap(e))).toList(),
-      showText: SafeCast.safeBool(json['show_text'], true),
+      axes: (json['axes'] as List)
+          .map(
+            (e) => ReportAxisDTO.fromJson(
+              e is Map ? e as Map<String, dynamic> : <String, dynamic>{},
+            ),
+          )
+          .toList(),
+      showText: showTextRaw is bool
+          ? showTextRaw
+          : (showTextRaw?.toString() != 'false'),
     );
   }
 }
@@ -155,18 +163,19 @@ class MCPToolAuditDTO {
     required this.durationMs,
   });
 
-  /// SafeCast parsing — Graceful Degradation (§6.3).
+  /// Explicit parsing — Graceful Degradation (§6.3).
   factory MCPToolAuditDTO.fromJson(Map<String, dynamic> json) {
+    final urlsRaw = json['source_urls'];
     return MCPToolAuditDTO(
       toolId: json['tool_id'] as String,
       stepName: json['step_name'] as String,
       query: json['query'] as String,
-      responseSummary: SafeCast.safeString(json['response_summary']),
-      sourceUrls: SafeCast.safeList(
-        json['source_urls'],
-      ).map((e) => e.toString()).toList(),
+      responseSummary: json['response_summary']?.toString() ?? '',
+      sourceUrls: (urlsRaw is List ? urlsRaw : [])
+          .map((e) => e.toString())
+          .toList(),
       timestamp: json['timestamp']?.toString(),
-      durationMs: SafeCast.safeInt(json['duration_ms']),
+      durationMs: (json['duration_ms'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -217,42 +226,41 @@ class ReportDataDTO {
       );
     }
 
+    final availRaw = json['available_profiles'];
+    final mcpAuditRaw = json['mcp_tool_audit'];
+
     return ReportDataDTO(
       workflowId: json['workflow_id'] as String,
       profileId: json['profile_id'] as String,
       profileName: json['profile_name'] as Map<String, dynamic>,
       availableProfiles: Map<String, String>.from(
-        SafeCast.safeMap(
-          json['available_profiles'],
-        ).map((k, v) => MapEntry(k.toString(), v.toString())),
+        (availRaw is Map ? availRaw : {}).map(
+          (k, v) => MapEntry(k.toString(), v.toString()),
+        ),
       ),
-      globalScore: json['global_score'] != null
-          ? SafeCast.safeDouble(json['global_score'])
-          : null,
-      layouts: SafeCast.safeList(
-        json['layouts'],
-      ).map((e) => ReportLayoutDTO.fromJson(SafeCast.safeMap(e))).toList(),
+      globalScore: (json['global_score'] as num?)?.toDouble(),
+      layouts: (json['layouts'] as List)
+          .map(
+            (e) => ReportLayoutDTO.fromJson(
+              e is Map ? e as Map<String, dynamic> : <String, dynamic>{},
+            ),
+          )
+          .toList(),
       createdAt: json['created_at']?.toString(),
       orgName: json['org_name']?.toString(),
-      costEstimate: json['cost_estimate'] != null
-          ? SafeCast.safeDouble(json['cost_estimate'])
-          : null,
-      totalTokens: json['total_tokens'] != null
-          ? SafeCast.safeInt(json['total_tokens'])
-          : null,
-      promptTokens: json['prompt_tokens'] != null
-          ? SafeCast.safeInt(json['prompt_tokens'])
-          : null,
-      completionTokens: json['completion_tokens'] != null
-          ? SafeCast.safeInt(json['completion_tokens'])
-          : null,
-      reasoningTokens: json['reasoning_tokens'] != null
-          ? SafeCast.safeInt(json['reasoning_tokens'])
-          : null,
-      mcpToolAudit: json['mcp_tool_audit'] != null
-          ? SafeCast.safeList(
-              json['mcp_tool_audit'],
-            ).map((e) => MCPToolAuditDTO.fromJson(SafeCast.safeMap(e))).toList()
+      costEstimate: (json['cost_estimate'] as num?)?.toDouble(),
+      totalTokens: (json['total_tokens'] as num?)?.toInt(),
+      promptTokens: (json['prompt_tokens'] as num?)?.toInt(),
+      completionTokens: (json['completion_tokens'] as num?)?.toInt(),
+      reasoningTokens: (json['reasoning_tokens'] as num?)?.toInt(),
+      mcpToolAudit: mcpAuditRaw is List
+          ? mcpAuditRaw
+                .map(
+                  (e) => MCPToolAuditDTO.fromJson(
+                    e is Map ? e as Map<String, dynamic> : <String, dynamic>{},
+                  ),
+                )
+                .toList()
           : const [],
     );
   }

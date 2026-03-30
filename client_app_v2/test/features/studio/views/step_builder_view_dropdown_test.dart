@@ -7,16 +7,31 @@ import 'package:client_app/features/studio/controllers/prompt_blocks_controller.
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/features/studio/controllers/studio_controller.dart';
+import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/api/studio_client.dart';
+import 'package:client_app/features/studio/models/model_config.dart';
+import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
+import 'package:mocktail/mocktail.dart';
+
+class MockStudioClient extends Mock implements StudioClient {}
+
+class MockLoggerService extends Mock implements LoggerService {}
 
 void main() {
   group('StepBuilderView Dropdown Tests', () {
     testWidgets('renders prompt_blocks dropdown with correct options', (
       WidgetTester tester,
     ) async {
-      final mockStep = {
-        'id': 'test_step_1',
-        'prompt_blocks': ['block_a'],
-      };
+      final originalErrorBuilder = ErrorWidget.builder;
+
+      final mockStep = NodeStrategy.llm(
+        id: 'test_step_1',
+        slug: 'test_slug',
+        name: I18nText(defaultLocale: 'en', translations: {'en': 'Test'}),
+        promptBlocks: ['block_a'],
+      );
 
       final List<PromptBlock> mockPromptBlocks = [
         const PromptBlock(
@@ -41,11 +56,29 @@ void main() {
         ),
       ];
 
+      final mockClient = MockStudioClient();
+      when(() => mockClient.getPromptBlocks()).thenAnswer(
+        (_) async => mockPromptBlocks.map((e) => e.toJson()).toList(),
+      );
+      when(() => mockClient.getMcpGateways()).thenAnswer((_) async => []);
+      when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
+
+      final mockLogger = MockLoggerService();
+      when(() => mockLogger.error(any(), any(), any(), any())).thenReturn(null);
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            studioClientProvider.overrideWithValue(mockClient),
+            loggerServiceProvider.overrideWithValue(mockLogger),
             promptBlocksControllerProvider.overrideWith(() {
               return MockPromptBlocksController(mockPromptBlocks);
+            }),
+            modelRegistryControllerProvider.overrideWith(() {
+              return MockModelRegistryController();
+            }),
+            stepFormProvider('test_step_1').overrideWith(() {
+              return MockStepForm(mockStep);
             }),
           ],
           child: MaterialApp(
@@ -74,6 +107,9 @@ void main() {
 
       // Verify dropdown items exist
       expect(find.text('block_b').last, findsOneWidget);
+
+      // Restore error widget builder at the very end
+      ErrorWidget.builder = originalErrorBuilder;
     });
   });
 }
@@ -110,4 +146,40 @@ class MockPromptBlocksController extends PromptBlocksController {
   ) async {
     return {'rendered_prompt': 'MOCK', 'valid': true};
   }
+}
+
+class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
+    implements ModelRegistryController {
+  @override
+  FutureOr<List<ModelConfig>> build() async {
+    return [];
+  }
+
+  @override
+  Future<void> refresh() async {}
+  @override
+  Future<ModelConfig> saveConfig(String id, ModelConfig config) async => config;
+  @override
+  Future<void> deleteConfig(String id) async {}
+  @override
+  Future<ModelConfig> cloneConfig(String id) async =>
+      const ModelConfig(id: 'cloned');
+}
+
+class MockStepForm extends StepForm {
+  final NodeStrategy initialData;
+  MockStepForm(this.initialData);
+
+  @override
+  FutureOr<NodeStrategy> build(String arg) async {
+    return initialData;
+  }
+
+  @override
+  void forceRebuild(NodeStrategy payload) {
+    state = AsyncValue.data(payload);
+  }
+
+  @override
+  Future<void> submit(NodeStrategy payload) async {}
 }

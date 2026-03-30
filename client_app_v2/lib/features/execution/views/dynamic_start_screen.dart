@@ -7,7 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/api/workflow_client.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
 import 'package:client_app/shared/widgets/omni_input_box.dart';
-import 'package:client_app/utils/safe_cast.dart';
+
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
@@ -36,9 +36,11 @@ class DynamicStartScreen extends HookConsumerWidget {
 
     return schemaAsync.when(
       data: (schema) {
-        final expectedRaw = SafeCast.safeList(schema['expected_inputs']);
-        final expectedInputs = expectedRaw
-            .map((e) => SafeCast.safeMap(e))
+        final expectedRaw = schema['expected_inputs'];
+        final expectedInputs = (expectedRaw is List ? expectedRaw : [])
+            .map(
+              (e) => e is Map ? e as Map<String, dynamic> : <String, dynamic>{},
+            )
             .toList();
 
         return _buildContent(
@@ -111,31 +113,31 @@ class DynamicStartScreen extends HookConsumerWidget {
 
                 // Blindly iterate expected_inputs to build OmniInputBoxes
                 ...expectedInputs.map((details) {
-                  final semanticRole = SafeCast.safeString(
-                    details['input_key'],
-                  );
-                  final requiredParam = SafeCast.safeBool(
-                    details['required'],
-                    true,
-                  );
+                  final semanticRole = details['input_key']?.toString() ?? '';
+                  final reqRaw = details['required'];
+                  final requiredParam = reqRaw is bool
+                      ? reqRaw
+                      : (reqRaw?.toString() != 'false');
 
                   // I18n fallback for label
-                  final labelObj = SafeCast.safeMap(details['label']);
-                  final translations = SafeCast.safeMap(
-                    labelObj['translations'],
-                  );
-                  final defaultLocale = SafeCast.safeString(
-                    labelObj['default_locale'],
-                    'en',
-                  );
+                  final labelRaw = details['label'];
+                  final labelObj = labelRaw is Map ? labelRaw : {};
+                  final transRaw = labelObj['translations'];
+                  final translations = transRaw is Map ? transRaw : {};
 
-                  String label = SafeCast.safeString(translations['fi']);
+                  final dlRaw = labelObj['default_locale']?.toString() ?? 'en';
+                  final defaultLocale = dlRaw.isEmpty ? 'en' : dlRaw;
+
+                  String label = translations['fi']?.toString() ?? '';
                   if (label.isEmpty) {
-                    label = SafeCast.safeString(translations[defaultLocale]);
+                    label = translations[defaultLocale]?.toString() ?? '';
                   }
                   if (label.isEmpty) label = semanticRole.toUpperCase();
 
-                  final inputModes = SafeCast.safeList(details['input_modes']);
+                  final modesRaw = details['input_modes'];
+                  final inputModes = (modesRaw is List ? modesRaw : [])
+                      .map((e) => e.toString())
+                      .toList();
                   final isQuestionnaire = inputModes.contains('questionnaire');
 
                   return Padding(
@@ -145,9 +147,9 @@ class DynamicStartScreen extends HookConsumerWidget {
                             context,
                             semanticRole,
                             label,
-                            SafeCast.safeList(
-                              details['questionnaire_definition'],
-                            ),
+                            (details['questionnaire_definition'] is List
+                                ? details['questionnaire_definition'] as List
+                                : []),
                             collectedInputs,
                           )
                         : HookBuilder(
@@ -221,18 +223,19 @@ class DynamicStartScreen extends HookConsumerWidget {
             ),
             const SizedBox(height: 16),
             ...definitions.map((defInput) {
-              final def = SafeCast.safeMap(defInput);
-              final qId = SafeCast.safeString(def['question_id']);
-              final qLabelObj = SafeCast.safeMap(def['question']);
-              final qTranslations = SafeCast.safeMap(qLabelObj['translations']);
-              final qDefaultLocale = SafeCast.safeString(
-                qLabelObj['default_locale'],
-                'en',
-              );
+              final def = defInput is Map ? defInput : {};
+              final qId = def['question_id']?.toString() ?? '';
+              final qLabelRaw = def['question'];
+              final qLabelObj = qLabelRaw is Map ? qLabelRaw : {};
+              final qTransRaw = qLabelObj['translations'];
+              final qTranslations = qTransRaw is Map ? qTransRaw : {};
 
-              String qLabel = SafeCast.safeString(qTranslations['fi']);
+              final dl = qLabelObj['default_locale']?.toString() ?? 'en';
+              final qDefaultLocale = dl.isEmpty ? 'en' : dl;
+
+              String qLabel = qTranslations['fi']?.toString() ?? '';
               if (qLabel.isEmpty) {
-                qLabel = SafeCast.safeString(qTranslations[qDefaultLocale]);
+                qLabel = qTranslations[qDefaultLocale]?.toString() ?? '';
               }
               if (qLabel.isEmpty) qLabel = qId;
 

@@ -10,7 +10,7 @@ void main() {
 
         expect(
           () => ReportDataDTO.fromJson(json),
-          throwsA(isA<ArgumentError>()),
+          throwsA(isA<FormatException>()),
         );
       },
     );

@@ -93,10 +93,9 @@ Täyttä tukea 2026-arkkitehtuurille ei saavuteta legacy-kirjastoilla tai vanhoi
 ### 3.2 Unified Storage Driver (V3 Muutos)
 * Tietokantaa koskevat CRUD-muutokset tehdään vain kerran `UnifiedWorkflowRepository` -luokkaan. Vanha `firestore_repo.py` on poistettu, ja uudet StorageDriverit hoitavat pilvi/lokaali -peilauksen automaattisesti taustalla.
 
-### 3.3 Event Sourcing & Rehydration (⚠️ V3 BIG BANG MIGRATION IN PROGRESS)
-* **HUOM:** Moottorin V3-refaktorointi on kesken! Osa rajapinnoista palauttaa toistaiseksi vanhaa `ExecutionRecord.results` sanakirjaa. Kun migraatio on valmis, Frontend lukee askeleet ainoastaan `execution_trace` (TraceEvent) -lokista.
-* Tapahtumaloki (`TraceEvent`) tulee olemaan ydinmoottorin AINOA totuuden lähde (SSOT). Vanha, lennosta editoitava `results` blackboard poistuu historiidatasta lopullisesti. 
-* **Rehydration:** Käyttöliittymä tulee tukemaan katkenneen ajon saumatonta jatkamista (Rehydration). Jos ajo päätyy `failed` -tilaan, sitä ei hylätä korruptoituneena. Käyttäjä voi lähettää virhetilassa olevan ajon ID:n takaisin moottorille, joka kelustelee tapahtumanauhan (*fold_trace*) takaisin katkeamispisteeseen ja jatkaa suoritusta ilman toistettuja LLM-kutsuja.
+### 3.3 Event Sourcing & Rehydration (V3 ACTIVE)
+* Tapahtumaloki (`TraceEvent`) on moottorin ja käyttöliittymän AINOA totuuden lähde (SSOT). Vanha, lennosta editoitava `results` blackboard on poistettu pysyvästi 2026-mandaatin mukaisesti. Koko UI piirretään `execution_trace` tapahtumanauhasta.
+* **Rehydration:** Käyttöliittymä tukee katkenneen ajon saumatonta jatkamista (Rehydration). Jos ajo päätyy `failed` -tilaan, sitä ei hylätä korruptoituneena. Käyttäjä voi lähettää virhetilassa olevan ajon ID:n takaisin moottorille, joka kelustelee tapahtumanauhan (*fold_trace*) takaisin katkeamispisteeseen ja jatkaa suoritusta ilman toistettuja LLM-kutsuja.
 
 ### 3.4 Reliability Strategy (Timeout)
 * Kaikilla ulospäin lähtevillä verkkopyynnöillä on pakotettu aikakatkaisu (Timeout). Järjestelmä ei saa hirttää kiinni (Zombie).
@@ -183,7 +182,7 @@ Quorum ei ole kuluttajille suunnattu mobiilisovellus, vaan **ammattilaisten IDE-
 
 ### 5.6 The Flat MVC List Architecture (Master-Detail Mandate)
 * **Kielletyt rakenteet:** Älä koskaan lataa dynaamisia tietokantakokoelmia (kuten koko Model Registryä tai Prompteja) valtavaksi `AsyncNotifier<Map<String, dynamic>>` -monoliitiksi, mistä UI yrittää onkia yksittäisiä objekteja.
-* **The Flat MVC List:** Kaikki Master-näkymän listat mallinnetaan litteänä taulukkona: `AsyncNotifier<List<Map<String, dynamic>>>`. 
+* **The Flat MVC List:** Kaikki Master-näkymän listat mallinnetaan litteänä taulukkona vahvasti tyypitettyjä Freezed-malleja: `AsyncNotifier<List<YourFreezedModel>>`. 
 * **Detail-haku:** Kun käyttäjä siirtyy Detail-muokkausnäkymään Reitittimen ("Hybrid URL") kautta, yksittäinen objekti noudetaan erillisellä "IdProviderilla" (esim. `modelRegistryByIdProvider(id)`), ei suodattamalla ylätason Master-listaa. Tämä takaa saumattoman Syvälinkityksen (Deep Linking) vaikka Master-listaa ei oltaisi edes vierailtu.
 
 ### 5.7 2026 "Gold Standard" -malli lomakkeille

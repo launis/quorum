@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:isolate';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
+import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/theme/app_durations.dart';
@@ -13,20 +13,26 @@ part 'model_registry_controller.g.dart';
 
 // --- Controllers ---
 
-/// Controller managing the Model Registry strictly using `Map<String, dynamic>`.
+/// Controller managing the Model Registry strictly using strict representations.
 /// Implements Optimistic UI principles where possible.
 @riverpod
 class ModelRegistryController extends _$ModelRegistryController {
   @override
-  FutureOr<List<Map<String, dynamic>>> build() async {
+  FutureOr<List<ModelConfig>> build() async {
     // SWR Strategy for List Views
     ref.cacheFor(AppDurations.cacheTimeout);
     return _fetchConfigs();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchConfigs() async {
+  Future<List<ModelConfig>> _fetchConfigs() async {
     final client = ref.read(studioClientProvider);
-    return client.getSystemConfigs();
+    final rawList = await client.getSystemConfigs();
+    return Isolate.run(
+      () => rawList
+          .where((map) => map['type'] == 'model_registry')
+          .map((e) => ModelConfig.fromJson(e))
+          .toList(),
+    );
   }
 
   /// Refreshes the model registry list from the backend.
@@ -44,23 +50,20 @@ class ModelRegistryController extends _$ModelRegistryController {
   }
 
   /// Saves a model registry config utilizing Optimistic Updates.
-  Future<Map<String, dynamic>> saveConfig(
-    String id,
-    Map<String, dynamic> payload,
-  ) async {
+  Future<ModelConfig> saveConfig(String id, ModelConfig payload) async {
     final previousState = state;
-    Map<String, dynamic> returnData = {...payload, 'id': id};
+    ModelConfig returnData =
+        payload; // Assuming payload already has ID initialized or preserved
 
     // 1. Optimistic Update
     if (state.hasValue && state.value != null) {
-      final currentList = List<Map<String, dynamic>>.from(state.value!);
-      final index = currentList.indexWhere((m) => m['id'] == id);
+      final currentList = List<ModelConfig>.from(state.value!);
+      final index = currentList.indexWhere((m) => m.id == id);
 
-      final updatedConfig = {...payload, 'id': id};
       if (index >= 0) {
-        currentList[index] = updatedConfig;
+        currentList[index] = payload;
       } else {
-        currentList.add(updatedConfig);
+        currentList.add(payload);
       }
       state = AsyncValue.data(currentList);
     }
@@ -68,12 +71,15 @@ class ModelRegistryController extends _$ModelRegistryController {
     try {
       // 2. Network Call
       final client = ref.read(studioClientProvider);
-      final verifiedConfig = await client.saveSystemConfig(id, payload);
+      final rawResponse = await client.saveSystemConfig(id, payload.toJson());
+      final verifiedConfig = await Isolate.run(
+        () => ModelConfig.fromJson(rawResponse),
+      );
 
       // 3. Confirm with Actual Data
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
-        final index = currentList.indexWhere((m) => m['id'] == id);
+        final currentList = List<ModelConfig>.from(state.value!);
+        final index = currentList.indexWhere((m) => m.id == id);
         if (index >= 0) {
           currentList[index] = verifiedConfig;
           state = AsyncValue.data(currentList);
@@ -101,8 +107,8 @@ class ModelRegistryController extends _$ModelRegistryController {
       await client.deleteSystemConfig(id);
 
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
-        currentList.removeWhere((m) => m['id'] == id);
+        final currentList = List<ModelConfig>.from(state.value!);
+        currentList.removeWhere((m) => m.id == id);
         state = AsyncValue.data(currentList);
       }
     } catch (e, st) {
@@ -117,16 +123,19 @@ class ModelRegistryController extends _$ModelRegistryController {
   }
 
   /// Clones a system config utilizing Optimistic UI.
-  Future<Map<String, dynamic>> cloneConfig(String id) async {
+  Future<ModelConfig> cloneConfig(String id) async {
     final previousState = state;
     try {
       // 1. Network Call
       final client = ref.read(studioClientProvider);
-      final clonedConfig = await client.cloneSystemConfig(id);
+      final rawConfig = await client.cloneSystemConfig(id);
+      final clonedConfig = await Isolate.run(
+        () => ModelConfig.fromJson(rawConfig),
+      );
 
       // 2. Update State
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        final currentList = List<ModelConfig>.from(state.value!);
         currentList.add(clonedConfig);
         state = AsyncValue.data(currentList);
       }
@@ -146,9 +155,10 @@ class ModelRegistryController extends _$ModelRegistryController {
 
 /// Fetches a single System Config natively by ID
 @riverpod
-Future<Map<String, dynamic>> modelRegistryById(Ref ref, String id) async {
+Future<ModelConfig> modelRegistryById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
-  return client.getSystemConfig(id);
+  final rawData = await client.getSystemConfig(id);
+  return Isolate.run(() => ModelConfig.fromJson(rawData));
 }
 
 /// Fetches the list of available models from the backend.
@@ -163,44 +173,40 @@ Future<List<String>> availableModels(Ref ref) async {
 @riverpod
 class ModelRegistryForm extends _$ModelRegistryForm {
   @override
-  FutureOr<Map<String, dynamic>> build(String configId) async {
+  FutureOr<ModelConfig> build(String configId) async {
     if (configId == 'new') {
-      return Isolate.run(
-        () => {
-          'id': 'syscfg_new',
-          'type': 'model_registry',
-          'models': <String, dynamic>{}, // Map<String, Map<String, dynamic>>
-        },
+      return const ModelConfig(
+        id: 'syscfg_new',
+        slug: 'syscfg_new',
+        type: 'model_registry',
+        models: {},
       );
     }
 
-    // 1. Fetch raw data
-    final rawData = await ref.watch(modelRegistryByIdProvider(configId).future);
-
-    // 2. ISOLATE MANDATE: Deep Copy / Parse in Isolate protecting Main Thread
-    final str = jsonEncode(rawData);
-    return Isolate.run(() => jsonDecode(str) as Map<String, dynamic>);
+    // 1. Fetch data strictly
+    return ref.watch(modelRegistryByIdProvider(configId).future);
   }
 
-  /// Used by the form to trigger a rebuild on synchronous memory edits if required.
-  void forceRebuild() {
-    final payload = state.value;
-    if (payload != null) {
-      state = AsyncData(Map<String, dynamic>.from(payload));
-    }
+  /// Used by the form to trigger a rebuild on synchronous edits if required.
+  void forceRebuild(ModelConfig updatedConfig) {
+    state = AsyncData(updatedConfig);
   }
 
-  Future<void> submit(Map<String, dynamic> updatedData) async {
+  Future<void> submit(ModelConfig updatedData) async {
     state = const AsyncLoading(); // Side effect isolation
 
     state = await AsyncValue.guard(() async {
       final idToSave = configId == 'new'
-          ? (updatedData['id'] ?? 'syscfg_new')
+          ? (updatedData.id.isNotEmpty ? updatedData.id : 'syscfg_new')
           : configId;
+
+      // Ensure the payload has the correct ID
+      final payloadToSave = updatedData.copyWith(id: idToSave);
+
       await ref
           .read(modelRegistryControllerProvider.notifier)
-          .saveConfig(idToSave, updatedData);
-      return updatedData; // Optimistic form state return
+          .saveConfig(idToSave, payloadToSave);
+      return payloadToSave; // Optimistic form state return
     });
   }
 }

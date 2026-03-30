@@ -9,7 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 
 import 'package:client_app/core/network/api_client.dart';
-import 'package:client_app/utils/safe_cast.dart';
+
 import 'package:client_app/router/router.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -26,8 +26,10 @@ Future<List<Map<String, dynamic>>> availableWorkflows(Ref ref) async {
     '/studio/workflows',
   ); // Note: Reusing the studio endpoint for now since there's no public one yet
 
-  final List<dynamic> data = SafeCast.safeList(response.data);
-  return data.map((e) => SafeCast.safeMap(e)).toList();
+  final List<dynamic> data = response.data is List ? response.data as List : [];
+  return data
+      .map((e) => e is Map ? e as Map<String, dynamic> : <String, dynamic>{})
+      .toList();
 }
 
 @riverpod
@@ -55,7 +57,7 @@ class NewExecutionController extends _$NewExecutionController {
         },
       );
 
-      final executionId = SafeCast.safeString(response.data['id']);
+      final executionId = response.data['id']?.toString() ?? '';
       state = const AsyncValue.data(null);
 
       // Return the ID properly instead of throwing an Error
@@ -161,7 +163,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       }
     });
 
-    final workflowId = SafeCast.safeString(_selectedWorkflow!['id']);
+    final workflowId = _selectedWorkflow!['id']?.toString() ?? '';
 
     try {
       final localeCode = Localizations.localeOf(context).languageCode;
@@ -235,23 +237,25 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
           itemCount: workflows.length,
           itemBuilder: (context, index) {
             final wf = workflows[index];
-            final id = SafeCast.safeString(wf['id']);
+            final id = wf['id']?.toString() ?? '';
 
-            final nameMap = SafeCast.safeMap(wf['name']);
+            final nmRaw = wf['name'];
+            final nameMap = nmRaw is Map ? nmRaw : {};
             final titleStr = nameMap.isNotEmpty
                 ? (nameMap['translations']?[nameMap['default_locale']] ??
                       nameMap['default_locale'] ??
                       id)
-                : (SafeCast.safeString(wf['name']).isNotEmpty
-                      ? SafeCast.safeString(wf['name'])
+                : ((wf['name']?.toString() ?? '').isNotEmpty
+                      ? (wf['name']?.toString() ?? '')
                       : id);
 
-            final descMap = SafeCast.safeMap(wf['description']);
+            final descRaw = wf['description'];
+            final descMap = descRaw is Map ? descRaw : {};
             final descStr = descMap.isNotEmpty
                 ? (descMap['translations']?[descMap['default_locale']] ??
                       descMap['default_locale'] ??
                       '')
-                : SafeCast.safeString(wf['description']);
+                : (wf['description']?.toString() ?? '');
 
             final isSelected = _selectedWorkflow?['id'] == id;
 
@@ -289,15 +293,15 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       );
     }
 
-    final id = SafeCast.safeString(_selectedWorkflow!['id']);
+    final id = _selectedWorkflow!['id']?.toString() ?? '';
     final expectedInputsRaw = _selectedWorkflow!['expected_inputs'];
 
     // Parse expected_inputs gracefully (V2 List of ExpectedInput objects)
     List<Map<String, dynamic>> expectedInputsList = [];
     if (expectedInputsRaw is List) {
       for (final e in expectedInputsRaw) {
-        final item = SafeCast.safeMap(e);
-        final key = SafeCast.safeString(item['input_key']);
+        final item = e is Map ? e as Map<String, dynamic> : <String, dynamic>{};
+        final key = item['input_key']?.toString() ?? '';
         if (key.isNotEmpty) {
           expectedInputsList.add(item);
         }
@@ -305,13 +309,14 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     }
 
     // Prepare localized title for the header
-    final nameMap = SafeCast.safeMap(_selectedWorkflow!['name']);
+    final nmRaw = _selectedWorkflow!['name'];
+    final nameMap = nmRaw is Map ? nmRaw : {};
     final titleStr = nameMap.isNotEmpty
         ? (nameMap['translations']?[nameMap['default_locale']] ??
               nameMap['default_locale'] ??
               id)
-        : (SafeCast.safeString(_selectedWorkflow!['name']).isNotEmpty
-              ? SafeCast.safeString(_selectedWorkflow!['name'])
+        : ((_selectedWorkflow!['name']?.toString() ?? '').isNotEmpty
+              ? (_selectedWorkflow!['name']?.toString() ?? '')
               : id);
 
     if (expectedInputsList.isEmpty) {
@@ -349,10 +354,11 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
           const SizedBox(height: 24),
 
           ...expectedInputsList.map((item) {
-            final inputKey = SafeCast.safeString(item['input_key']);
-            final modes = SafeCast.safeList(
-              item['input_modes'],
-            ).map((m) => m.toString()).toList();
+            final inputKey = item['input_key']?.toString() ?? '';
+            final modesRaw = item['input_modes'];
+            final modes = (modesRaw is List ? modesRaw : [])
+                .map((m) => m.toString())
+                .toList();
 
             // Handle questionnaire first
             if (modes.contains('questionnaire')) {
@@ -465,12 +471,17 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   }
 
   Widget _buildQuestionnaireWidget(String inputKey, Map<String, dynamic> item) {
-    final defs = SafeCast.safeList(item['questionnaire_definition']);
-    final labelObj = SafeCast.safeMap(item['label']);
-    final translations = SafeCast.safeMap(labelObj['translations']);
-    final defaultLocale = SafeCast.safeString(labelObj['default_locale'], 'en');
-    String title = SafeCast.safeString(translations['fi']);
-    if (title.isEmpty) title = SafeCast.safeString(translations[defaultLocale]);
+    final defsRaw = item['questionnaire_definition'];
+    final defs = defsRaw is List ? defsRaw : [];
+    final labelRaw = item['label'];
+    final labelObj = labelRaw is Map ? labelRaw : {};
+    final transRaw = labelObj['translations'];
+    final translations = transRaw is Map ? transRaw : {};
+
+    final dlRaw = labelObj['default_locale']?.toString() ?? 'en';
+    final defaultLocale = dlRaw.isEmpty ? 'en' : dlRaw;
+    String title = translations['fi']?.toString() ?? '';
+    if (title.isEmpty) title = translations[defaultLocale]?.toString() ?? '';
     if (title.isEmpty) title = inputKey;
 
     return Card(
@@ -492,20 +503,20 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             ),
             const SizedBox(height: 16),
             ...defs.map((defInput) {
-              final def = SafeCast.safeMap(defInput);
-              final qId = SafeCast.safeString(def['question_id']);
-              final qLabelObj = SafeCast.safeMap(def['question']);
-              final qTranslations = SafeCast.safeMap(qLabelObj['translations']);
-              final qDefaultLocale = SafeCast.safeString(
-                qLabelObj['default_locale'],
-                'en',
-              );
+              final def = defInput is Map ? defInput : {};
+              final qId = def['question_id']?.toString() ?? '';
+              final qLabelRaw = def['question'];
+              final qLabelObj = qLabelRaw is Map ? qLabelRaw : {};
+              final qTransRaw = qLabelObj['translations'];
+              final qTranslations = qTransRaw is Map ? qTransRaw : {};
+              final dl = qLabelObj['default_locale']?.toString() ?? 'en';
+              final qDefaultLocale = dl.isEmpty ? 'en' : dl;
 
               String qLabel = '';
               if (qTranslations.isNotEmpty) {
-                qLabel = SafeCast.safeString(qTranslations['fi']);
+                qLabel = qTranslations['fi']?.toString() ?? '';
                 if (qLabel.isEmpty) {
-                  qLabel = SafeCast.safeString(qTranslations[qDefaultLocale]);
+                  qLabel = qTranslations[qDefaultLocale]?.toString() ?? '';
                 }
               }
               if (qLabel.isEmpty) qLabel = qId;

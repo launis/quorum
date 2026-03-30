@@ -1,5 +1,4 @@
 import 'package:uuid/uuid.dart';
-import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_exception.dart';
 
 /// **WorkflowCloner (The Routing Logic Engine)**
@@ -21,8 +20,8 @@ class WorkflowCloner {
     // 1. Initial deep copy to avoid mutating the original
     final cloned = _deepCopyMap(original);
 
-    final oldId = SafeCast.safeString(cloned['id']);
-    final oldSlug = SafeCast.safeString(cloned['slug']);
+    final oldId = cloned['id']?.toString() ?? '';
+    final oldSlug = cloned['slug']?.toString() ?? '';
 
     if (oldId.isNotEmpty) {
       cloned['id'] = '${oldId}copy';
@@ -40,13 +39,15 @@ class WorkflowCloner {
     cloned.remove('created_at');
     cloned.remove('updated_at');
 
-    final steps = SafeCast.safeList(cloned['steps']);
+    final steps = cloned['steps'] is List ? cloned['steps'] as List : [];
 
     // --- Phase A: ID Mapping ---
     final Map<String, String> idMap = {};
     for (int i = 0; i < steps.length; i++) {
-      final step = SafeCast.safeMap(steps[i]);
-      final oldId = SafeCast.safeString(step['id'] ?? step['step_id']);
+      final step = steps[i] is Map
+          ? steps[i] as Map<String, dynamic>
+          : <String, dynamic>{};
+      final oldId = (step['id'] ?? step['step_id'])?.toString() ?? '';
       if (oldId.isEmpty) continue;
 
       // Generate secure 128-bit Opaque ID
@@ -63,10 +64,13 @@ class WorkflowCloner {
 
     // --- Phase B: Re-routing ---
     for (int i = 0; i < steps.length; i++) {
-      final step = SafeCast.safeMap(steps[i]);
+      final step = steps[i] is Map
+          ? steps[i] as Map<String, dynamic>
+          : <String, dynamic>{};
 
       // 1. Re-route `depends_on`
-      final dependsOn = SafeCast.safeList(step['depends_on']);
+      final dependsOnRaw = step['depends_on'];
+      final dependsOn = dependsOnRaw is List ? dependsOnRaw : [];
       final newDependsOn = <String>[];
       for (final dep in dependsOn) {
         final String oldDep = dep.toString();
@@ -79,7 +83,8 @@ class WorkflowCloner {
 
       // 2. Re-route `input_mappings`
       // e.g., "$steps.old_id.outputs" -> "$steps.new_id.outputs"
-      final mappings = SafeCast.safeMap(step['input_mappings']);
+      final mappingsRaw = step['input_mappings'];
+      final mappings = mappingsRaw is Map ? mappingsRaw : {};
       final newMappings = <String, dynamic>{};
       for (final entry in mappings.entries) {
         String sourceValue = entry.value.toString();
@@ -102,24 +107,28 @@ class WorkflowCloner {
 
     // 3. Re-route bindings in `output_profiles`
     if (cloned.containsKey('output_profiles')) {
-      final blueprints = SafeCast.safeMap(cloned['output_profiles']);
+      final blueprintsRaw = cloned['output_profiles'];
+      final blueprints = blueprintsRaw is Map ? blueprintsRaw : {};
       final updatedBlueprints = <String, dynamic>{};
 
       for (final entry in blueprints.entries) {
-        updatedBlueprints[entry.key] = _reRouteNode(
-          SafeCast.safeMap(entry.value),
-          idMap,
-        );
+        final entryVal = entry.value is Map
+            ? entry.value as Map<String, dynamic>
+            : <String, dynamic>{};
+        updatedBlueprints[entry.key.toString()] = _reRouteNode(entryVal, idMap);
       }
       cloned['output_profiles'] = updatedBlueprints;
     }
 
     // --- Phase C: Riski 3 - Fail Fast Validation ---
     for (final step in steps) {
-      final stepMap = SafeCast.safeMap(step);
-      final dependsOn = SafeCast.safeList(
-        stepMap['depends_on'],
-      ).map((e) => e.toString()).toList();
+      final stepMap = step is Map
+          ? step as Map<String, dynamic>
+          : <String, dynamic>{};
+      final depRaw = stepMap['depends_on'];
+      final dependsOn = (depRaw is List ? depRaw : [])
+          .map((e) => e.toString())
+          .toList();
 
       for (final dep in dependsOn) {
         if (!validNewIds.contains(dep)) {

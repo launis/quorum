@@ -4,15 +4,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
+import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
-import 'package:client_app/utils/safe_cast.dart';
 
-/// Admin Studio View for managing the Model Registry (SystemConfig).
+/// Admin Studio View for managing the Model Registry.
 /// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
 class ModelRegistryView extends HookConsumerWidget {
   final String id;
-  // initialData drops to null here since Gold Standard requires native ID resolution
   const ModelRegistryView({super.key, required this.id});
 
   @override
@@ -22,7 +21,7 @@ class ModelRegistryView extends HookConsumerWidget {
     final availableModelsAsync = ref.watch(availableModelsProvider);
     final availableModels = availableModelsAsync.value ?? [];
 
-    // 1. Data and loading states are read from Riverpod! No useEffect for fetching!
+    // 1. Data and loading states are read from Riverpod!
     final formState = ref.watch(modelRegistryFormProvider(id));
 
     return formState.when(
@@ -40,7 +39,6 @@ class ModelRegistryView extends HookConsumerWidget {
         ),
       ),
       data: (payload) {
-        // The UI is a pure renderer of the business payload
         return _buildScaffold(
           context,
           ref,
@@ -59,15 +57,15 @@ class ModelRegistryView extends HookConsumerWidget {
     WidgetRef ref,
     AppLocalizations l10n,
     GlobalKey<FormState> formKey,
-    AsyncValue<Map<String, dynamic>> formState,
-    Map<String, dynamic> payload,
+    AsyncValue<ModelConfig> formState,
+    ModelConfig payload,
     List<String> availableModels,
   ) {
     Future<void> deleteRegistry() async {
-      final String idToDelete = payload['id']?.toString() ?? '';
+      final String idToDelete = payload.id;
       if (idToDelete.isEmpty || id == 'new') return;
 
-      final type = payload['type']?.toString() ?? '';
+      final type = payload.type;
       final nameToDisplay = type.isNotEmpty ? type : idToDelete;
 
       final confirm = await showDialog<bool>(
@@ -165,9 +163,7 @@ class ModelRegistryView extends HookConsumerWidget {
           FilledButton.icon(
             icon: const Icon(Icons.save),
             label: Text(l10n.studioSaveButton),
-            onPressed: formState.isLoading
-                ? null
-                : saveRegistry, // Read isLoading directly from Riverpod!
+            onPressed: formState.isLoading ? null : saveRegistry,
           ),
           const SizedBox(width: 16),
         ],
@@ -186,10 +182,7 @@ class ModelRegistryView extends HookConsumerWidget {
     );
   }
 
-  Widget _buildSystemAttributes(
-    AppLocalizations l10n,
-    Map<String, dynamic> data,
-  ) {
+  Widget _buildSystemAttributes(AppLocalizations l10n, ModelConfig data) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -202,13 +195,13 @@ class ModelRegistryView extends HookConsumerWidget {
             ),
             const SizedBox(height: 16),
             TextFormField(
-              initialValue: data['id']?.toString(),
+              initialValue: data.id,
               decoration: InputDecoration(labelText: l10n.configIdLabel),
               readOnly: true, // Opaque ID Mandate: NEVER editable manually
             ),
             const SizedBox(height: 8),
             TextFormField(
-              initialValue: data['type']?.toString(),
+              initialValue: data.type,
               decoration: InputDecoration(labelText: l10n.configTypeLabel),
               readOnly: true,
             ),
@@ -221,31 +214,53 @@ class ModelRegistryView extends HookConsumerWidget {
   Widget _buildModelsSection(
     WidgetRef ref,
     AppLocalizations l10n,
-    Map<String, dynamic> data,
+    ModelConfig payload,
     List<String> availableModels,
   ) {
-    final models = data['models'] as Map<String, dynamic>? ?? {};
+    final Map<String, Map<String, LlmModelConfig>> providerGroups = {};
+    for (final entry in payload.models.entries) {
+      final provider = entry.value.provider.isNotEmpty
+          ? entry.value.provider
+          : 'unknown';
+      providerGroups.putIfAbsent(provider, () => {})[entry.key] = entry.value;
+    }
 
-    // Group by provider for UI display
-    final Map<String, Map<String, dynamic>> providerGroups = {};
-    for (final entry in models.entries) {
-      final modelId = entry.key;
-      final attrs = entry.value;
-      if (attrs is Map<String, dynamic>) {
-        final provider = SafeCast.safeString(attrs['provider'], 'unknown');
-        providerGroups.putIfAbsent(provider, () => {})[modelId] = attrs;
-      }
+    void updateModel(String modelId, LlmModelConfig newConfig) {
+      final newModels = Map<String, LlmModelConfig>.from(payload.models);
+      newModels[modelId] = newConfig;
+      ref
+          .read(modelRegistryFormProvider(id).notifier)
+          .forceRebuild(payload.copyWith(models: newModels));
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          l10n.providerSettings,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              l10n.providerSettings,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                final newModels = Map<String, LlmModelConfig>.from(
+                  payload.models,
+                );
+                final tempId = 'new_strategy_${newModels.length + 1}';
+                newModels[tempId] = const LlmModelConfig();
+                ref
+                    .read(modelRegistryFormProvider(id).notifier)
+                    .forceRebuild(payload.copyWith(models: newModels));
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Add Strategy'),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
-        if (models.isEmpty) Text(l10n.noModelsDefined),
+        if (payload.models.isEmpty) Text(l10n.noModelsDefined),
         ...providerGroups.entries.map((providerEntry) {
           final providerName = providerEntry.key;
           final providerModels = providerEntry.value;
@@ -257,53 +272,154 @@ class ModelRegistryView extends HookConsumerWidget {
               title: Text('${l10n.providerLabel}: $providerName'),
               children: providerModels.entries.map((modelEntry) {
                 final modelId = modelEntry.key;
-                final fields = modelEntry.value as Map<String, dynamic>;
+                final cfg = modelEntry.value;
 
                 return Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '${l10n.strategyLabel}: $modelId',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${l10n.strategyLabel}: $modelId',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue,
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.delete,
+                              color: Theme.of(ref.context).colorScheme.error,
+                            ),
+                            onPressed: () {
+                              final newModels =
+                                  Map<String, LlmModelConfig>.from(
+                                    payload.models,
+                                  );
+                              newModels.remove(modelId);
+                              ref
+                                  .read(modelRegistryFormProvider(id).notifier)
+                                  .forceRebuild(
+                                    payload.copyWith(models: newModels),
+                                  );
+                            },
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
-                      _buildModelNameDropdown(
-                        ref,
-                        fields,
-                        'model_name',
-                        l10n.modelNameLabel,
-                        availableModels,
+                      // Strategy Config fields
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: TextFormField(
+                          initialValue: cfg.provider,
+                          decoration: InputDecoration(
+                            labelText: 'Provider (e.g. google, openai)',
+                            border: const OutlineInputBorder(),
+                          ),
+                          onChanged: (val) {
+                            updateModel(modelId, cfg.copyWith(provider: val));
+                          },
+                        ),
+                      ),
+
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: DropdownButtonFormField<String>(
+                          initialValue:
+                              (cfg.modelName.isNotEmpty &&
+                                  (availableModels.contains(cfg.modelName) ||
+                                      availableModels.isEmpty))
+                              ? cfg.modelName
+                              : (availableModels.isNotEmpty
+                                    ? availableModels.first
+                                    : null),
+                          decoration: InputDecoration(
+                            labelText: l10n.modelNameLabel,
+                            border: const OutlineInputBorder(),
+                          ),
+                          items:
+                              {
+                                    if (cfg.modelName.isNotEmpty &&
+                                        !availableModels.contains(
+                                          cfg.modelName,
+                                        ))
+                                      cfg.modelName,
+                                    ...availableModels,
+                                  }
+                                  .map(
+                                    (m) => DropdownMenuItem(
+                                      value: m,
+                                      child: Text(m),
+                                    ),
+                                  )
+                                  .toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              updateModel(
+                                modelId,
+                                cfg.copyWith(modelName: val),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+
+                      _buildDoubleField(
+                        cfg.temperature,
+                        l10n.temperatureLabel,
+                        (val) => updateModel(
+                          modelId,
+                          cfg.copyWith(temperature: val),
+                        ),
+                      ),
+                      _buildIntField(
+                        cfg.maxTokens,
+                        l10n.maxTokensLabel,
+                        (val) =>
+                            updateModel(modelId, cfg.copyWith(maxTokens: val)),
+                      ),
+                      _buildStringField(
+                        cfg.parsingMode,
+                        l10n.parsingModeLabel,
+                        (val) => updateModel(
+                          modelId,
+                          cfg.copyWith(parsingMode: val),
+                        ),
                       ),
                       _buildDoubleField(
-                        fields,
-                        'temperature',
-                        l10n.temperatureLabel,
+                        cfg.topP,
+                        l10n.topPLabel,
+                        (val) => updateModel(modelId, cfg.copyWith(topP: val)),
                       ),
-                      _buildIntField(fields, 'max_tokens', l10n.maxTokensLabel),
-                      _buildStringField(
-                        fields,
-                        'parsing_mode',
-                        l10n.parsingModeLabel,
+                      _buildIntField(
+                        cfg.tpmLimit,
+                        l10n.tpmLimitLabel,
+                        (val) =>
+                            updateModel(modelId, cfg.copyWith(tpmLimit: val)),
                       ),
-                      _buildDoubleField(fields, 'top_p', l10n.topPLabel),
-                      _buildIntField(fields, 'tpm_limit', l10n.tpmLimitLabel),
-                      _buildIntField(fields, 'rpm_limit', l10n.rpmLimitLabel),
+                      _buildIntField(
+                        cfg.rpmLimit,
+                        l10n.rpmLimitLabel,
+                        (val) =>
+                            updateModel(modelId, cfg.copyWith(rpmLimit: val)),
+                      ),
+
                       _buildBoolField(
-                        ref,
-                        fields,
-                        'supports_grounding',
+                        cfg.supportsGrounding,
                         l10n.supportsGroundingLabel,
+                        (val) => updateModel(
+                          modelId,
+                          cfg.copyWith(supportsGrounding: val),
+                        ),
                       ),
                       _buildBoolField(
-                        ref,
-                        fields,
-                        'is_active',
+                        cfg.isActive,
                         l10n.isActiveLabel,
+                        (val) =>
+                            updateModel(modelId, cfg.copyWith(isActive: val)),
                       ),
                       const Divider(height: 32),
                     ],
@@ -317,86 +433,61 @@ class ModelRegistryView extends HookConsumerWidget {
     );
   }
 
-  Widget _buildStringField(Map<String, dynamic> map, String key, String label) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: TextFormField(
-        initialValue: map[key]?.toString() ?? '',
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
-        onSaved: (val) => map[key] = val,
-      ),
-    );
-  }
-
-  Widget _buildModelNameDropdown(
-    WidgetRef ref,
-    Map<String, dynamic> map,
-    String key,
+  Widget _buildStringField(
+    String? initialValue,
     String label,
-    List<String> availableModels,
+    Function(String) onChanged,
   ) {
-    final currentValue = map[key]?.toString();
-    final items = availableModels.toList();
-    if (currentValue != null &&
-        currentValue.isNotEmpty &&
-        !items.contains(currentValue)) {
-      items.add(currentValue);
-    }
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
-      child: DropdownButtonFormField<String>(
-        key: ValueKey(items.length),
+      child: TextFormField(
+        initialValue: initialValue ?? '',
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
         ),
-        initialValue: items.contains(currentValue) ? currentValue : null,
-        items: items.map((modelId) {
-          return DropdownMenuItem(value: modelId, child: Text(modelId));
-        }).toList(),
-        onChanged: (val) {
-          if (val != null) {
-            map[key] = val; // Synchronous pure map edit
-            ref.read(modelRegistryFormProvider(id).notifier).forceRebuild();
-          }
-        },
+        onChanged: onChanged,
       ),
     );
   }
 
-  Widget _buildDoubleField(Map<String, dynamic> map, String key, String label) {
+  Widget _buildDoubleField(
+    double? initialValue,
+    String label,
+    Function(double) onChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: TextFormField(
-        initialValue: map[key]?.toString() ?? '0.0',
+        initialValue: initialValue?.toString() ?? '',
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
         ),
         validator: (val) {
-          if (val == null || val.isEmpty) return null; // Optional
+          if (val == null || val.isEmpty) return null;
           if (double.tryParse(val) == null) return 'Must be a number';
           return null;
         },
-        onSaved: (val) {
-          if (val != null && val.isNotEmpty) {
-            map[key] = double.tryParse(val);
+        onChanged: (val) {
+          if (val.isNotEmpty && double.tryParse(val) != null) {
+            onChanged(double.parse(val));
           }
         },
       ),
     );
   }
 
-  Widget _buildIntField(Map<String, dynamic> map, String key, String label) {
+  Widget _buildIntField(
+    int? initialValue,
+    String label,
+    Function(int) onChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: TextFormField(
-        initialValue: map[key]?.toString() ?? '0',
+        initialValue: initialValue?.toString() ?? '',
         keyboardType: TextInputType.number,
         decoration: InputDecoration(
           labelText: label,
@@ -407,9 +498,9 @@ class ModelRegistryView extends HookConsumerWidget {
           if (int.tryParse(val) == null) return 'Must be an integer';
           return null;
         },
-        onSaved: (val) {
-          if (val != null && val.isNotEmpty) {
-            map[key] = int.tryParse(val);
+        onChanged: (val) {
+          if (val.isNotEmpty && int.tryParse(val) != null) {
+            onChanged(int.parse(val));
           }
         },
       ),
@@ -417,23 +508,16 @@ class ModelRegistryView extends HookConsumerWidget {
   }
 
   Widget _buildBoolField(
-    WidgetRef ref,
-    Map<String, dynamic> map,
-    String key,
+    bool initialValue,
     String label,
+    Function(bool) onChanged,
   ) {
-    // Value could be null initially.
-    final currentValue = map[key] as bool? ?? false;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: SwitchListTile(
         title: Text(label),
-        value: currentValue,
-        onChanged: (val) {
-          map[key] = val; // Synchronous pure map edit
-          ref.read(modelRegistryFormProvider(id).notifier).forceRebuild();
-        },
+        value: initialValue,
+        onChanged: onChanged,
       ),
     );
   }

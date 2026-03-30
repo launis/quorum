@@ -1,30 +1,31 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:client_app/theme/app_durations.dart';
+import 'package:client_app/features/studio/models/blueprint_config.dart';
 
 part 'blueprint_editor_controller.g.dart';
 
 /// **Blueprint Editor Controller (Phase 9 Rebuild)**
 ///
 /// Stripped of the massive SDUI canvas logic. Now strictly manages the
-/// `output_mapping` dictionary ensuring seamless binding with Pydantic V2 schemas.
+/// `BlueprintConfig` ensuring seamless binding with Pydantic V2 schemas.
 @riverpod
 class BlueprintEditorController extends _$BlueprintEditorController {
   @override
-  Map<String, dynamic> build() {
+  BlueprintConfig build() {
     ref.cacheFor(AppDurations.cacheTimeout);
-    return {'preset_view': '1d_metrics'};
+    return const BlueprintConfig(presetView: '1d_metrics');
   }
 
   void initialize(Map<String, dynamic>? initialOutputMapping) {
     if (initialOutputMapping != null && initialOutputMapping.isNotEmpty) {
-      state = Map<String, dynamic>.from(initialOutputMapping);
+      state = BlueprintConfig.fromJson(initialOutputMapping);
     } else {
-      state = {'preset_view': '1d_metrics'};
+      state = const BlueprintConfig(presetView: '1d_metrics');
     }
   }
 
   void setPresetView(String presetView) {
-    state = {...state, 'preset_view': presetView};
+    state = state.copyWith(presetView: presetView);
   }
 }

@@ -11,7 +11,7 @@ part of 'blueprint_editor_controller.dart';
 /// **Blueprint Editor Controller (Phase 9 Rebuild)**
 ///
 /// Stripped of the massive SDUI canvas logic. Now strictly manages the
-/// `output_mapping` dictionary ensuring seamless binding with Pydantic V2 schemas.
+/// `BlueprintConfig` ensuring seamless binding with Pydantic V2 schemas.
 
 @ProviderFor(BlueprintEditorController)
 final blueprintEditorControllerProvider = BlueprintEditorControllerProvider._();
@@ -19,13 +19,13 @@ final blueprintEditorControllerProvider = BlueprintEditorControllerProvider._();
 /// **Blueprint Editor Controller (Phase 9 Rebuild)**
 ///
 /// Stripped of the massive SDUI canvas logic. Now strictly manages the
-/// `output_mapping` dictionary ensuring seamless binding with Pydantic V2 schemas.
+/// `BlueprintConfig` ensuring seamless binding with Pydantic V2 schemas.
 final class BlueprintEditorControllerProvider
-    extends $NotifierProvider<BlueprintEditorController, Map<String, dynamic>> {
+    extends $NotifierProvider<BlueprintEditorController, BlueprintConfig> {
   /// **Blueprint Editor Controller (Phase 9 Rebuild)**
   ///
   /// Stripped of the massive SDUI canvas logic. Now strictly manages the
-  /// `output_mapping` dictionary ensuring seamless binding with Pydantic V2 schemas.
+  /// `BlueprintConfig` ensuring seamless binding with Pydantic V2 schemas.
   BlueprintEditorControllerProvider._()
     : super(
         from: null,
@@ -45,34 +45,33 @@ final class BlueprintEditorControllerProvider
   BlueprintEditorController create() => BlueprintEditorController();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(Map<String, dynamic> value) {
+  Override overrideWithValue(BlueprintConfig value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<Map<String, dynamic>>(value),
+      providerOverride: $SyncValueProvider<BlueprintConfig>(value),
     );
   }
 }
 
 String _$blueprintEditorControllerHash() =>
-    r'fb98049241913677d29f98aae1f8205c5b10be79';
+    r'3e92dddcc2ed7ca5e7ec9beae108910db53b7502';
 
 /// **Blueprint Editor Controller (Phase 9 Rebuild)**
 ///
 /// Stripped of the massive SDUI canvas logic. Now strictly manages the
-/// `output_mapping` dictionary ensuring seamless binding with Pydantic V2 schemas.
+/// `BlueprintConfig` ensuring seamless binding with Pydantic V2 schemas.
 
-abstract class _$BlueprintEditorController
-    extends $Notifier<Map<String, dynamic>> {
-  Map<String, dynamic> build();
+abstract class _$BlueprintEditorController extends $Notifier<BlueprintConfig> {
+  BlueprintConfig build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<Map<String, dynamic>, Map<String, dynamic>>;
+    final ref = this.ref as $Ref<BlueprintConfig, BlueprintConfig>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<Map<String, dynamic>, Map<String, dynamic>>,
-              Map<String, dynamic>,
+              AnyNotifier<BlueprintConfig, BlueprintConfig>,
+              BlueprintConfig,
               Object?,
               Object?
             >;

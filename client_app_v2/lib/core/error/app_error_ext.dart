@@ -52,7 +52,7 @@ extension AppExceptionX on AppException {
       if (error.innerError is AppException) {
         return (error.innerError as AppException).toLocalizedHint(l10n);
       }
-      return '${l10n.errValidationFailed}\n\nInvalid field: ${error.key}. ${error.message}';
+      return '${l10n.errValidationFailed}\n\n${l10n.actionHintCheckInput}';
     }
 
     if (error is DioException) {

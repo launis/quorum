@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../../../../utils/safe_cast.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
 import '../../../../../l10n/gen/app_localizations.dart';
 import '../i18n_text_field.dart';
-import 'package:client_app/shared/models/i18n_text.dart';
 
 /// **WorkflowGeneralTab**
 ///
 /// Componentized UI widget representing Tab 1 of the Workflow Builder.
 /// Handles high-level metadata and the default output profile routing.
 class WorkflowGeneralTab extends ConsumerWidget {
-  final Map<String, dynamic> workflow;
+  final Workflow workflow;
   final TextEditingController idController;
   final TextEditingController slugController;
-  final VoidCallback onChanged;
+  final Function(Workflow) onChanged;
 
   const WorkflowGeneralTab({
     super.key,
@@ -26,8 +25,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final descriptionMap = SafeCast.safeMap(workflow['description']);
-    final descTranslations = SafeCast.safeMap(descriptionMap['translations']);
+    final descTranslations = workflow.description.translations;
 
     return SingleChildScrollView(
       child: Padding(
@@ -59,8 +57,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                       prefixIcon: const Icon(Icons.link),
                     ),
                     onChanged: (val) {
-                      workflow['slug'] = val;
-                      onChanged();
+                      onChanged(workflow.copyWith(slug: val));
                     },
                   ),
                 ),
@@ -76,7 +73,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                   children: [
                     Text(
                       l10n.studioWorkflowIdentity,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -84,18 +81,15 @@ class WorkflowGeneralTab extends ConsumerWidget {
                     const SizedBox(height: 16),
                     I18nTextField(
                       label: l10n.studioWorkflowNameLabel,
-                      initialData: I18nText.fromJson(
-                        SafeCast.safeMap(workflow['name']),
-                      ),
+                      initialData: workflow.name,
                       onChanged: (val) {
-                        workflow['name'] = val.toJson();
-                        onChanged();
+                        onChanged(workflow.copyWith(name: val));
                       },
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: TextEditingController(
-                        text: SafeCast.safeString(descTranslations['en']),
+                        text: descTranslations['en'] ?? '',
                       ),
                       maxLines: 2,
                       decoration: InputDecoration(
@@ -103,16 +97,23 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         border: const OutlineInputBorder(),
                       ),
                       onChanged: (val) {
-                        descTranslations['en'] = val;
-                        descriptionMap['translations'] = descTranslations;
-                        workflow['description'] = descriptionMap;
-                        onChanged();
+                        final newMap = Map<String, String>.from(
+                          descTranslations,
+                        );
+                        newMap['en'] = val;
+                        onChanged(
+                          workflow.copyWith(
+                            description: workflow.description.copyWith(
+                              translations: newMap,
+                            ),
+                          ),
+                        );
                       },
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: TextEditingController(
-                        text: SafeCast.safeString(descTranslations['fi']),
+                        text: descTranslations['fi'] ?? '',
                       ),
                       maxLines: 2,
                       decoration: InputDecoration(
@@ -120,10 +121,17 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         border: const OutlineInputBorder(),
                       ),
                       onChanged: (val) {
-                        descTranslations['fi'] = val;
-                        descriptionMap['translations'] = descTranslations;
-                        workflow['description'] = descriptionMap;
-                        onChanged();
+                        final newMap = Map<String, String>.from(
+                          descTranslations,
+                        );
+                        newMap['fi'] = val;
+                        onChanged(
+                          workflow.copyWith(
+                            description: workflow.description.copyWith(
+                              translations: newMap,
+                            ),
+                          ),
+                        );
                       },
                     ),
                   ],
@@ -140,7 +148,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                   children: [
                     Text(
                       l10n.studioWorkflowGlobalSettings,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -148,37 +156,29 @@ class WorkflowGeneralTab extends ConsumerWidget {
                     const SizedBox(height: 16),
                     Builder(
                       builder: (context) {
-                        final outputProfiles = SafeCast.safeMap(
-                          workflow['output_profiles'],
-                        );
+                        final outputProfiles = workflow.outputProfiles;
                         final profileKeys = outputProfiles.keys.toList();
                         if (profileKeys.isEmpty) profileKeys.add('default');
 
-                        final currentDefault = SafeCast.safeString(
-                          workflow['default_profile_id'],
-                          'default',
-                        );
+                        final currentDefault = workflow.defaultProfileId;
                         final safeDefault = profileKeys.contains(currentDefault)
                             ? currentDefault
                             : profileKeys.first;
 
                         return DropdownButtonFormField<String>(
                           key: ValueKey(profileKeys.join(':')),
-                          initialValue: safeDefault,
+                          initialValue: safeDefault == '' ? null : safeDefault,
                           decoration: InputDecoration(
                             labelText: l10n.studioWorkflowDefaultProfile,
                             border: const OutlineInputBorder(),
                             isDense: true,
                           ),
                           items: profileKeys.map((key) {
-                            final profileData = SafeCast.safeMap(
-                              outputProfiles[key],
-                            );
-                            final profNameMap = SafeCast.safeMap(
-                              profileData['name'],
-                            );
+                            final profileData = outputProfiles[key];
                             final title =
-                                profNameMap['fi'] ?? profNameMap['en'] ?? key;
+                                profileData?.name.translations['fi'] ??
+                                profileData?.name.translations['en'] ??
+                                key;
                             return DropdownMenuItem(
                               value: key,
                               child: Text('$title ($key)'),
@@ -186,8 +186,9 @@ class WorkflowGeneralTab extends ConsumerWidget {
                           }).toList(),
                           onChanged: (val) {
                             if (val != null) {
-                              workflow['default_profile_id'] = val;
-                              onChanged();
+                              onChanged(
+                                workflow.copyWith(defaultProfileId: val),
+                              );
                             }
                           },
                         );

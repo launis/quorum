@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
-import 'package:client_app/utils/safe_cast.dart';
+
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/shared/widgets/execution_timeline.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -64,7 +64,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
       next,
     ) {
       if (next is AsyncData && next.value != null) {
-        final status = SafeCast.safeString(next.value!['status']).toLowerCase();
+        final status = next.value!['status']?.toString().toLowerCase() ?? '';
         if (status == 'completed') {
           ExecutionReportRoute(executionId: widget.executionId).go(context);
         }
@@ -83,15 +83,23 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
             );
           }
 
-          final status = SafeCast.safeString(record['status']).toLowerCase();
-          final frozenContext = SafeCast.safeMap(record['frozen_context']);
+          final status = record['status']?.toString().toLowerCase() ?? '';
+          final fzRaw = record['frozen_context'];
+          final frozenContext = fzRaw is Map ? fzRaw : {};
 
-          final stepStatesMap = SafeCast.safeMap(record['step_states']);
+          final stepStatesRaw = record['step_states'];
+          final stepStatesMap = stepStatesRaw is Map ? stepStatesRaw : {};
           final stepStatesList = stepStatesMap.values
-              .map((e) => SafeCast.safeMap(e))
+              .map(
+                (e) =>
+                    e is Map ? e as Map<String, dynamic> : <String, dynamic>{},
+              )
               .toList();
 
-          final results = SafeCast.safeMap(record['results']);
+          final resRaw = record['results'];
+          final results = resRaw is Map
+              ? resRaw as Map<String, dynamic>
+              : <String, dynamic>{};
 
           return CustomScrollView(
             slivers: [
@@ -162,7 +170,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
 
               // Version Drift Warning Banner
               if (frozenContext.containsKey('version_id') &&
-                  SafeCast.safeString(frozenContext['version_id']) != 'v2.0.0')
+                  (frozenContext['version_id']?.toString() ?? '') != 'v2.0.0')
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -192,9 +200,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                           Expanded(
                             child: Text(
                               AppLocalizations.of(context)!.auditDriftWarning(
-                                SafeCast.safeString(
-                                  frozenContext['version_id'],
-                                ),
+                                (frozenContext['version_id']?.toString() ?? ''),
                               ),
                               style: TextStyle(
                                 color: Theme.of(

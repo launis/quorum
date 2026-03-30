@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/controllers/blueprint_editor_controller.dart';
-import 'package:client_app/utils/safe_cast.dart';
+
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// **Blueprint Editor View (Phase 9 Rebuild)**
@@ -37,13 +37,10 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final outputMapping = ref.watch(blueprintEditorControllerProvider);
+    final config = ref.watch(blueprintEditorControllerProvider);
     final controller = ref.read(blueprintEditorControllerProvider.notifier);
 
-    final presetView = SafeCast.safeString(
-      outputMapping['preset_view'],
-      '1d_metrics',
-    );
+    final presetView = config.presetView;
 
     return Scaffold(
       appBar: AppBar(
@@ -51,7 +48,7 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
         actions: [
           FilledButton.icon(
             onPressed: () {
-              widget.onSave(outputMapping);
+              widget.onSave(config.toJson());
               Navigator.of(context).pop();
             },
             icon: const Icon(Icons.check),

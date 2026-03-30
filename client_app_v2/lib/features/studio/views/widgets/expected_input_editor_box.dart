@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
-import 'package:client_app/utils/safe_cast.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 
 class ExpectedInputEditorBox extends StatefulWidget {
-  final Map<String, dynamic> inputDef;
+  final ExpectedInput inputDef;
   final VoidCallback onDelete;
-  final VoidCallback onChanged;
+  final Function(ExpectedInput) onChanged;
 
   const ExpectedInputEditorBox({
     super.key,
@@ -23,41 +23,24 @@ class ExpectedInputEditorBox extends StatefulWidget {
 class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
   late TextEditingController _keyController;
   late TextEditingController _aiDescController;
-  late bool _isRequired;
-  late bool _isChatHistory;
 
   @override
   void initState() {
     super.initState();
-    _keyController = TextEditingController(
-      text: SafeCast.safeString(widget.inputDef['input_key']),
-    );
-    _isRequired = SafeCast.safeBool(widget.inputDef['required'], false);
-    _isChatHistory = SafeCast.safeBool(
-      widget.inputDef['is_chat_history'],
-      false,
-    );
+    _keyController = TextEditingController(text: widget.inputDef.inputKey);
     _aiDescController = TextEditingController(
-      text: SafeCast.safeString(widget.inputDef['ai_description']),
+      text: widget.inputDef.aiDescription ?? '',
     );
   }
 
   @override
   void didUpdateWidget(covariant ExpectedInputEditorBox oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.inputDef['input_key'] != widget.inputDef['input_key']) {
-      _keyController.text = SafeCast.safeString(widget.inputDef['input_key']);
+    if (oldWidget.inputDef.inputKey != widget.inputDef.inputKey) {
+      _keyController.text = widget.inputDef.inputKey;
     }
-    _isRequired = SafeCast.safeBool(widget.inputDef['required'], false);
-    _isChatHistory = SafeCast.safeBool(
-      widget.inputDef['is_chat_history'],
-      false,
-    );
-    if (oldWidget.inputDef['ai_description'] !=
-        widget.inputDef['ai_description']) {
-      _aiDescController.text = SafeCast.safeString(
-        widget.inputDef['ai_description'],
-      );
+    if (oldWidget.inputDef.aiDescription != widget.inputDef.aiDescription) {
+      _aiDescController.text = widget.inputDef.aiDescription ?? '';
     }
   }
 
@@ -68,20 +51,15 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
     super.dispose();
   }
 
-  void _notifyChange() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        widget.onChanged();
-      }
-    });
+  void _update(ExpectedInput updated) {
+    widget.onChanged(updated);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final List<String> modes = SafeCast.safeList(
-      widget.inputDef['input_modes'],
-    ).map((e) => e.toString()).toList();
+    final def = widget.inputDef;
+    final modes = List<String>.from(def.inputModes);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -102,9 +80,9 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                   child: Focus(
                     onFocusChange: (f) {
                       if (!f) {
-                        widget.inputDef['input_key'] = _keyController.text
-                            .trim();
-                        _notifyChange();
+                        _update(
+                          def.copyWith(inputKey: _keyController.text.trim()),
+                        );
                       }
                     },
                     child: TextField(
@@ -132,32 +110,23 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
               children: [
                 FilterChip(
                   label: Text(l10n.workflowInputRequired),
-                  selected: _isRequired,
+                  selected: def.required,
                   onSelected: (val) {
-                    setState(() {
-                      _isRequired = val;
-                      widget.inputDef['required'] = val;
-                      _notifyChange();
-                    });
+                    _update(def.copyWith(required: val));
                   },
                 ),
                 FilterChip(
                   label: Text(l10n.workflowInputIsChatHistory),
-                  selected: _isChatHistory,
+                  selected: def.isChatHistory,
                   onSelected: (val) {
-                    setState(() {
-                      _isChatHistory = val;
-                      widget.inputDef['is_chat_history'] = val;
-
-                      // Enforce rule: Chat history cannot be a questionnaire
-                      if (val && modes.contains('questionnaire')) {
-                        modes.clear();
-                        if (!modes.contains('file')) modes.add('file');
-                        widget.inputDef['input_modes'] = modes;
-                      }
-
-                      _notifyChange();
-                    });
+                    var newModes = List<String>.from(modes);
+                    if (val && newModes.contains('questionnaire')) {
+                      newModes.clear();
+                      if (!newModes.contains('file')) newModes.add('file');
+                    }
+                    _update(
+                      def.copyWith(isChatHistory: val, inputModes: newModes),
+                    );
                   },
                 ),
               ],
@@ -179,38 +148,38 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                   label: Text(modeStr),
                   selected: modes.contains(mode),
                   onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        if (mode == 'questionnaire') {
-                          modes.clear();
-                          modes.add(mode);
-                          // Enforce rule: Questionnaire cannot be chat history
-                          if (_isChatHistory) {
-                            _isChatHistory = false;
-                            widget.inputDef['is_chat_history'] = false;
-                          }
-                        } else {
-                          if (modes.contains('questionnaire')) {
-                            modes.remove('questionnaire');
-                            widget.inputDef['questionnaire_definition'] = [];
-                          }
-                          if (!modes.contains(mode)) {
-                            modes.add(mode);
-                          }
-                        }
+                    var newModes = List<String>.from(modes);
+                    bool wasChatHistory = def.isChatHistory;
+
+                    if (selected) {
+                      if (mode == 'questionnaire') {
+                        newModes.clear();
+                        newModes.add(mode);
+                        wasChatHistory = false;
                       } else {
-                        // Prevent deselection if it would leave the list empty
-                        if (modes.length > 1) {
-                          modes.remove(mode);
-                        } else if (modes.length == 1 && modes.first != mode) {
-                          modes.remove(
-                            mode,
-                          ); // theoretically impossible but safe
+                        if (newModes.contains('questionnaire')) {
+                          newModes.remove('questionnaire');
+                        }
+                        if (!newModes.contains(mode)) {
+                          newModes.add(mode);
                         }
                       }
-                      widget.inputDef['input_modes'] = modes;
-                      _notifyChange();
-                    });
+                    } else {
+                      if (newModes.length > 1) {
+                        newModes.remove(mode);
+                      }
+                    }
+
+                    _update(
+                      def.copyWith(
+                        inputModes: newModes,
+                        isChatHistory: wasChatHistory,
+                        questionnaireDefinition:
+                            newModes.contains('questionnaire')
+                            ? def.questionnaireDefinition
+                            : [],
+                      ),
+                    );
                   },
                 );
               }).toList(),
@@ -220,32 +189,26 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
             const SizedBox(height: 16),
             I18nTextField(
               label: l10n.workflowInputLabelTitle,
-              initialData: I18nText.fromJson(
-                SafeCast.safeMap(widget.inputDef['label']),
-              ),
+              initialData: def.label,
               onChanged: (val) {
-                widget.inputDef['label'] = val.toJson();
-                _notifyChange();
+                _update(def.copyWith(label: val));
               },
             ),
             const SizedBox(height: 16),
             I18nTextField(
               label: l10n.workflowInputDescriptionTitle,
-              initialData: I18nText.fromJson(
-                SafeCast.safeMap(widget.inputDef['description']),
-              ),
+              initialData: def.description,
               onChanged: (val) {
-                widget.inputDef['description'] = val.toJson();
-                _notifyChange();
+                _update(def.copyWith(description: val));
               },
             ),
             const SizedBox(height: 16),
             Focus(
               onFocusChange: (f) {
                 if (!f) {
-                  widget.inputDef['ai_description'] = _aiDescController.text
-                      .trim();
-                  _notifyChange();
+                  _update(
+                    def.copyWith(aiDescription: _aiDescController.text.trim()),
+                  );
                 }
               },
               child: TextField(
@@ -270,7 +233,7 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
               ),
             ),
             Padding(
-              padding: EdgeInsets.only(top: 4.0),
+              padding: const EdgeInsets.only(top: 4.0),
               child: Text(
                 l10n.adminPromptBestPracticesHint,
                 style: TextStyle(
@@ -291,7 +254,7 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                 ),
               ),
               const SizedBox(height: 8),
-              _buildQuestionnaireEditor(l10n),
+              _buildQuestionnaireEditor(l10n, def),
             ],
           ],
         ),
@@ -299,10 +262,8 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
     );
   }
 
-  Widget _buildQuestionnaireEditor(AppLocalizations l10n) {
-    final questions = SafeCast.safeList(
-      widget.inputDef['questionnaire_definition'],
-    );
+  Widget _buildQuestionnaireEditor(AppLocalizations l10n, ExpectedInput def) {
+    final questions = List<QuestionnaireItem>.from(def.questionnaireDefinition);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -323,10 +284,7 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
             ),
           ...questions.asMap().entries.map((entry) {
             final idx = entry.key;
-            final qDef = SafeCast.safeMap(entry.value);
-            final idCtrl = TextEditingController(
-              text: SafeCast.safeString(qDef['question_id']),
-            );
+            final qDef = entry.value;
 
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
@@ -337,19 +295,21 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                     Row(
                       children: [
                         Expanded(
-                          child: Focus(
-                            onFocusChange: (f) {
-                              if (!f) {
-                                qDef['question_id'] = idCtrl.text.trim();
-                                _notifyChange();
-                              }
-                            },
-                            child: TextField(
-                              controller: idCtrl,
-                              decoration: InputDecoration(
-                                labelText: l10n.workflowInputQuestionIdLabel,
-                              ),
+                          child: TextFormField(
+                            initialValue: qDef.questionId,
+                            decoration: InputDecoration(
+                              labelText: l10n.workflowInputQuestionIdLabel,
                             ),
+                            onChanged: (val) {
+                              questions[idx] = qDef.copyWith(
+                                questionId: val.trim(),
+                              );
+                              _update(
+                                def.copyWith(
+                                  questionnaireDefinition: questions,
+                                ),
+                              );
+                            },
                           ),
                         ),
                         IconButton(
@@ -360,12 +320,10 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                             ).colorScheme.onSurfaceVariant,
                           ),
                           onPressed: () {
-                            setState(() {
-                              questions.removeAt(idx);
-                              widget.inputDef['questionnaire_definition'] =
-                                  questions;
-                              _notifyChange();
-                            });
+                            questions.removeAt(idx);
+                            _update(
+                              def.copyWith(questionnaireDefinition: questions),
+                            );
                           },
                         ),
                       ],
@@ -373,12 +331,12 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                     const SizedBox(height: 12),
                     I18nTextField(
                       label: l10n.workflowInputQuestionTextLabel,
-                      initialData: I18nText.fromJson(
-                        SafeCast.safeMap(qDef['question']),
-                      ),
+                      initialData: qDef.question,
                       onChanged: (val) {
-                        qDef['question'] = val.toJson();
-                        _notifyChange();
+                        questions[idx] = qDef.copyWith(question: val);
+                        _update(
+                          def.copyWith(questionnaireDefinition: questions),
+                        );
                       },
                     ),
                   ],
@@ -388,18 +346,17 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
           }),
           TextButton.icon(
             onPressed: () {
-              setState(() {
-                questions.add({
-                  'question_id': 'q${questions.length + 1}',
-                  'question': {
-                    'default_locale': 'en',
-                    'translations': {'en': ''},
-                  },
-                  'type': 'text',
-                });
-                widget.inputDef['questionnaire_definition'] = questions;
-                _notifyChange();
-              });
+              questions.add(
+                QuestionnaireItem(
+                  questionId: 'q${questions.length + 1}',
+                  question: const I18nText(
+                    defaultLocale: 'en',
+                    translations: {'en': ''},
+                  ),
+                  type: 'text',
+                ),
+              );
+              _update(def.copyWith(questionnaireDefinition: questions));
             },
             icon: const Icon(Icons.add),
             label: Text(l10n.workflowInputAddQuestionBtn),

@@ -332,9 +332,8 @@ class ModelRegistryNewRoute extends GoRouteData with $ModelRegistryNewRoute {
 }
 
 class ModelRegistryEditRoute extends GoRouteData with $ModelRegistryEditRoute {
-  const ModelRegistryEditRoute({required this.id, this.$extra});
+  const ModelRegistryEditRoute({required this.id});
   final String id;
-  final Map<String, dynamic>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>

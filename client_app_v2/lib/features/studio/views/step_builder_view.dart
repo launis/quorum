@@ -5,10 +5,11 @@ import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
+import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
-import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -18,16 +19,23 @@ import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/error/app_exception.dart';
 
 class StepBuilderView extends HookConsumerWidget {
-  final Map<String, dynamic> step;
+  final dynamic step;
 
   const StepBuilderView({super.key, required this.step});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final stepId = (step['id']?.toString() ?? '').isEmpty
-        ? 'new'
-        : step['id'].toString();
+    String stepId = 'new';
+    if (step is NodeStrategy) {
+      stepId = (step as NodeStrategy).id.isNotEmpty
+          ? (step as NodeStrategy).id
+          : 'new';
+    } else if (step is Map) {
+      final idStr = step['id']?.toString() ?? '';
+      stepId = idStr.isNotEmpty ? idStr : 'new';
+    }
+
     final formState = ref.watch(stepFormProvider(stepId));
     final promptBlocksAsync = ref.watch(promptBlocksControllerProvider);
     final mcpGatewaysAsync = ref.watch(mcpGatewaysControllerProvider);
@@ -70,39 +78,34 @@ class StepBuilderView extends HookConsumerWidget {
     );
   }
 
-  void _addPromptBlock(
-    WidgetRef ref,
-    Map<String, dynamic> payload,
-    String blockId,
-  ) {
-    final blocks = SafeCast.safeList(payload['prompt_blocks']);
-    blocks.add('');
-    payload['prompt_blocks'] = blocks;
-    ref.read(stepFormProvider(blockId).notifier).forceRebuild();
+  void _addPromptBlock(WidgetRef ref, NodeStrategy payload, String blockId) {
+    if (payload is NodeStrategyLlm) {
+      final blocks = List<String>.from(payload.promptBlocks);
+      blocks.add('');
+      ref
+          .read(stepFormProvider(blockId).notifier)
+          .forceRebuild(payload.copyWith(promptBlocks: blocks));
+    }
   }
 
-  void _addPreHook(
-    WidgetRef ref,
-    Map<String, dynamic> payload,
-    String blockId,
-  ) {
-    final hooks = SafeCast.safeList(payload['pre_hooks']);
+  void _addPreHook(WidgetRef ref, NodeStrategy payload, String blockId) {
+    final hooks = List<String>.from(payload.preHooks);
     hooks.add('');
-    payload['pre_hooks'] = hooks;
-    ref.read(stepFormProvider(blockId).notifier).forceRebuild();
+    ref
+        .read(stepFormProvider(blockId).notifier)
+        .forceRebuild(payload.copyWith(preHooks: hooks));
   }
 
   void _deleteStep(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    Map<String, dynamic> payload,
+    NodeStrategy payload,
     MutationState<void> deleteMut,
   ) {
-    final id = payload['id']?.toString() ?? '';
-    final labelMap = SafeCast.safeMap(payload['label']);
-    final trans = SafeCast.safeMap(labelMap['translations']);
-    final nameToDisplay = trans['fi']?.toString() ?? trans['en']?.toString() ?? id;
+    final id = payload.id;
+    final trans = payload.name.translations;
+    final nameToDisplay = trans['fi'] ?? trans['en'] ?? id;
 
     showDialog(
       context: context,
@@ -131,8 +134,8 @@ class StepBuilderView extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    AsyncValue<Map<String, dynamic>> formState,
-    Map<String, dynamic> payload,
+    AsyncValue<NodeStrategy> formState,
+    NodeStrategy payload,
     String stepId,
     List<PromptBlock> promptBlocks,
     List<Map<String, dynamic>> mcpGateways,
@@ -205,7 +208,7 @@ class StepBuilderView extends HookConsumerWidget {
     );
 
     Future<void> saveStep() async {
-      final id = payload['id']?.toString().trim() ?? '';
+      final id = payload.id.trim();
       if (id.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -216,18 +219,19 @@ class StepBuilderView extends HookConsumerWidget {
         return;
       }
 
-      final stepType = SafeCast.safeString(payload['type'], 'llm');
-      final strategy = SafeCast.safeString(payload['model_strategy']);
-      if (stepType == 'llm' && strategy.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-              'Model Strategy (Tekoälymalli) on pakollinen LLM-askelille.',
+      if (payload is NodeStrategyLlm) {
+        final strategy = payload.modelStrategy ?? '';
+        if (strategy.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Model Strategy (Tekoälymalli) on pakollinen LLM-askelille.',
+              ),
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-        return;
+          );
+          return;
+        }
       }
 
       try {
@@ -269,15 +273,10 @@ class StepBuilderView extends HookConsumerWidget {
           ),
           title: Text(l10n.stepEditTitle),
           actions: [
-            if (payload['id']?.toString().isNotEmpty == true)
+            if (payload.id.isNotEmpty)
               IconButton(
-                onPressed: () => _deleteStep(
-                  context,
-                  ref,
-                  l10n,
-                  payload,
-                  deleteMutation,
-                ),
+                onPressed: () =>
+                    _deleteStep(context, ref, l10n, payload, deleteMutation),
                 icon: Icon(
                   Icons.delete,
                   color: Theme.of(context).colorScheme.error,
@@ -289,13 +288,15 @@ class StepBuilderView extends HookConsumerWidget {
                   ? null
                   : () {
                       validateMutation.mutate(() async {
-                        final simPayload = {
-                          'step': payload,
-                          'mock_inputs': <String, dynamic>{},
-                        };
+                        // Backend actually expects { 'step': {...rules}, 'mock_inputs': {} }
+                        // but if simulateStep asks for NodeStrategy, we need to see its signature.
+                        // Assuming simulateStep(Map<String, dynamic>)
+                        // Let's pass the mapping directly if simulateStep was changed, or we just reconstruct the map.
+                        // Since the error is "can't be assigned to the parameter type 'NodeStrategy'", simulateStep is defined as: simulateStep(NodeStrategy)
+                        // If it wants NodeStrategy, we pass payload:
                         return await ref
                             .read(stepsControllerProvider.notifier)
-                            .simulateStep(simPayload);
+                            .simulateStep(payload);
                       });
                     },
               icon: validateMutation.isLoading
@@ -352,129 +353,132 @@ class StepBuilderView extends HookConsumerWidget {
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
-                          initialValue: SafeCast.safeString(payload['id']),
+                          initialValue: payload.id,
                           decoration: InputDecoration(
                             labelText: l10n.stepIdLabel,
                             border: const OutlineInputBorder(),
                           ),
-                          enabled:
-                              step['id'] == null ||
-                              step['id'].toString().isEmpty,
-                          onChanged: (val) => payload['id'] = val,
+                          enabled: payload.id.isEmpty,
+                          onChanged: (val) {
+                            ref
+                                .read(stepFormProvider(stepId).notifier)
+                                .forceRebuild(payload.copyWith(id: val.trim()));
+                          },
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
-                          initialValue: SafeCast.safeString(payload['slug']),
+                          initialValue: payload.slug,
                           decoration: InputDecoration(
                             labelText: l10n.slugLabel,
                             border: const OutlineInputBorder(),
                           ),
-                          onChanged: (val) => payload['slug'] = val,
+                          onChanged: (val) {
+                            ref
+                                .read(stepFormProvider(stepId).notifier)
+                                .forceRebuild(
+                                  payload.copyWith(slug: val.trim()),
+                                );
+                          },
                         ),
                         const SizedBox(height: 16),
                         I18nTextField(
                           label: l10n.nameLabel,
-                          initialData: I18nText.fromJson(
-                            SafeCast.safeMap(payload['label']),
-                          ),
+                          initialData: payload.name,
                           onChanged: (val) {
-                            payload['label'] = val.toJson();
                             ref
                                 .read(stepFormProvider(stepId).notifier)
-                                .forceRebuild();
+                                .forceRebuild(payload.copyWith(name: val));
                           },
                         ),
                         const SizedBox(height: 16),
                         I18nTextField(
                           label: l10n.descriptionLabel,
-                          initialData: I18nText.fromJson(
-                            SafeCast.safeMap(payload['description']),
-                          ),
+                          initialData: payload.description ?? const I18nText(),
                           onChanged: (val) {
-                            payload['description'] = val.toJson();
                             ref
                                 .read(stepFormProvider(stepId).notifier)
-                                .forceRebuild();
+                                .forceRebuild(
+                                  payload.copyWith(description: val),
+                                );
                           },
                         ),
                         const SizedBox(height: 16),
-                        Builder(
-                          builder: (context) {
-                            final configsAsync = ref.watch(
-                              modelRegistryControllerProvider,
-                            );
-                            if (configsAsync.isLoading) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
+                        if (payload is NodeStrategyLlm)
+                          Builder(
+                            builder: (context) {
+                              final configsAsync = ref.watch(
+                                modelRegistryControllerProvider,
                               );
-                            }
-                            if (configsAsync.hasError) {
-                              return ErrorView(
-                                error: configsAsync.error!,
-                                compact: true,
+                              if (configsAsync.isLoading) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+                              if (configsAsync.hasError) {
+                                return ErrorView(
+                                  error: configsAsync.error!,
+                                  compact: true,
+                                );
+                              }
+
+                              final configs = configsAsync.value ?? [];
+                              final registryConfig = configs.firstWhere(
+                                (c) => c.type == 'model_registry',
+                                orElse: () => const ModelConfig(id: '', slug: ''),
                               );
-                            }
 
-                            final configs = configsAsync.value ?? [];
-                            final registryConfig = configs.firstWhere(
-                              (c) => c['type'] == 'model_registry',
-                              orElse: () => <String, dynamic>{},
-                            );
+                              final modelKeys = registryConfig.models.keys
+                                  .toList();
 
-                            final modelsObj = SafeCast.safeMap(
-                              registryConfig['models'],
-                            );
-                            final modelKeys = modelsObj.keys.toList();
+                              if (modelKeys.isEmpty) {
+                                return Text(
+                                  'Warning: No models found.',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                                );
+                              }
 
-                            if (modelKeys.isEmpty) {
-                              return Text(
-                                'Warning: No models found.',
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.error,
+                              final currentStrategy =
+                                  payload.modelStrategy ?? '';
+                              final safeValue =
+                                  modelKeys.contains(currentStrategy)
+                                  ? currentStrategy
+                                  : null;
+
+                              return DropdownButtonFormField<String>(
+                                key: ValueKey(modelKeys.length),
+                                initialValue: safeValue,
+                                decoration: const InputDecoration(
+                                  labelText:
+                                      'Model Strategy (Cost/Cognition Override)',
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
                                 ),
+                                items: modelKeys.map((key) {
+                                  final modelData = registryConfig.models[key];
+                                  final label =
+                                      modelData?.modelName != null &&
+                                          modelData!.modelName.isNotEmpty
+                                      ? '${key.toUpperCase()} (${modelData.modelName})'
+                                      : key.toUpperCase();
+                                  return DropdownMenuItem(
+                                    value: key,
+                                    child: Text(label),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    ref
+                                        .read(stepFormProvider(stepId).notifier)
+                                        .forceRebuild(
+                                          payload.copyWith(modelStrategy: val),
+                                        );
+                                  }
+                                },
                               );
-                            }
-
-                            final currentStrategy = SafeCast.safeString(
-                              payload['model_strategy'],
-                            );
-                            final safeValue =
-                                modelKeys.contains(currentStrategy)
-                                ? currentStrategy
-                                : null;
-
-                            return DropdownButtonFormField<String>(
-                              key: ValueKey(modelKeys.length),
-                              initialValue: safeValue,
-                              decoration: const InputDecoration(
-                                labelText:
-                                    'Model Strategy (Cost/Cognition Override)',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                              items: modelKeys.map((key) {
-                                final modelData = SafeCast.safeMap(
-                                  modelsObj[key],
-                                );
-                                final label = modelData['model_name'] != null
-                                    ? '${key.toUpperCase()} (${modelData['model_name']})'
-                                    : key.toUpperCase();
-                                return DropdownMenuItem(
-                                  value: key,
-                                  child: Text(label),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  payload['model_strategy'] = val;
-                                  ref
-                                      .read(stepFormProvider(stepId).notifier)
-                                      .forceRebuild();
-                                }
-                              },
-                            );
-                          },
-                        ),
+                            },
+                          ),
                       ],
                     ),
                   ),
@@ -494,11 +498,14 @@ class StepBuilderView extends HookConsumerWidget {
                 Wrap(
                   spacing: 8,
                   children: mcpGateways.map((toolMap) {
-                    final slug = SafeCast.safeString(toolMap['slug']);
-                    final allowedMcpTools = SafeCast.safeList(
-                      payload['allowed_mcp_tools'],
-                    ).map((e) => e.toString()).toList();
+                    final slug = toolMap['slug']?.toString() ?? '';
+                    if (slug.isEmpty) return const SizedBox.shrink();
+
+                    final allowedMcpTools = List<String>.from(
+                      payload.allowedMcpTools,
+                    );
                     final isSelected = allowedMcpTools.contains(slug);
+
                     return FilterChip(
                       label: Text(slug),
                       selected: isSelected,
@@ -510,10 +517,13 @@ class StepBuilderView extends HookConsumerWidget {
                         } else {
                           allowedMcpTools.remove(slug);
                         }
-                        payload['allowed_mcp_tools'] = allowedMcpTools;
                         ref
                             .read(stepFormProvider(stepId).notifier)
-                            .forceRebuild();
+                            .forceRebuild(
+                              payload.copyWith(
+                                allowedMcpTools: allowedMcpTools,
+                              ),
+                            );
                       },
                     );
                   }).toList(),
@@ -543,17 +553,18 @@ class StepBuilderView extends HookConsumerWidget {
                 ReorderableListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: SafeCast.safeList(payload['pre_hooks']).length,
+                  itemCount: payload.preHooks.length,
                   onReorder: (oldIndex, newIndex) {
                     if (oldIndex < newIndex) newIndex -= 1;
-                    final hooks = SafeCast.safeList(payload['pre_hooks']);
+                    final hooks = List<String>.from(payload.preHooks);
                     final item = hooks.removeAt(oldIndex);
                     hooks.insert(newIndex, item);
-                    payload['pre_hooks'] = hooks;
-                    ref.read(stepFormProvider(stepId).notifier).forceRebuild();
+                    ref
+                        .read(stepFormProvider(stepId).notifier)
+                        .forceRebuild(payload.copyWith(preHooks: hooks));
                   },
                   itemBuilder: (context, index) {
-                    final hooks = SafeCast.safeList(payload['pre_hooks']);
+                    final hooks = payload.preHooks;
                     return _buildPreHookCard(
                       ref,
                       l10n,
@@ -561,58 +572,61 @@ class StepBuilderView extends HookConsumerWidget {
                       stepId,
                       ValueKey('hook_$index\_${hooks[index]}'),
                       index,
-                      hooks[index].toString(),
+                      hooks[index],
                     );
                   },
                 ),
 
                 const SizedBox(height: 24),
 
-                // prompt_blocks
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      l10n.promptBlocksTitle,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                if (payload is NodeStrategyLlm) ...[
+                  // prompt_blocks
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        l10n.promptBlocksTitle,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => _addPromptBlock(ref, payload, stepId),
-                      icon: const Icon(Icons.add),
-                      label: Text(l10n.addPromptBlockBtn),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                ReorderableListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: SafeCast.safeList(payload['prompt_blocks']).length,
-                  onReorder: (oldIndex, newIndex) {
-                    if (oldIndex < newIndex) newIndex -= 1;
-                    final blocks = SafeCast.safeList(payload['prompt_blocks']);
-                    final item = blocks.removeAt(oldIndex);
-                    blocks.insert(newIndex, item);
-                    payload['prompt_blocks'] = blocks;
-                    ref.read(stepFormProvider(stepId).notifier).forceRebuild();
-                  },
-                  itemBuilder: (context, index) {
-                    final blocks = SafeCast.safeList(payload['prompt_blocks']);
-                    return _buildPromptBlockCard(
-                      ref,
-                      l10n,
-                      payload,
-                      stepId,
-                      ValueKey('block_$index\_${blocks[index]}'),
-                      index,
-                      blocks[index].toString(),
-                      promptBlocks,
-                    );
-                  },
-                ),
+                      OutlinedButton.icon(
+                        onPressed: () => _addPromptBlock(ref, payload, stepId),
+                        icon: const Icon(Icons.add),
+                        label: Text(l10n.addPromptBlockBtn),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ReorderableListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: payload.promptBlocks.length,
+                    onReorder: (oldIndex, newIndex) {
+                      if (oldIndex < newIndex) newIndex -= 1;
+                      final blocks = List<String>.from(payload.promptBlocks);
+                      final item = blocks.removeAt(oldIndex);
+                      blocks.insert(newIndex, item);
+                      ref
+                          .read(stepFormProvider(stepId).notifier)
+                          .forceRebuild(payload.copyWith(promptBlocks: blocks));
+                    },
+                    itemBuilder: (context, index) {
+                      final blocks = payload.promptBlocks;
+                      return _buildPromptBlockCard(
+                        ref,
+                        l10n,
+                        payload,
+                        stepId,
+                        ValueKey('block_$index\_${blocks[index]}'),
+                        index,
+                        blocks[index],
+                        promptBlocks,
+                      );
+                    },
+                  ),
+                ],
               ],
             ),
           ),
@@ -624,7 +638,7 @@ class StepBuilderView extends HookConsumerWidget {
   Widget _buildPreHookCard(
     WidgetRef ref,
     AppLocalizations l10n,
-    Map<String, dynamic> payload,
+    NodeStrategy payload,
     String stepId,
     Key key,
     int index,
@@ -647,7 +661,7 @@ class StepBuilderView extends HookConsumerWidget {
           children: [
             const Padding(
               padding: EdgeInsets.only(right: 8.0),
-              child: Icon(Icons.drag_indicator, color: const Color(0xFF9E9E9E)),
+              child: Icon(Icons.drag_indicator, color: Color(0xFF9E9E9E)),
             ),
             Expanded(
               child: DropdownButtonFormField<String>(
@@ -678,19 +692,23 @@ class StepBuilderView extends HookConsumerWidget {
                 ],
                 onChanged: (val) {
                   if (val != null) {
-                    final hooks = SafeCast.safeList(payload['pre_hooks']);
+                    final hooks = List<String>.from(payload.preHooks);
                     hooks[index] = val;
-                    payload['pre_hooks'] = hooks;
-                    ref.read(stepFormProvider(stepId).notifier).forceRebuild();
+                    ref
+                        .read(stepFormProvider(stepId).notifier)
+                        .forceRebuild(payload.copyWith(preHooks: hooks));
                   }
                 },
               ),
             ),
             IconButton(
-              icon: Icon(Icons.delete, color: const Color(0xFFD32F2F)),
+              icon: const Icon(Icons.delete, color: Color(0xFFD32F2F)),
               onPressed: () {
-                SafeCast.safeList(payload['pre_hooks']).removeAt(index);
-                ref.read(stepFormProvider(stepId).notifier).forceRebuild();
+                final hooks = List<String>.from(payload.preHooks);
+                hooks.removeAt(index);
+                ref
+                    .read(stepFormProvider(stepId).notifier)
+                    .forceRebuild(payload.copyWith(preHooks: hooks));
               },
             ),
           ],
@@ -702,7 +720,7 @@ class StepBuilderView extends HookConsumerWidget {
   Widget _buildPromptBlockCard(
     WidgetRef ref,
     AppLocalizations l10n,
-    Map<String, dynamic> payload,
+    NodeStrategyLlm payload,
     String stepId,
     Key key,
     int index,
@@ -718,7 +736,7 @@ class StepBuilderView extends HookConsumerWidget {
           children: [
             const Padding(
               padding: EdgeInsets.only(right: 8.0),
-              child: Icon(Icons.drag_indicator, color: const Color(0xFF9E9E9E)),
+              child: Icon(Icons.drag_indicator, color: Color(0xFF9E9E9E)),
             ),
             Expanded(
               child: DropdownButtonFormField<String>(
@@ -730,18 +748,24 @@ class StepBuilderView extends HookConsumerWidget {
                   return DropdownMenuItem(value: m.id, child: Text(m.id));
                 }).toList(),
                 onChanged: (val) {
-                  final blocks = SafeCast.safeList(payload['prompt_blocks']);
-                  blocks[index] = val;
-                  payload['prompt_blocks'] = blocks;
-                  ref.read(stepFormProvider(stepId).notifier).forceRebuild();
+                  if (val != null) {
+                    final blocks = List<String>.from(payload.promptBlocks);
+                    blocks[index] = val;
+                    ref
+                        .read(stepFormProvider(stepId).notifier)
+                        .forceRebuild(payload.copyWith(promptBlocks: blocks));
+                  }
                 },
               ),
             ),
             IconButton(
-              icon: Icon(Icons.delete, color: const Color(0xFFD32F2F)),
+              icon: const Icon(Icons.delete, color: Color(0xFFD32F2F)),
               onPressed: () {
-                SafeCast.safeList(payload['prompt_blocks']).removeAt(index);
-                ref.read(stepFormProvider(stepId).notifier).forceRebuild();
+                final blocks = List<String>.from(payload.promptBlocks);
+                blocks.removeAt(index);
+                ref
+                    .read(stepFormProvider(stepId).notifier)
+                    .forceRebuild(payload.copyWith(promptBlocks: blocks));
               },
             ),
           ],

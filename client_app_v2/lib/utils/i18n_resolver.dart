@@ -1,5 +1,3 @@
-import 'package:client_app/utils/safe_cast.dart';
-
 /// **I18n Fallback Resolver**
 ///
 /// Converts a dynamic backend I18n block (containing translations and a default locale)
@@ -28,17 +26,20 @@ class I18nResolver {
     // If it's just a raw String somehow, return it gracefully
     if (data is String) return data;
 
-    final map = SafeCast.safeMap(data);
+    final map = data is Map
+        ? Map<String, dynamic>.from(data)
+        : <String, dynamic>{};
     if (map.isEmpty) return '';
 
     // Extract translations Map (default_locale is no longer used due to exact matching)
-    final Map<String, dynamic> translations = SafeCast.safeMap(
-      map['translations'],
-    );
+    final trRaw = map['translations'];
+    final Map<String, dynamic> translations = trRaw is Map
+        ? Map<String, dynamic>.from(trRaw)
+        : <String, dynamic>{};
 
     if (translations.isEmpty) {
       // In case translations map is completely empty, see if they passed flat properties
-      final directTry = SafeCast.safeString(map[targetLocale]);
+      final directTry = map[targetLocale]?.toString() ?? '';
       if (directTry.isNotEmpty) return directTry;
 
       throw FormatException(
@@ -48,7 +49,7 @@ class I18nResolver {
     }
 
     // 1. Try Target Locale strictly
-    final targetStr = SafeCast.safeString(translations[targetLocale]);
+    final targetStr = translations[targetLocale]?.toString() ?? '';
     if (targetStr.isNotEmpty) return targetStr;
 
     // Fail Fast Mandate: No fallbacks allowed.

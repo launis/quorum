@@ -5,6 +5,8 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/theme/app_durations.dart';
@@ -13,19 +15,22 @@ part 'output_profile_controller.g.dart';
 
 // --- Controllers ---
 
-/// Controller managing Studio Output Profiles strictly using `Map<String, dynamic>`.
+/// Controller managing Studio Output Profiles using Strict Freezed models.
 /// Implements Optimistic UI principles where possible.
 @riverpod
 class OutputProfilesController extends _$OutputProfilesController {
   @override
-  FutureOr<List<Map<String, dynamic>>> build() async {
+  FutureOr<List<OutputProfile>> build() async {
     ref.cacheFor(AppDurations.cacheTimeout);
     return _fetchProfiles();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchProfiles() async {
+  Future<List<OutputProfile>> _fetchProfiles() async {
     final client = ref.read(studioClientProvider);
-    return client.getOutputProfiles();
+    final rawList = await client.getOutputProfiles();
+    return Isolate.run(
+      () => rawList.map((e) => OutputProfile.fromJson(e)).toList(),
+    );
   }
 
   /// Refreshes the profiles list from the backend.
@@ -43,23 +48,20 @@ class OutputProfilesController extends _$OutputProfilesController {
   }
 
   /// Saves a profile utilizing Optimistic Updates.
-  Future<Map<String, dynamic>> saveProfile(
-    String id,
-    Map<String, dynamic> payload,
-  ) async {
+  Future<OutputProfile> saveProfile(String id, OutputProfile payload) async {
     final previousState = state;
-    Map<String, dynamic> returnData = {...payload, 'id': id};
+    OutputProfile returnData =
+        payload; // Assuming payload already has ID initialized or preserved
 
     // 1. Optimistic Update
     if (state.hasValue && state.value != null) {
-      final currentList = List<Map<String, dynamic>>.from(state.value!);
-      final index = currentList.indexWhere((m) => m['id'] == id);
+      final currentList = List<OutputProfile>.from(state.value!);
+      final index = currentList.indexWhere((m) => m.id == id);
 
-      final updatedProfile = {...payload, 'id': id};
       if (index >= 0) {
-        currentList[index] = updatedProfile;
+        currentList[index] = payload;
       } else {
-        currentList.add(updatedProfile);
+        currentList.add(payload);
       }
       state = AsyncValue.data(currentList);
     }
@@ -67,12 +69,15 @@ class OutputProfilesController extends _$OutputProfilesController {
     try {
       // 2. Network Call
       final client = ref.read(studioClientProvider);
-      final verifiedProfile = await client.saveOutputProfile(id, payload);
+      final rawResponse = await client.saveOutputProfile(id, payload.toJson());
+      final verifiedProfile = await Isolate.run(
+        () => OutputProfile.fromJson(rawResponse),
+      );
 
       // 3. Confirm with Actual Data
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
-        final index = currentList.indexWhere((m) => m['id'] == id);
+        final currentList = List<OutputProfile>.from(state.value!);
+        final index = currentList.indexWhere((m) => m.id == id);
         if (index >= 0) {
           currentList[index] = verifiedProfile;
           state = AsyncValue.data(currentList);
@@ -100,8 +105,8 @@ class OutputProfilesController extends _$OutputProfilesController {
       await client.deleteOutputProfile(id);
 
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
-        currentList.removeWhere((m) => m['id'] == id);
+        final currentList = List<OutputProfile>.from(state.value!);
+        currentList.removeWhere((m) => m.id == id);
         state = AsyncValue.data(currentList);
       }
     } catch (e, st) {
@@ -116,16 +121,19 @@ class OutputProfilesController extends _$OutputProfilesController {
   }
 
   /// Clones an Output Profile utilizing Optimistic UI.
-  Future<Map<String, dynamic>> cloneProfile(String id) async {
+  Future<OutputProfile> cloneProfile(String id) async {
     final previousState = state;
     try {
       // 1. Network Call
       final client = ref.read(studioClientProvider);
-      final clonedProfile = await client.cloneOutputProfile(id);
+      final rawProfile = await client.cloneOutputProfile(id);
+      final clonedProfile = await Isolate.run(
+        () => OutputProfile.fromJson(rawProfile),
+      );
 
       // 2. Update State
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        final currentList = List<OutputProfile>.from(state.value!);
         currentList.insert(0, clonedProfile); // prepend for visibility
         state = AsyncValue.data(currentList);
       }
@@ -145,9 +153,10 @@ class OutputProfilesController extends _$OutputProfilesController {
 
 /// Fetches a single Output Profile natively by ID
 @riverpod
-Future<Map<String, dynamic>> outputProfileById(Ref ref, String id) async {
+Future<OutputProfile> outputProfileById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
-  return client.getOutputProfile(id);
+  final rawData = await client.getOutputProfile(id);
+  return Isolate.run(() => OutputProfile.fromJson(rawData));
 }
 
 // --- Gold Standard Form State (Flat MVC) ---
@@ -155,42 +164,53 @@ Future<Map<String, dynamic>> outputProfileById(Ref ref, String id) async {
 @riverpod
 class OutputProfileForm extends _$OutputProfileForm {
   @override
-  FutureOr<Map<String, dynamic>> build(String configId) async {
+  FutureOr<OutputProfile> build(String configId) async {
     if (configId == 'new') {
       return Isolate.run(
-        () => {
-          'id': '',
-          'name': {'fi': 'Uusi profiili', 'en': 'New Profile'},
-          'layouts': <dynamic>[],
-          'workflow_id': '',
-        },
+        () => const OutputProfile(
+          id: '',
+          slug: '',
+          workflowId: '',
+          name: I18nText(
+            defaultLocale: 'fi',
+            translations: {'fi': 'Uusi profiili', 'en': 'New Profile'},
+          ),
+          description: I18nText(defaultLocale: 'fi'),
+          layouts: [],
+        ),
       );
     }
 
-    final rawData = await ref.watch(outputProfileByIdProvider(configId).future);
-    final str = jsonEncode(rawData);
-    return Isolate.run(() => jsonDecode(str) as Map<String, dynamic>);
+    final profile = await ref.watch(outputProfileByIdProvider(configId).future);
+    final str = jsonEncode(profile.toJson());
+    return Isolate.run(() => OutputProfile.fromJson(jsonDecode(str)));
   }
 
   void forceRebuild() {
     final payload = state.value;
     if (payload != null) {
-      state = AsyncData(Map<String, dynamic>.from(payload));
+      // Deep copy is handled by Freezed copyWith inherently, but we trigger notify
+      state = AsyncData(payload.copyWith());
     }
   }
 
-  Future<void> submit(Map<String, dynamic> updatedData) async {
+  void updatePayload(OutputProfile payload) {
+    state = AsyncData(payload);
+  }
+
+  Future<void> submit(OutputProfile updatedData) async {
     state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {
-      final idToSave = updatedData['id'] as String? ?? configId;
+      final idToSave = updatedData.id.isNotEmpty ? updatedData.id : configId;
       if (idToSave.isEmpty || idToSave == 'new')
         throw AppException.validation("Profile ID is required");
 
+      final profileWithId = updatedData.copyWith(id: idToSave);
       await ref
           .read(outputProfilesControllerProvider.notifier)
-          .saveProfile(idToSave, updatedData);
-      return updatedData;
+          .saveProfile(idToSave, profileWithId);
+      return profileWithId;
     });
   }
 }

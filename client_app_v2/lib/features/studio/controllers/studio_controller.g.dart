@@ -17,14 +17,8 @@ final workflowByIdProvider = WorkflowByIdFamily._();
 
 final class WorkflowByIdProvider
     extends
-        $FunctionalProvider<
-          AsyncValue<Map<String, dynamic>>,
-          Map<String, dynamic>,
-          FutureOr<Map<String, dynamic>>
-        >
-    with
-        $FutureModifier<Map<String, dynamic>>,
-        $FutureProvider<Map<String, dynamic>> {
+        $FunctionalProvider<AsyncValue<Workflow>, Workflow, FutureOr<Workflow>>
+    with $FutureModifier<Workflow>, $FutureProvider<Workflow> {
   /// Fetches a single Workflow natively by ID
   WorkflowByIdProvider._({
     required WorkflowByIdFamily super.from,
@@ -49,12 +43,11 @@ final class WorkflowByIdProvider
 
   @$internal
   @override
-  $FutureProviderElement<Map<String, dynamic>> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  $FutureProviderElement<Workflow> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
 
   @override
-  FutureOr<Map<String, dynamic>> create(Ref ref) {
+  FutureOr<Workflow> create(Ref ref) {
     final argument = this.argument as String;
     return workflowById(ref, argument);
   }
@@ -70,12 +63,12 @@ final class WorkflowByIdProvider
   }
 }
 
-String _$workflowByIdHash() => r'c1b21cb0785f253930d2e7c49c117e019ff28cd1';
+String _$workflowByIdHash() => r'bd7910a463824b12a17dceda1ae6d215dc406cfe';
 
 /// Fetches a single Workflow natively by ID
 
 final class WorkflowByIdFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<Map<String, dynamic>>, String> {
+    with $FunctionalFamilyOverride<FutureOr<Workflow>, String> {
   WorkflowByIdFamily._()
     : super(
         retry: null,
@@ -104,13 +97,11 @@ final stepByIdProvider = StepByIdFamily._();
 final class StepByIdProvider
     extends
         $FunctionalProvider<
-          AsyncValue<Map<String, dynamic>>,
-          Map<String, dynamic>,
-          FutureOr<Map<String, dynamic>>
+          AsyncValue<NodeStrategy>,
+          NodeStrategy,
+          FutureOr<NodeStrategy>
         >
-    with
-        $FutureModifier<Map<String, dynamic>>,
-        $FutureProvider<Map<String, dynamic>> {
+    with $FutureModifier<NodeStrategy>, $FutureProvider<NodeStrategy> {
   /// Fetches a single Step natively by ID
   StepByIdProvider._({
     required StepByIdFamily super.from,
@@ -135,12 +126,12 @@ final class StepByIdProvider
 
   @$internal
   @override
-  $FutureProviderElement<Map<String, dynamic>> $createElement(
+  $FutureProviderElement<NodeStrategy> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<Map<String, dynamic>> create(Ref ref) {
+  FutureOr<NodeStrategy> create(Ref ref) {
     final argument = this.argument as String;
     return stepById(ref, argument);
   }
@@ -156,12 +147,12 @@ final class StepByIdProvider
   }
 }
 
-String _$stepByIdHash() => r'ba68aa75b311796ebf0df31bd4115f828b4babb2';
+String _$stepByIdHash() => r'c5aec2866dc6c4f483b43c2fa0cf163453346e50';
 
 /// Fetches a single Step natively by ID
 
 final class StepByIdFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<Map<String, dynamic>>, String> {
+    with $FunctionalFamilyOverride<FutureOr<NodeStrategy>, String> {
   StepByIdFamily._()
     : super(
         retry: null,
@@ -184,7 +175,7 @@ final class StepByIdFamily extends $Family
 final workflowFormProvider = WorkflowFormFamily._();
 
 final class WorkflowFormProvider
-    extends $AsyncNotifierProvider<WorkflowForm, Map<String, dynamic>> {
+    extends $AsyncNotifierProvider<WorkflowForm, Workflow> {
   WorkflowFormProvider._({
     required WorkflowFormFamily super.from,
     required String super.argument,
@@ -221,15 +212,15 @@ final class WorkflowFormProvider
   }
 }
 
-String _$workflowFormHash() => r'a4426bbe0f9ff2163e0c2dde91824192d1c93213';
+String _$workflowFormHash() => r'9cd8dc243dcb7a6786318c09ba10f0cc5584a685';
 
 final class WorkflowFormFamily extends $Family
     with
         $ClassFamilyOverride<
           WorkflowForm,
-          AsyncValue<Map<String, dynamic>>,
-          Map<String, dynamic>,
-          FutureOr<Map<String, dynamic>>,
+          AsyncValue<Workflow>,
+          Workflow,
+          FutureOr<Workflow>,
           String
         > {
   WorkflowFormFamily._()
@@ -248,25 +239,20 @@ final class WorkflowFormFamily extends $Family
   String toString() => r'workflowFormProvider';
 }
 
-abstract class _$WorkflowForm extends $AsyncNotifier<Map<String, dynamic>> {
+abstract class _$WorkflowForm extends $AsyncNotifier<Workflow> {
   late final _$args = ref.$arg as String;
   String get configId => _$args;
 
-  FutureOr<Map<String, dynamic>> build(String configId);
+  FutureOr<Workflow> build(String configId);
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref =
-        this.ref
-            as $Ref<AsyncValue<Map<String, dynamic>>, Map<String, dynamic>>;
+    final ref = this.ref as $Ref<AsyncValue<Workflow>, Workflow>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<Map<String, dynamic>>,
-                Map<String, dynamic>
-              >,
-              AsyncValue<Map<String, dynamic>>,
+              AnyNotifier<AsyncValue<Workflow>, Workflow>,
+              AsyncValue<Workflow>,
               Object?,
               Object?
             >;
@@ -278,7 +264,7 @@ abstract class _$WorkflowForm extends $AsyncNotifier<Map<String, dynamic>> {
 final stepFormProvider = StepFormFamily._();
 
 final class StepFormProvider
-    extends $AsyncNotifierProvider<StepForm, Map<String, dynamic>> {
+    extends $AsyncNotifierProvider<StepForm, NodeStrategy> {
   StepFormProvider._({
     required StepFormFamily super.from,
     required String super.argument,
@@ -315,15 +301,15 @@ final class StepFormProvider
   }
 }
 
-String _$stepFormHash() => r'28edc5ea83b46705fbc285569c5ec485d655e7b6';
+String _$stepFormHash() => r'22e056340a733c2b10039fca69a425c29aad3a82';
 
 final class StepFormFamily extends $Family
     with
         $ClassFamilyOverride<
           StepForm,
-          AsyncValue<Map<String, dynamic>>,
-          Map<String, dynamic>,
-          FutureOr<Map<String, dynamic>>,
+          AsyncValue<NodeStrategy>,
+          NodeStrategy,
+          FutureOr<NodeStrategy>,
           String
         > {
   StepFormFamily._()
@@ -342,25 +328,20 @@ final class StepFormFamily extends $Family
   String toString() => r'stepFormProvider';
 }
 
-abstract class _$StepForm extends $AsyncNotifier<Map<String, dynamic>> {
+abstract class _$StepForm extends $AsyncNotifier<NodeStrategy> {
   late final _$args = ref.$arg as String;
   String get configId => _$args;
 
-  FutureOr<Map<String, dynamic>> build(String configId);
+  FutureOr<NodeStrategy> build(String configId);
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref =
-        this.ref
-            as $Ref<AsyncValue<Map<String, dynamic>>, Map<String, dynamic>>;
+    final ref = this.ref as $Ref<AsyncValue<NodeStrategy>, NodeStrategy>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<Map<String, dynamic>>,
-                Map<String, dynamic>
-              >,
-              AsyncValue<Map<String, dynamic>>,
+              AnyNotifier<AsyncValue<NodeStrategy>, NodeStrategy>,
+              AsyncValue<NodeStrategy>,
               Object?,
               Object?
             >;
@@ -368,21 +349,17 @@ abstract class _$StepForm extends $AsyncNotifier<Map<String, dynamic>> {
   }
 }
 
-/// Controller managing Studio Workflows (DAGs) strictly using `Map<String, dynamic>`.
+/// Controller managing Studio Workflows (DAGs) strictly using `Workflow` mapped domain model.
 /// Implements Optimistic UI principles where possible.
 
 @ProviderFor(WorkflowsController)
 final workflowsControllerProvider = WorkflowsControllerProvider._();
 
-/// Controller managing Studio Workflows (DAGs) strictly using `Map<String, dynamic>`.
+/// Controller managing Studio Workflows (DAGs) strictly using `Workflow` mapped domain model.
 /// Implements Optimistic UI principles where possible.
 final class WorkflowsControllerProvider
-    extends
-        $AsyncNotifierProvider<
-          WorkflowsController,
-          List<Map<String, dynamic>>
-        > {
-  /// Controller managing Studio Workflows (DAGs) strictly using `Map<String, dynamic>`.
+    extends $AsyncNotifierProvider<WorkflowsController, List<Workflow>> {
+  /// Controller managing Studio Workflows (DAGs) strictly using `Workflow` mapped domain model.
   /// Implements Optimistic UI principles where possible.
   WorkflowsControllerProvider._()
     : super(
@@ -404,31 +381,22 @@ final class WorkflowsControllerProvider
 }
 
 String _$workflowsControllerHash() =>
-    r'92004b1b2b4cff7a3e4a197e589a5b731ae19ee8';
+    r'071f7fec4f8a388781b0349a350d65b9f81ee686';
 
-/// Controller managing Studio Workflows (DAGs) strictly using `Map<String, dynamic>`.
+/// Controller managing Studio Workflows (DAGs) strictly using `Workflow` mapped domain model.
 /// Implements Optimistic UI principles where possible.
 
-abstract class _$WorkflowsController
-    extends $AsyncNotifier<List<Map<String, dynamic>>> {
-  FutureOr<List<Map<String, dynamic>>> build();
+abstract class _$WorkflowsController extends $AsyncNotifier<List<Workflow>> {
+  FutureOr<List<Workflow>> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref =
-        this.ref
-            as $Ref<
-              AsyncValue<List<Map<String, dynamic>>>,
-              List<Map<String, dynamic>>
-            >;
+    final ref = this.ref as $Ref<AsyncValue<List<Workflow>>, List<Workflow>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<List<Map<String, dynamic>>>,
-                List<Map<String, dynamic>>
-              >,
-              AsyncValue<List<Map<String, dynamic>>>,
+              AnyNotifier<AsyncValue<List<Workflow>>, List<Workflow>>,
+              AsyncValue<List<Workflow>>,
               Object?,
               Object?
             >;
@@ -436,18 +404,17 @@ abstract class _$WorkflowsController
   }
 }
 
-/// Controller managing Studio Steps strictly using `Map<String, dynamic>`.
+/// Controller managing Studio Steps strictly using `NodeStrategy` mapping.
 /// Implements Optimistic UI principles where possible.
 
 @ProviderFor(StepsController)
 final stepsControllerProvider = StepsControllerProvider._();
 
-/// Controller managing Studio Steps strictly using `Map<String, dynamic>`.
+/// Controller managing Studio Steps strictly using `NodeStrategy` mapping.
 /// Implements Optimistic UI principles where possible.
 final class StepsControllerProvider
-    extends
-        $AsyncNotifierProvider<StepsController, List<Map<String, dynamic>>> {
-  /// Controller managing Studio Steps strictly using `Map<String, dynamic>`.
+    extends $AsyncNotifierProvider<StepsController, List<NodeStrategy>> {
+  /// Controller managing Studio Steps strictly using `NodeStrategy` mapping.
   /// Implements Optimistic UI principles where possible.
   StepsControllerProvider._()
     : super(
@@ -468,31 +435,23 @@ final class StepsControllerProvider
   StepsController create() => StepsController();
 }
 
-String _$stepsControllerHash() => r'f540dd6895dc18c67b4bd75bbd12907523789126';
+String _$stepsControllerHash() => r'b35d12c0cce54eb8e09a4e681a18f2dba787d3cd';
 
-/// Controller managing Studio Steps strictly using `Map<String, dynamic>`.
+/// Controller managing Studio Steps strictly using `NodeStrategy` mapping.
 /// Implements Optimistic UI principles where possible.
 
-abstract class _$StepsController
-    extends $AsyncNotifier<List<Map<String, dynamic>>> {
-  FutureOr<List<Map<String, dynamic>>> build();
+abstract class _$StepsController extends $AsyncNotifier<List<NodeStrategy>> {
+  FutureOr<List<NodeStrategy>> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final ref =
-        this.ref
-            as $Ref<
-              AsyncValue<List<Map<String, dynamic>>>,
-              List<Map<String, dynamic>>
-            >;
+        this.ref as $Ref<AsyncValue<List<NodeStrategy>>, List<NodeStrategy>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<List<Map<String, dynamic>>>,
-                List<Map<String, dynamic>>
-              >,
-              AsyncValue<List<Map<String, dynamic>>>,
+              AnyNotifier<AsyncValue<List<NodeStrategy>>, List<NodeStrategy>>,
+              AsyncValue<List<NodeStrategy>>,
               Object?,
               Object?
             >;

@@ -3,7 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
-import 'package:client_app/utils/safe_cast.dart';
+
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
@@ -12,6 +12,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/features/studio/models/output_profile.dart';
 
 /// Admin Studio View for managing Output Profiles.
 /// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
@@ -64,9 +65,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
       data: (payload) {
         // Hydrate transient hooks on first build safely
         useMemoized(() {
-          idController.text = payload['id']?.toString() ?? '';
-          slugController.text = payload['slug']?.toString() ?? '';
-          workflowIdController.text = payload['workflow_id']?.toString() ?? '';
+          idController.text = payload.id;
+          slugController.text = payload.slug;
+          workflowIdController.text = payload.workflowId;
         });
 
         return _buildScaffold(
@@ -92,8 +93,8 @@ class OutputProfileCrudView extends HookConsumerWidget {
     WidgetRef ref,
     AppLocalizations l10n,
     GlobalKey<FormState> formKey,
-    AsyncValue<Map<String, dynamic>> formState,
-    Map<String, dynamic> payload,
+    AsyncValue<OutputProfile> formState,
+    OutputProfile payload,
     TextEditingController idController,
     TextEditingController slugController,
     TextEditingController workflowIdController,
@@ -101,7 +102,11 @@ class OutputProfileCrudView extends HookConsumerWidget {
     AsyncValue<List<dynamic>> workflowsState,
     AsyncValue<List<dynamic>> stepsState,
   ) {
-    final layouts = SafeCast.safeList(payload['layouts']);
+    var layouts = List<OutputLayoutBlock>.from(payload.layouts);
+
+    void updatePayload(OutputProfile p) {
+      ref.read(outputProfileFormProvider(id).notifier).updatePayload(p);
+    }
 
     Future<void> saveProfile() async {
       if (!formKey.currentState!.validate()) return;
@@ -111,15 +116,17 @@ class OutputProfileCrudView extends HookConsumerWidget {
         if (idToSave.isEmpty)
           throw Exception(l10n.studioViewsProfileIdRequired);
 
-        payload['id'] = idToSave;
-        payload['slug'] = slugController.text.trim().isNotEmpty
-            ? slugController.text.trim()
-            : idToSave;
-        payload['workflow_id'] = workflowIdController.text.trim();
-        payload['layouts'] = layouts;
+        final newPayload = payload.copyWith(
+          id: idToSave,
+          slug: slugController.text.trim().isNotEmpty
+              ? slugController.text.trim()
+              : idToSave,
+          workflowId: workflowIdController.text.trim(),
+          layouts: layouts,
+        );
 
         final notifier = ref.read(outputProfileFormProvider(id).notifier);
-        await notifier.submit(payload);
+        await notifier.submit(newPayload);
 
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -144,12 +151,14 @@ class OutputProfileCrudView extends HookConsumerWidget {
     }
 
     Future<void> deleteProfile() async {
-      final String idToDelete = payload['id']?.toString() ?? '';
+      final String idToDelete = payload.id;
       if (idToDelete.isEmpty || id == 'new') return;
 
-      final nameMap = SafeCast.safeMap(payload['name']);
-      final translations = SafeCast.safeMap(nameMap['translations']);
-      final nameToDisplay = translations['fi']?.toString() ?? translations['en']?.toString() ?? idToDelete;
+      final currentLocale = Localizations.localeOf(context).languageCode;
+      final nameToDisplay =
+          payload.name.translations[currentLocale] ??
+          payload.name.translations['en'] ??
+          idToDelete;
 
       final confirm = await showDialog<bool>(
         context: context,
@@ -191,16 +200,18 @@ class OutputProfileCrudView extends HookConsumerWidget {
     }
 
     void addLayout() {
-      layouts.add({
-        'layout_type': 'box_1d',
-        'title': {
-          'default_locale': 'en',
-          'translations': <String, dynamic>{'en': 'New Layout Block'},
-        },
-        'show_text': true,
-        'components': <String>[],
-      });
-      ref.read(outputProfileFormProvider(id).notifier).forceRebuild();
+      layouts.add(
+        const OutputLayoutBlock(
+          presetView: 'box_1d',
+          title: I18nText(
+            defaultLocale: 'en',
+            translations: {'en': 'New Layout Block'},
+          ),
+          showText: true,
+          targetBlocks: [],
+        ),
+      );
+      updatePayload(payload.copyWith(layouts: layouts));
     }
 
     final String selectedWorkflowId = workflowIdController.text;
@@ -218,9 +229,10 @@ class OutputProfileCrudView extends HookConsumerWidget {
       );
 
       if (workflow != null) {
-        final stepRules = SafeCast.safeList(workflow['steps']);
+        final stepRulesRaw = workflow['steps'];
+        final stepRules = stepRulesRaw is List ? stepRulesRaw : [];
         final taskBlueprintIds = stepRules
-            .map((s) => SafeCast.safeMap(s)['task_blueprint']?.toString())
+            .map((s) => (s is Map ? s : {})['task_blueprint']?.toString())
             .where((s) => s != null)
             .cast<String>()
             .toSet();
@@ -230,9 +242,10 @@ class OutputProfileCrudView extends HookConsumerWidget {
           final stepSlug = step['slug']?.toString() ?? stepId;
           if (taskBlueprintIds.contains(stepId) ||
               taskBlueprintIds.contains(stepSlug)) {
-            final promptBlocksRaw = SafeCast.safeList(
-              step['prompt_blocks'],
-            ).map((b) => b.toString());
+            final pbRaw = step['prompt_blocks'];
+            final promptBlocksRaw = (pbRaw is List ? pbRaw : []).map(
+              (b) => b.toString(),
+            );
             allowedBlockIds.addAll(promptBlocksRaw);
           }
         }
@@ -332,12 +345,14 @@ class OutputProfileCrudView extends HookConsumerWidget {
                               ),
                               ...workflows.map((flow) {
                                 final flowId = flow['id']?.toString() ?? '';
-                                final labelDict = SafeCast.safeMap(
-                                  flow['name'],
-                                );
-                                final translations = SafeCast.safeMap(
-                                  labelDict['translations'],
-                                );
+                                final labelRaw = flow['name'];
+                                final labelDict = labelRaw is Map
+                                    ? labelRaw
+                                    : {};
+                                final transRaw = labelDict['translations'];
+                                final translations = transRaw is Map
+                                    ? transRaw
+                                    : {};
                                 final localeCode = Localizations.localeOf(
                                   context,
                                 ).languageCode;
@@ -356,12 +371,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
                             onChanged: (val) {
                               if (val != null) {
                                 workflowIdController.text = val;
-                                payload['workflow_id'] = val;
-                                ref
-                                    .read(
-                                      outputProfileFormProvider(id).notifier,
-                                    )
-                                    .forceRebuild();
+                                updatePayload(
+                                  payload.copyWith(workflowId: val),
+                                );
                               }
                             },
                           );
@@ -375,27 +387,17 @@ class OutputProfileCrudView extends HookConsumerWidget {
                       const SizedBox(height: 16),
                       I18nTextField(
                         label: l10n.profileDisplayNameLabel,
-                        initialData: I18nText.fromJson(
-                          SafeCast.safeMap(payload['name']),
-                        ),
+                        initialData: payload.name,
                         onChanged: (val) {
-                          payload['name'] = val.toJson();
-                          ref
-                              .read(outputProfileFormProvider(id).notifier)
-                              .forceRebuild();
+                          updatePayload(payload.copyWith(name: val));
                         },
                       ),
                       const SizedBox(height: 16),
                       I18nTextField(
                         label: l10n.profileDescriptionLabel,
-                        initialData: I18nText.fromJson(
-                          SafeCast.safeMap(payload['description']),
-                        ),
+                        initialData: payload.description,
                         onChanged: (val) {
-                          payload['description'] = val.toJson();
-                          ref
-                              .read(outputProfileFormProvider(id).notifier)
-                              .forceRebuild();
+                          updatePayload(payload.copyWith(description: val));
                         },
                       ),
                     ],
@@ -405,7 +407,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
               const SizedBox(height: 24),
               if (selectedWorkflowId.isEmpty)
                 Padding(
-                  padding: EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16.0),
                   child: Center(
                     child: Text(
                       l10n.workflowSelectWarning,
@@ -446,7 +448,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: layouts.length,
                     itemBuilder: (context, index) {
-                      final layout = SafeCast.safeMap(layouts[index]);
+                      final layout = layouts[index];
                       return _buildLayoutEditor(
                         context,
                         ref,
@@ -456,6 +458,8 @@ class OutputProfileCrudView extends HookConsumerWidget {
                         layouts,
                         promptBlocksState,
                         allowedBlockIds,
+                        updatePayload,
+                        payload,
                       );
                     },
                   ),
@@ -472,19 +476,16 @@ class OutputProfileCrudView extends HookConsumerWidget {
     WidgetRef ref,
     AppLocalizations l10n,
     int index,
-    Map<String, dynamic> layout,
-    List<dynamic> parentLayoutsList,
+    OutputLayoutBlock layout,
+    List<OutputLayoutBlock> parentLayoutsList,
     AsyncValue<List<dynamic>> promptBlocksState,
     Set<String> allowedBlockIds,
+    Function(OutputProfile) updatePayload,
+    OutputProfile payload,
   ) {
-    final blocksList = SafeCast.safeList(
-      layout['components'],
-    ).map((e) => e.toString()).toList();
+    final blocksList = List<String>.from(layout.targetBlocks);
 
-    String currentPreset = SafeCast.safeString(
-      layout['layout_type'] ?? layout['preset_view'],
-      'box_1d',
-    );
+    String currentPreset = layout.presetView;
     if (![
       'box_1d',
       'matrix_2d',
@@ -495,7 +496,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
       currentPreset = 'box_1d';
     }
 
-    final bool showText = layout['show_text'] as bool? ?? true;
+    final bool showText = layout.showText;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -548,11 +549,12 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   ],
                   onChanged: (val) {
                     if (val != null) {
-                      layout['layout_type'] = val;
-                      layout.remove('preset_view');
-                      ref
-                          .read(outputProfileFormProvider(id).notifier)
-                          .forceRebuild();
+                      parentLayoutsList[index] = layout.copyWith(
+                        presetView: val,
+                      );
+                      updatePayload(
+                        payload.copyWith(layouts: parentLayoutsList),
+                      );
                     }
                   },
                 ),
@@ -564,10 +566,10 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   Switch(
                     value: showText,
                     onChanged: (val) {
-                      layout['show_text'] = val;
-                      ref
-                          .read(outputProfileFormProvider(id).notifier)
-                          .forceRebuild();
+                      parentLayoutsList[index] = layout.copyWith(showText: val);
+                      updatePayload(
+                        payload.copyWith(layouts: parentLayoutsList),
+                      );
                     },
                   ),
                 ],
@@ -579,9 +581,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 ),
                 onPressed: () {
                   parentLayoutsList.removeAt(index);
-                  ref
-                      .read(outputProfileFormProvider(id).notifier)
-                      .forceRebuild();
+                  updatePayload(payload.copyWith(layouts: parentLayoutsList));
                 },
               ),
             ],
@@ -589,10 +589,10 @@ class OutputProfileCrudView extends HookConsumerWidget {
           const SizedBox(height: 12),
           I18nTextField(
             label: l10n.layoutBlockTitleLabel,
-            initialData: I18nText.fromJson(SafeCast.safeMap(layout['title'])),
+            initialData: layout.title,
             onChanged: (val) {
-              layout['title'] = val.toJson();
-              ref.read(outputProfileFormProvider(id).notifier).forceRebuild();
+              parentLayoutsList[index] = layout.copyWith(title: val);
+              updatePayload(payload.copyWith(layouts: parentLayoutsList));
             },
           ),
           const SizedBox(height: 12),
@@ -617,7 +617,8 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 if (!isAllowed) return false;
 
                 final isMatrix = b['category_id']?.toString() == 'matrix';
-                final extensions = SafeCast.safeList(b['output_extensions']);
+                final extRaw = b['output_extensions'];
+                final extensions = extRaw is List ? extRaw : [];
                 return isMatrix || extensions.isNotEmpty;
               }).toList();
 
@@ -664,10 +665,10 @@ class OutputProfileCrudView extends HookConsumerWidget {
                         ),
                         ...targetBlocks.map((block) {
                           final blockId = block['id']?.toString() ?? '';
-                          final labelDict = SafeCast.safeMap(block['label']);
-                          final translations = SafeCast.safeMap(
-                            labelDict['translations'],
-                          );
+                          final labelRaw = block['label'];
+                          final labelDict = labelRaw is Map ? labelRaw : {};
+                          final transRaw = labelDict['translations'];
+                          final translations = transRaw is Map ? transRaw : {};
                           final localeCode = Localizations.localeOf(
                             context,
                           ).languageCode;
@@ -689,12 +690,14 @@ class OutputProfileCrudView extends HookConsumerWidget {
                             blocksList.add('');
                           }
                           blocksList[i] = val;
-                          layout['components'] = blocksList
-                              .where((b) => b.isNotEmpty)
-                              .toList();
-                          ref
-                              .read(outputProfileFormProvider(id).notifier)
-                              .forceRebuild();
+                          parentLayoutsList[index] = layout.copyWith(
+                            targetBlocks: blocksList
+                                .where((b) => b.isNotEmpty)
+                                .toList(),
+                          );
+                          updatePayload(
+                            payload.copyWith(layouts: parentLayoutsList),
+                          );
                         }
                       },
                     ),

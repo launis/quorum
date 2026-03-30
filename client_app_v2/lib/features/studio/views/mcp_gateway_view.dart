@@ -57,7 +57,9 @@ class McpGatewayView extends HookConsumerWidget {
       if (idToDelete.isEmpty || id == 'new') return;
 
       final String slugToDisplay = payload['slug']?.toString() ?? idToDelete;
-      final String nameToDisplay = slugToDisplay.isNotEmpty ? slugToDisplay : idToDelete;
+      final String nameToDisplay = slugToDisplay.isNotEmpty
+          ? slugToDisplay
+          : idToDelete;
 
       final confirm = await showDialog<bool>(
         context: context,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:isolate';
 import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/utils/json_converters.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -41,36 +42,6 @@ abstract class ExpectedInput with _$ExpectedInput {
 }
 
 @Freezed(equal: false)
-abstract class OutputLayoutBlock with _$OutputLayoutBlock {
-  const OutputLayoutBlock._();
-
-  const factory OutputLayoutBlock({
-    required String presetView,
-    I18nText? title,
-    I18nText? description,
-    @Default([]) List<String> steps,
-    @Default([]) List<String> targetBlocks,
-    @Default(true) bool showText,
-  }) = _OutputLayoutBlock;
-
-  factory OutputLayoutBlock.fromJson(Map<String, dynamic> json) =>
-      _$OutputLayoutBlockFromJson(json);
-}
-
-@Freezed(equal: false)
-abstract class OutputProfile with _$OutputProfile {
-  const OutputProfile._();
-
-  const factory OutputProfile({
-    required I18nText name,
-    @Default([]) List<OutputLayoutBlock> layouts,
-  }) = _OutputProfile;
-
-  factory OutputProfile.fromJson(Map<String, dynamic> json) =>
-      _$OutputProfileFromJson(json);
-}
-
-@Freezed(equal: false)
 abstract class StepRule with _$StepRule {
   const StepRule._();
 
@@ -100,6 +71,8 @@ sealed class NodeStrategy with _$NodeStrategy {
     required String slug,
     required I18nText name,
     I18nText? description,
+    String? hook,
+    String? taskKey,
     @Default([]) List<String> promptBlocks,
     @Default([]) List<String> preHooks,
     @Default([]) List<String> postHooks,
@@ -116,10 +89,12 @@ sealed class NodeStrategy with _$NodeStrategy {
     I18nText? description,
     required String hook,
     String? taskKey,
+    @Default([]) List<String> promptBlocks,
     @Default([]) List<String> preHooks,
     @Default([]) List<String> postHooks,
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
+    String? modelStrategy,
   }) = NodeStrategyLogic;
 
   factory NodeStrategy.fromJson(Map<String, dynamic> json) =>
@@ -140,7 +115,7 @@ abstract class Workflow with _$Workflow {
     @Default(false) bool isPublic,
     String? organizationId,
     @Default({}) Map<String, dynamic> uiSchema,
-    @Default({}) Map<String, OutputProfile> outputProfiles,
+    @Default({}) Map<String, EmbeddedOutputProfile> outputProfiles,
     @Default("default") String defaultProfileId,
     @Default([]) List<ExpectedInput> expectedInputs,
     @Default([]) List<StepRule> steps,

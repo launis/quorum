@@ -68,7 +68,7 @@ class Organization(BaseModel):
         str,
         Field(
             default_factory=lambda: f"org_{uuid.uuid4().hex}",
-            pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             description="Unique Organization ID (e.g. 'org_1234abcd')",
         ),
     ]
@@ -182,7 +182,7 @@ class User(UserBase):
         str,
         Field(
             default_factory=lambda: f"usr_{uuid.uuid4().hex}",
-            pattern=r"^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             description="Unique ID (matches Firebase UID if used)",
         ),
     ]

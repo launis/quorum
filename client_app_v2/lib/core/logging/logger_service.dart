@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
@@ -28,9 +29,7 @@ class LoggerService {
 
     _logger = Logger(
       printer: useJson ? JsonPrinter() : CustomPrinter(),
-      output: FileOutput(
-        File('/dev/null'),
-      ), // Temporary sink until init() is called
+      output: DevNullOutput(),
       filter: ProductionFilter(),
     );
 
@@ -220,8 +219,12 @@ class FileOutput extends LogOutput {
         file.writeAsStringSync('$line\n', mode: FileMode.append);
       }
     } catch (e) {
-      debugPrint('FileOutput failed: $e');
-      rethrow;
+      Zone.root.print('FileOutput failed: $e');
     }
   }
+}
+
+class DevNullOutput extends LogOutput {
+  @override
+  void output(OutputEvent event) {}
 }

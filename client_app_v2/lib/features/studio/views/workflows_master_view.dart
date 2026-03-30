@@ -6,11 +6,10 @@ import 'package:client_app/router/router.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/utils/safe_cast.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 
 /// Flat MVC List view for Workflows (DAG definitions).
-/// Adheres strictly to De-Generator constraints using List<Map<String, dynamic>>.
+/// Adheres strictly to De-Generator constraints using List<Workflow>.
 class WorkflowsMasterView extends ConsumerWidget {
   const WorkflowsMasterView({super.key});
 
@@ -58,48 +57,25 @@ class WorkflowsMasterView extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   try {
                     final workflow = workflows[index];
-                    final labelMap = SafeCast.safeMap(workflow['name']);
-                    final translations = SafeCast.safeMap(
-                      labelMap['translations'],
-                    );
-                    final defaultLocale = labelMap['default_locale']
-                        ?.toString();
-                    if (defaultLocale == null) {
+
+                    final String displayName =
+                        (workflow.name.translations['fi']?.isNotEmpty ?? false)
+                        ? workflow.name.translations['fi']!
+                        : (workflow.name.translations['en'] ??
+                              'Unnamed Workflow');
+
+                    final steps = workflow.steps.length;
+                    final status = workflow.status;
+
+                    final slug = workflow.slug;
+                    if (slug.isEmpty) {
                       throw AppException.validation(
-                        'Workflow configuration corrupted: missing default_locale.',
+                        'Workflow slug is missing.',
                       );
                     }
 
-                    // Support legacy direct strings or V2 I18n block
-                    final nameVal = workflow['name'];
-                    final String displayName;
-
-                    if (nameVal is String) {
-                      displayName = nameVal;
-                    } else {
-                      final localizedName = translations[defaultLocale]
-                          ?.toString();
-                      if (localizedName == null) {
-                        throw AppException.validation(
-                          'Workflow name missing for locale: $defaultLocale.',
-                        );
-                      }
-                      displayName = localizedName;
-                    }
-
-                    final stepsList = SafeCast.safeList(workflow['steps']);
-                    final steps = stepsList.length;
-                    final status = SafeCast.safeString(workflow['status']);
-
-                    final slugStr = SafeCast.safeString(workflow['slug']);
-                    final slug = slugStr.isNotEmpty
-                        ? slugStr
-                        : (throw AppException.validation(
-                            'Workflow slug is missing.',
-                          ));
-
-                    final workflowId = workflow['id']?.toString();
-                    if (workflowId == null || workflowId.isEmpty) {
+                    final workflowId = workflow.id;
+                    if (workflowId.isEmpty) {
                       throw AppException.validation('Workflow ID is missing.');
                     }
 
@@ -114,18 +90,16 @@ class WorkflowsMasterView extends ConsumerWidget {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          '${workflow['id']?.toString() ?? ''}\n${l10n.studioViewsSlugSubtitle(slug)}\n${l10n.studioViewsWorkflowSubtitle('', steps, status)}',
+                          '$workflowId\n${l10n.studioViewsSlugSubtitle(slug)}\n${l10n.studioViewsWorkflowSubtitle('', steps, status)}',
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             CloneEntityButton(
                               onClone: () async {
-                                final id = workflow['id']?.toString();
-                                if (id == null) return;
                                 await ref
                                     .read(workflowsControllerProvider.notifier)
-                                    .cloneWorkflow(id);
+                                    .cloneWorkflow(workflowId);
                               },
                             ),
                             const Icon(Icons.settings_ethernet),

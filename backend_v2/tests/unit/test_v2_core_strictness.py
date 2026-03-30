@@ -80,7 +80,7 @@ def test_opaque_id_regex_validation() -> None:
             type=BlockDataType.STRING,
             output_extensions=[]
         )
-    assert "String should match pattern '^([a-z]+)_[a-zA-Z0-9]{8,}$'" in str(exc_pb.value)
+    assert "String should match pattern '^([a-z]{2,5})_[a-zA-Z0-9]{8,}$'" in str(exc_pb.value)
 
     # 2. Test Step creation rejection
     with pytest.raises(ValidationError) as exc_step:
@@ -91,4 +91,4 @@ def test_opaque_id_regex_validation() -> None:
             prompt_blocks=["blk_test"],
             model_strategy="fast"
         )
-    assert "String should match pattern '^([a-z]+)_[a-zA-Z0-9]{8,}$'" in str(exc_step.value)
+    assert "String should match pattern '^([a-z]{2,5})_[a-zA-Z0-9]{8,}$'" in str(exc_step.value)
