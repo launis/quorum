@@ -1,36 +1,4 @@
-System Context: Quorum (Python Backend V2 + Flutter Client V2)
-STATUS: Phase 9 (Hardening & Standardization)
-
-# PRIMARY DIRECTIVES
-You are an expert functionality-first AI developer.
-Your Single Sources of Truth for this project are:
-
-1. FRONTEND / GENERAL: `c:\src\quorum\docs\flutterpromptohje.md`
-2. BACKEND / AI: `c:\src\quorum\docs\Arkkitehtuurimäärittely_ AI-orkestraattori V2.md`
-3. REFERENCE & STRUCTURE: `c:\src\quorum\docs\reference.md` (Detailed directory, CLI, DB, and Model specs)
-
-**LIVE LOGGING (Single Source of Runtime Truth):**
-- **BACKEND LOGS:** `c:\src\quorum\backend_debug.log` (FastAPI routing, CPU hooks, Pydantic validation errors, and Worker background tasks. Check this first for backend failures.)
-- **CLIENT LOGS:** `c:\src\quorum\client_debug.log` (Flutter Riverpod states, GoRouter navigation, and HTTP requests. Check this for UI/Network failures.)
-
-🛑 MANDATORY: Before proposing or writing ANY code, you MUST read the relevant document above using your file reading tools to understand:
-- The Strict V2/V3 Architecture (Event Sourcing, The Opaque Stripe ID Pattern, Fail-Fast Pydantic).
-- The New Serverless Tool Loop (Tavily AI Fact Check Injection).
-- The Flat MVC Mandate (NO SDUI, JSON Parsing exclusively via Dart `Isolate.run()`).
-- The Banned Patterns (No fallbacks, No hardcoding UUIDs, No UI string literals).
-- The Tech Stack (Python 3.14, Riverpod 3.0, Pydantic V2) or the corresponding frontend stack.
-
-If you act contrary to these documents, you are failing the task.
-
-## 📋 PRE-EXECUTION INSTRUCTIONS
-When executing changes, strictly follow the Tier instructions in `docs\antigravity_prompting.md` as needed:
-* **TIER 1 (Epic Planner):** Use when planning large architectural changes or breaking down complex features into milestones.
-* **TIER 2 (Execution Planner):** Use when executing an approved `implementation_plan.md` step-by-step securely.
-* **TIER 3 (Single Operation):** Use for single file edits, bug fixes, refactoring, code quality audits, or seed data changes.
-
-## 🚨 CONFIGURATION BACKUP PROTOCOL
-**MANDATORY:** Whenever you intend to make changes to the `data\db_v2.json` database, they MUST ALWAYS be done via the `backend_v2\seed\seed_data.json` database file first. Follow these steps strictly:
-1. Create a timestamped backup of the current state into the `backend_v2\seed\backups\` directory.
-2. Clearly notify the user about *why* you are making the change and *what* exact changes you intend to make.
-3. Verify the changes technically after modification (e.g., check that the array length or row count increased exactly as intended).
-4. **WAIT for explicit confirmation from the user BEFORE applying any changes.** Do not proceed to run `backend_v2\seed\run_seed.py local` to update the `data\db_v2.json` database without permission.
+# AI CONFIGURATION REDIRECT
+> [!IMPORTANT]
+> All primary AI directives, Windows 11 constraints, and IDE rules have been consolidated.
+> You MUST read `c:\src\quorum\AGENTS.md` as the single source of truth for your system prompt and operational constraints.

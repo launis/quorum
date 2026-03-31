@@ -62,4 +62,4 @@ dart run build_runner build -d
 
 ---
 
-*For detailed Flutter development standards, see the `docs/flutterpromptohje.md` in the root repository.*
+*For detailed Flutter development standards, see `.agents/rules/02_flutter_desktop.md` in the root repository.*

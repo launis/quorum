@@ -57,7 +57,7 @@ graph LR
 ### Core Architecture & Protocols
 *   **[Arkkitehtuurimäärittely: AI-orkestraattori V2.5](docs/Arkkitehtuurimäärittely_%20AI-orkestraattori%20V2.md)**: The authoritative master reference for the 2026 Engine.
 *   **[EPIC: B2B Multi-Tenant IAM Säännökset](docs/epic/B2B%20SaaS%20IAM-arkkitehtuuri%202026.md)**: Zero-Trust policies, User Settings, and Role Matrices (ROOT/ADMIN/MANAGER/MEMBER/VIEWER).
-*   **[Flutter Prompt Mandaatit](docs/flutterpromptohje.md)**: Rules for optimizing Desktop-First Flutter applications, Riverpod SWR, and GoRouter Stateful Navigation.
+*   **[Flutter Architecture Protocol](.agents/rules/02_flutter_desktop.md)**: Rules for optimizing Desktop-First Flutter applications, Riverpod SWR, and GoRouter Stateful Navigation.
 *   **[Antigravity Prompting](docs/antigravity_prompting.md)**: Universal System Rules for Agentic AI Coding, enforcing the Zero-Compromise Pledges.
 
 ### Development Standards & Tooling

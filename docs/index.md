@@ -16,7 +16,7 @@ The system is built on an unbreakable, strictly typed distributed execution mode
     The master reference for the backend engine: Polymorphic DAGs, Model Context Protocol (MCP), and the Anti-Mirror protocol.
 *   **[B2B SaaS IAM-arkkitehtuuri 2026](epic/B2B%20SaaS%20IAM-arkkitehtuuri%202026.md)**
     Control Plane documentation detailing Zero-Trust, Passkey-First Auth, Step-Up MFA, and the absolute Stripe Pattern (`org_[a-zA-Z0-9]{8}`).
-*   **[Client UI - Flutter Prompt Ohje](flutterpromptohje.md)**
+*   **[Client UI - Flutter Architecture Protocol](../.agents/rules/02_flutter_desktop.md)**
     The authoritative standard for the front-end Display Tier. It mandates Desktop-First development, Stale-While-Revalidate (SWR) UI, and the crucial `Isolate` data parsing rules to ensure 0ms main-thread blockage.
 
 ---

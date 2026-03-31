@@ -3,6 +3,8 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
@@ -16,8 +18,9 @@ def inflate[T: BaseModel](data: Any, model_class: type[T]) -> T | None:
         model_class: The target Pydantic model class.
 
     Returns:
-        The inflated Pydantic model instance, or None if input matches (strict validation).
-        Raises strict validation errors if data is present but invalid.
+        The inflated Pydantic model instance.
+        Returns None ONLY if the input data itself is fundamentally empty (early return).
+        Raises AppException if data is present but invalid.
     """
     if not data:
         return None
@@ -31,13 +34,18 @@ def inflate[T: BaseModel](data: Any, model_class: type[T]) -> T | None:
         try:
             return model_class.model_validate(data)
         except ValidationError as e:
-            logger.error("Failed to inflate %s: %s", model_class.__name__, e, exc_info=True)
-            # Fail Fast: Re-raise or return None? Mandate says "Fail Fast"
-            # typically implies raising exceptions for invalid states.
-            # However, returning None is safer for optional steps.
-            # Context-dependent. Let's start with logging and returning None,
-            # allowing the caller to decide if it's fatal.
-            return None
+            msg = f"Failed to inflate dict into {model_class.__name__}."
+            logger.error(
+                "[PydanticUtils] %s: %s",
+                ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
+                msg,
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+            ) from e
 
     # 3. If it's an object (e.g. from ORM or legacy), try conversion via dump/load
     # This is expensive but safe for transition.
@@ -47,6 +55,24 @@ def inflate[T: BaseModel](data: Any, model_class: type[T]) -> T | None:
         if hasattr(data, "__dict__"):
             return model_class.model_validate(data.__dict__)
     except Exception as e:
-        logger.warning("Failed to convert object to %s: %s", model_class.__name__, e, exc_info=True)
+        msg = f"Failed to convert object attributes to {model_class.__name__}."
+        logger.error(
+            "[PydanticUtils] %s: %s",
+            ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
+            msg,
+            exc_info=True,
+        )
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+        ) from e
 
-    return None
+    # If the data type is wholly unrecognized and did not trip the exception block
+    msg = f"Unrecognized data type '{type(data).__name__}' passed for inflation into {model_class.__name__}."
+    logger.error("[PydanticUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
+    raise AppException(
+        message=msg,
+        status_code=500,
+        details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+    )
