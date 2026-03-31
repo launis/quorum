@@ -39,7 +39,7 @@ dependencies:
   collection:
   fl_chart:
   pdf:
-  printing:
+  printing: 5.14.3
   file_saver:
   url_launcher: ^6.3.2
   flutter_hooks:
