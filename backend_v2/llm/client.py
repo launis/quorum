@@ -61,7 +61,11 @@ class LLMClient:
             registry = inflate(raw_registry, SystemConfigModelRegistry)
         except Exception as e:
             msg = f"Failed to parse strict SystemConfigModelRegistry: {e}"
-            logger.error("[LLMClient] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
+            logger.error(
+                "Failed to parse strict SystemConfigModelRegistry.",
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "detail": str(e)},
+                exc_info=True,
+            )
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR}) from e
 
         if not registry or not registry.models:
@@ -262,23 +266,25 @@ class LLMClient:
                     # Extract usage securely into a simple dictionary from LLMResponse model
                     usage_obj = getattr(response, "token_usage", None)
                     if usage_obj is None:
-                        raise AgentExecutionError(
-                            detail=(
-                                "Strict FinOps Mode: LLM Provider failed to return token_usage "
-                                f"for FinOps accounting. [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
-                            )
+                        logger.error(
+                            "Strict FinOps Mode: LLM Provider failed to return token_usage.",
+                            extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name}
                         )
+                        raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL)
 
                     try:
                         cumulative_usage["prompt_tokens"] += int(usage_obj["prompt_tokens"])
                         cumulative_usage["completion_tokens"] += int(usage_obj["completion_tokens"])
                         cumulative_usage["total_tokens"] += int(usage_obj["total_tokens"])
                     except KeyError as e:
+                        logger.error(
+                            "Strict FinOps Mode: Missing token metric from provider.",
+                            extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name, "detail": str(e)},
+                            exc_info=True,
+                        )
                         raise AgentExecutionError(
-                            detail=(
-                                f"Strict FinOps Mode: Missing required token usage tracking metric {e} "
-                                f"from provider. [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
-                            )
+                            detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                            original_error=e,
                         ) from e
 
                     cumulative_usage["cached_tokens"] += int(usage_obj.get("cached_tokens", 0) or 0)
@@ -305,31 +311,48 @@ class LLMClient:
                 except (json.JSONDecodeError, pydantic.ValidationError) as schema_err:
                     if attempt == max_retries - 1:
                         logger.error(
-                            "[LLMClient] Self-Healing failed after %d attempts. Final Error: %s",
-                            max_retries,
-                            schema_err,
+                            "Self-Healing failed after max attempts.",
+                            extra={
+                                "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
+                                "model": target_model_name,
+                                "detail": str(schema_err)
+                            },
                         )
                         raise AgentExecutionError(
-                            detail=f"Structured Task Failed (Self-Healing exhausted): {schema_err} "
-                            f"[{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
+                            detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                            original_error=schema_err,
                         ) from schema_err
 
                     logger.warning(
-                        "[LLMClient] Schema Error on attempt %d/%d: %s. Initiating Self-Healing.",
+                        "[LLMClient] Schema Error on attempt %d/%d. Initiating Self-Healing.",
                         attempt + 1,
                         max_retries,
-                        schema_err,
                     )
 
-                    # 5. Self-Healing: Feed error back to LLM for auto-correction
+                    # 5. Epic 12: Semantic Self-Healing (Cognitive vs Structural)
+                    error_str = str(schema_err)
+                    is_logical_error = "CRITICAL LOGICAL ERROR" in error_str or "Value error" in error_str
                     error_msg = (
-                        schema_err.json() if isinstance(schema_err, pydantic.ValidationError) else str(schema_err)
+                        schema_err.json() if isinstance(schema_err, pydantic.ValidationError) else error_str
                     )
-                    correction_prompt = (
-                        f"\n\n[SYSTEM: SELF-HEALING CORRECTION]: Your previous response contained structural errors.\n"
-                        f"Validation errors:\n{error_msg}\n"
-                        f"Please carefully correct the JSON output to strictly match the requested schema."
-                    )
+
+                    if is_logical_error:
+                        logger.warning("[LLMClient] Semantic Logic Error detected. Triggering Socratic Self-Healing.")
+                        correction_prompt = (
+                            f"\n\n[SYSTEM: STRICT LOGICAL COMPLIANCE REQUIRED]\n"
+                            f"Your JSON structure was correct, but your logic failed the architectural validation:\n"
+                            f"--- VALIDATION ERROR ---\n{error_msg}\n------------------------\n"
+                            f"ACTION: You MUST engage System 2 thinking. Correct your cognitive logic. "
+                            f"If you cannot provide empirical evidence, you MUST lower your score "
+                            f"to match reality. Do not guess."
+                        )
+                    else:
+                        logger.warning("[LLMClient] Structural Schema Error detected. Triggering Syntax Self-Healing.")
+                        correction_prompt = (
+                            f"\n\n[SYSTEM: SELF-HEALING CORRECTION - STRUCTURAL]\n"
+                            f"Validation errors:\n{error_msg}\n"
+                            f"ACTION: Please correct the JSON output to strictly match the requested schema types."
+                        )
 
                     # Append the hallucinated response and the correction instruction to guide the next iteration
                     failed_content = getattr(response, "content", "EMPTY_CONTENT") if response else "EMPTY_CONTENT"
@@ -342,19 +365,28 @@ class LLMClient:
         except Exception as e:
             if isinstance(e, AgentExecutionError):
                 raise
-            error_msg = f"Execution Failed for model {target_model_name}: {e}"
-            logger.error("[LLMClient] %s: %s", ErrorCodes.AGENT_EXECUTION_CRITICAL.name, error_msg, exc_info=True)
-            if "response" in locals() and getattr(locals().get("response"), "content", None):
+            logger.error(
+                "Execution of structured LLM task failed.",
+                extra={
+                    "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
+                    "model": target_model_name,
+                    "detail": str(e)
+                },
+                exc_info=True,
+            )
+            err_response = locals().get("response")
+            err_content = getattr(err_response, "content", None) if err_response else None
+            if err_content:
                 logger.error(
-                    "[LLMClient] %s: Raw content causing error: %s",
-                    ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
-                    locals()["response"].content,
+                    "Raw content causing structural error.",
+                    extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name, "raw_content": str(err_content)},
                 )
             raise AgentExecutionError(
-                detail=f"Structured Task Failed: {e} [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
+                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                original_error=e,
             ) from e
 
-        raise AgentExecutionError(detail=f"Unreachable flow in LLM loop. [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]")
+        raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL)
 
     async def run_chat(
         self,
@@ -471,8 +503,16 @@ class LLMClient:
 
             return response.content
         except Exception as e:
-            error_msg = f"Chat Execution Failed: {e}"
-            logger.error("[LLMClient] %s: %s", ErrorCodes.AGENT_EXECUTION_CRITICAL.name, error_msg, exc_info=True)
+            logger.error(
+                "Execution of free-form chat task failed.",
+                extra={
+                    "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
+                    "model": target_model_name,
+                    "detail": str(e)
+                },
+                exc_info=True,
+            )
             raise AgentExecutionError(
-                detail=f"Chat Task Failed: {e} [{ErrorCodes.AGENT_EXECUTION_CRITICAL.name}]"
+                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                original_error=e,
             ) from e

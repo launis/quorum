@@ -111,6 +111,7 @@ graph LR
 1. **Stateful Nested Navigation (GoRouter):** Työpöytänäkymän päänavigaation on ehdottomasti nojattava `StatefulShellRoute` -rakenteeseen. Asiantuntijan monimutkainen alasvetovalikko-tila tai Infinite Canvas -näyttö ei rikkoudu, jos hän piipahtaa sivupalkin kautta katsomassa asetusvälilehteä. "InitialData" (`$extra`) objektin syöttäminen GoRouterin yli uuteen tilaan on täysin kielletty – GoRouter käsittelee vain luunkovia Opaque ID -avaimia.
 2. **Zero-Latency IAM UI (SWR & Optimistic Updates):** Asetusikkunat (Teema, Kieli, Työtilat) käyttävät puhdasta Stale-While-Revalidate (SWR) -matriisia. Käyttöliittymä vastaa nollaviiveellä välittömästi, kun Riverpod-mutaatiot puskevat verkkopyynnöt asynkroniseen tausta-ajoon – estäen perinteiset ja raskaat koko ruudun peittävät latausanimaatiot kokonaan.
 3. **The Isolate Mandate (Ei Pääsäikeen Bukkauksia):** Satojen megatavujen RAG-raportit tai massiiviset 5000 rivin CSV-vienti/tuonnit koodataan ehdottomasti ohittamaan UI-säie, siirtyen luonnostaan rinnakkaiseen `Isolate.run()` asynkroniseen dataparserointiin. Suorituskyky pidetään teräksisenä 144Hz PC-näytöillä.
+4. **The Zero-Math & Micro-CoT Flattening Mandate:** Käyttöliittymä (Dart/Flutter) ei saa koskaan laskea numeerisia keskiarvoja tai yrittää parsia monimutkaisia sisäkkäisiä tekoälyn Micro-CoT (Chain of Thought) -rakenteita vapaista sanakirjoista (dict). Pydantic-turvallisuuden takaamiseksi kaikki datan litistäminen (Flattening) tapahtuu Backendin Python-kerroksessa (esim. `ScoringHook`). Tekoälyn palauttama rakenteellinen JSON puretaan osiin: `score` asetetaan absoluuttisena liukulukuna (`float`) ja xAI-päättelyketjut yhdistetään `justification`-tekstikenttään. Tämä takaa Flutterin Type-Safe -toiminnan ilman, että `SafeCast` muuttaa tuntemattomia objekteja null-arvoiksi.
 
 ---
 
@@ -145,7 +146,7 @@ graph TD
 
 ### **A. Polymorfinen Node-Orkestraatio (The Strategy Pattern)**
 Puhdas rajapinta (`BaseNodeStrategy`) erottaa suorittavat solmut:
-- **LLMNodeStrategy:** Syöttää skeman (Structured Output) LLM-moottoriin, kytkien pyynnön dynaamiseen faktanhakukoneeseen The Tool Loop.
+- **LLMNodeStrategy:** Syöttää skeman (Structured Output) LLM-moottoriin, kytkien pyynnön dynaamiseen faktanhakukoneeseen The Tool Loop. Koska mallit tuottavat syvälle jaoteltua strukturoitua dataa (esim. Micro-CoT JSON), solmun tulosteet on ehdottomasti litistettävä (Flattening) erillisen normalisointi-hookin avulla ennen kantaan viemistä, jotta UI:n Freezed-mallit eivät romahda tyyppivirheisiin.
 - **LogicNodeStrategy:** Ajaa ohjelmallisia CPU-bound sääntöjä, parsien tai muuntaen dataa deterministisesti ilman hallusinaatioriskejä.
 
 ### **B. Ikuinen Auditoitavuus (Append-Only Event Sourcing)**
@@ -157,6 +158,12 @@ Se siirtyy hakuun (Model Context Protocol). Etsivät `Tools` toimivat erillisin�
 
 ### **D. TaskGroup & Zombisäikeiden Kuolema**
 Tekoälyn ja tietokannan massakyselyverkostot ammutaan matkaan `asyncio.TaskGroup()` -varjoilla suojelemaan palvelinta. Avoimia `asyncio.gather()` tulilankoja, jotka jättäisivät järjestelmään vuotavia orposäikeitä ("Zombies"), pidetään arkkitehtuurisena esteenä Fail-Fast mentaliteetille. Jos koko ketju kaatuu ExceptionGroup-tulvassa, Arq-työntekijä pysäyttää leikin jäsennellysti ja nollaa resurssit varoituksetta.
+
+### **E. Kognitiivinen Tiedonkäsittely (Polyglot Context Engineering)**
+Tekoälyn ohjaaminen (Prompt Engineering) ja datan injektointi LLM-kontekstiin nojautuu monikieliseen, vahvasti optimoituun "Polyglot" -formaattistrategiaan, jossa jokaisella tietorakenteella on psykologinen ja laskennallinen erityistehtävä:
+1. **Ohjeistus (Markdown / MD):** Tekoälyn järjestelmätason luonne, askeleet ja asiantuntijasäännöt (System Prompt) muotoillaan ehdottomasti puhtaalla **Markdownilla** (esim. otsikot `##`, luettelot `-`). Nykyaikaisten mallien tokenisaattorit ymmärtävät Markdown-hierarkiaa natiivisti, mikä maksimoi painoarvon olennaisille säännöille ja parantaa mallin kykyä seurata ohjeita orjallisesti.
+2. **Kontekstin Injektio (XML-tägit):** Ulkopuolelta tuotava asiantuntijadata, kuten RAG-lähteet, lähdetiedostot tai aiemmat analyysit, saarretaan semanttisesti vahvoilla **XML-tägeillä** (esim. `<document_1> ... </document_1>`). XML toimii "kognitiivisena aitoituksena" (Prompt Enclosure / Semantic Separation), joka pitää huolen siitä, ettei kielimalli ikinä sekoita epäluotettavaa asiakasdataa järjestelmän The Markdown -ytimen sisäisiin käskyihin. Tämä eliminoi myös Prompt Injection -haavoittuvuudet lennosta.
+3. **Paluudata ja Eristys (JSON & Pydantic):** Ajatteluprosessin lopputuloksena Vastausten jäsentely pakotetaan täysin tiukkaan **JSON**-muotoon Structured Outputs -rajapinnoilla. Vaikka syöte on joustavaa luonnollista kieltä, koko tekoälyn ulostulo on The Backendille kuivaa konedataa. Pydantic-validointi sitoo JSON-rakenteet välittömästi deterministisiin sääntöihin ja suorittaa the Flattening-logiikan (kuten yllä mainittu The Zero-Math Mandate).
 
 ---
 

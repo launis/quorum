@@ -54,6 +54,23 @@ class WebFetcher:
 
                 final_text = text[:5000]  # Limit context size
 
+                # Epic 12: Paywall and Empty Result Warning
+                if len(final_text) < 150:
+                    logger.warning(
+                        "[WebFetcher] %s: Fetched content from '%s' is suspiciously short (%d chars). "
+                        "It may be an empty page, bot-protection, or a paywall. RAG Grounding may be compromised.", 
+                        ErrorCodes.FETCH_FAILED.name, url, len(final_text)
+                    )
+                else:
+                    lower_text = final_text.lower()
+                    paywall_cues = ["access denied", "log in to", "login required", "please verify you are a human", "enable javascript", "registration required"]
+                    if any(cue in lower_text for cue in paywall_cues):
+                        logger.warning(
+                            "[WebFetcher] %s: Fetched content from '%s' contains keywords indicative of a paywall, "
+                            "redirect, or anti-bot challenge. RAG Grounding may be compromised.", 
+                            ErrorCodes.FETCH_FAILED.name, url
+                        )
+
                 # Log success with snippet as requested by user
                 snippet = final_text[:100].replace("\n", " ") + "..." if len(final_text) > 100 else final_text
                 logger.info("[WebFetcher] Successfully fetched '%s'. Snippet: '%s'", url, snippet)

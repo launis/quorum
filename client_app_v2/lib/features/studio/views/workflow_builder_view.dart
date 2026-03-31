@@ -132,12 +132,10 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
                     .read(_workflowClonePayload.notifier)
                     .setPayload(clonedWorkflow); // keep track for snapshot
 
-                navigator.pushReplacement(
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        WorkflowBuilderView(id: clonedWorkflow.id),
-                  ),
-                );
+                if (context.mounted) {
+                  final fallbackSlug = clonedWorkflow.slug.isNotEmpty ? clonedWorkflow.slug : 'copy';
+                  context.go('/admin/workflow/edit/${clonedWorkflow.id}/$fallbackSlug');
+                }
 
                 messenger.showSnackBar(
                   SnackBar(content: Text(l10n.workflowCloneSuccess)),

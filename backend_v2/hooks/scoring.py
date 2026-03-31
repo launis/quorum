@@ -515,27 +515,72 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             logger.warning("[ScoringHook] Step blueprint '%s' not found in registry.", blueprint_id)
             return HookResult(success=True, state_delta={})
 
-        prompt_blocks_slugs = (
+        prompt_block_ids = (
             step_obj.get("prompt_blocks", []) if isinstance(step_obj, dict) else getattr(step_obj, "prompt_blocks", [])
         )
 
         updates_made = False
         new_payload = content_payload.copy()
 
-        for slug in prompt_blocks_slugs:
-            if slug not in new_payload:
+        for pb_id in prompt_block_ids:
+            if pb_id not in new_payload:
                 continue
 
-            if slug not in new_payload:
-                continue
+            # Epic 12: Micro-CoT Nested Dictionary Support && XAI Mapping
+            raw_input_val = new_payload[pb_id]
+            extracted_micro_cot = None
+            if isinstance(raw_input_val, dict) and "step_4_final_score" in raw_input_val:
+                raw_input_val = raw_input_val["step_4_final_score"]
+                
+                # Natively map XAI attributes for Flutter UI's dedicated alert containers!
+                if "step_1_evidence_quote" in new_payload[pb_id]:
+                    new_payload[f"{pb_id}_cited_text_quote"] = new_payload[pb_id]["step_1_evidence_quote"]
+                if "step_1b_cited_source_id" in new_payload[pb_id]:
+                    new_payload[f"{pb_id}_cited_source_id"] = new_payload[pb_id]["step_1b_cited_source_id"]
+                if "step_2_falsification" in new_payload[pb_id]:
+                    new_payload[f"{pb_id}_falsification"] = new_payload[pb_id]["step_2_falsification"]
+                if "extension_coaching" in new_payload[pb_id]:
+                    new_payload[f"{pb_id}_coaching"] = new_payload[pb_id]["extension_coaching"]
+                if "extension_theory_link" in new_payload[pb_id]:
+                    new_payload[f"{pb_id}_theory_link"] = new_payload[pb_id]["extension_theory_link"]
+
+                # Flatten ONLY the core reasoning traces into the justification string for Flutter!
+                parts = []
+                # Enforce a logical order for the remaining unstructured narrative
+                order = ["step_3_logical_friction", "evaluation_notes"]
+                
+                import re
+                for step_key in order:
+                    if step_key in new_payload[pb_id] and new_payload[pb_id][step_key]:
+                        clean_key = re.sub(r'^step_[0-9a-z]*_', '', step_key)
+                        friendly_name = clean_key.replace("_", " ").title()
+                        parts.append(f"**{friendly_name}**:\n{new_payload[pb_id][step_key]}")
+                        
+                # Catch any unexpected keys just in case (excluding the ones mapped natively)
+                mapped_keys = [
+                    "step_4_final_score", "step_1_evidence_quote", "step_1b_cited_source_id", 
+                    "step_2_falsification", "extension_coaching", "extension_theory_link"
+                ] + order
+                
+                for step_key, step_val in new_payload[pb_id].items():
+                    if step_key not in mapped_keys and step_val:
+                        clean_key = re.sub(r'^step_[0-9a-z]*_', '', step_key)
+                        friendly_name = clean_key.replace("_", " ").title()
+                        parts.append(f"**{friendly_name}**:\n{step_val}")
+                
+                if parts:
+                    extracted_micro_cot = "\n\n".join(parts)
+                else: 
+                    # If somehow nothing was caught in the narrative string above,
+                    # just ensure fallback to something so Flutter box isn't empty visually completely 
+                    extracted_micro_cot = ""
 
             # --- Raw Float Cast Enforcement (V8 Pipeline) ---
             # Ensure the raw value itself is cast to a strict float so it hits the database
             # as a number, not a string representation of a number.
             try:
-                raw_float_val = float(new_payload[slug])
-                new_payload[slug] = raw_float_val
-                raw_val = raw_float_val
+                raw_float_val = float(raw_input_val)
+                raw_val = float(raw_input_val) # Always ensure we deal with flat numeric value mathematically
             except (ValueError, TypeError):
                 # Graceful Degradation: Log info before skipping.
                 # Non-numeric outputs (like JSON blobs or reasoning traces) are expected for text PromptBlocks.
@@ -543,23 +588,23 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 logger.debug(
                     "[ScoringHook] Non-numeric data for '%s', "
                     "skipping score normalization. Value snippet: %s...",
-                    slug,
-                    str(new_payload[slug])[:100],
+                    pb_id,
+                    str(new_payload[pb_id])[:100],
                 )
                 continue
 
             if not isinstance(raw_val, (int, float)):
                 continue
 
-            pb = await repository.get_prompt_block_by_id(slug)
+            pb = await repository.get_prompt_block_by_id(pb_id)
             if not pb:
-                logger.warning("[ScoringHook] Missing PromptBlock '%s'.", slug)
+                logger.warning("[ScoringHook] Missing PromptBlock '%s'.", pb_id)
                 continue
 
             pb_dict = pb if isinstance(pb, dict) else pb.model_dump()
             logger.debug(
                 "[ScoringHook] Found PromptBlock '%s' with allowed decimals: %s",
-                slug,
+                pb_id,
                 pb_dict.get('allow_decimals'),
             )
 
@@ -615,8 +660,9 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                     number_of_options=number_of_options,
                 )
 
-                # Store exactly three properties
+                # Epic 12: Flatten the Micro-CoT dict so the Flutter UI can plot the float on the XY graphs!
                 new_payload[slug] = raw_val
+                    
                 new_payload[f"{slug}_scaled"] = scaled_val
                 new_payload[f"{slug}_normalized"] = normalized_val
 
@@ -624,11 +670,19 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 if pb_dict.get("is_evaluative", True):
                     new_payload[f"{slug}_is_evaluative"] = True
 
-                # Strip out the ||DECIMAL: X.Y|| Chain-of-Thought tag from justification before saving
                 just_key = f"{slug}_justification"
+                
+                # Append the newly flattened Micro-CoT text payload so Flutter prints it in paragraphs
+                if extracted_micro_cot:
+                    existing_just = new_payload.get(just_key, "")
+                    if existing_just:
+                        new_payload[just_key] = str(existing_just) + "\n\n---\n" + extracted_micro_cot
+                    else:
+                        new_payload[just_key] = extracted_micro_cot
+                
+                # Strip out the ||DECIMAL: X.Y|| Chain-of-Thought tag from justification before saving (Legacy V1 Support. No nested dicts to clean anymore as they are flattened)
                 if just_key in new_payload and isinstance(new_payload[just_key], str):
                     import re
-
                     # Non-greedy strip of anything resembling ||DECIMAL: X.Y||
                     cleaned = re.sub(r"\|\|DECIMAL:\s*[0-9.]+\|\|", "", new_payload[just_key])
                     new_payload[just_key] = cleaned.strip()

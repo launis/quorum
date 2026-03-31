@@ -21,11 +21,11 @@ logger = logging.getLogger(__name__)
 
 def _extract_pdf(file_bytes: bytes) -> str:
     """CPU-bound hook helper to extract text strictly from PDF bytes via PyMuPDF."""
+    import pymupdf4llm  # Epic 12 Requirement
     doc = fitz.open(stream=file_bytes, filetype="pdf")
-    text = ""
-    for page in doc:
-        text += page.get_text()
-    return text.strip()
+    md_text = str(pymupdf4llm.to_markdown(doc))
+    doc.close()
+    return md_text.strip()
 
 
 async def resolve_input(val: Any) -> str:
@@ -43,10 +43,15 @@ async def resolve_input(val: Any) -> str:
                 return extracted
             except Exception as e:
                 # V2 STRICT FAIL-FAST
+                logger.error(
+                    "Failed to extract text from PDF.",
+                    extra={"error_code": "FILE_EXTRACTION_FAILED", "filename": filename, "detail": str(e)},
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Failed to extract text from PDF {filename}",
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    details={"error_code": "FILE_EXTRACTION_FAILED", "original_error": str(e)},
+                    details={"error_code": "FILE_EXTRACTION_FAILED"},
                 ) from e
         else:
             return file_bytes.decode("utf-8", errors="ignore")
@@ -74,7 +79,10 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     workflow_id = state.workflow_id
 
     if not repo or not workflow_id:
-        logger.error("[InputProcessingHook] Missing repository or workflow_id in context.")
+        logger.error(
+            "Missing repository or workflow_id in context.",
+            extra={"error_code": "MISSING_EXECUTION_CONTEXT"}
+        )
         raise AppException(
             message="Missing execution context for input processing.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -119,7 +127,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
 
         # 1. Handle Questionnaire mode specifically if it exists
         if isinstance(raw_val, dict) and any(str(k).startswith("q") for k in raw_val.keys()):
-            logger.info("[InputProcessingHook] Found questionnaire dict for %s. Generating Markdown...", key)
+            logger.info("Found questionnaire dict. Generating Markdown...", extra={"input_key": key})
             title_text = expected_input.label.translations.get("en", "Questionnaire")
             markdown_parts = [f"# {title_text}\n"]
             keys = sorted(raw_val.keys())
@@ -128,7 +136,8 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 if str(q_key).startswith("q"):
                     markdown_parts.append(f"### Q: {val}")
                 elif str(q_key).startswith("a"):
-                    markdown_parts.append(f"**A:** {val}\n")
+                    # Epic 12: Isolate user input with blockquotes
+                    markdown_parts.append(f"> **A:** {val}\n")
                 else:
                     markdown_parts.append(f"**{q_key}:** {val}\n")
             resolved_text = "\n".join(markdown_parts)
@@ -139,14 +148,17 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
 
         # V2 STRICT FAIL-FAST: Validate required inputs immediately
         if expected_input.required and not resolved_text.strip():
-            logger.error("[InputProcessingHook] VALIDATION_FAILED: Missing required input for %s.", key)
+            logger.error(
+                "Missing required input.",
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
+            )
             raise AppException(
                 message=(
                     f"Workflow Input Validation Error: The block '{key}' is required "
                     "but no content was provided or file extraction yielded empty text."
                 ),
                 status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": "MISSING_REQUIRED_INPUT", "input_key": key},
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
             )
 
         # 3. V2 ChatParser LLM Hook (if designated as chat history)
@@ -165,9 +177,13 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
 
                 logger.info("[InputProcessingHook] Successfully structured %s via ChatParser (Markdown).", key)
             except Exception as e:
-                logger.error("[InputProcessingHook] Chat parsing failed for %s: %s", key, e)
                 if isinstance(e, AppException):
                     raise e
+                logger.error(
+                    "Chat parsing failed.",
+                    extra={"error_code": "CHAT_PARSING_FAILED", "input_key": key, "detail": str(e)},
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Failed to parse unstructured chat for {key} using AI.",
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -175,29 +191,30 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 ) from e
 
         # 4. Injektoidaan `ai_description` suoraan raakatekstin yläpuolelle (The English-Only Mandate)
-        if expected_input.ai_description and hasattr(expected_input.ai_description, "translations"):
-            # Enforce The English-Only Mandate regardless of client runtime language
-            desc_text = expected_input.ai_description.translations.get("en")
+        if expected_input.ai_description is not None:
+            # Enforce The English-Only Mandate
+            desc_text = expected_input.ai_description.strip()
 
             # V2 STRICT FAIL-FAST: Missing English instruction is fatal
             if not desc_text:
                 logger.error(
-                    f"[InputProcessingHook] VALIDATION_FAILED: Missing English translation for {key} ai_description."
+                    "Missing English translation for ai_description.",
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
                 )
                 raise AppException(
                     message=(
                         f"System Configuration Error: Missing mandatory "
-                        f"English translation for '{key}' cognitive prompt block."
+                        f"English instruction for '{key}' cognitive prompt block."
                     ),
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": "MISSING_ENGLISH_PROMPT", "input_key": key},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
                 )
 
-            if desc_text and resolved_text.strip():
+            if resolved_text.strip():
                 logger.info(f"[InputProcessingHook] Injecting ai_description for {key} (English-Only Mandate).")
                 header = f"--- AI INSTRUCTION FOR THIS SOURCE ({key}) ---\n"
                 footer = f"\n--- SOURCE: {key} ---"
-                resolved_text = f"{header}{desc_text.strip()}\n{footer}\n\n{resolved_text}"
+                resolved_text = f"{header}{desc_text}\n{footer}\n\n{resolved_text}"
 
         output_dict[key] = resolved_text.strip()
 
@@ -215,7 +232,8 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
             logger.info(f"[InputProcessingHook] Forensic Input saved successfully: {forensic_path}")
         except Exception as e:
             logger.error(
-                f"[InputProcessingHook] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to save forensic input: {e}",
+                "Failed to save forensic input.",
+                extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.name, "detail": str(e)},
                 exc_info=True,
             )
 

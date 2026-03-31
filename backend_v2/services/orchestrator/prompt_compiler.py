@@ -60,9 +60,10 @@ class PromptCompiler:
         # V2 MANDATE: NO FALLBACKS. If a translation is requested, it MUST exist.
         msg = f"Translation missing for required locale '{target_locale}'. Fallbacks are strictly forbidden."
         logger.error(
-            "[PromptCompiler] %s: %s\nPayload: %s", ErrorCodes.VALIDATION_FAILED.name, msg, text_obj, exc_info=True
+            "Translation missing for required locale.",
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "target_locale": target_locale},
         )
-        raise ConfigurationError(msg)
+        raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
     def build_xml_context(
         self,
@@ -120,7 +121,7 @@ class PromptCompiler:
         # Removing '$' prefix if present
         if path.startswith("$"):
             path = path[1:]
-            
+
         if path == "steps":
             return self._extract_value_from_state("", {
                 "": {k: v for k, v in state_data.items()
@@ -151,18 +152,33 @@ class PromptCompiler:
             return str(dump_fn(indent=2))
 
         if isinstance(current, dict):
-            # Format dictionaries gracefully to prevent literal \n escaping in LLM xml
+            # Epic 12: Flatten nested JSON into LLM-friendly Markdown (Attention Dilution patch)
             formatted = []
             for k, v in current.items():
-                if isinstance(v, str):
-                    formatted.append(f"--- {str(k).upper()} ---\n{v}\n")
-                elif isinstance(v, dict):
-                    # Basic pretty-print for nested dictionaries to avoid strict JSON dumps
-                    import json
-
-                    formatted.append(f"--- {str(k).upper()} ---\n{json.dumps(v, indent=2, ensure_ascii=False)}\n")
+                formatted.append(f"<prior_step_context source=\"{str(k).upper()}\">")
+                if isinstance(v, dict):
+                    # Yritetään sukeltaa suoraan 'outputs' avaimeen jos se olemassa
+                    target_dict = v.get("outputs", v) if "outputs" in v else v
+                    for sub_k, sub_v in target_dict.items():
+                        if isinstance(sub_v, dict):
+                            formatted.append(f"### {str(sub_k).upper()}")
+                            for micro_k, micro_v in sub_v.items():
+                                # Siivotaan kognitiiviset etuliitteet pois luettavuuden vuoksi
+                                clean_key = (
+                                    str(micro_k)
+                                    .replace("step_1_", "")
+                                    .replace("step_2_", "")
+                                    .replace("step_3_", "")
+                                    .replace("step_4_", "")
+                                    .replace("_", " ")
+                                    .title()
+                                )
+                                formatted.append(f"- **{clean_key}:** {micro_v}")
+                        else:
+                            formatted.append(f"- **{str(sub_k).title()}:** {sub_v}")
                 else:
-                    formatted.append(f"--- {str(k).upper()} ---\n{v}\n")
+                    formatted.append(str(v))
+                formatted.append("</prior_step_context>")
             return "\n".join(formatted).strip()
 
         return str(current)
@@ -201,7 +217,11 @@ class PromptCompiler:
                 raise e
 
             msg = f"System failed to fetch required theoretical grounding from url: {url}"
-            logger.error("[PromptCompiler] %s: %s", ErrorCodes.FETCH_FAILED.name, msg, exc_info=True)
+            logger.error(
+                "Theory grounding fetch failed.",
+                extra={"error_code": ErrorCodes.FETCH_FAILED.name, "url": url, "detail": str(e)},
+                exc_info=True,
+            )
             raise AppException(
                 message=msg,
                 status_code=502,
@@ -334,8 +354,11 @@ class PromptCompiler:
                 from backend_v2.exceptions import ConfigurationError
 
                 msg = f"PromptBlock '{crit_id}' is missing mandatory 'ai_description'."
-                logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise ConfigurationError(msg)
+                logger.error(
+                    "PromptBlock is missing mandatory 'ai_description'.",
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": crit_id},
+                )
+                raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
             # Determine type based on explicit block type, otherwise fallback to BARS scales
             block_type = crit.get("type")
@@ -345,224 +368,133 @@ class PromptCompiler:
             else:
                 value_type = float if crit.get("allow_decimals", False) else int
 
-            # Inject the specific BARS into the description
-            bars_text = ""
+            # Epic 12: Scales injected into XML rubrics, removed from description.
 
-            # --- INCORPORATE ROWS ---
-            rows = crit.get("rows")
-            if rows and isinstance(rows, list) and len(rows) > 0:
-                bars_text += "\n\nTARGET ROW:\n"
-                for r in rows:
-                    if isinstance(r, dict):
-                        r_desc = r.get("ai_description", "")
-                        if r_desc:
-                            bars_text += f"- {r_desc}\n"
-
-            scales = crit.get("scales")
-            if scales and isinstance(scales, list) and len(scales) > 0:
-                from backend_v2.exceptions import ConfigurationError
-
-                bars_text += "\n\nEVALUATION MATRIX (BARS):\n"
-                for s in scales:
-                    s_val = s.get("score")
-                    s_lbl = s.get("ai_label")
-
-                    if not s_lbl:
-                        msg = f"PromptBlock '{crit_id}' MatrixScale {s_val} missing mandatory 'ai_label'."
-                        logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                        raise ConfigurationError(msg)
-
-                    bars_text += f"- Score {s_val}: {s_lbl}\n"
-
-                    claims = s.get("claims")
-                    if claims and isinstance(claims, list):
-                        for c in claims:
-                            if isinstance(c, dict):
-                                c_desc = c.get("ai_description", "")
-                                if c_desc:
-                                    bars_text += f"  * DIRECTIVE: {c_desc}\n"
-                if crit.get("allow_decimals", False):
-                    bars_text += (
-                        "\nINSTRUCTION: Evaluate the core issue using the matrix above. "
-                        "Always return the final numerical evaluation with ONE decimal place (e.g. 4.2), "
-                        "so that the evaluation reflects exact nuance. "
-                        "You MUST return ONLY the exact numeric value."
-                    )
-                else:
-                    bars_text += (
-                        "\nINSTRUCTION: Evaluate strictly using the matrix above. "
-                        "Return only an exact numeric score from the list."
-                    )
 
             extensions = crit.get("output_extensions", [])
 
-            if "justification" in extensions:
-                # 1. Justification (XAI)
-                justification_key = f"{crit_id}_justification"
-
-                justification_desc = (
-                    f"Detailed reasoning for the assigned score for '{label}'. "
-                    "Must explicitly adhere to the active STRICTNESS CALIBRATION. "
-                    f"STRICT MANDATE: You MUST write your reasoning exclusively in the '{target_locale}' language."
-                )
-                if crit.get("allow_decimals", False):
-                    justification_desc += (
-                        " CRITICAL: You MUST conclude your justification by explicitly declaring your precise decimal "
-                        "calculation in the exact format '||DECIMAL: X.Y||' (e.g., ||DECIMAL: 4.2||). "
-                        "Do not use round integers like .0 unless mathematically absolute."
-                    )
-
-                fields[justification_key] = (str, Field(..., description=justification_desc))
+            # Epic 12: Micro-CoT Nested Fields
+            sub_fields: dict[str, tuple[Any, Any]] = {}
 
             if "citation" in extensions:
-                # 2. Citation Source ID (Grounded Theory Integration)
+                sub_fields["step_1_evidence_quote"] = (str | None, Field(
+                    default=None,
+                    description=(
+                        "EXACT verbatim quote from the user's RAW INPUT TEXT that serves as empirical evidence. "
+                        "AI-generated text is strictly forbidden here. If no direct quote exists, return null."
+                    )
+                ))
+
                 theory_grounding = crit.get("theory_grounding", {})
                 citation_ref = (
                     theory_grounding.get("citation_reference") if isinstance(theory_grounding, dict) else None
                 )
-
-                source_id_key = f"{crit_id}_cited_source_id"
-                source_id_type: Any
                 if citation_ref:
                     from typing import Literal
-
-                    # V2 Strict Literal: The LLM can ONLY return this exact string or None
-                    source_id_type = Literal[citation_ref] | None
-                    source_id_desc = (
-                        "If your justification relies on this specific theory, "
-                        f"you MUST RETURN EXACTLY THIS string: '{citation_ref}'. "
-                        "Otherwise, you MUST return null."
-                    )
-                else:
-                    source_id_type = str | None
-                    source_id_desc = (
-                        "There is no authorized academic source for this criterion. You MUST ALWAYS return null."
-                    )
-
-                fields[source_id_key] = (source_id_type, Field(default=None, description=source_id_desc))
-
-                # 3. Citation Text Quote
-                quote_key = f"{crit_id}_cited_text_quote"
-                quote_desc = (
-                    "Paste an EXACT, DIRECT, and VERBATIM quote from the USER'S RAW INPUT TEXT "
-                    "(the empirical evidence) that proves your score and justification. "
-                    "DO NOT quote the scientific theory. Quote the user's data. "
-                    "AI-generated text is strictly forbidden here. "
-                    "If you cannot find a direct quote from the user to prove your point, return null."
-                )
-                fields[quote_key] = (str | None, Field(default=None, description=quote_desc))
-
-                # 4. Web Intelligence Citation
-                if has_search_result:
-                    citation_key = f"{crit_id}_google_citation"
-                    citation_desc = (
-                        "CRITICAL FAKTANTARKISTUS: Peilaa tulostasi 'search_result' XML-elementistä "
-                        "saatuun Google-hakutietoon. Kirjoita lyhyt suomenkielinen tiivistelmä siitä, tukeeko vai "
-                        "kumoako verkkodata käyttäjän alkuperäisen väitteen. "
-                        "Liitä perään lähteen otsikko ja URL-linkki. "
-                        "Jos Google-data ei liity aiheeseen lainkaan, palauta null."
-                    )
-                    fields[citation_key] = (str | None, Field(default=None, description=citation_desc))
-
-            if "coaching" in extensions:
-                fields[f"{crit_id}_coaching"] = (
-                    str,
-                    Field(
-                        ...,
+                    sub_fields["step_1b_cited_source_id"] = (Literal[citation_ref] | None, Field(
+                        default=None,
                         description=(
-                            f"Concrete coaching tip/remediation advice to the subject. "
-                            f"'Mitä toimenpiteitä lukijan tulisi tehdä parantaakseen suoritustaan ensi kerralla?' "
-                            f"MANDATORY LANGUAGE: '{target_locale}'."
-                        ),
-                    ),
-                )
+                            "If your justification relies on authorized theory, you MUST RETURN EXACTLY: "
+                            f"'{citation_ref}'. Otherwise return null."
+                        )
+                    ))
 
-            if "confidence" in extensions:
-                fields[f"{crit_id}_confidence"] = (
-                    float,
-                    Field(
-                        ...,
-                        ge=0.0,
-                        le=100.0,
-                        description=("Numerical confidence from 0.0 to 100.0 based strictly on source evidence."),
-                    ),
-                )
+                if has_search_result:
+                    sub_fields["step_1c_google_citation"] = (str | None, Field(
+                        default=None,
+                        description=(
+                            "CRITICAL FAKTANTARKISTUS: Peilaa tulostasi 'search_result' XML-elementtiin. "
+                            "Tukeeko vai kumoako Google-data väitteen? Jos ei liity, palauta null."
+                        )
+                    ))
 
             if "falsification" in extensions:
-                fields[f"{crit_id}_falsification"] = (
-                    str,
-                    Field(
-                        ...,
-                        description=(
-                            f"Devil's advocate argument rejecting your own primary justification. "
-                            f"Argue against your given score to prevent confirmation bias. "
-                            f"MANDATORY LANGUAGE: '{target_locale}'."
-                        ),
-                    ),
-                )
+                sub_fields["step_2_falsification"] = (str, Field(
+                    ...,
+                    description=(
+                        "Devil's advocate formulation argument. Why might your initial assumption be wrong? "
+                        f"MANDATORY LANGUAGE: '{target_locale}'."
+                    )
+                ))
 
+            if "justification" in extensions:
+                sub_fields["step_3_logical_friction"] = (str, Field(
+                    ...,
+                    description=(
+                        f"Detailed reasoning bridging the evidence to <MATRIX id='{crit_id}'>. "
+                        f"MANDATORY LANGUAGE: '{target_locale}'."
+                    )
+                ))
+
+            if "coaching" in extensions:
+                sub_fields["extension_coaching"] = (str, Field(
+                    ...,
+                    description=(
+                        "Concrete coaching tip/remediation advice to the subject. "
+                        f"MANDATORY LANGUAGE: '{target_locale}'."
+                    )
+                ))
+            if "confidence" in extensions:
+                sub_fields["extension_confidence"] = (float, Field(
+                    ..., ge=0.0, le=100.0, description="Numerical confidence from 0.0 to 100.0 based on evidence."
+                ))
             if "missing_context" in extensions:
-                fields[f"{crit_id}_missing_context"] = (
-                    str,
-                    Field(
-                        ...,
-                        description=(
-                            f"Missing context from the provided text that would have improved or changed the score. "
-                            f"Clarify what exactly is lacking. MANDATORY LANGUAGE: '{target_locale}'."
-                        ),
-                    ),
-                )
-
+                sub_fields["extension_missing_context"] = (str, Field(
+                    ...,
+                    description=f"Missing context from the provided text. MANDATORY LANGUAGE: '{target_locale}'."
+                ))
             if "risk_flag" in extensions:
-                fields[f"{crit_id}_risk_flag"] = (
-                    bool,
-                    Field(
-                        ...,
-                        description=(
-                            "True if there is a severe risk present; False otherwise. Answer strictly boolean."
-                        ),
-                    ),
-                )
-
+                sub_fields["extension_risk_flag"] = (bool, Field(
+                    ..., description="True if there is a severe risk present; False otherwise."
+                ))
             if "remediation_steps" in extensions:
-                fields[f"{crit_id}_remediation_steps"] = (
-                    list[str],
-                    Field(
-                        ...,
-                        description=(
-                            f"Actionable array of textual remediation steps to practically fix the issue immediately. "
-                            f"MANDATORY LANGUAGE: '{target_locale}'."
-                        ),
-                    ),
-                )
-
+                sub_fields["extension_remediation_steps"] = (list[str], Field(
+                    ...,
+                    description=f"Actionable array of textual remediation steps. MANDATORY LANGUAGE: '{target_locale}'."
+                ))
             if "emotional_sentiment" in extensions:
-                fields[f"{crit_id}_emotional_sentiment"] = (
-                    str,
-                    Field(
-                        ...,
-                        description=(
-                            f"Analysis of the author's emotional state or tone regarding this metric "
-                            f"(e.g., defensive, constructive, proud). MANDATORY LANGUAGE: '{target_locale}'."
-                        ),
-                    ),
-                )
-
+                sub_fields["extension_emotional_sentiment"] = (str, Field(
+                    ...,
+                    description=f"Analysis of author's emotional state or tone. MANDATORY LANGUAGE: '{target_locale}'."
+                ))
             if "theory_link" in extensions:
-                fields[f"{crit_id}_theory_link"] = (
-                    str,
-                    Field(
-                        ...,
-                        description=(
-                            f"Direct logical connection of the observation back to the governing scientific/strategic "
-                            f"theory framework provided in the prompt. MANDATORY LANGUAGE: '{target_locale}'."
-                        ),
-                    ),
-                )
+                sub_fields["extension_theory_link"] = (str, Field(
+                    ...,
+                    description=(
+                        "Direct logical connection to the governing theory framework. "
+                        f"MANDATORY LANGUAGE: '{target_locale}'."
+                    )
+                ))
 
-            # The actual evaluation value (placed AFTER justification for CoT forcing)
-            final_desc = f"{label}: {base_desc}{bars_text}"
-            fields[crit_id] = (value_type, Field(..., description=final_desc))
+            # ARVOSANA ON AINA VIIMEISENÄ
+            sub_fields["step_4_final_score"] = (value_type, Field(
+                ...,
+                description=f"Numeric score strictly evaluated using the <MATRIX id='{crit_id}'> in the system prompt."
+            ))
+
+            # Epic 12: Liiketoimintalogiikan validointi (Semantic Self-Healing)
+            def make_validator(cid: str) -> Any:
+                def validate_logic(cls: Any, values: Any) -> Any:
+                    score = values.get("step_4_final_score")
+                    quote = values.get("step_1_evidence_quote")
+                    if score is not None and isinstance(score, (int, float)) and score >= 4 and not quote:
+                        raise ValueError(
+                            f"CRITICAL LOGICAL ERROR: You assigned a high score ({score}) for '{cid}', "
+                            "but failed to provide a verbatim 'step_1_evidence_quote'. "
+                            "You MUST find an exact quote from the text or lower the score immediately."
+                        )
+                    return values
+                return validate_logic
+
+            from pydantic import ConfigDict, model_validator
+            NestedModel = create_model(  # type: ignore[call-overload]
+                f"{crit_id}_Evaluation",
+                __config__=ConfigDict(extra="forbid", strict=True),
+                __validators__={"logic_check": model_validator(mode="before")(make_validator(crit_id))},
+                **sub_fields
+            )
+
+            fields[crit_id] = (NestedModel, Field(..., description=f"Evaluation object for {label}"))
 
         if not fields:
             # If all blocks were pure instructions with no actionable scales,
@@ -583,12 +515,49 @@ class PromptCompiler:
             return cast(type[BaseModel], DynamicModel)
         except Exception as e:
             msg = f"Critical failure while dynamically compiling LLM execution schema '{schema_name}'."
-            logger.error("[PromptCompiler] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
+            logger.error(
+                "Dynamic schema compilation failed.",
+                extra={
+                    "error_code": ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                    "schema_name": schema_name,
+                    "detail": str(e),
+                },
+                exc_info=True,
+            )
             raise AppException(
                 message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             ) from e
+
+    def compile_xml_rubrics(self, criteria: list[dict[str, Any]], target_locale: str) -> str:
+        """Epic 12: Generates Thick XML/Markdown rubrics for the System Prompt."""
+        xml_blocks = ["<EVALUATION_RUBRICS>"]
+        for crit in criteria:
+            if crit.get("type") == "instruction":
+                continue
+
+            crit_id = crit.get("id")
+            label = self.resolve_i18n(crit.get("label"), target_locale)
+            desc = crit.get("ai_description", "")
+
+            xml_blocks.append(f'  <MATRIX id="{crit_id}" title="{label}">')
+            if desc:
+                xml_blocks.append(f'    <DIRECTIVE>{desc}</DIRECTIVE>')
+
+            scales = crit.get("scales", [])
+            if scales:
+                xml_blocks.append('    | Score | Label | Critical Directive |')
+                xml_blocks.append('    |---|---|---|')
+                for s in scales:
+                    s_val = s.get("score")
+                    s_lbl = self.resolve_i18n(s.get("name"), target_locale) if s.get("name") else s.get("ai_label", "")
+                    claims = " ".join([c.get("ai_description", "") for c in s.get("claims", [])])
+                    xml_blocks.append(f'    | {s_val} | {s_lbl} | {claims} |')
+
+            xml_blocks.append('  </MATRIX>')
+        xml_blocks.append("</EVALUATION_RUBRICS>")
+        return "\n".join(xml_blocks)
 
     def compile_static_instructions(self, blocks: list[dict[str, Any]], target_locale: str) -> str:
         """Compile static instruction-type V2 PromptBlocks for the Cached System Prompt.
@@ -610,9 +579,13 @@ class PromptCompiler:
                 if not desc:
                     from backend_v2.exceptions import ConfigurationError
 
-                    msg = f"PromptBlock '{block.get('id')}' is missing mandatory 'ai_description'."
-                    logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    raise ConfigurationError(msg)
+                    block_id = block.get('id')
+                    msg = f"PromptBlock '{block_id}' is missing mandatory 'ai_description'."
+                    logger.error(
+                        "PromptBlock is missing mandatory 'ai_description'.",
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": block_id},
+                    )
+                    raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
                 if label:
                     compiled_lines.append(f"[Static Instruction {target_locale.upper()}]: ### {label}")
@@ -648,9 +621,13 @@ class PromptCompiler:
                 if not desc:
                     from backend_v2.exceptions import ConfigurationError
 
-                    msg = f"PromptBlock '{block.get('id')}' is missing mandatory 'ai_description'."
-                    logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    raise ConfigurationError(msg)
+                    block_id = block.get('id')
+                    msg = f"PromptBlock '{block_id}' is missing mandatory 'ai_description'."
+                    logger.error(
+                        "PromptBlock is missing mandatory 'ai_description'.",
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": block_id},
+                    )
+                    raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
                 # Perform Runtime Variable Substitutions
                 desc = desc.replace("{CURRENT_DATE}", current_date_str)

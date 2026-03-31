@@ -32,6 +32,10 @@ class LLMNodeStrategy(NodeStrategy):
 
         blueprint_id = getattr(step, "task_blueprint", None)
         if not blueprint_id:
+            logger.error(
+                "Step has no task_blueprint configured.",
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id}
+            )
             raise AppException(
                 message=f"Step {step.id} has no task_blueprint configured.",
                 status_code=500,
@@ -40,6 +44,10 @@ class LLMNodeStrategy(NodeStrategy):
 
         step_def = await self.repository.get_step_by_id(blueprint_id)
         if not step_def:
+            logger.error(
+                f"Configuration error: Step '{blueprint_id}' not found.",
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id}
+            )
             raise AppException(
                 message=f"Configuration error: Step '{blueprint_id}' not found.",
                 status_code=500,
@@ -72,6 +80,10 @@ class LLMNodeStrategy(NodeStrategy):
             if b:
                 criteria_blocks.append(b)
             else:
+                logger.error(
+                    f"PromptBlock '{m_id}' not found.",
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": step.id}
+                )
                 raise AppException(
                     message=f"PromptBlock '{m_id}' not found.",
                     status_code=500,
@@ -82,9 +94,14 @@ class LLMNodeStrategy(NodeStrategy):
         static_instructions = self.compiler.compile_static_instructions(criteria_blocks, target_locale)
         dynamic_instructions = self.compiler.compile_dynamic_instructions(criteria_blocks, target_locale)
 
+        # Epic 12: Generate Thick XML/Markdown rubrics for System Prompt
+        xml_rubrics = self.compiler.compile_xml_rubrics(criteria_blocks, target_locale)
+
         system_prompt = "Complete the evaluation according to the provided schema."
         if static_instructions:
             system_prompt += f"\n\n{static_instructions}"
+        if xml_rubrics:
+            system_prompt += f"\n\n{xml_rubrics}"
 
         # 3. Prevent Token Explosion with fold_trace pruning
         llm_context_data = state_data
@@ -124,9 +141,8 @@ class LLMNodeStrategy(NodeStrategy):
         strategy_name = context.model_strategy
         if not strategy_name:
             logger.error(
-                "[LLMNodeStrategy] %s: Step %s has no model_strategy defined. Zero fallbacks allowed.",
-                ErrorCodes.CONFIGURATION_ERROR.name,
-                step.id,
+                "Step has no model_strategy defined. Zero fallbacks allowed.",
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id}
             )
             raise AppException(
                 message=f"Step {step.id} has no model_strategy defined (Fail-Fast: No fallbacks allowed).",
@@ -143,28 +159,64 @@ class LLMNodeStrategy(NodeStrategy):
             # Inline import for MCP to avoid module load overhead unless explicitly utilized.
             from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 
-            loop_result = await execute_tool_loop(
-                llm_client=bound_client,
-                messages=messages,
-                response_model=dynamic_schema,
-                allowed_tools=effective_mcp_tools,
-                step_name=step.id,
-                mock_identity=step.id,
-                target_language=target_locale,
-            )
-            final_dict = dict(loop_result.result_data)
-            usage_dict = dict(loop_result.usage) if loop_result.usage else {}
+            try:
+                loop_result = await execute_tool_loop(
+                    llm_client=bound_client,
+                    messages=messages,
+                    response_model=dynamic_schema,
+                    allowed_tools=effective_mcp_tools,
+                    step_name=step.id,
+                    mock_identity=step.id,
+                    target_language=target_locale,
+                )
+                final_dict = dict(loop_result.result_data)
+                usage_dict = dict(loop_result.usage) if loop_result.usage else {}
 
-            if frozen_ctx and loop_result.audit_traces:
-                frozen_ctx.mcp_tool_audit.extend(loop_result.audit_traces)
+                if frozen_ctx and loop_result.audit_traces:
+                    frozen_ctx.mcp_tool_audit.extend(loop_result.audit_traces)
+            except Exception as e:
+                logger.error(
+                    "Execution of MCP tool loop failed.",
+                    extra={
+                        "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name, 
+                        "step_id": step.id, 
+                        "detail": str(e),
+                    },
+                    exc_info=True,
+                )
+                if isinstance(e, AppException):
+                    raise
+                raise AppException(
+                    message=f"MCP Tool Loop Execution failed: {str(e)}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
+                ) from e
         else:
-            result, usage = await bound_client.run_structured_task(
-                messages=messages,
-                response_model=dynamic_schema,
-                mock_identity=step.id,
-            )
-            final_dict = dict(result.model_dump(mode="json"))
-            usage_dict = dict(usage) if usage else {}
+            try:
+                result, usage = await bound_client.run_structured_task(
+                    messages=messages,
+                    response_model=dynamic_schema,
+                    mock_identity=step.id,
+                )
+                final_dict = dict(result.model_dump(mode="json"))
+                usage_dict = dict(usage) if usage else {}
+            except Exception as e:
+                logger.error(
+                    "Execution of structured LLM task failed.",
+                    extra={
+                        "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name, 
+                        "step_id": step.id, 
+                        "detail": str(e),
+                    },
+                    exc_info=True,
+                )
+                if isinstance(e, AppException):
+                    raise
+                raise AppException(
+                    message=f"Structured LLM execution failed: {str(e)}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
+                ) from e
 
         # 5. Post-Hooks
         safe_context = {

@@ -1,7 +1,7 @@
 @echo off
 echo ===================================================
 echo   COGNITIVE QUORUM - LOCAL PRODUCTION LAUNCHER
-echo   (LOCAL DB: data\db.json)
+echo   (LOCAL DB: data\db_v2.json)
 echo ===================================================
 echo.
 
