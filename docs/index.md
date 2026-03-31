@@ -10,24 +10,26 @@ Cognitive Quorum (2026 Enterprise Edition) is a **Modular Async Monolith** desig
 
 ## 🏛️ The 2026 System Architecture
 
-The system is built on an unbreakable, strictly typed distributed execution model, replacing legacy agent concepts with explicit Directed Acyclic Graphs (DAG).
+The system is built on an unbreakable, strictly typed distributed execution model, mapped 1:1 to the codebase layer conventions.
 
-*   **[AI-orkestraattori V2.5 Määrittely](Arkkitehtuurimäärittely_%20AI-orkestraattori%20V2.md)**
-    The master reference for the backend engine: Polymorphic DAGs, Model Context Protocol (MCP), and the Anti-Mirror protocol.
-*   **[B2B SaaS IAM-arkkitehtuuri 2026](epic/B2B%20SaaS%20IAM-arkkitehtuuri%202026.md)**
-    Control Plane documentation detailing Zero-Trust, Passkey-First Auth, Step-Up MFA, and the absolute Stripe Pattern (`org_[a-zA-Z0-9]{8}`).
-*   **[Client UI - Flutter Architecture Protocol](../.agents/rules/02_flutter_desktop.md)**
-    The authoritative standard for the front-end Display Tier. It mandates Desktop-First development, Stale-While-Revalidate (SWR) UI, and the crucial `Isolate` data parsing rules to ensure 0ms main-thread blockage.
+*   **[00. Executive Summary & Core Mandates](architecture/00_executive_summary.md)**
+*   **[01. API-kerros ja Asynkroninen tapahtumahallinta (Core)](architecture/01_backend_api_and_core.md)**
+*   **[02. Pydantic-tietomalli ja Fail-Fast (Domain Models)](architecture/02_domain_models.md)**
+*   **[03. Työnkulkujen Orkestraatio (DAG) & Suoritusmoottori](architecture/03_business_services_and_dag.md)**
+*   **[04. Tekoälyn Hooks, Polyglot Context & LLM Päätepisteet](architecture/04_hooks_and_llm.md)**
+*   **[05. Datan Pysyvyys, CQRS ja The Seed Vault](architecture/05_data_persistence_and_seeding.md)**
+*   **[06. Esityskerros (Desktop-First Flutter) ja L10n](architecture/06_desktop_first_flutter_client.md)**
+*   **[07. Infrastruktuuri, Observability ja FinOps](architecture/07_infrastructure_and_observability.md)**
 
 ---
 
-## 🧠 Cognitive Orchestration
+## 🧠 Cognitive Orchestration (Theory)
 
 How the AI reasons, grounds itself, and maintains continuity without hallucination.
 
-*   **Anti-Hallucination Schemas**: All outputs are extracted directly from LLMs using `Structured Outputs` bounded by Pydantic's `extra="forbid"`.
-*   **Model Context Protocol (MCP)**: Grounded Explainable AI (XAI) achieved through serverless Tool Loops, producing immutable `FrozenContext` traces in the database.
-*   **Semantic Data Flow ($inputs)**: Pure structural mapping across DAG nodes, empowering strict separation between `LogicStrategies` and `LLMStrategies`.
+*   **[Holistinen Mestaruus](Holistinen%20Mestaruus.md)**: Järjestelmän filosofinen perusta asiantuntijoiden osaamisen skaalaamiseksi yli rutiinien.
+*   **[Agent Workflows Opas](Agent_Workflows_Opas.md)**: Alkuperäinen työnkulkujen ja orkestraation asiantuntijaopas.
+*   **[B2B SaaS IAM-arkkitehtuuri 2026](epic/B2B%20SaaS%20IAM-arkkitehtuuri%202026.md)**: Control Plane documentation detailing Zero-Trust, Passkey-First Auth, Step-Up MFA, and the absolute Stripe Pattern (`org_[a-zA-Z0-9]{8}`).
 
 ---
 
