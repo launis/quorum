@@ -37,7 +37,7 @@ dependencies:
   flutter_markdown_plus:
   file_picker: ^10.3.10
   collection:
-  fl_chart:
+  fl_chart: 1.2.0
   pdf:
   printing:
   file_saver:
