@@ -21,7 +21,7 @@ jobs:
       - name: Generate OpenAPI Spec
         env:
           VERTEX_LOCATION: "europe-north1"
-        run: uv run backend/scripts/generate_openapi.py
+        run: uv run backend_v2/scripts/generate_openapi.py
 
       - name: Configure Git Credentials
         run: |
