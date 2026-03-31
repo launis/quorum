@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/shared/widgets/output_renderer.dart';
 
 class SpecialistSection extends StatefulWidget {
   final String title;
@@ -1750,18 +1751,56 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
   Widget _buildGenericMap(Map<String, dynamic> map) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: map.entries.map<Widget>((e) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Row(
+        // Strip markdown asterisks from keys to prevent **Key**: bleeding
+        final parsedKey = e.key.replaceAll(RegExp(r'\*+'), '').trim();
+
+        String displayValue;
+        if (e.value is Map || e.value is List) {
+          try {
+            displayValue = const JsonEncoder.withIndent('  ').convert(e.value);
+          } catch (_) {
+            displayValue = e.value.toString();
+          }
+        } else {
+          displayValue = e.value.toString();
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12.0),
+          padding: const EdgeInsets.all(12.0),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            ),
+          ),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "${e.key}: ",
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                parsedKey.toUpperCase(),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  letterSpacing: 0.5,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
-              Expanded(child: Text(e.value.toString())),
+              const SizedBox(height: 8),
+              if (displayValue.contains('```') || displayValue.contains('**'))
+                OutputRenderer(markdownContent: displayValue)
+              else
+                SelectableText(
+                  displayValue,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    height: 1.5,
+                  ),
+                ),
             ],
           ),
         );

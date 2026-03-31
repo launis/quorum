@@ -3175,10 +3175,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sharedNoReportData => 'No report data available.';
 
   @override
-  String get sharedDatagridUnsupported =>
-      'DataGrid is currently unsupported in V2';
-
-  @override
   String get sharedFlatReportNoData =>
       'No Flat Report data found for this execution.';
 

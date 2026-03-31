@@ -3197,10 +3197,6 @@ class AppLocalizationsFi extends AppLocalizations {
   String get sharedNoReportData => 'Raporttidataa ei ole saatavilla.';
 
   @override
-  String get sharedDatagridUnsupported =>
-      'DataGrid-näkymää ei tällä hetkellä tueta V2-versiossa';
-
-  @override
   String get sharedFlatReportNoData =>
       'Flat Report dataa ei löytynyt tästä ajosta.';
 

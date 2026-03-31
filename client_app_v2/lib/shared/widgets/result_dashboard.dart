@@ -483,14 +483,6 @@ class ResultDashboard extends StatelessWidget {
           data: blockValue is Map<String, dynamic> ? blockValue : {},
         );
 
-      case 'dataGrid':
-        return Center(
-          child: Text(
-            AppLocalizations.of(context)?.sharedDatagridUnsupported ??
-                "DataGrid is currently unsupported in V2",
-          ),
-        );
-
       case 'paragraph':
         final content = blockValue is Map<String, dynamic>
             ? blockValue['content'] as String? ?? ''

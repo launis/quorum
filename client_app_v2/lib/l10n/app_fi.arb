@@ -1049,7 +1049,6 @@
   "studioViewsFailedToClone": "Kloonaus epäonnistui: {error}",
   "sharedNoTimelineData": "Aikajanadataa ei ole saatavilla.",
   "sharedNoReportData": "Raporttidataa ei ole saatavilla.",
-  "sharedDatagridUnsupported": "DataGrid-näkymää ei tällä hetkellä tueta V2-versiossa",
   "sharedFlatReportNoData": "Flat Report dataa ei löytynyt tästä ajosta.",
   "sharedAnalysisPerformed": "Analyysi suoritettu: ",
   "sharedNoComparisonData": "Vertailudataa ei ole saatavilla.",

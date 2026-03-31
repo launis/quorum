@@ -5814,12 +5814,6 @@ abstract class AppLocalizations {
   /// **'No report data available.'**
   String get sharedNoReportData;
 
-  /// No description provided for @sharedDatagridUnsupported.
-  ///
-  /// In en, this message translates to:
-  /// **'DataGrid is currently unsupported in V2'**
-  String get sharedDatagridUnsupported;
-
   /// No description provided for @sharedFlatReportNoData.
   ///
   /// In en, this message translates to:

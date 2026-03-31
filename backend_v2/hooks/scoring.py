@@ -528,58 +528,48 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
             # Epic 12: Micro-CoT Nested Dictionary Support && XAI Mapping
             raw_input_val = new_payload[pb_id]
-            extracted_micro_cot = None
-            if isinstance(raw_input_val, dict) and "step_4_final_score" in raw_input_val:
-                raw_input_val = raw_input_val["step_4_final_score"]
-                
-                # Natively map XAI attributes for Flutter UI's dedicated alert containers!
-                if "step_1_evidence_quote" in new_payload[pb_id]:
-                    new_payload[f"{pb_id}_cited_text_quote"] = new_payload[pb_id]["step_1_evidence_quote"]
-                if "step_1b_cited_source_id" in new_payload[pb_id]:
-                    new_payload[f"{pb_id}_cited_source_id"] = new_payload[pb_id]["step_1b_cited_source_id"]
-                if "step_2_falsification" in new_payload[pb_id]:
-                    new_payload[f"{pb_id}_falsification"] = new_payload[pb_id]["step_2_falsification"]
-                if "extension_coaching" in new_payload[pb_id]:
-                    new_payload[f"{pb_id}_coaching"] = new_payload[pb_id]["extension_coaching"]
-                if "extension_theory_link" in new_payload[pb_id]:
-                    new_payload[f"{pb_id}_theory_link"] = new_payload[pb_id]["extension_theory_link"]
 
-                # Flatten ONLY the core reasoning traces into the justification string for Flutter!
-                parts = []
-                # Enforce a logical order for the remaining unstructured narrative
-                order = ["step_3_logical_friction", "evaluation_notes"]
-                
-                import re
-                for step_key in order:
-                    if step_key in new_payload[pb_id] and new_payload[pb_id][step_key]:
-                        clean_key = re.sub(r'^step_[0-9a-z]*_', '', step_key)
-                        friendly_name = clean_key.replace("_", " ").title()
-                        parts.append(f"**{friendly_name}**:\n{new_payload[pb_id][step_key]}")
-                        
-                # Catch any unexpected keys just in case (excluding the ones mapped natively)
-                mapped_keys = [
-                    "step_4_final_score", "step_1_evidence_quote", "step_1b_cited_source_id", 
-                    "step_2_falsification", "extension_coaching", "extension_theory_link"
-                ] + order
-                
-                for step_key, step_val in new_payload[pb_id].items():
-                    if step_key not in mapped_keys and step_val:
-                        clean_key = re.sub(r'^step_[0-9a-z]*_', '', step_key)
-                        friendly_name = clean_key.replace("_", " ").title()
-                        parts.append(f"**{friendly_name}**:\n{step_val}")
-                
-                if parts:
-                    extracted_micro_cot = "\n\n".join(parts)
-                else: 
-                    # If somehow nothing was caught in the narrative string above,
-                    # just ensure fallback to something so Flutter box isn't empty visually completely 
-                    extracted_micro_cot = ""
+            if isinstance(raw_input_val, dict):
+                # Natively map XAI attributes for Flutter UI's dedicated alert containers!
+                if "step_1_evidence_quote" in raw_input_val:
+                    new_payload[f"{pb_id}_cited_text_quote"] = raw_input_val["step_1_evidence_quote"]
+                    updates_made = True
+                if "step_1b_cited_source_id" in raw_input_val:
+                    new_payload[f"{pb_id}_cited_source_id"] = raw_input_val["step_1b_cited_source_id"]
+                    updates_made = True
+                if "step_2_falsification" in raw_input_val:
+                    new_payload[f"{pb_id}_falsification"] = raw_input_val["step_2_falsification"]
+                    updates_made = True
+                if "extension_coaching" in raw_input_val:
+                    new_payload[f"{pb_id}_coaching"] = raw_input_val["extension_coaching"]
+                    updates_made = True
+                if "extension_theory_link" in raw_input_val:
+                    new_payload[f"{pb_id}_theory_link"] = raw_input_val["extension_theory_link"]
+                    updates_made = True
+
+                # The core reasoning and notes replace the global fallback, avoiding hardcoded markdown
+                just_parts = []
+                if "evaluation_notes" in raw_input_val and raw_input_val["evaluation_notes"]:
+                    just_parts.append(str(raw_input_val["evaluation_notes"]))
+                if "step_3_logical_friction" in raw_input_val and raw_input_val["step_3_logical_friction"]:
+                    just_parts.append(str(raw_input_val["step_3_logical_friction"]))
+
+                if just_parts:
+                    new_payload[f"{pb_id}_justification"] = "\n\n".join(just_parts)
+                    updates_made = True
+
+                # Keep text as text, numbers as numbers (Tapa 1 vs Tapa 2)
+                if "step_4_final_score" in raw_input_val:
+                    # Tapa 1: Extract numeric score and continue to scale logic
+                    raw_input_val = raw_input_val["step_4_final_score"]
+                else:
+                    # Tapa 2: String-only block. We already extracted mapped fields, so skip math scaling.
+                    continue
 
             # --- Raw Float Cast Enforcement (V8 Pipeline) ---
             # Ensure the raw value itself is cast to a strict float so it hits the database
             # as a number, not a string representation of a number.
             try:
-                raw_float_val = float(raw_input_val)
                 raw_val = float(raw_input_val) # Always ensure we deal with flat numeric value mathematically
             except (ValueError, TypeError):
                 # Graceful Degradation: Log info before skipping.
@@ -623,7 +613,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                         except (TypeError, ValueError) as e:
                             from backend_v2.exceptions import AppException, ErrorCodes
 
-                            msg = f"Corrupted scale value '{val}' in PromptBlock '{slug}'. Expected float."
+                            msg = f"Corrupted scale value '{val}' in PromptBlock '{pb_id}'. Expected float."
                             logger.error(
                                 "[ScoringHook] %s: %s",
                                 ErrorCodes.CONFIGURATION_ERROR.name,
@@ -661,43 +651,31 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 )
 
                 # Epic 12: Flatten the Micro-CoT dict so the Flutter UI can plot the float on the XY graphs!
-                new_payload[slug] = raw_val
-                    
-                new_payload[f"{slug}_scaled"] = scaled_val
-                new_payload[f"{slug}_normalized"] = normalized_val
+                new_payload[pb_id] = raw_val
+
+                new_payload[f"{pb_id}_scaled"] = scaled_val
+                new_payload[f"{pb_id}_normalized"] = normalized_val
 
                 # Epic 10: Check the DB truth for Evaluative Matrix status and inject it
                 if pb_dict.get("is_evaluative", True):
-                    new_payload[f"{slug}_is_evaluative"] = True
+                    new_payload[f"{pb_id}_is_evaluative"] = True
 
-                just_key = f"{slug}_justification"
-                
-                # Append the newly flattened Micro-CoT text payload so Flutter prints it in paragraphs
-                if extracted_micro_cot:
-                    existing_just = new_payload.get(just_key, "")
-                    if existing_just:
-                        new_payload[just_key] = str(existing_just) + "\n\n---\n" + extracted_micro_cot
-                    else:
-                        new_payload[just_key] = extracted_micro_cot
-                
-                # Strip out the ||DECIMAL: X.Y|| Chain-of-Thought tag from justification before saving (Legacy V1 Support. No nested dicts to clean anymore as they are flattened)
+                just_key = f"{pb_id}_justification"
+
+                # Strip out the ||DECIMAL: X.Y|| Chain-of-Thought tag from justification
+                # before saving (Legacy V1 Support)
                 if just_key in new_payload and isinstance(new_payload[just_key], str):
                     import re
-                    # Non-greedy strip of anything resembling ||DECIMAL: X.Y||
                     cleaned = re.sub(r"\|\|DECIMAL:\s*[0-9.]+\|\|", "", new_payload[just_key])
                     new_payload[just_key] = cleaned.strip()
 
                 updates_made = True
                 logger.info(
-                    "[ScoringHook] 3-Tier Score '%s': Raw=%s, "
-                    "Scaled=%s, Normalized=%s "
-                    "(Scale: %s-%s)",
-                    slug,
+                    "[ScoringHook] 3-Tier Score '%s': Raw=%s, Scaled=%s, Normalized=%s",
+                    pb_id,
                     raw_val,
                     scaled_val,
                     normalized_val,
-                    target_min,
-                    target_max,
                 )
 
         if updates_made:

@@ -1487,7 +1487,6 @@
   "@studioViewsFailedToClone": { "placeholders": { "error": { "type": "String" } } },
   "sharedNoTimelineData": "No timeline data available.",
   "sharedNoReportData": "No report data available.",
-  "sharedDatagridUnsupported": "DataGrid is currently unsupported in V2",
   "sharedFlatReportNoData": "No Flat Report data found for this execution.",
   "sharedAnalysisPerformed": "Analysis Performed: ",
   "sharedNoComparisonData": "No comparison data available.",
