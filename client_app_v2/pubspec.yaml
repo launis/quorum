@@ -44,7 +44,7 @@ dependencies:
   url_launcher: ^6.3.2
   flutter_hooks:
   hooks_riverpod:
-  logger:
+  logger: 2.7.0
   path_provider:
   freezed_annotation: ^3.1.0
   riverpod_annotation: ^4.0.0
