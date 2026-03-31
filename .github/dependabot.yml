@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # Backend: Python dependencies (Compatible with uv/pip via pyproject.toml)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "backend"
+      - "security"
+
+  # Frontend: Flutter / Dart dependencies (pubspec.yaml)
+  - package-ecosystem: "pub"
+    directory: "/client_app_v2"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "frontend"
+      - "security"
