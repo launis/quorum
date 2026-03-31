@@ -77,10 +77,10 @@ ignore = [
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"backend/tasks/legacy_migration_tasks.py" = ["E501"]  # Long prompt strings
-"backend/tasks/analysis.py" = ["E501"]
-"backend/tasks/critique.py" = ["E501"]
-"backend/database/firestore_repo.py" = ["E501"]
+"backend_v2/tasks/legacy_migration_tasks.py" = ["E501"]  # Long prompt strings
+"backend_v2/tasks/analysis.py" = ["E501"]
+"backend_v2/tasks/critique.py" = ["E501"]
+"backend_v2/database/firestore_repo.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.13"

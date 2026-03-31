@@ -22,15 +22,15 @@ The Cognitive Quorum Client is designed with the same **"Zero-Magic"** philosoph
 ### Key Directories
 
 - `lib/core/`: Application shell, routing (`router.dart`), themed components, and networking infrastructure.
-- `lib/features/`: Domain-specific UI modules (e.g., Dashboard, Studio, Execution Monitor).
-- `lib/models/`: Strongly typed Dart data classes (often generated via `freezed` and `json_serializable`) matching the backend Pydantic models.
-- `lib/l10n/`: Localization files (`.arb`) containing translated strings and error code mappings.
+- `lib/features/`: Domain-specific UI modules (e.g., Auth, BFF Studio, Execution Monitor).
+- `lib/shared/` & `lib/models/`: Strongly typed Dart data classes (often generated via `freezed` and `json_serializable`).
+- `lib/l10n/`: Localization files (`.arb`) following the "No-String Mandate" for UI components.
 
 ## 📦 Getting Started
 
 ### Prerequisites
 - Flutter SDK 3.27 or higher
-- Android Studio / Xcode (for mobile builds) or a supported Web/Desktop target setup.
+- Windows/macOS Desktop dev environment (Desktop-First App architecture) or a supported Web target.
 
 ### Running the App
 
@@ -62,4 +62,4 @@ dart run build_runner build -d
 
 ---
 
-*For detailed Flutter development standards, see `.agents/rules/02_flutter_desktop.md` in the root repository.*
+*For detailed Flutter architecture and development standards, see `docs/architecture/06_desktop_first_flutter_client.md` and `.agents/rules/02_flutter_desktop.md` in the root repository.*

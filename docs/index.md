@@ -1,16 +1,16 @@
-# Cognitive Quorum Documentation Hub (2026 SOTA)
+# Arkkitehtuurimäärittely: The Modular 2026 Engine
 
-**Structured, Auditable, and Deterministic AI Orchestration.**
+**Strukturoitu, Auditoitava ja Deterministinen Tekoälyorkestraatio.**
 
-## 📚 Overview
+## 📚 Yleiskatsaus
 
-Cognitive Quorum (2026 Enterprise Edition) is a **Modular Async Monolith** designed for high-fidelity cognitive labor. It orchestrates a pipeline of specialized agents to perform rigorous analysis, enforcing a **"Zero-Compromise"** philosophy where every step is strictly typed via **Rust-Core Pydantic V2 DTOs** and auditable via Event Sourcing traces.
+Cognitive Quorum (2026 Enterprise Edition) on huipputason kognitiiviseen työhön suunniteltu **modulaarinen, asynkroninen monoliitti**. Se orkestroi erikoistuneiden tekoälyagenttien putkea ankaran "Zero-Compromise" -filosofian alaisuudessa: jokainen askel on tiukasti tyypitetty **Rust-pohjaisen Pydantic V2 DTO:n** avulla ja jäljitettävissä tapahtumapohjaisten (Event Sourcing) lokien kautta.
 
 ---
 
-## 🏛️ The 2026 System Architecture
+## 🏛️ Järjestelmäarkkitehtuuri ja Säännökset (Phase 9)
 
-The system is built on an unbreakable, strictly typed distributed execution model, mapped 1:1 to the codebase layer conventions.
+Järjestelmä rakentuu särkymättömän ydinarkkitehtuurin (The Strict Execution Model) varaan. Alla olevat modulaariset säännökset peilaavat 1:1 koodikannan fyysistä hakemistorakennetta.
 
 *   **[00. Executive Summary & Core Mandates](architecture/00_executive_summary.md)**
 *   **[01. API-kerros ja Asynkroninen tapahtumahallinta (Core)](architecture/01_backend_api_and_core.md)**
@@ -23,9 +23,9 @@ The system is built on an unbreakable, strictly typed distributed execution mode
 
 ---
 
-## 🧠 Cognitive Orchestration (Theory)
+## 🧠 Kognitiivinen Orkestraatio (Teoria ja Käytäntö)
 
-How the AI reasons, grounds itself, and maintains continuity without hallucination.
+Asiantuntijadokumentaatio siitä, kuinka tekoäly kytketään todellisuuteen, perustelee päätöksensä ja välttää hallusinaatiot.
 
 *   **[Holistinen Mestaruus](Holistinen%20Mestaruus.md)**: Järjestelmän filosofinen perusta asiantuntijoiden osaamisen skaalaamiseksi yli rutiinien.
 *   **[Agent Workflows Opas](Agent_Workflows_Opas.md)**: Alkuperäinen työnkulkujen ja orkestraation asiantuntijaopas.
@@ -33,16 +33,16 @@ How the AI reasons, grounds itself, and maintains continuity without hallucinati
 
 ---
 
-## 🛠️ Implementation Mandaatit
+## 🛠️ Ylläpitäjän Mandaatit
 
-Technical references for developers and AI agents working on the codebase:
+Tekniset referenssit kehittäjille ja AI-agenteille, jotka operoivat koodikannassa:
 
-*   **[Antigravity Prompt Mandaatit](antigravity_prompting.md)**
-    The core rules system for coding changes (The Zero-Compromise Pledge, The Banned Patterns).
+*   **[Antigravity Prompting](antigravity_prompting.md)**
+    Ydinsäännöstö tekoälyn lähdekoodimuutoksille (The Zero-Compromise Pledge, Blokatut rakenteet).
 *   **[Backend Hardening & Tier Checklists](hardeningback.md)**
-    Strict checklists for enforcing API router anemia and preventing try-except pass leakage.
+    Tiukat tarkistuslistat API-reitittimien puhtauden valvontaan.
 *   **[Reference & Structures](reference.md)**
-    Documentation of core configurations, Seed Data models, and CLI tools.
+    Ydinkonfiguraatioiden, siemendatan ja CLI-työkalujen referenssit.
 
 ---
 
