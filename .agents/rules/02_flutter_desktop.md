@@ -69,8 +69,8 @@
     </rule_block>
     
     <rule_block id="mutation_optimistic_ui">
-        <banned_pattern>Employing full-screen modal loading spinners or holding manual state flags like `bool _isLoading = true;`.</banned_pattern>
-        <mandatory_pattern>Use Riverpod 3.0 `Mutation<T>` paradigms paired with Optimistic Updates to instantly render UI changes locally while syncing softly.</mandatory_pattern>
+        <banned_pattern>Employing full-screen modal loading spinners or holding manual state flags like `bool _isLoading = true;`. Implementing optimistic updates without a failure rollback handling.</banned_pattern>
+        <mandatory_pattern>Use Riverpod 3.0 `Mutation<T>` paradigms paired with Optimistic Updates to instantly render UI changes locally. You MUST ALWAYS implement a state-reversion (rollback) mechanism in the catch/onError block to safely restore the previous state (`ref.invalidate()`) and notify the user (e.g., Toast/Snackbar) if the backend mutation fails.</mandatory_pattern>
     </rule_block>
 
     <rule_block id="transient_input_state">
@@ -91,6 +91,11 @@
     <rule_block id="documentation_and_hygiene">
         <banned_pattern>Drafting comments depicting WHAT the internal code technically does, or utilizing variables named in Finnish.</banned_pattern>
         <mandatory_pattern>Internal Logic execution operates purely in English. External Chat/Explanations operate in Finnish. Only describe WHY a specific business exception was built inline.</mandatory_pattern>
+    </rule_block>
+
+    <rule_block id="graceful_network_degradation">
+        <banned_pattern>Crashing the entire UI via AppErrorBoundary into a red error screen due to transient network latency, HTTP 500/503 errors, or SocketExceptions.</banned_pattern>
+        <mandatory_pattern>Exception to Fail-Fast: While JSON parsing errors MUST crash visibly, pure network connectivity or timeout errors MUST be caught at the Repository or Notifier level. The UI must degrade gracefully into a 'Reconnecting...' or 'AI is processing...' state without destroying the user's active local workspace (e.g., canvas or input forms).</mandatory_pattern>
     </rule_block>
 </architectural_invariants>
 

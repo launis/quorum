@@ -26,6 +26,12 @@
         <mandatory_pattern>FastAPI schemas MUST be centralized in `models/` (SSOT). If a schema changes, you MUST instruct the user to run `generate_openapi.py`.</mandatory_pattern>
         <catastrophic_reason>Duplicate namespaces corrupt the OpenAPI generator and subsequently crash the Flutter Freezed parsers.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="security_logging_ban">
+        <banned_pattern>Logging raw HTTP payloads, user prompts (PII), API keys, or JWT tokens into logs or AppException messages.</banned_pattern>
+        <mandatory_pattern>Log ONLY the mathematical/logical reason for the error and the Opaque System ID (e.g., req_abc123). All external API keys MUST be strictly read via pydantic-settings from environment variables, never hardcoded.</mandatory_pattern>
+        <catastrophic_reason>Logging PII or secrets violates security compliance and exposes the system to catastrophic credential leaks. Furthermore, leaked secrets poison the LLM context if an agent reads `backend_debug.log` to troubleshoot.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>
@@ -57,6 +63,11 @@
     <rule_block id="data_leak_prevention_firewall">
         <banned_pattern>Returning raw DB models natively out of FastAPI endpoints, bypassing Pydantic filtering.</banned_pattern>
         <mandatory_pattern>Every single FastAPI router MUST explicitly define `response_model=UserDTO` to strip hidden database variables out of the HTTP response string, effectively preventing Cross-Tenant Trace Leaks.</mandatory_pattern>
+    </rule_block>
+
+    <rule_block id="llm_structured_outputs">
+        <banned_pattern>Parsing external LLM responses with Regex or relying on raw text outputs.</banned_pattern>
+        <mandatory_pattern>All LLM calls MUST use the Structured Outputs feature (forced JSON Schema). Responses MUST be validated immediately through a dedicated Pydantic model BEFORE business logic. If validation fails, trigger an automatic background retry.</mandatory_pattern>
     </rule_block>
 </architectural_invariants>
 
