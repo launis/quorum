@@ -41,17 +41,17 @@ Do not use static lists for DAG/Workflows. Use `InteractiveViewer` for an Infini
 ## 3. RIVERPOD 3.0 & STATE MANAGEMENT
 
 ### 3.1 Code Gen Mandate
-Only `@riverpod` annotations. Manually written `ChangeNotifier`, `StateProvider`, or old `Provider` logic is BANNED.
+Only `@riverpod` annotations. Manually written `ChangeNotifier`, `StateProvider`, or old `Provider` logic is BANNED. Use `@riverpod(keepAlive: true)` explicitly when defining standard read-only controllers instead of relying solely on manual state preservation.
 
 ### 3.2 Loading Spinners Banned
 Full-screen loading spinners are forbidden. Use **Optimistic Updates**.
 
-### 3.3 Mutations & Loading Flags
-Use Riverpod 3.0 `Mutation<T>` for side effects (save/delete). Manual UI loading flags (like `bool _isLoading`) are heavily BANNED. Read `.isLoading` from the provider state.
+### 3.3 Mutations & UI Listeners
+Use Riverpod 3.0 `Mutation<T>` for side effects (save/delete). Manual UI loading flags (like `bool _isLoading`) are heavily BANNED. Read `.isLoading` from the mutation state. To show SnackBars on error, NEVER embed logic in the `build()` thread. You MUST use hooks or `ref.listen` to intercept error states cleanly without clogging the render tree.
 
 ### 3.4 Hybrid Caching
-- **SWR (Stale-While-Revalidate):** Use `ref.keepAlive()` for Read/Dashboard views to ensure 0ms latency navigation.
-- **TTL (Time-To-Live):** Use TTL for Form inputs to preserve partial states against accidental navigation (e.g., 3 mins).
+- **SWR (Stale-While-Revalidate):** Use `@riverpod(keepAlive: true)` for Read/Dashboard views to ensure 0ms latency navigation.
+- **TTL (Time-To-Live):** Use manual `ref.keepAlive()` with timers for Form inputs to preserve partial states against accidental navigation (e.g., 3 mins).
 
 ### 3.5 Flat MVC List
 Deliver Master-views as `AsyncNotifier<List<FreezedModel>>`. Detail views fetch data via isolated `IdProvider`s (e.g., `modelRegistryByIdProvider(id)`) to support deep linking perfectly, not by filtering the master list.
@@ -96,14 +96,17 @@ Always wrap heavy parsing using `final payload = await Isolate.run(() => jsonDec
 
 ## 6. STRICT FREEZED & DART 3 PATTERN MATCHING
 
-### 6.1 DTO Schema Parity (Fail-Fast Client Firewall)
-Ensure 100% strict JSON conformity (`disallow_unrecognized_keys: true`). No fallback defaults for missing server data (e.g., `String text = ""` is banned). This acts as a Client-Side Firewall: if the backend leaks undocumented extra data to the UI, the JSON parser MUST crash immediately to protect client memory.
+### 6.1 DTO Schema Parity (Fail-Fast Client Firewall & Fallback Ban)
+Ensure 100% strict JSON conformity (`disallow_unrecognized_keys: true`). No fallback defaults or empty states for missing server data (e.g., `String text = ""` or `text ?? "Unknown"`) are allowed. This acts as a Client-Side Firewall: if the backend leaks undocumented extra data to the UI, the JSON parser MUST crash immediately to protect client memory. Silent fallbacks are strictly banned.
 
 ### 6.2 O(1) Lists
 Use native Dart `List<T>` with `@Freezed(equal: false)` to bypass deep equality performance hits on massive lists. Do not inject external immutable collection packages.
 
-### 6.3 Exhaustive Switch (No .when)
-Freezed `.when()` or `.map()` are BANNED. Define polymorphic structures as `@Freezed(unionKey: 'type') sealed class` and ALWAYS use native Dart 3 `switch (state)` with no default fallbacks.
+### 6.3 Exhaustive Switch (Riverpod Widget Rendering)
+Freezed `.when()` or `.map()` are BANNED. Define polymorphic structures as `@Freezed(unionKey: 'type') sealed class`. In Widget `build()` methods handling Riverpod `AsyncValue`, `if-else` chains are BANNED. You MUST always use native Dart 3 `switch` expressions (pattern matching destructuring): `return switch(state) { AsyncData(:final value) => Text(value.id), AsyncLoading() => Spinner(), _ => ErrorBox() };`.
+
+### 6.4 Dart 3 Records (Multiple Returns)
+NEVER create arbitrary DTO classes or return `List<dynamic>` just to output multiple values from a repository or service. You MUST use native Dart 3 Records: `(String, int) fetch()` and destructure them synchronously: `final (id, count) = await repo.fetch();`.
 
 ## 7. FIREBASE CQRS & ZERO-MATH UI
 
@@ -124,8 +127,8 @@ Empty `try { ... } catch (e) {}` blocks are BANNED. You must display an ErrorVie
 ### 8.2 Exception Unwrapping
 Always catch `CheckedFromJsonException` and unwrap the real issue via `.innerError` before escalating to Telemetry.
 
-### 8.3 Absolute Death / Diagnostic Node
-Invalid components must CRASH immediately. A higher-level `AppErrorBoundary` traps the crash and displays a localized "Error Box" (red dashed border, ErrorCode) in place of the widget instead of using `SizedBox.shrink()` to hide corruption.
+### 8.3 Absolute Death / Diagnostic Node (SizedBox.shrink Ban)
+Invalid components must CRASH immediately. A higher-level `AppErrorBoundary` traps the crash and displays a localized "Error Box" (red dashed border, ErrorCode) in place of the widget. It is STRICTLY BANNED to hide corrupted UI elements or swallowed errors using `SizedBox.shrink()`.
 
 ### 8.4 Dual-Reporting
 On HTTP/Network faults, log to `LoggerServiceProvider` (which relays to Backend Telemetry) and `rethrow` to trigger the local UI boundary.

@@ -17,5 +17,6 @@ INSTRUCTIONS (LEVEL 1):
 3. SEQUENCE: Every milestone MUST strictly follow the V2 architecture sequence (Dependencies -> Pydantic Models -> L10n -> Repo -> API -> Frontend Controller -> UI). Note: Frontend domain data MUST NOT use generated models.
 4. UI/UX SCOPING (DESKTOP-FIRST): Remember the Frontend is an IDE-like Desktop-Class Pro Tool. Plan for PC constraints first (>1200dp Three-Pane Layouts, 2D Infinite Canvas, high information density), and gracefully degrade to mobile.
 5. SCOPING: Explicitly map which files are `TARGET (Modify)` and which are `CONTEXT (Read-Only)`.
-6. PAUSE: Present the plan and WAIT for explicit approval ("PERMISSION GRANTED"). Do not implement anything.
+6. VERIFICATION PLAN: You MUST include a "Verification & Quality Gate Plan" at the end of the `implementation_plan.md`. Explicitly list which new unit test files (pytest/flutter test) will be created, and state that the correct Universal Quality Gate tools (Ruff/Mypy/OpenAPI/Dart/build_runner) will be executed for these changes.
+7. PAUSE: Present the plan and WAIT for explicit approval ("PERMISSION GRANTED"). Do not implement anything.
 ```

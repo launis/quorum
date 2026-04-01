@@ -16,24 +16,17 @@ Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus
 **STEP 2: Systemaattinen Auditointi (One Subdirectory At A Time)**
 Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
 1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto.
-2. Lue KAIKKI kyseisen alihakemiston `.py`-tiedostot (huomioiden sivuutettavat kansiot).
-3. Peilaa koodia TARKASTI 2026-arkkitehtuurisääntöihin:
-   - **Fail-Fast & Dual-Reporting:** Onko koodissa nieltyjä virheitä (`try: ... except Exception: pass`) tai palautetaanko virhetilanteessa hiljaa `None`, `{}` tai `[]`? Puuttuuko catch-lohkoista rakenteellinen lokitus (`logger.error(..., exc_info=True)`) tai onko lokeissa kiellettyjä f-stringejä (`extra={}` sijaan)?
-   - **AppException (RFC 7807):** Heitetäänkö API- tai Service-kerroksessa raakoja `HTTPException` tai `ValueError` -luokkia oman RFC 7807 -standardoidun `AppException`in sijaan?
-   - **Strict Pydantic V2 & No Naked Dicts (2026 SOTA):** 
-     - **DTO Mandate:** Etsi ja poista `dict`- ja `**kwargs`-rakenteet tiedonsiirrosta kerrosten välillä. Kaikki säännönmukainen data on korvattava tyypitetyillä Pydantic V2 -malleilla. `dict` on sallittu vain apufunktioiden tuntemattomissa metadatakentissä.
-     - **V1 -> V2 Migraatio:** Varmista, ettei koodissa ole V1-jäänteitä. Korvaa `.dict()` -> `.model_dump()`, `.parse_obj()` -> `.model_validate()`, `class Config:` -> `model_config = ConfigDict(...)` ja `@validator` -> `@field_validator`.
-     - **Strict Pydantic & Zero Backward Compatibility:** Kaikkiin paluuarvo- ja siirtomalleihin on lisättävä `model_config = ConfigDict(strict=True, frozen=True, extra='forbid')`. Ei fallbackeja. Mutaatiot kielletty: jos tilaa pitää vaihtaa, käytä `.model_copy(update={...})`. Poikkeus: Backend-mallien (esim. `V2CoreBase`) lokaaleille Enum-kentille sallitaan `strict=False` tietokannasta luvun turvaamiseksi.
-     - **Rust-Parsing:** Käytä aina suoraan `Model.model_validate_json(data)` -metodia, älä hidasta `json.loads(data)` -purkua.
-     - **O(1) Polymorfismi:** Union-rakenteissa (`A | B`) vaadi aina Discriminated Unions -määritys (`Field(discriminator='type')`).
-     - **Annotated (PEP 593):** Erota tyyppirajoitteet: `id: Annotated[int, Field(...)]`.
-     - **Inline Schema Ban & OpenAPI Sync:** Etsi reitittimistä (`api/routers/`) lennosta määriteltyjä Pydantic-luokkia (esim. `class XResponse(BaseModel):`). Nämä on EHDOTTOMASTI siirrettävä `models/` -hakemistoon (SSOT). Jos teet siirron tai muokkaat mitä tahansa malleja, muistuta käyttäjää AINA ajamaan ohjeistetusti `uv run python backend_v2/scripts/generate_openapi.py` CI/CD-putken kaatumisen estämiseksi.
-   - **Data Leak Prevention (Zero Leaks Mandate):** Onko JOKAISELLA FastAPI-reitittimellä yksiselitteinen `response_model`? Varmista, ettei yhtäkään tietokantamallia palauteta sellaisenaan ulos, vaan se on karsittu turvalliseksi DTO-malliksi Pydanticilla. Varmista myös, että Service-kerros hoitaa järjestelmällisesti Tenant Isolation -vuokralaiseristyksen (kukaan ei voi lukea toisen organisaation dataa).
-   - **Single Responsibility Principle (SRP) & Anemic Routers:** Noudattavatko kaikki kerrokset tiukkaa SRP-arkkitehtuuria? Reititin (HTTP/Reititys), Service (Liiketoiminta/RBAC) ja Repository (Tietokanta) EIVÄT SAA hoitaa toistensa rooleja. Etsi ja hylkää / pilko "Jumala-funktiot", jotka tekevät asioita yli oman vastuualueensa.
-   - **Structured Concurrency (2026):** Käytetäänkö asynkronisessa rinnakkaisuudessa orpoja säikeitä jättäviä `asyncio.gather()` tai `asyncio.create_task()` -kutsuja modernin ja turvallisen `asyncio.TaskGroup()` -kontekstin sijaan?
-   - **Modern Typing & DI (Python 3.14+):** Käytetäänkö FastAPI:n injektioissa uutta `Annotated[Type, Depends()]` -syntaksia? Onko käytössä legacy-tyyppejä (`Optional`, `Union`, `List`, `Dict`) modernien natiivityyppien sijaan? Puuttuuko ylikirjoitetuista metodeista `@override` (PEP 698)?
-   - **No-Strings Mandate:** Onko backendissä kovakoodattuja UI-tekstejä dynaamisten Enum-avainten sijaan?
-4. Raportoi löydökset kansion sisältä. Jos alihakemisto on puhdas, kerro se. Pysähdy odottamaan komentoa "FIX" (jos virheitä löytyi) tai "NEXT" (jos kansio oli puhdas).
+2. Vastaa aina ensin tällä tarkistuslistalla ennen analyysin tulostamista tai koodin lukemista. Konkreettiset ohjeet, kiellot ja soveltamistavat jokaiselle teemalle löytyvät sähkeestä `01-python-backend.md`. Etsi ja auditoi koodista nämä teemat:
+
+> **AUDITOINTIMANDAATIT VAHVISTETTU (Ks. `01-python-backend.md`):**
+> [ ] Fail-Fast & Dual-Reporting
+> [ ] AppException (RFC 7807)
+> [ ] Strict Pydantic V2 & No Naked Dicts
+> [ ] Data Leak Prevention & SRP
+> [ ] Modern Typing & No-Strings Mandate
+
+3. Lue KAIKKI kyseisen alihakemiston `.py`-tiedostot (huomioiden sivuutettavat kansiot). Työskentele yllä olevan tarkistuslistan avulla peilaten löydöksiä `01-python-backend.md` mukaisiksi. Raportoi löydökset kansion sisältä. Jos alihakemisto on puhdas, kerro se. Pysähdy odottamaan komentoa "FIX" (jos virheitä löytyi) tai "NEXT" (jos kansio oli puhdas).
+
 
 # 🛑 EHDOTON TOIMINTAOHJE: KORJAUSVAIHE (STEP 3 - REMEDIATION) 🛑
 

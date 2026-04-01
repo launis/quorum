@@ -46,7 +46,7 @@ The system strictly enforces the Single Responsibility Principle across the "Thr
 ### 2.2 Execution & Silence Bans
 - **FastAPI Async/Sync Rule:** If a router only reads from TinyDB (which is blocking), the route MUST be a synchronous `def`. If the route calls LLMs, Firebase, or Arq, it MUST be `async def`.
 - **Silent Failures are BANNED:** NEVER use `try: ... except Exception: pass` in Python. Exceptions must NEVER be swallowed silently. They must be logged, properly handled, or re-thrown.
-- **Service Boundary Fail-Fast:** If data is invalid or missing, crash immediately at the Service boundary. Do not return `None`, `{}`, or `[]` to silently bypass errors. Fix the root cause.
+- **Service Boundary Fail-Fast (Fallback Ban):** If data is invalid or missing, crash immediately at the Service boundary. You are STRICTLY BANNED from returning default values, `None`, `{}`, or `[]` to silently bypass errors. Pydantic models must CRASH (Fail-Fast) if data does not match the strictest form. Fix the root cause.
 - **Dual-Reporting Python:** Always log errors structurally (`logger.error`) BEFORE raising `AppException`.
 
 ### 2.3 Strictness & Hardcoding
@@ -56,6 +56,14 @@ The system strictly enforces the Single Responsibility Principle across the "Thr
 ### 2.4 Data Leak Prevention (Zero Leaks Mandate)
 - **Absolute Response Model Mandate:** EVERY FastAPI router MUST have an explicit `response_model` definition (e.g. `@router.get("/", response_model=UserDTO)`). 
 - **No Raw Database Model Leaks:** You MUST NEVER leak internal database models directly to the UI. All returned models must be stripped down to safe Data Transfer Objects (DTOs) via Pydantic to prevent exposing password hashes, internal system parameters, or cross-tenant traces.
+
+### 2.5 The 2026 Modern Python 3.14 Syntax Mandate
+You MUST utilize the most advanced native syntax features of Python 3.14 and Pydantic V2. Legacy patterns are strictly BANNED:
+1. **PEP 695 Generics:** Legacy `TypeVar` and `Generic[T]` usage is BANNED. Use native generic syntax: `def process[T](data: T) -> T:` and `class Repo[T]:`.
+2. **PEP 698 Overrides:** When implementing abstract methods or subclassing Service interfaces, you MUST use the `@override` decorator to enforce compile-time certainty (`from typing import override`).
+3. **Concurrency (TaskGroups):** `asyncio.gather()` is deprecated overhead. All parallel asynchronous execution MUST use `async with asyncio.TaskGroup() as tg:` to ensure deterministic cancellation (Fail-Fast behavior).
+4. **Union & Optional:** Legacy `Optional[X]` and `Union[X, Y]` type hints are BANNED. You MUST use the native bitwise operator: `X | None` or `X | Y`.
+5. **Structural Pattern Matching:** When consuming Polymorphic objects (Discriminated Unions from Pydantic models), `if-elif isinstance()` chains are BANNED. You MUST use native structural matching (O(1) routing): `match event: case EventA(): ... case EventB(): ...`.
 
 ## 3. DATA PARITY, DATABASE & CQRS
 

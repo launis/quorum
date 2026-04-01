@@ -16,26 +16,23 @@ Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus
 **STEP 2: Systemaattinen Auditointi (One Subdirectory At A Time)**
 Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
 1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto.
-2. Vastaa aina ensin tällä tarkistuslistalla ennen analyysin tulostamista tai koodin lukemista:
+2. Vastaa aina ensin tällä tarkistuslistalla ennen analyysin tulostamista tai koodin lukemista. Konkreettiset ohjeet, kiellot ja soveltamistavat jokaiselle teemalle löytyvät sähkeestä `02_flutter_desktop.md`. Etsi ja auditoi koodista nämä teemat:
 
-> **AUDITOINTIMANDAATIT VAHVISTETTU:**
+> **AUDITOINTIMANDAATIT VAHVISTETTU (Ks. `02_flutter_desktop.md`):**
 > [ ] Vain YKSI alin alihakemisto valittu analyysiin.
 > [ ] Generoidut tiedostot (`.g.dart`, `.freezed.dart`) ohitettu onnistuneesti.
-> [ ] Fail-Fast tarkistettu (ei oletusarvoja, ei fallbackeja).
-> [ ] Client-Side Zero Leaks (Freezed-malleissa EHDOTTOMASTI `disallow_unrecognized_keys: true`, tuntematon/vuotanut JSON kaataa heti).
-> [ ] Riverpod State Isolation (Tenant-vaihdoksissa tai reitityksissä vanha välimuisti validoidaan, ei tilavuotoja).
-> [ ] Strict Nirvana (Freezed-mallien tiukkuus, ei `.when()`/`.map()`, vaan natiivi Dart 3 `switch`).
-> [ ] The Three Riverpod Boundaries (SRP): Widgetit tekevät vain UI:n, Notifierit vain tilan, Repot vain HTTP:n. "Jumala-Widgetit" hylätään!
-> [ ] Exception Unwrapping (nappaa `CheckedFromJsonException` ja kaiva `.innerError` esiin).
-> [ ] Zero-Touch Lists (Raskaat RAG-listat ovat natiiveja `List<T>` muodossa `@Freezed(equal: false)` kera, fast_immutable_collections-pakettia ei käytetä).
-> [ ] Isolate Mandate (kaikki raskaat JSON-purut pidetään `Isolate.run`-sisällä Freezedistä huolimatta).
-> [ ] The Single Source of Truth tsekattu (mallit noudattavat `seed_data.json` rakennetta).
-> [ ] No-strings mandaatti tarkistettu (ei kovakoodattuja UI-tekstejä, käytössä `.arb`).
-> [ ] Vanhat Providerit tarkistettu (pakotettu `@riverpod` koodigenerointi).
-> [ ] Opaque IDs pakotettu (GoRouter käyttää vain ID:tä, ei koskaan map-dataa tai slugia reitityslähteenä, lokaali `.slug` on vain kosmetiikkaa).
-> [ ] "Mock Login" poikkeukset huomioitu (kovakoodaukset sallittu täällä).
+> [ ] Fail-Fast Client Firewall (Strict JSON, ei oletusarvoja/fallbackeja).
+> [ ] Riverpod Code Gen Mandate (Vain `@riverpod` sallittu, ei manuaalisia providereita).
+> [ ] State Management & Loading Flags (Optimistic updates, ei raskaiden latausten vilkuttamista UI:ssa).
+> [ ] The Three Riverpod Boundaries (Säännöt Widgettien, Notifierien ja Repo-rajapintojen välillä, ei "Jumala-widgettejä").
+> [ ] Frontend Zero Leaks (Riverpod tilojen invalidointi suojauksena).
+> [ ] Error Handling & Unwrapping (RFC 7807, AppErrorBoundary, ei tyhjiä catch-lohkoja, InnerError esiin).
+> [ ] Concurrency & Isolate Mandate (Raskaat JSON-purut turvakaranteeniin).
+> [ ] Strict Freezed & Dart 3 Pattern Matching (Natiivi switch, map/when kiellot, O(1) listat).
+> [ ] Strongly Typed Routing & $extra Ban (Vain URL-pohjainen Opaque ID-reititys, ei objektien siirtoa reitittimen avulla).
+> [ ] Zero-Hardcoding & 5-Layer I18N (Backend Enums, ei UI-merkkijonoja liiketoimintalogiikassa ehtolauseina).
 
-3. Lue KAIKKI kyseisen alihakemiston `.dart`-tiedostot (pl. sivuutettavat). Raportoi löydökset kansion sisältä. Jos alihakemisto on puhdas, kerro se. Pysähdy odottamaan komentoa "FIX" (jos virheitä löytyi) tai "NEXT" (jos kansio oli puhdas).
+3. Lue KAIKKI kyseisen alihakemiston `.dart`-tiedostot (pl. sivuutettavat). Työskentele yllä olevan tarkistuslistan avulla peilaten löydöksiä `02_flutter_desktop.md` mukaisiksi. Raportoi löydökset kansion sisältä. Jos alihakemisto on puhdas, kerro se. Pysähdy odottamaan komentoa "FIX" (jos virheitä löytyi) tai "NEXT" (jos kansio oli puhdas).
 
 # 🛑 EHDOTON TOIMINTAOHJE: KORJAUSVAIHE (STEP 3 - REMEDIATION) 🛑
 
