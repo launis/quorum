@@ -5,12 +5,7 @@ from pydantic import BaseModel
 
 from backend_v2.api.dependencies import AuthServiceDep, CurrentUserDep
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import User, UserUpdate
-
-
-class UserDeleteResponse(BaseModel):
-    status: str
-    deleted_id: str
+from backend_v2.models.auth import User, UserDeleteResponse, UserUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +50,7 @@ async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthS
     """Delete a user from the system securely via SSOT Service Layer."""
     try:
         await auth_service.delete_user(current_user.id, id)
-        return UserDeleteResponse(status="success", deleted_id=id)
+        return UserDeleteResponse(status="success", id=id)
     except AppException:
         raise
     except Exception as e:
