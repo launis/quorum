@@ -126,7 +126,7 @@
           "Authentication & Users"
         ],
         "summary": "List Users",
-        "description": "List users visible to the current user (scoped by Organization).\n\nArgs:\n    current_user (CurrentUserDep): The requesting user.\n    auth_service (AuthServiceDep): Authorization service.\n\nReturns:\n    list[User]: A list of accessible user profiles.",
+        "description": "List users visible to the current user (scoped by Organization).",
         "operationId": "list_users_api_v2_iam_auth_users_get",
         "responses": {
           "200": {
@@ -490,9 +490,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete User Api V2 Iam Users  Id  Delete"
+                  "$ref": "#/components/schemas/backend_v2__api__routers__iam__users__UserDeleteResponse"
                 }
               }
             }
@@ -673,9 +671,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Organization Api V2 Iam Organizations  Id  Delete"
+                  "$ref": "#/components/schemas/OrganizationDeleteResponse"
                 }
               }
             }
@@ -913,6 +909,54 @@
         }
       }
     },
+    "/api/v2/execution/executions/{execution_id}/resume": {
+      "post": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Resume Execution",
+        "description": "Resume a failed execution securely via SSOT.",
+        "operationId": "resume_execution_api_v2_execution_executions__execution_id__resume_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "execution_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Execution Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v2/execution/executions/{execution_id}/stream": {
       "get": {
         "tags": [
@@ -1127,11 +1171,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "title": "Response Generate Pdf Async Api V2 Execution Executions  Execution Id  Render Pdf Post"
+                  "$ref": "#/components/schemas/JobAcceptedDTO"
                 }
               }
             }
@@ -1179,9 +1219,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Workflow Ui Schema Api V2 Execution Workflows  Workflow Id  Ui Schema Get"
+                  "$ref": "#/components/schemas/WorkflowSchemaResponse"
                 }
               }
             }
@@ -1228,32 +1266,14 @@
             "HTTPBearer": []
           }
         ]
-      }
-    },
-    "/api/v2/studio/workflows/by-slug/{slug}": {
-      "get": {
+      },
+      "post": {
         "tags": [
           "Admin Studio V2 - Workflows"
         ],
-        "summary": "Get Workflow By Slug",
-        "description": "Retrieve a specific workflow definition by slug securely via SSOT Service Layer.",
-        "operationId": "get_workflow_by_slug_api_v2_studio_workflows_by_slug__slug__get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "slug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Slug"
-            }
-          }
-        ],
+        "summary": "Create Workflow",
+        "description": "Create a new Workflow draft securely via SSOT Service Layer.",
+        "operationId": "create_workflow_api_v2_studio_workflows__post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1264,18 +1284,13 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v2/studio/workflows/{id}": {
@@ -1284,7 +1299,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Get Workflow",
-        "description": "Retrieve a specific workflow definition securely via SSOT Service Layer.",
+        "description": "Retrieve a specific workflow definition by id securely via SSOT Service Layer.",
         "operationId": "get_workflow_api_v2_studio_workflows__id__get",
         "security": [
           {
@@ -1410,9 +1425,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Workflow Api V2 Studio Workflows  Id  Delete"
+                  "$ref": "#/components/schemas/WorkflowDeleteResponse"
                 }
               }
             }
@@ -1430,13 +1443,155 @@
         }
       }
     },
+    "/api/v2/studio/workflows/simulate": {
+      "post": {
+        "tags": [
+          "Admin Studio V2 - Workflows"
+        ],
+        "summary": "Simulate Workflow",
+        "description": "Dry-run and validate a workflow DAG topology before saving.",
+        "operationId": "simulate_workflow_api_v2_studio_workflows_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Workflow-Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowSimulationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/studio/workflows/{id}/clone": {
+      "post": {
+        "tags": [
+          "Admin Studio V2 - Workflows"
+        ],
+        "summary": "Clone Workflow",
+        "description": "Deep clone a workflow block securely via SSOT Service Layer.",
+        "operationId": "clone_workflow_api_v2_studio_workflows__id__clone_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Workflow-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/studio/prompt-blocks/simulate": {
+      "post": {
+        "tags": [
+          "Admin Studio V2 - Prompt Blocks"
+        ],
+        "summary": "Simulate Prompt Block",
+        "description": "Dry-run and validate a PromptBlock template rendering.",
+        "operationId": "simulate_prompt_block_api_v2_studio_prompt_blocks_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptBlockSimulationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptBlockSimulationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v2/studio/prompt-blocks/": {
       "get": {
         "tags": [
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Get Prompt Blocks",
-        "description": "Retrieve all prompt blocks securely via SSOT Service Layer.",
+        "description": "Retrieve all PromptBlocks securely.",
         "operationId": "get_prompt_blocks_api_v2_studio_prompt_blocks__get",
         "responses": {
           "200": {
@@ -1459,32 +1614,14 @@
             "HTTPBearer": []
           }
         ]
-      }
-    },
-    "/api/v2/studio/prompt-blocks/by-slug/{slug}": {
-      "get": {
+      },
+      "post": {
         "tags": [
           "Admin Studio V2 - Prompt Blocks"
         ],
-        "summary": "Get Prompt Block By Slug",
-        "description": "Retrieve a specific prompt block by slug securely via SSOT Service Layer.",
-        "operationId": "get_prompt_block_by_slug_api_v2_studio_prompt_blocks_by_slug__slug__get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "slug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Slug"
-            }
-          }
-        ],
+        "summary": "Create Prompt Block",
+        "description": "Create a new PromptBlock draft securely via SSOT.",
+        "operationId": "create_prompt_block_api_v2_studio_prompt_blocks__post",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1495,18 +1632,13 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v2/studio/prompt-blocks/{id}": {
@@ -1515,7 +1647,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Get Prompt Block",
-        "description": "Retrieve a specific prompt block securely via SSOT Service Layer.",
+        "description": "Retrieve a specific prompt block by id securely via SSOT Service Layer.",
         "operationId": "get_prompt_block_api_v2_studio_prompt_blocks__id__get",
         "security": [
           {
@@ -1651,9 +1783,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Prompt Block Api V2 Studio Prompt Blocks  Id  Delete"
+                  "$ref": "#/components/schemas/PromptBlockDeleteResponse"
                 }
               }
             }
@@ -1671,13 +1801,108 @@
         }
       }
     },
+    "/api/v2/studio/prompt-blocks/{id}/clone": {
+      "post": {
+        "tags": [
+          "Admin Studio V2 - Prompt Blocks"
+        ],
+        "summary": "Clone Prompt Block",
+        "description": "Deep clone a prompt block securely via SSOT Service Layer.",
+        "operationId": "clone_prompt_block_api_v2_studio_prompt_blocks__id__clone_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptBlock-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/studio/steps/simulate": {
+      "post": {
+        "tags": [
+          "Admin Studio V2 - Steps"
+        ],
+        "summary": "Simulate Step",
+        "description": "Dry-run and validate a Step (TaskBlueprint) by compiling its prompt blocks.",
+        "operationId": "simulate_step_api_v2_studio_steps_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StepSimulationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StepSimulationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v2/studio/steps/": {
       "get": {
         "tags": [
           "Admin Studio V2 - Steps"
         ],
         "summary": "Get Steps",
-        "description": "Retrieve all independent Steps securely via SSOT Service Layer.",
+        "description": "Retrieve all V2 dynamic step execution block schemas securely via SSOT.",
         "operationId": "get_steps_api_v2_studio_steps__get",
         "responses": {
           "200": {
@@ -1690,6 +1915,31 @@
                   },
                   "type": "array",
                   "title": "Response Get Steps Api V2 Studio Steps  Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Admin Studio V2 - Steps"
+        ],
+        "summary": "Create Step",
+        "description": "Create a new Step draft securely via SSOT.",
+        "operationId": "create_step_api_v2_studio_steps__post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Step"
                 }
               }
             }
@@ -1844,9 +2094,55 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Step Api V2 Studio Steps  Id  Delete"
+                  "$ref": "#/components/schemas/StepDeleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/studio/steps/{id}/clone": {
+      "post": {
+        "tags": [
+          "Admin Studio V2 - Steps"
+        ],
+        "summary": "Clone Step",
+        "description": "Deep clone a step securely via SSOT Service Layer.",
+        "operationId": "clone_step_api_v2_studio_steps__id__clone_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Step"
                 }
               }
             }
@@ -1924,6 +2220,31 @@
             "HTTPBearer": []
           }
         ]
+      },
+      "post": {
+        "tags": [
+          "Admin Studio V2 - Model Registry"
+        ],
+        "summary": "Create Model Registry",
+        "description": "Create a new Model Registry config draft securely via SSOT Service Layer.",
+        "operationId": "create_model_registry_api_v2_studio_model_registry__post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemConfigModelRegistry"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v2/studio/model-registry/{registry_id}": {
@@ -1932,7 +2253,7 @@
           "Admin Studio V2 - Model Registry"
         ],
         "summary": "Get Model Registry",
-        "description": "Retrieve a specific model registry configuration securely via SSOT Service Layer.",
+        "description": "Retrieve a single model registry configuration securely via SSOT Service Layer.",
         "operationId": "get_model_registry_api_v2_studio_model_registry__registry_id__get",
         "security": [
           {
@@ -2058,9 +2379,309 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Model Registry Api V2 Studio Model Registry  Registry Id  Delete"
+                  "$ref": "#/components/schemas/ModelRegistryDeleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/studio/model-registry/{registry_id}/clone": {
+      "post": {
+        "tags": [
+          "Admin Studio V2 - Model Registry"
+        ],
+        "summary": "Clone Model Registry",
+        "description": "Deep clone a model registry configuration securely via SSOT Service Layer.",
+        "operationId": "clone_model_registry_api_v2_studio_model_registry__registry_id__clone_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "registry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Registry Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemConfigModelRegistry"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/studio/mcp-gateways/": {
+      "get": {
+        "tags": [
+          "Admin Studio V2 - MCP Gateways"
+        ],
+        "summary": "Get All Mcp Gateways",
+        "description": "Retrieve all MCP Gateways configurations securely via SSOT Service Layer.",
+        "operationId": "get_all_mcp_gateways_api_v2_studio_mcp_gateways__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
+                  },
+                  "type": "array",
+                  "title": "Response Get All Mcp Gateways Api V2 Studio Mcp Gateways  Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Admin Studio V2 - MCP Gateways"
+        ],
+        "summary": "Create Mcp Gateways",
+        "description": "Create a new MCP Gateway Config draft securely via SSOT.",
+        "operationId": "create_mcp_gateways_api_v2_studio_mcp_gateways__post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/studio/mcp-gateways/{gateway_id}": {
+      "get": {
+        "tags": [
+          "Admin Studio V2 - MCP Gateways"
+        ],
+        "summary": "Get Mcp Gateway",
+        "description": "Retrieve a single MCP Gateway configuration securely via SSOT Service Layer.",
+        "operationId": "get_mcp_gateway_api_v2_studio_mcp_gateways__gateway_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "gateway_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Gateway Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin Studio V2 - MCP Gateways"
+        ],
+        "summary": "Save Mcp Gateway",
+        "description": "Update an MCP Gateway configuration securely via SSOT Service Layer.",
+        "operationId": "save_mcp_gateway_api_v2_studio_mcp_gateways__gateway_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "gateway_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Gateway Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemConfigMCPGateways-Input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin Studio V2 - MCP Gateways"
+        ],
+        "summary": "Delete Mcp Gateway",
+        "description": "Delete an MCP Gateway configuration securely via SSOT Service Layer.",
+        "operationId": "delete_mcp_gateway_api_v2_studio_mcp_gateways__gateway_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "gateway_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Gateway Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPGatewayDeleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/studio/mcp-gateways/{gateway_id}/clone": {
+      "post": {
+        "tags": [
+          "Admin Studio V2 - MCP Gateways"
+        ],
+        "summary": "Clone Mcp Gateway",
+        "description": "Deep clone an MCP Gateway configuration securely via SSOT Service Layer.",
+        "operationId": "clone_mcp_gateway_api_v2_studio_mcp_gateways__gateway_id__clone_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "gateway_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Gateway Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
                 }
               }
             }
@@ -2097,6 +2718,31 @@
                   },
                   "type": "array",
                   "title": "Response List Output Profiles Api V2 Output Profiles  Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Output Profiles"
+        ],
+        "summary": "Create Output Profile",
+        "description": "Create a new Output Profile draft securely via SSOT Service Layer.",
+        "operationId": "create_output_profile_api_v2_output_profiles__post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputProfileResponseDTO"
                 }
               }
             }
@@ -2251,10 +2897,91 @@
           }
         }
       }
+    },
+    "/api/v2/output-profiles/{profile_id}/clone": {
+      "post": {
+        "tags": [
+          "Output Profiles"
+        ],
+        "summary": "Clone Output Profile",
+        "description": "Deep clone an Output Profile.",
+        "operationId": "clone_output_profile_api_v2_output_profiles__profile_id__clone_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputProfileResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AllowedMCPTool": {
+        "properties": {
+          "tool_id": {
+            "type": "string",
+            "title": "Tool Id",
+            "description": "Unique slug (e.g. 'mcp_tavily_search')."
+          },
+          "name": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized display name."
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "English-only LLM description for function calling schema."
+          },
+          "input_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input Schema",
+            "description": "JSON Schema defining the tool's input parameters."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "tool_id",
+          "name",
+          "description"
+        ],
+        "title": "AllowedMCPTool",
+        "description": "Declares a single MCP tool available for LLM function calling."
+      },
       "BlockDataType": {
         "type": "string",
         "enum": [
@@ -2344,19 +3071,13 @@
             "default": "error"
           },
           "context_data": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "additionalProperties": true,
+            "type": "object",
             "title": "Context Data",
             "description": "Additional context or state dump"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "error_message"
@@ -2423,6 +3144,150 @@
         "title": "DataDictionaryField",
         "description": "UI Hints mapping for dynamic form generation (SDUI)."
       },
+      "EmbeddedOutputProfile-Input": {
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized name of the profile."
+          },
+          "display_scale": {
+            "type": "string",
+            "enum": [
+              "original",
+              "custom",
+              "normalized_100"
+            ],
+            "title": "Display Scale",
+            "description": "Selects the source scaling for the scores printed by Blueprint.",
+            "default": "original"
+          },
+          "layouts": {
+            "items": {
+              "$ref": "#/components/schemas/OutputLayoutBlock"
+            },
+            "type": "array",
+            "title": "Layouts",
+            "description": "Ordered sequence of layout blocks."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "EmbeddedOutputProfile",
+        "description": "Embedded configuration mapping for workflow output profiles."
+      },
+      "EmbeddedOutputProfile-Output": {
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized name of the profile."
+          },
+          "display_scale": {
+            "type": "string",
+            "enum": [
+              "original",
+              "custom",
+              "normalized_100"
+            ],
+            "title": "Display Scale",
+            "description": "Selects the source scaling for the scores printed by Blueprint.",
+            "default": "original"
+          },
+          "layouts": {
+            "items": {
+              "$ref": "#/components/schemas/OutputLayoutBlock"
+            },
+            "type": "array",
+            "title": "Layouts",
+            "description": "Ordered sequence of layout blocks."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "EmbeddedOutputProfile",
+        "description": "Embedded configuration mapping for workflow output profiles."
+      },
+      "ErrorTraceEvent": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Event Id",
+            "description": "Unique event identifier."
+          },
+          "v": {
+            "type": "integer",
+            "title": "V",
+            "description": "Schema version for forward compatibility and lazy upcasting.",
+            "default": 1
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "Event timestamp."
+          },
+          "step_name": {
+            "type": "string",
+            "title": "Step Name",
+            "description": "Name of the step that generated this event.",
+            "x-ui-label": "Step Name"
+          },
+          "event_type": {
+            "type": "string",
+            "const": "error",
+            "title": "Event Type",
+            "default": "error"
+          },
+          "content": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Content",
+            "description": "Structured content of the event."
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReasoningTrace"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Associated reasoning trace."
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Additional metadata."
+          },
+          "error_code": {
+            "type": "string",
+            "title": "Error Code",
+            "description": "The standard ErrorCode string."
+          },
+          "error_message": {
+            "type": "string",
+            "title": "Error Message",
+            "description": "Detailed error message."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "step_name",
+          "error_code",
+          "error_message"
+        ],
+        "title": "ErrorTraceEvent",
+        "description": "Specific event representing a fail-fast error katkos."
+      },
       "ExecutionCreate": {
         "properties": {
           "workflow_id": {
@@ -2453,7 +3318,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             "title": "Id",
             "description": "Execution ID, usually a uuid"
           },
@@ -2476,8 +3341,7 @@
               }
             ],
             "title": "Active Profile Id",
-            "description": "The ID of the output profile selected for formatting and printing.",
-            "default": "default"
+            "description": "The ID of the output profile selected for formatting and printing."
           },
           "raw_inputs": {
             "$ref": "#/components/schemas/WorkflowInputs",
@@ -2487,21 +3351,7 @@
             "$ref": "#/components/schemas/FrozenContext",
             "description": "Immutable snapshot of context"
           },
-          "step_states": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/ExecutionStepState"
-            },
-            "type": "object",
-            "title": "Step States",
-            "description": "Real-time timeline status of individual nodes"
-          },
-          "results": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Results",
-            "description": "Step-by-step LLM output results"
-          },
-          "results_storage_path": {
+          "frozen_context_storage_path": {
             "anyOf": [
               {
                 "type": "string"
@@ -2510,8 +3360,38 @@
                 "type": "null"
               }
             ],
-            "title": "Results Storage Path",
-            "description": "Path to offloaded massive results JSON in Cloud Storage."
+            "title": "Frozen Context Storage Path",
+            "description": "Optional path to Blob Storage offloaded Frozen Context JSON"
+          },
+          "execution_trace": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorTraceEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TombstoneEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TraceEvent"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Execution Trace",
+            "description": "Immutable log of all events (Event Sourcing)."
+          },
+          "execution_trace_storage_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Trace Storage Path",
+            "description": "Optional path to Blob Storage offloaded Execution Trace JSON"
           },
           "pdf_report_path": {
             "anyOf": [
@@ -2525,65 +3405,13 @@
             "title": "Pdf Report Path",
             "description": "Path to the generated PDF Execution Report."
           },
-          "frozen_context_storage_path": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Frozen Context Storage Path",
-            "description": "Path to offloaded frozen context JSON in Cloud Storage."
-          },
-          "execution_trace_storage_path": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Execution Trace Storage Path",
-            "description": "Path to offloaded execution trace log in Cloud Storage."
-          },
-          "cost_estimate": {
-            "type": "number",
-            "title": "Cost Estimate",
-            "description": "Total estimated cost of the execution in USD",
-            "default": 0.0
-          },
-          "prompt_tokens": {
-            "type": "integer",
-            "title": "Prompt Tokens",
-            "description": "Cumulative input tokens used",
-            "default": 0
-          },
-          "completion_tokens": {
-            "type": "integer",
-            "title": "Completion Tokens",
-            "description": "Cumulative output tokens generated",
-            "default": 0
-          },
-          "total_tokens": {
-            "type": "integer",
-            "title": "Total Tokens",
-            "description": "Cumulative total tokens consumed",
-            "default": 0
-          },
-          "cached_tokens": {
-            "type": "integer",
-            "title": "Cached Tokens",
-            "description": "Cumulative tokens retrieved from cache (discounted)",
-            "default": 0
-          },
-          "reasoning_tokens": {
-            "type": "integer",
-            "title": "Reasoning Tokens",
-            "description": "Cumulative tokens generated through internal reasoning (CoT)",
-            "default": 0
+          "step_states": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ExecutionStepState"
+            },
+            "type": "object",
+            "title": "Step States",
+            "description": "Real-time status tracking for DAG nodes"
           },
           "duration_ms": {
             "type": "integer",
@@ -2692,7 +3520,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             "title": "Id",
             "description": "Step ID"
           },
@@ -2706,6 +3534,18 @@
             "title": "Status",
             "description": "Status: pending, running, completed, failed",
             "default": "pending"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error",
+            "description": "Error message if the step failed"
           }
         },
         "additionalProperties": false,
@@ -2881,6 +3721,14 @@
             "type": "object",
             "title": "Ui Hints Snapshot",
             "description": "UI rendering instructions."
+          },
+          "mcp_tool_audit": {
+            "items": {
+              "$ref": "#/components/schemas/MCPAuditTrace"
+            },
+            "type": "array",
+            "title": "Mcp Tool Audit",
+            "description": "Immutable log of all external MCP tool calls made during execution."
           }
         },
         "additionalProperties": false,
@@ -2911,6 +3759,7 @@
             "title": "Hooks"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "hooks"
@@ -2975,17 +3824,28 @@
         "title": "ImpersonationResponse",
         "description": "Response containing the impersonation token."
       },
-      "LayoutType": {
-        "type": "string",
-        "enum": [
-          "automatic",
-          "box_1d",
-          "matrix_2d",
-          "radar_3d",
-          "excel_row"
+      "JobAcceptedDTO": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "execution_id": {
+            "type": "string",
+            "title": "Execution Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "message",
+          "execution_id"
         ],
-        "title": "LayoutType",
-        "description": "Supported render types for Output Profiles."
+        "title": "JobAcceptedDTO"
       },
       "LoginResponse": {
         "properties": {
@@ -3015,6 +3875,78 @@
         ],
         "title": "LoginResponse",
         "description": "Response model for successful login.\n\nAttributes:\n    user (User): The full user profile.\n    token_valid (bool): Confirmation of token validity.\n    debug_msg (Optional[str]): Debug information (mock vs real)."
+      },
+      "MCPAuditTrace": {
+        "properties": {
+          "tool_id": {
+            "type": "string",
+            "title": "Tool Id",
+            "description": "Which tool was called."
+          },
+          "step_name": {
+            "type": "string",
+            "title": "Step Name",
+            "description": "DAG step that triggered the call."
+          },
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "description": "The search query or tool input."
+          },
+          "response_summary": {
+            "type": "string",
+            "title": "Response Summary",
+            "description": "Extracted text summary.",
+            "default": ""
+          },
+          "source_urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Urls",
+            "description": "Source URLs returned."
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "UTC timestamp of the tool call."
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms",
+            "description": "Round-trip latency in milliseconds.",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "tool_id",
+          "step_name",
+          "query"
+        ],
+        "title": "MCPAuditTrace",
+        "description": "Immutable audit log entry for a single MCP tool invocation."
+      },
+      "MCPGatewayDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "deleted_id": {
+            "type": "string",
+            "title": "Deleted Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "deleted_id"
+        ],
+        "title": "MCPGatewayDeleteResponse"
       },
       "MatrixClaim": {
         "properties": {
@@ -3250,6 +4182,18 @@
             "title": "Parsing Mode",
             "description": "Parser logic flag (e.g. 'GEMINI_JSON')"
           },
+          "caching_strategy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caching Strategy",
+            "description": "Cache strategy identifier (e.g. 'anthropic_ephemeral')"
+          },
           "is_active": {
             "type": "boolean",
             "title": "Is Active",
@@ -3266,11 +4210,29 @@
         "title": "ModelProfile",
         "description": "A flattened physical AI model representation."
       },
+      "ModelRegistryDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "deleted_id": {
+            "type": "string",
+            "title": "Deleted Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "deleted_id"
+        ],
+        "title": "ModelRegistryDeleteResponse"
+      },
       "Organization": {
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             "title": "Id",
             "description": "Unique Organization ID (e.g. 'org_1234abcd')"
           },
@@ -3307,14 +4269,12 @@
           "is_active": {
             "type": "boolean",
             "title": "Is Active",
-            "description": "Subscription status",
-            "default": true
+            "description": "Subscription status"
           },
           "tier": {
             "type": "string",
             "title": "Tier",
-            "description": "Service Tier",
-            "default": "standard"
+            "description": "Service Tier"
           },
           "contact_email": {
             "anyOf": [
@@ -3342,34 +4302,37 @@
           },
           "subscription_status": {
             "$ref": "#/components/schemas/SubscriptionStatus",
-            "description": "Current billing status",
-            "default": "trial"
+            "description": "Current billing status"
           },
           "quota_limit": {
             "type": "number",
             "minimum": 0.0,
             "title": "Quota Limit",
-            "description": "Monthly API call quota (USD)",
-            "default": 10.0
+            "description": "Monthly API call quota (USD)"
           },
           "tpm_limit": {
             "type": "integer",
             "minimum": 1000.0,
             "title": "Tpm Limit",
-            "description": "Tokens Per Minute Limit",
-            "default": 100000
+            "description": "Tokens Per Minute Limit"
           },
           "rpm_limit": {
             "type": "integer",
             "minimum": 1.0,
             "title": "Rpm Limit",
-            "description": "Requests Per Minute Limit",
-            "default": 60
+            "description": "Requests Per Minute Limit"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
-          "name"
+          "name",
+          "is_active",
+          "tier",
+          "subscription_status",
+          "quota_limit",
+          "tpm_limit",
+          "rpm_limit"
         ],
         "title": "Organization",
         "description": "Represents a tenant or customer organization.\n\nAttributes:\n    id (str): Unique Organization ID (e.g. 'nokia-v1').\n    name (str): Display Name.\n    created_at (Optional[str]): ISO Timestamp.\n    is_active (bool): Subscription status.\n    tier (str): Service Tier.\n    contact_email (Optional[str]): Admin Contact.\n    billing_id (Optional[str]): External Billing ID (Stripe/etc).\n    subscription_status (SubscriptionStatus): Current billing status.\n    quota_limit (int): Monthly API call quota."
@@ -3395,24 +4358,43 @@
           },
           "tpm_limit": {
             "type": "integer",
-            "title": "Tpm Limit",
-            "default": 100000
+            "title": "Tpm Limit"
           },
           "rpm_limit": {
             "type": "integer",
-            "title": "Rpm Limit",
-            "default": 60
+            "title": "Rpm Limit"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "name",
           "admin_email",
           "admin_password",
-          "admin_name"
+          "admin_name",
+          "tpm_limit",
+          "rpm_limit"
         ],
         "title": "OrganizationCreate",
         "description": "Payload for creating a new organization.\n\nAttributes:\n    name (str): Organization display name.\n    admin_email (EmailStr): Email for the initial admin user.\n    admin_password (str): Password for the initial admin user.\n    admin_name (str): Display name for the initial admin user."
+      },
+      "OrganizationDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "deleted_id": {
+            "type": "string",
+            "title": "Deleted Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "deleted_id"
+        ],
+        "title": "OrganizationDeleteResponse"
       },
       "OutputLayoutBlock": {
         "properties": {
@@ -3481,56 +4463,11 @@
         "title": "OutputLayoutBlock",
         "description": "A single sequential rendering block for a report profile."
       },
-      "OutputProfile-Input": {
-        "properties": {
-          "name": {
-            "$ref": "#/components/schemas/I18nText",
-            "description": "Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})"
-          },
-          "layouts": {
-            "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock"
-            },
-            "type": "array",
-            "title": "Layouts",
-            "description": "Ordered sequence of layout blocks."
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "title": "OutputProfile",
-        "description": "A distinct report variant containing a sequence of layout blocks."
-      },
-      "OutputProfile-Output": {
-        "properties": {
-          "name": {
-            "$ref": "#/components/schemas/I18nText",
-            "description": "Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})"
-          },
-          "layouts": {
-            "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock"
-            },
-            "type": "array",
-            "title": "Layouts",
-            "description": "Ordered sequence of layout blocks."
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "title": "OutputProfile",
-        "description": "A distinct report variant containing a sequence of layout blocks."
-      },
       "OutputProfileCreateDTO": {
         "properties": {
           "id": {
             "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             "title": "Id",
             "description": "Unique string ID for the profile. Must follow Stripe Pattern"
           },
@@ -3559,15 +4496,27 @@
             ],
             "description": "Localized description."
           },
+          "display_scale": {
+            "type": "string",
+            "enum": [
+              "original",
+              "custom",
+              "normalized_100"
+            ],
+            "title": "Display Scale",
+            "description": "UI rendering scale instruction.",
+            "default": "original"
+          },
           "layouts": {
             "items": {
-              "$ref": "#/components/schemas/OutputProfileLayout"
+              "$ref": "#/components/schemas/OutputLayoutBlock"
             },
             "type": "array",
             "title": "Layouts",
             "description": "Sequence of layouts."
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "id",
@@ -3577,51 +4526,6 @@
         ],
         "title": "OutputProfileCreateDTO",
         "description": "DTO for creating a new Output Profile."
-      },
-      "OutputProfileLayout": {
-        "properties": {
-          "layout_type": {
-            "$ref": "#/components/schemas/LayoutType",
-            "description": "The type of layout to render."
-          },
-          "title": {
-            "$ref": "#/components/schemas/I18nText",
-            "description": "Localized title for this layout block."
-          },
-          "description": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Optional localized description."
-          },
-          "components": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Components",
-            "description": "List of block IDs (e.g. blk_123abc) representing the axes/components to include."
-          },
-          "show_text": {
-            "type": "boolean",
-            "title": "Show Text",
-            "description": "Whether to include text justifications in this block.",
-            "default": true
-          }
-        },
-        "type": "object",
-        "required": [
-          "layout_type",
-          "title",
-          "components"
-        ],
-        "title": "OutputProfileLayout",
-        "description": "Layout definition mapping a presentation type to DAG components."
       },
       "OutputProfileResponseDTO": {
         "properties": {
@@ -3650,14 +4554,25 @@
               }
             ]
           },
+          "display_scale": {
+            "type": "string",
+            "enum": [
+              "original",
+              "custom",
+              "normalized_100"
+            ],
+            "title": "Display Scale",
+            "default": "original"
+          },
           "layouts": {
             "items": {
-              "$ref": "#/components/schemas/OutputProfileLayout"
+              "$ref": "#/components/schemas/OutputLayoutBlock"
             },
             "type": "array",
             "title": "Layouts"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "id",
@@ -3673,7 +4588,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             "title": "Id",
             "description": "Unique identifier for the prompt block. MUST be a valid Stripe Pattern Opaque ID to guarantee dynamic schema compilation."
           },
@@ -3707,6 +4622,12 @@
             "title": "Category Id",
             "description": "Categorization identifier (e.g. 'scientific_theory', 'system_rule')."
           },
+          "is_evaluative": {
+            "type": "boolean",
+            "title": "Is Evaluative",
+            "description": "Whether this matrix is mathematically commensurate and contributes to the global average score.",
+            "default": true
+          },
           "type": {
             "$ref": "#/components/schemas/BlockDataType",
             "description": "Data type of the expected extracted value."
@@ -3717,10 +4638,13 @@
             "description": "Whether float types allow decimals in validation.",
             "default": false
           },
-          "require_justification": {
-            "type": "boolean",
-            "title": "Require Justification",
-            "description": "If True, dynamically generates `{slug}_justification` and `{slug}_citation` fields."
+          "output_extensions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Output Extensions",
+            "description": "List of requested XAI output extensions (e.g. 'justification', 'risk_flag')."
           },
           "theory_grounding": {
             "anyOf": [
@@ -3811,8 +4735,7 @@
           "label",
           "description",
           "category_id",
-          "type",
-          "require_justification"
+          "type"
         ],
         "title": "PromptBlock",
         "description": "V2 PromptBlock representation.\nFuses legacy Components and Matrices into a unified directive model."
@@ -3821,7 +4744,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             "title": "Id",
             "description": "Unique identifier for the prompt block. MUST be a valid Stripe Pattern Opaque ID to guarantee dynamic schema compilation."
           },
@@ -3855,6 +4778,12 @@
             "title": "Category Id",
             "description": "Categorization identifier (e.g. 'scientific_theory', 'system_rule')."
           },
+          "is_evaluative": {
+            "type": "boolean",
+            "title": "Is Evaluative",
+            "description": "Whether this matrix is mathematically commensurate and contributes to the global average score.",
+            "default": true
+          },
           "type": {
             "$ref": "#/components/schemas/BlockDataType",
             "description": "Data type of the expected extracted value."
@@ -3865,10 +4794,13 @@
             "description": "Whether float types allow decimals in validation.",
             "default": false
           },
-          "require_justification": {
-            "type": "boolean",
-            "title": "Require Justification",
-            "description": "If True, dynamically generates `{slug}_justification` and `{slug}_citation` fields."
+          "output_extensions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Output Extensions",
+            "description": "List of requested XAI output extensions (e.g. 'justification', 'risk_flag')."
           },
           "theory_grounding": {
             "anyOf": [
@@ -3959,11 +4891,51 @@
           "label",
           "description",
           "category_id",
-          "type",
-          "require_justification"
+          "type"
         ],
         "title": "PromptBlock",
         "description": "V2 PromptBlock representation.\nFuses legacy Components and Matrices into a unified directive model."
+      },
+      "PromptBlockDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "deleted_id": {
+            "type": "string",
+            "title": "Deleted Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "deleted_id"
+        ],
+        "title": "PromptBlockDeleteResponse"
+      },
+      "PromptBlockSimulationRequest": {
+        "properties": {
+          "block": {
+            "$ref": "#/components/schemas/PromptBlock-Input"
+          },
+          "mock_inputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Mock Inputs",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "block"
+        ],
+        "title": "PromptBlockSimulationRequest"
+      },
+      "PromptBlockSimulationResponse": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "PromptBlockSimulationResponse"
       },
       "QuestionnaireItem": {
         "properties": {
@@ -3992,11 +4964,61 @@
         "title": "QuestionnaireItem",
         "description": "A single question definition within a dynamic questionnaire."
       },
+      "ReasoningTrace": {
+        "properties": {
+          "thought_process": {
+            "type": "string",
+            "title": "Thought Process",
+            "description": "The raw chain-of-thought or reasoning trace."
+          },
+          "conclusion": {
+            "type": "string",
+            "title": "Conclusion",
+            "description": "The final conclusion derived from the reasoning."
+          },
+          "confidence_score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence Score",
+            "description": "Confidence in the conclusion."
+          },
+          "model_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Name",
+            "description": "The model used for reasoning."
+          },
+          "token_usage": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Token Usage",
+            "description": "Token usage statistics."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "thought_process",
+          "conclusion",
+          "confidence_score"
+        ],
+        "title": "ReasoningTrace",
+        "description": "Stores hidden Chain-of-Thought (preserves \"Thinking Tokens\")."
+      },
       "Step": {
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             "title": "Id",
             "description": "Unique UUID for storage optionally"
           },
@@ -4072,7 +5094,7 @@
             },
             "type": "array",
             "title": "Prompt Blocks",
-            "description": "List of PromptBlock slugs containing directives and matrices for this step."
+            "description": "List of PromptBlock IDs containing directives and matrices for this step."
           },
           "pre_hooks": {
             "items": {
@@ -4089,6 +5111,57 @@
             "type": "array",
             "title": "Post Hooks",
             "description": "Native Python functions to execute AFTER LLM generation."
+          },
+          "safety": {
+            "type": "string",
+            "enum": [
+              "safe",
+              "unsafe"
+            ],
+            "title": "Safety",
+            "description": "Marks step as safe (read-only MCP) or unsafe (email/API mutations) for strict execution security.",
+            "default": "safe"
+          },
+          "allowed_mcp_tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Mcp Tools",
+            "description": "List of allowed MCP tools for this step (e.g. ['mcp_tavily_search'])."
+          },
+          "model_strategy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Strategy",
+            "description": "Step-level override for cognitive strategy profile (e.g., 'fast'). Takes precedence over workflow strategy."
+          },
+          "expected_inputs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Expected Inputs",
+            "description": "List of expected input keys required for this step. Replaces free-text generic routing."
+          },
+          "output_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Schema",
+            "description": "Optional JSON schema defining the structured output of this step."
           }
         },
         "additionalProperties": false,
@@ -4101,18 +5174,37 @@
         "title": "Step",
         "description": "Isolated, reusable orchestrator cognitive module (e.g. Guard or step_input_processing).\nFormerly known as TaskBlueprint."
       },
+      "StepDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "deleted_id": {
+            "type": "string",
+            "title": "Deleted Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "deleted_id"
+        ],
+        "title": "StepDeleteResponse"
+      },
       "StepRule": {
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             "title": "Id",
             "description": "Unique node ID in the workflow (e.g. blk_node_1)."
           },
           "task_blueprint": {
             "type": "string",
+            "minLength": 1,
             "title": "Task Blueprint",
-            "description": "Slug reference to the isolated Step (e.g., 'step_input_processing')"
+            "description": "ID reference to the isolated Step (e.g., 'step_f15853d2584e4096aeb60f11a3e6ea7c')"
           },
           "depends_on": {
             "items": {
@@ -4130,33 +5222,25 @@
             "title": "Input Mappings",
             "description": "Maps upstream results to LLM inputs. e.g. {\"context\": \"$inputs.document\"}"
           },
-          "model_strategy": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Model Strategy",
-            "description": "Logical strategy profile from model registry (e.g., 'fast', 'deep')"
-          },
-          "pre_hooks": {
+          "allowed_mcp_tools": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Pre Hooks",
-            "description": "Optional hooks running before step execution"
+            "title": "Allowed Mcp Tools",
+            "description": "Workflow-level MCP tools override (e.g. ['mcp_tavily_search']). Takes priority over Step template."
           },
-          "post_hooks": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Post Hooks",
-            "description": "Optional hooks running after step execution"
+          "ui_pos_x": {
+            "type": "number",
+            "title": "Ui Pos X",
+            "description": "X coordinate on the 2D DAG canvas.",
+            "default": 0.0
+          },
+          "ui_pos_y": {
+            "type": "number",
+            "title": "Ui Pos Y",
+            "description": "Y coordinate on the 2D DAG canvas.",
+            "default": 0.0
           }
         },
         "additionalProperties": false,
@@ -4167,6 +5251,29 @@
         ],
         "title": "StepRule",
         "description": "Execution step mapping (DAG Router Node)."
+      },
+      "StepSimulationRequest": {
+        "properties": {
+          "step": {
+            "$ref": "#/components/schemas/Step"
+          },
+          "mock_inputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Mock Inputs",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "step"
+        ],
+        "title": "StepSimulationRequest"
+      },
+      "StepSimulationResponse": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "StepSimulationResponse"
       },
       "SubscriptionStatus": {
         "type": "string",
@@ -4179,11 +5286,85 @@
         "title": "SubscriptionStatus",
         "description": "SaaS Subscription Status."
       },
+      "SystemConfigMCPGateways-Input": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
+            "title": "Id",
+            "description": "System config ID"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug",
+            "description": "Slug identifier."
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Config type discriminator."
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/AllowedMCPTool"
+            },
+            "type": "array",
+            "title": "Tools",
+            "description": "Registry of all available MCP tools in the system."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "type"
+        ],
+        "title": "SystemConfigMCPGateways",
+        "description": "System-level registry of available MCP tool gateways."
+      },
+      "SystemConfigMCPGateways-Output": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
+            "title": "Id",
+            "description": "System config ID"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug",
+            "description": "Slug identifier."
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Config type discriminator."
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/AllowedMCPTool"
+            },
+            "type": "array",
+            "title": "Tools",
+            "description": "Registry of all available MCP tools in the system."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "type"
+        ],
+        "title": "SystemConfigMCPGateways",
+        "description": "System-level registry of available MCP tool gateways."
+      },
       "SystemConfigModelRegistry": {
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             "title": "Id",
             "description": "System config ID"
           },
@@ -4195,8 +5376,7 @@
           "type": {
             "type": "string",
             "title": "Type",
-            "description": "Type of config",
-            "default": "model_registry"
+            "description": "Type of config"
           },
           "models": {
             "additionalProperties": {
@@ -4212,6 +5392,7 @@
         "required": [
           "id",
           "slug",
+          "type",
           "models"
         ],
         "title": "SystemConfigModelRegistry",
@@ -4253,6 +5434,149 @@
         "title": "TokenPayload",
         "description": "Payload for token verification.\n\nAttributes:\n    token (str): The Firebase or Mock ID Token."
       },
+      "TombstoneEvent": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Event Id",
+            "description": "Unique event identifier."
+          },
+          "v": {
+            "type": "integer",
+            "title": "V",
+            "description": "Schema version for forward compatibility and lazy upcasting.",
+            "default": 1
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "Event timestamp."
+          },
+          "step_name": {
+            "type": "string",
+            "title": "Step Name",
+            "description": "Name of the step that generated this event.",
+            "x-ui-label": "Step Name"
+          },
+          "event_type": {
+            "type": "string",
+            "const": "tombstone",
+            "title": "Event Type",
+            "default": "tombstone"
+          },
+          "content": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Content",
+            "description": "Structured content of the event."
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReasoningTrace"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Associated reasoning trace."
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Additional metadata."
+          },
+          "redacted_hash": {
+            "type": "string",
+            "title": "Redacted Hash",
+            "description": "Cryptographic hash or identifier of the original redacted data."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "step_name",
+          "redacted_hash"
+        ],
+        "title": "TombstoneEvent",
+        "description": "Specific event representing GDPR-redacted or deleted data."
+      },
+      "TraceEvent": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Event Id",
+            "description": "Unique event identifier."
+          },
+          "v": {
+            "type": "integer",
+            "title": "V",
+            "description": "Schema version for forward compatibility and lazy upcasting.",
+            "default": 1
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "Event timestamp."
+          },
+          "step_name": {
+            "type": "string",
+            "title": "Step Name",
+            "description": "Name of the step that generated this event.",
+            "x-ui-label": "Step Name"
+          },
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "input",
+              "reasoning",
+              "decision",
+              "error",
+              "output",
+              "tombstone"
+            ],
+            "title": "Event Type",
+            "description": "Type of the event.",
+            "x-ui-label": "Event Type"
+          },
+          "content": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Content",
+            "description": "Structured content of the event."
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReasoningTrace"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Associated reasoning trace."
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Additional metadata."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "step_name",
+          "event_type"
+        ],
+        "title": "TraceEvent",
+        "description": "Immutable event log item representing a distinct step or state change."
+      },
       "User": {
         "properties": {
           "email": {
@@ -4275,8 +5599,7 @@
           },
           "role": {
             "$ref": "#/components/schemas/UserRole",
-            "description": "Assigned permission role",
-            "default": "MEMBER"
+            "description": "Assigned permission role"
           },
           "organization_id": {
             "anyOf": [
@@ -4293,8 +5616,7 @@
           "is_active": {
             "type": "boolean",
             "title": "Is Active",
-            "description": "Is the account active?",
-            "default": true
+            "description": "Is the account active?"
           },
           "language": {
             "type": "string",
@@ -4304,8 +5626,7 @@
               "sv"
             ],
             "title": "Language",
-            "description": "Preferred UI language",
-            "default": "fi"
+            "description": "Preferred UI language"
           },
           "theme_mode": {
             "type": "string",
@@ -4315,12 +5636,11 @@
               "dark"
             ],
             "title": "Theme Mode",
-            "description": "Preferred Theme Mode",
-            "default": "system"
+            "description": "Preferred Theme Mode"
           },
           "id": {
             "type": "string",
-            "pattern": "^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             "title": "Id",
             "description": "Unique ID (matches Firebase UID if used)"
           },
@@ -4355,9 +5675,14 @@
             "description": "UID of the creator"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "email",
+          "role",
+          "is_active",
+          "language",
+          "theme_mode",
           "created_at"
         ],
         "title": "User",
@@ -4385,8 +5710,7 @@
           },
           "role": {
             "$ref": "#/components/schemas/UserRole",
-            "description": "Assigned permission role",
-            "default": "MEMBER"
+            "description": "Assigned permission role"
           },
           "organization_id": {
             "anyOf": [
@@ -4403,8 +5727,7 @@
           "is_active": {
             "type": "boolean",
             "title": "Is Active",
-            "description": "Is the account active?",
-            "default": true
+            "description": "Is the account active?"
           },
           "language": {
             "type": "string",
@@ -4414,8 +5737,7 @@
               "sv"
             ],
             "title": "Language",
-            "description": "Preferred UI language",
-            "default": "fi"
+            "description": "Preferred UI language"
           },
           "theme_mode": {
             "type": "string",
@@ -4425,8 +5747,7 @@
               "dark"
             ],
             "title": "Theme Mode",
-            "description": "Preferred Theme Mode",
-            "default": "system"
+            "description": "Preferred Theme Mode"
           },
           "password": {
             "anyOf": [
@@ -4454,9 +5775,14 @@
             "description": "UID of the admin creating this user"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
-          "email"
+          "email",
+          "role",
+          "is_active",
+          "language",
+          "theme_mode"
         ],
         "title": "UserCreate",
         "description": "Payload for creating a new user.\n\nAttributes:\n    password (Optional[str]): Initial password (min 6 chars).\n    created_by (Optional[str]): UID of the admin creating this user."
@@ -4612,7 +5938,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             "title": "Id",
             "description": "Unique Workflow ID"
           },
@@ -4644,13 +5970,11 @@
           },
           "status": {
             "type": "string",
-            "title": "Status",
-            "default": "draft"
+            "title": "Status"
           },
           "version": {
             "type": "integer",
-            "title": "Version",
-            "default": 1
+            "title": "Version"
           },
           "is_public": {
             "type": "boolean",
@@ -4668,11 +5992,6 @@
             ],
             "title": "Organization Id"
           },
-          "scoring_logic": {
-            "items": {},
-            "type": "array",
-            "title": "Scoring Logic"
-          },
           "ui_schema": {
             "additionalProperties": true,
             "type": "object",
@@ -4680,7 +5999,7 @@
           },
           "output_profiles": {
             "additionalProperties": {
-              "$ref": "#/components/schemas/OutputProfile-Input"
+              "$ref": "#/components/schemas/EmbeddedOutputProfile-Input"
             },
             "type": "object",
             "title": "Output Profiles",
@@ -4689,8 +6008,7 @@
           "default_profile_id": {
             "type": "string",
             "title": "Default Profile Id",
-            "description": "The ID of the default output profile to use.",
-            "default": "default"
+            "description": "The ID of the default output profile to use."
           },
           "expected_inputs": {
             "items": {
@@ -4706,22 +6024,6 @@
             },
             "type": "array",
             "title": "Steps"
-          },
-          "pre_hooks": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Pre Hooks",
-            "description": "Optional hooks running before entire workflow"
-          },
-          "post_hooks": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Post Hooks",
-            "description": "Optional hooks running after entire workflow"
           }
         },
         "additionalProperties": false,
@@ -4730,7 +6032,10 @@
           "id",
           "slug",
           "name",
-          "description"
+          "description",
+          "status",
+          "version",
+          "default_profile_id"
         ],
         "title": "Workflow",
         "description": "Dynamic Directed Acyclic Graph orchestrator model."
@@ -4739,7 +6044,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]+)_[a-zA-Z0-9]{8,}$",
+            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             "title": "Id",
             "description": "Unique Workflow ID"
           },
@@ -4771,13 +6076,11 @@
           },
           "status": {
             "type": "string",
-            "title": "Status",
-            "default": "draft"
+            "title": "Status"
           },
           "version": {
             "type": "integer",
-            "title": "Version",
-            "default": 1
+            "title": "Version"
           },
           "is_public": {
             "type": "boolean",
@@ -4795,11 +6098,6 @@
             ],
             "title": "Organization Id"
           },
-          "scoring_logic": {
-            "items": {},
-            "type": "array",
-            "title": "Scoring Logic"
-          },
           "ui_schema": {
             "additionalProperties": true,
             "type": "object",
@@ -4807,7 +6105,7 @@
           },
           "output_profiles": {
             "additionalProperties": {
-              "$ref": "#/components/schemas/OutputProfile-Output"
+              "$ref": "#/components/schemas/EmbeddedOutputProfile-Output"
             },
             "type": "object",
             "title": "Output Profiles",
@@ -4816,8 +6114,7 @@
           "default_profile_id": {
             "type": "string",
             "title": "Default Profile Id",
-            "description": "The ID of the default output profile to use.",
-            "default": "default"
+            "description": "The ID of the default output profile to use."
           },
           "expected_inputs": {
             "items": {
@@ -4833,22 +6130,6 @@
             },
             "type": "array",
             "title": "Steps"
-          },
-          "pre_hooks": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Pre Hooks",
-            "description": "Optional hooks running before entire workflow"
-          },
-          "post_hooks": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Post Hooks",
-            "description": "Optional hooks running after entire workflow"
           }
         },
         "additionalProperties": false,
@@ -4857,10 +6138,31 @@
           "id",
           "slug",
           "name",
-          "description"
+          "description",
+          "status",
+          "version",
+          "default_profile_id"
         ],
         "title": "Workflow",
         "description": "Dynamic Directed Acyclic Graph orchestrator model."
+      },
+      "WorkflowDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "deleted_id": {
+            "type": "string",
+            "title": "Deleted Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "deleted_id"
+        ],
+        "title": "WorkflowDeleteResponse"
       },
       "WorkflowInputs": {
         "properties": {
@@ -4921,6 +6223,34 @@
         "type": "object",
         "title": "WorkflowInputs",
         "description": "Strict input payload for the workflow (Content).\n\nThis model defines the DATA content that the workflow processes.\nIt does NOT include configuration (model parameters, API keys), which belong in StepConfig."
+      },
+      "WorkflowSchemaResponse": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "WorkflowSchemaResponse"
+      },
+      "WorkflowSimulationResponse": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "WorkflowSimulationResponse"
+      },
+      "backend_v2__api__routers__iam__users__UserDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "deleted_id": {
+            "type": "string",
+            "title": "Deleted Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "deleted_id"
+        ],
+        "title": "UserDeleteResponse"
       }
     },
     "securitySchemes": {
