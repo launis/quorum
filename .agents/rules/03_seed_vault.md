@@ -1,31 +1,40 @@
----
-trigger: always_on
-description: Safe Database Seeding Protocol and Mutation Strategies
-globs: backend_v2/seed/**/*.json, backend_v2/seed/**/*.py
----
-
 # SEED DATA VAULT PROTOCOL
 
-> [!CAUTION]
-<architecture_bans>
-  <rule>**VERY IMPORTANT RULE:** The live development database (TinyDB) must NEVER be modified directly or on-the-fly (`db_v2.json` or `.db`). Modifying `backend_v2/seed/seed_data.json` autonomously is STRICTLY BLOCKED without a safety net. Bypassing these instructions corrupts the system IDs permanently.</rule>
-</architecture_bans>
+*** MANDATORY PROTOCOL FOR DATA & SYSTEM CONFIGURATION MUTATIONS ***
 
-## 1. THE 8-STEP SEED MUTATION WORKFLOW
-To prevent catastrophic ID corruption, you MUST follow these exact steps when instructed to alter system configurations or workflows:
+<catastrophic_system_bans>
+    <rule_block id="live_database_mutation">
+        <banned_pattern>Modifying the live development database (`db_v2.json` or `.db`) directly on the fly or bypassing safety nets.</banned_pattern>
+        <mandatory_pattern>All structural data modifications MUST occur purely in the master source file `backend_v2/seed/seed_data.json` first before sync.</mandatory_pattern>
+        <catastrophic_reason>Editing the runtime database bypasses compiler checks, corrupts Pydantic domain schemas, and permanently invalidates Opaque System IDs.</catastrophic_reason>
+    </rule_block>
 
-1. **PROPOSE:** Show the exact JSON snippet you intend to modify in the chat. Wait for the user to reply with "PERMISSION GRANTED".
-2. **MODIFY:** Once permitted, make the structural change FIRST in the master source file: `backend_v2/seed/seed_data.json`.
-3. **BACKUP:** Always take a backup of the current state and save it to the `backend_v2/seed/backups/` directory before proposing major changes.
-4. **SCRIPTING RULES (Mandatory):** Create a dedicated Python script file (e.g., `modify_seed.py`) to systematically update the JSON. 
-<architecture_bans>
-   <rule>NEVER use inline terminal commands (like `python -c` or `sed`) because PowerShell/Bash will silently expand variables like `$c1f...` and destroy the Stripe UUIDs.</rule>
-   <rule>NEVER use raw string replacement or regex on the JSON file directly.</rule>
-   <rule>ALWAYS use proper parsing: use `json.load()` to parse the dict, mutate the Python dictionary intelligently in-memory, and use `json.dump()` to save it.</rule>
-   <rule>NEVER add undocumented "extra keys" or hallucinated data structures. Strictly observe Pydantic domain schemas.</rule>
-   <rule>All new IDs MUST strictly follow the Opaque ID (Stripe Pattern) rule (see `Arkkitehtuuristandardi_Tietokannan_Tunnisteet.md`). Do not invent human-readable words in IDs.</rule>
-</architecture_bans>
-5. **EXECUTE:** Ask the user to run your script locally via PowerShell.
-6. **VERIFY:** Run tests (e.g., `uv run pytest backend_v2/tests/unit/test_seed_schema_alignment.py -v`) to mathematically verify the change. If the test fails, your mutation corrupted the graph. Fix your script and retry.
-7. **REPORT:** Confirm to the user that the data delta matches expectations and that all tests passed.
-8. **RE-SEED (Siemennys):** Only after all previous steps are confirmed, instruct the user to execute the final local database update and sync: `uv run python backend_v2/seed/run_seed.py local`.
+    <rule_block id="inline_terminal_scripting">
+        <banned_pattern>Using one-liner inline terminal commands like `python -c` or `sed` to replace JSON strings dynamically.</banned_pattern>
+        <mandatory_pattern>ALWAYS create dedicated temporary Python script files (e.g., `modify_seed.py`). Use `json.load()` and `json.dump()` to parse and save safely in-memory.</mandatory_pattern>
+        <catastrophic_reason>PowerShell silently expands variable hashes like `$c1f...` inside strings, irreversibly destroying Stripe UUID string topologies.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="hallucinated_data_keys">
+        <banned_pattern>Inventing undocumented "extra keys", employing human-readable strings as IDs, or fabricating schema paths (e.g., `id: "new_matrix_1"`).</banned_pattern>
+        <mandatory_pattern>Observe strict Pydantic configurations. All generated IDs MUST follow the Opaque ID System (Stripe Hash Pattern) rigorously.</mandatory_pattern>
+        <catastrophic_reason>The API validator will immediately drop the hallucinated payload, causing 500 fatal errors upon application fetch operations.</catastrophic_reason>
+    </rule_block>
+</catastrophic_system_bans>
+
+<vault_mutation_protocol>
+    <instruction>If requested to alter any data schemas, seed matrices, or internal configurations, you MUST run this sequential procedure:</instruction>
+    
+    <step id="1_propose">PROPOSE: Render the intended JSON snippet delta in the chat and PAUSE. Wait for the explicit order "PERMISSION GRANTED".</step>
+    <step id="2_modify">MODIFY: Commit structural edits safely into the file `backend_v2/seed/seed_data.json`.</step>
+    <step id="3_backup">BACKUP: Store a precise timestamped backup copy inside `backend_v2/seed/backups/` natively.</step>
+    <step id="4_script">SCRIPT: Formulate `modify_seed.py`. Parse the payload using `json.load()`, manipulate the dictionary, and output with `json.dump(indent=2)`.</step>
+    <step id="5_execute">EXECUTE: Pass the `modify_seed.py` PowerShell command execution strings clearly to the user.</step>
+    
+    <universal_quality_gate>
+        <step id="6_verify">VERIFY (Critical Gate): Mathematically verify the new blueprint integrity by providing the user the validation command: `uv run pytest backend_v2/tests/unit/test_seed_schema_alignment.py -v`. If the test fails, YOU MUST revert.</step>
+    </universal_quality_gate>
+    
+    <step id="7_report">REPORT: Describe specifically what paths aligned with expectations contextually.</step>
+    <step id="8_reseed">RE-SEED: Once verified, command the ultimate final step: `uv run python backend_v2/seed/run_seed.py local`.</step>
+</vault_mutation_protocol>

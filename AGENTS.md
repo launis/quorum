@@ -1,65 +1,63 @@
 # ANTIGRAVITY AGENT CONFIGURATION & DIRECTIVES (1.21.6+)
-System Context: Quorum (Python Backend V2 + Flutter Client V2)
-Host Environment: **Windows 11 (PowerShell)**
 
-<CRITICAL_WIN11_CONSTRAINTS>
-You are operating in a Windows 11 environment where the Antigravity 1.21.6+ native Linux sandboxing is unsupported. STRICT COMPLIANCE is mandatory to prevent cascade crashes:
+<system_context>
+    <os>Windows 11 (PowerShell)</os>
+    <architecture>Quorum (Python Backend V2 + Flutter Client V2)</architecture>
+</system_context>
 
-1. **ABSOLUTE BAN ON `run_command`:** You MUST NEVER call the `run_command` tool. It fundamentally fails in this environment with: "failed to set up sandbox". Do NOT attempt to modify `SafeToAutoRun` to bypass this.
-2. **DELEGATE EXECUTION TO USER:** For tasks requiring an active runtime engine (e.g., tests, DB migrations, `dart run build_runner build`, local servers), output the exact command in a Markdown `powershell` code block and EXPLICITLY ASK THE USER to execute it in their terminal.
-3. **POWERSHELL SYNTAX MANDATE:**
-   - NEVER propose Linux shell commands (`ls`, `cat`, `grep`, `rm -rf`, `export`). Use ONLY native PowerShell (`Get-ChildItem`, `Remove-Item -Recurse -Force`, `$env:`).
-   - NEVER use the `&&` operator. Chain commands using semicolons (`;`) or execute them on separate lines.
-   - EXPLICIT TARGETING: When running linters (`ruff`, `mypy`), list ALL target files explicitly by name (e.g., `uv run ruff check main.py utils.py --fix`). NEVER use wildcards like `*.py`.
-4. **DEPRECATED COMMANDS:** `flutter pub run` is banned. ALWAYS use `dart run`.
-</CRITICAL_WIN11_CONSTRAINTS>
+<catastrophic_system_bans>
+    <rule_block id="win11_run_command_crash">
+        <banned_pattern>Calling the `run_command` tool natively, predicting `&&` chains, or proposing Linux shell commands like `ls` or `rm -rf`.</banned_pattern>
+        <mandatory_pattern>DELEGATE EXECUTION: Output exact native PowerShell commands (chaining with `;`) in a Markdown block and EXPLICITLY ASK THE USER to run them.</mandatory_pattern>
+        <catastrophic_reason>Antigravity 1.21.6+ sandboxing fails on Windows 11. Using the automated tool triggers a "failed to set up sandbox" cascade crash.</catastrophic_reason>
+    </rule_block>
 
-## 🛠️ 1. NATIVE FILE READING & MCP TOOL MANDATE
-Antigravity 1.21.6 features enhanced MCP capabilities. ALWAYS use your built-in internal tools (`view_file`, `grep_search`, `list_dir`, `replace_file_content`) to read files, code, and logs. NEVER ask the user to run Python or shell scripts just to print text or logs. Your internal tools instantly bypass the broken Windows terminal sandbox.
+    <rule_block id="direct_database_mutation">
+        <banned_pattern>Modifying the live `data\db_v2.json` database directly on the fly.</banned_pattern>
+        <mandatory_pattern>If data must be altered, mutate `backend_v2\seed\seed_data.json` instead, verify locally, ask for USER CONFIRMATION, and use `run_seed.py`.</mandatory_pattern>
+        <catastrophic_reason>Editing the runtime database bypasses the Pydantic fail-fast pipeline and corrupts Opaque Stripe ID relations permanently.</catastrophic_reason>
+    </rule_block>
 
-## 📚 2. PRIMARY DIRECTIVES & SOURCES OF TRUTH
-You are an expert functionality-first AI developer. The ultimate architecture rules have been consolidated into the Agentic Configuration Center. Before writing code, you MUST dynamically read the relevant documents from `c:\src\quorum\.agents\rules\`:
-1. `00-antigravity-core.md` (Global IDE Protocol)
-2. `01-python-backend.md` (Backend Architecture)
-3. `02_flutter_desktop.md` (Frontend Architecture)
-4. `03_seed_vault.md` (Database Maintenance)
-5. `04_directory_reference.md` (System Directory Map & Services)
+    <rule_block id="deprecated_commands_ban">
+        <banned_pattern>Calling or proposing `flutter pub run`.</banned_pattern>
+        <mandatory_pattern>ALWAYS use `dart run` instead.</mandatory_pattern>
+        <catastrophic_reason>Deprecated tooling breaks the modern Flutter 3 pipeline and Quality Gate logic.</catastrophic_reason>
+    </rule_block>
+</catastrophic_system_bans>
 
-**Architectural Mandates (Violating these means failing the task):**
-<architecture_bans>
-  <rule>Strict V2/V3 Architecture: Event Sourcing, The Opaque Stripe ID Pattern, Fail-Fast Pydantic.</rule>
-  <rule>Serverless Tool Loop: Tavily AI Fact Check Injection.</rule>
-  <rule>Flat MVC Mandate: NO SDUI, JSON Parsing exclusively via Dart `Isolate.run()`.</rule>
-  <rule>Banned Patterns: No fallbacks, No hardcoding UUIDs, No UI string literals.</rule>
-  <rule>Tech Stack: Python 3.14, Riverpod 3.0, Pydantic V2.</rule>
-</architecture_bans>
+<architectural_invariants>
+    <rule_block id="core_architecture_parity">
+         <banned_pattern>Implementing fallback logic, returning empty dicts `{}`, or hardcoding arbitrary UUIDs/UI strings.</banned_pattern>
+         <mandatory_pattern>Enforce Fail-Fast Pydantic V2 definitions, Serverless Event Sourcing, and the Opaque Stripe ID Pattern. JSON Parsing done exclusively via Dart `Isolate.run()`.</mandatory_pattern>
+    </rule_block>
 
-## 📡 3. LIVE LOGGING (Runtime Truth)
-Always check these logs directly with your internal MCP file-reading tools before diagnosing issues:
-- **BACKEND LOGS:** `c:\src\quorum\backend_debug.log` (FastAPI routing, CPU hooks, Pydantic validation errors, Worker tasks). Check first for backend failures.
-- **CLIENT LOGS:** `c:\src\quorum\client_debug.log` (Flutter Riverpod states, GoRouter navigation, HTTP requests). Check first for UI/Network failures.
+    <rule_block id="native_mcp_tooling">
+         <banned_pattern>Instructing the user to run Python or shell scripts manually just to dump text or retrieve logs.</banned_pattern>
+         <mandatory_pattern>ALWAYS use your built-in internal MCP tools (`view_file`, `grep_search`, `list_dir`, `replace_file_content`) to actively scan `backend_debug.log` and `client_debug.log` before proposing fixes.</mandatory_pattern>
+    </rule_block>
+</architectural_invariants>
 
-## 📋 4. TIERED EXECUTION PROTOCOL
-You must follow strict operation tiers relying on the natively supported workflows in `c:\src\quorum\.agents\workflows\`. You can execute or refer to these protocols to assess operations:
-* **/tier1-planner:** Epic Planner for generating `implementation_plan.md` for major architectural alterations.
-* **/tier2-execute:** Strict, step-by-step implementation of an approved `implementation_plan.md`.
-* **/tier2-hardening-backend:** Tier 2 (Backend Hardening) - Step-by-step auditing loop for Python backend directories against Phase 9 standards.
-* **/tier2-hardening-frontend:** Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutter frontend directories against Phase 9 standards.
-* **/tier3-database-reset:** Single-operation database resets and scaling tweaks.
-* **/tier3-feature-refactor:** Single feature implementation or existing file cleanup.
-* **/tier4-bug-hunting:** Deep root cause analysis and resolution of a specific bug.
-* **/tier5-zero-shortcut-audit:** Ruthless code review against IDE Protocol constraints.
+<agentic_control_center>
+    <directive>Before writing backend or frontend code, you MUST dynamically read the relevant architecture laws from `c:\src\quorum\.agents\rules\` using your MCP tools.</directive>
+    <required_scanners>
+        <file id="00">c:\src\quorum\.agents\rules\00-antigravity-core.md</file>
+        <file id="01">c:\src\quorum\.agents\rules\01-python-backend.md</file>
+        <file id="02">c:\src\quorum\.agents\rules\02_flutter_desktop.md</file>
+        <file id="03">c:\src\quorum\.agents\rules\03_seed_vault.md</file>
+        <file id="04">c:\src\quorum\.agents\rules\04_directory_reference.md</file>
+    </required_scanners>
+</agentic_control_center>
 
-## 💾 5. DATABASE BACKUP & SEEDING PROTOCOL
-<architecture_bans>
-  <rule>**ABSOLUTE MANDATE:** You are expressly forbidden from modifying the live `data\db_v2.json` database directly.</rule>
-</architecture_bans>
-If system configurations, steps, or workflow seed data must be altered:
-1. Target the original `backend_v2\seed\seed_data.json` file.
-2. Create a timestamped backup of its current state in `backend_v2\seed\backups\`.
-3. Notify the user exactly *why* and *what* changes you intend to incorporate.
-4. Verify structural integrity locally (check array length/row counts).
-5. **WAIT FOR EXPLICIT CONFIRMATION FROM THE USER.** 
-6. Only after receiving permission, instruct the user to execute:
-   ```powershell
-   uv run python backend_v2\seed\run_seed.py local
+<workflow_routing>
+    <instruction>You MUST follow strict operation tiers relying on natively supported workflows in `c:\src\quorum\.agents\workflows\`:</instruction>
+    <execution_tiers>
+        <tier id="1" path="/tier1-planner">Epic Planner for generating `implementation_plan.md`.</tier>
+        <tier id="2" path="/tier2-execute">Systematic step-by-step implementation of an approved plan.</tier>
+        <tier id="2_backend" path="/tier2-hardening-backend">Step-by-step auditing loop for Python architecture.</tier>
+        <tier id="2_frontend" path="/tier2-hardening-frontend">Step-by-step auditing loop for Flutter architecture.</tier>
+        <tier id="3_db" path="/tier3-database-reset">Database wipes and re-seeding tweaks.</tier>
+        <tier id="3_refactor" path="/tier3-feature-refactor">Single feature implementation or existing file cleanup.</tier>
+        <tier id="4" path="/tier4-bug-hunting">Deep root cause analysis and bug resolution.</tier>
+        <tier id="5" path="/tier5-zero-shortcut-audit">Ruthless constraints code review.</tier>
+    </execution_tiers>
+</workflow_routing>
