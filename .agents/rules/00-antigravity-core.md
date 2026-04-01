@@ -21,6 +21,14 @@
         <banned_pattern>Appending new versions of code to the end of a file while leaving the old broken ones intact.</banned_pattern>
         <mandatory_pattern>Explicitly DELETE or OVERWRITE the old version when modifying a file.</mandatory_pattern>
     </rule_block>
+    <rule_block id="atomic_checkpoint_mandate">
+        <banned_pattern>Proceeding to the next architectural milestone or subdirectory iteration without ensuring a save state.</banned_pattern>
+        <mandatory_pattern>After a successful step, test, or `FIX` phase, you MUST explicitly instruct the user to perform an atomic `git commit` as a save point BEFORE asking for the `PROCEED` command or starting a new context window.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="context_amnesia_prevention">
+        <banned_pattern>Silently persisting in the same chat session after executing multiple massive file reads (e.g., 3+ directories in Tier 2 Hardening) or complex refactors.</banned_pattern>
+        <mandatory_pattern>You MUST proactively suggest that the user starts a new context window to prevent 'Context Amnesia' and protect strict architectural rule adherence whenever the session gets uncomfortably heavy.</mandatory_pattern>
+    </rule_block>
 </ide_orchestration_protocol>
 
 <catastrophic_system_bans>

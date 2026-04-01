@@ -1,6 +1,6 @@
 # Agenttien Työkulkujen (Workflows) Käyttöopas (V2026)
 
-Tämä opas on suunnattu ohjelmistokehittäjälle (sinulle) ja se selittää `c:\src\quorum\.agents\workflows\` hakemiston työkalujen tarkoituksen, käyttöajankohdan sekä sisäisen logiikan. Koko järjestelmä perustuu Tier-malliin (Tasot 1-5), joka estää tekoälyä hallusinoimasta ja pakottaa sen työskentelemään askel kerrallaan arkkitehtuurisääntöjen puitteissa.
+Tämä opas on suunnattu ohjelmistokehittäjälle (sinulle) ja se selittää `quorum\.agents\workflows\` hakemiston työkalujen tarkoituksen, käyttöajankohdan sekä sisäisen logiikan. Koko järjestelmä perustuu Tier-malliin (Tasot 1-5), joka estää tekoälyä hallusinoimasta ja pakottaa sen työskentelemään askel kerrallaan arkkitehtuurisääntöjen puitteissa.
 
 ---
 
@@ -51,6 +51,14 @@ Näitä työnkulkuja ohjataan yhteistyössä interaktiivisena silmukkana (Loop).
 3.  **Vahvistus ja Testaus:** Agentti luovuttaa sinulle **The Universal Quality Gate** -komennot kopioitavaksi terminaaliin (esim. ohjeet Ruff/Mypy/Pytest tai Flutter Analyze/L10n/Test ajoon).
 4.  **Agentin tila:** Korjaus on valmis kansion osalta.
 5.  **Luuppi alusta (Kontekstin nollaus):** Tekoäly voi unohtaa säännöt pitkän muokkauksen aikana (Context Amnesia). Siksi edetään aina **vain yksi kansio kerrallaan**. Pelkän "PROCEED"-sanan sijaan turvallisin jatkokomento on: *"PROCEED. Aja /tier2-hardening-backend uudestaan listan seuraavalle kansion kohdalle."*
+
+### Nyrkkisääntö: Milloin avata uusi kontekstiikkuna (Uusi Chat)?
+Hardening-workflow lukee satoja rivejä koodia kerralla. Pitkä konteksti aiheuttaa arkkitehtuurisääntöjen unohtamista.
+
+1. **Säännöllisyys:** Vaihda kontekstiikkunaa noin **1–3 alihakemiston välein**, tai aina kun teit merkittäviä korjauksia (FIX-vaihe). Puhtaissa kansioissa (NEXT) voit mennä jopa 5-10 kansiota.
+2. **Atomiset Git-tallennuspisteet:** Älä avaa uutta ikkunaa, jos koodaus on rikki. Tee aina *Git commit* onnistuneen korjaus- ja testauskierroksen jälkeen selkeäksi tallennuspisteeksi, ja avaa uusi ikkuna vasta sitten.
+3. **Kontekstin siirto:** Et tarvitse kartoitusvaihetta (Mapping) uudessa ikkunassa. Ohjeista uutta chattiä suoraan:
+   > *"Jatkamme jatkuvaa @tier2-hardening-backend.md -prosessia. Olemme vaiheessa 2 (Auditing). Tässä on jäljellä oleva task_backend.md -tarkistuslista: [liitä tekemättömät hakemistot]. Aloita ensimmäisestä kohdasta."*
 
 ---
 
