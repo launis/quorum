@@ -1,38 +1,66 @@
 # 01: API-kerros ja Asynkroninen tapahtumahallinta (Core)
 
-Quorum V2 on rakennettu järeän asynkronisen Python FastAPI -kerroksen ja tilattomien ruutereiden varaan. Koska järjestelmä rakentuu raskaiden tekoäly-DAG:ien ympärille ja nojaa "Fire and Forget" -malliin (palauttaa nopeasti "202 Accepted"), lokaali käyttöliittymä (Flutter) saa tiedon mutaatioista erillisen synkronointimekanismin (WebSocket) ja Push-mutaatioiden avulla.
+Cognitive Quorum rakentuu järeän asynkronisen Python FastAPI -kerroksen ja tilattomien reitittimien varaan. Järjestelmä on optimoitu raskaiden tekoäly-DAG:ien käsittelyyn "Fire and Forget" -mallilla (rajapinnat palauttavat nopeasti 202 Accepted). Käyttöliittymä (Flutter) lukee tulokset ja tilamuutokset asynkronisesti erillisen synkronointimekanismin kautta (Firestore snapshots).
 
-## Asynkroninen tapahtumahallinta ja Integraatiot (Event-Driven Loop)
+## Asynkroninen tapahtumahallinta (Event-Driven Loop)
 
-### Kaksivaiheinen reaktiivinen luuppi (Reactive UI Loop)
-Kun Frontend pakottaa käskyn aloittaa jopa kymmeniä minuutteja kestävän tekoälyajon, tila puretaan ilman blokkaavia API-kyselyitä (HTTP Polling):
+Kognitiivisesti raskaat tekoälyajot ja raporttien kääntämiset prosessoidaan API-kerroksen ulkopuolella taustalla. Alla oleva sekvenssikaavio havainnollistaa työnkulun asynkronisen "Fire and Forget" -elinkaaren:
 
-1. **Optimistic Start (Riverpod):** Saatuaan API:ltä "202 Accepted" vahvistuksen, Frontend esittää 0 ms latenssilla lokaalin tilan (`PENDING / RUNNING`).
-2. **Worker Terminal Write:** Arq Worker suorittaa taustalla verkon loppuun ja tekee tilamuutoksen Master DB:hen yhtenä atomisena mutaationa (`COMPLETED` tai `FAILED`).
-3. **Reaktiivinen Push:** Flutterin käyttöliittymä ylläpitää `firestore.collection.snapshots()` -kuuntelijaa. Uusi tila lennähtää muistiin ja uusi XAI-raportti renderöityy reaaliajassa.
+```mermaid
+sequenceDiagram
+    participant UI as Flutter Client
+    participant API as FastAPI Router
+    participant Redis as Arq Queue (Redis)
+    participant Worker as Background NodeExecutor
+    participant DB as System Database (Firestore / TinyDB)
 
-### Enterprise Integraatiot (Webhookit)
-B2B-järjestelmien "Server-to-Server" (S2S) integraatiot hyödyntävät Webhookkeja (SaaS Integration Layer):
-1. **Tenant-Specific Webhookit:** Asiakas tallentaa CRM-järjestelmänsä HTTP-osoitteen.
-2. **Webhook Dispatcher:** Kun asynkroninen Node saavuttaa päätetilan, Dispatcher ampuu **HTTP POST** -pyynnön valmiilla JSON:illa kohteeseen.
+    UI->>API: POST /executions (Payload)
+    activate API
+    API->>API: Pydantic V2 Strict Validation
+    API->>Redis: Enqueue Job (Opaque ID)
+    API-->>UI: HTTP 202 Accepted (Task ID)
+    deactivate API
 
----
+    Redis-->>Worker: Dequeue Task
+    activate Worker
+    Worker->>DB: Status -> RUNNING
+    Worker->>Worker: LLM Network Execution...
+    Worker->>DB: TraceEvents & OutputProfile DTO
+    Worker->>DB: Status -> COMPLETED
+    deactivate Worker
 
-## The Map: Hakemistoryhmien kuvaus (API & Core)
+    loop SWR Polling / Snapshots
+        UI->>DB: Listen for trace updates
+        DB-->>UI: Render O(1) Reactive changes
+    end
+```
 
-Koodikannassa ("The Modular Async Monolith") ohjaustaso ja käynnistys asuvat omissa vahvasti nimetyissä kansioissaan `backend_v2/` juuressa. Näissä kerroksissa *kognitio ei koskaan vuoda rajapintoihin*.
+1. **Optimistinen vastaanotto (FastAPI):** Kun asiakas lähettää suorituspyynnön, FastAPI delegoi raskaan työn Arq-taustajonolle (Redis) ja palauttaa välittömästi HTTP 202 -vastauksen.
+2. **Taustaprosessointi (Arq Worker):** Itsenäinen Worker-prosessi purkaa jonon, suorittaa LLM-kutsut ja suorittaa atomisen tallennuksen (COMPLETED/FAILED) tietokantaan.
+3. **Reaktiivinen UI-päivitys:** Käyttöliittymä kuuntelee tietokannan tapahtumia ja päivittää näkymät (esim. XAI-raportit) heti kun taustaprosessi on valmis.
 
-### `backend_v2/api/` (FastAPI Control Plane)
-Ylin REST-rajapintakerros, joka vastaanottaa pyynnöt, ajaa ne Pydantic-turvamuuriin ja siirtää palveluille. 
-- **`routers/`**: Eriytetyt HTTP REST V2 -ruuterit. Reititin ei koskaan sisällä liiketoimintalogiikkaa (Anemic pattern).
-  - `execution/`: DAG-ajojen hallinta (aloitus, tila) ja `/report` BFF-päätepiste (Backend-For-Frontend).
-  - `iam/`: Identiteetin, työtilojen (org) ja Custom Claims -roolien mutaatiot.
-  - `studio/`: Graafisen Workflow Studion puhtaat CRUD-tilarajapinnat.
+## Hakemistorakenne: Kognition ja rajapintojen erotus
 
-### `backend_v2/core/` (Arkkitehtuurikonfiguraatiot)
-Sisältää järjestelmän keskitetyn infrastruktuurin, joka säestää FastAPI:n ruutereita. Varsinainen liiketoiminta puuttuu täältä.
-- Sisältää luokat ja moduulit kuten `BaseException`, virheiden serialisoijat RFC 7807 -muotoon sekä Dependency Injection -työkalut.
+Koodikannassa ohjaustaso asuu vahvasti rajatuissa kansioissa. Tärkein sääntö on, että kognitio (LLM-kutsut, skoraus) ei saa siirtyä rajapintoihin, vaan routers-kerros on "aneeminen" (Anemic pattern).
 
-### Pääkäynnistimet
-- **`backend_v2/main.py`**: FastAPI ohjelman päänielu (Entry point). Rekisteröi kaikki ruuterit, konfiguroi CORS-säännöt ja asettaa lokituksen middlewaret. 
-- **`backend_v2/settings.py`**: Ainoa paikka missä ympäristömuuttujat (`.env`) ladataan sisään Pydanticin `BaseSettings` -luokan avulla. Suojelee muuta järjestelmää satunnaisilta kovakoodatuilta asetuksilta.
+### `backend_v2/api/routers/` (FastAPI Control Plane)
+Ylin REST-rajapintakerros vastaa HTTP-pyyntöihin. Se pysäyttää virheellisen datan RFC 7807 -turvamuuriin (Pydantic ValidationError) ennen kuin se siirtää vastuun Services-kerrokselle.
+
+Käytössä olevat reitittimet (V2):
+- **`execution/`**: Työnkulkujen (DAG) ajojen aloitus ja historian haku.
+- **`iam/`**: Identiteetin, organisaatioiden (org) ja käyttäjäroolien mutaatiot.
+- **`studio/`**: Graafisen työnkulkustudion rakenteiden CRUD -operaatiot.
+- **`output_profiles/`**: Tulostusprofiilien hallinta.
+- **`system/`**: Järjestelmän yleiset konfiguraatiot ja meta-operaatiot.
+
+### `backend_v2/core/` (Arkkitehtuuriresurssit)
+Sisältää sovelluksen kriittisen asynkronisen infran ja rekisterit, jotka hallinnoivat järjestelmän toimintaa taustalla.
+- **`hook_registry.py`**: Suorituksenaikaiset välityspalvelut (hooks), jotka vaikuttavat malleihin suorituksen aikana.
+- **`registry.py`**: Universaali rekisteri (Workflow/Block mallien dynaaminen yhdistäjä).
+- **`rate_limit.py` / `security.py`**: API:n tiukat rajoitteet ja tietoturvamääritykset (RateLimiter, CORS).
+
+### The Entrypoint: `backend_v2/main.py`
+Järjestelmän juurikäynnistäjä, joka sitoo arkkitehtuurin kasaan:
+1. **Lifespan Management:** Kytkee Redis-jonot (Arq) ja lokituksen (Logfire/Python Logger) päälle.
+2. **Middlewaret:** `RequestIdMiddleware` mahdollistaa pyyntöjen jäljitettävyyden lokiketjuissa ja `LocalizationMiddleware` parsii asiakkaan kielen (Accept-Language) dynaamisia käännöksiä varten.
+3. **Global Error Catchers:** Sieppaa kaikki järjestelmästä irtoavat Pydantic- ja domain-virheet ja asettaa ne ehdottomasti yhtenäiseen RFC 7807 "Problem Details" -JSON-muotoon. Näin "Fail-Fast" periaatteen mukainen suorituksen katkaiseminen näkyy standardoituna ohjelmistorajapinnassa.

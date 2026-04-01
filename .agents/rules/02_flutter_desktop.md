@@ -59,6 +59,16 @@ Deliver Master-views as `AsyncNotifier<List<FreezedModel>>`. Detail views fetch 
 ### 3.6 Transient Form State
 Use `flutter_hooks` (`useTextEditingController`) for typing state. Do NOT dispatch keystrokes to Riverpod directly (prevents Main Thread Jank). Only `submit()` to the Riverpod Mutation.
 
+### 3.7 Frontend Zero Leaks & State Isolation
+Riverpod memory must be guarded against State Leaks. Upon Organization or User change (Tenant Isolation), the old cache MUST be safely invalidated (`ref.invalidate()`) to prevent exposing previous tenant data to a new context.
+
+### 3.8 Single Responsibility Principle (The Three Riverpod Boundaries)
+The system strictly enforces SRP across three layers:
+1. **Widgets (UI ONLY):** Render the screen. No HTTP, no business logic, no heavy parsing.
+2. **Notifiers (STATE ONLY):** Coordinate actions and mutate state. Never interact with `BuildContext`.
+3. **Repositories (NETWORK ONLY):** Handle HTTP and external APIs.
+Monolithic "God Widgets" executing heavy parsing, network calls, and UI building simultaneously are strictly BANNED.
+
 ## 4. ROUTER, NAVIGATION & DEEP LINKING
 
 ### 4.1 Strongly Typed Routing
@@ -86,8 +96,8 @@ Always wrap heavy parsing using `final payload = await Isolate.run(() => jsonDec
 
 ## 6. STRICT FREEZED & DART 3 PATTERN MATCHING
 
-### 6.1 DTO Schema Parity (Fail-Fast)
-Ensure 100% strict JSON conformity (`disallow_unrecognized_keys: true`). No fallback defaults for missing server data (e.g., `String text = ""` is banned).
+### 6.1 DTO Schema Parity (Fail-Fast Client Firewall)
+Ensure 100% strict JSON conformity (`disallow_unrecognized_keys: true`). No fallback defaults for missing server data (e.g., `String text = ""` is banned). This acts as a Client-Side Firewall: if the backend leaks undocumented extra data to the UI, the JSON parser MUST crash immediately to protect client memory.
 
 ### 6.2 O(1) Lists
 Use native Dart `List<T>` with `@Freezed(equal: false)` to bypass deep equality performance hits on massive lists. Do not inject external immutable collection packages.

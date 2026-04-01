@@ -1,112 +1,96 @@
-# Cognitive Quorum (2026 Enterprise Edition)
+# Cognitive Quorum (V2.9 / Phase 9 Enterprise Edition)
 
 **Structured, Auditable, and Deterministic AI Orchestration.**
 
 > **Status:** Phase 9 Hardening (2026 SOTA)
-> **Architecture:** Zero-Deploy DAG Orchestrator, Flat MVC (BFF), Firebase CQRS
-> **Philosophy:** Zero-Magic, Fail-Fast, Strict Rust-Core Pydantic DTOs.
+> **Architecture:** Event Sourcing DAG Orchestrator, Storage Driver Pattern, Riverpod SWR
+> **Philosophy:** Zero-Magic, Fail-Fast, Strict Rust-Core Pydantic DTOs, Zero-Math UI.
 
-Cognitive Quorum is a specialized AI orchestration platform designed for high-stakes cognitive labor—scientific peer review, legal auditing, and strategic analysis. Unlike generic chatbot frameworks, Quorum enforces a **Strict Object Mode**, ensuring that every step of the AI's reasoning is validated, persisted, and auditable.
+Cognitive Quorum on erikoistunut asiantuntijajärjestelmä (Specialized AI Orchestration Platform) kriittiseen kognitiiviseen asiantuntijatyöhön, kuten tieteelliseen vertaisarviointiin ja lakisääteiseen auditointiin. Toisin kuin perinteiset LLM-chatbotit, Quorum pakottaa jokaisen tekoälyn askeleen **Strict Object Modeen**, missä päätösten matematiikka puretaan koneellisiksi atomeiksi (Micro-CoT) ja tallennetaan jäljitettäväksi (Forensic Sovereignty).
 
 ---
 
-## 🚀 Key Features (2026 SOTA)
+## 🚀 Key Features (V2.9 Arkkitehtuuri)
 
 ### 1. The "Zero-Compromise" Manifesto
-We reject "black box" agent frameworks. Quorum uses explicit, deterministic Python code:
-*   **Strict Pydantic V2 (Rust-Core)**: Every step's input/output is a strongly typed **DTO** using `model_validate_json` and `extra="forbid"`. No silent dict coercions.
-*   **Firebase CQRS**: The Flutter UI is strictly **Read-Only** regarding the database, subscribing only to real-time streams. All structural mutations route through the FastAPI Service layer.
-*   **Fail-Fast**: The system crashes immediately (`AppException` RFC 7807) on invalid configuration, missing fields, or unauthorized access attempts.
+Quorum inhoaa "Mustia Laatikoita". Kaikki kognitio pakotetaan deterministiseen muotoon:
+*   **Strict Pydantic V2 (Rust-Core)**: Kaikki I/O kulkee Pydantic-mallien läpi `extra="forbid"` turvalla varustettuna.
+*   **Fail-Fast & RFC 7807**: Järjestelmä ei koskaan "korjaa hiljaa" (SizedBox.shrink tai try-except pass). Virheet kaatavat yksittäiset solmut näkyvästi `AppException` (RFC 7807) virhekehyksillä pitäen muun prosessin pystyssä.
+*   **The Hook Layer**: Tekoälymallit eivät itse luo omien pyyntöjensä rakenteita sorkkimalla rajapintoja vapaasti. Järjestelmä kokoaa (Jinja2) työnkulut lennossa, ampuu LLM-kutsun asynkronisesti erillisen Client-abstraktion yli, ja puhdistaa vastaukset "Algorithmic Tyranny Kill Switch" mekanismin läpi estäen teorialaiskuuden.
 
-### 2. Zero-Deploy DAG Routing
-We replaced sequential hardcoded agent chains with a dynamic **Directed Acyclic Graph (DAG)** workflow:
-*   **Data-Driven Pipelines**: Workflows and Prompts are defined in `seed_data.json`, meaning new evaluation criteria can be added without modifying backend code.
-*   **The Anti-Mirror Protocol**: AI agents operate in parallel, insulated from each other's outputs during target human evaluations, preventing LLM mathematical groupthink.
-*   **Model Context Protocol (MCP)**: AI agents use The Tool Loop for real-time empirical validation, with absolute fact-checking traces frozen in `XAIEvidenceBox` audits.
+### 2. Event Sourcing DAG Orchestrator
+Eroon perinteisistä peräkkäisistä purkkaliitos-putkista. Asynkroninen moottori `services/orchestrator/dag_executor.py`:
+*   **Event Sourcing**: Jokainen ajon vaihe (`TraceEvent`) tallentuu historiikkiin, mahdollistaen rehydration-tilat ("Kesken jääneet työt").
+*   **Storage Driver Pattern**: Järjestelmä ei sitoudu suoriin yksittäisiin tietokantoihin (Koodi tukee lennosta lokaalia `db_v2.json` TinyDB-ajuria tai pilven Firestorea). Uutena V2:ssa, yli 100 KB raskaat tekoälytulokset ohjataan automaattisesti Blob Storageen keventäen rajapintoja.
+*   **Arq Worker (Redis)**: Raskaat API-puhelut LLM:lle lähetetään aina HTTP 202 Accepted -jonoon FastAPI-prosessin tukehtumisen estämiseksi.
 
-### 3. B2B SaaS IAM & Security
-*   **Passkey-First Auth**: Passwords are legacy fallbacks. Security relies on cryptography, Riverpod Re-Auth Interceptors, and real-time Step-Up MFA (TOTP) natively evaluated from JWT `amr` claims at O(1) speed.
-*   **Opaque Stripe IDs**: All database keys are strictly obscure (e.g., `org_[a-zA-Z0-9]{8,}`). Human-readable keys are forbidden at the database layer.
-*   **Saga Pattern Deletions**: Deleting user accounts delegates anonymization and entity removal to Arq Redis Background Workers (`202 Accepted`), maintaining global audit traces.
-
-### 4. Adaptive Flutter Edge (Desktop-First)
-*   **Zero-Latency UI**: The frontend utilizes Stale-While-Revalidate (SWR) for instantaneous state changes without full-screen loading spinners.
-*   **The Isolate Mandate**: Parsing 100MB JSONs or 5000-row CSVs never touches the UI thread. It is completely offloaded to Dart `Isolate.run()`.
+### 3. Desktop-First Flutter (App)
+*   **Zero-Math UI**: Käyttöliittymä ei koskaan laske tekoälyn XAI-värejä, keskiarvoja tai numeerisia korrelaatioita (Backend-For-Frontend palvelee ne valmiina `ReportLayoutDTO` -pakettina).
+*   **Riverpod 3.0 & SWR**: Ei latausympyröitä (Loading Spinners). Nollalatenssin dynaaminen reititys kätkee verkkopyynnöt asynkronisesti ruutujen taustalle koodigeneroidulla Optimistisella UI:lla.
+*   **Infinite Canvas**: Työnkulkujen ja parametrien (SystemInspector) muokkaaminen asuu asiantuntijoille suunnatulla rajattomalla vuokaavio-alustalla (`InteractiveViewer`), hyläten jähmettyneet listat ikkunoistaan.
 
 ---
 
-## 🏗️ System Architecture
+## 🏗️ Järjestelmäarkkitehtuuri
 
 ```mermaid
-graph LR
-    User[Flutter Desktop Client] -->|SSE Read-Only Stream| DB[(Firestore / TinyDB)]
-    User -->|Mutations / REST| API[FastAPI Gateway]
-    API -->|Validation| PYD[Strict Pydantic V2]
-    PYD -->|Pass| SERV[Domain Service Layer]
-    PYD -->|Fail-Fast 422| User
-    SERV -->|Admin SDK Writes| DB
-    SERV -->|Enqueue Heavy DAGs| Worker[Arq Async Worker]
-    Worker -->|Execute Node| LLM[Google Vertex AI]
-    Worker -->|Model Context Protocol| MCP[Serverless Tools]
+flowchart LR
+    UI["Flutter Desktop (Riverpod 3)"] -->|Opaque ID| API["FastAPI (Port 8000)"]
+    API -->|Enqueue Task| Redis[("Redis (Arq)")]
+    Redis --> Worker["Python async Worker"]
+    
+    API -.->|"Logfire Traces"| Cloud(("Pydantic Logfire"))
+    Worker -.->|"LLM Token Traces"| Cloud
+
+    subgraph The Logic Boundary
+        Worker -->|"Pre-Hook & LLM"| LLM[Google Gemini / Vertex AI]
+        LLM -->|"Post-Hook & Zero-Math"| Worker
+    end
+
+    Worker -->|"StorageDriver Pattern"| DB[("TinyDB / Firestore")]
+    UI -->|"SWR Polling/SSE"| DB
 ```
 
 ---
 
-## 📚 Documentation Index
+## 📚 Dokumentaatio
 
-### Core Architecture & Protocols
-*   **[Arkkitehtuurimäärittely: The Modular 2026 Engine](docs/index.md)**: The authoritative master reference, broken down into an MkDocs-style directory tree.
-*   **[EPIC: B2B Multi-Tenant IAM Säännökset](docs/epic/B2B%20SaaS%20IAM-arkkitehtuuri%202026.md)**: Zero-Trust policies, User Settings, and Role Matrices (ROOT/ADMIN/MANAGER/MEMBER/VIEWER).
-*   **[Flutter Architecture Protocol](.agents/rules/02_flutter_desktop.md)**: Rules for optimizing Desktop-First Flutter applications, Riverpod SWR, and GoRouter Stateful Navigation.
-*   **[Antigravity Prompting](docs/antigravity_prompting.md)**: Universal System Rules for Agentic AI Coding, enforcing the Zero-Compromise Pledges.
+Kaikki ajantasainen ja tekninen Master-dokumentaatio asuu koodikannan osana:
 
-### Development Standards & Tooling
-*   **[Tier Verification Protocols](docs/hardeningback.md)**: Audit checklists for Python Backend (Strict Typed Dicts, Aneamic Routers).
-*   **[API Reference](docs/reference.md)**: Model definitions, routing logic, and database schemas.
+* **[Arkkitehtuuridokumentaatio (V2.9 Hakemisto)](docs/architecture/)**: Ehdoton Single Source of Truth järjestelmän komponenteista (DAG, The Hook Layer, Storage Driver, yms.).
+* **[Agenttien Säännöstöt (Config)](.agents/rules/)**: IDE-tason pakotetut direktiivit koodin laadunvarmistukseen (Pydantic Strict Typing, Flutter Isolate Mandate ja V2 SWR-säännöt).
 
 ---
 
-## 🛠️ Technology Stack
+## 🛠️ Teknologiapino
 
-*   **Language**: Python 3.14+ (Async) & Dart 3.27+
-*   **Frameworks**: FastAPI, Arq, Riverpod 3.0+
-*   **Database**: TinyDB (Local) / Firestore (Cloud)
-*   **LLM**: Google Vertex AI / OpenAI (With Strict JSON Schema via Pydantic)
-*   **Tools**: `uv` (Package Mgmt), `ruff` (Linting), `mypy` (Typing)
+*   **Kielet**: Python 3.14+ (Strict) & Dart 3.27+
+*   **Frameworkit**: FastAPI, Arq, Riverpod 3.0+, Freezed
+*   **Tietokannat**: TinyDB (Dev) / Firestore (Tuotanto) + Redis (Arq)
+*   **Infrastruktuuri**: Docker, Logfire Instrumentointi
+*   **Työkalut**: `uv` (Package Mgmt), `ruff` (Linting), `mypy` (Typing)
 
 ---
 
-## 📦 Getting Started
+## 📦 Käynnistys
 
-### Prerequisites
-*   Python 3.14 (Recommended: Use `uv`)
-*   Docker & Docker Compose
-*   Flutter SDK (3.27+)
+1. **Riippuvuudet**: `uv`, Docker
+2. **Asennus**:
+   ```bash
+   git clone https://github.com/launis/quorum.git
+   cd quorum
+   uv sync
+   ```
+3. **Infrastruktuurin pystytys**: Käynnistää Rediksen asynkronisla jonotuksia varten.
+   ```bash
+   docker-compose up -d redis
+   ```
+4. **Taustapalvelimet ja Työntekijä (Startup Script)**:
+   ```bash
+   ./run_local.bat
+   ```
 
-### Installation
-
-1.  **Clone & Setup Backend**:
-    ```bash
-    git clone https://github.com/launis/quorum.git
-    cd quorum
-    uv sync
-    ```
-
-2.  **Environment Setup**:
-    Create `.env` based on `.env.example`:
-    ```env
-    GOOGLE_API_KEY=your_key
-    ```
-
-3.  **Run Infrastructure**:
-    ```bash
-    docker-compose up -d redis
-    ```
-
-4.  **Start Services**: (Runs Backend, Arq Worker, and Client)
-    ```bash
-    ./run_local.bat
-    ```
+*(Huom! Testidatan muokkaus "Siementäminen" suoritetaan säännösteltynä komennolla `uv run python backend_v2/seed/run_seed.py local` estäen suoran manuaalisen muokkauksen jotta Opaque ID -työnkulut eivät korruptoidu.)*
 
 ---
 

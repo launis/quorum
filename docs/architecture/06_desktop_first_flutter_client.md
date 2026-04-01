@@ -1,38 +1,49 @@
-# 06: Esityskerros (Desktop-First Flutter) ja Kognitiivinen Monikielisyys
+# 06: Flutter Frontend (V5.2 Desktop-First)
 
-Järjestelmän käyttöliittymän (`client_app_v2`) arkkitehtuuri ei sisällä tekoälyn laskentareittejä (Zero-Math), vaan toimii näyttölasina (Backend-For-Frontend) täysin tyyppiturvallisessa (Type-Safe Freezed) muistissa. 
+Cognitive Quorum V2:n käyttöliittymä (client_app_v2) on rakennettu Flutterilla täysin **Desktop-First** (PC/Ultrawide) edellä. Kaikki logiikka on hajautettu tiukasti Riverpod 3.0:aan ja asynkronisiin Isolate-säikeisiin (Main Thread Jank Prevention). 
 
-## Esityskerros (Adaptive BFF - Flutter & Riverpod)
+Yksi suurimmista arkkitehtuurisista paradigmoista on "**Zero-Math UI**": Käyttöliittymä tai Flutter-laitteen CPU ei saa koskaan laskea matemaattisia keskiarvoja tekoälyn datasta, vertailla numeerisia kynnyksiä saati päätellä teemavärien vaihtumisia. Tämä luottaa puhtaasti Backendin palauttamiin esipureskeltuihin `ReportLayoutDTO` -malleihin (Backend-For-Frontend konsepti).
 
-Koko käyttöliittymä nojaa **Desktop-First** ja **IDE Pro-Tool** -filosofioihin. Käyttäjä on asiantuntija.
-1. **Stateful Nested Navigation (GoRouter):** Työpöytänäkymän navigaatio nojautuu `StatefulShellRoute` -rakenteeseen. "InitialData" -syöttäminen (objektien puskeminen sivujen väliin) on sallittua vain lukkovaiheisilla Opaque Stripe ID:illä.
-2. **Zero-Latency IAM UI (SWR):** Asetusikkunat hyödyntävät puhdasta Stale-While-Revalidate (Riverpod) -matriisia. Optimistiset päivitykset poistavat blokkaavat latausanimaatiot.
-3. **The Isolate Mandate:** Järjestelmä siirtää monimutkaiset JSON-parsinnat asynkroniseen Dart Isolette -työkalulle ohi UI-säikeestä estämään PC-näyttöjen latenssivärinöitä.
-4. **Zero-Math / Micro-CoT Flattening:** UI (Flutter) ei laske logiikkaa tai numeroita, vaan luottaa Backendiin Hookkien valmiiksi palauttamaan Pydantic valmiiseen Data-objektiin.
+## 1. Desktop-First Layout ja Ikkunointi
 
-## Kognitiivinen Monikielisyys (The 5-Layer Strategy)
-Järjestelmä viipaloi luonnollisen kielen kognitiivisen ytimen käännöksistä:
-1. **Compile-Time L10n:** `.arb` kääntää natiivin valikon tai napit käskykirjastoilla ("Edit values, never keys").
-2. **Runtime Payload:** Frontend ei tee tekoälyn datan kääntämistyötä, API generoi ja vastaa mallista saadut käännökset ajonaikaisella JSONilla.
-3. **English-Only Mandate:** Tekoälyn The Deep Engine (The Blind Audit arviointi ja System Prompt) kirjoitetaan **vain** ja ainoastaan englanniksi parhaan laadun takeena.
-4. **Temporal Standard:** Numerot/Aikaleimat välitetään ISO-8601 UTC ja palautetaan Dart ICU -muuttujin ruutuun.
-5. **Translation Hooks:** Varmistaa, että malleja ei pakoteta purkamaan "Pydantic Field Names" suomennuksilla, aiheutusta rikkovat strict-schemat.
+Järjestelmä on siirtynyt mobiilityylisestä koko ruudun selaamisesta täyteen IDE-kankaaseen (Integrated Development Environment).
 
----
+1. **Reititys ja Kolmikerroksinen (Three-Pane) Ikkuna:** Yli 1200dp näytöillä reitin navigointi rakentuu staattisen Sidebarin (Moduulit), Master List -sivupalkin (Datat, suodatukset) sekä asynkronisen Detail Canvas -näkymän (Esim. ajonaikainen PDF-raportti) välille. Kapeammissa 600-1199dp ikkunoissa siirrytään TwoPane-malliin ja alle 600dp vapaan muotoiseen pinottuun navigaatioon.
+2. **Infinite 2D Canvas:** Asiantuntijajärjestelmän työnkulkujen (DAG) tai matriisien konfigurointi hylkää yksittäiset listamuuttujat. **SystemInspector** luo `InteractiveViewer`in päälle äärettömän ruutupaperimaisen editorin, missä kaikki työnkulun Pydantic-solmut liikkuvat visuaalisesti x/y -avaruudessa. Objektin painaminen aukaisee kyseisten parametrien asetusnäkymän sivupalkkiin irroittamatta silmää verkon kokonaisuudesta.
 
-## The Map: Hakemistoryhmien kuvaus (Frontend Flutter)
+## 2. Koodin Pariteetti ja Freezed-turva (Fail-Fast)
 
-Asiakassovelluksen The App Layer (Feature-First Architecture) peilaa ylläolevaa strategiaa Riverpod logiikoissa. Koko sovellus perustuu kansion sisäiseen jaotteluun:
+Frontend-mallien (Data Transfer Objects) pitää jatkuvasti vastata yksi-yhteen (`1:1`) Python Backendin uusia Pydantic V2 -muutoksia.
+* **Code Generaatio:** Koodaus tapahtuu tiukalla `@freezed` (Dart) ja rakenteellisella `disallow_unrecognized_keys: true` -rajoitteella. Frontend perii kaatumisturvansa backendiltä – jos palvelin yrittää lähettää liikaa avaimia ("extra fields"), Flutter-koodi räjähtää mieluummin äänekkäästi käsiin sen sijaan että hiljaa ohittaisi mallin sisältörikkeet.
+* **Pääsäikeen suojaus (Isolates):** Raskaiden Backendin tulostamien raporttien JSON-purku (Deseriliazation) ei saa missään tilanteessa vaikuttaa ikkunan päivitysnopeuteen (60FPS Frame Drop). Se on erotettu omaan säikeeseen käyttämällä rutiinia: `await Isolate.run(() => jsonDecode(chunk));`
 
-### `client_app_v2/lib/` (The Cognitive Studio)
-Asiakassovelluksen GoRouter ja Feature-kärjet sijaitsevat osioituna täällä.
-- **`main.dart` & `app.dart`**: Ohjelman käynnistys ja App Shell. Tänne kuuluu The ErrorBoundary kääre (Red Screen of Death poistot).
-- **`core/`**: Verkkoyhteys (Network client), `LoggerServiceProvider` (Riverpod loggeri) ja Error Exception Boundaries.
-- **`features/`**: Feature-First jaottelu, jossa itsenäinen reitti ja state-layer elää samassa Feature-kansioissa logiikan ytimeen asettuen:
-  - `auth/`: IAM Passkey ja Logiikka (Proaktiivinen MFA / Error Handling Zero-Latency asetuslasina).
-  - `execution/`: DAG Ajojenseurantanäkymät. Riippuvaisia katsomiskulmasta. (SWR Optimistic state).
-  - `bff/`: The Backend-For-Frontend -lukusolmut, jotka dynaamisessa muodossa luovat Widgetit lukemalla API:n antamia Opaque Stripe ID puitteita.
-- **`l10n/`**: Lokalisointikansio (`app_en.arb`, `app_fi.arb`). Seuraa kovaa No-String ääriarvoista rajoitusta (UI ei sisällä kovakoodattuja jonoja widgeteissä).
-- **`router/`**: Navigoinnin hermoverkko. Reitittimissä vain ID-välitunnuksia URL stression lieventämiseksi (Routing). Sisältää Guardit lennättämään ulos ei-tenant suojauksissa (`org_xyz: MEMBER`). 
-- **`shared/`**: Modulaariset Widgetit, Model/Freezed -määritykset asynkroniselle JSON DTO:n pureukselle sekä "SafeCast" virheeneston työkalut.
-- **`theme/`**: The Design System Material 3 värimaailmat. Ei tuplattuna Blueprinteihin tai Hookkeihin.
+## 3. Riverpod 3.0 ja Dynaaminen Reititys (SWR)
+
+Sovelluksen arkkitehtuuri on hylännyt perinteisen `ChangeNotifier` -pohjaisen laiskan päivityksen siirtymällä 100% Riverpodin natiiviin käyttöön ja koodigeneraatioon (`@riverpod`).
+
+* **SWR ja Nollalatenssi:** Raskaat tietokantanäkymät lukitaan muistiin SWR (Stale-While-Revalidate) -konseptin kautta (`ref.keepAlive()`). Käyttäjän peruuttaessa sivustolle, laite heittää heti ruutuun (0ms) viimeisimmän tunnetun version välimuistista. Jos dataa on muutettu tietokannassa, taustapäivitys ajaa uudet muutokset pehmeästi ruudun animoituun pintaan perässä.
+* **Tilausreititys ja Muutokset:** Tallentamisoperaatiot hyödyntävät Optimistic UI:ta. "Loading"-ylipeittäviä spinner-lukkoja pidetään nykyaikaisessa desktop-apissa käyttöliittymävirheenä. Muutukset rekisteröidään dynaamisesti ja käyttäjät voivat jatkaa klikkailua taustaverkkopyynnön (`Mutation`) raahatessa mukana.
+* **GoRouter Opaque ID:** Navigaatio rakentuu Stripe-tyyppisten Opaque ID:in päälle (`/admin/workflows/blk_abc123`). Reitteihin ei syötetä sisääntulevia `$extra` objektiparametreja, sillä kaikki näkymien tilat sidotaan näkymän omien ID-pohjaisten The Riverpod -providerien varaan estääkseen linkkien mätänemisen.
+
+## 4. Single Source of Truth: UI Error Boundary
+
+Arkkitehtuuri ei yritä enää piilotella ongelmaisia näyttöelementtejä kutsumalla varalla tyhjiä `SizedBox.shrink()` laatikkoita.
+
+```mermaid
+flowchart TD
+    API["FastAPI (Raskas JSON Payload)"] --> Isolate["Flutter Isolate (Background Thread)"]
+    Isolate --> Riverpod["Riverpod 3.0 (AsyncValue)"]
+    
+    Riverpod --> UI_Build{"Widget build() & @freezed validointi"}
+    
+    UI_Build -- "Data täsmää (Valid)" --> Render["Renderöi Normaali IDE Komponentti"]
+    
+    UI_Build -- "Tuntematon Avain / Tyyppivirhe" --> Exception["CheckedFromJsonException"]
+    Exception --> ErrorBoundary["AppErrorBoundary (Catch)"]
+    
+    ErrorBoundary --> RedBox["Näytä Punainen varoitus Widgetin paikalla"]
+    RedBox --> IsolateUI["Muu IDE & Sidebar pysyvät 100% käyttökelpoisina"]
+```
+
+* Järjestelmä on kapseloitu globaaliin **AppErrorBoundary** -verkkoon.
+* Mikäli yhden tietyn visuaalisen laatikon tai komponentin data (esim. yksittäisen LLM-hookin vastaussääntö) puuttuu tai on korruptoitunut (`CheckedFromJsonException`), laite eristää yksittäisen widgen punaisilla katkoviivoilla korostettuun virhelaatikkoon. Koko muu IDE (sivupalkki, näkymät ja tallennuspainikkeet) pysyy aktiivisena, samalla kun Backendin oma ilmoitus (RFC 7807) tulostuu komponentin sisältä suoraan kehittäjälle näkyville.

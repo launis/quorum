@@ -1,53 +1,49 @@
-# 07: Infrastruktuuri, Observability ja Tekoälyn Resurssienhallinta (FinOps)
+# 07: Infrastruktuuri ja Lokitus (Observability)
 
-Järjestelmän fyysinen topologia rakentuu **Google Cloud Platformin (GCP)** Serverless-arkkitehtuuriin poistaen Kubernetes-tyyppisen hallintovelan (Scale-to-Zero). B2B asynkroninen hajauttavuus asettaa telemetrialle kriittisiä arkkitehtuurijuuria (Logfire).
+Järjestelmä operoi asynkronisen Python FastAPI -arkkitehtuurin, raskaiden Arq / Redis -taustatyöntekijöiden ja Docker-konttien päällä. Koska taiteellisen asiantuntijajärjestelmän debuggaus on perinteisesti tuskaista ("miksi tekoäly tuotti huonon tuloksen?"), Cognitive Quorum V2 panostaa massiivisesti "Forensic Sovereignty" -tyyliseen jäljitettävyyteen.
 
-## Käyttöönottomalli (Deployment Architecture)
+## 1. Lokitus (The ContextFilter Mandate)
+
+Lokitus (`backend_v2/logging_config.py`) ei ole vain tekstivirtaa, vaan arkkitehtuurisesti kytketty The Zero-Compromise Ppledgen "Fail-Fast" periaatteisiin.
+
+1. **Kontekstisidonnaisuus (`ContextFilter`):** Jokainen taustaprosessiin (Worker) tai reitittimeen (API) syntyvä lokirivi, oli se sitten tietokantavirhe tai LLM-integraation varoitus, ohjataan `ContextFilter`:n läpi. Tämä injektoi lokiriville *aina* aktiivisen `execution_id`:n (tai oletuksena `request_id`). Tämän ansiosta massiivisesta serverin lokitiedostosta (`backend_debug.log`) pystytään greppaamaan sekunneissa kaikki yhtä tiettyä työnkulkua koskettavat 100 eri I/O -kutsua The Event Sourcing -ketjussa.
+2. **Dual-Reporting (RFC 7807):** Järjestelmän on ehdottomasti estetty nielemästä virheitä lennossa. Kun koodi kaatuu odottamattomaan poikkeukseen, sitä ei "hoideta pois", vaan se työnnetään ensin rakenteellisena `logger.error` viestinä talteen (mukaanlukien täysi Stack Trace ja virhekoodi), ja uudelleenheitetään asiakkaalle puhtaana Pydantic-validoituna `AppException` (RFC 7807 Problem Details) rakenteena vian selvittämiseksi.
+
+## 2. Pydantic Logfire & LLM Observability
+
+Tekoälyn toimintakyky ei saa ikinä olla Musta Laatikko. Järjestelmä on integroitu suoraan Pydanticin viralliseen Logfire-pilveen (`logfire.configure`).
+* Kaikki HTTP-pyynnöt ja tekoälyintegraatiot (`litellm.success_callback = ["logfire"]`) säteilytetään suoraan kojelautaan pilveen vianjäljitystä varten.
+* Tämä paljastaa tarkasti kauan mallilla (esim. Gemini Pro) meni generoida tietty Pydantic Structured Output, paljonko se maksoi (Token usage), ja kaatuiko kysely mahdollisesti rikkinäiseen Pydantic-skeeman luontiin (`schema_builder.py`).
+
+## 3. Infrastruktuuri ja Ympäristöt
+
+Quorum pohjaa kontitettuun "Infrastructure as Code" -toimintamalliin. Siksi järjestelmällä ei ole erillistä paikallisista eroja koskevaa ydinlogiikkaa. 
 
 ```mermaid
-graph TD
-    App[Flutter Desktop/Web] -.->|Read-Only WebSockets| FStore[(Firebase Firestore)]
-    App -->|HTTPS Mutations| Load[Cloud Load Balancing]
-    Load --> API[Cloud Run: FastAPI Web Service]
-    API -->|Queue Tasks| Redis[(Cloud Memorystore for Redis)]
-    Worker[Cloud Run: Arq Worker Farm] -->|Consume Tasks| Redis
-    Worker -->|Admin Write| FStore
-    Worker -->|Write/Read Blobs| GCS[(GCP Cloud Storage)]
-    Worker -->|Cognitive Call| LLM[Vertex AI / OpenAI]
+flowchart LR
+    subgraph Infastructure ["Docker / Paikallinen Infra"]
+        UI["Flutter Client"]
+        API["FastAPI (Portteri)"]
+        Redis[("Redis (Arq)")]
+        Worker["Python Worker"]
+    end
+
+    subgraph Observability ["Observability / Lokitus"]
+        Context["ContextFilter (execution_id)"]
+        LogFile[("backend_debug.log")]
+        LogfireCloud(("Pydantic Logfire"))
+    end
+
+    UI -->|"HTTP Request"| API
+    API --> Redis
+    Redis -->|"Asynkroninen ajo"| Worker
+
+    API -->|"Dual-Reporting"| Context
+    Worker -->|"Dual-Reporting"| Context
+    Context --> LogFile
+
+    API -.->|"HTTP Traces"| LogfireCloud
+    Worker -.->|"LLM/Token Traces"| LogfireCloud
 ```
-
-## Vikasietoisuus (Resilience)
-Ulkoverkon hallintaan on sovitettu 3-tasoinen elastinen elvytys:
-1. **Exponential Backoff:** Kaikki Vertex/OpenAI kutsut hyödyntävät satunnaistettua viivettä.
-2. **DAG Checkpointing:** Osa-askelet ovat pysyviä (tilannevedokset) estäen arvokkaan tekoälyn laskennan katoamisen pitkittyneiden kaatumisten vuoksi.
-3. **Dead Letter Queue (DLQ):** Toistamiseen kaatuva "Kuolettava" työ heitetään Workerin toimesta viiveiseen jäänteiden rekisteriin hälytysten kera suojaten Redis-luuppia (The Zombi-Protocol).
-
-## Operatiivinen valvonta (Distributed Tracing)
-- **`ContextVars` ja Trace-ID:** Lokaali API pyyntö synnyttää globaalin Trace-ID:n.
-- **The Dual-Reporting:** Frontend ei koskaan kirjoita telemateriaa suoraan Crashlyticiin, vaan Proxy API (`/telemetry/client-error`) välittää UI:n poikkeukset palvelimeen. Frontend ja Backend yhdistyvät yhdessä Pydantic Logfire -ratkaisussa rinnakkaisena "Single Pane of Glass" läpinäkyvyytenä.
-
-## Tekoälyn resurssienhallinta (FinOps ja Kvootit)
-B2B-järjestelmä suojaa itseään "Denial of Wallet" laadusta (ylikestävät ajot).
-- **Circuit Breaker:** Suorituksilla the Preflight Check leimaa pyynnön (`402 Payment Required`), jos organisaation luotto kuluu ennenaikaisesti työjonossa, Worker the DAG-loopissa nostaa Exit-Hatchin turvaten yritysvarat lukitukseen. 
-
----
-
-## The Map: Hakemistoryhmien kuvaus (Infra, Testit & Apuvälineet)
-
-Järjestelmän lokaalit utiliteetit suojelevat API:n suoruutta ja varmistavat luotettavuuden.
-
-### `backend_v2/scripts/` (Hallinta)
-Arkkitehtuuri on tuotu erillisiksi modulaarisiksi kehityskutsuksi ohjaimista irti:
-- Sisältää ylläpito-työkaluja, järjestelmä-migraatiota lennossa suorittavia erillisiä tiedostoja (esim. OpenAPI skeemojen generoijat ilman ajoaikaista rasitetta).
-
-### `backend_v2/utils/` (Hajautetut Fail-Fast Apufunktiot)
-Kaikki pienet hajallaan työnkulun yli olevat luokat. Nämä noudattavat myös The Zero-Compromise Pledge sääntöä (eivät sokaise Exceptioneita oletusarvoilla).
-- **`dict_utils.py`**: Puhtaat ja varmennetut sanakirjojen syväyhdistämiset.
-- **`math_utils.py`**: Numeeriset normalisoinnit sekä matemaattiset skaalaukset O(1) luotettavuuksilla.
-- **`pydantic_utils.py`**: Tukitoimet The Inflate ja dynaamiseen validointikuvien tyhjentämiseen Pydantic objekteista.
-- **`redis_patcher.py`**: Ympäristön lokaalit fakeredis testikorjaukset.
-- **`static_charts.py`**: Hookeja visualisoivan PDF-kärjen matemaattiset staattiset piirurit. (Radar / Scatter plotting).
-
-### `backend_v2/tests/`
-Testaamattomuus on arkkitehtuurieste. Jokainen koodimuutos varmennetaan täällä.
-- **`tests/`**: Yksikkö/Integraatiotestit (`Pytest`), joiden 100% kattavuus The Core ja the Domain Models -tasolla varmentaa Pydantic Fail-Fast mallin luotettavuuden jatkuvassa integroinnissa.
+* **Worker Queue (Arq + Redis):** Kuten aiemmin mainittu, työnkulut eivät koskaan elä NginX tai Uvicorn pääprosessin sisällä. Kun asiakas laukaisee evaluaation, FastAPI -päärajapinta tallentaa Pydantic-mallit tietokantaan, lähettää tiedon sadasosasekunneissa Arq-palvelimelle (Redis), joka aloittaa raskaiden tekoälymallien asynkronisen ohjaamisen eristetyssä Worker-säikeessä.
+* **Paikallinen Ajo:** Kehittäjät hyödyntävät käynnistysrutiineja kuten `run_local.bat` ja taustamallistoa `docker-compose.yml`, nostaen paikallisen Redis-ilmentymän sekunneissa kehityskäyttöön varmistaen täydellisen pilvipariteetin.

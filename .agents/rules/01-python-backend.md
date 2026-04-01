@@ -20,15 +20,16 @@ You (the AI assistant) MUST actively verify your compliance with the V2 Architec
 - NO business logic in Routers. 
 - NO `HTTPException` (Use `AppException` & RFC 7807). 
 - No default values in domain models unless logically strictly necessary.
-- NO duplicate Pydantic classes (The SSOT Mandate). FastAPI schemas must be centralized in `models/` and NEVER defined inline in `routers/` to prevent OpenAPI namespace collisions causing git diff 'Ping-Pong' loops.
+- NO duplicate Pydantic classes (The SSOT Mandate). FastAPI schemas must be centralized in `models/` and NEVER defined inline in `routers/` to prevent OpenAPI namespace collisions. If you modify ANY Pydantic model, you MUST instruct the user to run `uv run python backend_v2/scripts/generate_openapi.py` locally and commit the `docs/swagger/openapi.json` file to prevent CI/CD git diff crashes.
 
 ### 1.3 Background Workers (Arq 2026 Mandate)
 Long-running AI generation or heavy DAG execution tasks MUST NEVER block the FastAPI HTTP request cycle. They MUST be offloaded to an asynchronous worker queue (Arq / Redis). The API router must return a 202 Accepted status with a TaskID immediately.
 
-### 1.4 The Three Pydantic Boundaries (API, Service, Middleware)
-1. **API Ingestion (Generic IN -> Strict OUT):** The API Routers (`backend_v2/api/`) MUST take raw JSON/Dict from the web and immediately force it into a strict Pydantic DTO.
-2. **Service Layer (Strict IN -> Strict OUT):** The business logic (`backend_v2/services/`) ONLY accepts Pydantic models from the routers and instantly hydrates DB data into Pydantic models before logic. 
-3. **DAG/Middleware (V3 EVENT SOURCING ACTIVE):** Logic Nodes (Reducers) are pure functions emitting new `TraceEvent` objects. They DO NOT mutate old dictionaries and DO NOT perform batch database I/O.
+### 1.4 The Three Pydantic Boundaries & Single Responsibility Principle (SRP)
+The system strictly enforces the Single Responsibility Principle across the "Three Pydantic Boundaries". Monolithic "God Functions" are strictly banned.
+1. **API Routers (HTTP & Routing ONLY):** The API Routers (`backend_v2/api/`) are entirely *anemic*. They MUST ONLY handle HTTP parsing, assign an explicit `response_model`, and delegate to the Service layer. They MUST NOT contain database CRUD, RBAC checks, or complex business logic.
+2. **Service Layer (Business Logic & Tenant Isolation):** The business logic (`backend_v2/services/`) ONLY accepts Pydantic models from the routers. It is exclusively responsible for RBAC, Tenant Isolation (vuokralaiseristys), and hydrating DB data into Pydantic models before logic. 
+3. **Repository/Middleware (DB I/O & Event Sourcing ONLY):** Logic Nodes (Reducers) and Repositories are pure data handlers. They DO NOT mutate old dictionaries and DO NOT handle HTTP context or raw User access logic.
 
 ## 2. THE ZERO-COMPROMISE PLEDGE (Absolute Fail-Fast)
 
@@ -51,6 +52,10 @@ Long-running AI generation or heavy DAG execution tasks MUST NEVER block the Fas
 ### 2.3 Strictness & Hardcoding
 - **DTO Parity Flexibility:** Backend Enums parsing from TinyDB are allowed practical `strict=False` flexibility.
 - **NO HARDCODING:** NEVER hardcode dictionary keys, temporary IDs, or domain logic.
+
+### 2.4 Data Leak Prevention (Zero Leaks Mandate)
+- **Absolute Response Model Mandate:** EVERY FastAPI router MUST have an explicit `response_model` definition (e.g. `@router.get("/", response_model=UserDTO)`). 
+- **No Raw Database Model Leaks:** You MUST NEVER leak internal database models directly to the UI. All returned models must be stripped down to safe Data Transfer Objects (DTOs) via Pydantic to prevent exposing password hashes, internal system parameters, or cross-tenant traces.
 
 ## 3. DATA PARITY, DATABASE & CQRS
 

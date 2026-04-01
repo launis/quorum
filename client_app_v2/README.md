@@ -1,65 +1,47 @@
-# Cognitive Quorum - Client Application (Flutter)
+# Cognitive Quorum - Client Application (Flutter V2.9)
 
-This is the front-end client for the **Cognitive Quorum** platform, built with Flutter. It serves as a "Thick Client" explicitly designed for high-stakes cognitive orchestration, interacting seamlessly with the Modular Async Monolith backend.
+Tämä on **Cognitive Quorum** -alustan uusi **Desktop-First** käyttöliittymä, joka on erikoistunut raskaaseen kognitiiviseen asiantuntijatyöhön (Thick Client). Se kommunikoi saumattoman asynkronisesti Backendin (`FastAPI`) API-rajapintojen ja taustatyöntekijöiden (`Arq / Redis`) kanssa ohitaen tyypillisen laiteviiveen (Main Thread Jank).
 
-For the overarching platform documentation, architecture, and backend details, please refer to the **[Main Project README](../README.md)** at the root level.
+Laajemman ohjelmiston päälinjaukset, arkkitehtuurit ja Backendin teknologisen taustan voit lukea **[Juurihakemiston README:stä](../README.md)**. Yksityiskohtaisempi Frontendin tekninen erittely asuu puolestaan `docs/architecture/06_desktop_first_flutter_client.md` -hakemistossa.
 
-## 🚀 Overview
+## 🚀 Arkkitehtuurin Ydin (The Client Manifesto)
 
-The Cognitive Quorum Client is designed with the same **"Zero-Magic"** philosophy as the backend:
-- **Strict DTOs**: UI state is driven by explicit data contracts from the backend. 
-- **Fail-Fast UI & Graceful Degradation**: Errors are not swallowed. The UI gracefully degrades into Error Cards utilizing the RFC 7807 problem details standard. Additionally, missing properties (e.g. `null` citations) are rendered away using `SizedBox.shrink()` without hardcoded textual fallbacks ("No String Mandate").
-- **Real-Time Polling**: Leverages Server-Sent Events (SSE) and Riverpod async streams to track deep reasoning execution in real-time.
+Flutter-sovellus ei ole vain visuaalinen kerros, vaan tiukka jatke järjestelmän **Fail-Fast** filosofialle:
 
-## 🏗️ Architecture
+*   **Zero-Math UI (BFF):** Käyttöliittymälaite (Flutter / CPU) *ei saa koskaan* laskea tekoälyn suorituskykypisteitä, x/y akseleiden matemaattisia keskiarvoja tai vertailla numeerisia värikynnyksiä tekoälyn datasta. Kaikki tämä monimutkaisuus tuodaan valmiiksipureskeltuna `ReportLayoutDTO` "Backend-for-Frontend" datana `BlueprintService`:stä. 
+*   **AppErrorBoundary (RFC 7807):** Emme yritä epätoivoisesti piilottaa rikkinäistä arkkitehtuuria (`SizedBox.shrink()` on kielletty validointivirheiden laastaroinnissa). Jos taustajärjestelmä tarjoilee Freezed-mallin ulkopuolista tai puuttuvaa dataa, yksittäinen komponentti (esim tekoälyn solmu) "kaatuu sivistyneesti" punaiseen **Error Card** -laatikkoon. Koko muu graafinen IDE pyörii sulavana ja kehittäjä näkee vianlähteen (`Exception` / `CheckedFromJsonException`) ruudulla ilman mustaa laatikkoa. Opaque Stripe IDs -järjestelmä suojaa reitit linkkimädäntymiseltä.
+*   **Riverpod 3.0 & SWR:** Koko ruuduttavat jäätävät latausanimaatiot (Full View Loading Spinners) on korvattu **Stale-While-Revalidate** (SWR) cache-arkkitehtuurilla. Tilamuutoksia nopeutetaan "Optimistic UI" mutaatioilla, jolloin ohjaus toimii sekunneissa viivelatenssin läpi.
+*   **The Isolate Mandate:** (Main Thread Jank Prevention). Vaikka palvelin lähettäisi 10 MB JSON-raporttia täynnä monimutkaisia lainauksia kymmeniltä LLM-verkon osilta, valtavan datan purku eli Deserialisaatio lukitaan turvaan omalle Dart Isolate -prosessoriytimelleen garantöiden ehyen 60/120Hz sormiliu'un: `await Isolate.run(() => jsonDecode(chunk));`
 
-- **Framework**: Flutter (3.27+)
-- **State Management**: Riverpod 3.0+
-- **Routing**: go_router with typed routes (`GoRouteData`).
-- **Networking**: Dio (with automatic token injection and RFC 7807 error interception).
-- **Localization**: Standard Flutter `flutter_localizations` with strict mapping of backend `ErrorCodes`.
+## 🏗️ Teknologiapino
 
-### Key Directories
+*   **UI Framework**: Flutter (3.27+) -> Optimoitu Desktop (Win/Mac) / Ultrawide reitityksiin (Three-Pane Layout).
+*   **Tilanhallinta**: Riverpod 3.0+ (`@riverpod` koodigeneraatio ehdoton).
+*   **Koodisturva**: Freezed (`disallow_unrecognized_keys: true` -> Strict mode Fail-Fast API:lle).
+*   **Reititys**: GoRouter (Natiivit `GoRouteData` -luokat; string/path -reitit kielletty tyyppiturvallisuudessa).
 
-- `lib/core/`: Application shell, routing (`router.dart`), themed components, and networking infrastructure.
-- `lib/features/`: Domain-specific UI modules (e.g., Auth, BFF Studio, Execution Monitor).
-- `lib/shared/` & `lib/models/`: Strongly typed Dart data classes (often generated via `freezed` and `json_serializable`).
-- `lib/l10n/`: Localization files (`.arb`) following the "No-String Mandate" for UI components.
+## 📂 Hakemistorakenne
 
-## 📦 Getting Started
+*   `lib/core/`: IDE-kuori (työtilat, AppErrorBoundary, navigointikerros) ja Dio / Riverpod verkkoinfrastruktuuri asynkronisilla SWR-tilauksilla.
+*   `lib/features/`: Liiketoimintamoduulit ryhmiteltyinä. Pitää sisällään mm. `studio/` (Canvas-pohjainen DAG-editori), ja `execution/` asiantuntijajärjestelmän työnkulkumonitorin.
+*   `lib/shared/` & `lib/models/`: Globaalit turvallisesti `@freezed`-generoidut Datamallit jotka synkronoivat 1:1 Backend Pydantic-rajapinnan.
+*   `lib/l10n/`: **No-String Mandate!** Järjestelmän I18N lokaalistus hoidetaan täysin `.arb` tiedostojen kautta käyttöliittymän hard-koodauksen estämiseksi ja Enum-käytäntöjen turvin.
 
-### Prerequisites
-- Flutter SDK 3.27 or higher
-- Windows/macOS Desktop dev environment (Desktop-First App architecture) or a supported Web target.
+## 📦 Kehitysympäristö
 
-### Running the App
-
-The easiest way to launch the entire Cognitive Quorum stack (including this client) is to use the launcher script in the project root:
-
+Helpoin tapa ajaa koodia (FastAPI + Arq + Flutter) kerralla ja valmiina on käynnistää asiat projektin päätasolta asennettujen riippuvuuksien (Rediksen) kera `run_local.bat` scriptillä:
 ```bash
 cd ..
 ./run_local.bat
 ```
 
-To run just the Flutter client manually (assuming the backend is already running on `localhost:8000`):
-
+Jos editoit Client-applikaatiota itsenäisesti (Backend on jo ylhäällä):
 ```bash
-# From inside the client_app folder:
 flutter pub get
-
-# Generate necessary code (Freezed models, GoRouter routes, JSON Serialization)
+# Generoi reitit ja mallit aina uudelleen!
 dart run build_runner build -d
-
-# Run the app
 flutter run
 ```
 
-### Code Generation
-Whenever you modify models or routes, you must run the build runner to generate the `.freezed.dart` or `.g.dart` files:
-```bash
-dart run build_runner build -d
-```
-
 ---
-
-*For detailed Flutter architecture and development standards, see `docs/architecture/06_desktop_first_flutter_client.md` and `.agents/rules/02_flutter_desktop.md` in the root repository.*
+*(Clientin oma tekninen arkkitehtuuri asuu kokonaisuudessaan osoitteessa `docs/architecture/06_desktop_first_flutter_client.md`)*

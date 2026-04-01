@@ -98,6 +98,48 @@ quorum/client_app_v2/
 └── app.dart                    # App Shell (AppErrorBoundary wrapper)
 ```
 
+### 1.3 `.agents/` - Agentic Configuration Center
+Sisältää ohjauslogiikan ja säännöt automatisoidulle Antigravity-kehitykselle. AI:n on luettava nämä dynaamisesti ennen koodausta.
+*   **`.agents/rules/`:** Arkkitehtuurin master-dokumentit (`00-antigravity-core.md`, `01-python-backend.md`, jne.).
+*   **`.agents/workflows/`:** AI-kehityksen pakotetut askeleet ja roolit (`/tier1-planner`, `/tier2-execute`, tietokannan nollaukset).
+
+### 1.4 `docs/` - Documentation & Assets
+Kehittäjien ja projektin dokumentaatio, mallinnukset ja prosessikuvaukset.
+*   **`docs/Agent_Workflows_Opas.md`:** Opas AI-agenttien työnkulkujen hyödyntämiseen.
+*   **`docs/Holistinen Mestaruus.md`:** Kattava strateginen visio- ja arkkitehtuuridokumentti.
+*   **`docs/architecture/`:** Järjestelmän tekniset erittelyt ja kaaviot.
+*   **`docs/swagger/` / `docs/epic/`:** API-dokumentaatio (Swagger/OpenAPI) ja ominaisuuskokonaisuuksien (epic) vaatimukset.
+*   **`docs/datat/`:** Data-asetuksia.
+
+### 1.5 Juurihakemiston tiedostot (Root-Level Files)
+Järjestelmän tärkeimmät aloitustiedostot, konfiguraatiot ja lokit on keskitetty juureen.
+
+**Agentin Ohjaus (Sources of Truth):**
+*   **`AGENTS.md`:** Globaali perussääntö (esim. Windows 11 rajoitteet, lokien luku, tietokannan turvallisuus). Agentin tärkein dokumentti.
+*   **`GEMINI.md`:** AI-ohjaus, joka ohjaa käyttämään `AGENTS.md` tiedostoa.
+*   **`README.md`:** Projektin yleiskuvaus.
+
+**Reaaliaikaiset Lokit (Runtime Logs for AI Diagnostics):**
+Pakollinen lukurutiini (MCP Tools) ennen vianmääritystä, välttääkseen ajonaikaiset sokeat pisteet:
+*   **`backend_debug.log`:** Backendin virheet, Pydantic-validaatiot, FastAPI-reititys, asynkroniset jonot.
+*   **`client_debug.log`:** Frontendin (Flutter) logiikka, tilamuutokset, navigaatio, verkkopyyntöjen datavirheet.
+
+**Käynnistys ja Orkestrointi (Runner Scripts):**
+Tuetussa Windows 11 PowerShell -ympäristössä suoritettavat skriptit:
+*   **`run_all.py` / `run_local.bat`:** Lokaalin kehitysympäristön kokonaisvaltainen käynnistys.
+*   **`run_client_web.bat`:** Flutter Web -version lokaali ajo (ui-testaukseen).
+*   **`run_firestore.bat`:** Lokaalin Firestore OS-emulaattorin käynnistäjä.
+*   **`run_full_docker.bat` / `docker-compose.yml`:** Kontitettu infra (Redis, tietokannat jne.).
+*   **`kill_services.bat`:** Skripti taustapalveluiden sammuttamiseen.
+
+**Konfiguraatiot (Configuration & Meta):**
+*   **`pyproject.toml`:** Python-riippuvuudet (uv), linter-säännöt (Ruff, Mypy) ja projektin meta.
+*   **`pytest.ini`:** Automaattisen testauksen (Pytest) juurikonfiguraatiot.
+*   **`mkdocs.yml`:** Dokumentaatiosivuston (MkDocs) rakennemäärittely.
+*   **`openapitools.json`:** DTO-mallien ja rajapintojen asiakaskoodin konfiguraatio (OpenAPI Generator).
+*   **`service-account.json`:** Google Cloudin IAM-valtuutusavain (Firebase Admin SDK).
+*   **`LICENSE`:** Projektin lisenssi.
+
 ---
 
 ## 2. Järjestelmän Tärkeimmät Ohjelmat ja Skriptit

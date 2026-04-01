@@ -21,8 +21,11 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
 > **AUDITOINTIMANDAATIT VAHVISTETTU:**
 > [ ] Vain YKSI alin alihakemisto valittu analyysiin.
 > [ ] Generoidut tiedostot (`.g.dart`, `.freezed.dart`) ohitettu onnistuneesti.
-> [ ] Fail-Fast tarkistettu (ei oletusarvoja, ei fallbackeja, tuntematon JSON kaataa heti).
+> [ ] Fail-Fast tarkistettu (ei oletusarvoja, ei fallbackeja).
+> [ ] Client-Side Zero Leaks (Freezed-malleissa EHDOTTOMASTI `disallow_unrecognized_keys: true`, tuntematon/vuotanut JSON kaataa heti).
+> [ ] Riverpod State Isolation (Tenant-vaihdoksissa tai reitityksissä vanha välimuisti validoidaan, ei tilavuotoja).
 > [ ] Strict Nirvana (Freezed-mallien tiukkuus, ei `.when()`/`.map()`, vaan natiivi Dart 3 `switch`).
+> [ ] The Three Riverpod Boundaries (SRP): Widgetit tekevät vain UI:n, Notifierit vain tilan, Repot vain HTTP:n. "Jumala-Widgetit" hylätään!
 > [ ] Exception Unwrapping (nappaa `CheckedFromJsonException` ja kaiva `.innerError` esiin).
 > [ ] Zero-Touch Lists (Raskaat RAG-listat ovat natiiveja `List<T>` muodossa `@Freezed(equal: false)` kera, fast_immutable_collections-pakettia ei käytetä).
 > [ ] Isolate Mandate (kaikki raskaat JSON-purut pidetään `Isolate.run`-sisällä Freezedistä huolimatta).
