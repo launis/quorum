@@ -14,13 +14,16 @@ globs: backend_v2/**/*.py
 You (the AI assistant) MUST actively verify your compliance with the V2 Architecture on EVERY task. Before writing any code, you MUST explicitly state that the V2 Architecture has been taken into account.
 
 ### 1.2 Backend Bans (Non-Negotiable)
-- NO `try-except pass`. 
-- NO raw `dict` returns from Agents (Strict Pydantic V2 only). 
-- NO legacy `Depends` (Use `Annotated`). 
-- NO business logic in Routers. 
-- NO `HTTPException` (Use `AppException` & RFC 7807). 
-- No default values in domain models unless logically strictly necessary.
-- NO duplicate Pydantic classes (The SSOT Mandate). FastAPI schemas must be centralized in `models/` and NEVER defined inline in `routers/` to prevent OpenAPI namespace collisions. If you modify ANY Pydantic model, you MUST instruct the user to run `uv run python backend_v2/scripts/generate_openapi.py` locally and commit the `docs/swagger/openapi.json` file to prevent CI/CD git diff crashes.
+<architecture_bans>
+  <rule>NO `try-except pass`.</rule>
+  <rule>NO raw `dict` returns from Agents (Strict Pydantic V2 only).</rule>
+  <rule>NO legacy `Depends` (Use `Annotated`).</rule>
+  <rule>NO business logic in Routers.</rule>
+  <rule>NO `HTTPException` (Use `AppException` & RFC 7807).</rule>
+  <rule>No default values in domain models unless logically strictly necessary.</rule>
+  <rule>NO duplicate Pydantic classes (The SSOT Mandate). FastAPI schemas must be centralized in `models/` and NEVER defined inline in `routers/` to prevent OpenAPI namespace collisions. If you modify ANY Pydantic model, you MUST instruct the user to run `uv run python backend_v2/scripts/generate_openapi.py` locally and commit the `docs/swagger/openapi.json` file to prevent CI/CD git diff crashes.</rule>
+  <rule>Silent failures are BANNED. Exceptions must NEVER be swallowed silently.</rule>
+</architecture_bans>
 
 ### 1.3 Background Workers (Arq 2026 Mandate)
 Long-running AI generation or heavy DAG execution tasks MUST NEVER block the FastAPI HTTP request cycle. They MUST be offloaded to an asynchronous worker queue (Arq / Redis). The API router must return a 202 Accepted status with a TaskID immediately.

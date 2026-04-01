@@ -19,6 +19,18 @@ Always check `client_debug.log` first when debugging UI or Network failures.
 ### 1.4 Dependencies
 Strictly `flutter_riverpod ^3.1.0`, `go_router ^17.0.1+`, `freezed ^3.2.3`.
 
+### 1.5 Frontend Bans (Non-Negotiable)
+<architecture_bans>
+  <rule>NO empty catch blocks (`try {} catch (e) {}`). You MUST display an ErrorView, log, and rethrow.</rule>
+  <rule>NO `SizedBox.shrink()` to swallow errors or hide broken UI components. Crash audibly using AppErrorBoundary.</rule>
+  <rule>NO silent JSON fallbacks (`text ?? "Unknown"`). Missing API data MUST crash the Freezed parser immediately.</rule>
+  <rule>NO monolithic "God Widgets". Enforce SRP across Widgets, Notifiers, and Repositories.</rule>
+  <rule>NO GoRouter `$extra` object passing. Pass ONLY strings/IDs.</rule>
+  <rule>NO manual Riverpod providers. Code Gen `@riverpod` is MANDATORY.</rule>
+  <rule>NO Freezed `.when()` or `.map()`. You MUST use native Dart 3 switch matching.</rule>
+  <rule>NO full-screen loading spinners. Use Optimistic Updates and mutation states.</rule>
+</architecture_bans>
+
 ## 2. DESKTOP-FIRST & LAYOUT ARCHITECTURE
 
 ### 2.1 PC Breakpoints

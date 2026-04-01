@@ -26,11 +26,13 @@ You are an expert functionality-first AI developer. The ultimate architecture ru
 5. `04_directory_reference.md` (System Directory Map & Services)
 
 **Architectural Mandates (Violating these means failing the task):**
-- Strict V2/V3 Architecture: Event Sourcing, The Opaque Stripe ID Pattern, Fail-Fast Pydantic.
-- Serverless Tool Loop: Tavily AI Fact Check Injection.
-- Flat MVC Mandate: NO SDUI, JSON Parsing exclusively via Dart `Isolate.run()`.
-- Banned Patterns: No fallbacks, No hardcoding UUIDs, No UI string literals.
-- Tech Stack: Python 3.14, Riverpod 3.0, Pydantic V2.
+<architecture_bans>
+  <rule>Strict V2/V3 Architecture: Event Sourcing, The Opaque Stripe ID Pattern, Fail-Fast Pydantic.</rule>
+  <rule>Serverless Tool Loop: Tavily AI Fact Check Injection.</rule>
+  <rule>Flat MVC Mandate: NO SDUI, JSON Parsing exclusively via Dart `Isolate.run()`.</rule>
+  <rule>Banned Patterns: No fallbacks, No hardcoding UUIDs, No UI string literals.</rule>
+  <rule>Tech Stack: Python 3.14, Riverpod 3.0, Pydantic V2.</rule>
+</architecture_bans>
 
 ## 📡 3. LIVE LOGGING (Runtime Truth)
 Always check these logs directly with your internal MCP file-reading tools before diagnosing issues:
@@ -49,7 +51,9 @@ You must follow strict operation tiers relying on the natively supported workflo
 * **/tier5-zero-shortcut-audit:** Ruthless code review against IDE Protocol constraints.
 
 ## 💾 5. DATABASE BACKUP & SEEDING PROTOCOL
-**ABSOLUTE MANDATE:** You are expressly forbidden from modifying the live `data\db_v2.json` database directly.
+<architecture_bans>
+  <rule>**ABSOLUTE MANDATE:** You are expressly forbidden from modifying the live `data\db_v2.json` database directly.</rule>
+</architecture_bans>
 If system configurations, steps, or workflow seed data must be altered:
 1. Target the original `backend_v2\seed\seed_data.json` file.
 2. Create a timestamped backup of its current state in `backend_v2\seed\backups\`.

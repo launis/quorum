@@ -4,32 +4,34 @@ description: Tier 2 (Backend Hardening) - Step-by-step auditing loop for Python 
 
 ### 🟢 TIER 2: PYTHON BACKEND HARDENING LOOP
 
-Lue ensin uusi Antigravity-säännöstö `.agents/rules/01-python-backend.md` ja `.agents/rules/00-antigravity-core.md`: UNIVERSAL MANDATE & ARCHITECTURE CONSTRAINTS (V5.2 - PHASE 9 HARDENING). Noudata näitä ohjeita ehdottomasti.
-
-**STEP 1: Kartoitus ja Suunnitelma (Mapping)**
+```xml
+<system_prompt>
+  <objective>Tier 2: Python Backend Hardening Loop</objective>
+  <context_rules>Lue ensin uusi Antigravity-säännöstö `.agents/rules/01-python-backend.md` ja `.agents/rules/00-antigravity-core.md`: UNIVERSAL MANDATE & ARCHITECTURE CONSTRAINTS (V5.2 - PHASE 9 HARDENING). Noudata näitä ohjeita ehdottomasti.</context_rules>
+  <phases>
+    <phase id="1" name="Mapping (Kartoitus ja Suunnitelma)">
 Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus) ja hahmottaa hakemiston rakenteen syvyys.
 * Jos käyttäjä antaa komennossaan tarkan alipolun (esim. `backend_v2/api/routers/studio`), kartoita RAKENNE VAIN TÄSTÄ POLUSTA alaspäin. Jos alipolkua ei erikseen määritetä, kartoita koko `backend_v2`.
 * **EHDOTON KIELTO (Sivuutettavat tiedostot):** Sivuuta analyysissä täysin `__pycache__` -kansiot, virtuaaliympäristöt (`venv`, `.venv`), alembic-migraatioiden versiotiedostot (`alembic/versions`) ja täysin tyhjät `__init__.py` -tiedostot. Älä lue, auditoi tai yritä muokata niitä säästääksesi resursseja ja kontekstia.
 * **SÄÄNTÖ:** Rakenna havainnoistasi chattiin tulostettava virtuaalinen Markdown-tarkistuslista (`task_backend.md`). Jaa lista niin hienojakoiseksi, että **JOKAINEN alin alihakemisto (leaf directory) on oma erillinen kohtansa listalla** (esim. pelkkä `backend_v2/api/routers` ei riitä, vaan listalla on oltava erikseen `backend_v2/api/routers/studio` jne.). Hakemistoja ei saa niputtaa.
 * **KIELTO:** ÄLÄ tee koodimuutoksia tässä vaiheessa. Päätä vastauksesi aina sanoihin: *"Lista valmis. Odotan PROCEED-komentoa."*
-
-**STEP 2: Systemaattinen Auditointi (One Subdirectory At A Time)**
+    </phase>
+    <phase id="2" name="Auditing (Systemaattinen Auditointi, One Subdirectory At A Time)">
 Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
 1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto.
 2. Vastaa aina ensin tällä tarkistuslistalla ennen analyysin tulostamista tai koodin lukemista. Konkreettiset ohjeet, kiellot ja soveltamistavat jokaiselle teemalle löytyvät sähkeestä `01-python-backend.md`. Etsi ja auditoi koodista nämä teemat:
 
-> **AUDITOINTIMANDAATIT VAHVISTETTU (Ks. `01-python-backend.md`):**
-> [ ] Fail-Fast & Dual-Reporting
-> [ ] AppException (RFC 7807)
-> [ ] Strict Pydantic V2 & No Naked Dicts
-> [ ] Data Leak Prevention & SRP
-> [ ] Modern Typing & No-Strings Mandate
+<audit_mandates>
+  <rule>Fail-Fast & Dual-Reporting</rule>
+  <rule>AppException (RFC 7807)</rule>
+  <rule>Strict Pydantic V2 & No Naked Dicts</rule>
+  <rule>Data Leak Prevention & SRP</rule>
+  <rule>Modern Typing & No-Strings Mandate</rule>
+</audit_mandates>
 
 3. Lue KAIKKI kyseisen alihakemiston `.py`-tiedostot (huomioiden sivuutettavat kansiot). Työskentele yllä olevan tarkistuslistan avulla peilaten löydöksiä `01-python-backend.md` mukaisiksi. Raportoi löydökset kansion sisältä. Jos alihakemisto on puhdas, kerro se. Pysähdy odottamaan komentoa "FIX" (jos virheitä löytyi) tai "NEXT" (jos kansio oli puhdas).
-
-
-# 🛑 EHDOTON TOIMINTAOHJE: KORJAUSVAIHE (STEP 3 - REMEDIATION) 🛑
-
+    </phase>
+    <critical_remediation_protocol name="STEP 3 - FIX (Korjausvaihe)">
 Tämä on kriittinen suoritusprotokolla. Kun annan komennon **"FIX"**, sinun on välittömästi korjattava listaamasi kansion virheet 2026-mandaatin tiukkojen sääntöjen mukaisesti. Sinun on noudatettava alla olevia rajoitteita poikkeuksetta:
 
 ### 1. KIELTO: OMATOIMINEN KOMENTOJEN AJO (OS-SANDBOX RAJOITE)
@@ -46,4 +48,8 @@ Anna minulle kopioitavaksi TARKKA koodibloki testikomentoja varten. Villien kort
 **Vaadittu formaatti:**
 ```bash
 uv run ruff check backend_v2/polku/kansioon/tarkka_tiedosto.py --fix ; uv run mypy backend_v2/polku/kansioon/tarkka_tiedosto.py --strict
+```
+    </critical_remediation_protocol>
+  </phases>
+</system_prompt>
 ```

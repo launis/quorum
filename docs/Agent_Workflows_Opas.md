@@ -51,3 +51,12 @@ Näitä työnkulkuja ohjataan yhteistyössä interaktiivisena silmukkana (Loop).
 3.  **Vahvistus ja Testaus:** Agentti luovuttaa sinulle **The Universal Quality Gate** -komennot kopioitavaksi terminaaliin (esim. ohjeet Ruff/Mypy/Pytest tai Flutter Analyze/L10n/Test ajoon).
 4.  **Agentin tila:** Korjaus on valmis kansion osalta.
 5.  **Luuppi alusta (Kontekstin nollaus):** Tekoäly voi unohtaa säännöt pitkän muokkauksen aikana (Context Amnesia). Siksi edetään aina **vain yksi kansio kerrallaan**. Pelkän "PROCEED"-sanan sijaan turvallisin jatkokomento on: *"PROCEED. Aja /tier2-hardening-backend uudestaan listan seuraavalle kansion kohdalle."*
+
+---
+
+## 3. Konepellin alla: Työnkulkujen Ohjausarkkitehtuuri (Päivitetty)
+
+Kaikki yllä mainitut työnkulut hyödyntävät äärimmilleen viritettyä Prompt Engineering -arkkitehtuuria varmistaakseen agentin maksimaalisen tarkkuuden ja "Fail-Fast" -kiellon noudattamisen:
+
+*   **Ehdollistettu Sääntöjen Lataus (Dynamic Context):** Token-hukan ja kontekstin laimenemisen välttämiseksi työnkulut eivät koskaan lataa turhia sääntöjä muistiin. Ne pohjustautuvat `00-antigravity-core` -määritykseen, ja päättelevät dynaamisesti ladataanko muistiin *lisäksi* backendin (`01`) vai frontendin (`02`) säännöt.
+*   **XML-Kapselointi:** Jokainen järjestelmän `/tier` -työnkulku (kts. `.agents/workflows/`) on uudelleenkoodattu taustalla puhtaaseen **<system_prompt>** XML-rautaiseen muottiin. Tämä luo mallin ohjausmekanismille vankilan, jossa tavoitteet (`<objective>`), oppaat (`<context_rules>`) ja absoluuttisesti noudatettavat työvaiheet (`<execution_protocol>`) pidetään kognitiivisesti täysin erillään toisistaan.

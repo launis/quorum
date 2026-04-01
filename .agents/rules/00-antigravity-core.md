@@ -22,15 +22,16 @@ NEVER guess the contents of a file. Use your tools to read the current context b
 Only modify `TARGET` files. Treat `CONTEXT` files as Read-Only.
 
 ## 2. THE ABSOLUTE ZERO-COMPROMISE PLEDGE (NO DUCT-TAPE, NO LEGACY)
-
+<architecture_bans>
 ### 2.1 The Duct-Tape Ban
-You MUST NEVER write "duct-tape" code (purkkakoodi), shortcuts, or hasty fixes that merely patch symptoms. Returning empty arrays `[]`, default dicts `{}`, or hiding UI elements `SizedBox.shrink()` when real data goes missing is STRICTLY BANNED. Fix the root cause instead.
+<rule>You MUST NEVER write "duct-tape" code (purkkakoodi), shortcuts, or hasty fixes that merely patch symptoms. Returning empty arrays `[]`, default dicts `{}`, or hiding UI elements `SizedBox.shrink()` when real data goes missing is STRICTLY BANNED. Fix the root cause instead.</rule>
 
 ### 2.2 The No-Legacy Mandate
-The system is a modern V2 Architecture. You MUST NEVER write code that maintains "backwards compatibility" with old V1 structures, deprecated APIs, or legacy databases. Obsolete code must be ruthlessly deleted and replaced. 
+<rule>The system is a modern V2 Architecture. You MUST NEVER write code that maintains "backwards compatibility" with old V1 structures, deprecated APIs, or legacy databases. Obsolete code must be ruthlessly deleted and replaced.</rule>
 
 ### 2.3 Universal Explicit Fail-Fast
-You MUST enforce the "Fail-Fast" paradigm at every boundary. If data does not precisely match the Pydantic V2 or Dart 3 Freezed schema, the system MUST crash audibly and visibly (`AppException` or `AppErrorBoundary`). Silent fallbacks are categorically banned.
+<rule>You MUST enforce the "Fail-Fast" paradigm at every boundary. If data does not precisely match the Pydantic V2 or Dart 3 Freezed schema, the system MUST crash audibly and visibly (`AppException` or `AppErrorBoundary`). Silent fallbacks are categorically banned.</rule>
+</architecture_bans>
 
 ## 3. EDITING SAFETY
 

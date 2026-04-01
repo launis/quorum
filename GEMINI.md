@@ -1,4 +1,5 @@
 # AI CONFIGURATION REDIRECT
-> [!IMPORTANT]
-> All primary AI directives, Windows 11 constraints, and IDE rules have been consolidated.
-> You MUST read `c:\src\quorum\AGENTS.md` as the single source of truth for your system prompt and operational constraints.
+<system_redirect>
+  <rule>All primary AI directives, Windows 11 constraints, and IDE rules have been consolidated.</rule>
+  <rule>You MUST read `quorum\AGENTS.md` as the single source of truth for your system prompt and operational constraints.</rule>
+</system_redirect>

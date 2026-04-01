@@ -6,6 +6,13 @@ Tämä dokumentti on tekninen viiteopas (The Map) **Cognitive Quorum V2026** -ar
 
 ## 1. Directory Structure (V2) - The Modular Async Monolith
 
+<architecture_bans>
+  <rule>Cognition MUST NOT leak into API Routers. Routers MUST remain anemic.</rule>
+  <rule>Flutter Client MUST NOT contain AI cognition state. It reads pure JSON using Riverpod.</rule>
+  <rule>The system DNA (`seed_data.json`) MUST NOT be bypassed. Runtime DB (`db_v2.json`) MUST NOT be manually edited.</rule>
+  <rule>Always check `backend_debug.log` and `client_debug.log` using MCP Tools first before debugging or proposing fixes.</rule>
+</architecture_bans>
+
 Quorum V2 on jaettu tiukasti erillisiin kerroksiin. Backendissä noudatetaan vankkaa kansio-ohjattua sääntöä, jossa kognitio ei vuoda rajapintoihin, ja reititysliberaalit rakenteet on sidottu Pydantic V2 -malleihin.
 
 ### 1.1 `backend_v2/` - The Core Engine (Python 3.14)
