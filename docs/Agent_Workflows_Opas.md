@@ -69,3 +69,22 @@ Kaikki yllä mainitut työnkulut hyödyntävät äärimmilleen viritettyä Promp
 *   **Ehdollistettu Sääntöjen Lataus (Dynamic Context):** Token-hukan ja kontekstin laimenemisen välttämiseksi työnkulut eivät koskaan lataa turhia sääntöjä muistiin. Ne pohjustautuvat `00-antigravity-core` -määritykseen, ja päättelevät dynaamisesti ladataanko muistiin *lisäksi* backendin (`01`) vai frontendin (`02`) säännöt.
 *   **XML-Kapselointi (System Prompt):** Jokainen järjestelmän `/tier` -työnkulku (kts. `.agents/workflows/`) on uudelleenkoodattu taustalla puhtaaseen **`<system_prompt>`** XML-rautaiseen muottiin. Tämä luo ohjausmekanismille vankilan, jossa tavoitteet (`<objective>`), oppaat (`<context_rules>`) ja absoluuttisesti noudatettavat työvaiheet (`<execution_protocol>`) pidetään kognitiivisesti erillään toisistaan.
 *   **Kontrastiivinen Säännöstö (Contrastive Prompting):** Järjestelmän lokaalit ydinarkkitehtuurisäännöt (`.agents/rules/`) on irrotettu perinteisestä ihmisluettavasta tekstistä, ja koodattu tiukkoihin `<catastrophic_system_bans>` ja `<architectural_invariants>` XML-ryhmiin. Jokainen kielto esitetään tekoälylle ehdottomana mekaanisena parina: `<banned_pattern>` (purkkakoodikuvailu) -> `<mandatory_pattern>` (arkkitehtuurin mukainen ratkaisu). Ehdottomalla vastinparilla eliminoidaan laajoissa koodirefaktoroinneissa tekoälyn taipumus luikerrella ongelmista asettamalla purkkaratkaisuja.
+
+---
+
+## 4. Työnkulkujen Kultainen Sääntö: Atomiset Tallennukset (Atomic Commits)
+
+Perinteisessä ihmisten välisessä koodauksessa yksi iso "päivän päätteeksi" tehtävä koottu commit on arkipäiväistä. Mutta kun koodiparina on **tekoälyagentti (Agentic AI)**, yhden suuren commitin taktiikka muuttuu valtavaksi riskiksi ja hidasteeksi. 
+
+Tästä syystä koko Antigravity-järjestelmä nojautuu `atomic_checkpoint_mandate` -sääntöön, joka pakottaa koodaajan ja tekoälyn tallentamaan jokaisen loogisen, testatun askeleen välittömästi Gitiin tarkoilla tiedostopoluilla (esim. `git add client_app_v2/...` - koskaan ei saa käyttää komentoa `git add .`).
+
+### ❌ Yhden ison kootun tallennuksen (Big Commit) haitat tekoälykehityksessä:
+
+1. **Korttitalo-efekti (The House of Cards):** Tekoäly voi askeleessa 5 tehdä massiivisen hallusinaation ja rikkoa tiedoston rakenteen täysin. Jos aiemmat 4 askelta on tallentamatta, et voi perua pelkkää 5. askelta komennolla `git restore .` menettämättä myös aiempia onnistumisia.
+2. **Tekoälyn sokeutuminen (Context Confusion):** Tekoälyn konteksti-ikkuna täyttyy nopeasti. Jos kymmenen muuttunutta kooditiedostoa roikkuu tallentamattomana Gitiin, uuden chatti-ikkunan avaaminen tekee tekoälylle mahdottomaksi päätellä nopeasti, mikä on puhdas lähtötilanne.
+
+### ✅ Atomisten mikro-tallennusten (Atomic Commits) hyödyt:
+
+1. **Voittamaton peruutettavuus (Rollback):** Voit kokeilla villeimpiäkin refaktorointi-ideoita nopeasti. Jos tekoäly erehtyy tai koodiratkaisu on väärä, tilanteen nollaus on sekuntien peliä (`git restore`) ja peli jatkuu minuutti sitten tallennetusta turvallisesta tilasta.
+2. **Tarkka vianetsintä (Bisecting):** Kymmenestä selkeästä 20 rivin mikro-commitista on huomattavasti helpompaa ja nopeampaa jäljittää kaatumisen aiheuttanut virherivi (esim. ohjelmiston regressio), kuin kahlata läpi tuhansien rivien yhteis-commitia.
+3. **Turvalliset tauot ja selkeys (Clean State):** Kun atominen askel on Gitissä lukittuna ja laatuportti on täytetty, projekti on aina periaatteellisessa tuotantovalmiudessa. Koodaushetken voi tauottaa milloin tahansa ilman pelkoa keskeneräisten muokkausten unohtumisesta.
