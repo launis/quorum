@@ -62,7 +62,7 @@ Hardening-workflow lukee satoja rivejä koodia kerralla. Pitkä konteksti aiheut
 
 ---
 
-## 3. Konepellin alla: Työnkulkujen Ohjausarkkitehtuuri (Päivitetty)
+## 3. Konepellin alla: Työnkulkujen Ohjausarkkitehtuuri
 
 Kaikki yllä mainitut työnkulut hyödyntävät äärimmilleen viritettyä Prompt Engineering -arkkitehtuuria varmistaakseen agentin maksimaalisen tarkkuuden ja "Fail-Fast" -kiellon noudattamisen:
 
@@ -88,3 +88,13 @@ Tästä syystä koko Antigravity-järjestelmä nojautuu `atomic_checkpoint_manda
 1. **Voittamaton peruutettavuus (Rollback):** Voit kokeilla villeimpiäkin refaktorointi-ideoita nopeasti. Jos tekoäly erehtyy tai koodiratkaisu on väärä, tilanteen nollaus on sekuntien peliä (`git restore`) ja peli jatkuu minuutti sitten tallennetusta turvallisesta tilasta.
 2. **Tarkka vianetsintä (Bisecting):** Kymmenestä selkeästä 20 rivin mikro-commitista on huomattavasti helpompaa ja nopeampaa jäljittää kaatumisen aiheuttanut virherivi (esim. ohjelmiston regressio), kuin kahlata läpi tuhansien rivien yhteis-commitia.
 3. **Turvalliset tauot ja selkeys (Clean State):** Kun atominen askel on Gitissä lukittuna ja laatuportti on täytetty, projekti on aina periaatteellisessa tuotantovalmiudessa. Koodaushetken voi tauottaa milloin tahansa ilman pelkoa keskeneräisten muokkausten unohtumisesta.
+
+### 🎮 Yhteenveto uudesta todellisuudesta (Super Mario -malli)
+
+Tämä "jatkuvan mikro-tallennuksen" malli muuttaa Gitin perinteisestä versionhallinnasta eräänlaiseksi **jatkuvaksi pelikonsolin Super Mario -tallennuspisteeksi (Save State).**
+
+* **Ei enää "Perjantai-iltapäivän Kaaosta":** Et enää koodaa kolmea päivää ja huomaa perjantaina, että koodi on solmussa, saati yritä purkaa 40 muuttunutta tiedostoa irti toisistaan ennen paniikkinomaista `git add .` -massa-commitia. Jokainen oikein toimiva palanen on jo kuitattu turvallisesti lukkoon heti tekoälyn suorituksen jälkeen.
+* **"Ctrl + Z" x 100:** Koska sinulla ei ole enää tallentamattoman koodin "massoja", tekoälyn tuottamat umpikujat tai hallusinaatiot ovat täysin merkityksettömiä. Kaadat vain juuri kyseisen yrityksen roskakoriin `git restore .` -komennolla, poistut nykyisestä chat-ikkunasta ja avaat uuden puhtaan.
+* **Ainoa poikkeus "Massa-commitiin" (Squashing):** Ainoa kerta kun niputat asioita massaksi, tapahtuu yleensä myöhemmin *Squash & Merge* -tyylillä (esim. GitHubin tai GitLabin käyttöliittymästä). Kun uusi ohjelmisto on vihdoin testattu, voit yhdistää kymmenet atomi-tallennukset yhdeksi ammattimaiseksi julkaisu-commitiksi tuotannon päähaaraan (`feat: Täysin uuden V2-järjestelmän käyttöönotto`).
+
+Varsinaisessa "lokaalissa devaushiestä", johon tekoälynkoodaussääntömme (Tier-työnkulut) on rakennettu, sokea "massa-commit" on tästedes taaksejäänyttä elämää. Koodaat vain askel kerrallaan turvallisesti!
