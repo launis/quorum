@@ -34,6 +34,9 @@ jobs:
       - name: Generate OpenAPI Spec
         env:
           VERTEX_LOCATION: "europe-north1"
+          USE_MOCK_LLM: "true"
+          USE_MOCK_DB: "true"
+          STORAGE_BACKEND: "TINYDB"
         run: uv run backend_v2/scripts/generate_openapi.py
         
       - name: Verify synchronization

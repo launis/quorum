@@ -135,6 +135,33 @@ class TenantRole(str, Enum): ADMIN = "ADMIN"; MANAGER = "MANAGER"; MEMBER = "MEM
 
 ---
 
+## **🔐 8. Bring Your Own Key (BYOK) ja Resurssien Eristys**
+Enterprise B2B SaaS -alustoissa on kriittistä sallia asiakkaiden tuoda omat tekoälyavaimensa (OpenAI / Vertex AI) suurten API-kustannusten kiertämiseksi ja LLM-rajapintojen "Rate Limitien" osioimiseksi per Tenant. Ohjelmisto tukee aseta-kerran -tyylistä BYOK-mallia, joka nojautuu Pydantic-turvallisuuteen.
+
+**A. Tietokanta (The Secrets Vault):**
+Avaimia ei saa koskaan tallentaa pääasialliseen `OrganizationDTO` -malliin, jotta `GET /orgs` -reititin ei vuoda avaimia VIEWER-jäsenille.
+* Pydantic V2 Domainiin luodaan erillinen `OrganizationSecretsDTO` -holvi, jonka FK asettuu 1:1 `org_xyz123` -Tunnisteeseen.
+* Kentät, kuten `custom_llm_key`, määritellään tyypillä `pydantic.SecretStr`. Tämä nollatoleranssi estää avaimien vahingollisen vuotamisen lokaalin terminaalin uumeniin (`print`) tai Python-lokituksiin (`logger.info`).
+
+**B. FastAPI Reitittimet & Aneeminen Guard:**
+Vain organisaation `ADMIN` tai globaali `ROOT` voi käsitellä BYOK-asetuksia.
+* `GET /api/v1/orgs/{org_id}/secrets/status`: Ei palauta arvoa, vaan tila-indikaattorin (esim. `{"has_openai": true}`).
+* `PUT /api/v1/orgs/{org_id}/secrets`: Kirjoittaa/korvaa olemassa olevan avaimen. Opaque ID Takaa, ettei Mutaatio karkaa väärille riveille.
+
+**C. Desktop-First Tuonti (UI-Rooli):**
+* Organisaation "Kiintiö & Avaimet" -Inspector-asetusvälilehti piilotetaan (Fallback: `SizedBox.shrink()`), mikäli rooli on alempi kuin `ADMIN`. 
+* Syötettyä avainta ei pysty näkemään käyttöliittymästä enää sen tallentamisen jälkeen, sen voi ainoastaan ylikirjoittaa uudella (Tämä standardoi Pro-Tool -hallinnan turvatason).
+* Päätyönkulussa (Orkestraatio) näkyy visuaalisesti joko "Käytetään Quorum -oletuskiintiötä" tai "Käytetään Yksityistä Kiintiötä", reagoivalla SWR-värityksellä.
+
+**D. Resolvoitumisen Hierarkia (System Organization Equality):**
+Järjestelmän juuriorganisaatio ("System") ja asiakkaat toimivat 1:1 samalla litteällä BYOK-mallilla. Kovakoodattuja avaimia ei siis leivota `.env` -tiedostoihin FastAPI-koodin luitavaksi. Sen sijaan koko järjestelmän globaali oletusavain asuu juuri-organisaation (esim. `org_system000001`) salaisessa holvissa.
+* **Fall-Fast Zero-Latency Loop:** Kun järjestelmä (Service-kerros) yrittää ratkaista LLM-kutsun "Apple Corp":ille, prosessi noudattaa litteää perimysketjua 0 millisekunnissa:
+  1. Onko `org_apple_123` -tenantilla säädetty oma avain tietokannassa? -> Jos kyllä, käytä sitä kutsuun (Custom Quota).
+  2. Jos ei, luvu juuren `org_system000001` -tenantin avain ja käytä sitä (Quorum Global Quota).
+  3. Jos ROOT-avauskin on mitätön tai puuttuu -> FastAPI noudattaa arkkitehtuurimandaattia ja nostaa: `AppException(ErrorCodes.QUOTA_EXHAUSTED)`. Asiakas kokee asian selkokielisenä Toast Error -viestinä.
+
+---
+
 
 **📋 VAIHEISTUS JA TYÖTEHTÄVÄT**
 
