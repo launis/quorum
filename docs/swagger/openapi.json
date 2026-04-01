@@ -490,7 +490,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/backend_v2__api__routers__iam__users__UserDeleteResponse"
+                  "$ref": "#/components/schemas/UserDeleteResponse"
                 }
               }
             }
@@ -6233,24 +6233,6 @@
         "additionalProperties": true,
         "type": "object",
         "title": "WorkflowSimulationResponse"
-      },
-      "backend_v2__api__routers__iam__users__UserDeleteResponse": {
-        "properties": {
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "deleted_id": {
-            "type": "string",
-            "title": "Deleted Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "status",
-          "deleted_id"
-        ],
-        "title": "UserDeleteResponse"
       }
     },
     "securitySchemes": {

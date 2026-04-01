@@ -20,6 +20,7 @@ You (the AI assistant) MUST actively verify your compliance with the V2 Architec
 - NO business logic in Routers. 
 - NO `HTTPException` (Use `AppException` & RFC 7807). 
 - No default values in domain models unless logically strictly necessary.
+- NO duplicate Pydantic classes (The SSOT Mandate). FastAPI schemas must be centralized in `models/` and NEVER defined inline in `routers/` to prevent OpenAPI namespace collisions causing git diff 'Ping-Pong' loops.
 
 ### 1.3 Background Workers (Arq 2026 Mandate)
 Long-running AI generation or heavy DAG execution tasks MUST NEVER block the FastAPI HTTP request cycle. They MUST be offloaded to an asynchronous worker queue (Arq / Redis). The API router must return a 202 Accepted status with a TaskID immediately.
