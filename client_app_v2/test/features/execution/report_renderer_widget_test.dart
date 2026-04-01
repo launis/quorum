@@ -63,4 +63,58 @@ void main() {
       ); // Raw score value is formatted this way
     },
   );
+
+  testWidgets(
+    'ReportRendererWidget renders text_only preset as 1D metrics without charts',
+    (WidgetTester tester) async {
+      final dto = const ReportDataDTO(
+        workflowId: 'wf_test_2',
+        profileId: 'default',
+        profileName: I18nText(
+          defaultLocale: 'en',
+          translations: {'en': 'Default Profile'},
+        ),
+        availableProfiles: {
+          'default': I18nText(
+            defaultLocale: 'en',
+            translations: {'en': 'Default Profile'},
+          ),
+        },
+        layouts: [
+          ReportLayoutDTO(
+            presetView: 'text_only',
+            title: null,
+            description: null,
+            showText: true,
+            axes: [
+              ReportAxisDTO(
+                name: 'Text Axis',
+                score: null,
+                justification: 'This is a text only justification',
+                scaleMin: 0.0,
+                scaleMax: 6.0,
+                scaleLabels: {},
+              ),
+            ],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(body: ReportRendererWidget(payload: dto)),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Text Axis'), findsOneWidget);
+      expect(find.text('This is a text only justification'), findsOneWidget);
+      expect(find.textContaining('Static Placeholder'), findsNothing);
+    },
+  );
 }

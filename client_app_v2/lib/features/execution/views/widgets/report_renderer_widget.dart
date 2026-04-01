@@ -221,7 +221,7 @@ class ReportRendererWidget extends ConsumerWidget {
           content = _build3DComplex(context, layout);
           break;
         case 'text_only':
-          content = _buildWip(l10n.reportTextSynthesis);
+          content = _build1DMetrics(context, layout);
           break;
         default:
           // Graceful degradation fallback
@@ -772,18 +772,4 @@ class ReportRendererWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildWip(String name) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Text(
-          '$name (Static Placeholder)',
-          style: const TextStyle(
-            fontStyle: FontStyle.italic,
-            color: Colors.grey,
-          ),
-        ),
-      ),
-    );
-  }
 }
