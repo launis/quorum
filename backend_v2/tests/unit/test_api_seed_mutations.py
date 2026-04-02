@@ -51,8 +51,8 @@ def get_audit_workflow() -> Any:
         "expected_inputs": [],
         "steps": [
             {"id": "blk_steproot1234", "task_blueprint": "bp_1", "depends_on": []},
-            {"id": "blk_stepleaf1234", "task_blueprint": "bp_3", "depends_on": ["blk_steproot1234"]}
-        ]
+            {"id": "blk_stepleaf1234", "task_blueprint": "bp_3", "depends_on": ["blk_steproot1234"]},
+        ],
     }
 
 
@@ -63,7 +63,7 @@ def get_seed_prompt_block() -> Any:
         "label": {"default_locale": "en", "translations": {"en": "Test Block"}},
         "description": {"default_locale": "en", "translations": {"en": "Content"}},
         "category_id": "matrix",
-        "type": "float"
+        "type": "float",
     }
 
 
@@ -74,7 +74,7 @@ def get_seed_step() -> Any:
         "type": "llm",
         "name": {"default_locale": "en", "translations": {"en": "Step"}},
         "execution_logic": "prompt",
-        "prompt_blocks": []
+        "prompt_blocks": [],
     }
 
 

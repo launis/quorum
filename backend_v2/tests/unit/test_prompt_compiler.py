@@ -112,8 +112,8 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
             "step_3_logical_friction": "I gave a 1 because...",
             "extension_remediation_steps": ["Step 1", "Step 2"],
             "extension_confidence": 95.5,
-            "step_4_final_score": 1.0
-        }
+            "step_4_final_score": 1.0,
+        },
     }
 
     parsed = DynamicSchema.model_validate(llm_payload)
