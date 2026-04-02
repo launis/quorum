@@ -32,5 +32,5 @@ nav:
   - 🧠 Kognitiivinen Orkestraatio (Teoria):
     - Holistinen Mestaruus: "Holistinen Mestaruus.md"
     - Agent Workflows Opas: Agent_Workflows_Opas.md
+  - 🚀 Epics & Features: epic/
   - ⚙️ API Swagger Docs: swagger/index.md
-  - ...
