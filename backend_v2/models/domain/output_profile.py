@@ -5,7 +5,7 @@ It enforces the Semantic Routing and I18n standards, guaranteeing safe outputs.
 """
 
 import logging
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -19,11 +19,16 @@ class SynthesisConfigDTO(BaseModel):
     """Configuration for LLM output synthesis length, masking, and formatting."""
 
     length_constraint: int | None = Field(default=None, description="Length constraint for the synthesized text.")
-    preamble_text: I18nText | None = Field(default=None, description="Multilingual preamble text added before synthesis.")
-    include_historical_summary: bool = Field(default=False, description="Flag for fetching sliding window history summary.")
+    preamble_text: I18nText | None = Field(
+        default=None, description="Multilingual preamble text added before synthesis."
+    )
+    include_historical_summary: bool = Field(
+        default=False, description="Flag for fetching sliding window history summary."
+    )
     enable_pii_masking: bool = Field(default=False, description="Flag to enable algorithmic PII redaction.")
     allowed_exports: list[Literal["pdf", "docx", "raw_json"]] = Field(
-        default_factory=lambda: ["pdf", "raw_json"], description="Supported export file formats."
+        default_factory=lambda: cast(list[Literal["pdf", "docx", "raw_json"]], ["pdf", "raw_json"]),
+        description="Supported export file formats.",
     )
     omit_empty_sections: bool = Field(default=True, description="Flag to drop logically empty evaluation sections.")
 
