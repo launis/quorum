@@ -31,7 +31,14 @@
         <directory path="api/routers/">Segmented HTTP REST V2 endpoints separated by feature boundary (execution, iam, studio).</directory>
         <directory path="database/">The Unified Data Repository. Abstract Storage engines for local (TinyDB) and production (Firestore).</directory>
         <directory path="hooks/">Pure deterministic CPU-bound algorithmic logic files (Integrity, Reporting, Scoring filters, Security, Vertex Search).</directory>
-        <directory path="llm/">Standardized interface API proxies connecting internal systems to LLM SDKs (LiteLLM, GenAI).</directory>
+        <directory path="llm/">
+            <description>Standardized interface API proxies connecting internal systems to LLM SDKs (LiteLLM, GenAI).</description>
+            <file_rules>
+                <file path="client.py">CORE ENTRYPOINT. Contains `LLMClient.from_strategy()`. ALWAYS use this to invoke LLMs via `run_structured_task()` for strict JSON or `run_chat()` for text.</file>
+                <file path="provider.py">LOW-LEVEL ABSTRACTION. Contains `LLMFactory`. Direct usage of this file to bypass `client.py` is BANNED.</file>
+                <file path="mock.py">TESTING MOCK. Mandatory integration point for all Pytest unit tests hitting LLM interfaces, loading scenarios from `mock_data.py`.</file>
+            </file_rules>
+        </directory>
         <directory path="models/">The Absolute SSOT (Single Source of Truth) schema configurations. Pydantic V2 definitions bridging Network DTOs, State DAG nodes, and Auth rules.</directory>
         <directory path="seed/">Zero-Deploy initialization architecture. Contains `seed_data.json` providing global mathematical logic templates, and `run_seed.py` ensuring database integration parities.</directory>
         <directory path="services/">Complex business orchestration processing logic routines. E.g., The core Async DAG Executor orchestrator and the dynamic PDF Blueprint generator.</directory>
