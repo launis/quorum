@@ -1,31 +1,4 @@
-# REPOSITORY DIRECTORY & ARCHITECTURE REFERENCE (V2.5)
-
-<catastrophic_system_bans>
-    <rule_block id="dna_bypass">
-        <banned_pattern>Modifying `db_v2.json` (Runtime DB) directly or writing silent fallback defaults into Python logic.</banned_pattern>
-        <mandatory_pattern>Database structure modifications MUST exclusively target `backend_v2/seed/seed_data.json` globally. Fallbacks within domain operations are strictly illegal.</mandatory_pattern>
-        <catastrophic_reason>Runtime structure bypassing collapses the mathematical fail-fast mappings built during system instantiation.</catastrophic_reason>
-    </rule_block>
-</catastrophic_system_bans>
-
-<architectural_invariants>
-    <rule_block id="anemic_routers_cognition_ban">
-        <banned_pattern>Placing agent behavior, logic branches, or cognition directly inside FastAPI router endpoints.</banned_pattern>
-        <mandatory_pattern>API Routers MUST remain purely anemic HTTP connector endpoints. Heavy cognition execution strictly resides in `services/` or `hooks/`.</mandatory_pattern>
-    </rule_block>
-    <rule_block id="role_segregation_mandate">
-        <banned_pattern>Using unified string concatenations or raw templates for prompt building (e.g., `f"System Context: {x} Data: {y}"`) in internal LLM operations.</banned_pattern>
-        <mandatory_pattern>All system instructions MUST be extracted to a static `_SYSTEM_INSTRUCTION` constant at the file boundary. LLM calls MUST strictly separate inputs into `{"role": "system"}` and `{"role": "user"}` arrays. This mitigates prompt injections and activates Anthropic context caching natively.</mandatory_pattern>
-    </rule_block>
-    <rule_block id="flutter_pure_display">
-        <banned_pattern>Managing complex LLM token logic, branching decisions, or generative pipeline state inside Dart functions.</banned_pattern>
-        <mandatory_pattern>Flutter Studio strictly consumes pre-computed logical JSON trees via Riverpod BFF (Backend-For-Frontend) APIs. 0% AI cognition logic exists on the client interface.</mandatory_pattern>
-    </rule_block>
-    <rule_block id="mandatory_mcp_log_check">
-        <banned_pattern>Guessing the cause of a reported system crash blindly or demanding the user to run print scripts natively.</banned_pattern>
-        <mandatory_pattern>You MUST inherently search the active `backend_debug.log` and `client_debug.log` logs autonomously matching stack traces via `grep_search` or `view_file` BEFORE proposing bug solutions.</mandatory_pattern>
-    </rule_block>
-</architectural_invariants>
+# REPOSITORY DIRECTORY REFERENCE (V2.5)
 
 <system_map>
     <instruction>The internal workspace directory roles mapped explicitly for target prioritization:</instruction>

@@ -1,12 +1,12 @@
 # 06: Flutter Frontend (V5.2 Desktop-First)
 
-Cognitive Quorum V2:n käyttöliittymä (client_app_v2) on rakennettu Flutterilla täysin **Desktop-First** (PC/Ultrawide) edellä. Kaikki logiikka on hajautettu tiukasti Riverpod 3.0:aan ja asynkronisiin Isolate-säikeisiin (Main Thread Jank Prevention). 
+Cognitive Quorum -käyttöliittymä (client_app_v2) on rakennettu Flutterilla täysin **Desktop-First** (PC/Ultrawide) edellä. Kaikki logiikka on hajautettu tiukasti Riverpod 3.0:aan ja asynkronisiin Isolate-säikeisiin (Main Thread Jank Prevention). 
 
 Yksi suurimmista arkkitehtuurisista paradigmoista on "**Zero-Math UI**": Käyttöliittymä tai Flutter-laitteen CPU ei saa koskaan laskea matemaattisia keskiarvoja tekoälyn datasta, vertailla numeerisia kynnyksiä saati päätellä teemavärien vaihtumisia. Tämä luottaa puhtaasti Backendin palauttamiin esipureskeltuihin `ReportLayoutDTO` -malleihin (Backend-For-Frontend konsepti).
 
 ## 1. Desktop-First Layout ja Ikkunointi
 
-Järjestelmä on siirtynyt mobiilityylisestä koko ruudun selaamisesta täyteen IDE-kankaaseen (Integrated Development Environment).
+Järjestelmä perustuu täyteen IDE-kankaaseen (Integrated Development Environment).
 
 1. **Reititys ja Kolmikerroksinen (Three-Pane) Ikkuna:** Yli 1200dp näytöillä reitin navigointi rakentuu staattisen Sidebarin (Moduulit), Master List -sivupalkin (Datat, suodatukset) sekä asynkronisen Detail Canvas -näkymän (Esim. ajonaikainen PDF-raportti) välille. Kapeammissa 600-1199dp ikkunoissa siirrytään TwoPane-malliin ja alle 600dp vapaan muotoiseen pinottuun navigaatioon.
 2. **Infinite 2D Canvas:** Asiantuntijajärjestelmän työnkulkujen (DAG) tai matriisien konfigurointi hylkää yksittäiset listamuuttujat. **SystemInspector** luo `InteractiveViewer`in päälle äärettömän ruutupaperimaisen editorin, missä kaikki työnkulun Pydantic-solmut liikkuvat visuaalisesti x/y -avaruudessa. Objektin painaminen aukaisee kyseisten parametrien asetusnäkymän sivupalkkiin irroittamatta silmää verkon kokonaisuudesta.

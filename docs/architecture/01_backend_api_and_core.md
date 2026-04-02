@@ -46,7 +46,7 @@ Koodikannassa ohjaustaso asuu vahvasti rajatuissa kansioissa. Tärkein sääntö
 ### `backend_v2/api/routers/` (FastAPI Control Plane)
 Ylin REST-rajapintakerros vastaa HTTP-pyyntöihin. Se pysäyttää virheellisen datan RFC 7807 -turvamuuriin (Pydantic ValidationError) ennen kuin se siirtää vastuun Services-kerrokselle.
 
-Käytössä olevat reitittimet (V2):
+Käytössä olevat reitittimet:
 - **`execution/`**: Työnkulkujen (DAG) ajojen aloitus ja historian haku.
 - **`iam/`**: Identiteetin, organisaatioiden (org) ja käyttäjäroolien mutaatiot.
 - **`studio/`**: Graafisen työnkulkustudion rakenteiden CRUD -operaatiot.
