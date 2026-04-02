@@ -18,6 +18,14 @@ from backend_v2.llm.client import LLMClient
 
 logger = logging.getLogger(__name__)
 
+_SYSTEM_INSTRUCTION = """SÄÄNTÖ: Toimit automaattisena JSON-kääntäjänä.
+TEHTÄVÄ: Käännä alla olevan JSON-objektin **KAIKKI MERKKIJONOARVOT** kielelle: '{target_language}'.
+
+KRIITTINEN RAJOITE: ÄLÄ KOSKAAN KÄÄNNÄ TAI MUUTA JSON-AVAIMIA (Keys).
+Ne sisältävät ohjelmoitavia muuttujia. Vain "Values" käännetään.
+Älä lisää mitään ylimääräistä tekstiä tai markdown-koodiblokkeja vasuksesesi alkuun tai loppuun.
+Palauta puhdasta, validia JSONia."""
+
 
 @hook_registry.register(name="translation_hook")
 async def translation_hook(state: HookState, deps: HookDependencies) -> HookResult:
@@ -76,21 +84,11 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         # Graceful Degradation: return original data
         return HookResult(success=False, state_delta={})
 
-    # 2. Build the exact translation prompt
-    prompt = f"""
-    SÄÄNTÖ: Toimit automaattisena JSON-kääntäjänä.
-    TEHTÄVÄ: Käännä alla olevan JSON-objektin **KAIKKI MERKKIJONOARVOT** kielelle: '{target_language}'.
+    # 2. Build the exact translation prompt strictly adhering to Role Segregation
+    system_content = _SYSTEM_INSTRUCTION.replace("{target_language}", target_language)
+    user_content = f"Lähde JSON:\n{json.dumps(payload_to_translate, ensure_ascii=False)}"
 
-    KRIITTINEN RAJOITE: ÄLÄ KOSKAAN KÄÄNNÄ TAI MUUTA JSON-AVAIMIA (Keys).
-    Ne sisältävät ohjelmoitavia muuttujia. Vain "Values" käännetään.
-    Älä lisää mitään ylimääräistä tekstiä tai markdown-koodiblokkeja vasuksesesi alkuun tai loppuun.
-    Palauta puhdasta, validia JSONia.
-
-    Lähde JSON:
-    {json.dumps(payload_to_translate, ensure_ascii=False)}
-    """
-
-    messages = [{"role": "user", "content": prompt}]
+    messages = [{"role": "system", "content": system_content}, {"role": "user", "content": user_content}]
 
     try:
         # Call LLM for translation. We expect raw JSON back.
