@@ -65,6 +65,11 @@
         <mandatory_pattern>Every single FastAPI router MUST explicitly define `response_model=UserDTO` to strip hidden database variables out of the HTTP response string, effectively preventing Cross-Tenant Trace Leaks.</mandatory_pattern>
     </rule_block>
 
+    <rule_block id="llm_model_registry_mandate">
+        <banned_pattern>Directly calling OpenAI or VertexAI SDKs, hardcoding LLM instances, or using fallback API keys.</banned_pattern>
+        <mandatory_pattern>All LLM requests MUST be executed via `LLMClient.from_strategy("strategy_name", repo)` from the `backend_v2.llm.client` module. This enforces the "Zero-Fallback" rule by dynamically fetching environment-specific routing and RPM limits from the active database Model Registry.</mandatory_pattern>
+    </rule_block>
+
     <rule_block id="llm_structured_outputs">
         <banned_pattern>Parsing external LLM responses with Regex or relying on raw text outputs.</banned_pattern>
         <mandatory_pattern>All LLM calls MUST use the Structured Outputs feature (forced JSON Schema). Responses MUST be validated immediately through a dedicated Pydantic model BEFORE business logic. If validation fails, trigger an automatic background retry.</mandatory_pattern>
