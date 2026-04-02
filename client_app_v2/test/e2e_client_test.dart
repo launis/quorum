@@ -55,7 +55,7 @@ void main() {
           receiveTimeout: const Duration(minutes: 5),
           headers: {
             'Authorization':
-                'Bearer mock-token:usr_43ec77a438104814bd937f28853d569c',
+                'Bearer mock-token:usr_18a0d5f6151349a5',
           },
         ),
       );

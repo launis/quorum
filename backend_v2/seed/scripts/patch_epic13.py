@@ -208,24 +208,6 @@ def patch_seed_file():
     
     print(f"✅ Successfully patched {SEED_FILE}")
 
-def patch_tinydb():
-    """Drops old profiles and inserts new ones into TinyDB (if applicable locally)."""
-    db_file = Path("data/db_v2.json")
-    if not db_file.exists():
-        print("Notice: No local db_v2.json found, skipping TinyDB patch.")
-        return
-        
-    try:
-        from tinydb import TinyDB
-        db = TinyDB(str(db_file), encoding='utf-8')
-        table = db.table('output_profiles')
-        table.truncate()
-        table.insert_multiple(generate_new_profiles())
-        print(f"✅ Successfully patched {db_file} (output_profiles table)")
-    except Exception as e:
-        print(f"Failed to patch TinyDB: {e}")
-
 if __name__ == "__main__":
     patch_seed_file()
-    patch_tinydb()
-    print("DONE: Seed and TinyDB Output Profiles migrated to Epic 13 standard.")
+    print("DONE: Seed Output Profiles migrated to Epic 13 standard.")
