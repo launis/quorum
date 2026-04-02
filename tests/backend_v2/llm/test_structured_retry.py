@@ -102,5 +102,5 @@ async def test_run_structured_task_self_healing_exhaustion(mock_repository):
                 max_retries=2,
             )
 
-        assert "Self-Healing exhausted" in str(exc_info.value)
+        assert "DummyModel validation failed" in str(exc_info.value)
         assert mock_provider.generate.call_count == 2
