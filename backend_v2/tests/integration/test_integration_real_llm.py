@@ -208,9 +208,12 @@ async def test_real_llm_e2e_orchestration() -> None:
                 with open(db_path, encoding="utf-8") as f:
                     db_data = json.load(f)
 
+                db_workflows = list(db_data.get("workflows", {}).values())
+                actual_target_wf_id = db_workflows[0].get("id") if db_workflows else TARGET_WORKFLOW_ID
+
                 # Get the latest execution for this workflow
                 executions = [
-                    v for k, v in db_data.get("executions", {}).items() if v.get("workflow_id") == TARGET_WORKFLOW_ID
+                    v for k, v in db_data.get("executions", {}).items() if v.get("workflow_id") == actual_target_wf_id
                 ]
                 if not executions:
                     continue
@@ -278,6 +281,7 @@ async def test_real_llm_e2e_orchestration() -> None:
             subprocess.run(["taskkill", "/F", "/T", "/PID", str(worker_process.pid)], capture_output=True)
 
         try:
-            backend_log_fp.close()
+            if "backend_log_fp" in locals() and backend_log_fp:
+                backend_log_fp.close()
         except Exception as e:
-            logger.warning("Failed to close log file: %s", e, exc_info=True)
+            logger.warning("Failed to close backend_log_fp: %s", e, exc_info=True)

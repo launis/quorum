@@ -43,8 +43,15 @@ void main(List<String> args) async {
   );
 
   // 3. Execution Data (Using the trace from Epic 16)
-  final workflowId =
-      'wf_d653170e174847559e08af42b938d826'; // Default Kokonaisvaltainen Auditointierates new ID usually, but we need to trigger an execution. We'll start a new one.
+  String workflowId = 'wf_d653170e174847559e08af42b938d826';
+  try {
+    final wRes = await dio.get('/studio/workflows/');
+    if (wRes.data is List && wRes.data.isNotEmpty) {
+      workflowId = wRes.data[0]['id'];
+    }
+  } catch(e) {
+    logError('NETWORK', 'Could not fetch workflow dynamically, using fallback.');
+  }
 
   final rawInputs = {
     "organization_name": "Test Org",
@@ -52,7 +59,7 @@ void main(List<String> args) async {
     "target_audience": "Developers",
   };
 
-  logInfo('EXECUTION', 'Triggering execution for workflow: \$workflowId');
+  logInfo('EXECUTION', 'Triggering execution for workflow: $workflowId');
 
   try {
     // 4. API Call

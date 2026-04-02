@@ -65,9 +65,16 @@ void main() {
       );
 
       // 3. Trigger execution using the exact same structure as ExecutionClient
-      final String workflowId =
-          Platform.environment['TEST_WORKFLOW_ID'] ??
-          'wf_d653170e174847559e08af42b938d826';
+      String workflowId = Platform.environment['TEST_WORKFLOW_ID'] ?? 'wf_d653170e174847559e08af42b938d826';
+      try {
+        final wRes = await dio.get('/studio/workflows/');
+        if (wRes.data is List && wRes.data.isNotEmpty) {
+          workflowId = wRes.data[0]['id'];
+        }
+      } catch(e) {
+        logger.w('[E2E_CLIENT] | client | Failed to fetch dynamic UI, fallback.');
+      }
+      
       final response = await dio.post(
         '/execution/executions/',
         data: {
