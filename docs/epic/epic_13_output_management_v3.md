@@ -21,28 +21,39 @@ Lisäksi Epic kattaa PDF-raporttien asynkronisen generoinnin. Päämääränä o
 
 ## 3. Tekninen Toteutus & Olemassa olevan koodin hyödyntäminen
 Hybridi-mallimme varmistaa, ettei ohjelmallista Backend-For-Frontend uudelleenkirjoitusta vaadita:
-* **OutputRenderer on pääroolissa:** Flutterin puolella oleva `output_renderer.dart`, joka käyttää `flutter_markdown_plus` -kirjastoa, ottaa suoraan backendin tuottaman synteesi-Markdownin renderöidäkseen sen laadukkaasti ja jäsennellysti ruudulle.
-* **Nykyiset DTO:t riittävät pitkälle:** Säilytämme nykyisen `ReportLayoutDTO` -rakenteen sellaisenaan. Lisäämme layout-tyypiksi pelkän "MARKDOWN_BLOCK", joka kantaa tuoreen LLM-synteesitekstin. `sdui.py` ja frontend osaavat näyttää sen ilman uusia kymmentä eri komponenttimallia.
-* **PdfReportService pysyy yksinkertaisena:** `pdf_generator.py` hyödyntää jo valmiiksi Jinja2-templateja. Laajennamme PDF:n Jinja-templatea tukemaan jämäkämpää Markdown-to-HTML -muunnosta (esim. Pythonin markdown-kirjastolla) ennen WeasyPrint-renderöintiä.
+* **Nykyiset DTO:t ja SDUI riittävät sellaisenaan:** Emme muuta tiukasti tyypitettyä `ReportLayoutDTO`-rakennetta emmekä luo uutta `MARKDOWN_BLOCK`-tyyppiä. Sen sijaan BFF-kerros (esim. `sdui.py`) paketoi synteesi-Markdownin olemassa olevaan Server-Driven UI -lohkoon: `{"type": "paragraph", "id": "coach-markdown", "value": {"content": "..."}}`.
+* **OutputRenderer on pääroolissa:** Flutterin `ResultDashboard` osaa jo automaattisesti piirtää kyseisen lohkon `OutputRenderer`:illä. Rikastamme ainoastaan Flutter-puolen `MarkdownStyleSheet`-tyylit tukemaan luetteloita (list), lihavointeja, ja taulukoita (table).
+* **PdfReportService pysyy yksinkertaisena:** `pdf_generator.py` hyödyntää jo valmiiksi Jinja2-templateja. Laajennamme PDF:n Jinja-templatea tukemaan jämäkämpää Markdown-to-HTML -muunnosta.
 
-## 4. Seuraavat Askeleet (Next Steps)
-Voimme edetä tekniseen työhön erittäin suoraviivaisesti varjellen olemassa olevia rakenteita:
+## 4. Toteutussuunnitelma (Milestones M1-M4)
+Tämä Epic toteutetaan seuraavissa puhtaasti eristetyissä virstanpylväissä:
 
-* **Output Profile -mallin päivitys (Backend):**
-  * Lisätään `output_profile.py` -tiedostoon `length_constraint` (pituusrajoite) ja `preamble_text` (johdantoteksti).
-* **TextConsolidationHook (LLM Synteesi):**
-  * Luodaan uusi synteesihookki, joka ottaa raakadatan ja puskee sen synteesi-LLM:n läpi.
-  * Prompti ohjeistaa mallia: *"Kirjoita yhtenäinen Markdown-yhteenveto, pituusrajoite: {length_constraint}, poista sisäinen jargoni."*
-  * Ulostulo tallennetaan suoraan Markdown-stringinä "MARKDOWN_BLOCK"-rakenteeseen tietokantaan.
-* **Asynkroninen PDF Worker (Tietojenkäsittely):**
-  * Siirretään pitkäkestoinen `pdf_generator.py`:n suoritus blokkaamattomaan Arq-workeriin (`worker.py` -> `generate_pdf_task`).
-* **Three-Pane UI (Frontend):**
-  * Toteutetaan Admin Studioon uusi moderni jaettu työpöytänäkymä (Three-Pane layout).
-  * Oikean reunan tulosten katseluruutu hyödyntää olemassa olevaa responsiivista `OutputRenderer`:ia tuotetun Markdown-synteesin esittämiseen. Mitään visuaalisesti rajoittavaa A4-lukitusta tai matematiikkaa ei siihen koodata.
-* **Arkkitehtuuridokumentaation Päivitys:**
-  * Päivitetään `.agents/rules/04_directory_reference.md` vastaamaan uusia polkuja (koskien Worker/Hook-rakenteita). Huom: `04_directory_reference.md` ainoa tarkoitus on jatkossakin pelkästään lyhyesti selittää mitä tiedostoja on missäkin hakemistossa, se ei sisällä ohjelmointilogiikkaa.
+### M1: Pydantic Data Models & Seeding (Storage Level)
+* **`backend_v2/models/domain/output_profile.py`**: Lisätään tulostusprofiiliin tiukat parametrit: `length_constraint` (Esim. "Executive Summary"), joustava sanakirja `preamble_text` (I18nText - ehdoton monikielisyystuki) ja `include_historical_summary`.
+* **`backend_v2/seed/seed_data.json`**: Päivitetään ydintiedon oletusprofiilit (`op_executive_summary`) näillä uusilla ominaisuuksilla valmiiksi Pydantic-validointia varten.
+* **`backend_v2/seed/scripts/patch_epic13.py`**: Luodaan puhdas migraatioskripti vanhojen testidata-profiilien päivittämiseen, jotta TinyDB/Firestore ei kaadu fail-fast `extra="forbid"` sääntöön.
+
+### M2: TextConsolidationHook & LLM Synthesis (Logic Level)
+* **`backend_v2/hooks/synthesis.py` (UUSI)**: Toteutetaan asynkroninen LLM-yhteenveto-hook (`TextConsolidationHook`).
+  * **Eri Promptien Yhdistäminen (Deduplication):** Hook ohjeistaa tekoälyä yhdistelemään useista eri työnkulkusolmuista ja erillisistä prompteista peräisin olevat raakatekstit yhdeksi täysin koherentiksi tietovirraksi. Kaikki itsetoisto ja sirpaleisuus poistetaan tylysti.
+  * **Output Config -tiedon Fuusio:** Hook lukee Output Profilesta dynaamisesti tulevia lisäyksiä (esim. `preamble_text` tai muokattavia vinkkejä) ja LLM sulauttaa nämä luontevaksi osaksi tekstijatkumoa. Se tekee tämän yhtenäisenä osana tulostetta toistamatta itseään tai rikkomatta kontekstia.
+  * **Kohdekieli:** Syntetisoitava kieli on deterministinen ja se noudetaan suoraan ajon metadatasta: `execution.metadata.get("target_locale")`.
+  * **XAI Alaviitteet:** Pakotetaan tekoäly tuottamaan tekstiin tarkat `[1]` viitteet MCP Toolsien tarjoamista lähdekohdista.
+  * **Token-seuranta:** Kulutetut LLM-tokenit ja prosessoinnin kustannukset kohdistetaan tiukasti `_step_metadata['token_usage']` -objektiin, josta myöhempi Blueprint rutiini perii ne koko raportin yhteiskustannuksiin automaattisesti.
+* **`backend_v2/api/routers/output_profiles.py`**: Varmistetaan uusien kenttien läpivienti ja suojataan API `response_model=OutputProfileDTO` vuotojen estämiseksi.
+
+### M3: Architecture Connectors (BFF & Worker Offloading)
+* **`backend_v2/services/blueprint.py` (BFF)**: Backend-for-Frontend käärijä tunnistaa valmiin synteesi-Markdownin ja paketoi sen suoraan olemassa olevaan, yksinkertaiseen SDUI-lohkoon: `{"type": "paragraph", "id": "coach-markdown", "value": {"content": "..."}}`. Se EI mutatoi puhdasta `ReportLayoutDTO`-perusrakennetta. Kaikki `has_warning` -liput kirjataan metadatasta ylätason `ReportDataDTO.global_score` / métriikka -komponenttiin.
+* **`backend_v2/worker.py`**: Luodaan `generate_pdf_task()`. Arq ottaa PDF-renderöinnin vastuun asynkronisena FastAPI:n nopeuttamiseksi tallentaen datan Blob Storageen.
+* **`backend_v2/services/pdf_generator.py`**: Laajennetaan mallia tukemaan jämäkkää puhtaan Markdownin HTML-kääntämistä ennen tulosteen viemistä WeasyPrintin ajettavaksi.
+
+### M4: Flutter Client Display (Desktop-First UI Layer)
+* **`client_app_v2/lib/shared/widgets/output_renderer.dart`**: Toteutetaan `MarkdownStyleSheet` tyylien rikastaminen (luettelot/list, data taulukot/table, lainaukset/blockquote), jotta LLM:n rikas Markdown tuottuu pikselilleen oikein.
+* **`client_app_v2/lib/features/execution/views/widgets/result_dashboard.dart`**: Varmistetaan olemassa olevan automaattisen `_buildWarningBanner`in häiriötön esilletuonti, mikäli backend lähettää viestiin Graceful Degradation `metrics.has_warning == true` lipun. Lisäksi varmistetaan, että tekstin sisälle syntyvät inline-viitteet (`[1]`) yhdistyvät loogisesti alalaidan aiempaan `_buildReferencesSection` XAI-lähdeluetteloon.
+* **(TBA) Profiilien Hallinta Adminissa**: Toteutetaan olemassa olevien vapaiden näyttökomponenttien sisään Preamble_textien ja pituusasetusten (Three-Pane tyyppinen) modifikaationäyttö, johon navigoidaan puhtaasti Stripe Opaque ID -tyylillä (`blk_...`).
 
 ## 5. LLM Arkkitehtuurisäännöt
 * **Model Registry -pohjaisuus (LLMClient & Yleiset ajot):** Suorat SDK-kutsut tai erilliset LLM-kääreet ovat kiellettyjä. Käytetään valmista `backend_v2/llm/client.py` -luokkaa ja `LLMClient.from_strategy()` -metodia kaikkialla.
-* **Kutsutavat ja roolien esittely (Injektiosuoja):** Kaikki LLM-operaatiot rakennetaan siten, että infrastruktuuri (/system prompt) eristetään kovakoodatuksi vakioksi ohjelmiston tiedoston alkuun, eikä viedä tietokantaan (kuten `translation_hook.py` tekee).
+* **Pre-prompt ja Roolien eristely (Injektiosuoja):** Kaikki LLM-operaatiot rakennetaan siten, että infrastruktuuri (/system prompt) eristetään kovakoodatuksi vakioksi ohjelmiston tiedoston alkuun, eikä viedä tietokantaan (kuten `translation_hook.py` tekee).
 * **DLP ja lokituskielto raakadatalle:** Vaikka LLM-kutsu kaatuisi luodessaan Markdownia, ehdoton lokituskielto asiakkaan raakadatalle (PII) pätee. Palvelimelle kirjataan vain matemaattinen Trace ID ja virhekoodaus.
+* **Virhesietoisuus (Graceful Degradation):** Mikäli synteesi-LLM kaatuu ulkopuoliseen API-virheeseen, työnkulku ei saa keskeytyä kokonaan. Backend palauttaa tällöin raportin raakadatan perusmuodossaan, asettaa metatietoihin `has_warning: true` -lipun varoitusviesteineen, ja antaa frontendin valmiin `_buildWarningBanner`-logiikan hoitaa virheviestintä käyttäjälle pehmeästi.
