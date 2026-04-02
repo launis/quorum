@@ -42,6 +42,11 @@
     
     <rule_block id="role_segregation">
         <banned_pattern>Concatenating System rules and raw User Paste data into a single massive string inside the `user` role array.</banned_pattern>
-        <mandatory_pattern>Always segregate `messages` strictly into `{"role": "system", "content": system_rules}` and `{"role": "user", "content": payload}`. This acts as a firewall against Prompt Injection and enables Anthropic Ephemeral Context Caching.</mandatory_pattern>
+        <mandatory_pattern>Always segregate `messages` strictly into `{"role": "system", "content": _SYSTEM_INSTRUCTION}` and `{"role": "user", "content": payload}`. This acts as a firewall against Prompt Injection and enables Anthropic Ephemeral Context Caching.</mandatory_pattern>
+    </rule_block>
+    
+    <rule_block id="internal_utility_llm_execution">
+        <banned_pattern>Building ad-hoc LLM instances or placing core parsing instructions into dynamic variables / database fields for backend utilities like `chat_parser.py` or `translation_hook.py`.</banned_pattern>
+        <mandatory_pattern>Non-workflow Internal LLM Utilities MUST execute as follows: 1) Load client via `await LLMClient.from_strategy("fast", repository=repo)`. 2) Define instructions as a file-level `_SYSTEM_INSTRUCTION` constant. 3) Pass strictly segregated messages to `run_chat(messages=...)` or `run_structured_task(messages=...)`.</mandatory_pattern>
     </rule_block>
 </architectural_invariants>
