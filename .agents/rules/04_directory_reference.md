@@ -13,6 +13,10 @@
         <banned_pattern>Placing agent behavior, logic branches, or cognition directly inside FastAPI router endpoints.</banned_pattern>
         <mandatory_pattern>API Routers MUST remain purely anemic HTTP connector endpoints. Heavy cognition execution strictly resides in `services/` or `hooks/`.</mandatory_pattern>
     </rule_block>
+    <rule_block id="role_segregation_mandate">
+        <banned_pattern>Using unified string concatenations or raw templates for prompt building (e.g., `f"System Context: {x} Data: {y}"`) in internal LLM operations.</banned_pattern>
+        <mandatory_pattern>All system instructions MUST be extracted to a static `_SYSTEM_INSTRUCTION` constant at the file boundary. LLM calls MUST strictly separate inputs into `{"role": "system"}` and `{"role": "user"}` arrays. This mitigates prompt injections and activates Anthropic context caching natively.</mandatory_pattern>
+    </rule_block>
     <rule_block id="flutter_pure_display">
         <banned_pattern>Managing complex LLM token logic, branching decisions, or generative pipeline state inside Dart functions.</banned_pattern>
         <mandatory_pattern>Flutter Studio strictly consumes pre-computed logical JSON trees via Riverpod BFF (Backend-For-Frontend) APIs. 0% AI cognition logic exists on the client interface.</mandatory_pattern>
