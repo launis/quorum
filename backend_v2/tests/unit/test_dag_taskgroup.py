@@ -15,6 +15,7 @@ from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 def mock_repo() -> AsyncMock:
     repo = AsyncMock()
     from backend_v2.models.enums import ExecutionStatus
+
     # Mock context rehydration
     repo.get_execution.return_value = {
         "id": "exe_tgtg12345678",
@@ -41,6 +42,9 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
     workflow = Workflow(
         id="wf_tgtest12345",
         slug="wf_tg",
+        status="draft",
+        version=1,
+        default_profile_id="prof_defaultmock123",
         name=I18nText(default_locale="en", translations={"en": "TG Test"}),
         description=I18nText(default_locale="en", translations={"en": "Desc"}),
         steps=[

@@ -21,9 +21,9 @@ def mock_repo() -> Any:
                 "workflow_id": "wf_1",
                 "layouts": [
                     {
-                        "layout_type": "box_1d",
+                        "preset_view": "3d_complex",
                         "title": {"default_locale": "en", "translations": {"en": "Title"}},
-                        "components": ["*"],
+                        "target_blocks": ["*"],
                         "show_text": True,
                     }
                 ],
@@ -38,9 +38,9 @@ def mock_repo() -> Any:
             "workflow_id": "wf_1",
             "layouts": [
                 {
-                    "layout_type": "box_1d",
+                    "preset_view": "3d_complex",
                     "title": {"default_locale": "en", "translations": {"en": "Title"}},
-                    "components": ["*"],
+                    "target_blocks": ["*"],
                     "show_text": True,
                 }
             ],
@@ -64,7 +64,7 @@ def mock_repo() -> Any:
 @pytest.mark.asyncio
 async def test_build_report_dto_maps_correctly(mock_repo: Any) -> None:
     mock_repo.get_execution.return_value = ExecutionRecord(
-        id="testexec_0000test001",
+        id="exe_test0000test001",
         workflow_id="wf_1",
         status=ExecutionStatus.COMPLETED,
         execution_trace=[
@@ -82,7 +82,7 @@ async def test_build_report_dto_maps_correctly(mock_repo: Any) -> None:
         metadata={"target_locale": "en"},
     )
     transformer = BlueprintTransformer(mock_repo)
-    dto = await transformer.build_report_dto("testexec_0000test001", accept_language="en")
+    dto = await transformer.build_report_dto("exe_test0000test001", accept_language="en")
 
     assert isinstance(dto, ReportDataDTO)
     print("DEBUG: layout components from profile:", mock_repo.get_all_output_profiles.return_value)
@@ -102,7 +102,7 @@ async def test_build_report_dto_maps_correctly(mock_repo: Any) -> None:
 @pytest.mark.asyncio
 async def test_graceful_degradation_missing_fields(mock_repo: Any) -> None:
     mock_repo.get_execution.return_value = ExecutionRecord(
-        id="testexec_0000test002",
+        id="exe_test0000test002",
         workflow_id="wf_1",
         status=ExecutionStatus.COMPLETED,
         execution_trace=[],
@@ -110,7 +110,7 @@ async def test_graceful_degradation_missing_fields(mock_repo: Any) -> None:
         metadata={"target_locale": "fi"},
     )
     transformer = BlueprintTransformer(mock_repo)
-    dto = await transformer.build_report_dto("testexec_0000test002")
+    dto = await transformer.build_report_dto("exe_test0000test002")
 
     assert isinstance(dto, ReportDataDTO)
     assert len(dto.layouts) == 0

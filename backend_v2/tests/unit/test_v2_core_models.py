@@ -6,7 +6,7 @@ from backend_v2.models.v2_core import ExecutionRecord, MCPAuditTrace, PromptBloc
 
 def test_prompt_block_fail_fast_on_corrupt_type() -> None:
     data = {
-        "id": "pb_1",
+        "id": "blk_testblock123",
         "slug": "pb_1",
         "label": {"default_locale": "en", "translations": {"en": "T"}},
         "description": {"default_locale": "en", "translations": {"en": "D"}},
@@ -15,7 +15,7 @@ def test_prompt_block_fail_fast_on_corrupt_type() -> None:
     }
     with pytest.raises(ValidationError) as exc_info:
         PromptBlock.model_validate(data)
-    assert "BlockDataType" in str(exc_info.value)
+    assert "Input should be 'float'" in str(exc_info.value)
 
 
 def test_mcp_audit_trace_fail_fast_on_corrupt_timestamp() -> None:
@@ -26,7 +26,7 @@ def test_mcp_audit_trace_fail_fast_on_corrupt_timestamp() -> None:
 
 
 def test_execution_record_fail_fast_on_corrupt_status() -> None:
-    data = {"id": "exec_1", "workflow_id": "wf_1", "status": "INVALID_STATUS", "raw_inputs": {}}
+    data = {"id": "exe_testexec123", "workflow_id": "wf_1", "status": "INVALID_STATUS", "raw_inputs": {}}
     with pytest.raises(ValidationError) as exc_info:
         ExecutionRecord.model_validate(data)
-    assert "ExecutionStatus" in str(exc_info.value)
+    assert "Input should be 'pending'" in str(exc_info.value)

@@ -8,9 +8,11 @@ from pydantic import BaseModel, RootModel
 class PromptBlockSimulationResponse(RootModel[dict[str, Any]]):
     pass
 
+
 class PromptBlockDeleteResponse(BaseModel):
     status: str
     deleted_id: str
+
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
 from backend_v2.models.v2_core import PromptBlock
@@ -41,10 +43,12 @@ async def get_prompt_blocks(current_user: CurrentUserDep, studio_service: Studio
     """Retrieve all PromptBlocks securely."""
     return await studio_service.list_prompt_blocks(current_user)
 
+
 @router.post("/", response_model=PromptBlock)
 async def create_prompt_block(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> PromptBlock:
     """Create a new PromptBlock draft securely via SSOT."""
     return await studio_service.create_prompt_block_draft(current_user)
+
 
 @router.get("/{id}", response_model=PromptBlock)
 async def get_prompt_block(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> PromptBlock:
@@ -86,6 +90,7 @@ async def delete_prompt_block(
         return PromptBlockDeleteResponse(status="success", deleted_id=id)
     except Exception as e:
         from backend_v2.exceptions import AppException, ErrorCodes
+
         if isinstance(e, AppException):
             raise
         logger.error(

@@ -1,7 +1,6 @@
 import logging
 
 from fastapi import APIRouter
-from pydantic import BaseModel
 
 from backend_v2.api.dependencies import AuthServiceDep, CurrentUserDep
 from backend_v2.exceptions import AppException, ErrorCodes

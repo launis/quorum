@@ -34,7 +34,7 @@ class LLMNodeStrategy(NodeStrategy):
         if not blueprint_id:
             logger.error(
                 "Step has no task_blueprint configured.",
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id}
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
             )
             raise AppException(
                 message=f"Step {step.id} has no task_blueprint configured.",
@@ -46,7 +46,7 @@ class LLMNodeStrategy(NodeStrategy):
         if not step_def:
             logger.error(
                 f"Configuration error: Step '{blueprint_id}' not found.",
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id}
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
             )
             raise AppException(
                 message=f"Configuration error: Step '{blueprint_id}' not found.",
@@ -82,7 +82,7 @@ class LLMNodeStrategy(NodeStrategy):
             else:
                 logger.error(
                     f"PromptBlock '{m_id}' not found.",
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": step.id}
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": step.id},
                 )
                 raise AppException(
                     message=f"PromptBlock '{m_id}' not found.",
@@ -142,7 +142,7 @@ class LLMNodeStrategy(NodeStrategy):
         if not strategy_name:
             logger.error(
                 "Step has no model_strategy defined. Zero fallbacks allowed.",
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id}
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
             )
             raise AppException(
                 message=f"Step {step.id} has no model_strategy defined (Fail-Fast: No fallbacks allowed).",
@@ -178,8 +178,8 @@ class LLMNodeStrategy(NodeStrategy):
                 logger.error(
                     "Execution of MCP tool loop failed.",
                     extra={
-                        "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name, 
-                        "step_id": step.id, 
+                        "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
+                        "step_id": step.id,
                         "detail": str(e),
                     },
                     exc_info=True,
@@ -204,8 +204,8 @@ class LLMNodeStrategy(NodeStrategy):
                 logger.error(
                     "Execution of structured LLM task failed.",
                     extra={
-                        "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name, 
-                        "step_id": step.id, 
+                        "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
+                        "step_id": step.id,
                         "detail": str(e),
                     },
                     exc_info=True,

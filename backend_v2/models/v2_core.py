@@ -535,6 +535,7 @@ class ReportDataDTO(V2CoreBase):
         default_factory=list, description="Serialized MCPAuditTrace entries for XAI Evidence Box rendering."
     )
 
+
 class OutputLayoutBlock(V2CoreBase):
     """A single sequential rendering block for a report profile."""
 
@@ -563,6 +564,7 @@ class OutputProfile(V2CoreBase):
         description="Selects the source scaling for the scores printed by Blueprint.",
     )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
+
 
 class EmbeddedOutputProfile(V2CoreBase):
     """Embedded configuration mapping for workflow output profiles."""

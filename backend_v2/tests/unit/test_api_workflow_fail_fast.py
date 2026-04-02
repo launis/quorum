@@ -40,6 +40,9 @@ def test_workflow_api_fails_fast_on_invalid_model_strategy(client_admin: Any) ->
         "id": "wf_valid1234567",
         "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
         "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "prof_mock123",
         "slug": "valid_wf",
         "model_strategy": "super_mega_brain_5000",  # INVALID ENUM!
         "steps": [],
@@ -59,6 +62,9 @@ def test_workflow_api_fails_fast_on_invalid_step_id(client_admin: Any) -> None:
         "id": "wf_valid1234567",
         "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
         "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "prof_mock123",
         "slug": "valid_wf",
         "steps": [
             {
@@ -85,6 +91,9 @@ def test_workflow_api_strips_illegal_step_attributes(client_admin: Any, mock_stu
         "id": "wf_valid1234567",
         "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
         "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "prof_mock123",
         "slug": "valid_wf",
         "steps": [
             {
@@ -159,6 +168,9 @@ def test_workflow_api_fails_fast_on_orphan_dependency(client_admin: Any) -> None
         "id": "wf_valid1234567",
         "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
         "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "prof_mock123",
         "slug": "valid_wf",
         "steps": [
             {
@@ -182,6 +194,9 @@ def test_workflow_api_fails_fast_on_cyclic_dependency(client_admin: Any) -> None
         "id": "wf_valid1234567",
         "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
         "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "prof_mock123",
         "slug": "valid_wf",
         "steps": [
             {
@@ -210,6 +225,9 @@ def test_workflow_api_succeeds_with_valid_data(client_admin: Any, mock_studio_se
         "id": "wf_valid1234567",
         "name": {"default_locale": "en", "translations": {"en": "Happy Path WF"}},
         "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "prof_mock123",
         "slug": "happy_path_wf",
         "steps": [
             {

@@ -92,9 +92,7 @@ class LocalFileDriver(FileDriver):
             raise
         except Exception as e:
             msg = f"Invalid file path: {path}"
-            logger.error(
-                "[LocalFileDriver] %s: %s", ErrorCodes.FILESYSTEM_VIOLATION.name, msg, exc_info=True
-            )
+            logger.error("[LocalFileDriver] %s: %s", ErrorCodes.FILESYSTEM_VIOLATION.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=400,

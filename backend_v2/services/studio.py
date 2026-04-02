@@ -114,6 +114,7 @@ class StudioService:
     async def create_workflow_draft(self, initiator: TokenData) -> Workflow:
         """System-level creation of an initial Workflow Draft."""
         import uuid
+
         new_id = f"wf_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {
             "id": new_id,
@@ -124,7 +125,7 @@ class StudioService:
             "version": 1,
             "organization_id": getattr(initiator, "organization_id", None) if initiator.role not in ["ROOT"] else None,
             "expected_inputs": [],
-            "steps": []
+            "steps": [],
         }
         draft = Workflow.model_validate(draft_dict)
         return await self.save_workflow(initiator, new_id, draft)
@@ -231,6 +232,7 @@ class StudioService:
     async def create_step_draft(self, initiator: TokenData) -> Step:
         """System-level creation of an initial Step Draft."""
         import uuid
+
         new_id = f"step_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {
             "id": new_id,
@@ -243,7 +245,7 @@ class StudioService:
             "post_hooks": [],
             "safety": "safe",
             "allowed_mcp_tools": [],
-            "model_strategy": "fast"
+            "model_strategy": "fast",
         }
         draft = Step.model_validate(draft_dict)
         return await self.save_step(initiator, new_id, draft)
@@ -323,6 +325,7 @@ class StudioService:
     async def create_prompt_block_draft(self, initiator: TokenData) -> PromptBlock:
         """System-level creation of an initial PromptBlock Draft."""
         import uuid
+
         new_id = f"blk_{uuid.uuid4().hex[:16]}"
 
         draft_dict: dict[str, Any] = {
@@ -337,7 +340,7 @@ class StudioService:
             "output_extensions": [],
             "scales": None,
             "rows": None,
-            "columns": None
+            "columns": None,
         }
         draft = PromptBlock.model_validate(draft_dict)
         return await self.save_prompt_block(initiator, new_id, draft)
@@ -421,13 +424,9 @@ class StudioService:
         """System-level creation of an initial ModelConfig Draft."""
         self._enforce_modification_rights(initiator, "org_system000000", allow_system=True)
         import uuid
+
         new_id = f"sys_{uuid.uuid4().hex[:16]}"
-        draft_dict: dict[str, Any] = {
-            "id": new_id,
-            "slug": new_id,
-            "type": "model_registry",
-            "models": {}
-        }
+        draft_dict: dict[str, Any] = {"id": new_id, "slug": new_id, "type": "model_registry", "models": {}}
         draft = SystemConfigModelRegistry.model_validate(draft_dict)
         return await self.save_system_config(initiator, new_id, draft)
 
@@ -497,13 +496,9 @@ class StudioService:
         """System-level creation of an initial MCP Gateway Config Draft."""
         self._enforce_modification_rights(initiator, "org_system000000", allow_system=True)
         import uuid
+
         new_id = f"mcp_{uuid.uuid4().hex[:16]}"
-        draft_dict: dict[str, Any] = {
-            "id": new_id,
-            "slug": new_id,
-            "type": "mcp_gateways",
-            "tools": []
-        }
+        draft_dict: dict[str, Any] = {"id": new_id, "slug": new_id, "type": "mcp_gateways", "tools": []}
         draft = SystemConfigMCPGateways.model_validate(draft_dict)
         return await self.save_mcp_gateways(initiator, new_id, draft)
 
@@ -612,6 +607,7 @@ class StudioService:
     async def create_output_profile_draft(self, initiator: TokenData) -> OutputProfile:
         """System-level creation of an initial OutputProfile Draft."""
         import uuid
+
         new_id = f"opt_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {
             "id": new_id,
@@ -619,13 +615,9 @@ class StudioService:
             "name": {"default_locale": "en", "translations": {"en": "New Profile", "fi": "Uusi profiili"}},
             "category_id": "report",
             "layouts": [
-                {
-                    "layout_type": "default_pdf",
-                    "layout_config": {"columns": 1, "theme": "light"},
-                    "blocks": []
-                }
+                {"layout_type": "default_pdf", "layout_config": {"columns": 1, "theme": "light"}, "blocks": []}
             ],
-            "organization_id": getattr(initiator, "organization_id", None) if initiator.role not in ["ROOT"] else None
+            "organization_id": getattr(initiator, "organization_id", None) if initiator.role not in ["ROOT"] else None,
         }
         draft = OutputProfile.model_validate(draft_dict)
         return await self.save_output_profile(initiator, new_id, draft)

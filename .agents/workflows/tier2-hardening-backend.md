@@ -47,7 +47,7 @@ Anna minulle kopioitavaksi TARKKA koodibloki testikomentoja varten. Villien kort
 
 **Vaadittu formaatti:**
 ```bash
-uv run ruff check backend_v2/polku/kansioon/tarkka_tiedosto.py --fix ; uv run mypy backend_v2/polku/kansioon/tarkka_tiedosto.py --strict
+uv run python scripts/backend_audit_loop.py backend_v2/polku/kansioon/tarkka_tiedosto.py --openapi
 ```
     </critical_remediation_protocol>
   </phases>

@@ -93,7 +93,8 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
                             # (e.g. "step_judge" -> "Standard", "step_judge_cognitive" -> "Cognitive")
                             # Clean up label for UI
                             label = (
-                                str(step_name).replace("step_judge_", "")
+                                str(step_name)
+                                .replace("step_judge_", "")
                                 .replace("step_judge", "Standard")
                                 .replace("_", " ")
                                 .title()

@@ -268,7 +268,7 @@ class LLMClient:
                     if usage_obj is None:
                         logger.error(
                             "Strict FinOps Mode: LLM Provider failed to return token_usage.",
-                            extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name}
+                            extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name},
                         )
                         raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL)
 
@@ -315,7 +315,7 @@ class LLMClient:
                             extra={
                                 "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
                                 "model": target_model_name,
-                                "detail": str(schema_err)
+                                "detail": str(schema_err),
                             },
                         )
                         raise AgentExecutionError(
@@ -332,9 +332,7 @@ class LLMClient:
                     # 5. Epic 12: Semantic Self-Healing (Cognitive vs Structural)
                     error_str = str(schema_err)
                     is_logical_error = "CRITICAL LOGICAL ERROR" in error_str or "Value error" in error_str
-                    error_msg = (
-                        schema_err.json() if isinstance(schema_err, pydantic.ValidationError) else error_str
-                    )
+                    error_msg = schema_err.json() if isinstance(schema_err, pydantic.ValidationError) else error_str
 
                     if is_logical_error:
                         logger.warning("[LLMClient] Semantic Logic Error detected. Triggering Socratic Self-Healing.")
@@ -370,7 +368,7 @@ class LLMClient:
                 extra={
                     "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
                     "model": target_model_name,
-                    "detail": str(e)
+                    "detail": str(e),
                 },
                 exc_info=True,
             )
@@ -508,7 +506,7 @@ class LLMClient:
                 extra={
                     "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
                     "model": target_model_name,
-                    "detail": str(e)
+                    "detail": str(e),
                 },
                 exc_info=True,
             )

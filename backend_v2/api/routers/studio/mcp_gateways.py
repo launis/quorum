@@ -11,6 +11,7 @@ class MCPGatewayDeleteResponse(BaseModel):
     status: str
     deleted_id: str
 
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/mcp-gateways", tags=["Admin Studio V2 - MCP Gateways"])
@@ -23,12 +24,14 @@ async def get_all_mcp_gateways(
     """Retrieve all MCP Gateways configurations securely via SSOT Service Layer."""
     return await studio_service.list_mcp_gateways(current_user)
 
+
 @router.post("/", response_model=SystemConfigMCPGateways)
 async def create_mcp_gateways(
     current_user: CurrentUserDep, studio_service: StudioServiceDep
 ) -> SystemConfigMCPGateways:
     """Create a new MCP Gateway Config draft securely via SSOT."""
     return await studio_service.create_mcp_gateway_draft(current_user)
+
 
 @router.get("/{gateway_id}", response_model=SystemConfigMCPGateways)
 async def get_mcp_gateway(
@@ -61,6 +64,7 @@ async def delete_mcp_gateway(
         return MCPGatewayDeleteResponse(status="success", deleted_id=gateway_id)
     except Exception as e:
         from backend_v2.exceptions import AppException, ErrorCodes
+
         if isinstance(e, AppException):
             raise
         logger.error(

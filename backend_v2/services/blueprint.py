@@ -388,6 +388,7 @@ class BlueprintTransformer:
 
             # Extract MCP Tool Loop audit trail from FrozenContext (XAI Evidence for Frontend)
             from backend_v2.models.v2_core import MCPAuditTrace
+
             mcp_audit_data: list[MCPAuditTrace] = []
             if hasattr(execution, "frozen_context") and execution.frozen_context:
                 if hasattr(execution.frozen_context, "mcp_tool_audit") and execution.frozen_context.mcp_tool_audit:

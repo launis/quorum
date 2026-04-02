@@ -56,17 +56,16 @@
 
 <universal_quality_gate>
     <backend_verification>
-        <instruction>Python commands MUST ALWAYS use this format, list EXACT files, use `;`:</instruction>
-        <command>`uv run ruff check backend_v2/[tiedostot] --fix ; uv run mypy backend_v2/[tiedostot] --strict`</command>
-        <openapi_sync>If modifying Pydantic models or Router schemas: `uv run python backend_v2/scripts/generate_openapi.py`</openapi_sync>
-        <test_mandate>`uv run pytest backend_v2/tests/ -v`</test_mandate>
+        <instruction>Backend verification MUST utilize the unified audit loop script for safety and consistency.</instruction>
+        <command>Execution: `uv run python scripts/backend_audit_loop.py backend_v2/[tiedostot]`</command>
+        <command>Execution (If Pydantic or Routers changed): `uv run python scripts/backend_audit_loop.py backend_v2/[tiedostot] --openapi`</command>
+        <test_mandate>Included directly: `uv run python scripts/backend_audit_loop.py backend_v2/[tiedostot] --test`</test_mandate>
     </backend_verification>
     
     <frontend_verification>
-        <instruction>Flutter verification follows a strict order of native tools:</instruction>
-        <step id="1">Clean & Analyze: `dart format . ; dart analyze`</step>
-        <step id="2">Generators (If @riverpod or @freezed changed): `dart run build_runner build --delete-conflicting-outputs`</step>
-        <step id="3">Localization (If .arb files changed): `flutter gen-l10n`</step>
+        <instruction>Flutter verification MUST follow a strict order of native tools natively mapped inside the core workspace. You must use the unified audit loop script for this process.</instruction>
+        <command>Execution: `uv run python scripts/flutter_audit_loop.py client_app_v2`</command>
+        <command>Execution (If @riverpod or @freezed changed): `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`</command>
         <test_mandate>`flutter test`</test_mandate>
     </frontend_verification>
 

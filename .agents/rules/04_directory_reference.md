@@ -59,6 +59,7 @@
         <description>Primary development setup files natively guiding automated systems.</description>
         <directory path=".agents/rules/">Master Architectural Directives natively formatted via structural constraints guiding intelligent machine compilation behaviors (AI Only).</directory>
         <directory path=".agents/workflows/">Autonomous procedural orchestration playbooks ensuring code alterations properly resolve across specific isolated AI logic paths.</directory>
+        <directory path="scripts/">Cross-functional development utilities. Features `flutter_audit_loop.py` which unifies CD routines for formatting, building, and analyzing Dart code.</directory>
         <file path="AGENTS.md">The Core Root Agent Configuration file ensuring foundational Windows 11 context laws exist natively before anything else.</file>
         <file path="backend_debug.log">Crucial Server Runtime trace logs exposing hidden Python/FastAPI validation faults natively generated during asynchronous events.</file>
         <file path="client_debug.log">Crucial Client Runtime trace logs exposing frontend Freezed parsing failures, Dart mapping errors, and user HTTP interruptions.</file>

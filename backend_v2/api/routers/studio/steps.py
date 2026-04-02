@@ -8,9 +8,11 @@ from pydantic import BaseModel, RootModel
 class StepSimulationResponse(RootModel[dict[str, Any]]):
     pass
 
+
 class StepDeleteResponse(BaseModel):
     status: str
     deleted_id: str
+
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
 from backend_v2.models.v2_core import Step
@@ -41,6 +43,7 @@ async def get_steps(current_user: CurrentUserDep, studio_service: StudioServiceD
     """Retrieve all V2 dynamic step execution block schemas securely via SSOT."""
     return await studio_service.list_steps(current_user)
 
+
 @router.post("/", response_model=Step)
 async def create_step(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Step:
     """Create a new Step draft securely via SSOT."""
@@ -69,6 +72,7 @@ async def delete_step(
         return StepDeleteResponse(status="success", deleted_id=id)
     except Exception as e:
         from backend_v2.exceptions import AppException, ErrorCodes
+
         if isinstance(e, AppException):
             raise
         logger.error(

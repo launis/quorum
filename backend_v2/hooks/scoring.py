@@ -193,9 +193,7 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     }
 
     logger.info(
-        "[ScoringHook] Scoring validation complete. "
-        "Commensurate Base Average: %.1f, "
-        "Final: %.1f. Penalties: %d",
+        "[ScoringHook] Scoring validation complete. Commensurate Base Average: %.1f, Final: %.1f. Penalties: %d",
         average_score,
         final_score,
         len(penalties),
@@ -398,8 +396,7 @@ def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> 
 
                 if new_score < scale_min:
                     logger.warning(
-                        "[ScoringHook] Passivity penalty reduced score (%s) "
-                        "below min (%s). Clamping.",
+                        "[ScoringHook] Passivity penalty reduced score (%s) below min (%s). Clamping.",
                         new_score,
                         scale_min,
                     )
@@ -570,14 +567,13 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             # Ensure the raw value itself is cast to a strict float so it hits the database
             # as a number, not a string representation of a number.
             try:
-                raw_val = float(raw_input_val) # Always ensure we deal with flat numeric value mathematically
+                raw_val = float(raw_input_val)  # Always ensure we deal with flat numeric value mathematically
             except (ValueError, TypeError):
                 # Graceful Degradation: Log info before skipping.
                 # Non-numeric outputs (like JSON blobs or reasoning traces) are expected for text PromptBlocks.
                 # Downgraded from ERROR to DEBUG to avoid terrifying the user with stack traces.
                 logger.debug(
-                    "[ScoringHook] Non-numeric data for '%s', "
-                    "skipping score normalization. Value snippet: %s...",
+                    "[ScoringHook] Non-numeric data for '%s', skipping score normalization. Value snippet: %s...",
                     pb_id,
                     str(new_payload[pb_id])[:100],
                 )
@@ -595,7 +591,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             logger.debug(
                 "[ScoringHook] Found PromptBlock '%s' with allowed decimals: %s",
                 pb_id,
-                pb_dict.get('allow_decimals'),
+                pb_dict.get("allow_decimals"),
             )
 
             scales = pb_dict.get("scales")
@@ -666,6 +662,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 # before saving (Legacy V1 Support)
                 if just_key in new_payload and isinstance(new_payload[just_key], str):
                     import re
+
                     cleaned = re.sub(r"\|\|DECIMAL:\s*[0-9.]+\|\|", "", new_payload[just_key])
                     new_payload[just_key] = cleaned.strip()
 

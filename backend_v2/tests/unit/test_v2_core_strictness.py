@@ -44,11 +44,7 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
 
     # Successful: Has prompt blocks
     valid_blueprint = Step(
-        id="step_blueprint",
-        slug="task_bp_valid",
-        name=label,
-        prompt_blocks=["some_block"],
-        model_strategy="fast"
+        id="step_blueprint", slug="task_bp_valid", name=label, prompt_blocks=["some_block"], model_strategy="fast"
     )
     assert valid_blueprint.slug == "task_bp_valid"
 
@@ -60,7 +56,7 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
             name=label,
             prompt_blocks=[],
             pre_hooks=["some_hook"],
-            model_strategy="fast"
+            model_strategy="fast",
         )
     assert "must define at least one prompt_block." in str(exc_info.value)
 
@@ -72,23 +68,23 @@ def test_opaque_id_regex_validation() -> None:
     # 1. Test PromptBlock creation rejection
     with pytest.raises(ValidationError) as exc_pb:
         PromptBlock(
-            id="legacy-slug-without-prefix", # INVALID
+            id="legacy-slug-without-prefix",  # INVALID
             slug="valid_slug",
             label=label,
             description=label,
             category_id="test_cat",
             type=BlockDataType.STRING,
-            output_extensions=[]
+            output_extensions=[],
         )
     assert "String should match pattern '^([a-z]{2,5})_[a-zA-Z0-9]{8,}$'" in str(exc_pb.value)
 
     # 2. Test Step creation rejection
     with pytest.raises(ValidationError) as exc_step:
         Step(
-            id="my_custom_slug123", # INVALID, no prefix separated by underscore
+            id="my_custom_slug123",  # INVALID, no prefix separated by underscore
             slug="slug",
             name=label,
             prompt_blocks=["blk_test"],
-            model_strategy="fast"
+            model_strategy="fast",
         )
     assert "String should match pattern '^([a-z]{2,5})_[a-zA-Z0-9]{8,}$'" in str(exc_step.value)

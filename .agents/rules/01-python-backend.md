@@ -72,8 +72,8 @@
 </architectural_invariants>
 
 <testing_and_verification_mandate>
-    <instruction>Executing Python tooling ALWAYS requires this explicit chained format utilizing `;` directly calling the correct paths:</instruction>
-    <command>`uv run ruff check backend_v2/[TARGET_FILES] --fix ; uv run mypy backend_v2/[TARGET_FILES] --strict`</command>
+    <instruction>Executing Python tooling ALWAYS requires this explicit unified format calling the audit loop script:</instruction>
+    <command>`uv run python scripts/backend_audit_loop.py backend_v2/[TARGET_FILES] --openapi`</command>
     
     <rule_block id="zero_deprecation">
         <banned_pattern>Calling code "Complete" while legacy APIs throw `DeprecationWarning` or typing reports an error.</banned_pattern>

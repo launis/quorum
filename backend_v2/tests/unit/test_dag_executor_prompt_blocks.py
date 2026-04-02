@@ -55,6 +55,9 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
     workflow = Workflow(
         id="wf_testwf1234",
         slug="wf_test_slug",
+        status="draft",
+        version=1,
+        default_profile_id="prof_defaultmock123",
         name=I18nText(default_locale="en", translations={"en": "Test WF"}),
         description=I18nText(default_locale="en", translations={"en": "Desc"}),
         steps=[StepRule(id="step_11111111", task_blueprint="task_bp")],

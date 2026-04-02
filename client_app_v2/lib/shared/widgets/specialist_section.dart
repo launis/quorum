@@ -1771,7 +1771,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           margin: const EdgeInsets.only(bottom: 12.0),
           padding: const EdgeInsets.all(12.0),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            color: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: Theme.of(context).colorScheme.surfaceContainerHighest,

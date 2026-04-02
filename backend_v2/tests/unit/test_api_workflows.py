@@ -44,6 +44,9 @@ def test_workflow_rbac_save_member_forbidden(client_member: Any) -> None:
         "id": "wf_new1234567",
         "name": {"default_locale": "en", "translations": {"en": "new"}},
         "description": {"default_locale": "en", "translations": {"en": "desc"}},
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "prof_mock123",
         "organization_id": "org_testorg123",
         "slug": "new_wf",
     }

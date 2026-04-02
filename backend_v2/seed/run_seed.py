@@ -199,9 +199,7 @@ def seed_database(target: str) -> None:
     print(f"--- V2 SEEDING TARGET: {target.upper()} ---")
 
     if not os.path.exists(SEED_PATH):
-        logger.critical(
-            "[Seeder] %s: Seed file not found at %s", ErrorCodes.FILE_NOT_FOUND.name, SEED_PATH
-        )
+        logger.critical("[Seeder] %s: Seed file not found at %s", ErrorCodes.FILE_NOT_FOUND.name, SEED_PATH)
         print(f"\033[91mCRITICAL: Seed file not found at {SEED_PATH}\033[0m")
         sys.exit(1)
 

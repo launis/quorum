@@ -48,7 +48,7 @@ Näitä työnkulkuja ohjataan yhteistyössä interaktiivisena silmukkana (Loop).
 ### Vaihe 3: Korjaus (Remediation)
 1.  **Sinun komentosi:** *"FIX"*
 2.  **Agentin toiminta:** Agentti avaa sisäiset muokkaustyökalunsa (MCP `replace_file_content`) ja tekee korjaavat koodimuutokset. Tekoäly on myös ohjeistettu vaatimaan yksikkötestien asiallista suorittamista/päivittämistä ohjelmointimuutosten jälkeen.
-3.  **Vahvistus ja Testaus:** Agentti luovuttaa sinulle **The Universal Quality Gate** -komennot kopioitavaksi terminaaliin (esim. ohjeet Ruff/Mypy/Pytest tai Flutter Analyze/L10n/Test ajoon).
+3.  **Vahvistus ja Testaus:** Agentti luovuttaa sinulle **The Universal Quality Gate** -komennot kopioitavaksi terminaaliin. Frontendin (Flutter) puolella tämä on yhtenäistetty täysin yhteen komentoon `uv run python scripts/flutter_audit_loop.py client_app_v2/[polku]`, joka hoitaa automaattisesti formatoinnit, generaattorit `--build` -lipulla ja koodianalyysin. Backendin puolella ohjeet annetaan toistaiseksi suorina ketjutettuina Ruff/Mypy/Pytest -komentoina.
 4.  **Agentin tila:** Korjaus on valmis kansion osalta.
 5.  **Luuppi alusta (Kontekstin nollaus):** Tekoäly voi unohtaa säännöt pitkän muokkauksen aikana (Context Amnesia). Siksi edetään aina **vain yksi kansio kerrallaan**. Pelkän "PROCEED"-sanan sijaan turvallisin jatkokomento on: *"PROCEED. Aja /tier2-hardening-backend uudestaan listan seuraavalle kansion kohdalle."*
 
@@ -98,3 +98,47 @@ Tämä "jatkuvan mikro-tallennuksen" malli muuttaa Gitin perinteisestä versionh
 * **Ainoa poikkeus "Massa-commitiin" (Squashing):** Ainoa kerta kun niputat asioita massaksi, tapahtuu yleensä myöhemmin *Squash & Merge* -tyylillä (esim. GitHubin tai GitLabin käyttöliittymästä). Kun uusi ohjelmisto on vihdoin testattu, voit yhdistää kymmenet atomi-tallennukset yhdeksi ammattimaiseksi julkaisu-commitiksi tuotannon päähaaraan (`feat: Täysin uuden V2-järjestelmän käyttöönotto`).
 
 Varsinaisessa "lokaalissa devaushiestä", johon tekoälynkoodaussääntömme (Tier-työnkulut) on rakennettu, sokea "massa-commit" on tästedes taaksejäänyttä elämää. Koodaat vain askel kerrallaan turvallisesti!
+
+---
+
+## 5. Manuaaliset Ylläpitotyökalut (Audit Loops)
+
+Vaikka tekoälyagentit käyttävät audit-looppeja automaattisesti taustalla, ne ovat äärimmäisen hyödyllisiä työkaluja myös sinulle manuaaliseen käyttöön. Näiden kahden The Universal Quality Gate -skriptin käyttö varmistaa, ettet koskaan vahingossa riko projektin linttaus- tai tyyppimandaatteja koodatessasi itse.
+Skriptit sijaitsevat projektin juuressa `scripts/` -hakemistossa.
+
+### Frontend Audit Loop (Flutter)
+**Tiedosto:** `scripts/flutter_audit_loop.py`
+
+Käytä tätä aina, kun olet tehnyt manuaalisia muutoksia `client_app_v2` -hakemiston alla, ennen kuin teet Git Commitin. Se ajaa järjestyksessä koodin formatoinnin (`dart format`) ja staattisen analyysin (`dart analyze`). 
+
+* **Peruskäyttö (esim. pelkkä käyttöliittymämuutos):**
+  ```powershell
+  uv run python scripts/flutter_audit_loop.py client_app_v2
+  ```
+  *(Voit antaa myös tarkan kansion: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio`)*
+
+* **Datan ja Rakenteiden muutos (`--build`):**
+  Jos muutit jotain `@riverpod` tai `@freezed` -annotaatioilla varustettua tiedostoa, sinun MÄÄRÄTÄÄN ajavan skripti liitteellä `--build`. Tämä ajaa `build_runnerin` ennen analyysia.
+  ```powershell
+  uv run python scripts/flutter_audit_loop.py client_app_v2 --build
+  ```
+
+### Backend Audit Loop (Python)
+**Tiedosto:** `scripts/backend_audit_loop.py`
+
+Käytä tätä aina, kun olet tehnyt muutoksia `backend_v2` -hakemiston alla. Se hoitaa automaattisesti kolme vaihetta: korjaus (`ruff check --fix`), formatointi (`ruff format`) ja tiukka tyyppitarkastus (`mypy --strict`).
+
+* **Peruskäyttö:**
+  ```powershell
+  uv run python scripts/backend_audit_loop.py backend_v2
+  ```
+  *(Tai kohdista vain yhteen tiedostoon/kansioon nopeuttaaksesi koodausta)*
+
+* **OpenAPI Generointi (`--openapi`):**
+  Jos muutat FastAPI reitittimiä (routers) tai Pydantic-malleja (DTO), aseta `--openapi` -lippu. Silloin skripti huolehtii lopuksi avoimien rajapintojen dokumentaation (`openapitools.json`) päivittämisestä.
+  ```powershell
+  uv run python scripts/backend_audit_loop.py backend_v2 --openapi
+  ```
+
+* **Testien ajo (`--test`):**
+  Lisää tämä lippu, jos haluat skriptin integroivan myös lokaalien Pytest-yksikkötestien nopean tarkistuksen laatuporttiisi onnistuneen tyyppitarkastuksen perään.

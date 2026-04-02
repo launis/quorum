@@ -4,6 +4,7 @@ These models handle the ingestion and output formats for the Output Profile REST
 """
 
 from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.models.v2_core import I18nText, OutputLayoutBlock

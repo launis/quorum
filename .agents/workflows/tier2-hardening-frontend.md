@@ -54,7 +54,7 @@ Anna minulle kopioitavaksi TARKKA koodibloki testikomentoja varten. Villien kort
 
 **Vaadittu formaatti:**
 ```bash
-uv run python docs\koodit\flutter_audit_loop.py client_app_v2/lib/polku/kansioon/tarkka_tiedosto.dart --build
+uv run python scripts/flutter_audit_loop.py client_app_v2/lib/polku/kansioon/tarkka_tiedosto.dart --build
 ```
     </critical_remediation_protocol>
   </phases>

@@ -123,14 +123,20 @@ class PromptCompiler:
             path = path[1:]
 
         if path == "steps":
-            return self._extract_value_from_state("", {
-                "": {k: v for k, v in state_data.items()
-                     if not str(k).startswith("_") and k not in ("inputs", "raw_inputs", "reasoning_context")}
-            })
+            return self._extract_value_from_state(
+                "",
+                {
+                    "": {
+                        k: v
+                        for k, v in state_data.items()
+                        if not str(k).startswith("_") and k not in ("inputs", "raw_inputs", "reasoning_context")
+                    }
+                },
+            )
 
         # Support the standard V2 $steps namespace for explicit node targeting (e.g. $steps.sr_xyz.outputs)
         if path.startswith("steps."):
-            path = path[len("steps."):]
+            path = path[len("steps.") :]
 
         parts = path.split(".")
         current: Any = state_data
@@ -155,7 +161,7 @@ class PromptCompiler:
             # Epic 12: Flatten nested JSON into LLM-friendly Markdown (Attention Dilution patch)
             formatted = []
             for k, v in current.items():
-                formatted.append(f"<prior_step_context source=\"{str(k).upper()}\">")
+                formatted.append(f'<prior_step_context source="{str(k).upper()}">')
                 if isinstance(v, dict):
                     # Yritetään sukeltaa suoraan 'outputs' avaimeen jos se olemassa
                     target_dict = v.get("outputs", v) if "outputs" in v else v
@@ -370,20 +376,22 @@ class PromptCompiler:
 
             # Epic 12: Scales injected into XML rubrics, removed from description.
 
-
             extensions = crit.get("output_extensions", [])
 
             # Epic 12: Micro-CoT Nested Fields
             sub_fields: dict[str, tuple[Any, Any]] = {}
 
             if "citation" in extensions:
-                sub_fields["step_1_evidence_quote"] = (str | None, Field(
-                    default=None,
-                    description=(
-                        "EXACT verbatim quote from the user's RAW INPUT TEXT that serves as empirical evidence. "
-                        "AI-generated text is strictly forbidden here. If no direct quote exists, return null."
-                    )
-                ))
+                sub_fields["step_1_evidence_quote"] = (
+                    str | None,
+                    Field(
+                        default=None,
+                        description=(
+                            "EXACT verbatim quote from the user's RAW INPUT TEXT that serves as empirical evidence. "
+                            "AI-generated text is strictly forbidden here. If no direct quote exists, return null."
+                        ),
+                    ),
+                )
 
                 theory_grounding = crit.get("theory_grounding", {})
                 citation_ref = (
@@ -391,86 +399,127 @@ class PromptCompiler:
                 )
                 if citation_ref:
                     from typing import Literal
-                    sub_fields["step_1b_cited_source_id"] = (Literal[citation_ref] | None, Field(
-                        default=None,
-                        description=(
-                            "If your justification relies on authorized theory, you MUST RETURN EXACTLY: "
-                            f"'{citation_ref}'. Otherwise return null."
-                        )
-                    ))
+
+                    sub_fields["step_1b_cited_source_id"] = (
+                        Literal[citation_ref] | None,
+                        Field(
+                            default=None,
+                            description=(
+                                "If your justification relies on authorized theory, you MUST RETURN EXACTLY: "
+                                f"'{citation_ref}'. Otherwise return null."
+                            ),
+                        ),
+                    )
 
                 if has_search_result:
-                    sub_fields["step_1c_google_citation"] = (str | None, Field(
-                        default=None,
-                        description=(
-                            "CRITICAL FAKTANTARKISTUS: Peilaa tulostasi 'search_result' XML-elementtiin. "
-                            "Tukeeko vai kumoako Google-data väitteen? Jos ei liity, palauta null."
-                        )
-                    ))
+                    sub_fields["step_1c_google_citation"] = (
+                        str | None,
+                        Field(
+                            default=None,
+                            description=(
+                                "CRITICAL FAKTANTARKISTUS: Peilaa tulostasi 'search_result' XML-elementtiin. "
+                                "Tukeeko vai kumoako Google-data väitteen? Jos ei liity, palauta null."
+                            ),
+                        ),
+                    )
 
             if "falsification" in extensions:
-                sub_fields["step_2_falsification"] = (str, Field(
-                    ...,
-                    description=(
-                        "Devil's advocate formulation argument. Why might your initial assumption be wrong? "
-                        f"MANDATORY LANGUAGE: '{target_locale}'."
-                    )
-                ))
+                sub_fields["step_2_falsification"] = (
+                    str,
+                    Field(
+                        ...,
+                        description=(
+                            "Devil's advocate formulation argument. Why might your initial assumption be wrong? "
+                            f"MANDATORY LANGUAGE: '{target_locale}'."
+                        ),
+                    ),
+                )
 
             if "justification" in extensions:
-                sub_fields["step_3_logical_friction"] = (str, Field(
-                    ...,
-                    description=(
-                        f"Detailed reasoning bridging the evidence to <MATRIX id='{crit_id}'>. "
-                        f"MANDATORY LANGUAGE: '{target_locale}'."
-                    )
-                ))
+                sub_fields["step_3_logical_friction"] = (
+                    str,
+                    Field(
+                        ...,
+                        description=(
+                            f"Detailed reasoning bridging the evidence to <MATRIX id='{crit_id}'>. "
+                            f"MANDATORY LANGUAGE: '{target_locale}'."
+                        ),
+                    ),
+                )
 
             if "coaching" in extensions:
-                sub_fields["extension_coaching"] = (str, Field(
-                    ...,
-                    description=(
-                        "Concrete coaching tip/remediation advice to the subject. "
-                        f"MANDATORY LANGUAGE: '{target_locale}'."
-                    )
-                ))
+                sub_fields["extension_coaching"] = (
+                    str,
+                    Field(
+                        ...,
+                        description=(
+                            "Concrete coaching tip/remediation advice to the subject. "
+                            f"MANDATORY LANGUAGE: '{target_locale}'."
+                        ),
+                    ),
+                )
             if "confidence" in extensions:
-                sub_fields["extension_confidence"] = (float, Field(
-                    ..., ge=0.0, le=100.0, description="Numerical confidence from 0.0 to 100.0 based on evidence."
-                ))
+                sub_fields["extension_confidence"] = (
+                    float,
+                    Field(
+                        ..., ge=0.0, le=100.0, description="Numerical confidence from 0.0 to 100.0 based on evidence."
+                    ),
+                )
             if "missing_context" in extensions:
-                sub_fields["extension_missing_context"] = (str, Field(
-                    ...,
-                    description=f"Missing context from the provided text. MANDATORY LANGUAGE: '{target_locale}'."
-                ))
+                sub_fields["extension_missing_context"] = (
+                    str,
+                    Field(
+                        ...,
+                        description=f"Missing context from the provided text. MANDATORY LANGUAGE: '{target_locale}'.",
+                    ),
+                )
             if "risk_flag" in extensions:
-                sub_fields["extension_risk_flag"] = (bool, Field(
-                    ..., description="True if there is a severe risk present; False otherwise."
-                ))
+                sub_fields["extension_risk_flag"] = (
+                    bool,
+                    Field(..., description="True if there is a severe risk present; False otherwise."),
+                )
             if "remediation_steps" in extensions:
-                sub_fields["extension_remediation_steps"] = (list[str], Field(
-                    ...,
-                    description=f"Actionable array of textual remediation steps. MANDATORY LANGUAGE: '{target_locale}'."
-                ))
+                sub_fields["extension_remediation_steps"] = (
+                    list[str],
+                    Field(
+                        ...,
+                        description=(
+                            f"Actionable array of textual remediation steps. MANDATORY LANGUAGE: '{target_locale}'."
+                        ),
+                    ),
+                )
             if "emotional_sentiment" in extensions:
-                sub_fields["extension_emotional_sentiment"] = (str, Field(
-                    ...,
-                    description=f"Analysis of author's emotional state or tone. MANDATORY LANGUAGE: '{target_locale}'."
-                ))
+                sub_fields["extension_emotional_sentiment"] = (
+                    str,
+                    Field(
+                        ...,
+                        description=(
+                            f"Analysis of author's emotional state or tone. MANDATORY LANGUAGE: '{target_locale}'."
+                        ),
+                    ),
+                )
             if "theory_link" in extensions:
-                sub_fields["extension_theory_link"] = (str, Field(
-                    ...,
-                    description=(
-                        "Direct logical connection to the governing theory framework. "
-                        f"MANDATORY LANGUAGE: '{target_locale}'."
-                    )
-                ))
+                sub_fields["extension_theory_link"] = (
+                    str,
+                    Field(
+                        ...,
+                        description=(
+                            "Direct logical connection to the governing theory framework. "
+                            f"MANDATORY LANGUAGE: '{target_locale}'."
+                        ),
+                    ),
+                )
 
             # ARVOSANA ON AINA VIIMEISENÄ
-            sub_fields["step_4_final_score"] = (value_type, Field(
-                ...,
-                description=f"Numeric score strictly evaluated using the <MATRIX id='{crit_id}'> in the system prompt."
-            ))
+            sub_fields["step_4_final_score"] = (
+                value_type,
+                Field(
+                    ...,
+                    description=(
+                        f"Numeric score strictly evaluated using the <MATRIX id='{crit_id}'> in the system prompt."
+                    ),
+                ),
+            )
 
             # Epic 12: Liiketoimintalogiikan validointi (Semantic Self-Healing)
             def make_validator(cid: str) -> Any:
@@ -484,14 +533,16 @@ class PromptCompiler:
                             "You MUST find an exact quote from the text or lower the score immediately."
                         )
                     return values
+
                 return validate_logic
 
             from pydantic import ConfigDict, model_validator
+
             NestedModel = create_model(  # type: ignore[call-overload]
                 f"{crit_id}_Evaluation",
                 __config__=ConfigDict(extra="forbid", strict=True),
                 __validators__={"logic_check": model_validator(mode="before")(make_validator(crit_id))},
-                **sub_fields
+                **sub_fields,
             )
 
             fields[crit_id] = (NestedModel, Field(..., description=f"Evaluation object for {label}"))
@@ -543,19 +594,19 @@ class PromptCompiler:
 
             xml_blocks.append(f'  <MATRIX id="{crit_id}" title="{label}">')
             if desc:
-                xml_blocks.append(f'    <DIRECTIVE>{desc}</DIRECTIVE>')
+                xml_blocks.append(f"    <DIRECTIVE>{desc}</DIRECTIVE>")
 
             scales = crit.get("scales", [])
             if scales:
-                xml_blocks.append('    | Score | Label | Critical Directive |')
-                xml_blocks.append('    |---|---|---|')
+                xml_blocks.append("    | Score | Label | Critical Directive |")
+                xml_blocks.append("    |---|---|---|")
                 for s in scales:
                     s_val = s.get("score")
                     s_lbl = self.resolve_i18n(s.get("name"), target_locale) if s.get("name") else s.get("ai_label", "")
                     claims = " ".join([c.get("ai_description", "") for c in s.get("claims", [])])
-                    xml_blocks.append(f'    | {s_val} | {s_lbl} | {claims} |')
+                    xml_blocks.append(f"    | {s_val} | {s_lbl} | {claims} |")
 
-            xml_blocks.append('  </MATRIX>')
+            xml_blocks.append("  </MATRIX>")
         xml_blocks.append("</EVALUATION_RUBRICS>")
         return "\n".join(xml_blocks)
 
@@ -579,7 +630,7 @@ class PromptCompiler:
                 if not desc:
                     from backend_v2.exceptions import ConfigurationError
 
-                    block_id = block.get('id')
+                    block_id = block.get("id")
                     msg = f"PromptBlock '{block_id}' is missing mandatory 'ai_description'."
                     logger.error(
                         "PromptBlock is missing mandatory 'ai_description'.",
@@ -621,7 +672,7 @@ class PromptCompiler:
                 if not desc:
                     from backend_v2.exceptions import ConfigurationError
 
-                    block_id = block.get('id')
+                    block_id = block.get("id")
                     msg = f"PromptBlock '{block_id}' is missing mandatory 'ai_description'."
                     logger.error(
                         "PromptBlock is missing mandatory 'ai_description'.",

@@ -203,7 +203,6 @@ class ReportRendererWidget extends ConsumerWidget {
   ) {
     if (layout.axes.isEmpty) return const SizedBox.shrink();
 
-    final l10n = AppLocalizations.of(context)!;
     final lang = Localizations.localeOf(context).languageCode;
     final title = layout.title?.get(lang);
     final desc = layout.description?.get(lang);
@@ -771,5 +770,4 @@ class ReportRendererWidget extends ConsumerWidget {
       ],
     );
   }
-
 }

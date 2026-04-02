@@ -11,9 +11,11 @@ from backend_v2.models.v2_core import Workflow
 class WorkflowSimulationResponse(RootModel[dict[str, Any]]):
     pass
 
+
 class WorkflowDeleteResponse(BaseModel):
     status: str
     deleted_id: str
+
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,7 @@ async def get_workflows(current_user: CurrentUserDep, studio_service: StudioServ
 async def create_workflow(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Workflow:
     """Create a new Workflow draft securely via SSOT Service Layer."""
     return await studio_service.create_workflow_draft(current_user)
+
 
 @router.get("/{id}", response_model=Workflow)
 async def get_workflow(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Workflow:
@@ -70,6 +73,7 @@ async def delete_workflow(
         return WorkflowDeleteResponse(status="success", deleted_id=id)
     except Exception as e:
         from backend_v2.exceptions import AppException, ErrorCodes
+
         if isinstance(e, AppException):
             raise
         logger.error(

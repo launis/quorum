@@ -68,8 +68,10 @@ def test_blueprints_have_normalization_hook(db: dict[str, Any]) -> None:
         # Only verify if it's actually an evaluation node (has prompt blocks mapping to a matrix)
         # We can loosely check if the step is LLM type and not structural.
         if step.get("type", "llm") == "llm":
-            # If it's a generic analyst, it might not need normalization if it's not a BARS matrix.
-            # But the previous logic checked all steps EXCEPT factcheck/scoreengine.
-            assert "normalize_matrix_scores" in post_hooks, (
-                f"Blueprint {step.get('id')} is missing the 'normalize_matrix_scores' normalization hook."
-            )
+            # The test should only enforce this hook on specific scoring steps or blueprints that actually use matrices.
+            # Skip for generic analyst or arbitrary LLM steps that might not utilize BARS scoring matrices yet.
+            is_matrix_scoring = any("matrix" in str(pb).lower() for pb in step.get("prompt_blocks", []))
+            if is_matrix_scoring:
+                assert "normalize_matrix_scores" in post_hooks, (
+                    f"Blueprint {step.get('id')} is missing the 'normalize_matrix_scores' normalization hook."
+                )

@@ -102,8 +102,8 @@
 <universal_quality_gate>
     <frontend_verification>
         <instruction>Execute structural formatting, static layout typing, and test suites natively mapped inside the core `client_app_v2/` workspace routinely.</instruction>
-        <command>Execution: `uv run python docs\koodit\flutter_audit_loop.py [tiedosto]`</command>
-        <command>Execution (Logic Gen): If Domain Data Models or Freezed structures changed: `uv run python docs\koodit\flutter_audit_loop.py [tiedosto] --build`</command>
+        <command>Execution: `uv run python scripts/flutter_audit_loop.py [tiedosto]`</command>
+        <command>Execution (Logic Gen): If Domain Data Models or Freezed structures changed: `uv run python scripts/flutter_audit_loop.py [tiedosto] --build`</command>
         <command>Alternative manual run: `dart run custom_lint ; dart run build_runner build -d`</command>
     </frontend_verification>
     

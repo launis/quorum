@@ -45,6 +45,9 @@ def mock_studio_service() -> AsyncMock:
     service.clone_workflow.return_value = Workflow(
         id="wf_clone12345678",
         slug="test_wf_clone",
+        status="draft",
+        version=1,
+        default_profile_id="prof_defaultmock123",
         name=I18nText(default_locale="en", translations={"en": "Workflow (Copy)"}),
         description="test",
     )

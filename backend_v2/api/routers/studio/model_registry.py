@@ -11,6 +11,7 @@ class ModelRegistryDeleteResponse(BaseModel):
     status: str
     deleted_id: str
 
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/model-registry", tags=["Admin Studio V2 - Model Registry"])
@@ -56,12 +57,14 @@ async def get_all_model_registries(
     # Temporarily, model registry relies on system_config collection
     return await studio_service.list_system_configs(current_user)
 
+
 @router.post("/", response_model=SystemConfigModelRegistry)
 async def create_model_registry(
     current_user: CurrentUserDep, studio_service: StudioServiceDep
 ) -> SystemConfigModelRegistry:
     """Create a new Model Registry config draft securely via SSOT Service Layer."""
     return await studio_service.create_model_registry_draft(current_user)
+
 
 @router.get("/{registry_id}", response_model=SystemConfigModelRegistry)
 async def get_model_registry(
@@ -94,6 +97,7 @@ async def delete_model_registry(
         return ModelRegistryDeleteResponse(status="success", deleted_id=registry_id)
     except Exception as e:
         from backend_v2.exceptions import AppException, ErrorCodes
+
         if isinstance(e, AppException):
             raise
         logger.error(

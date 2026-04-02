@@ -12,6 +12,7 @@ class OrganizationDeleteResponse(BaseModel):
     status: str
     deleted_id: str
 
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/organizations", tags=["Admin IAM V2 - Organizations"])

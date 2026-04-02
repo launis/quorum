@@ -67,7 +67,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     # The true source text is stored in `global_context_vars["inputs"]`.
     global_vars = state.global_context_vars
     actual_inputs = global_vars.get("inputs", {})
-    
+
     if not actual_inputs and "$inputs" in global_vars:
         inputs_obj = global_vars["$inputs"]
         if hasattr(inputs_obj, "model_dump"):
@@ -76,7 +76,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
             actual_inputs = inputs_obj.raw_inputs
         elif isinstance(inputs_obj, dict):
             actual_inputs = inputs_obj.get("raw_inputs", inputs_obj)
-            
+
     source_texts: list[str] = []
 
     if isinstance(actual_inputs, dict):
@@ -120,7 +120,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
                             if "theory_grounding" in pb:
                                 _url = pb["theory_grounding"].get("source_url")
                                 # In production, this would fetch from the web.
-                        # We rely on exact texts in the inputs mostly.
+                                # We rely on exact texts in the inputs mostly.
                                 pass
 
             # We also read the documentation to verify any theories explicitly named in the documents

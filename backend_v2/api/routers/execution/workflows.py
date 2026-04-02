@@ -12,8 +12,10 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/workflows", tags=["Workflows"])
 
+
 class WorkflowSchemaResponse(RootModel[dict[str, Any]]):
     pass
+
 
 @router.get("/{workflow_id}/ui_schema", response_model=WorkflowSchemaResponse)
 async def get_workflow_ui_schema(

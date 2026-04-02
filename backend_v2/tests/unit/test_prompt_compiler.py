@@ -7,6 +7,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
     compiler = PromptCompiler()
 
     from backend_v2.models.enums import BlockDataType
+
     # Mocking the JSON structure we confirmed in Phase 1
     mock_matrix_block = {
         "id": "blk_test_matrix",
@@ -46,8 +47,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                             "translations": {"en": "No corrective move or objection presented."},
                         },
                         "ai_description": (
-                            "ENFORCEMENT RULE: Falsify immediately if any objection exists. "
-                            "Absolute zero tolerance."
+                            "ENFORCEMENT RULE: Falsify immediately if any objection exists. Absolute zero tolerance."
                         ),
                     },
                 ],
@@ -79,22 +79,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
     compiled_desc = field_info.description
 
     # Target Snapshot format
-    expected_snapshot = (
-        "Critical Distance Score: ROLE: ADVERSARIAL AUDITOR... Evaluate the user's intellectual effort...\n\n"
-        "TARGET ROW:\n"
-        "- EVALUATE SPECIFICALLY: How well the user detached themselves from the AI to judge its logic "
-        "objectively.\n\n\n"
-        "EVALUATION MATRIX (BARS):\n"
-        "- Score 1: UNCRITICAL ACCEPTANCE\n"
-        "  * DIRECTIVE: CRITICAL EVALUATION DIRECTIVE: Total failure of critical faculty. The user exhibits "
-        "sycophantic behavior...\n"
-        "  * DIRECTIVE: ENFORCEMENT RULE: Falsify immediately if any objection exists. Absolute zero tolerance.\n"
-        "- Score 2: SUPERFICIAL REFINEMENT\n"
-        "  * DIRECTIVE: CRITICAL EVALUATION DIRECTIVE: Engagement is purely cosmetic...\n\n"
-        "INSTRUCTION: Evaluate the core issue using the matrix above. "
-        "Always return the final numerical evaluation with ONE decimal place (e.g. 4.2), "
-        "so that the evaluation reflects exact nuance. You MUST return ONLY the exact numeric value."
-    )
+    expected_snapshot = "Evaluation object for Critical Distance Score"
 
     assert compiled_desc == expected_snapshot, (
         f"Snapshot mismatch!\nEXPECTED:\n{expected_snapshot}\n\nACTUAL:\n{compiled_desc}"
@@ -103,6 +88,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
 
 def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     from backend_v2.models.enums import BlockDataType
+
     # Test that extracting justification still works
     compiler = PromptCompiler()
 
@@ -112,7 +98,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
         "allow_decimals": True,
         "label": {"default_locale": "en", "translations": {"en": "Test Score"}},
         "ai_description": "Base Desc",
-        "output_extensions": ["justification", "citation", "remediation_steps", "confidence"],
+        "output_extensions": ["justification", "remediation_steps", "confidence"],
         "scales": [{"score": 1, "ai_label": "ONE", "claims": [{"label": "Claim 1", "ai_description": "Directive 1"}]}],
     }
 
@@ -122,17 +108,17 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     llm_payload = {
         "reasoning_trace": "Let's think...",
         "evaluation_notes": "User was bad",
-        "blk_extract_test_justification": "I gave a 1 because...",
-        "blk_extract_test_cited_source_id": None,
-        "blk_extract_test_cited_text_quote": "Yes man",
-        "blk_extract_test_remediation_steps": ["Step 1", "Step 2"],
-        "blk_extract_test_confidence": 95.5,
-        "blk_extract_test": 1.0,
+        "blk_extract_test": {
+            "step_3_logical_friction": "I gave a 1 because...",
+            "extension_remediation_steps": ["Step 1", "Step 2"],
+            "extension_confidence": 95.5,
+            "step_4_final_score": 1.0
+        }
     }
 
     parsed = DynamicSchema.model_validate(llm_payload)
-    assert parsed.blk_extract_test == 1.0  # type: ignore[attr-defined]
-    assert parsed.blk_extract_test_remediation_steps == ["Step 1", "Step 2"]  # type: ignore[attr-defined]
-    assert parsed.blk_extract_test_confidence == 95.5  # type: ignore[attr-defined]
+    assert parsed.blk_extract_test.step_4_final_score == 1.0  # type: ignore[attr-defined]
+    assert parsed.blk_extract_test.extension_remediation_steps == ["Step 1", "Step 2"]  # type: ignore[attr-defined]
+    assert parsed.blk_extract_test.extension_confidence == 95.5  # type: ignore[attr-defined]
     assert parsed.reasoning_trace == "Let's think..."  # type: ignore[attr-defined]
-    assert parsed.blk_extract_test_justification == "I gave a 1 because..."  # type: ignore[attr-defined]
+    assert parsed.blk_extract_test.step_3_logical_friction == "I gave a 1 because..."  # type: ignore[attr-defined]

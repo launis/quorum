@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 def _extract_pdf(file_bytes: bytes) -> str:
     """CPU-bound hook helper to extract text strictly from PDF bytes via PyMuPDF."""
     import pymupdf4llm  # Epic 12 Requirement
+
     doc = fitz.open(stream=file_bytes, filetype="pdf")
     md_text = str(pymupdf4llm.to_markdown(doc))
     doc.close()
@@ -79,10 +80,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     workflow_id = state.workflow_id
 
     if not repo or not workflow_id:
-        logger.error(
-            "Missing repository or workflow_id in context.",
-            extra={"error_code": "MISSING_EXECUTION_CONTEXT"}
-        )
+        logger.error("Missing repository or workflow_id in context.", extra={"error_code": "MISSING_EXECUTION_CONTEXT"})
         raise AppException(
             message="Missing execution context for input processing.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

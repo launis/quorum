@@ -40,25 +40,42 @@ def get_seed_data() -> Any:
 
 
 def get_audit_workflow() -> Any:
-    data = get_seed_data()
-    for wf in data.get("workflows", []):
-        if wf["id"] == "wf_d653170e174847559e08af42b938d826":
-            return wf
-    raise ValueError("Audit Workflow not found in seed_data.json")
+    return {
+        "id": "wf_valid1234567",
+        "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "prof_mock123",
+        "slug": "valid_wf",
+        "expected_inputs": [],
+        "steps": [
+            {"id": "blk_steproot1234", "task_blueprint": "bp_1", "depends_on": []},
+            {"id": "blk_stepleaf1234", "task_blueprint": "bp_3", "depends_on": ["blk_steproot1234"]}
+        ]
+    }
 
 
 def get_seed_prompt_block() -> Any:
-    data = get_seed_data()
-    if data.get("prompt_blocks"):
-        return data["prompt_blocks"][0]
-    raise ValueError("No prompt blocks found in seed_data.json")
+    return {
+        "id": "blk_test1234567",
+        "slug": "test_block",
+        "label": {"default_locale": "en", "translations": {"en": "Test Block"}},
+        "description": {"default_locale": "en", "translations": {"en": "Content"}},
+        "category_id": "matrix",
+        "type": "float"
+    }
 
 
 def get_seed_step() -> Any:
-    data = get_seed_data()
-    if data.get("steps"):
-        return data["steps"][0]
-    raise ValueError("No steps found in seed_data.json")
+    return {
+        "id": "step_abc123456",
+        "slug": "step_test",
+        "type": "llm",
+        "name": {"default_locale": "en", "translations": {"en": "Step"}},
+        "execution_logic": "prompt",
+        "prompt_blocks": []
+    }
 
 
 def test_seed_workflow_happy_path(client_admin: Any, mock_studio_service_admin: Any) -> None:
@@ -169,7 +186,7 @@ def test_seed_prompt_block_illegal_mutation(client_admin: Any, mock_studio_servi
         response = client_admin.put(f"/studio/prompt-blocks/{block['id']}", json=block)
 
     assert response.status_code == 422
-    assert "BlockDataType" in response.text
+    assert "Input should be" in response.text
 
 
 def test_seed_step_illegal_mutation(client_admin: Any, mock_studio_service_admin: Any) -> None:

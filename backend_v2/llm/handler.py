@@ -425,8 +425,7 @@ class LLMHandler:
             if not tpm or not rpm:
                 raise ConfigurationError(
                     message=(
-                        f"Strict Mode: Strategy '{provider}/{mode}' is missing required "
-                        "'tpm_limit' or 'rpm_limit'."
+                        f"Strict Mode: Strategy '{provider}/{mode}' is missing required 'tpm_limit' or 'rpm_limit'."
                     ),
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )

@@ -34,11 +34,13 @@ async def get_system_hooks(
     """
     try:
         import logging
+
         logger = logging.getLogger(__name__)
         available_hooks = hook_registry.get_all_hooks()
         return HookListResponse(hooks=sorted(available_hooks))
     except Exception as e:
         import logging
+
         logger = logging.getLogger(__name__)
         if isinstance(e, AppException):
             raise

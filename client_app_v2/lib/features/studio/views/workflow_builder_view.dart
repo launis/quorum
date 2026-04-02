@@ -119,7 +119,6 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
           FilledButton(
             onPressed: () async {
               Navigator.of(ctx).pop();
-              final navigator = Navigator.of(context);
               final messenger = ScaffoldMessenger.of(context);
 
               try {
@@ -133,8 +132,12 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
                     .setPayload(clonedWorkflow); // keep track for snapshot
 
                 if (context.mounted) {
-                  final fallbackSlug = clonedWorkflow.slug.isNotEmpty ? clonedWorkflow.slug : 'copy';
-                  context.go('/admin/workflow/edit/${clonedWorkflow.id}/$fallbackSlug');
+                  final fallbackSlug = clonedWorkflow.slug.isNotEmpty
+                      ? clonedWorkflow.slug
+                      : 'copy';
+                  context.go(
+                    '/admin/workflow/edit/${clonedWorkflow.id}/$fallbackSlug',
+                  );
                 }
 
                 messenger.showSnackBar(
