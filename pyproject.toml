@@ -25,7 +25,7 @@ dependencies = [
     "email-validator",
     "requests>=2.32.5",
     "beautifulsoup4>=4.14.3",
-    "logfire[fastapi,pydantic]>=4.16.0",
+    "logfire[fastapi]>=4.16.0",
     "arq>=0.26.3",
     "redis>=5.3.1",
     "watchfiles>=1.1.1",
@@ -45,6 +45,7 @@ dependencies = [
 dev = [
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.7.1",
+    "mkdocs-awesome-pages-plugin>=2.9.3",
     "mkdocs-swagger-ui-tag>=0.7.2",
     "mkdocstrings[python]>=1.0.0",
     "mypy>=1.19.1",
