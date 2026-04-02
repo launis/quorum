@@ -1,0 +1,17 @@
+{
+  "ignore": {
+    "customPatterns": [
+      "**/*.g.dart",
+      "**/*.freezed.dart",
+      "**/build/**",
+      "**/.dart_tool/**",
+      "**/venv/**",
+      "**/__pycache__/**",
+      "**/.git/**",
+      "data/db_v2.json",
+      "backend_v2/tests/test_data/exe_c0bc_inputs.json",
+      "backend_v2/seed/backups/**",
+      "data/backups/**"
+    ]
+  }
+}
