@@ -88,3 +88,10 @@ python_version = "3.13"
 ignore_missing_imports = true
 check_untyped_defs = true
 
+[[tool.mypy.overrides]]
+module = [
+    "backend_v2.database.firestore_driver",
+    "backend_v2.database.factory"
+]
+warn_unused_ignores = false
+
