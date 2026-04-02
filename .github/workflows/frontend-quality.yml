@@ -39,6 +39,9 @@ jobs:
       - name: Verify formatting (Fail-Fast)
         run: dart format --set-exit-if-changed .
 
+      - name: Create dummy .env for analyzer
+        run: touch .env
+
       - name: Analyze code (Strict Nirvana)
         run: dart analyze --fatal-infos
 
