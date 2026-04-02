@@ -14,6 +14,7 @@ from . import (
     reporting,
     scoring,
     security,
+    synthesis,
     translation_hook,
     validation,
 )
@@ -30,7 +31,9 @@ __all__ = [
     "reporting",
     "scoring",
     "security",
+    "synthesis",
     "translation_hook",
     "validation",
     "metadata",
 ]
+
