@@ -35,14 +35,7 @@ Asiantuntijadokumentaatio siitä, kuinka tekoäly kytketään todellisuuteen, pe
 
 ## 🛠️ Ylläpitäjän Mandaatit
 
-Tekniset referenssit kehittäjille ja AI-agenteille, jotka operoivat koodikannassa:
-
-*   **[Antigravity Prompting](antigravity_prompting.md)**
-    Ydinsäännöstö tekoälyn lähdekoodimuutoksille (The Zero-Compromise Pledge, Blokatut rakenteet).
-*   **[Backend Hardening & Tier Checklists](hardeningback.md)**
-    Tiukat tarkistuslistat API-reitittimien puhtauden valvontaan.
-*   **[Reference & Structures](reference.md)**
-    Ydinkonfiguraatioiden, siemendatan ja CLI-työkalujen referenssit.
+Kaikki operatiivisen tason tekoälyagenttien ja kehittäjien säännöt on siirretty järjestelmän juureen luotuihin `.agents/rules/` ja `.agents/workflows/` hakemistoihin, jotka ohjaavat suoraan arkkitehtuurin vaatimustenmukaista työtä (esim. The Zero-Compromise Pledge, Backend Hardening).
 
 ---
 

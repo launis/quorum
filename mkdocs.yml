@@ -31,3 +31,9 @@ nav:
   - 🧠 Kognitiivinen Orkestraatio (Teoria):
     - Holistinen Mestaruus: "Holistinen Mestaruus.md"
     - Agent Workflows Opas: Agent_Workflows_Opas.md
+  - 🚀 Epics & Features:
+    - B2B SaaS IAM 2026: "epic/B2B SaaS IAM-arkkitehtuuri 2026.md"
+    - V3 Dead Code Abatement: epic/EPIC_v3_dead_code_abatement.md
+    - Epic 12 Full System Testing: epic/epic_12_full_system_integration_testing.md
+    - Epic 13 Output Management V3: epic/epic_13_output_management_v3.md
+  - ⚙️ API Swagger Docs: swagger/index.md
