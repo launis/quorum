@@ -25,6 +25,7 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
   <rule>Fail-Fast & Dual-Reporting</rule>
   <rule>AppException (RFC 7807)</rule>
   <rule>Strict Pydantic V2 & No Naked Dicts</rule>
+  <rule>Native Pydantic Field() Priority over @field_validator</rule>
   <rule>Data Leak Prevention & SRP</rule>
   <rule>Modern Typing & No-Strings Mandate</rule>
 </audit_mandates>

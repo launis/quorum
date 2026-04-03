@@ -55,10 +55,10 @@ class StrictOpaqueIdConverter implements JsonConverter<String, String> {
 
   @override
   String fromJson(String json) {
-    final regex = RegExp(r'^[a-z]{2,5}_[a-zA-Z0-9]{8,}$');
+    final regex = RegExp(r'^[a-z]{2,5}_[a-f0-9]{16,32}$', caseSensitive: false);
     if (!regex.hasMatch(json)) {
       throw AppException.validation(
-        'Invalid Opaque Stripe ID format: "$json". Must start with a 2-5 letter prefix, followed by underscore and at least 8 alphanumeric characters.',
+        'Invalid Opaque Stripe ID format: "$json". Must start with a 2-5 letter prefix, followed by underscore and exactly 16-32 hex characters.',
       );
     }
     return json;

@@ -7,7 +7,11 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from backend_v2.models.v2_core import I18nText, OutputLayoutBlock
+from backend_v2.models.v2_core import (
+    I18nText,
+    OutputLayoutBlock,
+    SynthesisConfigDTO,
+)
 
 
 class OutputProfileCreateDTO(BaseModel):
@@ -25,6 +29,9 @@ class OutputProfileCreateDTO(BaseModel):
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original", description="UI rendering scale instruction."
     )
+    synthesis: SynthesisConfigDTO | None = Field(
+        default=None, description="Nested definition for synthesis configurations."
+    )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Sequence of layouts.")
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
@@ -40,6 +47,9 @@ class OutputProfileUpdateDTO(BaseModel):
     display_scale: Literal["original", "custom", "normalized_100"] | None = Field(
         default=None, description="UI rendering scale instruction."
     )
+    synthesis: SynthesisConfigDTO | None = Field(
+        default=None, description="Nested definition for synthesis configurations."
+    )
     layouts: list[OutputLayoutBlock] | None = Field(default=None, description="Sequence of layouts.")
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
@@ -54,6 +64,7 @@ class OutputProfileResponseDTO(BaseModel):
     name: I18nText
     description: I18nText | None = None
     display_scale: Literal["original", "custom", "normalized_100"] = "original"
+    synthesis: SynthesisConfigDTO | None = None
     layouts: list[OutputLayoutBlock]
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

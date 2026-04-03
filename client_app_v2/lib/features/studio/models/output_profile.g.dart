@@ -67,6 +67,73 @@ Map<String, dynamic> _$OutputLayoutBlockToJson(_OutputLayoutBlock instance) =>
       'show_text': instance.showText,
     };
 
+_SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      '_SynthesisConfigDTO',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'length_constraint',
+            'preamble_text',
+            'include_historical_summary',
+            'enable_pii_masking',
+            'allowed_exports',
+            'omit_empty_sections',
+          ],
+        );
+        final val = _SynthesisConfigDTO(
+          lengthConstraint: $checkedConvert(
+            'length_constraint',
+            (v) => (v as num?)?.toInt(),
+          ),
+          preambleText: $checkedConvert(
+            'preamble_text',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          includeHistoricalSummary: $checkedConvert(
+            'include_historical_summary',
+            (v) => v as bool? ?? false,
+          ),
+          enablePiiMasking: $checkedConvert(
+            'enable_pii_masking',
+            (v) => v as bool? ?? false,
+          ),
+          allowedExports: $checkedConvert(
+            'allowed_exports',
+            (v) =>
+                (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+                const ['pdf', 'raw_json'],
+          ),
+          omitEmptySections: $checkedConvert(
+            'omit_empty_sections',
+            (v) => v as bool? ?? true,
+          ),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'lengthConstraint': 'length_constraint',
+        'preambleText': 'preamble_text',
+        'includeHistoricalSummary': 'include_historical_summary',
+        'enablePiiMasking': 'enable_pii_masking',
+        'allowedExports': 'allowed_exports',
+        'omitEmptySections': 'omit_empty_sections',
+      },
+    );
+
+Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
+    <String, dynamic>{
+      'length_constraint': instance.lengthConstraint,
+      'preamble_text': instance.preambleText?.toJson(),
+      'include_historical_summary': instance.includeHistoricalSummary,
+      'enable_pii_masking': instance.enablePiiMasking,
+      'allowed_exports': instance.allowedExports,
+      'omit_empty_sections': instance.omitEmptySections,
+    };
+
 _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
     $checkedCreate(
       '_OutputProfile',
@@ -81,6 +148,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
             'name',
             'description',
             'display_scale',
+            'synthesis',
             'layouts',
           ],
         );
@@ -105,6 +173,12 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
           displayScale: $checkedConvert(
             'display_scale',
             (v) => v as String? ?? 'original',
+          ),
+          synthesis: $checkedConvert(
+            'synthesis',
+            (v) => v == null
+                ? null
+                : SynthesisConfigDTO.fromJson(v as Map<String, dynamic>),
           ),
           layouts: $checkedConvert(
             'layouts',
@@ -135,6 +209,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'name': instance.name.toJson(),
   'description': instance.description.toJson(),
   'display_scale': instance.displayScale,
+  'synthesis': instance.synthesis?.toJson(),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
 };
 
@@ -144,7 +219,10 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
   '_EmbeddedOutputProfile',
   json,
   ($checkedConvert) {
-    $checkKeys(json, allowedKeys: const ['name', 'display_scale', 'layouts']);
+    $checkKeys(
+      json,
+      allowedKeys: const ['name', 'display_scale', 'synthesis', 'layouts'],
+    );
     final val = _EmbeddedOutputProfile(
       name: $checkedConvert(
         'name',
@@ -153,6 +231,12 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
       displayScale: $checkedConvert(
         'display_scale',
         (v) => v as String? ?? 'original',
+      ),
+      synthesis: $checkedConvert(
+        'synthesis',
+        (v) => v == null
+            ? null
+            : SynthesisConfigDTO.fromJson(v as Map<String, dynamic>),
       ),
       layouts: $checkedConvert(
         'layouts',
@@ -175,5 +259,6 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
 ) => <String, dynamic>{
   'name': instance.name.toJson(),
   'display_scale': instance.displayScale,
+  'synthesis': instance.synthesis?.toJson(),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
 };

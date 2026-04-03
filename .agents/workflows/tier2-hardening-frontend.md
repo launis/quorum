@@ -32,6 +32,7 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
   <rule>Error Handling & Unwrapping (RFC 7807, AppErrorBoundary, ei tyhjiä catch-lohkoja, InnerError esiin).</rule>
   <rule>Concurrency & Isolate Mandate (Raskaat JSON-purut turvakaranteeniin).</rule>
   <rule>Strict Freezed & Dart 3 Pattern Matching (Natiivi switch, map/when kiellot, O(1) listat).</rule>
+  <rule>Native Freezed/JSON parsing Priority over custom fromJson logic (Sama periaate kuin Pydantic Field() vs @field_validator).</rule>
   <rule>Strongly Typed Routing & $extra Ban (Vain URL-pohjainen Opaque ID-reititys, ei objektien siirtoa reitittimen avulla).</rule>
   <rule>Zero-Hardcoding & 5-Layer I18N (Backend Enums, ei UI-merkkijonoja liiketoimintalogiikassa ehtolauseina).</rule>
 </audit_mandates>

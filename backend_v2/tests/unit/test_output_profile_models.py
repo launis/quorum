@@ -4,6 +4,8 @@ from backend_v2.exceptions import AppException
 from backend_v2.models.domain.output_profile import OutputProfile
 
 
+from pydantic import ValidationError
+
 def test_output_profile_fails_fast_on_invalid_id() -> None:
     data = {
         "id": "INVALID",
@@ -12,10 +14,9 @@ def test_output_profile_fails_fast_on_invalid_id() -> None:
         "name": {"default_locale": "en", "translations": {"en": "Title"}},
         "layouts": [],
     }
-    with pytest.raises(AppException) as exc_info:
+    with pytest.raises(ValidationError) as exc_info:
         OutputProfile.model_validate(data)
-    assert "Opaque Stripe Pattern" in exc_info.value.message
-    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    assert "String should match pattern" in str(exc_info.value)
 
 
 def test_output_profile_fails_fast_on_empty_slug() -> None:
@@ -26,7 +27,6 @@ def test_output_profile_fails_fast_on_empty_slug() -> None:
         "name": {"default_locale": "en", "translations": {"en": "Title"}},
         "layouts": [],
     }
-    with pytest.raises(AppException) as exc_info:
+    with pytest.raises(ValidationError) as exc_info:
         OutputProfile.model_validate(data)
-    assert "cannot be empty" in exc_info.value.message
-    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    assert "slug" in str(exc_info.value)

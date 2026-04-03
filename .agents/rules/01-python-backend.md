@@ -40,6 +40,12 @@
         <mandatory_pattern>Force the Fail-Fast pipeline by using `.model_validate()`, Rust-based `.model_validate_json()`, `.model_dump()`, and `@field_validator`. Use `model_config = ConfigDict(extra='forbid', strict=True)` to reject unstructured AI outputs.</mandatory_pattern>
     </rule_block>
 
+    <rule_block id="pydantic_native_field_priority">
+        <banned_pattern>Using `@field_validator` or `@model_validator` for simple bounds checking, regex, or standard type validation.</banned_pattern>
+        <mandatory_pattern>Suosi AINA natiivia `Field(ge=0, pattern=...)`. Käytä `@field_validator` (mode="before") VAIN kun on aivan pakko muuntaa/siivota saapuvaa dataa lennossa tai ajaa järeää (esim. ulkoista) liiketoimintalogiikkaa.</mandatory_pattern>
+        <catastrophic_reason>Natiivi Field() ajetaan suoraan Rust-ytimessä (pydantic-core) salamannopeasti. @field_validator vaatii context switchin takaisin hitaampaan Python-tulkkiin, mikä tuhoaa järjestelmätason suorituskyvyn.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="frozen_state_mutability">
         <banned_pattern>Mutating domain objects in place (e.g., `event.status = 'done'`).</banned_pattern>
         <mandatory_pattern>All Event Sourcing models, DTOs, and DAG nodes MUST be immutable using `ConfigDict(frozen=True)`. Transition states strictly via `event.model_copy(update={'status': 'done'})`.</mandatory_pattern>

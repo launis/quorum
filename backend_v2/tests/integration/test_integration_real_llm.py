@@ -36,9 +36,9 @@ NEW_TRACE_FILE = os.environ.get(
 TARGET_WORKFLOW_ID = os.environ.get("TEST_WORKFLOW_ID", "wf_d653170e174847559e08af42b938d826")
 WAIT_TIMEOUT = int(os.environ.get("TEST_WAIT_TIMEOUT", "1200"))
 
-# The INPUTS_FILE is still hardcoded as it's specific to the test data for this particular workflow.
+# The INPUTS_FILE can be overridden to test different payloads and workflows.
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "test_data")
-INPUTS_FILE = os.path.join(TEST_DATA_DIR, "exe_c0bc_inputs.json")
+INPUTS_FILE = os.environ.get("TEST_INPUTS_FILE", os.path.join(TEST_DATA_DIR, "exe_c0bc_inputs.json"))
 
 
 def clear_logs() -> None:
@@ -101,16 +101,10 @@ def deep_logic_compare(old_trace: list[dict[str, Any]], new_trace: list[dict[str
         if len(str(old_content)) > 100:
             assert len(content_str) > 50, f"Step {step_name} failed: Undersized payload compared to historical size."
 
-    # 3. Contextual Keyword Matching across the whole trace
-    full_new_trace_str = json.dumps(new_trace).lower()
-
-    # We know the inputs for exe_c0bc contained "Test Org", "Technology", "Developers"
-    # The final output DAG should naturally contain references to these.
-    expected_keywords = ["technology", "developers"]
-    for kw in expected_keywords:
-        assert kw in full_new_trace_str, (
-            f"Fail-Fast Context Check: Expected keyword '{kw}' missing from execution results."
-        )
+    # 3. Structural Validation (Generic)
+    # The E2E test is payload-agnostic. We rely on the semantic heuristics above
+    # (e.g. lengths, absence of API apologies) and the structural parity check
+    # rather than asserting payload-specific string matches.
 
     logger.info("Deep Logic & Semantic Parity Checks PASSED.")
 
@@ -255,13 +249,15 @@ async def test_real_llm_e2e_orchestration() -> None:
             with open(db_path, encoding="utf-8") as f:
                 db_data = json.load(f)
 
-            all_execs = [v for k, v in db_data.get("executions", {}).items() if str(v.get("status")).upper() == "COMPLETED"]
+            all_execs = [
+                v for k, v in db_data.get("executions", {}).items() if str(v.get("status")).upper() == "COMPLETED"
+            ]
             older_execs = [e for e in all_execs if e.get("id") != completed_trace.get("id")]
 
             if older_execs:
                 latest_older = sorted(older_execs, key=lambda x: x.get("created_at", ""), reverse=True)[0]
                 logger.info("Using previous db_v2.json execution %s as reference trace.", latest_older.get("id"))
-                
+
                 trace_path_old = latest_older.get("execution_trace_storage_path")
                 if trace_path_old:
                     old_path = os.path.join(WORKSPACE_ROOT, "data", "files", trace_path_old)

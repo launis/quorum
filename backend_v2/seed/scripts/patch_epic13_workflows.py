@@ -3,12 +3,13 @@ from pathlib import Path
 
 SEED_FILE = Path("backend_v2/seed/seed_data.json")
 
-def patch_workflows():
+
+def patch_workflows() -> None:
     if not SEED_FILE.exists():
         print(f"Error: {SEED_FILE} not found!")
         return
 
-    with open(SEED_FILE, "r", encoding="utf-8") as f:
+    with open(SEED_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
     # Gather the new profiles created by the previous patch
@@ -23,10 +24,10 @@ def patch_workflows():
         embedded_profiles[pid] = {
             "name": p["name"],
             "display_scale": p.get("display_scale", "original"),
-            "layouts": p.get("layouts", [])
+            "layouts": p.get("layouts", []),
         }
-    
-    default_id = new_profiles[0]["id"] # Assume the first one (prf_executive123) is default
+
+    default_id = new_profiles[0]["id"]  # Assume the first one (prf_7cc661da3f9f405c) is default
 
     patched_count = 0
     # Patch workflows
@@ -39,6 +40,7 @@ def patch_workflows():
         json.dump(data, f, ensure_ascii=False, indent=2)
 
     print(f"✅ Successfully patched {patched_count} workflows in {SEED_FILE}")
+
 
 if __name__ == "__main__":
     patch_workflows()

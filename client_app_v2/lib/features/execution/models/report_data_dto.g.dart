@@ -231,107 +231,105 @@ Map<String, dynamic> _$MCPToolAuditDTOToJson(_MCPToolAuditDTO instance) =>
       'duration_ms': instance.durationMs,
     };
 
-_ReportDataDTO _$ReportDataDTOFromJson(Map<String, dynamic> json) =>
-    $checkedCreate(
-      '_ReportDataDTO',
+_ReportDataDTO _$ReportDataDTOFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_ReportDataDTO',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
       json,
-      ($checkedConvert) {
-        $checkKeys(
-          json,
-          allowedKeys: const [
-            'workflow_id',
-            'profile_id',
-            'profile_name',
-            'available_profiles',
-            'global_score',
-            'layouts',
-            'created_at',
-            'org_name',
-            'cost_estimate',
-            'total_tokens',
-            'prompt_tokens',
-            'completion_tokens',
-            'reasoning_tokens',
-            'mcp_tool_audit',
-          ],
-        );
-        final val = _ReportDataDTO(
-          workflowId: $checkedConvert('workflow_id', (v) => v as String),
-          profileId: $checkedConvert('profile_id', (v) => v as String),
-          profileName: $checkedConvert(
-            'profile_name',
-            (v) =>
-                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-          ),
-          availableProfiles: $checkedConvert(
-            'available_profiles',
-            (v) => (v as Map<String, dynamic>).map(
-              (k, e) =>
-                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
-            ),
-          ),
-          globalScore: $checkedConvert(
-            'global_score',
-            (v) => (v as num?)?.toDouble(),
-          ),
-          layouts: $checkedConvert(
-            'layouts',
-            (v) => (v as List<dynamic>)
-                .map((e) => ReportLayoutDTO.fromJson(e as Map<String, dynamic>))
-                .toList(),
-          ),
-          createdAt: $checkedConvert('created_at', (v) => v as String?),
-          orgName: $checkedConvert('org_name', (v) => v as String?),
-          costEstimate: $checkedConvert(
-            'cost_estimate',
-            (v) => (v as num?)?.toDouble(),
-          ),
-          totalTokens: $checkedConvert(
-            'total_tokens',
-            (v) => (v as num?)?.toInt(),
-          ),
-          promptTokens: $checkedConvert(
-            'prompt_tokens',
-            (v) => (v as num?)?.toInt(),
-          ),
-          completionTokens: $checkedConvert(
-            'completion_tokens',
-            (v) => (v as num?)?.toInt(),
-          ),
-          reasoningTokens: $checkedConvert(
-            'reasoning_tokens',
-            (v) => (v as num?)?.toInt(),
-          ),
-          mcpToolAudit: $checkedConvert(
-            'mcp_tool_audit',
-            (v) =>
-                (v as List<dynamic>?)
-                    ?.map(
-                      (e) =>
-                          MCPToolAuditDTO.fromJson(e as Map<String, dynamic>),
-                    )
-                    .toList() ??
-                const [],
-          ),
-        );
-        return val;
-      },
-      fieldKeyMap: const {
-        'workflowId': 'workflow_id',
-        'profileId': 'profile_id',
-        'profileName': 'profile_name',
-        'availableProfiles': 'available_profiles',
-        'globalScore': 'global_score',
-        'createdAt': 'created_at',
-        'orgName': 'org_name',
-        'costEstimate': 'cost_estimate',
-        'totalTokens': 'total_tokens',
-        'promptTokens': 'prompt_tokens',
-        'completionTokens': 'completion_tokens',
-        'reasoningTokens': 'reasoning_tokens',
-        'mcpToolAudit': 'mcp_tool_audit',
-      },
+      allowedKeys: const [
+        'workflow_id',
+        'profile_id',
+        'profile_name',
+        'available_profiles',
+        'global_score',
+        'layouts',
+        'created_at',
+        'org_name',
+        'cost_estimate',
+        'total_tokens',
+        'prompt_tokens',
+        'completion_tokens',
+        'reasoning_tokens',
+        'mcp_tool_audit',
+        'has_warning',
+      ],
     );
+    final val = _ReportDataDTO(
+      workflowId: $checkedConvert('workflow_id', (v) => v as String),
+      profileId: $checkedConvert('profile_id', (v) => v as String),
+      profileName: $checkedConvert(
+        'profile_name',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      availableProfiles: $checkedConvert(
+        'available_profiles',
+        (v) => (v as Map<String, dynamic>).map(
+          (k, e) => MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+        ),
+      ),
+      globalScore: $checkedConvert(
+        'global_score',
+        (v) => (v as num?)?.toDouble(),
+      ),
+      layouts: $checkedConvert(
+        'layouts',
+        (v) => (v as List<dynamic>)
+            .map((e) => ReportLayoutDTO.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      ),
+      createdAt: $checkedConvert('created_at', (v) => v as String?),
+      orgName: $checkedConvert('org_name', (v) => v as String?),
+      costEstimate: $checkedConvert(
+        'cost_estimate',
+        (v) => (v as num?)?.toDouble(),
+      ),
+      totalTokens: $checkedConvert('total_tokens', (v) => (v as num?)?.toInt()),
+      promptTokens: $checkedConvert(
+        'prompt_tokens',
+        (v) => (v as num?)?.toInt(),
+      ),
+      completionTokens: $checkedConvert(
+        'completion_tokens',
+        (v) => (v as num?)?.toInt(),
+      ),
+      reasoningTokens: $checkedConvert(
+        'reasoning_tokens',
+        (v) => (v as num?)?.toInt(),
+      ),
+      mcpToolAudit: $checkedConvert(
+        'mcp_tool_audit',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) => MCPToolAuditDTO.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
+      ),
+      hasWarning: $checkedConvert('has_warning', (v) => v as bool? ?? false),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'workflowId': 'workflow_id',
+    'profileId': 'profile_id',
+    'profileName': 'profile_name',
+    'availableProfiles': 'available_profiles',
+    'globalScore': 'global_score',
+    'createdAt': 'created_at',
+    'orgName': 'org_name',
+    'costEstimate': 'cost_estimate',
+    'totalTokens': 'total_tokens',
+    'promptTokens': 'prompt_tokens',
+    'completionTokens': 'completion_tokens',
+    'reasoningTokens': 'reasoning_tokens',
+    'mcpToolAudit': 'mcp_tool_audit',
+    'hasWarning': 'has_warning',
+  },
+);
 
 Map<String, dynamic> _$ReportDataDTOToJson(_ReportDataDTO instance) =>
     <String, dynamic>{
@@ -351,4 +349,5 @@ Map<String, dynamic> _$ReportDataDTOToJson(_ReportDataDTO instance) =>
       'completion_tokens': instance.completionTokens,
       'reasoning_tokens': instance.reasoningTokens,
       'mcp_tool_audit': instance.mcpToolAudit.map((e) => e.toJson()).toList(),
+      'has_warning': instance.hasWarning,
     };

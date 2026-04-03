@@ -97,6 +97,7 @@ abstract class ReportDataDTO with _$ReportDataDTO {
     @JsonKey(name: 'mcp_tool_audit')
     @Default([])
     List<MCPToolAuditDTO> mcpToolAudit,
+    @JsonKey(name: 'has_warning') @Default(false) bool hasWarning,
   }) = _ReportDataDTO;
 
   factory ReportDataDTO.fromJson(Map<String, dynamic> json) =>

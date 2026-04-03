@@ -690,3 +690,14 @@ class PromptCompiler:
                     compiled_lines.append(f"{desc}")
 
         return "\n\n".join(compiled_lines) if compiled_lines else ""
+
+    def generate_mcp_instruction(self, allowed_tools: list[str]) -> str:
+        """Epic 13 M2: Generate dynamic instructions for active MCP tools."""
+        if not allowed_tools:
+            return ""
+        tool_list = ", ".join(allowed_tools)
+        return (
+            f"[SYSTEM: DYNAMIC TOOL AUTOMATION]\n"
+            f"Käytä dynaamisia työkaluja [{tool_list}] tasan yhden (1) kerran etsiäksesi "
+            f"ajantasaista materiaalia. Upota löytämäsi lähteet näihin laajennuskenttiin."
+        )

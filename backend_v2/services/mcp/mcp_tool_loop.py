@@ -220,7 +220,10 @@ async def execute_tool_loop[T: BaseModel](
     probe_messages = list(messages)  # defensive copy
     tool_call_count = 0
 
-    while tool_call_count < MAX_TOOL_CALLS_PER_STEP:
+    # Epic 13 M2: Kattorajoitin (Max Calls 1) override for automated dynamic search
+    effective_max_calls = 1
+
+    while tool_call_count < effective_max_calls:
         # The Root Cause Fix: Empower the LLM to decide autonomously (Zero-Forcing).
         # Forcing 'required' when the LLM has nothing to search causes empty query hallucinations.
         current_tool_choice = "auto"
@@ -255,11 +258,11 @@ async def execute_tool_loop[T: BaseModel](
         # Process each tool call
         invalid_tools_detected = False
         for tc in response_tool_calls:
-            if tool_call_count >= MAX_TOOL_CALLS_PER_STEP:
+            if tool_call_count >= effective_max_calls:
                 logger.warning(
                     "Max tool calls reached for step. Forcing completion.",
                     extra={
-                        "max_calls": MAX_TOOL_CALLS_PER_STEP,
+                        "max_calls": effective_max_calls,
                         "step_name": step_name,
                     },
                 )
@@ -331,7 +334,7 @@ async def execute_tool_loop[T: BaseModel](
             break
 
         # If we processed tool calls, loop back to let LLM decide again
-        if tool_call_count >= MAX_TOOL_CALLS_PER_STEP:
+        if tool_call_count >= effective_max_calls:
             break
 
     # --- PHASE 2: Completion with evidence injected ---

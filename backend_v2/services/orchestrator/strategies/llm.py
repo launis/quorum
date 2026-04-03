@@ -97,11 +97,17 @@ class LLMNodeStrategy(NodeStrategy):
         # Epic 12: Generate Thick XML/Markdown rubrics for System Prompt
         xml_rubrics = self.compiler.compile_xml_rubrics(criteria_blocks, target_locale)
 
+        # Epic 13 M2: Resolve tools and build dynamic instruction
+        effective_mcp_tools = step.allowed_mcp_tools or step_obj.allowed_mcp_tools
+        mcp_instruction = self.compiler.generate_mcp_instruction(effective_mcp_tools)
+
         system_prompt = "Complete the evaluation according to the provided schema."
         if static_instructions:
             system_prompt += f"\n\n{static_instructions}"
         if xml_rubrics:
             system_prompt += f"\n\n{xml_rubrics}"
+        if mcp_instruction:
+            system_prompt += f"\n\n{mcp_instruction}"
 
         # 3. Prevent Token Explosion with fold_trace pruning
         llm_context_data = state_data
@@ -150,7 +156,6 @@ class LLMNodeStrategy(NodeStrategy):
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
         bound_client = await LLMClient.from_strategy(strategy_name, self.repository)
-        effective_mcp_tools = step.allowed_mcp_tools or step_obj.allowed_mcp_tools
 
         final_dict: dict[str, Any] = {}
         usage_dict: dict[str, Any] = {}

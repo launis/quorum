@@ -39,16 +39,25 @@ class PdfReportService:
         self.env = Environment(loader=FileSystemLoader(str(template_dir)))
 
         # Lightweight Custom Markdown Filter for Bold (**) and Italic (*)
-        import re
 
         def md_filter(text: str) -> str:
             if not isinstance(text, str):
-                return text
-            # Convert **bold** to <strong>bold</strong>
-            text = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", text)
-            # Convert *italic* to <em>italic</em>
-            text = re.sub(r"\*(.*?)\*", r"<em>\1</em>", text)
-            return text
+                return str(text) if text else ""
+            try:
+                import markdown  # type: ignore[import-untyped]
+
+                return str(markdown.markdown(text, extensions=["extra", "nl2br"]))
+            except ImportError:
+                import re
+
+                t = str(text)
+                t = re.sub(r"^### (.*?)$", r"<h3>\1</h3>", t, flags=re.MULTILINE)
+                t = re.sub(r"^## (.*?)$", r"<h2>\1</h2>", t, flags=re.MULTILINE)
+                t = re.sub(r"^# (.*?)$", r"<h1>\1</h1>", t, flags=re.MULTILINE)
+                t = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", t)
+                t = re.sub(r"\*(.*?)\*", r"<em>\1</em>", t)
+                t = t.replace("\n", "<br>")
+                return t
 
         self.env.filters["md"] = md_filter
 

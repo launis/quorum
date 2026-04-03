@@ -4,7 +4,7 @@ import logging
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.v2_core import ReportAxisDTO, ReportDataDTO, ReportLayoutDTO
+from backend_v2.models.v2_core import I18nText, ReportAxisDTO, ReportDataDTO, ReportLayoutDTO
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class BlueprintTransformer:
 
         # Fetch the selected output profile from repository
         default_profile_ref = workflow_data.get("default_profile_id", "default")
-        
+
         # If API requested "default" explicitly, we should treat it as seeking the workflow's default
         resolved_pid_request = profile_id if profile_id and profile_id != "default" else default_profile_ref
 
@@ -116,22 +116,28 @@ class BlueprintTransformer:
 
         global_score = None
 
+        has_warning = False
+        synthesis_md = None
         scoring_out = None
-        # Deep search for the unique 'scoring_result' object embedded by the ScoringHook
-        # post-hook into ANY dynamical step
         for step_res in results.values():
-            if isinstance(step_res, dict) and "scoring_result" in step_res:
-                scoring_out = step_res["scoring_result"]
-                break
+            if isinstance(step_res, dict):
+                if "scoring_result" in step_res:
+                    scoring_out = step_res["scoring_result"]
+                if step_res.get("has_warning"):
+                    has_warning = True
+                if step_res.get("synthesized_markdown"):
+                    synthesis_md = step_res.get("synthesized_markdown")
 
         # Fallback if somehow placed at root
         if not scoring_out and isinstance(results.get("scoring_result"), dict):
             scoring_out = results.get("scoring_result")
+        if results.get("has_warning"):
+            has_warning = True
 
         global_score = None
         if isinstance(scoring_out, dict):
             t_score = scoring_out.get("total_score")
-            global_score = float(t_score) if t_score is not None else None
+            global_score = float(round(float(t_score), 1)) if t_score is not None else None
 
         try:
             for layout_def in layout_defs:
@@ -201,7 +207,7 @@ class BlueprintTransformer:
                             # (or the original global score)
                             if is_numeric and (is_matrix_category or is_legacy_score):
                                 try:
-                                    score_float = float(target_val) if target_val is not None else None
+                                    score_float = float(round(float(target_val), 1)) if target_val is not None else None
                                 except (ValueError, TypeError):
                                     score_float = None
 
@@ -325,6 +331,33 @@ class BlueprintTransformer:
                             show_text=show_text,
                         )
                     )
+
+            if synthesis_md:
+                # MVP Native HTML sanitization (remove script tags)
+                # Production will use Bleach or Presidio later as per user's approval.
+                import re
+
+                safe_md = re.sub(r"<script.*?>.*?</script>", "", str(synthesis_md), flags=re.IGNORECASE | re.DOTALL)
+                safe_md = re.sub(r"<.*?on[a-z]+=[^>]*>", "", safe_md, flags=re.IGNORECASE)
+
+                layouts_list.insert(
+                    0,
+                    ReportLayoutDTO(
+                        preset_view="text_only",
+                        title=I18nText(
+                            default_locale="en", translations={"fi": "Yhteenveto", "en": "Executive Summary"}
+                        ),
+                        description=None,
+                        axes=[
+                            ReportAxisDTO(
+                                name="coach-markdown",
+                                description="Synthesized Markdown Component",
+                                justification=safe_md,
+                            )
+                        ],
+                        show_text=True,
+                    ),
+                )
         except Exception as e:
             msg = f"Failed to build layout DTO: {e}"
             logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
@@ -404,6 +437,7 @@ class BlueprintTransformer:
                 created_at=execution.created_at,
                 org_name=org_name,
                 global_score=global_score,
+                has_warning=has_warning,
                 layouts=layouts_list,
                 cost_estimate=cost,
                 total_tokens=t_tokens,

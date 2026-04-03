@@ -23,6 +23,23 @@ abstract class OutputLayoutBlock with _$OutputLayoutBlock {
 }
 
 @Freezed(equal: false)
+abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
+  const SynthesisConfigDTO._();
+
+  const factory SynthesisConfigDTO({
+    int? lengthConstraint,
+    I18nText? preambleText,
+    @Default(false) bool includeHistoricalSummary,
+    @Default(false) bool enablePiiMasking,
+    @Default(['pdf', 'raw_json']) List<String> allowedExports,
+    @Default(true) bool omitEmptySections,
+  }) = _SynthesisConfigDTO;
+
+  factory SynthesisConfigDTO.fromJson(Map<String, dynamic> json) =>
+      _$SynthesisConfigDTOFromJson(json);
+}
+
+@Freezed(equal: false)
 abstract class OutputProfile with _$OutputProfile {
   const OutputProfile._();
 
@@ -33,6 +50,7 @@ abstract class OutputProfile with _$OutputProfile {
     required I18nText name,
     required I18nText description,
     @Default('original') String displayScale,
+    SynthesisConfigDTO? synthesis,
     @Default([]) List<OutputLayoutBlock> layouts,
   }) = _OutputProfile;
 
@@ -47,6 +65,7 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
   const factory EmbeddedOutputProfile({
     required I18nText name,
     @Default('original') String displayScale,
+    SynthesisConfigDTO? synthesis,
     @Default([]) List<OutputLayoutBlock> layouts,
   }) = _EmbeddedOutputProfile;
 
