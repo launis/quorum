@@ -168,6 +168,7 @@ class LLMNodeStrategy(NodeStrategy):
                     step_name=step.id,
                     mock_identity=step.id,
                     target_language=target_locale,
+                    synthesis_instructions=state_data.get("synthesis_instructions"),
                 )
                 final_dict = dict(loop_result.result_data)
                 usage_dict = dict(loop_result.usage) if loop_result.usage else {}

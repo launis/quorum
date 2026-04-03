@@ -253,6 +253,7 @@ class ExecutionService:
             workflow_id=workflow.id,
             status=ExecutionStatus.PENDING,
             raw_inputs=payload.raw_inputs,
+            output_profile_id=payload.profile_id,
             frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
             step_states=step_states,
             metadata={"target_locale": target_locale},
@@ -369,7 +370,7 @@ class ExecutionService:
             from backend_v2.services.blueprint import BlueprintTransformer
 
             transformer = BlueprintTransformer(self.repo)
-            dto = await transformer.build_report_dto(execution_id, profile_id or "default", accept_language)
+            dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
             return dto.model_dump(mode="json"), "application/json", None
 
         elif fmt == "flat":
@@ -418,7 +419,7 @@ class ExecutionService:
                 accept_language = execution.metadata.get("target_locale")
 
             transformer = BlueprintTransformer(self.repo)
-            dto = await transformer.build_report_dto(execution_id, resolved_pid or "default", accept_language)
+            dto = await transformer.build_report_dto(execution_id, resolved_pid, accept_language)
 
             pdf_service = PdfReportService(self.repo)
             pdf_bytes = await pdf_service.generate_execution_pdf(execution_id, report_dto=dto)

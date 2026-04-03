@@ -43,6 +43,7 @@ class NewExecutionController extends _$NewExecutionController {
     required String workflowId,
     required Map<String, dynamic> collectedInputs,
     required String targetLocale,
+    String? profileId,
   }) async {
     state = const AsyncLoading();
     try {
@@ -54,6 +55,7 @@ class NewExecutionController extends _$NewExecutionController {
           'workflow_id': workflowId,
           'raw_inputs': collectedInputs,
           'target_locale': targetLocale,
+          if (profileId != null) 'profile_id': profileId,
         },
       );
 
@@ -82,6 +84,7 @@ class NewExecutionView extends ConsumerStatefulWidget {
 
 class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   Map<String, dynamic>? _selectedWorkflow;
+  String? _selectedProfileId;
   final Map<String, dynamic> _compiledInputs = {};
 
   // To keep track of filename for UI
@@ -102,6 +105,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     if (workflow == null) return;
     setState(() {
       _selectedWorkflow = workflow;
+      _selectedProfileId = workflow['default_profile_id']?.toString();
+      if (_selectedProfileId?.isEmpty ?? false) {
+        _selectedProfileId = null;
+      }
       _compiledInputs.clear();
       _selectedFileNames.clear();
 
@@ -173,6 +180,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             workflowId: workflowId,
             collectedInputs: _compiledInputs,
             targetLocale: localeCode,
+            profileId: _selectedProfileId,
           );
 
       // Safe context routing using GoRouter Codegen
@@ -391,6 +399,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
           const Divider(height: 48),
 
+          _buildProfileSelector(),
+
+          const SizedBox(height: 24),
+
           if (state.hasError) ...[
             ErrorView(error: state.error!, compact: true),
             const SizedBox(height: 16),
@@ -539,6 +551,104 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                 ),
               );
             }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileSelector() {
+    if (_selectedWorkflow == null) return const SizedBox.shrink();
+
+    final opRaw = _selectedWorkflow!['output_profiles'];
+    final outputProfiles = opRaw is Map ? opRaw : {};
+    
+    if (outputProfiles.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final locale = Localizations.localeOf(context).languageCode;
+    final List<MapEntry<String, String>> profiles = [];
+    
+    outputProfiles.forEach((key, value) {
+      String name = key.toString();
+      if (value is Map) {
+        final nameObj = value['name'];
+        if (nameObj is Map) {
+          final trans = nameObj['translations'];
+          if (trans is Map) {
+            final defLocale = nameObj['default_locale']?.toString() ?? 'en';
+            name = trans[locale]?.toString() ??
+                   trans[defLocale]?.toString() ??
+                   trans['en']?.toString() ??
+                   name;
+          }
+        }
+      }
+      profiles.add(MapEntry(key.toString(), name));
+    });
+
+    final String defaultId = _selectedWorkflow!['default_profile_id']?.toString() ?? '';
+
+    return Card(
+      elevation: 0,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.auto_awesome_mosaic,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  AppLocalizations.of(context)!.printVariantSelectorTitle,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              AppLocalizations.of(context)!.printVariantSelectorDescription,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _selectedProfileId != null && outputProfiles.containsKey(_selectedProfileId)
+                  ? _selectedProfileId
+                  : (outputProfiles.containsKey(defaultId) ? defaultId : null),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+                labelText: AppLocalizations.of(context)!.printVariantSelectorTitle,
+                border: const OutlineInputBorder(),
+              ),
+              items: profiles.map((entry) {
+                return DropdownMenuItem<String>(
+                  value: entry.key,
+                  child: Text(entry.value),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() {
+                    _selectedProfileId = val;
+                  });
+                }
+              },
+            ),
           ],
         ),
       ),

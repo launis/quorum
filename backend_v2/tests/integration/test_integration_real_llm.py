@@ -54,13 +54,16 @@ def clear_logs() -> None:
 
 
 def is_backend_running() -> bool:
-    """Check if the backend API is alive on port 8000."""
-    try:
-        # Assuming there is a health check endpoint, or we can just hit something basic
-        response = requests.get("http://127.0.0.1:8000/docs", timeout=2)
-        return response.status_code == 200
-    except requests.exceptions.RequestException:
-        return False
+    """Check if the backend API is alive on port 8000 with resilient retry loop."""
+    for _ in range(30):
+        try:
+            response = requests.get("http://127.0.0.1:8000/docs", timeout=5)
+            if response.status_code == 200:
+                return True
+        except requests.exceptions.RequestException:
+            pass
+        time.sleep(1)
+    return False
 
 
 def deep_logic_compare(old_trace: list[dict[str, Any]], new_trace: list[dict[str, Any]]) -> None:
@@ -221,7 +224,7 @@ async def test_real_llm_e2e_orchestration() -> None:
                 # Sort by created_at or just take last
                 latest_exe = sorted(executions, key=lambda x: x.get("created_at", ""), reverse=True)[0]
 
-                if latest_exe.get("status") in ["COMPLETED", "FAILED"]:
+                if str(latest_exe.get("status")).upper() in ["COMPLETED", "FAILED"]:
                     completed_trace = latest_exe
                     break
             except Exception as e:
@@ -230,10 +233,18 @@ async def test_real_llm_e2e_orchestration() -> None:
         if not completed_trace:
             pytest.fail("Timeout waiting for background execution to complete.")
 
-        if completed_trace.get("status") == "FAILED":
+        if str(completed_trace.get("status")).upper() == "FAILED":
             pytest.fail(f"Background execution failed: {completed_trace.get('error_reason')}")
 
-        new_trace = completed_trace.get("execution_results", [])
+        trace_path = completed_trace.get("execution_trace_storage_path")
+        if trace_path:
+            abs_trace_path = os.path.join(WORKSPACE_ROOT, "data", "files", trace_path)
+            if not os.path.exists(abs_trace_path):
+                pytest.fail(f"Execution trace storage path missing: {abs_trace_path}")
+            with open(abs_trace_path, encoding="utf-8") as f:
+                new_trace = json.load(f)
+        else:
+            new_trace = completed_trace.get("execution_trace", [])
 
         if has_old_trace:
             with open(ORIGINAL_TRACE_FILE, encoding="utf-8") as f:
@@ -244,13 +255,23 @@ async def test_real_llm_e2e_orchestration() -> None:
             with open(db_path, encoding="utf-8") as f:
                 db_data = json.load(f)
 
-            all_execs = [v for k, v in db_data.get("executions", {}).items() if v.get("status") == "COMPLETED"]
+            all_execs = [v for k, v in db_data.get("executions", {}).items() if str(v.get("status")).upper() == "COMPLETED"]
             older_execs = [e for e in all_execs if e.get("id") != completed_trace.get("id")]
 
             if older_execs:
                 latest_older = sorted(older_execs, key=lambda x: x.get("created_at", ""), reverse=True)[0]
                 logger.info("Using previous db_v2.json execution %s as reference trace.", latest_older.get("id"))
-                old_trace = latest_older.get("execution_results", [])
+                
+                trace_path_old = latest_older.get("execution_trace_storage_path")
+                if trace_path_old:
+                    old_path = os.path.join(WORKSPACE_ROOT, "data", "files", trace_path_old)
+                    if os.path.exists(old_path):
+                        with open(old_path, encoding="utf-8") as f:
+                            old_trace = json.load(f)
+                    else:
+                        old_trace = []
+                else:
+                    old_trace = latest_older.get("execution_trace", [])
 
                 # Auto-heal: Save it as the new reference
                 os.makedirs(os.path.dirname(ORIGINAL_TRACE_FILE), exist_ok=True)

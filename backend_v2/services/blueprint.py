@@ -16,7 +16,7 @@ class BlueprintTransformer:
         self.repo = repo
 
     async def build_report_dto(
-        self, execution_id: str, profile_id: str = "default", accept_language: str | None = None
+        self, execution_id: str, profile_id: str | None = None, accept_language: str | None = None
     ) -> ReportDataDTO:
         """Builds the strictly typed report payload by parsing results according to the selected profile."""
         execution = await self.repo.get_execution(execution_id)
@@ -50,7 +50,9 @@ class BlueprintTransformer:
 
         # Fetch the selected output profile from repository
         default_profile_ref = workflow_data.get("default_profile_id", "default")
-        resolved_pid_request = profile_id if profile_id else default_profile_ref
+        
+        # If API requested "default" explicitly, we should treat it as seeking the workflow's default
+        resolved_pid_request = profile_id if profile_id and profile_id != "default" else default_profile_ref
 
         profile_data = None
 
@@ -69,7 +71,7 @@ class BlueprintTransformer:
             for p_dict in all_profiles_data:
                 # Opaque fallback convention: If 'default' is requested, attempt to resolve the actual ID
                 # assigned to the system's "default" named or historically slugged profile.
-                if p_dict.get("slug") == "default":
+                if p_dict.get("slug") in ("default", "executive_summary"):
                     profile_data = p_dict
                     break
 

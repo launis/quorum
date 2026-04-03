@@ -226,6 +226,13 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
             if loc and not accept_language:
                 accept_language = loc
 
+        # 0c. Override default profile dynamically if present in SSOT ExecutionRecord
+        exec_profile_id = getattr(execution_dict, "output_profile_id", None) or (
+            execution_dict.get("output_profile_id") if isinstance(execution_dict, dict) else None
+        )
+        if exec_profile_id:
+            profile_id = exec_profile_id
+
         # 1. Generate Omni-Channel JSON Payload
         dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
 

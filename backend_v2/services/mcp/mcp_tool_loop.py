@@ -180,6 +180,7 @@ async def execute_tool_loop[T: BaseModel](
     step_name: str,
     mock_identity: str | None = None,
     target_language: str = "en",
+    synthesis_instructions: dict[str, Any] | None = None,
 ) -> MCPToolLoopResult:
     """Execute the MCP Tool Loop — 2-phase LLM execution with optional tool calling.
 
@@ -193,6 +194,8 @@ async def execute_tool_loop[T: BaseModel](
         allowed_tools: List of tool IDs allowed for this step.
         step_name: Current DAG step name (for audit logging).
         mock_identity: Mock identity for testing.
+        target_language: Optional user requested language.
+        synthesis_instructions: Epic 13 OutputProfile limits and preamble constraints.
 
     Returns:
         MCPToolLoopResult with structured data and audit traces.
@@ -349,6 +352,24 @@ async def execute_tool_loop[T: BaseModel](
                 ),
             }
         )
+
+    # EPIC 13: Dynamically inject runtime parameters from OutputProfile via hook extraction
+    if synthesis_instructions:
+        formatting_msg = "[SYSTEM: OUTPUT_PROFILE FORMATTING CONSTRAINTS]\nStrictly adhere to the following:\n"
+        if "synthesis_preamble" in synthesis_instructions:
+            _pre = synthesis_instructions["synthesis_preamble"]
+            formatting_msg += f"- PREAMBLE REQUIRED: Begin your response with: '{_pre}'\n"
+        if "synthesis_length_limit" in synthesis_instructions:
+            limit = synthesis_instructions["synthesis_length_limit"]
+            if limit:
+                formatting_msg += f"- LENGTH LIMIT: Restrict total output to roughly {limit} words/characters.\n"
+
+        # Prevent "Alternate Roles" strictly by patching the system prompt (index 0)
+        if final_messages and final_messages[0].get("role") == "system":
+            original = final_messages[0].get("content", "")
+            final_messages[0]["content"] = f"{original}\n\n{formatting_msg}"
+        else:
+            final_messages.insert(0, {"role": "system", "content": formatting_msg})
 
     try:
         result, usage = await llm_client.run_structured_task(
