@@ -14,7 +14,7 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
 
     # Mock an execution record with strict V2 validations
     mock_execution = ExecutionRecord(
-        id="exe_abcdefgh123",
+        id="exe_aaaaaaaabbbbbbbb",
         workflow_id="test_wf",
         status=ExecutionStatus.COMPLETED,
         execution_trace=[TraceEvent(step_name="test_step", event_type="output", content={"ok": True})],
@@ -29,6 +29,6 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
         workflow_id="test_wf", profile_id="prf_test", layouts=[ReportLayoutDTO(preset_view="1d_metrics", axes=[])]
     )
 
-    pdf_bytes = await svc.generate_execution_pdf(execution_id="exe_abcdefgh123", report_dto=dto)
+    pdf_bytes = await svc.generate_execution_pdf(execution_id="exe_aaaaaaaabbbbbbbb", report_dto=dto)
     assert pdf_bytes is not None
     assert isinstance(pdf_bytes, bytes)

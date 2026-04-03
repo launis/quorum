@@ -1,10 +1,11 @@
-import pytest # force cache reload
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
+
+import pytest  # force cache reload
 
 from backend_v2.database.repository import AbstractWorkflowRepository
-from backend_v2.exceptions import AppException
 from backend_v2.models.v2_core import ExecutionRecord
 from backend_v2.services.blueprint import BlueprintTransformer
+
 
 @pytest.fixture
 def mock_repo() -> AsyncMock:
@@ -47,7 +48,7 @@ async def test_blueprint_zero_math_rounding(mock_repo: AsyncMock) -> None:
     transformer = BlueprintTransformer(repo=mock_repo)
 
     mock_execution = ExecutionRecord(
-        id="exe_1234abcd",
+        id="exe_1111111122222222",
         workflow_id="wf_test",
         status="completed",
         execution_trace=[
@@ -65,7 +66,7 @@ async def test_blueprint_zero_math_rounding(mock_repo: AsyncMock) -> None:
     )
     mock_repo.get_execution.return_value = mock_execution
 
-    dto = await transformer.build_report_dto("exe_1234abcd")
+    dto = await transformer.build_report_dto("exe_1111111122222222")
     assert dto.global_score == 4.6
 
     assert len(dto.layouts) > 0
@@ -79,7 +80,7 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo: AsyncMock) -> N
     transformer = BlueprintTransformer(repo=mock_repo)
 
     mock_execution = ExecutionRecord(
-        id="exe_1234abcd",
+        id="exe_1111111122222222",
         workflow_id="wf_test",
         status="completed",
         execution_trace=[
@@ -95,18 +96,18 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo: AsyncMock) -> N
     )
     mock_repo.get_execution.return_value = mock_execution
 
-    dto = await transformer.build_report_dto("exe_1234abcd")
+    dto = await transformer.build_report_dto("exe_1111111122222222")
     assert dto.has_warning is True
 
     # Synthesis layout is injected at the beginning (index 0)
     assert len(dto.layouts) >= 1
     synthesis_layout = dto.layouts[0]
     assert synthesis_layout.preset_view == "text_only"
-    
+
     assert len(synthesis_layout.axes) == 1
     synthesis_axis = synthesis_layout.axes[0]
     assert synthesis_axis.name == "coach-markdown"
-    
+
     # MVP XSS sanitization test
     assert "<script>" not in synthesis_axis.justification
     assert "Some content" in synthesis_axis.justification

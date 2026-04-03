@@ -43,11 +43,11 @@ def mock_studio_service() -> AsyncMock:
     service = AsyncMock(spec=StudioService)
     # Configure mock returns for cloning
     service.clone_workflow.return_value = Workflow(
-        id="wf_clone12345678",
-        slug="test_wf_clone",
+        id="wf_3333333333333333",
+        slug="test_wf_3333333333333333",
         status="draft",
         version=1,
-        default_profile_id="prof_defaultmock123",
+        default_profile_id="prof_dddd1111dddd1111",
         name=I18nText(default_locale="en", translations={"en": "Workflow (Copy)"}),
         description="test",
     )
@@ -82,7 +82,7 @@ def mock_studio_service() -> AsyncMock:
     service.clone_output_profile.return_value = OutputProfile(
         id="prof_clone12345678",
         slug="test_prof_clone",
-        workflow_id="wf_clone12345678",
+        workflow_id="wf_3333333333333333",
         name=I18nText(default_locale="en", translations={"en": "Profile (Copy)"}),
         layouts=[],
     )
@@ -114,7 +114,7 @@ def test_clone_workflow_endpoint(client_admin: TestClient, mock_studio_service: 
     response = client_admin.post("/api/v2/studio/workflows/wf_12345/clone")
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] == "wf_clone12345678"
+    assert data["id"] == "wf_3333333333333333"
     mock_studio_service.clone_workflow.assert_called_once()
 
 

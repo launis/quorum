@@ -26,7 +26,7 @@ def test_mcp_audit_trace_fail_fast_on_corrupt_timestamp() -> None:
 
 
 def test_execution_record_fail_fast_on_corrupt_status() -> None:
-    data = {"id": "exe_testexec123", "workflow_id": "wf_1", "status": "INVALID_STATUS", "raw_inputs": {}}
+    data = {"id": "exe_eeeeeeeeeeeeeeee", "workflow_id": "wf_1", "status": "INVALID_STATUS", "raw_inputs": {}}
     with pytest.raises(ValidationError) as exc_info:
         ExecutionRecord.model_validate(data)
     assert "Input should be 'pending'" in str(exc_info.value)

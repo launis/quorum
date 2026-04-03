@@ -41,18 +41,18 @@ def client_member(mock_studio_service_manager: Any) -> Any:
 
 def test_workflow_rbac_save_member_forbidden(client_member: Any) -> None:
     payload = {
-        "id": "wf_new1234567",
+        "id": "wf_2222222222222222",
         "name": {"default_locale": "en", "translations": {"en": "new"}},
         "description": {"default_locale": "en", "translations": {"en": "desc"}},
         "status": "draft",
         "version": 1,
-        "default_profile_id": "prof_mock123",
+        "default_profile_id": "prof_mmmm1111mmmm1111",
         "organization_id": "org_testorg123",
         "slug": "new_wf",
     }
-    response = client_member.put("/api/v2/studio/workflows/wf_new1234567", json=payload)
+    response = client_member.put("/api/v2/studio/workflows/wf_2222222222222222", json=payload)
     if response.status_code == 404:
-        response = client_member.put("/studio/workflows/wf_new1234567", json=payload)
+        response = client_member.put("/studio/workflows/wf_2222222222222222", json=payload)
 
     assert response.status_code == 403
     assert "Permission" in response.json()["detail"] or "ADMIN" in response.json()["detail"]

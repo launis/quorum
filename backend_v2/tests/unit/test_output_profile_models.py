@@ -1,10 +1,8 @@
 import pytest
+from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException
 from backend_v2.models.domain.output_profile import OutputProfile
 
-
-from pydantic import ValidationError
 
 def test_output_profile_fails_fast_on_invalid_id() -> None:
     data = {

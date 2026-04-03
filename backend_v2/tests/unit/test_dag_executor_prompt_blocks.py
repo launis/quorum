@@ -53,14 +53,14 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
 
     # Setup basic valid workflow
     workflow = Workflow(
-        id="wf_testwf1234",
+        id="wf_5555555555555555",
         slug="wf_test_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_defaultmock123",
+        default_profile_id="prof_dddd1111dddd1111",
         name=I18nText(default_locale="en", translations={"en": "Test WF"}),
         description=I18nText(default_locale="en", translations={"en": "Desc"}),
-        steps=[StepRule(id="step_11111111", task_blueprint="task_bp")],
+        steps=[StepRule(id="step_1111111111111111", task_blueprint="task_bp")],
     )
 
     # Execute
@@ -75,7 +75,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
 
         mock_repo.get_execution.return_value = {
             "id": "exec_123123123",
-            "workflow_id": "wf_testwf1234",
+            "workflow_id": "wf_5555555555555555",
             "status": ExecutionStatus.RUNNING,
             "raw_inputs": {"chat_log": "dGVzdA=="},
             "metadata": {"target_locale": "fi"},
@@ -99,4 +99,4 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
 
     projector = StateProjector()
     results = projector.fold_trace(record.execution_trace)
-    assert results["step_11111111"]["test_res"] == 1
+    assert results["step_1111111111111111"]["test_res"] == 1

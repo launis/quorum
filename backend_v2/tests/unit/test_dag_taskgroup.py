@@ -40,17 +40,17 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
     executor = DAGExecutor(repository=mock_repo, prompt_compiler=mock_compiler)
 
     workflow = Workflow(
-        id="wf_tgtest12345",
+        id="wf_4444444444444444",
         slug="wf_tg",
         status="draft",
         version=1,
-        default_profile_id="prof_defaultmock123",
+        default_profile_id="prof_dddd1111dddd1111",
         name=I18nText(default_locale="en", translations={"en": "TG Test"}),
         description=I18nText(default_locale="en", translations={"en": "Desc"}),
         steps=[
             # Two independent steps running in parallel without depends_on
-            StepRule(id="step_fail11111", task_blueprint="bp_fail"),
-            StepRule(id="step_sleep2222", task_blueprint="bp_sleep"),
+            StepRule(id="step_ffff1111ffff1111", task_blueprint="bp_fail"),
+            StepRule(id="step_5555222255552222", task_blueprint="bp_sleep"),
         ],
     )
 
@@ -59,14 +59,14 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
 
     async def mock_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
         nonlocal step_2_cancelled
-        if step.id == "step_fail11111":
+        if step.id == "step_ffff1111ffff1111":
             # Simulate a quick failure that raises AppException via ErrorTraceEvent
             return [
                 ErrorTraceEvent(
                     step_name=step.id, error_code="MOCK_FAIL", error_message="Intentional failure", content={}
                 )
             ]
-        elif step.id == "step_sleep2222":
+        elif step.id == "step_5555222255552222":
             try:
                 # Sleep long enough for step_1 to fail and TaskGroup to trigger cancellation
                 await asyncio.sleep(5.0)

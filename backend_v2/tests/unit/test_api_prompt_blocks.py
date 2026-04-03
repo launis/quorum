@@ -21,7 +21,7 @@ def mock_studio_service() -> Any:
     service = AsyncMock(spec=StudioService)
     # Configure mock responses
     pb = PromptBlock(
-        id="blk_mockpb1234",
+        id="blk_ffff6666ffff6666",
         slug="mock_pb_1",
         label=I18nText(default_locale="en", translations={"en": "Test Label"}),
         description=I18nText(default_locale="en", translations={"en": "Test Desc"}),
@@ -50,14 +50,14 @@ def test_get_prompt_blocks(client: Any, mock_studio_service: Any) -> None:
         response = client.get("/studio/prompt-blocks")  # Fallback pattern
     assert response.status_code == 200
     assert len(response.json()) == 1
-    assert response.json()[0]["id"] == "blk_mockpb1234"
+    assert response.json()[0]["id"] == "blk_ffff6666ffff6666"
     mock_studio_service.list_prompt_blocks.assert_called_once()
 
 
 def test_delete_prompt_block(client: Any, mock_studio_service: Any) -> None:
-    response = client.delete("/api/v2/studio/prompt-blocks/blk_mockpb1234")
+    response = client.delete("/api/v2/studio/prompt-blocks/blk_ffff6666ffff6666")
     if response.status_code == 404:
-        response = client.delete("/studio/prompt-blocks/blk_mockpb1234")
+        response = client.delete("/studio/prompt-blocks/blk_ffff6666ffff6666")
     assert response.status_code == 200
-    assert response.json()["deleted_id"] == "blk_mockpb1234"
+    assert response.json()["deleted_id"] == "blk_ffff6666ffff6666"
     mock_studio_service.delete_prompt_block.assert_called_once()

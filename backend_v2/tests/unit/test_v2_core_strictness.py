@@ -13,7 +13,7 @@ def test_prompt_block_allow_decimals_requires_numeric() -> None:
 
     # Should validate since type='string' is allowed for BARS format backwards compatibility
     valid_block = PromptBlock(
-        id="blk_validblock",
+        id="blk_eeee5555eeee5555",
         slug="valid_slug",
         label=label,
         description=desc,
@@ -44,7 +44,7 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
 
     # Successful: Has prompt blocks
     valid_blueprint = Step(
-        id="step_blueprint", slug="task_bp_valid", name=label, prompt_blocks=["some_block"], model_strategy="fast"
+        id="step_1111111111111111bbbbbbbb", slug="task_bp_valid", name=label, prompt_blocks=["some_block"], model_strategy="fast"
     )
     assert valid_blueprint.slug == "task_bp_valid"
 
@@ -68,7 +68,7 @@ def test_opaque_id_regex_validation() -> None:
     # 1. Test PromptBlock creation rejection
     with pytest.raises(ValidationError) as exc_pb:
         PromptBlock(
-            id="legacy-slug-without-prefix",  # INVALID
+            id="org_1234567890123456",  # INVALID
             slug="valid_slug",
             label=label,
             description=label,

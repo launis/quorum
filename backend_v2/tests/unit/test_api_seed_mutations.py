@@ -41,17 +41,17 @@ def get_seed_data() -> Any:
 
 def get_audit_workflow() -> Any:
     return {
-        "id": "wf_valid1234567",
+        "id": "wf_1111111111111111",
         "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
         "description": {"default_locale": "en", "translations": {"en": "Desc"}},
         "status": "draft",
         "version": 1,
-        "default_profile_id": "prof_mock123",
+        "default_profile_id": "prof_mmmm1111mmmm1111",
         "slug": "valid_wf",
         "expected_inputs": [],
         "steps": [
-            {"id": "blk_steproot1234", "task_blueprint": "bp_1", "depends_on": []},
-            {"id": "blk_stepleaf1234", "task_blueprint": "bp_3", "depends_on": ["blk_steproot1234"]},
+            {"id": "blk_aaaa111111111111", "task_blueprint": "bp_1", "depends_on": []},
+            {"id": "blk_cccc333333333333", "task_blueprint": "bp_3", "depends_on": ["blk_aaaa111111111111"]},
         ],
     }
 
