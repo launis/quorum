@@ -404,6 +404,8 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 ),
               ),
               const SizedBox(height: 24),
+              _buildSynthesisEditor(context, l10n, payload, updatePayload),
+              const SizedBox(height: 24),
               if (selectedWorkflowId.isEmpty)
                 Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -709,6 +711,112 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 Text(l10n.studioViewsErrorLoadingBlocks(e.toString())),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSynthesisEditor(
+    BuildContext context,
+    AppLocalizations l10n,
+    OutputProfile payload,
+    Function(OutputProfile) updatePayload,
+  ) {
+    final syn = payload.synthesis ?? const SynthesisConfigDTO();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Synthesis & Export Configuration",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const Divider(),
+            const SizedBox(height: 16),
+            I18nTextField(
+              label: "Preamble Text",
+              initialData: syn.preambleText,
+              onChanged: (val) {
+                updatePayload(
+                  payload.copyWith(synthesis: syn.copyWith(preambleText: val)),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              initialValue: syn.lengthConstraint?.toString() ?? '',
+              decoration: const InputDecoration(
+                labelText: "Max Length Constraint",
+                border: OutlineInputBorder(),
+                helperText: "Leave empty for no limit",
+              ),
+              keyboardType: TextInputType.number,
+              onChanged: (val) {
+                final parsed = int.tryParse(val) ?? (val.isEmpty ? null : syn.lengthConstraint);
+                updatePayload(
+                  payload.copyWith(synthesis: syn.copyWith(lengthConstraint: parsed)),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              title: const Text("Enable PII Masking"),
+              subtitle: const Text("Ensure PII is masked before LLM call"),
+              value: syn.enablePiiMasking,
+              onChanged: (val) {
+                updatePayload(
+                  payload.copyWith(synthesis: syn.copyWith(enablePiiMasking: val)),
+                );
+              },
+            ),
+            SwitchListTile(
+              title: const Text("Include Historical Summary"),
+              value: syn.includeHistoricalSummary,
+              onChanged: (val) {
+                updatePayload(
+                  payload.copyWith(synthesis: syn.copyWith(includeHistoricalSummary: val)),
+                );
+              },
+            ),
+            SwitchListTile(
+              title: const Text("Omit Empty Sections"),
+              value: syn.omitEmptySections,
+              onChanged: (val) {
+                updatePayload(
+                  payload.copyWith(synthesis: syn.copyWith(omitEmptySections: val)),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "Allowed Exports",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            Wrap(
+              spacing: 8.0,
+              children: ['pdf', 'raw_json', 'docx'].map((exportType) {
+                final isSelected = syn.allowedExports.contains(exportType);
+                return FilterChip(
+                  label: Text(exportType.toUpperCase()),
+                  selected: isSelected,
+                  onSelected: (bool selected) {
+                    final exports = List<String>.from(syn.allowedExports);
+                    if (selected) {
+                      if (!exports.contains(exportType)) exports.add(exportType);
+                    } else {
+                      exports.remove(exportType);
+                    }
+                    updatePayload(
+                      payload.copyWith(synthesis: syn.copyWith(allowedExports: exports)),
+                    );
+                  },
+                );
+              }).toList(),
+            ),
+          ],
+        ),
       ),
     );
   }

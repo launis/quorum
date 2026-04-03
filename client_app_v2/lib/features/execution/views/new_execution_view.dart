@@ -562,14 +562,14 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
     final opRaw = _selectedWorkflow!['output_profiles'];
     final outputProfiles = opRaw is Map ? opRaw : {};
-    
+
     if (outputProfiles.isEmpty) {
       return const SizedBox.shrink();
     }
 
     final locale = Localizations.localeOf(context).languageCode;
     final List<MapEntry<String, String>> profiles = [];
-    
+
     outputProfiles.forEach((key, value) {
       String name = key.toString();
       if (value is Map) {
@@ -578,21 +578,25 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
           final trans = nameObj['translations'];
           if (trans is Map) {
             final defLocale = nameObj['default_locale']?.toString() ?? 'en';
-            name = trans[locale]?.toString() ??
-                   trans[defLocale]?.toString() ??
-                   trans['en']?.toString() ??
-                   name;
+            name =
+                trans[locale]?.toString() ??
+                trans[defLocale]?.toString() ??
+                trans['en']?.toString() ??
+                name;
           }
         }
       }
       profiles.add(MapEntry(key.toString(), name));
     });
 
-    final String defaultId = _selectedWorkflow!['default_profile_id']?.toString() ?? '';
+    final String defaultId =
+        _selectedWorkflow!['default_profile_id']?.toString() ?? '';
 
     return Card(
       elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      color: Theme.of(
+        context,
+      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       shape: RoundedRectangleBorder(
         side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(12),
@@ -626,13 +630,17 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedProfileId != null && outputProfiles.containsKey(_selectedProfileId)
+              value:
+                  _selectedProfileId != null &&
+                      outputProfiles.containsKey(_selectedProfileId)
                   ? _selectedProfileId
                   : (outputProfiles.containsKey(defaultId) ? defaultId : null),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surface,
-                labelText: AppLocalizations.of(context)!.printVariantSelectorTitle,
+                labelText: AppLocalizations.of(
+                  context,
+                )!.printVariantSelectorTitle,
                 border: const OutlineInputBorder(),
               ),
               items: profiles.map((entry) {
@@ -647,6 +655,78 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                     _selectedProfileId = val;
                   });
                 }
+              },
+            ),
+            Builder(
+              builder: (context) {
+                final currentId =
+                    _selectedProfileId != null &&
+                        outputProfiles.containsKey(_selectedProfileId)
+                    ? _selectedProfileId
+                    : (outputProfiles.containsKey(defaultId)
+                          ? defaultId
+                          : null);
+
+                String? descriptionText;
+                if (currentId != null && outputProfiles[currentId] is Map) {
+                  final profileObj = outputProfiles[currentId];
+                  final descObj = profileObj['description'];
+                  if (descObj is Map) {
+                    final trans = descObj['translations'];
+                    if (trans is Map) {
+                      final defLocale =
+                          descObj['default_locale']?.toString() ?? 'en';
+                      descriptionText =
+                          trans[locale]?.toString() ??
+                          trans[defLocale]?.toString() ??
+                          trans['en']?.toString();
+                    }
+                  }
+                }
+
+                if (descriptionText != null && descriptionText.isNotEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.tertiaryContainer.withAlpha(80),
+                        border: Border(
+                          left: BorderSide(
+                            color: Theme.of(context).colorScheme.tertiary,
+                            width: 4,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: Theme.of(context).colorScheme.tertiary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              descriptionText,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onTertiaryContainer,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
               },
             ),
           ],
