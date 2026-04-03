@@ -5385,6 +5385,13 @@
               "fi": "C-Tason Tiivistelmä"
             }
           },
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "High-level overview focused on strategic indicators.",
+              "fi": "Korkean tason strateginen katsaus ylimmälle johdolle."
+            }
+          },
           "display_scale": "original",
           "layouts": [
             {
@@ -5403,6 +5410,13 @@
             "translations": {
               "en": "Technical Deep Dive",
               "fi": "Tekninen Syväluotaus"
+            }
+          },
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Detailed analysis for domain experts.",
+              "fi": "Yksityiskohtainen katsaus ja lähdekritiikki asiantuntijoille."
             }
           },
           "display_scale": "original",
@@ -5425,6 +5439,13 @@
               "fi": "Julkinen Sidosryhmäraportti"
             }
           },
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Redacted, safe report for public distribution.",
+              "fi": "Turvallinen ja maskattu raportti julkiseen jakeluun."
+            }
+          },
           "display_scale": "original",
           "layouts": [
             {
@@ -5445,6 +5466,13 @@
               "fi": "Valmennusraportti"
             }
           },
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Focuses on explicit remediations and coaching steps.",
+              "fi": "Keskittyy korjaaviin toimenpiteisiin ja oppimiseen."
+            }
+          },
           "display_scale": "original",
           "layouts": [
             {
@@ -5463,6 +5491,13 @@
             "translations": {
               "en": "Holistic Audit",
               "fi": "Kokonaisvaltainen Auditointi"
+            }
+          },
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "End-to-end transparent system evaluation.",
+              "fi": "Kaikki osa-alueet avaava täydellinen auditointiraportti."
             }
           },
           "display_scale": "original",

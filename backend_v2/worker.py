@@ -107,7 +107,7 @@ async def execute_workflow_job(
             start_time = datetime.now(UTC)
 
             # V2 Strict Context Execution Engine
-            exec_id = execution_id or str(uuid.uuid4())
+            exec_id = execution_id or f"exe_{uuid.uuid4().hex}"
             await engine.execute_workflow(execution_id=exec_id, workflow=workflow_def, raw_inputs=inputs)
 
             # Final Status Update (Completed)

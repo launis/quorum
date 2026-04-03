@@ -317,7 +317,7 @@ class AuthService:
 
         # We'll run it sync as TinyDB is fast, but logically the method is async.
 
-        org_id = str(uuid.uuid4())
+        org_id = f"org_{uuid.uuid4().hex}"
 
         new_org = Organization(
             id=org_id,

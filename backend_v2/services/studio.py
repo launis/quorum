@@ -442,7 +442,7 @@ class StudioService:
 
         import uuid
 
-        new_id = f"system_config_{uuid.uuid4().hex}"
+        new_id = f"sys_{uuid.uuid4().hex}"
 
         cloned_data = SystemConfigModelRegistry.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id
@@ -633,7 +633,7 @@ class StudioService:
 
         import uuid
 
-        new_id = f"profile_{uuid.uuid4().hex}"
+        new_id = f"prof_{uuid.uuid4().hex}"
 
         cloned_data = OutputProfile.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id

@@ -25,7 +25,7 @@ def mock_repo() -> Any:
         }
     ]
     repo.get_step_by_id.return_value = {
-        "id": "step_bp11111111",
+        "id": "step_1111111111111111",
         "slug": "task_bp",
         "name": {"default_locale": "fi", "translations": {"fi": "Vaihe", "en": "Step"}},
         "prompt_blocks": ["blk_blocktest1"],
