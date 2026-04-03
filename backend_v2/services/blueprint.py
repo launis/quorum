@@ -337,8 +337,23 @@ class BlueprintTransformer:
                 # Production will use Bleach or Presidio later as per user's approval.
                 import re
 
-                safe_md = re.sub(r"<script.*?>.*?</script>", "", str(synthesis_md), flags=re.IGNORECASE | re.DOTALL)
-                safe_md = re.sub(r"<.*?on[a-z]+=[^>]*>", "", safe_md, flags=re.IGNORECASE)
+                safe_md = str(synthesis_md)
+                
+                # 1. Strip blacklisted XSS tags (and their contents)
+                unsafe_tags = ["script", "iframe", "object", "embed", "applet"]
+                for tag in unsafe_tags:
+                    # Handle full tags: <tag>...</tag>
+                    safe_md = re.sub(rf"<{tag}[^>]*>.*?</{tag}>", "", safe_md, flags=re.IGNORECASE | re.DOTALL)
+                    # Handle self-closing tags: <tag/>
+                    safe_md = re.sub(rf"<{tag}[^>]*/>", "", safe_md, flags=re.IGNORECASE)
+                
+                # 2. Strip inline event handlers (e.g. onclick="...")
+                # We repeat the substitution until no more attributes are stripped 
+                # (handling multiple handlers on a single element)
+                prev_md = None
+                while prev_md != safe_md:
+                    prev_md = safe_md
+                    safe_md = re.sub(r'(<[^>]+?)\s+on[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)', r'\1', safe_md, flags=re.IGNORECASE)
 
                 layouts_list.insert(
                     0,

@@ -441,12 +441,29 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     async def _offload_payloads(self, doc_id: str, data: dict[str, Any]) -> None:
         import json
         import logging
+        import uuid
 
         from backend_v2.services.storage import get_storage_driver
 
         driver = get_storage_driver()
         logger = logging.getLogger(__name__)
 
+        # 1. Decouple MCP Audit Trails into native DB subcollection
+        if "frozen_context" in data:
+            if isinstance(data["frozen_context"], dict) and "mcp_tool_audit" in data["frozen_context"]:
+                audit_items = data["frozen_context"].pop("mcp_tool_audit")
+                if audit_items and isinstance(audit_items, list):
+                    coll_path = f"executions/{doc_id}/audit_trails"
+                    for item in audit_items:
+                        item_id = item.get("id") or str(uuid.uuid4())
+                        item["id"] = item_id
+                        try:
+                            # Run synchronously within the event loop iteration. Small documents.
+                            await self.driver.upsert(coll_path, item, item_id)
+                        except Exception as e:
+                            logger.error("[Repository] Failed to persist audit trace %s: %s", item_id, e)
+
+        # 2. Extract massive payloads to Storage Blobs
         for field in ["execution_trace", "frozen_context", "context_variables"]:
             if field in data and data[field]:
                 try:
@@ -471,6 +488,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         driver = get_storage_driver()
         logger = logging.getLogger(__name__)
 
+        # 1. Fetch massive payloads from Storage Blobs
         for field in ["execution_trace", "frozen_context", "context_variables"]:
             path_key = f"{field}_storage_path"
             if path_key in data and data[path_key]:
@@ -495,6 +513,20 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                         status_code=500,
                         details={"error_code": ErrorCodes.DATA_CORRUPTION.value, "path": data[path_key]},
                     ) from e
+
+        # 2. Hydrate MCP Audit Trails from DB subcollection
+        doc_id = data.get("id")
+        if doc_id:
+            try:
+                coll_path = f"executions/{doc_id}/audit_trails"
+                trails = await self.driver.query(coll_path)
+                if trails:
+                    trails.sort(key=lambda x: x.get("timestamp", ""))
+                    if "frozen_context" not in data or not isinstance(data["frozen_context"], dict):
+                        data["frozen_context"] = {}
+                    data["frozen_context"]["mcp_tool_audit"] = trails
+            except Exception as e:
+                logger.warning("[Repository] Failed to hydrate audit_trails for %s: %s", doc_id, e)
 
     # --- Executions ---
 

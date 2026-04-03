@@ -64,6 +64,7 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
 
   const factory EmbeddedOutputProfile({
     required I18nText name,
+    I18nText? description,
     @Default('original') String displayScale,
     SynthesisConfigDTO? synthesis,
     @Default([]) List<OutputLayoutBlock> layouts,

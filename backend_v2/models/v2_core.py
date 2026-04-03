@@ -760,6 +760,8 @@ class ExecutionRecord(V2CoreBase):
     step_states: dict[str, ExecutionStepState] = Field(
         default_factory=dict, description="Real-time status tracking for DAG nodes"
     )
+    synthesized_markdown: str | None = Field(default=None, description="The LLM generated output synthesis")
+    cited_sources: list[str] | None = Field(default=None, description="Citations used in synthesis")
 
     duration_ms: int = Field(default=0, description="Total execution duration in milliseconds")
     models_used: dict[str, int] = Field(

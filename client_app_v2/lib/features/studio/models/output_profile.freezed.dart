@@ -969,7 +969,7 @@ $SynthesisConfigDTOCopyWith<$Res>? get synthesis {
 /// @nodoc
 mixin _$EmbeddedOutputProfile {
 
- I18nText get name; String get displayScale; SynthesisConfigDTO? get synthesis; List<OutputLayoutBlock> get layouts;
+ I18nText get name; I18nText? get description; String get displayScale; SynthesisConfigDTO? get synthesis; List<OutputLayoutBlock> get layouts;
 /// Create a copy of EmbeddedOutputProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -984,7 +984,7 @@ $EmbeddedOutputProfileCopyWith<EmbeddedOutputProfile> get copyWith => _$Embedded
 
 @override
 String toString() {
-  return 'EmbeddedOutputProfile(name: $name, displayScale: $displayScale, synthesis: $synthesis, layouts: $layouts)';
+  return 'EmbeddedOutputProfile(name: $name, description: $description, displayScale: $displayScale, synthesis: $synthesis, layouts: $layouts)';
 }
 
 
@@ -995,11 +995,11 @@ abstract mixin class $EmbeddedOutputProfileCopyWith<$Res>  {
   factory $EmbeddedOutputProfileCopyWith(EmbeddedOutputProfile value, $Res Function(EmbeddedOutputProfile) _then) = _$EmbeddedOutputProfileCopyWithImpl;
 @useResult
 $Res call({
- I18nText name, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
+ I18nText name, I18nText? description, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
 });
 
 
-$I18nTextCopyWith<$Res> get name;$SynthesisConfigDTOCopyWith<$Res>? get synthesis;
+$I18nTextCopyWith<$Res> get name;$I18nTextCopyWith<$Res>? get description;$SynthesisConfigDTOCopyWith<$Res>? get synthesis;
 
 }
 /// @nodoc
@@ -1012,10 +1012,11 @@ class _$EmbeddedOutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of EmbeddedOutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? description = freezed,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
   return _then(_self.copyWith(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as I18nText,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
+as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as I18nText?,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDTO?,layouts: null == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,
@@ -1029,6 +1030,18 @@ $I18nTextCopyWith<$Res> get name {
   
   return $I18nTextCopyWith<$Res>(_self.name, (value) {
     return _then(_self.copyWith(name: value));
+  });
+}/// Create a copy of EmbeddedOutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get description {
+    if (_self.description == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.description!, (value) {
+    return _then(_self.copyWith(description: value));
   });
 }/// Create a copy of EmbeddedOutputProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -1124,10 +1137,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText name,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText name,  I18nText? description,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EmbeddedOutputProfile() when $default != null:
-return $default(_that.name,_that.displayScale,_that.synthesis,_that.layouts);case _:
+return $default(_that.name,_that.description,_that.displayScale,_that.synthesis,_that.layouts);case _:
   return orElse();
 
 }
@@ -1145,10 +1158,10 @@ return $default(_that.name,_that.displayScale,_that.synthesis,_that.layouts);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText name,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText name,  I18nText? description,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
 switch (_that) {
 case _EmbeddedOutputProfile():
-return $default(_that.name,_that.displayScale,_that.synthesis,_that.layouts);case _:
+return $default(_that.name,_that.description,_that.displayScale,_that.synthesis,_that.layouts);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1165,10 +1178,10 @@ return $default(_that.name,_that.displayScale,_that.synthesis,_that.layouts);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText name,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText name,  I18nText? description,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
 switch (_that) {
 case _EmbeddedOutputProfile() when $default != null:
-return $default(_that.name,_that.displayScale,_that.synthesis,_that.layouts);case _:
+return $default(_that.name,_that.description,_that.displayScale,_that.synthesis,_that.layouts);case _:
   return null;
 
 }
@@ -1180,10 +1193,11 @@ return $default(_that.name,_that.displayScale,_that.synthesis,_that.layouts);cas
 @JsonSerializable()
 
 class _EmbeddedOutputProfile extends EmbeddedOutputProfile {
-  const _EmbeddedOutputProfile({required this.name, this.displayScale = 'original', this.synthesis, final  List<OutputLayoutBlock> layouts = const []}): _layouts = layouts,super._();
+  const _EmbeddedOutputProfile({required this.name, this.description, this.displayScale = 'original', this.synthesis, final  List<OutputLayoutBlock> layouts = const []}): _layouts = layouts,super._();
   factory _EmbeddedOutputProfile.fromJson(Map<String, dynamic> json) => _$EmbeddedOutputProfileFromJson(json);
 
 @override final  I18nText name;
+@override final  I18nText? description;
 @override@JsonKey() final  String displayScale;
 @override final  SynthesisConfigDTO? synthesis;
  final  List<OutputLayoutBlock> _layouts;
@@ -1209,7 +1223,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'EmbeddedOutputProfile(name: $name, displayScale: $displayScale, synthesis: $synthesis, layouts: $layouts)';
+  return 'EmbeddedOutputProfile(name: $name, description: $description, displayScale: $displayScale, synthesis: $synthesis, layouts: $layouts)';
 }
 
 
@@ -1220,11 +1234,11 @@ abstract mixin class _$EmbeddedOutputProfileCopyWith<$Res> implements $EmbeddedO
   factory _$EmbeddedOutputProfileCopyWith(_EmbeddedOutputProfile value, $Res Function(_EmbeddedOutputProfile) _then) = __$EmbeddedOutputProfileCopyWithImpl;
 @override @useResult
 $Res call({
- I18nText name, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
+ I18nText name, I18nText? description, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
 });
 
 
-@override $I18nTextCopyWith<$Res> get name;@override $SynthesisConfigDTOCopyWith<$Res>? get synthesis;
+@override $I18nTextCopyWith<$Res> get name;@override $I18nTextCopyWith<$Res>? get description;@override $SynthesisConfigDTOCopyWith<$Res>? get synthesis;
 
 }
 /// @nodoc
@@ -1237,10 +1251,11 @@ class __$EmbeddedOutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of EmbeddedOutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? description = freezed,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
   return _then(_EmbeddedOutputProfile(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as I18nText,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
+as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as I18nText?,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDTO?,layouts: null == layouts ? _self._layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,
@@ -1255,6 +1270,18 @@ $I18nTextCopyWith<$Res> get name {
   
   return $I18nTextCopyWith<$Res>(_self.name, (value) {
     return _then(_self.copyWith(name: value));
+  });
+}/// Create a copy of EmbeddedOutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get description {
+    if (_self.description == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.description!, (value) {
+    return _then(_self.copyWith(description: value));
   });
 }/// Create a copy of EmbeddedOutputProfile
 /// with the given fields replaced by the non-null parameter values.

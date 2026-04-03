@@ -27,6 +27,24 @@ class OutputRenderer extends StatelessWidget {
           color: const Color(0xFFEEEEEE),
           borderRadius: BorderRadius.circular(4),
         ),
+        blockquote: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontStyle: FontStyle.italic,
+              color: Colors.grey[700],
+            ),
+        blockquoteDecoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(color: Theme.of(context).primaryColor, width: 4.0),
+          ),
+          color: Colors.grey[50],
+        ),
+        blockquotePadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        listBullet: Theme.of(context).textTheme.bodyMedium,
+        listIndent: 24.0,
+        tableBorder: TableBorder.all(color: Colors.grey[300]!),
+        tableHead: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+        tableBody: Theme.of(context).textTheme.bodyMedium,
       ),
     );
   }

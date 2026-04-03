@@ -113,6 +113,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     preamble_dict = synthesis_cfg.get("preamble_text")
     omit_empty = synthesis_cfg.get("omit_empty_sections", True)
     enable_masking = synthesis_cfg.get("enable_pii_masking", False)
+    include_historical_summary = synthesis_cfg.get("include_historical_summary", False)
 
     language = str(state.global_context_vars.get("language") or inputs.get("language") or "en")
     language = language.split("-")[0].lower()
@@ -140,12 +141,46 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             },
         )
 
+    # 1.5 Fetch Historical Framework Context
+    historical_context_text = ""
+    if include_historical_summary:
+        user_id = inputs.get("user_id")
+        org_id = inputs.get("organization_id")
+
+        if user_id or org_id:
+            logger.debug("[SynthesisHook] Fetching historical summary for org_id=%s, user_id=%s", org_id, user_id)
+            all_execs = await deps.repository.get_all_executions(organization_id=org_id, user_id=user_id)
+
+            valid_past = []
+            for e in all_execs:
+                if e.id == state.execution_id:
+                    continue
+                if e.status.value != "completed":
+                    continue
+                if not e.synthesized_markdown:
+                    continue
+                valid_past.append(e)
+
+            # Sort by completion date descending, take top 3
+            valid_past.sort(key=lambda x: x.completed_at or x.created_at, reverse=True)
+            top_3 = valid_past[:3]
+
+            if top_3:
+                historical_parts = []
+                for past_e in reversed(top_3):
+                    dt_str = past_e.completed_at.strftime("%Y-%m-%d") if past_e.completed_at else "Unknown Date"
+                    historical_parts.append(f"--- Execution Date: {dt_str} ---\n{past_e.synthesized_markdown}")
+
+                historical_context_text = (
+                    "<HistoricalContext>\n" + "\n\n".join(historical_parts) + "\n</HistoricalContext>\n\n"
+                )
+
     # 2. Combine parts & PII mask
     combined_text_parts = []
     for k, v in consolidated_inputs.items():
         combined_text_parts.append(f"### {k}\n{v}")
 
-    raw_input_text = "\n\n".join(combined_text_parts)
+    raw_input_text = historical_context_text + "\n\n".join(combined_text_parts)
 
     if enable_masking:
         raw_input_text = _mask_pii_local(raw_input_text)

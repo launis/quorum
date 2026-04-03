@@ -221,12 +221,22 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
   ($checkedConvert) {
     $checkKeys(
       json,
-      allowedKeys: const ['name', 'display_scale', 'synthesis', 'layouts'],
+      allowedKeys: const [
+        'name',
+        'description',
+        'display_scale',
+        'synthesis',
+        'layouts',
+      ],
     );
     final val = _EmbeddedOutputProfile(
       name: $checkedConvert(
         'name',
         (v) => I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      description: $checkedConvert(
+        'description',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
       displayScale: $checkedConvert(
         'display_scale',
@@ -258,6 +268,7 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
   _EmbeddedOutputProfile instance,
 ) => <String, dynamic>{
   'name': instance.name.toJson(),
+  'description': instance.description?.toJson(),
   'display_scale': instance.displayScale,
   'synthesis': instance.synthesis?.toJson(),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
