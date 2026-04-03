@@ -23,6 +23,7 @@ def patch_workflows() -> None:
         pid = p["id"]
         embedded_profiles[pid] = {
             "name": p["name"],
+            "description": p.get("description"),
             "display_scale": p.get("display_scale", "original"),
             "layouts": p.get("layouts", []),
         }

@@ -608,6 +608,7 @@ class EmbeddedOutputProfile(V2CoreBase):
     """Embedded configuration mapping for workflow output profiles."""
 
     name: I18nText = Field(description="Localized name of the profile.")
+    description: I18nText | None = Field(default=None, description="Detailed profile context")
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original",
         description="Selects the source scaling for the scores printed by Blueprint.",
