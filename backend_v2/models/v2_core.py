@@ -42,7 +42,9 @@ __all__ = [
     "WorkflowInputs",
     "QuestionnaireItem",
     "OutputLayoutBlock",
+    "SynthesisConfigDTO",
     "OutputProfile",
+    "EmbeddedOutputProfile",
 ]
 
 
@@ -551,6 +553,24 @@ class OutputLayoutBlock(V2CoreBase):
     show_text: bool = Field(default=True, description="Whether to include text justifications in this block.")
 
 
+class SynthesisConfigDTO(V2CoreBase):
+    """Configuration for LLM output synthesis length, masking, and formatting."""
+
+    length_constraint: int | None = Field(default=None, description="Length constraint for the synthesized text.")
+    preamble_text: I18nText | None = Field(
+        default=None, description="Multilingual preamble text added before synthesis."
+    )
+    include_historical_summary: bool = Field(
+        default=False, description="Flag for fetching sliding window history summary."
+    )
+    enable_pii_masking: bool = Field(default=False, description="Flag to enable algorithmic PII redaction.")
+    allowed_exports: list[Literal["pdf", "docx", "raw_json"]] = Field(
+        default_factory=lambda: ["pdf", "raw_json"],
+        description="Supported export file formats.",
+    )
+    omit_empty_sections: bool = Field(default=True, description="Flag to drop logically empty evaluation sections.")
+
+
 class OutputProfile(V2CoreBase):
     """A distinct report variant containing a sequence of layout blocks."""
 
@@ -563,6 +583,9 @@ class OutputProfile(V2CoreBase):
         default="original",
         description="Selects the source scaling for the scores printed by Blueprint.",
     )
+    synthesis: SynthesisConfigDTO | None = Field(
+        default=None, description="Nested definition for synthesis configurations."
+    )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
 
 
@@ -573,6 +596,9 @@ class EmbeddedOutputProfile(V2CoreBase):
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original",
         description="Selects the source scaling for the scores printed by Blueprint.",
+    )
+    synthesis: SynthesisConfigDTO | None = Field(
+        default=None, description="Nested definition for synthesis configurations."
     )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
 
