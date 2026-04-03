@@ -108,7 +108,29 @@ async def execute_workflow_job(
 
             # V2 Strict Context Execution Engine
             exec_id = execution_id or f"exe_{uuid.uuid4().hex}"
-            await engine.execute_workflow(execution_id=exec_id, workflow=workflow_def, raw_inputs=inputs)
+            exec_record = await engine.execute_workflow(execution_id=exec_id, workflow=workflow_def, raw_inputs=inputs)
+
+            try:
+                from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
+                from backend_v2.models.state import StateProjector
+
+                # Reconstruct blackboard from trace
+                projector = StateProjector()
+                for evt in exec_record.execution_trace:
+                    projector.apply_delta(evt)
+
+                final_inputs = projector.snapshot
+
+                state = HookState(execution_id=exec_id, workflow_id=workflow_id, inputs=final_inputs)
+                deps = HookDependencies(repository=repository)
+                hook_res = await hook_registry.execute("text_consolidation_hook", state, deps)
+
+                if hook_res.success and hook_res.state_delta and "synthesized_markdown" in hook_res.state_delta:
+                    await repository.update_execution(
+                        exec_id, {"synthesized_markdown": hook_res.state_delta["synthesized_markdown"]}
+                    )
+            except Exception as e:
+                logger.error("[Worker] TextConsolidationHook failed for %s: %s", exec_id, str(e), exc_info=True)
 
             # Final Status Update (Completed)
             if execution_id:
