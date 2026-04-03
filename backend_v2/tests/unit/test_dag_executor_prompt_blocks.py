@@ -74,7 +74,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
         mock_strategy.return_value = mock_bound_client
 
         mock_repo.get_execution.return_value = {
-            "id": "exec_123123123",
+            "id": "exe_1231231231231231",
             "workflow_id": "wf_5555555555555555",
             "status": ExecutionStatus.RUNNING,
             "raw_inputs": {"chat_log": "dGVzdA=="},
@@ -88,7 +88,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             )
 
             record = await executor.execute_workflow(
-                execution_id="exec_123123123", workflow=workflow, raw_inputs={"chat_log": "dGVzdA=="}
+                execution_id="exe_1231231231231231", workflow=workflow, raw_inputs={"chat_log": "dGVzdA=="}
             )
 
     # Assert repo called new method instead of get_all_matrices

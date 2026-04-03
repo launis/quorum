@@ -18,7 +18,7 @@ def mock_repo() -> AsyncMock:
 
     # Mock context rehydration
     repo.get_execution.return_value = {
-        "id": "exe_tgtg12345678",
+        "id": "exe_1111222233334444",
         "workflow_id": "wf_tg_test",
         "status": ExecutionStatus.PENDING,
         "raw_inputs": {"log": "test"},
@@ -84,7 +84,7 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
         with patch.object(executor.node_executor, "execute", side_effect=mock_execute):
             with pytest.raises(AppException) as exc_info:
                 await executor.execute_workflow(
-                    execution_id="exe_tgtg12345678", workflow=workflow, raw_inputs={"log": "test"}
+                    execution_id="exe_1111222233334444", workflow=workflow, raw_inputs={"log": "test"}
                 )
 
             # The failure from the first step should unwrap gracefully

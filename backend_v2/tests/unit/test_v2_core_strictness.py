@@ -27,7 +27,7 @@ def test_prompt_block_allow_decimals_requires_numeric() -> None:
     # Should raise error for allow_decimals=True with incompatible type
     with pytest.raises(AppException) as exc_info:
         PromptBlock(
-            id="blk_invalidblock",
+            id="blk_ffff1111ffff1111",
             slug="invalid_slug",
             label=label,
             description=desc,
@@ -44,14 +44,18 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
 
     # Successful: Has prompt blocks
     valid_blueprint = Step(
-        id="step_1111111111111111bbbbbbbb", slug="task_bp_valid", name=label, prompt_blocks=["some_block"], model_strategy="fast"
+        id="step_11111111abababab",
+        slug="task_bp_valid",
+        name=label,
+        prompt_blocks=["some_block"],
+        model_strategy="fast",
     )
     assert valid_blueprint.slug == "task_bp_valid"
 
     # Fails: Nothing defined
     with pytest.raises(AppException) as exc_info:
         Step(
-            id="step_bpiderror",
+            id="step_ffff1111ffff1111",
             slug="task_bp_err",
             name=label,
             prompt_blocks=[],
@@ -68,7 +72,7 @@ def test_opaque_id_regex_validation() -> None:
     # 1. Test PromptBlock creation rejection
     with pytest.raises(ValidationError) as exc_pb:
         PromptBlock(
-            id="org_1234567890123456",  # INVALID
+            id="legacy-slug-without-prefix",  # INVALID
             slug="valid_slug",
             label=label,
             description=label,
@@ -76,7 +80,7 @@ def test_opaque_id_regex_validation() -> None:
             type=BlockDataType.STRING,
             output_extensions=[],
         )
-    assert "String should match pattern '^([a-z]{2,5})_[a-zA-Z0-9]{8,}$'" in str(exc_pb.value)
+    assert "String should match pattern '^([a-z]{2,5})_[a-fA-F0-9]{16,32}$'" in str(exc_pb.value)
 
     # 2. Test Step creation rejection
     with pytest.raises(ValidationError) as exc_step:
@@ -87,4 +91,4 @@ def test_opaque_id_regex_validation() -> None:
             prompt_blocks=["blk_test"],
             model_strategy="fast",
         )
-    assert "String should match pattern '^([a-z]{2,5})_[a-zA-Z0-9]{8,}$'" in str(exc_step.value)
+    assert "String should match pattern '^([a-z]{2,5})_[a-fA-F0-9]{16,32}$'" in str(exc_step.value)

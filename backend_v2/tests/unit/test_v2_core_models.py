@@ -31,23 +31,28 @@ def test_execution_record_fail_fast_on_corrupt_status() -> None:
         ExecutionRecord.model_validate(data)
     assert "Input should be 'pending'" in str(exc_info.value)
 
+
+from typing import Any
+
+
 def test_embedded_output_profile_description_parsing() -> None:
     # 1. Success case with valid I18nText
-    valid_data = {
+    valid_data: dict[str, Any] = {
         "name": {"default_locale": "en", "translations": {"en": "My Profile"}},
         "description": {"default_locale": "en", "translations": {"en": "A valid description"}},
         "display_scale": "original",
         "synthesis": None,
-        "layouts": []
+        "layouts": [],
     }
     profile_success = EmbeddedOutputProfile.model_validate(valid_data)
+    assert profile_success.description is not None
     assert profile_success.description.get("en") == "A valid description"
 
     # 2. Fail-fast case with invalid description
-    invalid_data = {
+    invalid_data: dict[str, Any] = {
         "name": {"default_locale": "en", "translations": {"en": "My Profile"}},
         "description": "This is a simple string instead of I18nText dict",
-        "display_scale": "original"
+        "display_scale": "original",
     }
     with pytest.raises(ValidationError) as exc_info:
         EmbeddedOutputProfile.model_validate(invalid_data)

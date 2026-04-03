@@ -44,7 +44,7 @@ class PdfReportService:
             if not isinstance(text, str):
                 return str(text) if text else ""
             try:
-                import markdown  # type: ignore[import-untyped]
+                import markdown
 
                 return str(markdown.markdown(text, extensions=["extra", "nl2br"]))
             except ImportError:

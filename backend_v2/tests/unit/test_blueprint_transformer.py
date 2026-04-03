@@ -14,9 +14,9 @@ def mock_repo() -> Any:
     repo = AsyncMock()
     repo.get_workflow_by_id.return_value = {
         "name": {"default_locale": "en", "translations": {"en": "Mock Workflow", "fi": "Testi Työnkulku"}},
-        "default_profile_id": "prf_default1",
+        "default_profile_id": "prf_dddd1111dddd1111",
         "output_profiles": {
-            "prf_default1": {
+            "prf_dddd1111dddd1111": {
                 "name": {"default_locale": "en", "translations": {"en": "Default"}},
                 "workflow_id": "wf_1",
                 "layouts": [
@@ -32,7 +32,7 @@ def mock_repo() -> Any:
     }
     repo.get_all_output_profiles.return_value = [
         {
-            "id": "prf_default1",
+            "id": "prf_dddd1111dddd1111",
             "slug": "default",
             "name": {"default_locale": "en", "translations": {"en": "Default"}},
             "workflow_id": "wf_1",
@@ -78,7 +78,7 @@ async def test_build_report_dto_maps_correctly(mock_repo: Any) -> None:
                 },
             )
         ],
-        active_profile_id="prf_default1",
+        active_profile_id="prf_dddd1111dddd1111",
         metadata={"target_locale": "en"},
     )
     transformer = BlueprintTransformer(mock_repo)
@@ -106,7 +106,7 @@ async def test_graceful_degradation_missing_fields(mock_repo: Any) -> None:
         workflow_id="wf_1",
         status=ExecutionStatus.COMPLETED,
         execution_trace=[],
-        active_profile_id="prf_default1",
+        active_profile_id="prf_dddd1111dddd1111",
         metadata={"target_locale": "fi"},
     )
     transformer = BlueprintTransformer(mock_repo)

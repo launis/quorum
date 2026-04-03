@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock
 import pytest  # force cache reload
 
 from backend_v2.database.repository import AbstractWorkflowRepository
-from backend_v2.models.v2_core import ExecutionRecord
+from backend_v2.models.state import TraceEvent
+from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
 from backend_v2.services.blueprint import BlueprintTransformer
 
 
@@ -12,12 +13,12 @@ def mock_repo() -> AsyncMock:
     repo = AsyncMock(spec=AbstractWorkflowRepository)
     repo.get_workflow_by_id.return_value = {
         "id": "wf_test",
-        "default_profile_id": "prf_1234abcd",
+        "default_profile_id": "prf_1234abcd1234abcd",
         "steps": [],
     }
     repo.get_all_output_profiles.return_value = [
         {
-            "id": "prf_1234abcd",
+            "id": "prf_1234abcd1234abcd",
             "slug": "default",
             "workflow_id": "wf_test",
             "name": {"default_locale": "en", "translations": {"fi": "Oletus", "en": "Default"}},
@@ -50,19 +51,19 @@ async def test_blueprint_zero_math_rounding(mock_repo: AsyncMock) -> None:
     mock_execution = ExecutionRecord(
         id="exe_1111111122222222",
         workflow_id="wf_test",
-        status="completed",
+        status=ExecutionStatus.COMPLETED,
         execution_trace=[
-            {
-                "event_type": "output",
-                "step_name": "step_1",
-                "content": {
+            TraceEvent(
+                event_type="output",
+                step_name="step_1",
+                content={
                     "metric_category": 3.14159,  # Should become 3.1
                     "scoring_result": {
                         "total_score": 4.567  # Should become 4.6
-                    }
-                }
-            }
-        ]
+                    },
+                },
+            )
+        ],
     )
     mock_repo.get_execution.return_value = mock_execution
 
@@ -82,17 +83,17 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo: AsyncMock) -> N
     mock_execution = ExecutionRecord(
         id="exe_1111111122222222",
         workflow_id="wf_test",
-        status="completed",
+        status=ExecutionStatus.COMPLETED,
         execution_trace=[
-            {
-                "event_type": "output",
-                "step_name": "step_1",
-                "content": {
+            TraceEvent(
+                event_type="output",
+                step_name="step_1",
+                content={
                     "synthesized_markdown": "### Title\\n<script>alert('xss');</script>Some content.",
-                    "has_warning": True
-                }
-            }
-        ]
+                    "has_warning": True,
+                },
+            )
+        ],
     )
     mock_repo.get_execution.return_value = mock_execution
 
@@ -109,5 +110,6 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo: AsyncMock) -> N
     assert synthesis_axis.name == "coach-markdown"
 
     # MVP XSS sanitization test
+    assert synthesis_axis.justification is not None
     assert "<script>" not in synthesis_axis.justification
     assert "Some content" in synthesis_axis.justification
