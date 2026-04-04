@@ -111,4 +111,13 @@
         <banned_pattern>Modifying, examining, or referencing `.g.dart` or `.freezed.dart` serialization code files organically.</banned_pattern>
         <mandatory_pattern>The cognitive loop MUST actively ignore `build/` directories and native generated artifact file paths.</mandatory_pattern>
     </rule_block>
+
+    <rule_block id="manual_code_generation_crises">
+        <banned_pattern>Getting stuck in loops trying to fix `AppLocalizations isn't defined`, `Couldn't resolve the package 'flutter_gen'`, or missing `.g.dart` / `.freezed.dart` files by changing Dart source code.</banned_pattern>
+        <mandatory_pattern>When `.arb` files are modified manually (bypassing normal save-watchers) or generated models throw missing file errors, you MUST forcefully command the user to regenerate them in the client directory:
+        1. For localization (l10n) errors: Ask user to run `cd client_app_v2; flutter gen-l10n;`
+        2. For Riverpod/Freezed serialization errors: Ask user to run `cd client_app_v2; dart run build_runner build -d;`
+        NEVER try to fix these missing files by modifying Dart view logic!</mandatory_pattern>
+        <catastrophic_reason>Windows native builds often fail to detect manual changes to non-Dart files (like `.arb` strings) and will break the build with false "missing module" errors.</catastrophic_reason>
+    </rule_block>
 </universal_quality_gate>

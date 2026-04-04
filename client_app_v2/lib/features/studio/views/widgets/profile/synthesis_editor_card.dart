@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 class SynthesisEditorCard extends StatelessWidget {
   final SynthesisConfigDTO? synthesis;
   final Function(SynthesisConfigDTO?) onChanged;

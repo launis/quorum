@@ -5909,6 +5909,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Global Percentage (0 - 100)'**
   String get scaleNormalized100;
+
+  /// No description provided for @synConfigTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Synthesis & Export Configuration'**
+  String get synConfigTitle;
+
+  /// No description provided for @synPreambleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Preamble Text'**
+  String get synPreambleLabel;
+
+  /// No description provided for @synMaxLengthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Length Constraint'**
+  String get synMaxLengthLabel;
+
+  /// No description provided for @synMaxLengthHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty for no limit'**
+  String get synMaxLengthHelper;
+
+  /// No description provided for @synEnablePii.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable PII Masking'**
+  String get synEnablePii;
+
+  /// No description provided for @synEnablePiiHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Ensure PII is masked before LLM call'**
+  String get synEnablePiiHelper;
+
+  /// No description provided for @synIncludeHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Include Historical Summary'**
+  String get synIncludeHistory;
+
+  /// No description provided for @synOmitEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Omit Empty Sections'**
+  String get synOmitEmpty;
+
+  /// No description provided for @synAllowedExports.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed Exports'**
+  String get synAllowedExports;
 }
 
 class _AppLocalizationsDelegate

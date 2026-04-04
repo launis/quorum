@@ -25,6 +25,9 @@ Agentin komentaminen tapahtuu kutsumalla työnkulkua sen nimellä (esim. *"Aja /
 *   **`/tier5-zero-shortcut-audit` (Armoton Katselmoija):** 
     *   **Miksi:** Halutaan varmistaa, että vastakirjoitettu koodi täyttää kaikki V5.2 Phase 9 -laatuvaatimukset.
     *   **Toiminta:** Hylkää koodin välittömästi (REFUSED), mikäli siihen ei ole kirjoitettu testejä tai linttaus- / koodauskomentoja (The Universal Quality Gate) yritetään kiertää.
+*   **`/tier5-session-handover` (Kontekstin Siirtäjä):** 
+    *   **Miksi:** Koodaussessio pitkittyy ja laatuportti on vaarassa tekoälyn "Prompt Bleedin" takia.
+    *   **Toiminta:** Skannaa tekoälyn oman muistin, eristää sessiossa muokatut `.py`/`.dart` -tiedostot ja luo valmiin kopioitavan blokin turvallista ikkunanvaihtoa varten.
 
 ---
 
@@ -59,6 +62,45 @@ Hardening-workflow lukee satoja rivejä koodia kerralla. Pitkä konteksti aiheut
 2. **Atomiset Git-tallennuspisteet:** Älä avaa uutta ikkunaa, jos koodaus on rikki. Tee aina *Git commit* onnistuneen korjaus- ja testauskierroksen jälkeen selkeäksi tallennuspisteeksi, ja avaa uusi ikkuna vasta sitten.
 3. **Kontekstin siirto:** Et tarvitse kartoitusvaihetta (Mapping) uudessa ikkunassa. Ohjeista uutta chattiä suoraan:
    > *"Jatkamme jatkuvaa @tier2-hardening-backend.md -prosessia. Olemme vaiheessa 2 (Auditing). Tässä on jäljellä oleva task_backend.md -tarkistuslista: [liitä tekemättömät hakemistot]. Aloita ensimmäisestä kohdasta."*
+
+### Tier 2 Hardening vs Tier 5 Zero-Shortcut Audit
+
+Vaikka molemmat tarkastavat koodia tiukkojen SWR- ja Fail-Fast -sääntöjen läpi, niiden "asenne" ja tavoitteet eroavat radikaalisti:
+
+*   **Tier 5 on osastojen laadunvalvoja ("Tarkka-ampuja"):**
+    *   **Asenne:** "Armoton QA-Portinvartija" (Ruthless Reviewer).
+    *   **Toiminta:** Kohdistetaan 1–3 juuri kirjoitettuun tiedostoon (tai pieneen selkeään rajaukseen) kerrallaan. Se haastaa uuden koodin olemassaolon ja vaatii todisteita laadusta. Mikäli uutta logiikkaa esitetään ilman uusia yksikkötestejä tai tuloksia paikallisesta linttauksesta, auditointi hylätään (REFUSED) välittömästi.
+    *   **Käytä kun:** Halutaan testata yksittäisen uuden ominaisuuden tuotantovalmius ja estää mutkien oikominen ennen hyväksyttyä "Save State" -tallennusta.
+*   **Tier 2 on järjestelmällinen puhdistusoperaatio ("Harava"):**
+    *   **Asenne:** "Talkoomies" (Mechanical Refactorer).
+    *   **Toiminta:** Se ei vaadi nähtäväksi täydellisiä yksikkötestejä jokaisen korjaskierroksen lomasta. Se purkaa yhtä alihakemistoa kerrallaan ja refaktoroi tiedostot mekaanisesti vastaamaan alueen sääntöjä (kuten paremmat `try-catch` purut tai Pydantic/Riverpod syntaksit). Sitten se vain ilmoittaa olevansa valmis jatkamaan seuraavaan kansioon.
+    *   **Käytä kun:** Refaktoroidaan kokonaisia vanhoja alueita, tuodaan legacy-koodia nyky-mandaattien mukaiselle tasolle, tai päivitetään laajaa koodipohjaa systemaattisesti ilman pelkoa tekoälyn konteksti-ikkunan hajoamisesta.
+
+### Koodin laadun "Sniper" -katselmointi (Tier 5 Siirtymä)
+
+Kun olet koodannut tai refaktoroinut yksittäisiä tiedostoja pitemmän aikaa samassa chat-sessiossa, konteksti-ikkunasi on alkanut rasittumaan ("Prompt Bleed" riski kasvaa). Tällöin absoluuttisen luotettavan Tier 5 -auditoinnin ajaminen samassa ikkunassa asettaa laatuportin kyseenalaiseksi.
+
+Siirtymä uuteen puhtaaseen ikkunaan riippuu siitä, kuinka massiivinen koodaussessiosi oli:
+
+#### Skenaario A: Lyhyet ja normaalit sessiot (Tekoälyn muisti tallella)
+Jos teit muutaman luokan ja refaktoroinnin, tekoälyn lyhytkestoinen muisti (Context Window) on vielä ehjä. Ohittaaksesi lokaalin OS-hiekkalaatikon kiertojulkaisut:
+1. **Generoi Handover-blokki:** Aja työnkulku `/tier5-session-handover`. Tämä aktivoi agentin purkamaan automaattisesti oman muistinsa tältä ajalta.
+2. **Kopioi komento leikepöydälle:** Tekoäly antaa sinulle valmiin listan polkuineen muokkaamistanne luokista.
+3. **Commit & Reset:** Lukitse muutokset Gitiin (`git commit`), sulje nykyinen ikkuna ja avaa puhdas uusi chat.
+4. **Liimaa ja Ammu:** Aloita uusi keskustelu liimaamalla generoitu `/tier5` komento suoraan chattikenttään.
+
+#### Skenaario B: Eeppiset "Megasessiot" (Konteksti katkennut)
+Jos sessio on kestänyt satoja viestejä ja sisältänyt kymmeniä jatkuvia "Atomisia Git Committeja", tekoälyjärjestelmä on kulissien takana automaattisesti joutunut **leikkaamaan oman muistinsa hännän (Context Truncation)** estääkseen kaatumisen. Tällöin tekoälyn oma siirtymätyökalu on "sokea" aamupäivän tiedostoille.
+
+Koska olet tehnyt jatkuvia atomisia committeja oppaan mukaan, *git diff* näyttää tyhjää. Kaiva tiedostot Gitin **historiasta** Powershellissä:
+1. Päätä kuinka monta (esim. `X`) edellistä commitia lasket tähän ikkunaan kuuluviksi, ja aja päätteessä komento (esimerkissä 5 viimeisintä):
+   ```powershell
+   git show --name-only --pretty="" HEAD~5..HEAD | Select-String "\.(py|dart)$" | Sort-Object -Unique
+   ```
+2. Kopioi päätteestä tulostuva puhdas lista .py ja .dart muokkauksistasi leikepöydälle.
+3. Avaa täysin uusi chat-ikkuna ja anna "Sniperille" uutisena komento: *"Aja /tier5-zero-shortcut-audit näille tiedostoille: [liimaa Git-lista tähän]"*.
+
+Uusi agentti herää ehdottomalla SWR / Fail-Fast -tietoisuudella puhtaalta pöydältä, ja vaatii sinulta tiukat yksikkötestit ja laatuportin tulokset puhtaasti vain siihen koodiin, jonka koodasitte edellisessä ikkunassa!
 
 ---
 

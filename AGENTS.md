@@ -45,6 +45,7 @@
         <file id="02">c:\src\quorum\.agents\rules\02_flutter_desktop.md</file>
         <file id="03">c:\src\quorum\.agents\rules\03_seed_vault.md</file>
         <file id="04">c:\src\quorum\.agents\rules\04_directory_reference.md</file>
+        <file id="05">c:\src\quorum\.agents\rules\05_llm_architecture.md</file>
     </required_scanners>
 </agentic_control_center>
 

@@ -49,4 +49,9 @@
         <banned_pattern>Building ad-hoc LLM instances or placing core parsing instructions into dynamic variables / database fields for backend utilities like `chat_parser.py` or `translation_hook.py`.</banned_pattern>
         <mandatory_pattern>Non-workflow Internal LLM Utilities MUST execute as follows: 1) Load client via `await LLMClient.from_strategy("fast", repository=repo)`. 2) Define instructions as a file-level `_SYSTEM_INSTRUCTION` constant. 3) Pass strictly segregated messages to `run_chat(messages=...)` or `run_structured_task(messages=...)`.</mandatory_pattern>
     </rule_block>
+
+    <rule_block id="hybrid_prompting_mandate">
+        <banned_pattern>Writing flat, unstructured strings or monolithic text paragraphs for LLM `_SYSTEM_INSTRUCTION` prompts within the backend.</banned_pattern>
+        <mandatory_pattern>All internal system prompts MUST be written using the "Hybrid Prompting" methodology (XML tags embedded in Markdown). Use explicit tags like `<context>`, `<rules>`, and `<output_constraints>` to define semantic boundaries for the AI. This guarantees predictable behavior and eliminates prompt bleed.</mandatory_pattern>
+    </rule_block>
 </architectural_invariants>

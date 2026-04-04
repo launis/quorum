@@ -3224,4 +3224,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scaleNormalized100 => 'Global Percentage (0 - 100)';
+
+  @override
+  String get synConfigTitle => 'Synthesis & Export Configuration';
+
+  @override
+  String get synPreambleLabel => 'Preamble Text';
+
+  @override
+  String get synMaxLengthLabel => 'Max Length Constraint';
+
+  @override
+  String get synMaxLengthHelper => 'Leave empty for no limit';
+
+  @override
+  String get synEnablePii => 'Enable PII Masking';
+
+  @override
+  String get synEnablePiiHelper => 'Ensure PII is masked before LLM call';
+
+  @override
+  String get synIncludeHistory => 'Include Historical Summary';
+
+  @override
+  String get synOmitEmpty => 'Omit Empty Sections';
+
+  @override
+  String get synAllowedExports => 'Allowed Exports';
 }

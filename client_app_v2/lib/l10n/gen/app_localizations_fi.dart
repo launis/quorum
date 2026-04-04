@@ -3246,4 +3246,32 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get scaleNormalized100 => 'Prosentuaalinen (0 - 100)';
+
+  @override
+  String get synConfigTitle => 'Synteesi- ja vientiasetukset';
+
+  @override
+  String get synPreambleLabel => 'Alkuteksti (Preamble)';
+
+  @override
+  String get synMaxLengthLabel => 'Pituuden enimmäisraja';
+
+  @override
+  String get synMaxLengthHelper => 'Jätä tyhjäksi, jos ei rajaa';
+
+  @override
+  String get synEnablePii => 'Ota PII-maskaus käyttöön';
+
+  @override
+  String get synEnablePiiHelper =>
+      'Varmista henkilötietojen maskaus ennen LLM-kutsua';
+
+  @override
+  String get synIncludeHistory => 'Sisällytä historiallinen yhteenveto';
+
+  @override
+  String get synOmitEmpty => 'Jätä tyhjät osiot pois';
+
+  @override
+  String get synAllowedExports => 'Sallitut vientimuodot';
 }
