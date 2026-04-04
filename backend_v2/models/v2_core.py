@@ -566,6 +566,9 @@ class OutputLayoutBlock(V2CoreBase):
         default_factory=list, description="Optional explicit block IDs to plot, filtering and ordering the axes."
     )
     show_text: bool = Field(default=True, description="Whether to include text justifications in this block.")
+    synthesis: SynthesisConfigDTO | None = Field(
+        default=None, description="Optional Section-Level Synthesis configuration for this block."
+    )
 
 
 class SynthesisConfigDTO(V2CoreBase):
@@ -594,6 +597,10 @@ class OutputProfile(V2CoreBase):
     workflow_id: str = Field(description="ID of the associated Workflow")
     name: I18nText = Field(description="Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})")
     description: I18nText | None = Field(default=None, description="Detailed profile context")
+    visible_metadata: list[str] = Field(
+        default_factory=lambda: ["date", "organization"],
+        description="List of metadata fields visible on the UI and PDF cover header.",
+    )
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original",
         description="Selects the source scaling for the scores printed by Blueprint.",
@@ -609,6 +616,10 @@ class EmbeddedOutputProfile(V2CoreBase):
 
     name: I18nText = Field(description="Localized name of the profile.")
     description: I18nText | None = Field(default=None, description="Detailed profile context")
+    visible_metadata: list[str] = Field(
+        default_factory=lambda: ["date", "organization"],
+        description="List of metadata fields visible on the UI and PDF cover header.",
+    )
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original",
         description="Selects the source scaling for the scores printed by Blueprint.",

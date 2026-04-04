@@ -9,7 +9,7 @@ async def test_studio_workflow_blueprint_saving_valid() -> None:
     from backend_v2.models.v2_core import Workflow
 
     payload = {
-        "id": "wf_test12345678",
+        "id": "wf_1111222233334444",
         "slug": "wf_test_1",
         "name": "Test Workflow",
         "description": "Test description",

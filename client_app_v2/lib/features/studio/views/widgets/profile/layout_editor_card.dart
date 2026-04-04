@@ -5,6 +5,7 @@ import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/features/studio/views/widgets/profile/synthesis_editor_card.dart';
 
 class LayoutEditorCard extends ConsumerWidget {
   final List<OutputLayoutBlock> layouts;
@@ -189,6 +190,42 @@ class LayoutEditorCard extends ConsumerWidget {
               updateLayout(layout.copyWith(title: val));
             },
           ),
+          const SizedBox(height: 12),
+          SwitchListTile(
+            title: const Text(
+              'Käytä osiokohtaista synteesiä (Section-Level Synthesis)',
+            ),
+            subtitle: const Text(
+              'Ohittaa globaalin raporttisynteesin asetukset tälle osiolle',
+            ),
+            value: layout.synthesis != null,
+            onChanged: (val) {
+              if (val) {
+                updateLayout(
+                  layout.copyWith(synthesis: const SynthesisConfigDTO()),
+                );
+              } else {
+                updateLayout(layout.copyWith(synthesis: null));
+              }
+            },
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+          ),
+          if (layout.synthesis != null)
+            Padding(
+              padding: const EdgeInsets.only(
+                top: 8.0,
+                left: 4.0,
+                right: 4.0,
+                bottom: 12.0,
+              ),
+              child: SynthesisEditorCard(
+                synthesis: layout.synthesis,
+                onChanged: (val) {
+                  updateLayout(layout.copyWith(synthesis: val));
+                },
+              ),
+            ),
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,

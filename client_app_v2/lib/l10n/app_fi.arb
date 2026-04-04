@@ -1064,5 +1064,14 @@
   "profileDisplayScaleLabel": "Tulosteen skaalauslähde",
   "scaleOriginal": "Alkuperäinen matriisiarvo (Oletus)",
   "scaleCustom": "Custom laskutoimitus (Hook)",
-  "scaleNormalized100": "Prosentuaalinen (0 - 100)"
+  "scaleNormalized100": "Prosentuaalinen (0 - 100)",
+  "synConfigTitle": "Synteesi- ja vientiasetukset",
+  "synPreambleLabel": "Alkuteksti (Preamble)",
+  "synMaxLengthLabel": "Pituuden enimmäisraja",
+  "synMaxLengthHelper": "Jätä tyhjäksi, jos ei rajaa",
+  "synEnablePii": "Ota PII-maskaus käyttöön",
+  "synEnablePiiHelper": "Varmista henkilötietojen maskaus ennen LLM-kutsua",
+  "synIncludeHistory": "Sisällytä historiallinen yhteenveto",
+  "synOmitEmpty": "Jätä tyhjät osiot pois",
+  "synAllowedExports": "Sallitut vientimuodot"
 }

@@ -7,12 +7,12 @@ from backend_v2.models.v2_core import Step
 def test_step_schema_valid_inputs() -> None:
     # Test successful instantiation with expected_inputs and output_schema
     payload = {
-        "id": "st_12345678",
+        "id": "stp_1234567890abcdef",
         "slug": "step_test",
         "name": {"default_locale": "en", "translations": {"en": "Test Step"}},
         "type": "llm",
         "model_strategy": "fast",
-        "prompt_blocks": ["blk_1234"],
+        "prompt_blocks": ["blk_1234567890abcdef"],
         "expected_inputs": ["doc_id", "user_prompt"],
         "output_schema": {
             "type": "object",
@@ -30,12 +30,12 @@ def test_step_schema_valid_inputs() -> None:
 def test_step_schema_invalid_expected_inputs_type() -> None:
     # Test strict validation failure when expected_inputs is an object instead of list
     payload = {
-        "id": "st_12345678",
+        "id": "stp_1234567890abcdef",
         "slug": "step_test",
         "name": {"default_locale": "en", "translations": {"en": "Test Step"}},
         "type": "llm",
         "model_strategy": "fast",
-        "prompt_blocks": ["blk_1234"],
+        "prompt_blocks": ["blk_1234567890abcdef"],
         "expected_inputs": {"doc_id": "string"},  # Invalid: must be list[str]
     }
     
@@ -48,12 +48,12 @@ def test_step_schema_invalid_expected_inputs_type() -> None:
 def test_step_schema_forbid_extra_keys() -> None:
     # Test the absolute Fail-Fast V2CoreBase extra='forbid' mandate
     payload = {
-        "id": "st_12345678",
+        "id": "stp_1234567890abcdef",
         "slug": "step_test",
         "name": {"default_locale": "en", "translations": {"en": "Test Step"}},
         "type": "llm",
         "model_strategy": "fast",
-        "prompt_blocks": ["blk_1234"],
+        "prompt_blocks": ["blk_1234567890abcdef"],
         "expected_inputs": ["valid_input"],
         "hallucinated_key": "this should crash",  # Extra undocumented key
     }

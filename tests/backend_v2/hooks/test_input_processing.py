@@ -19,7 +19,7 @@ class MockRepository:
         if wf_id == "wf_missing":
             return None
         return {
-            "id": "wf_12345678",
+            "id": "wf_1234567890abcdef",
             "slug": "test_flow",
             "name": "Test",
             "description": "Test",
@@ -71,7 +71,7 @@ async def test_fail_fast_missing_input() -> None:
     """Fail-Fast: If required input is missing, throw Validation Error."""
     state = HookState(
         execution_id="exe_1",
-        workflow_id="wf_12345678",
+        workflow_id="wf_1234567890abcdef",
         step_id="step_1",
         inputs={},  # Empty inputs
     )
@@ -98,7 +98,7 @@ async def test_pdf_extraction_and_questionnaire_blockquote(
 
     state = HookState(
         execution_id="exe_1",
-        workflow_id="wf_12345678",
+        workflow_id="wf_1234567890abcdef",
         step_id="step_1",
         inputs={
             "my_pdf": {"filename": "test.pdf", "content_base64": fake_pdf_b64},
@@ -151,7 +151,7 @@ async def test_chat_parser_structuring(
 
     state = HookState(
         execution_id="exe_1",
-        workflow_id="wf_12345678",
+        workflow_id="wf_1234567890abcdef",
         step_id="step_1",
         inputs={
             "my_pdf": "Valid String to pass required check",

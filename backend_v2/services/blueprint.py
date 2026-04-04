@@ -137,7 +137,7 @@ class BlueprintTransformer:
         global_score = None
         if isinstance(scoring_out, dict):
             t_score = scoring_out.get("total_score")
-            global_score = float(round(float(t_score), 1)) if t_score is not None else None
+            global_score = float(round(float(t_score))) if t_score is not None else None
 
         try:
             for layout_def in layout_defs:
@@ -207,7 +207,7 @@ class BlueprintTransformer:
                             # (or the original global score)
                             if is_numeric and (is_matrix_category or is_legacy_score):
                                 try:
-                                    score_float = float(round(float(target_val), 1)) if target_val is not None else None
+                                    score_float = float(round(float(target_val))) if target_val is not None else None
                                 except (ValueError, TypeError):
                                     score_float = None
 
@@ -322,6 +322,7 @@ class BlueprintTransformer:
                     preset_view = "1d_metrics"
 
                 if axes or preset_view == "text_only":
+                    synthesis_config = getattr(layout_def, "synthesis", None)
                     layouts_list.append(
                         ReportLayoutDTO(
                             preset_view=preset_view,
@@ -329,31 +330,31 @@ class BlueprintTransformer:
                             description=layout_desc,
                             axes=axes,
                             show_text=show_text,
+                            synthesis=synthesis_config,
                         )
                     )
 
             if synthesis_md:
-                # MVP Native HTML sanitization (remove script tags)
-                # Production will use Bleach or Presidio later as per user's approval.
-                import re
+                # M3 Output Management Hardening: Bleach HTML XSS Sanitization
+                import bleach
 
-                safe_md = str(synthesis_md)
-                
-                # 1. Strip blacklisted XSS tags (and their contents)
-                unsafe_tags = ["script", "iframe", "object", "embed", "applet"]
-                for tag in unsafe_tags:
-                    # Handle full tags: <tag>...</tag>
-                    safe_md = re.sub(rf"<{tag}[^>]*>.*?</{tag}>", "", safe_md, flags=re.IGNORECASE | re.DOTALL)
-                    # Handle self-closing tags: <tag/>
-                    safe_md = re.sub(rf"<{tag}[^>]*/>", "", safe_md, flags=re.IGNORECASE)
-                
-                # 2. Strip inline event handlers (e.g. onclick="...")
-                # We repeat the substitution until no more attributes are stripped 
-                # (handling multiple handlers on a single element)
-                prev_md = None
-                while prev_md != safe_md:
-                    prev_md = safe_md
-                    safe_md = re.sub(r'(<[^>]+?)\s+on[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)', r'\1', safe_md, flags=re.IGNORECASE)
+                allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + [
+                    "h1", "h2", "h3", "h4", "h5", "h6", "p", "br", "hr",
+                    "strong", "em", "u", "b", "i", "ul", "ol", "li",
+                    "a", "span", "div", "pre", "code", "blockquote",
+                    "table", "thead", "tbody", "tr", "th", "td",
+                ]
+                allowed_attributes = {
+                    "*": ["class", "id"],
+                    "a": ["href", "title", "target"],
+                }
+
+                safe_md = bleach.clean(
+                    str(synthesis_md),
+                    tags=allowed_tags,
+                    attributes=allowed_attributes,
+                    strip=True
+                )
 
                 layouts_list.insert(
                     0,

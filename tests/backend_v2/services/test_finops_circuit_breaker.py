@@ -21,7 +21,7 @@ def repo_mock() -> AsyncMock:
     mock.get_step_by_id = AsyncMock(return_value={"type": "llm", "model_strategy": "openai"})
     mock.get_workflow_by_id = AsyncMock(
         return_value={
-            "id": "wf_12345678",
+            "id": "wf_1234567890abcdef",
             "slug": "test_wf",
             "name": {"default_locale": "en", "translations": {"en": "Test"}},
             "description": {"default_locale": "en", "translations": {"en": "Test desc"}},
@@ -54,7 +54,7 @@ async def test_start_execution_circuit_breaker(repo_mock: AsyncMock, token_data:
 
         # Valid execution payload mapped to the generic workflow Inputs structure
         payload = ExecutionCreate(
-            workflow_id="wf_12345678", raw_inputs=WorkflowInputs.model_validate({}), target_locale="en"
+            workflow_id="wf_1234567890abcdef", raw_inputs=WorkflowInputs.model_validate({}), target_locale="en"
         )
         arq_pool = AsyncMock()
 

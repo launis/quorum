@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
-
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 class SynthesisEditorCard extends StatelessWidget {
   final SynthesisConfigDTO? synthesis;
   final Function(SynthesisConfigDTO?) onChanged;
@@ -27,14 +27,14 @@ class SynthesisEditorCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Synthesis & Export Configuration",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            Text(
+              AppLocalizations.of(context)!.synConfigTitle,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const Divider(),
             const SizedBox(height: 16),
             I18nTextField(
-              label: "Preamble Text",
+              label: AppLocalizations.of(context)!.synPreambleLabel,
               initialData: syn.preambleText,
               onChanged: (val) {
                 onChanged(syn.copyWith(preambleText: val));
@@ -43,10 +43,10 @@ class SynthesisEditorCard extends StatelessWidget {
             const SizedBox(height: 16),
             TextFormField(
               initialValue: syn.lengthConstraint?.toString() ?? '',
-              decoration: const InputDecoration(
-                labelText: "Max Length Constraint",
-                border: OutlineInputBorder(),
-                helperText: "Leave empty for no limit",
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.synMaxLengthLabel,
+                border: const OutlineInputBorder(),
+                helperText: AppLocalizations.of(context)!.synMaxLengthHelper,
               ),
               keyboardType: TextInputType.number,
               onChanged: (val) {
@@ -58,31 +58,31 @@ class SynthesisEditorCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             SwitchListTile(
-              title: const Text("Enable PII Masking"),
-              subtitle: const Text("Ensure PII is masked before LLM call"),
+              title: Text(AppLocalizations.of(context)!.synEnablePii),
+              subtitle: Text(AppLocalizations.of(context)!.synEnablePiiHelper),
               value: syn.enablePiiMasking,
               onChanged: (val) {
                 onChanged(syn.copyWith(enablePiiMasking: val));
               },
             ),
             SwitchListTile(
-              title: const Text("Include Historical Summary"),
+              title: Text(AppLocalizations.of(context)!.synIncludeHistory),
               value: syn.includeHistoricalSummary,
               onChanged: (val) {
                 onChanged(syn.copyWith(includeHistoricalSummary: val));
               },
             ),
             SwitchListTile(
-              title: const Text("Omit Empty Sections"),
+              title: Text(AppLocalizations.of(context)!.synOmitEmpty),
               value: syn.omitEmptySections,
               onChanged: (val) {
                 onChanged(syn.copyWith(omitEmptySections: val));
               },
             ),
             const SizedBox(height: 16),
-            const Text(
-              "Allowed Exports",
-              style: TextStyle(fontWeight: FontWeight.w600),
+            Text(
+              AppLocalizations.of(context)!.synAllowedExports,
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             Wrap(
               spacing: 8.0,

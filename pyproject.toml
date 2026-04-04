@@ -41,6 +41,7 @@ dependencies = [
     "pymupdf-layout>=1.27.2.2",
     "presidio-analyzer",
     "presidio-anonymizer",
+    "bleach>=6.2.0",
 ]
 
 [dependency-groups]

@@ -3161,6 +3161,14 @@
             ],
             "description": "Detailed profile context"
           },
+          "visible_metadata": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Visible Metadata",
+            "description": "List of metadata fields visible on the UI and PDF cover header."
+          },
           "display_scale": {
             "type": "string",
             "enum": [
@@ -3185,7 +3193,7 @@
           },
           "layouts": {
             "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock"
+              "$ref": "#/components/schemas/OutputLayoutBlock-Input"
             },
             "type": "array",
             "title": "Layouts",
@@ -3217,6 +3225,14 @@
             ],
             "description": "Detailed profile context"
           },
+          "visible_metadata": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Visible Metadata",
+            "description": "List of metadata fields visible on the UI and PDF cover header."
+          },
           "display_scale": {
             "type": "string",
             "enum": [
@@ -3241,7 +3257,7 @@
           },
           "layouts": {
             "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock"
+              "$ref": "#/components/schemas/OutputLayoutBlock-Output"
             },
             "type": "array",
             "title": "Layouts",
@@ -3480,6 +3496,33 @@
             "type": "object",
             "title": "Step States",
             "description": "Real-time status tracking for DAG nodes"
+          },
+          "synthesized_markdown": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Synthesized Markdown",
+            "description": "The LLM generated output synthesis"
+          },
+          "cited_sources": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cited Sources",
+            "description": "Citations used in synthesis"
           },
           "duration_ms": {
             "type": "integer",
@@ -4464,7 +4507,7 @@
         ],
         "title": "OrganizationDeleteResponse"
       },
-      "OutputLayoutBlock": {
+      "OutputLayoutBlock-Input": {
         "properties": {
           "preset_view": {
             "type": "string",
@@ -4521,6 +4564,95 @@
             "title": "Show Text",
             "description": "Whether to include text justifications in this block.",
             "default": true
+          },
+          "synthesis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SynthesisConfigDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional Section-Level Synthesis configuration for this block."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "preset_view"
+        ],
+        "title": "OutputLayoutBlock",
+        "description": "A single sequential rendering block for a report profile."
+      },
+      "OutputLayoutBlock-Output": {
+        "properties": {
+          "preset_view": {
+            "type": "string",
+            "enum": [
+              "1d_metrics",
+              "2d_compare",
+              "3d_complex",
+              "default",
+              "text_only"
+            ],
+            "title": "Preset View",
+            "description": "The static UI renderer preset (e.g. 1d_metrics, 3d_complex)."
+          },
+          "title": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional localized layout title."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional localized layout description."
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Steps",
+            "description": "List of step IDs providing the axes."
+          },
+          "target_blocks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Target Blocks",
+            "description": "Optional explicit block IDs to plot, filtering and ordering the axes."
+          },
+          "show_text": {
+            "type": "boolean",
+            "title": "Show Text",
+            "description": "Whether to include text justifications in this block.",
+            "default": true
+          },
+          "synthesis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SynthesisConfigDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional Section-Level Synthesis configuration for this block."
           }
         },
         "additionalProperties": false,
@@ -4588,7 +4720,7 @@
           },
           "layouts": {
             "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock"
+              "$ref": "#/components/schemas/OutputLayoutBlock-Input"
             },
             "type": "array",
             "title": "Layouts",
@@ -4655,7 +4787,7 @@
           },
           "layouts": {
             "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock"
+              "$ref": "#/components/schemas/OutputLayoutBlock-Output"
             },
             "type": "array",
             "title": "Layouts"

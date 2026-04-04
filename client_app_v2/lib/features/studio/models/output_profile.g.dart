@@ -21,6 +21,7 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         'steps',
         'target_blocks',
         'show_text',
+        'synthesis',
       ],
     );
     final val = _OutputLayoutBlock(
@@ -47,6 +48,12 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
       showText: $checkedConvert('show_text', (v) => v as bool? ?? true),
+      synthesis: $checkedConvert(
+        'synthesis',
+        (v) => v == null
+            ? null
+            : SynthesisConfigDTO.fromJson(v as Map<String, dynamic>),
+      ),
     );
     return val;
   },
@@ -65,6 +72,7 @@ Map<String, dynamic> _$OutputLayoutBlockToJson(_OutputLayoutBlock instance) =>
       'steps': instance.steps,
       'target_blocks': instance.targetBlocks,
       'show_text': instance.showText,
+      'synthesis': instance.synthesis?.toJson(),
     };
 
 _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
@@ -147,6 +155,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
             'workflow_id',
             'name',
             'description',
+            'visible_metadata',
             'display_scale',
             'synthesis',
             'layouts',
@@ -169,6 +178,12 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
           description: $checkedConvert(
             'description',
             (v) => I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          visibleMetadata: $checkedConvert(
+            'visible_metadata',
+            (v) =>
+                (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+                const ['date', 'organization'],
           ),
           displayScale: $checkedConvert(
             'display_scale',
@@ -196,6 +211,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
       },
       fieldKeyMap: const {
         'workflowId': 'workflow_id',
+        'visibleMetadata': 'visible_metadata',
         'displayScale': 'display_scale',
       },
     );
@@ -208,6 +224,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'workflow_id': const StrictOpaqueIdConverter().toJson(instance.workflowId),
   'name': instance.name.toJson(),
   'description': instance.description.toJson(),
+  'visible_metadata': instance.visibleMetadata,
   'display_scale': instance.displayScale,
   'synthesis': instance.synthesis?.toJson(),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
@@ -224,6 +241,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
       allowedKeys: const [
         'name',
         'description',
+        'visible_metadata',
         'display_scale',
         'synthesis',
         'layouts',
@@ -237,6 +255,12 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
       description: $checkedConvert(
         'description',
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      visibleMetadata: $checkedConvert(
+        'visible_metadata',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const ['date', 'organization'],
       ),
       displayScale: $checkedConvert(
         'display_scale',
@@ -261,7 +285,10 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
     );
     return val;
   },
-  fieldKeyMap: const {'displayScale': 'display_scale'},
+  fieldKeyMap: const {
+    'visibleMetadata': 'visible_metadata',
+    'displayScale': 'display_scale',
+  },
 );
 
 Map<String, dynamic> _$EmbeddedOutputProfileToJson(
@@ -269,6 +296,7 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
 ) => <String, dynamic>{
   'name': instance.name.toJson(),
   'description': instance.description?.toJson(),
+  'visible_metadata': instance.visibleMetadata,
   'display_scale': instance.displayScale,
   'synthesis': instance.synthesis?.toJson(),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),

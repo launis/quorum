@@ -16,6 +16,7 @@ abstract class OutputLayoutBlock with _$OutputLayoutBlock {
     @Default([]) List<String> steps,
     @Default([]) List<String> targetBlocks,
     @Default(true) bool showText,
+    SynthesisConfigDTO? synthesis,
   }) = _OutputLayoutBlock;
 
   factory OutputLayoutBlock.fromJson(Map<String, dynamic> json) =>
@@ -49,6 +50,7 @@ abstract class OutputProfile with _$OutputProfile {
     @StrictOpaqueIdConverter() required String workflowId,
     required I18nText name,
     required I18nText description,
+    @Default(['date', 'organization']) List<String> visibleMetadata,
     @Default('original') String displayScale,
     SynthesisConfigDTO? synthesis,
     @Default([]) List<OutputLayoutBlock> layouts,
@@ -65,6 +67,7 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
   const factory EmbeddedOutputProfile({
     required I18nText name,
     I18nText? description,
+    @Default(['date', 'organization']) List<String> visibleMetadata,
     @Default('original') String displayScale,
     SynthesisConfigDTO? synthesis,
     @Default([]) List<OutputLayoutBlock> layouts,

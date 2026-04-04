@@ -31,6 +31,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
     final idController = useTextEditingController();
     final slugController = useTextEditingController();
     final workflowIdController = useTextEditingController();
+    final enableThreePaneLayout = useState(true);
 
     // Data Dependencies
     final promptBlocksState = ref.watch(promptBlocksControllerProvider);
@@ -73,6 +74,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
           promptBlocksState,
           workflowsState,
           stepsState,
+          enableThreePaneLayout,
         );
       },
     );
@@ -91,6 +93,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
     AsyncValue<List<dynamic>> promptBlocksState,
     AsyncValue<List<dynamic>> workflowsState,
     AsyncValue<List<dynamic>> stepsState,
+    ValueNotifier<bool> enableThreePaneLayout,
   ) {
     var layouts = List<OutputLayoutBlock>.from(payload.layouts);
 
@@ -103,8 +106,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
 
       try {
         final String idToSave = idController.text.trim();
-        if (idToSave.isEmpty)
+        if (idToSave.isEmpty) {
           throw Exception(l10n.studioViewsProfileIdRequired);
+        }
 
         final newPayload = payload.copyWith(
           id: idToSave,
@@ -218,6 +222,216 @@ class OutputProfileCrudView extends HookConsumerWidget {
       }
     }
 
+    Widget buildIdentityPane() {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: idController,
+                decoration: InputDecoration(
+                  labelText: l10n.profileIdLabel,
+                  border: const OutlineInputBorder(),
+                ),
+                readOnly: true,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: slugController,
+                decoration: InputDecoration(
+                  labelText: l10n.urlSlugLabel,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              workflowsState.when(
+                data: (rawWorkflows) {
+                  final workflows = rawWorkflows.cast<Workflow>();
+                  String? currentValue = workflowIdController.text.isNotEmpty
+                      ? workflowIdController.text
+                      : null;
+
+                  final bool hasValidValue =
+                      currentValue != null &&
+                      (workflows.any((w) => w.id == currentValue) ||
+                          currentValue == '');
+
+                  return DropdownButtonFormField<String>(
+                    initialValue: hasValidValue ? currentValue : null,
+                    decoration: InputDecoration(
+                      labelText: l10n.workflowIdBindingLabel,
+                      border: const OutlineInputBorder(),
+                    ),
+                    hint: Text(l10n.selectWorkflowHint),
+                    items: [
+                      DropdownMenuItem(
+                        value: '',
+                        child: Text(l10n.noneDefaultLabel),
+                      ),
+                      ...workflows.map((flow) {
+                        final flowId = flow.id;
+                        final localeCode = Localizations.localeOf(
+                          context,
+                        ).languageCode;
+                        final displayName = flow.name.get(localeCode);
+
+                        return DropdownMenuItem(
+                          value: flowId,
+                          child: Text('$displayName ($flowId)'),
+                        );
+                      }),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        workflowIdController.text = val;
+                        updatePayload(payload.copyWith(workflowId: val));
+                      }
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) =>
+                    Text(l10n.studioViewsErrorLoadingWorkflows(e.toString())),
+              ),
+              const SizedBox(height: 16),
+              I18nTextField(
+                label: l10n.profileDisplayNameLabel,
+                initialData: payload.name,
+                onChanged: (val) {
+                  updatePayload(payload.copyWith(name: val));
+                },
+              ),
+              const SizedBox(height: 16),
+              I18nTextField(
+                label: l10n.profileDescriptionLabel,
+                initialData: payload.description,
+                onChanged: (val) {
+                  updatePayload(payload.copyWith(description: val));
+                },
+              ),
+              const SizedBox(height: 16),
+              InputDecorator(
+                decoration: InputDecoration(
+                  labelText: l10n.profileDisplayScaleLabel,
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: payload.displayScale,
+                    isDense: true,
+                    isExpanded: true,
+                    items: [
+                      DropdownMenuItem(
+                        value: 'original',
+                        child: Text(l10n.scaleOriginal),
+                      ),
+                      DropdownMenuItem(
+                        value: 'custom',
+                        child: Text(l10n.scaleCustom),
+                      ),
+                      DropdownMenuItem(
+                        value: 'normalized_100',
+                        child: Text(l10n.scaleNormalized100),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        updatePayload(payload.copyWith(displayScale: val));
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Kannen metatiedot (Identity Metadata)',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              CheckboxListTile(
+                title: const Text('Päivämäärä (date)'),
+                value: payload.visibleMetadata.contains('date'),
+                onChanged: (val) {
+                  final list = List<String>.from(payload.visibleMetadata);
+                  if (val == true)
+                    list.add('date');
+                  else
+                    list.remove('date');
+                  updatePayload(payload.copyWith(visibleMetadata: list));
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+              CheckboxListTile(
+                title: const Text('Organisaatio (organization)'),
+                value: payload.visibleMetadata.contains('organization'),
+                onChanged: (val) {
+                  final list = List<String>.from(payload.visibleMetadata);
+                  if (val == true)
+                    list.add('organization');
+                  else
+                    list.remove('organization');
+                  updatePayload(payload.copyWith(visibleMetadata: list));
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+              CheckboxListTile(
+                title: const Text('Kustannusarvio (cost)'),
+                value: payload.visibleMetadata.contains('cost'),
+                onChanged: (val) {
+                  final list = List<String>.from(payload.visibleMetadata);
+                  if (val == true)
+                    list.add('cost');
+                  else
+                    list.remove('cost');
+                  updatePayload(payload.copyWith(visibleMetadata: list));
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    Widget buildSynthesisPane() {
+      return SynthesisEditorCard(
+        synthesis: payload.synthesis,
+        onChanged: (val) {
+          updatePayload(payload.copyWith(synthesis: val));
+        },
+      );
+    }
+
+    Widget buildLayoutPane() {
+      if (selectedWorkflowId.isEmpty) {
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Center(
+              child: Text(
+                l10n.workflowSelectWarning,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+      return LayoutEditorCard(
+        layouts: layouts,
+        onChanged: (val) {
+          updatePayload(payload.copyWith(layouts: val));
+        },
+        allowedBlockIds: allowedBlockIds,
+        promptBlocksState: promptBlocksState,
+      );
+    }
+
     return AppExceptionBoundary(
       child: Scaffold(
         appBar: AppBar(
@@ -237,6 +451,16 @@ class OutputProfileCrudView extends HookConsumerWidget {
             else ...[
               IconButton(
                 icon: Icon(
+                  enableThreePaneLayout.value
+                      ? Icons.table_rows
+                      : Icons.view_column,
+                ),
+                onPressed: () =>
+                    enableThreePaneLayout.value = !enableThreePaneLayout.value,
+                tooltip: "Toggle Layout",
+              ),
+              IconButton(
+                icon: Icon(
                   Icons.delete,
                   color: Theme.of(context).colorScheme.error,
                 ),
@@ -253,174 +477,45 @@ class OutputProfileCrudView extends HookConsumerWidget {
         ),
         body: Form(
           key: formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(16.0),
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: idController,
-                        decoration: InputDecoration(
-                          labelText: l10n.profileIdLabel,
-                          border: const OutlineInputBorder(),
-                        ),
-                        readOnly: true, // Opaque Stripe ID mandate
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: slugController,
-                        decoration: InputDecoration(
-                          labelText: l10n.urlSlugLabel,
-                          border: const OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      workflowsState.when(
-                        data: (rawWorkflows) {
-                          final workflows = rawWorkflows.cast<Workflow>();
-                          String? currentValue =
-                              workflowIdController.text.isNotEmpty
-                              ? workflowIdController.text
-                              : null;
-
-                          final bool hasValidValue =
-                              currentValue != null &&
-                              (workflows.any((w) => w.id == currentValue) ||
-                                  currentValue == '');
-
-                          return DropdownButtonFormField<String>(
-                            initialValue: hasValidValue ? currentValue : null,
-                            decoration: InputDecoration(
-                              labelText: l10n.workflowIdBindingLabel,
-                              border: const OutlineInputBorder(),
-                            ),
-                            hint: Text(l10n.selectWorkflowHint),
-                            items: [
-                              DropdownMenuItem(
-                                value: '',
-                                child: Text(l10n.noneDefaultLabel),
-                              ),
-                              ...workflows.map((flow) {
-                                final flowId = flow.id;
-                                final localeCode = Localizations.localeOf(
-                                  context,
-                                ).languageCode;
-                                final displayName = flow.name.get(localeCode);
-
-                                return DropdownMenuItem(
-                                  value: flowId,
-                                  child: Text('$displayName ($flowId)'),
-                                );
-                              }),
-                            ],
-                            onChanged: (val) {
-                              if (val != null) {
-                                workflowIdController.text = val;
-                                updatePayload(
-                                  payload.copyWith(workflowId: val),
-                                );
-                              }
-                            },
-                          );
-                        },
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Text(
-                          l10n.studioViewsErrorLoadingWorkflows(e.toString()),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      I18nTextField(
-                        label: l10n.profileDisplayNameLabel,
-                        initialData: payload.name,
-                        onChanged: (val) {
-                          updatePayload(payload.copyWith(name: val));
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      I18nTextField(
-                        label: l10n.profileDescriptionLabel,
-                        initialData: payload.description,
-                        onChanged: (val) {
-                          updatePayload(payload.copyWith(description: val));
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      InputDecorator(
-                        decoration: InputDecoration(
-                          labelText: l10n.profileDisplayScaleLabel,
-                          isDense: true,
-                          border: const OutlineInputBorder(),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: payload.displayScale,
-                            isDense: true,
-                            isExpanded: true,
-                            items: [
-                              DropdownMenuItem(
-                                value: 'original',
-                                child: Text(l10n.scaleOriginal),
-                              ),
-                              DropdownMenuItem(
-                                value: 'custom',
-                                child: Text(l10n.scaleCustom),
-                              ),
-                              DropdownMenuItem(
-                                value: 'normalized_100',
-                                child: Text(l10n.scaleNormalized100),
-                              ),
-                            ],
-                            onChanged: (val) {
-                              if (val != null) {
-                                updatePayload(
-                                  payload.copyWith(displayScale: val),
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SynthesisEditorCard(
-                synthesis: payload.synthesis,
-                onChanged: (val) {
-                  updatePayload(payload.copyWith(synthesis: val));
-                },
-              ),
-              const SizedBox(height: 24),
-              if (selectedWorkflowId.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Center(
-                    child: Text(
-                      l10n.workflowSelectWarning,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.bold,
+          child: enableThreePaneLayout.value
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(16.0),
+                        child: buildIdentityPane(),
                       ),
                     ),
-                  ),
+                    const VerticalDivider(width: 1),
+                    Expanded(
+                      flex: 1,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(16.0),
+                        child: buildSynthesisPane(),
+                      ),
+                    ),
+                    const VerticalDivider(width: 1),
+                    Expanded(
+                      flex: 1,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(16.0),
+                        child: buildLayoutPane(),
+                      ),
+                    ),
+                  ],
                 )
-              else ...[
-                LayoutEditorCard(
-                  layouts: layouts,
-                  onChanged: (val) {
-                    updatePayload(payload.copyWith(layouts: val));
-                  },
-                  allowedBlockIds: allowedBlockIds,
-                  promptBlocksState: promptBlocksState,
+              : ListView(
+                  padding: const EdgeInsets.all(16.0),
+                  children: [
+                    buildIdentityPane(),
+                    const SizedBox(height: 24),
+                    buildSynthesisPane(),
+                    const SizedBox(height: 24),
+                    buildLayoutPane(),
+                  ],
                 ),
-              ],
-            ],
-          ),
         ),
       ),
     );

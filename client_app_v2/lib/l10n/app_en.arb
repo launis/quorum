@@ -1502,5 +1502,14 @@
   "profileDisplayScaleLabel": "Display Scale Source",
   "scaleOriginal": "Raw Matrix Value (Original)",
   "scaleCustom": "Custom Computed Hook Value",
-  "scaleNormalized100": "Global Percentage (0 - 100)"
+  "scaleNormalized100": "Global Percentage (0 - 100)",
+  "synConfigTitle": "Synthesis & Export Configuration",
+  "synPreambleLabel": "Preamble Text",
+  "synMaxLengthLabel": "Max Length Constraint",
+  "synMaxLengthHelper": "Leave empty for no limit",
+  "synEnablePii": "Enable PII Masking",
+  "synEnablePiiHelper": "Ensure PII is masked before LLM call",
+  "synIncludeHistory": "Include Historical Summary",
+  "synOmitEmpty": "Omit Empty Sections",
+  "synAllowedExports": "Allowed Exports"
 }

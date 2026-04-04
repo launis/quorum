@@ -26,9 +26,9 @@ def test_synthesis_config_dto_extra_forbid():
 
 def test_output_profile_valid_with_synthesis():
     profile = OutputProfile(
-        id="prf_valid123",
+        id="prf_1111222233334444",
         slug="test-profile",
-        workflow_id="wf_12345",
+        workflow_id="wf_1234567890abcdef",
         name=I18nText(default_locale="en", translations={"en": "Test Profile"}),
         display_scale="original",
         synthesis=SynthesisConfigDTO(
@@ -43,9 +43,9 @@ def test_output_profile_valid_with_synthesis():
 def test_output_profile_extra_forbid():
     with pytest.raises(ValidationError) as exc_info:
         OutputProfile(
-            id="prf_valid123",
+            id="prf_1111222233334444",
             slug="test-profile",
-            workflow_id="wf_12345",
+            workflow_id="wf_1234567890abcdef",
             name=I18nText(default_locale="en", translations={"en": "Test Profile"}),
             display_scale="original",
             synthesis=None,
