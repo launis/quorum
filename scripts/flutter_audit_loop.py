@@ -25,6 +25,10 @@ def main():
     print(f"\n🚀 Suoritetaan quality-loop kansiolle: {target_dir}")
     print("--------------------------------------------------")
 
+    # Korjaus: Koska skripti hyppää jo `client_app_v2` kansion sisään, 
+    # komento-argumentit pitää muuttaa muotoon "." jos pyydettiin koko kansiota.
+    cmd_dir = "." if target_dir.strip("\\/") == "client_app_v2" else target_dir
+
     if run_build:
         print("\n⏳ 1/3: Ajetaan koodigeneraattori (build_runner)...")
         res = subprocess.run(["dart", "run", "build_runner", "build", "-d"], shell=True)
@@ -35,15 +39,15 @@ def main():
     else:
         print("\n⏭️ 1/3: Ohitetaan koodigenerointi (ei --build lippua).")
 
-    print(f"\n⏳ 2/3: Formatoidaan koodi (dart format {target_dir})...")
-    res = subprocess.run(["dart", "format", target_dir], shell=True)
+    print(f"\n⏳ 2/3: Formatoidaan koodi (dart format {cmd_dir})...")
+    res = subprocess.run(["dart", "format", cmd_dir], shell=True)
     if res.returncode != 0:
         print("❌ Formatointi epäonnistui!")
         sys.exit(res.returncode)
     print("✅ Formatointi valmis.")
 
-    print(f"\n⏳ 3/3: Analysoidaan koodi (dart analyze {target_dir})...")
-    res = subprocess.run(["dart", "analyze", target_dir], shell=True)
+    print(f"\n⏳ 3/3: Analysoidaan koodi (dart analyze {cmd_dir})...")
+    res = subprocess.run(["dart", "analyze", cmd_dir], shell=True)
     if res.returncode == 0:
         print("\n🏆 Kaikki puhdasta! Kansio on Phase 9 vaatimusten mukainen.\n")
     else:

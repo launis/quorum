@@ -24,11 +24,14 @@ void main() {
     final outTraceFile = File(
       '$workspaceRoot/backend_v2/tests/test_data/e2e_new_trace.json',
     );
-    final defaultInputsPath = '$workspaceRoot/backend_v2/tests/test_data/exe_c0bc_inputs.json';
+    final defaultInputsPath =
+        '$workspaceRoot/backend_v2/tests/test_data/exe_c0bc_inputs.json';
     final envInputsFile = Platform.environment['TEST_INPUTS_FILE'];
-    
+
     final inTraceFile = File(
-      (envInputsFile != null && envInputsFile.isNotEmpty) ? envInputsFile : defaultInputsPath,
+      (envInputsFile != null && envInputsFile.isNotEmpty)
+          ? envInputsFile
+          : defaultInputsPath,
     );
 
     // Overriding Logger Output for the test to ensure it hits the mandated log file
@@ -56,10 +59,7 @@ void main() {
           connectTimeout: const Duration(seconds: 5),
           sendTimeout: const Duration(minutes: 5),
           receiveTimeout: const Duration(minutes: 5),
-          headers: {
-            'Authorization':
-                'Bearer mock-token:usr_18a0d5f6151349a5',
-          },
+          headers: {'Authorization': 'Bearer mock-token:usr_18a0d5f6151349a5'},
         ),
       );
 
@@ -68,20 +68,25 @@ void main() {
       );
 
       // 3. Trigger execution using the exact same structure as ExecutionClient
-      String workflowId = Platform.environment['TEST_WORKFLOW_ID'] ?? 'wf_d653170e174847559e08af42b938d826';
-      
+      String workflowId =
+          Platform.environment['TEST_WORKFLOW_ID'] ??
+          'wf_d653170e174847559e08af42b938d826';
+
       // If a specific TEST_WORKFLOW_ID wasn't strongly provided in env, dynamically pick the first one available
-      if (Platform.environment['TEST_WORKFLOW_ID'] == null || Platform.environment['TEST_WORKFLOW_ID']!.isEmpty) {
+      if (Platform.environment['TEST_WORKFLOW_ID'] == null ||
+          Platform.environment['TEST_WORKFLOW_ID']!.isEmpty) {
         try {
           final wRes = await dio.get('/studio/workflows/');
           if (wRes.data is List && wRes.data.isNotEmpty) {
             workflowId = wRes.data[0]['id'];
           }
-        } catch(e) {
-          logger.w('[E2E_CLIENT] | client | Failed to fetch dynamic UI, fallback. Using $workflowId');
+        } catch (e) {
+          logger.w(
+            '[E2E_CLIENT] | client | Failed to fetch dynamic UI, fallback. Using $workflowId',
+          );
         }
       }
-      
+
       final response = await dio.post(
         '/execution/executions/',
         data: {

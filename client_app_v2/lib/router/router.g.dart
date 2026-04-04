@@ -243,7 +243,7 @@ RouteBase get $adminShellRoute => GoRouteData.$route(
     GoRouteData.$route(path: 'step/new', factory: $StepNewRoute._fromState),
     GoRouteData.$route(path: 'step/edit', factory: $StepEditRoute._fromState),
     GoRouteData.$route(
-      path: 'profiles/:workflowSlug',
+      path: 'profiles/:workflowId',
       factory: $ProfileEditorRoute._fromState,
     ),
     GoRouteData.$route(
@@ -444,7 +444,7 @@ mixin $StepEditRoute on GoRouteData {
 mixin $ProfileEditorRoute on GoRouteData {
   static ProfileEditorRoute _fromState(GoRouterState state) =>
       ProfileEditorRoute(
-        workflowSlug: state.pathParameters['workflowSlug']!,
+        workflowId: state.pathParameters['workflowId']!,
         $extra: state.extra as Map<String, dynamic>?,
       );
 
@@ -452,7 +452,7 @@ mixin $ProfileEditorRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location(
-    '/admin/profiles/${Uri.encodeComponent(_self.workflowSlug)}',
+    '/admin/profiles/${Uri.encodeComponent(_self.workflowId)}',
   );
 
   @override

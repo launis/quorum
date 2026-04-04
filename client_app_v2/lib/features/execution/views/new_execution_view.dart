@@ -630,7 +630,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value:
+              initialValue:
                   _selectedProfileId != null &&
                       outputProfiles.containsKey(_selectedProfileId)
                   ? _selectedProfileId

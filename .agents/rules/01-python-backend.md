@@ -35,6 +35,12 @@
 </catastrophic_system_bans>
 
 <architectural_invariants>
+    <rule_block id="opaque_stripe_id_mandate">
+        <banned_pattern>Using auto-incrementing integers (e.g., `id=1`), raw UUIDs leaking database context, or semantic strings like `slug` as primary keys, database references, or API route identifiers.</banned_pattern>
+        <mandatory_pattern>Enforce the "Opaque Stripe ID" pattern (e.g., `wor_a1b2c3d4`, `usr_x9y8z7`) for ALL database identifiers, cross-model relations, and navigation endpoints. Slugs are for SEO/Display purposes only, NEVER for strict data relationships.</mandatory_pattern>
+        <catastrophic_reason>Intelligible primary keys (slugs) lead to permanently broken foreign relations when a user edits the display name. Auto-increment IDs allow horizontal enumeration attacks (IDOR). Opaque prefix mapping ensures immediate visual typability during debugging and inherently secures the API.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="strict_pydantic_v2_rust">
         <banned_pattern>Using legacy V1 instantiation (`MyModel(**data)`), Python standard JSON parsing (`json.loads()`), or legacy V1 methods (`.dict()`, `@validator`).</banned_pattern>
         <mandatory_pattern>Force the Fail-Fast pipeline by using `.model_validate()`, Rust-based `.model_validate_json()`, `.model_dump()`, and `@field_validator`. Use `model_config = ConfigDict(extra='forbid', strict=True)` to reject unstructured AI outputs.</mandatory_pattern>

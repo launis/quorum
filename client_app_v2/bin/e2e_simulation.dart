@@ -36,8 +36,7 @@ void main(List<String> args) async {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization':
-            'Bearer mock-token:usr_18a0d5f6151349a5',
+        'Authorization': 'Bearer mock-token:usr_18a0d5f6151349a5',
       },
     ),
   );
@@ -49,8 +48,11 @@ void main(List<String> args) async {
     if (wRes.data is List && wRes.data.isNotEmpty) {
       workflowId = wRes.data[0]['id'];
     }
-  } catch(e) {
-    logError('NETWORK', 'Could not fetch workflow dynamically, using fallback.');
+  } catch (e) {
+    logError(
+      'NETWORK',
+      'Could not fetch workflow dynamically, using fallback.',
+    );
   }
 
   final rawInputs = {
