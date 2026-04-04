@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/features/studio/views/widgets/profile/synthesis_editor_card.dart';
+import 'package:client_app/features/studio/views/widgets/profile/layout_editor_card.dart';
+import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -16,31 +19,41 @@ import 'package:client_app/core/logging/logger_service.dart';
 ///
 /// Admin UI for defining strictly-typed Output Profiles for a specific Workflow.
 class ProfileEditorView extends HookConsumerWidget {
-  final String workflowSlug;
+  final String workflowId;
 
-  const ProfileEditorView({super.key, required this.workflowSlug});
+  const ProfileEditorView({super.key, required this.workflowId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final formState = ref.watch(workflowFormProvider(workflowSlug));
+    final formState = ref.watch(workflowFormProvider(workflowId));
+    final promptBlocksState = ref.watch(promptBlocksControllerProvider);
+    final stepsState = ref.watch(stepsControllerProvider);
 
     return formState.when(
       loading: () => Scaffold(
-        appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowSlug))),
+        appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowId))),
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (e, st) => Scaffold(
-        appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowSlug))),
+        appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowId))),
         body: ErrorView(
           error: e,
           stackTrace: st,
           compact: false,
-          onRetry: () => ref.invalidate(workflowFormProvider(workflowSlug)),
+          onRetry: () => ref.invalidate(workflowFormProvider(workflowId)),
         ),
       ),
       data: (payload) {
-        return _buildScaffold(context, ref, l10n, formState, payload);
+        return _buildScaffold(
+          context,
+          ref,
+          l10n,
+          formState,
+          payload,
+          promptBlocksState,
+          stepsState,
+        );
       },
     );
   }
@@ -51,7 +64,23 @@ class ProfileEditorView extends HookConsumerWidget {
     AppLocalizations l10n,
     AsyncValue<Workflow> formState,
     Workflow payload,
+    AsyncValue<List<dynamic>> promptBlocksState,
+    AsyncValue<List<dynamic>> stepsState,
   ) {
+    Set<String> allowedBlockIds = {};
+    if (stepsState.hasValue) {
+      final stepsList = stepsState.value!.cast<NodeStrategy>();
+      final taskBlueprintIds = payload.steps
+          .map((s) => s.taskBlueprint)
+          .toSet();
+      for (final step in stepsList) {
+        if (taskBlueprintIds.contains(step.id) ||
+            taskBlueprintIds.contains(step.slug)) {
+          allowedBlockIds.addAll(step.promptBlocks);
+        }
+      }
+    }
+
     // Inject initial default if entirely missing
     useMemoized(() {
       if (payload.outputProfiles.isEmpty) {
@@ -74,7 +103,7 @@ class ProfileEditorView extends HookConsumerWidget {
             ],
           );
           ref
-              .read(workflowFormProvider(workflowSlug).notifier)
+              .read(workflowFormProvider(workflowId).notifier)
               .forceRebuild(payload.copyWith(outputProfiles: newProfiles));
         });
       }
@@ -85,7 +114,7 @@ class ProfileEditorView extends HookConsumerWidget {
         if (payload.id.isEmpty) throw Exception("Workflow ID is missing");
 
         await ref
-            .read(workflowFormProvider(workflowSlug).notifier)
+            .read(workflowFormProvider(workflowId).notifier)
             .submit(payload);
 
         if (context.mounted) {
@@ -145,7 +174,7 @@ class ProfileEditorView extends HookConsumerWidget {
                 );
 
                 ref
-                    .read(workflowFormProvider(workflowSlug).notifier)
+                    .read(workflowFormProvider(workflowId).notifier)
                     .forceRebuild(
                       payload.copyWith(outputProfiles: newProfiles),
                     );
@@ -162,7 +191,7 @@ class ProfileEditorView extends HookConsumerWidget {
     return AppExceptionBoundary(
       child: Scaffold(
         appBar: AppBar(
-          title: Text(l10n.editProfilesTitle(workflowSlug)),
+          title: Text(l10n.editProfilesTitle(workflowId)),
           actions: [
             if (formState.isLoading)
               const Padding(
@@ -209,6 +238,8 @@ class ProfileEditorView extends HookConsumerWidget {
                 payload,
                 entry.key,
                 entry.value,
+                allowedBlockIds,
+                promptBlocksState,
               ),
             ),
           ],
@@ -224,6 +255,8 @@ class ProfileEditorView extends HookConsumerWidget {
     Workflow payload,
     String profileId,
     EmbeddedOutputProfile profileDef,
+    Set<String> allowedBlockIds,
+    AsyncValue<List<dynamic>> promptBlocksState,
   ) {
     final layouts = List<OutputLayoutBlock>.from(profileDef.layouts);
 
@@ -233,20 +266,8 @@ class ProfileEditorView extends HookConsumerWidget {
       );
       newProfiles[profileId] = updatedProfile;
       ref
-          .read(workflowFormProvider(workflowSlug).notifier)
+          .read(workflowFormProvider(workflowId).notifier)
           .forceRebuild(payload.copyWith(outputProfiles: newProfiles));
-    }
-
-    void addLayout() {
-      layouts.add(
-        const OutputLayoutBlock(
-          presetView: '1d_metrics',
-          title: I18nText(defaultLocale: 'en'),
-          showText: true,
-          targetBlocks: [],
-        ),
-      );
-      rebuildProfile(profileDef.copyWith(layouts: layouts));
     }
 
     return Card(
@@ -282,7 +303,7 @@ class ProfileEditorView extends HookConsumerWidget {
                     );
                     newProfiles.remove(profileId);
                     ref
-                        .read(workflowFormProvider(workflowSlug).notifier)
+                        .read(workflowFormProvider(workflowId).notifier)
                         .forceRebuild(
                           payload.copyWith(outputProfiles: newProfiles),
                         );
@@ -333,232 +354,23 @@ class ProfileEditorView extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  l10n.reportLayoutSequenceLabel,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                TextButton.icon(
-                  onPressed: addLayout,
-                  icon: const Icon(Icons.add_box),
-                  label: Text(l10n.addLayoutBlockBtn),
-                ),
-              ],
+            SynthesisEditorCard(
+              synthesis: profileDef.synthesis,
+              onChanged: (val) {
+                rebuildProfile(profileDef.copyWith(synthesis: val));
+              },
             ),
-            const Divider(),
-            if (layouts.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(l10n.noLayoutBlocksDefined),
-              )
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: layouts.length,
-                itemBuilder: (context, index) {
-                  final layout = layouts[index];
-                  return _buildLayoutEditor(
-                    context,
-                    ref,
-                    l10n,
-                    payload,
-                    profileId,
-                    profileDef,
-                    layouts,
-                    index,
-                    layout,
-                  );
-                },
-              ),
+            const SizedBox(height: 24),
+            LayoutEditorCard(
+              layouts: layouts,
+              onChanged: (val) {
+                rebuildProfile(profileDef.copyWith(layouts: val));
+              },
+              allowedBlockIds: allowedBlockIds,
+              promptBlocksState: promptBlocksState,
+            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildLayoutEditor(
-    BuildContext context,
-    WidgetRef ref,
-    AppLocalizations l10n,
-    Workflow payload,
-    String profileId,
-    EmbeddedOutputProfile profileDef,
-    List<OutputLayoutBlock> parentLayoutsList,
-    int index,
-    OutputLayoutBlock layout,
-  ) {
-    final blocksList = List<String>.from(layout.targetBlocks);
-
-    String currentPreset = layout.presetView;
-    if (![
-      '1d_metrics',
-      '2d_compare',
-      '3d_complex',
-      'text_only',
-      'default',
-    ].contains(currentPreset)) {
-      currentPreset = '1d_metrics';
-    }
-    final bool showText = layout.showText;
-
-    void rebuildLayout(OutputLayoutBlock updatedLayout) {
-      parentLayoutsList[index] = updatedLayout;
-      final newProfiles = Map<String, EmbeddedOutputProfile>.from(
-        payload.outputProfiles,
-      );
-      newProfiles[profileId] = profileDef.copyWith(layouts: parentLayoutsList);
-      ref
-          .read(workflowFormProvider(workflowSlug).notifier)
-          .forceRebuild(payload.copyWith(outputProfiles: newProfiles));
-    }
-
-    void updateCoords(String val, int idx) {
-      while (blocksList.length <= idx) {
-        blocksList.add('');
-      }
-      blocksList[idx] = val;
-      rebuildLayout(layout.copyWith(targetBlocks: blocksList));
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 12,
-                child: Text(
-                  '${index + 1}',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: currentPreset,
-                  decoration: InputDecoration(
-                    labelText: l10n.presetViewLabel,
-                    isDense: true,
-                  ),
-                  items: [
-                    DropdownMenuItem(
-                      value: '1d_metrics',
-                      child: Text(l10n.preset1dTable),
-                    ),
-                    DropdownMenuItem(
-                      value: '2d_compare',
-                      child: Text(l10n.preset2dCompare),
-                    ),
-                    DropdownMenuItem(
-                      value: '3d_complex',
-                      child: Text(l10n.preset3dComplex),
-                    ),
-                    DropdownMenuItem(
-                      value: 'text_only',
-                      child: Text(l10n.presetTextOnly),
-                    ),
-                    DropdownMenuItem(
-                      value: 'default',
-                      child: Text(l10n.presetDefaultView),
-                    ),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      rebuildLayout(layout.copyWith(presetView: val));
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Row(
-                children: [
-                  Text(l10n.showTextLabel),
-                  Switch(
-                    value: showText,
-                    onChanged: (val) {
-                      rebuildLayout(layout.copyWith(showText: val));
-                    },
-                  ),
-                ],
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.delete_outline,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                onPressed: () {
-                  parentLayoutsList.removeAt(index);
-                  final newProfiles = Map<String, EmbeddedOutputProfile>.from(
-                    payload.outputProfiles,
-                  );
-                  newProfiles[profileId] = profileDef.copyWith(
-                    layouts: parentLayoutsList,
-                  );
-                  ref
-                      .read(workflowFormProvider(workflowSlug).notifier)
-                      .forceRebuild(
-                        payload.copyWith(outputProfiles: newProfiles),
-                      );
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          I18nTextField(
-            label: l10n.sectionTitleLabel,
-            initialData: layout.title ?? const I18nText(defaultLocale: 'en'),
-            onChanged: (val) {
-              rebuildLayout(layout.copyWith(title: val));
-            },
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  initialValue: blocksList.isNotEmpty ? blocksList[0] : '',
-                  decoration: InputDecoration(
-                    labelText: l10n.xAxisLabel,
-                    isDense: true,
-                  ),
-                  onChanged: (val) => updateCoords(val.trim(), 0),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextFormField(
-                  initialValue: blocksList.length > 1 ? blocksList[1] : '',
-                  decoration: InputDecoration(
-                    labelText: l10n.yAxisLabel,
-                    isDense: true,
-                  ),
-                  onChanged: (val) => updateCoords(val.trim(), 1),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextFormField(
-                  initialValue: blocksList.length > 2 ? blocksList[2] : '',
-                  decoration: InputDecoration(
-                    labelText: l10n.zAxisLabel,
-                    isDense: true,
-                  ),
-                  onChanged: (val) => updateCoords(val.trim(), 2),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

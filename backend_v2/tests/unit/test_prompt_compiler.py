@@ -122,3 +122,20 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     assert parsed.blk_extract_test.extension_confidence == 95.5  # type: ignore[attr-defined]
     assert parsed.reasoning_trace == "Let's think..."  # type: ignore[attr-defined]
     assert parsed.blk_extract_test.step_3_logical_friction == "I gave a 1 because..."  # type: ignore[attr-defined]
+
+def test_generate_mcp_instruction() -> None:
+    compiler = PromptCompiler()
+    
+    # Test with no tools
+    assert compiler.generate_mcp_instruction([]) == ""
+    
+    # Test with tools
+    instruction = compiler.generate_mcp_instruction(["mcp_tavily_search", "mcp_other_tool"])
+    
+    # Verify the dynamic list is injected
+    assert "mcp_tavily_search" in instruction
+    assert "mcp_other_tool" in instruction
+    
+    # Verify the logic instructions explicitly encourage 'tarvittaessa'
+    assert "tarvittaessa" in instruction
+    assert "Pysäytä tiedonkeruu heti, kun sinulla on riittävästi kontekstia." in instruction

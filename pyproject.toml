@@ -39,6 +39,8 @@ dependencies = [
     "aiofiles>=25.1.0",
     "pymupdf4llm>=0.2.9",
     "pymupdf-layout>=1.27.2.2",
+    "presidio-analyzer",
+    "presidio-anonymizer",
 ]
 
 [dependency-groups]

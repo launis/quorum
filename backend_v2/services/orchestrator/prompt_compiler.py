@@ -698,6 +698,6 @@ class PromptCompiler:
         tool_list = ", ".join(allowed_tools)
         return (
             f"[SYSTEM: DYNAMIC TOOL AUTOMATION]\n"
-            f"Käytä dynaamisia työkaluja [{tool_list}] tasan yhden (1) kerran etsiäksesi "
-            f"ajantasaista materiaalia. Upota löytämäsi lähteet näihin laajennuskenttiin."
+            f"Käytä dynaamisia työkaluja [{tool_list}] tarvittaessa etsiäksesi ajantasaista materiaalia. "
+            f"Pysäytä tiedonkeruu heti, kun sinulla on riittävästi kontekstia. Upota löytämäsi lähteet näihin laajennuskenttiin."
         )

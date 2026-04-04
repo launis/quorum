@@ -220,8 +220,8 @@ async def execute_tool_loop[T: BaseModel](
     probe_messages = list(messages)  # defensive copy
     tool_call_count = 0
 
-    # Epic 13 M2: Kattorajoitin (Max Calls 1) override for automated dynamic search
-    effective_max_calls = 1
+    # Epic 13 M2: Restored to standard MAX_TOOL_CALLS_PER_STEP
+    effective_max_calls = MAX_TOOL_CALLS_PER_STEP
 
     while tool_call_count < effective_max_calls:
         # The Root Cause Fix: Empower the LLM to decide autonomously (Zero-Forcing).

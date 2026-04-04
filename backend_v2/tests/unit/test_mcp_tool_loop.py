@@ -171,8 +171,8 @@ async def test_tool_loop_max_calls_enforced() -> None:
             step_name="step_infinite",
         )
 
-    # Should enforce max 1 tool call (Epic 13 M2 Limit)
-    assert len(result.audit_traces) == 1
+    # Should enforce max 3 tool calls (Restored base limit)
+    assert len(result.audit_traces) == 3
     # Structured output still produced
     assert result.result_data["score"] == 2.0
 

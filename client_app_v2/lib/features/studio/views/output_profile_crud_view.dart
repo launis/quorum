@@ -5,16 +5,16 @@ import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
 
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
+import 'package:client_app/features/studio/views/widgets/profile/synthesis_editor_card.dart';
+import 'package:client_app/features/studio/views/widgets/profile/layout_editor_card.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
-import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
-import 'package:client_app/features/studio/models/prompt_block.dart';
 
 /// Admin Studio View for managing Output Profiles.
 /// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
@@ -187,21 +187,6 @@ class OutputProfileCrudView extends HookConsumerWidget {
           );
         }
       }
-    }
-
-    void addLayout() {
-      layouts.add(
-        const OutputLayoutBlock(
-          presetView: '1d_metrics',
-          title: I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'New Layout Block'},
-          ),
-          showText: true,
-          targetBlocks: [],
-        ),
-      );
-      updatePayload(payload.copyWith(layouts: layouts));
     }
 
     final String selectedWorkflowId = workflowIdController.text;
@@ -404,7 +389,12 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              _buildSynthesisEditor(context, l10n, payload, updatePayload),
+              SynthesisEditorCard(
+                synthesis: payload.synthesis,
+                onChanged: (val) {
+                  updatePayload(payload.copyWith(synthesis: val));
+                },
+              ),
               const SizedBox(height: 24),
               if (selectedWorkflowId.isEmpty)
                 Padding(
@@ -420,402 +410,17 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   ),
                 )
               else ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      l10n.layoutBlocksTitle,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                    FilledButton.icon(
-                      onPressed: addLayout,
-                      icon: const Icon(Icons.add_box),
-                      label: Text(l10n.addLayoutBlockBtn),
-                    ),
-                  ],
+                LayoutEditorCard(
+                  layouts: layouts,
+                  onChanged: (val) {
+                    updatePayload(payload.copyWith(layouts: val));
+                  },
+                  allowedBlockIds: allowedBlockIds,
+                  promptBlocksState: promptBlocksState,
                 ),
-                const Divider(),
-                if (layouts.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(l10n.noLayoutBlocksDefined),
-                  )
-                else
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: layouts.length,
-                    itemBuilder: (context, index) {
-                      final layout = layouts[index];
-                      return _buildLayoutEditor(
-                        context,
-                        ref,
-                        l10n,
-                        index,
-                        layout,
-                        layouts,
-                        promptBlocksState,
-                        allowedBlockIds,
-                        updatePayload,
-                        payload,
-                      );
-                    },
-                  ),
               ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLayoutEditor(
-    BuildContext context,
-    WidgetRef ref,
-    AppLocalizations l10n,
-    int index,
-    OutputLayoutBlock layout,
-    List<OutputLayoutBlock> parentLayoutsList,
-    AsyncValue<List<dynamic>> promptBlocksState,
-    Set<String> allowedBlockIds,
-    Function(OutputProfile) updatePayload,
-    OutputProfile payload,
-  ) {
-    final blocksList = List<String>.from(layout.targetBlocks);
-
-    String currentPreset = layout.presetView;
-    if (![
-      '1d_metrics',
-      '2d_compare',
-      '3d_complex',
-      'text_only',
-      'default',
-    ].contains(currentPreset)) {
-      currentPreset = '1d_metrics';
-    }
-
-    final bool showText = layout.showText;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 12,
-                child: Text(
-                  '${index + 1}',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: currentPreset,
-                  decoration: InputDecoration(
-                    labelText: l10n.presetViewLabel,
-                    isDense: true,
-                  ),
-                  items: [
-                    DropdownMenuItem(
-                      value: '1d_metrics',
-                      child: Text(l10n.preset1dTable),
-                    ),
-                    DropdownMenuItem(
-                      value: '2d_compare',
-                      child: Text(l10n.preset2dGrid),
-                    ),
-                    DropdownMenuItem(
-                      value: '3d_complex',
-                      child: Text(l10n.preset3dRadar),
-                    ),
-                    DropdownMenuItem(
-                      value: 'text_only',
-                      child: Text(l10n.presetTextOnly),
-                    ),
-                    DropdownMenuItem(
-                      value: 'default',
-                      child: Text(l10n.presetAutomatic),
-                    ),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      parentLayoutsList[index] = layout.copyWith(
-                        presetView: val,
-                      );
-                      updatePayload(
-                        payload.copyWith(layouts: parentLayoutsList),
-                      );
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Row(
-                children: [
-                  Text(l10n.showTextLabel),
-                  Switch(
-                    value: showText,
-                    onChanged: (val) {
-                      parentLayoutsList[index] = layout.copyWith(showText: val);
-                      updatePayload(
-                        payload.copyWith(layouts: parentLayoutsList),
-                      );
-                    },
-                  ),
-                ],
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.delete_outline,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                onPressed: () {
-                  parentLayoutsList.removeAt(index);
-                  updatePayload(payload.copyWith(layouts: parentLayoutsList));
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          I18nTextField(
-            label: l10n.layoutBlockTitleLabel,
-            initialData: layout.title,
-            onChanged: (val) {
-              parentLayoutsList[index] = layout.copyWith(title: val);
-              updatePayload(payload.copyWith(layouts: parentLayoutsList));
-            },
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              l10n.targetComponentsTitle,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-          ),
-          const SizedBox(height: 8),
-          promptBlocksState.when(
-            data: (rawBlocks) {
-              final blocks = rawBlocks.cast<PromptBlock>();
-              final targetBlocks = blocks.where((b) {
-                final bId = b.id;
-                final bSlug = b.slug;
-                final isAllowed =
-                    allowedBlockIds.contains(bId) ||
-                    allowedBlockIds.contains(bSlug);
-                if (!isAllowed) return false;
-
-                final isMatrix = b.categoryId == 'matrix';
-                final extensions = b.outputExtensions;
-                return isMatrix || extensions.isNotEmpty;
-              }).toList();
-
-              final int requiredDropdowns = switch (currentPreset) {
-                '1d_metrics' => 1,
-                '2d_compare' => 2,
-                '3d_complex' => 3,
-                _ => 1,
-              };
-
-              final List<Widget> dropdowns = [];
-              for (int i = 0; i < requiredDropdowns; i++) {
-                String? selectedValue;
-                if (i < blocksList.length) {
-                  final val = blocksList[i];
-                  if (val == '*' || targetBlocks.any((b) => b.id == val)) {
-                    selectedValue = val;
-                  }
-                }
-
-                final String axisLabel = switch (i) {
-                  0 => l10n.componentXAxisLabel,
-                  1 => l10n.componentYAxisLabel,
-                  2 => l10n.componentZAxisLabel,
-                  _ => l10n.componentGenericLabel('${i + 1}'),
-                };
-
-                dropdowns.add(
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: DropdownButtonFormField<String>(
-                      initialValue: selectedValue,
-                      decoration: InputDecoration(
-                        labelText: axisLabel,
-                        isDense: true,
-                        border: const OutlineInputBorder(),
-                      ),
-                      hint: Text(l10n.selectComponentHint),
-                      items: [
-                        DropdownMenuItem(
-                          value: '*',
-                          child: Text(l10n.selectAllComponentsLabel),
-                        ),
-                        ...targetBlocks.map((block) {
-                          final blockId = block.id;
-                          final localeCode = Localizations.localeOf(
-                            context,
-                          ).languageCode;
-                          final i18nVal = block.label.get(localeCode);
-                          final blockName = i18nVal.isNotEmpty
-                              ? i18nVal
-                              : blockId;
-
-                          return DropdownMenuItem(
-                            value: blockId,
-                            child: Text(blockName),
-                          );
-                        }),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          while (blocksList.length <= i) {
-                            blocksList.add('');
-                          }
-                          blocksList[i] = val;
-                          parentLayoutsList[index] = layout.copyWith(
-                            targetBlocks: blocksList
-                                .where((b) => b.isNotEmpty)
-                                .toList(),
-                          );
-                          updatePayload(
-                            payload.copyWith(layouts: parentLayoutsList),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                );
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: dropdowns,
-              );
-            },
-            loading: () => const Align(
-              alignment: Alignment.centerLeft,
-              child: CircularProgressIndicator(),
-            ),
-            error: (e, _) =>
-                Text(l10n.studioViewsErrorLoadingBlocks(e.toString())),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSynthesisEditor(
-    BuildContext context,
-    AppLocalizations l10n,
-    OutputProfile payload,
-    Function(OutputProfile) updatePayload,
-  ) {
-    final syn = payload.synthesis ?? const SynthesisConfigDTO();
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Synthesis & Export Configuration",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            const Divider(),
-            const SizedBox(height: 16),
-            I18nTextField(
-              label: "Preamble Text",
-              initialData: syn.preambleText,
-              onChanged: (val) {
-                updatePayload(
-                  payload.copyWith(synthesis: syn.copyWith(preambleText: val)),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              initialValue: syn.lengthConstraint?.toString() ?? '',
-              decoration: const InputDecoration(
-                labelText: "Max Length Constraint",
-                border: OutlineInputBorder(),
-                helperText: "Leave empty for no limit",
-              ),
-              keyboardType: TextInputType.number,
-              onChanged: (val) {
-                final parsed = int.tryParse(val) ?? (val.isEmpty ? null : syn.lengthConstraint);
-                updatePayload(
-                  payload.copyWith(synthesis: syn.copyWith(lengthConstraint: parsed)),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            SwitchListTile(
-              title: const Text("Enable PII Masking"),
-              subtitle: const Text("Ensure PII is masked before LLM call"),
-              value: syn.enablePiiMasking,
-              onChanged: (val) {
-                updatePayload(
-                  payload.copyWith(synthesis: syn.copyWith(enablePiiMasking: val)),
-                );
-              },
-            ),
-            SwitchListTile(
-              title: const Text("Include Historical Summary"),
-              value: syn.includeHistoricalSummary,
-              onChanged: (val) {
-                updatePayload(
-                  payload.copyWith(synthesis: syn.copyWith(includeHistoricalSummary: val)),
-                );
-              },
-            ),
-            SwitchListTile(
-              title: const Text("Omit Empty Sections"),
-              value: syn.omitEmptySections,
-              onChanged: (val) {
-                updatePayload(
-                  payload.copyWith(synthesis: syn.copyWith(omitEmptySections: val)),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "Allowed Exports",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            Wrap(
-              spacing: 8.0,
-              children: ['pdf', 'raw_json', 'docx'].map((exportType) {
-                final isSelected = syn.allowedExports.contains(exportType);
-                return FilterChip(
-                  label: Text(exportType.toUpperCase()),
-                  selected: isSelected,
-                  onSelected: (bool selected) {
-                    final exports = List<String>.from(syn.allowedExports);
-                    if (selected) {
-                      if (!exports.contains(exportType)) exports.add(exportType);
-                    } else {
-                      exports.remove(exportType);
-                    }
-                    updatePayload(
-                      payload.copyWith(synthesis: syn.copyWith(allowedExports: exports)),
-                    );
-                  },
-                );
-              }).toList(),
-            ),
-          ],
         ),
       ),
     );
