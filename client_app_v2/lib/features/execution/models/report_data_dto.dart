@@ -41,6 +41,7 @@ abstract class ReportAxisDTO with _$ReportAxisDTO {
 }
 
 /// Strictly typed DTO representing a single layout block dynamically defining how to render axes.
+/// Note: Added synthesis field to prevent checked JSON parsing errors.
 @freezed
 abstract class ReportLayoutDTO with _$ReportLayoutDTO {
   const factory ReportLayoutDTO({
@@ -50,6 +51,8 @@ abstract class ReportLayoutDTO with _$ReportLayoutDTO {
     I18nText? description,
     required List<ReportAxisDTO> axes,
     @JsonKey(name: 'show_text') required bool showText,
+    Map<String, dynamic>? synthesis,
+    @JsonKey(name: 'synthesis_md') String? synthesisMd,
   }) = _ReportLayoutDTO;
 
   factory ReportLayoutDTO.fromJson(Map<String, dynamic> json) =>
@@ -98,6 +101,10 @@ abstract class ReportDataDTO with _$ReportDataDTO {
     @Default([])
     List<MCPToolAuditDTO> mcpToolAudit,
     @JsonKey(name: 'has_warning') @Default(false) bool hasWarning,
+    @JsonKey(name: 'synthesized_markdown') String? synthesizedMarkdown,
+    @JsonKey(name: 'visible_metadata')
+    @Default([])
+    List<String> visibleMetadata,
   }) = _ReportDataDTO;
 
   factory ReportDataDTO.fromJson(Map<String, dynamic> json) =>

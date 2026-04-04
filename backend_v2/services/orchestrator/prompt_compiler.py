@@ -248,8 +248,15 @@ class PromptCompiler:
 
         try:
             val = int(level)
-        except (ValueError, TypeError):
-            return ""
+        except (ValueError, TypeError) as e:
+            from backend_v2.exceptions import AppException, ErrorCodes
+
+            logger.error("Failed to parse strictness level %s", level, exc_info=True)
+            raise AppException(
+                message=f"Invalid strictness level: {level}",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            ) from e
 
         # Clamp between 0 and 100
         val = max(0, min(100, val))
@@ -387,8 +394,10 @@ class PromptCompiler:
                     Field(
                         default=None,
                         description=(
-                            "EXACT verbatim quote from the user's RAW INPUT TEXT that serves as empirical evidence. "
-                            "AI-generated text is strictly forbidden here. If no direct quote exists, return null."
+                            "Provide an exact verbatim quote or a strong semantic justification "
+                            "from the user's RAW INPUT TEXT that serves as empirical evidence. "
+                            "AI-generated pure hallucinations are strictly forbidden. "
+                            "If no evidence or connection exists, return null."
                         ),
                     ),
                 )
@@ -529,8 +538,9 @@ class PromptCompiler:
                     if score is not None and isinstance(score, (int, float)) and score >= 4 and not quote:
                         raise ValueError(
                             f"CRITICAL LOGICAL ERROR: You assigned a high score ({score}) for '{cid}', "
-                            "but failed to provide a verbatim 'step_1_evidence_quote'. "
-                            "You MUST find an exact quote from the text or lower the score immediately."
+                            "but failed to provide 'step_1_evidence_quote'. "
+                            "You MUST provide a verbatim quote or a strong semantic justification "
+                            "from the input text."
                         )
                     return values
 
@@ -697,7 +707,8 @@ class PromptCompiler:
             return ""
         tool_list = ", ".join(allowed_tools)
         return (
-            f"[SYSTEM: DYNAMIC TOOL AUTOMATION]\n"
+            "[SYSTEM: DYNAMIC TOOL AUTOMATION]\n"
             f"Käytä dynaamisia työkaluja [{tool_list}] tarvittaessa etsiäksesi ajantasaista materiaalia. "
-            f"Pysäytä tiedonkeruu heti, kun sinulla on riittävästi kontekstia. Upota löytämäsi lähteet näihin laajennuskenttiin."
+            "Pysäytä tiedonkeruu heti, kun sinulla on riittävästi kontekstia. "
+            "Upota löytämäsi lähteet näihin laajennuskenttiin."
         )

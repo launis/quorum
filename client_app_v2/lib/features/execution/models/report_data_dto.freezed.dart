@@ -345,7 +345,7 @@ as Map<String, String>,
 /// @nodoc
 mixin _$ReportLayoutDTO {
 
-@JsonKey(name: 'preset_view') String get presetView;@JsonKey(name: 'matrix_type') String? get matrixType; I18nText? get title; I18nText? get description; List<ReportAxisDTO> get axes;@JsonKey(name: 'show_text') bool get showText;
+@JsonKey(name: 'preset_view') String get presetView;@JsonKey(name: 'matrix_type') String? get matrixType; I18nText? get title; I18nText? get description; List<ReportAxisDTO> get axes;@JsonKey(name: 'show_text') bool get showText; Map<String, dynamic>? get synthesis;@JsonKey(name: 'synthesis_md') String? get synthesisMd;
 /// Create a copy of ReportLayoutDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -358,16 +358,16 @@ $ReportLayoutDTOCopyWith<ReportLayoutDTO> get copyWith => _$ReportLayoutDTOCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReportLayoutDTO&&(identical(other.presetView, presetView) || other.presetView == presetView)&&(identical(other.matrixType, matrixType) || other.matrixType == matrixType)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.axes, axes)&&(identical(other.showText, showText) || other.showText == showText));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReportLayoutDTO&&(identical(other.presetView, presetView) || other.presetView == presetView)&&(identical(other.matrixType, matrixType) || other.matrixType == matrixType)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.axes, axes)&&(identical(other.showText, showText) || other.showText == showText)&&const DeepCollectionEquality().equals(other.synthesis, synthesis)&&(identical(other.synthesisMd, synthesisMd) || other.synthesisMd == synthesisMd));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,presetView,matrixType,title,description,const DeepCollectionEquality().hash(axes),showText);
+int get hashCode => Object.hash(runtimeType,presetView,matrixType,title,description,const DeepCollectionEquality().hash(axes),showText,const DeepCollectionEquality().hash(synthesis),synthesisMd);
 
 @override
 String toString() {
-  return 'ReportLayoutDTO(presetView: $presetView, matrixType: $matrixType, title: $title, description: $description, axes: $axes, showText: $showText)';
+  return 'ReportLayoutDTO(presetView: $presetView, matrixType: $matrixType, title: $title, description: $description, axes: $axes, showText: $showText, synthesis: $synthesis, synthesisMd: $synthesisMd)';
 }
 
 
@@ -378,7 +378,7 @@ abstract mixin class $ReportLayoutDTOCopyWith<$Res>  {
   factory $ReportLayoutDTOCopyWith(ReportLayoutDTO value, $Res Function(ReportLayoutDTO) _then) = _$ReportLayoutDTOCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'preset_view') String presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<ReportAxisDTO> axes,@JsonKey(name: 'show_text') bool showText
+@JsonKey(name: 'preset_view') String presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<ReportAxisDTO> axes,@JsonKey(name: 'show_text') bool showText, Map<String, dynamic>? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
 });
 
 
@@ -395,7 +395,7 @@ class _$ReportLayoutDTOCopyWithImpl<$Res>
 
 /// Create a copy of ReportLayoutDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? matrixType = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? showText = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? matrixType = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? showText = null,Object? synthesis = freezed,Object? synthesisMd = freezed,}) {
   return _then(_self.copyWith(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as String,matrixType: freezed == matrixType ? _self.matrixType : matrixType // ignore: cast_nullable_to_non_nullable
@@ -403,7 +403,9 @@ as String?,title: freezed == title ? _self.title : title // ignore: cast_nullabl
 as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,axes: null == axes ? _self.axes : axes // ignore: cast_nullable_to_non_nullable
 as List<ReportAxisDTO>,showText: null == showText ? _self.showText : showText // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,synthesisMd: freezed == synthesisMd ? _self.synthesisMd : synthesisMd // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 /// Create a copy of ReportLayoutDTO
@@ -512,10 +514,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  String presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'show_text')  bool showText)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  String presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'show_text')  bool showText,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportLayoutDTO() when $default != null:
-return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.showText);case _:
+return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.showText,_that.synthesis,_that.synthesisMd);case _:
   return orElse();
 
 }
@@ -533,10 +535,10 @@ return $default(_that.presetView,_that.matrixType,_that.title,_that.description,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  String presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'show_text')  bool showText)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  String presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'show_text')  bool showText,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)  $default,) {final _that = this;
 switch (_that) {
 case _ReportLayoutDTO():
-return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.showText);case _:
+return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.showText,_that.synthesis,_that.synthesisMd);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -553,10 +555,10 @@ return $default(_that.presetView,_that.matrixType,_that.title,_that.description,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view')  String presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'show_text')  bool showText)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view')  String presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'show_text')  bool showText,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportLayoutDTO() when $default != null:
-return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.showText);case _:
+return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.showText,_that.synthesis,_that.synthesisMd);case _:
   return null;
 
 }
@@ -568,7 +570,7 @@ return $default(_that.presetView,_that.matrixType,_that.title,_that.description,
 @JsonSerializable()
 
 class _ReportLayoutDTO implements ReportLayoutDTO {
-  const _ReportLayoutDTO({@JsonKey(name: 'preset_view') required this.presetView, @JsonKey(name: 'matrix_type') this.matrixType, this.title, this.description, required final  List<ReportAxisDTO> axes, @JsonKey(name: 'show_text') required this.showText}): _axes = axes;
+  const _ReportLayoutDTO({@JsonKey(name: 'preset_view') required this.presetView, @JsonKey(name: 'matrix_type') this.matrixType, this.title, this.description, required final  List<ReportAxisDTO> axes, @JsonKey(name: 'show_text') required this.showText, final  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md') this.synthesisMd}): _axes = axes,_synthesis = synthesis;
   factory _ReportLayoutDTO.fromJson(Map<String, dynamic> json) => _$ReportLayoutDTOFromJson(json);
 
 @override@JsonKey(name: 'preset_view') final  String presetView;
@@ -583,6 +585,16 @@ class _ReportLayoutDTO implements ReportLayoutDTO {
 }
 
 @override@JsonKey(name: 'show_text') final  bool showText;
+ final  Map<String, dynamic>? _synthesis;
+@override Map<String, dynamic>? get synthesis {
+  final value = _synthesis;
+  if (value == null) return null;
+  if (_synthesis is EqualUnmodifiableMapView) return _synthesis;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+@override@JsonKey(name: 'synthesis_md') final  String? synthesisMd;
 
 /// Create a copy of ReportLayoutDTO
 /// with the given fields replaced by the non-null parameter values.
@@ -597,16 +609,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReportLayoutDTO&&(identical(other.presetView, presetView) || other.presetView == presetView)&&(identical(other.matrixType, matrixType) || other.matrixType == matrixType)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._axes, _axes)&&(identical(other.showText, showText) || other.showText == showText));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReportLayoutDTO&&(identical(other.presetView, presetView) || other.presetView == presetView)&&(identical(other.matrixType, matrixType) || other.matrixType == matrixType)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._axes, _axes)&&(identical(other.showText, showText) || other.showText == showText)&&const DeepCollectionEquality().equals(other._synthesis, _synthesis)&&(identical(other.synthesisMd, synthesisMd) || other.synthesisMd == synthesisMd));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,presetView,matrixType,title,description,const DeepCollectionEquality().hash(_axes),showText);
+int get hashCode => Object.hash(runtimeType,presetView,matrixType,title,description,const DeepCollectionEquality().hash(_axes),showText,const DeepCollectionEquality().hash(_synthesis),synthesisMd);
 
 @override
 String toString() {
-  return 'ReportLayoutDTO(presetView: $presetView, matrixType: $matrixType, title: $title, description: $description, axes: $axes, showText: $showText)';
+  return 'ReportLayoutDTO(presetView: $presetView, matrixType: $matrixType, title: $title, description: $description, axes: $axes, showText: $showText, synthesis: $synthesis, synthesisMd: $synthesisMd)';
 }
 
 
@@ -617,7 +629,7 @@ abstract mixin class _$ReportLayoutDTOCopyWith<$Res> implements $ReportLayoutDTO
   factory _$ReportLayoutDTOCopyWith(_ReportLayoutDTO value, $Res Function(_ReportLayoutDTO) _then) = __$ReportLayoutDTOCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'preset_view') String presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<ReportAxisDTO> axes,@JsonKey(name: 'show_text') bool showText
+@JsonKey(name: 'preset_view') String presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<ReportAxisDTO> axes,@JsonKey(name: 'show_text') bool showText, Map<String, dynamic>? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
 });
 
 
@@ -634,7 +646,7 @@ class __$ReportLayoutDTOCopyWithImpl<$Res>
 
 /// Create a copy of ReportLayoutDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? matrixType = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? showText = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? matrixType = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? showText = null,Object? synthesis = freezed,Object? synthesisMd = freezed,}) {
   return _then(_ReportLayoutDTO(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as String,matrixType: freezed == matrixType ? _self.matrixType : matrixType // ignore: cast_nullable_to_non_nullable
@@ -642,7 +654,9 @@ as String?,title: freezed == title ? _self.title : title // ignore: cast_nullabl
 as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,axes: null == axes ? _self._axes : axes // ignore: cast_nullable_to_non_nullable
 as List<ReportAxisDTO>,showText: null == showText ? _self.showText : showText // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,synthesis: freezed == synthesis ? _self._synthesis : synthesis // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,synthesisMd: freezed == synthesisMd ? _self.synthesisMd : synthesisMd // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -964,7 +978,7 @@ as int,
 /// @nodoc
 mixin _$ReportDataDTO {
 
-@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'profile_id') String get profileId;@JsonKey(name: 'profile_name') I18nText? get profileName;@JsonKey(name: 'available_profiles') Map<String, I18nText> get availableProfiles;@JsonKey(name: 'global_score') double? get globalScore; List<ReportLayoutDTO> get layouts;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'org_name') String? get orgName;@JsonKey(name: 'cost_estimate') double? get costEstimate;@JsonKey(name: 'total_tokens') int? get totalTokens;@JsonKey(name: 'prompt_tokens') int? get promptTokens;@JsonKey(name: 'completion_tokens') int? get completionTokens;@JsonKey(name: 'reasoning_tokens') int? get reasoningTokens;@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> get mcpToolAudit;@JsonKey(name: 'has_warning') bool get hasWarning;
+@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'profile_id') String get profileId;@JsonKey(name: 'profile_name') I18nText? get profileName;@JsonKey(name: 'available_profiles') Map<String, I18nText> get availableProfiles;@JsonKey(name: 'global_score') double? get globalScore; List<ReportLayoutDTO> get layouts;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'org_name') String? get orgName;@JsonKey(name: 'cost_estimate') double? get costEstimate;@JsonKey(name: 'total_tokens') int? get totalTokens;@JsonKey(name: 'prompt_tokens') int? get promptTokens;@JsonKey(name: 'completion_tokens') int? get completionTokens;@JsonKey(name: 'reasoning_tokens') int? get reasoningTokens;@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> get mcpToolAudit;@JsonKey(name: 'has_warning') bool get hasWarning;@JsonKey(name: 'synthesized_markdown') String? get synthesizedMarkdown;@JsonKey(name: 'visible_metadata') List<String> get visibleMetadata;
 /// Create a copy of ReportDataDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -977,16 +991,16 @@ $ReportDataDTOCopyWith<ReportDataDTO> get copyWith => _$ReportDataDTOCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReportDataDTO&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.profileId, profileId) || other.profileId == profileId)&&(identical(other.profileName, profileName) || other.profileName == profileName)&&const DeepCollectionEquality().equals(other.availableProfiles, availableProfiles)&&(identical(other.globalScore, globalScore) || other.globalScore == globalScore)&&const DeepCollectionEquality().equals(other.layouts, layouts)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.orgName, orgName) || other.orgName == orgName)&&(identical(other.costEstimate, costEstimate) || other.costEstimate == costEstimate)&&(identical(other.totalTokens, totalTokens) || other.totalTokens == totalTokens)&&(identical(other.promptTokens, promptTokens) || other.promptTokens == promptTokens)&&(identical(other.completionTokens, completionTokens) || other.completionTokens == completionTokens)&&(identical(other.reasoningTokens, reasoningTokens) || other.reasoningTokens == reasoningTokens)&&const DeepCollectionEquality().equals(other.mcpToolAudit, mcpToolAudit)&&(identical(other.hasWarning, hasWarning) || other.hasWarning == hasWarning));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReportDataDTO&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.profileId, profileId) || other.profileId == profileId)&&(identical(other.profileName, profileName) || other.profileName == profileName)&&const DeepCollectionEquality().equals(other.availableProfiles, availableProfiles)&&(identical(other.globalScore, globalScore) || other.globalScore == globalScore)&&const DeepCollectionEquality().equals(other.layouts, layouts)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.orgName, orgName) || other.orgName == orgName)&&(identical(other.costEstimate, costEstimate) || other.costEstimate == costEstimate)&&(identical(other.totalTokens, totalTokens) || other.totalTokens == totalTokens)&&(identical(other.promptTokens, promptTokens) || other.promptTokens == promptTokens)&&(identical(other.completionTokens, completionTokens) || other.completionTokens == completionTokens)&&(identical(other.reasoningTokens, reasoningTokens) || other.reasoningTokens == reasoningTokens)&&const DeepCollectionEquality().equals(other.mcpToolAudit, mcpToolAudit)&&(identical(other.hasWarning, hasWarning) || other.hasWarning == hasWarning)&&(identical(other.synthesizedMarkdown, synthesizedMarkdown) || other.synthesizedMarkdown == synthesizedMarkdown)&&const DeepCollectionEquality().equals(other.visibleMetadata, visibleMetadata));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,workflowId,profileId,profileName,const DeepCollectionEquality().hash(availableProfiles),globalScore,const DeepCollectionEquality().hash(layouts),createdAt,orgName,costEstimate,totalTokens,promptTokens,completionTokens,reasoningTokens,const DeepCollectionEquality().hash(mcpToolAudit),hasWarning);
+int get hashCode => Object.hash(runtimeType,workflowId,profileId,profileName,const DeepCollectionEquality().hash(availableProfiles),globalScore,const DeepCollectionEquality().hash(layouts),createdAt,orgName,costEstimate,totalTokens,promptTokens,completionTokens,reasoningTokens,const DeepCollectionEquality().hash(mcpToolAudit),hasWarning,synthesizedMarkdown,const DeepCollectionEquality().hash(visibleMetadata));
 
 @override
 String toString() {
-  return 'ReportDataDTO(workflowId: $workflowId, profileId: $profileId, profileName: $profileName, availableProfiles: $availableProfiles, globalScore: $globalScore, layouts: $layouts, createdAt: $createdAt, orgName: $orgName, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit, hasWarning: $hasWarning)';
+  return 'ReportDataDTO(workflowId: $workflowId, profileId: $profileId, profileName: $profileName, availableProfiles: $availableProfiles, globalScore: $globalScore, layouts: $layouts, createdAt: $createdAt, orgName: $orgName, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit, hasWarning: $hasWarning, synthesizedMarkdown: $synthesizedMarkdown, visibleMetadata: $visibleMetadata)';
 }
 
 
@@ -997,7 +1011,7 @@ abstract mixin class $ReportDataDTOCopyWith<$Res>  {
   factory $ReportDataDTOCopyWith(ReportDataDTO value, $Res Function(ReportDataDTO) _then) = _$ReportDataDTOCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore, List<ReportLayoutDTO> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> mcpToolAudit,@JsonKey(name: 'has_warning') bool hasWarning
+@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore, List<ReportLayoutDTO> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> mcpToolAudit,@JsonKey(name: 'has_warning') bool hasWarning,@JsonKey(name: 'synthesized_markdown') String? synthesizedMarkdown,@JsonKey(name: 'visible_metadata') List<String> visibleMetadata
 });
 
 
@@ -1014,7 +1028,7 @@ class _$ReportDataDTOCopyWithImpl<$Res>
 
 /// Create a copy of ReportDataDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? workflowId = null,Object? profileId = null,Object? profileName = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? layouts = null,Object? createdAt = freezed,Object? orgName = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,Object? hasWarning = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? workflowId = null,Object? profileId = null,Object? profileName = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? layouts = null,Object? createdAt = freezed,Object? orgName = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,Object? hasWarning = null,Object? synthesizedMarkdown = freezed,Object? visibleMetadata = null,}) {
   return _then(_self.copyWith(
 workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,profileId: null == profileId ? _self.profileId : profileId // ignore: cast_nullable_to_non_nullable
@@ -1031,7 +1045,9 @@ as int?,completionTokens: freezed == completionTokens ? _self.completionTokens :
 as int?,reasoningTokens: freezed == reasoningTokens ? _self.reasoningTokens : reasoningTokens // ignore: cast_nullable_to_non_nullable
 as int?,mcpToolAudit: null == mcpToolAudit ? _self.mcpToolAudit : mcpToolAudit // ignore: cast_nullable_to_non_nullable
 as List<MCPToolAuditDTO>,hasWarning: null == hasWarning ? _self.hasWarning : hasWarning // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,synthesizedMarkdown: freezed == synthesizedMarkdown ? _self.synthesizedMarkdown : synthesizedMarkdown // ignore: cast_nullable_to_non_nullable
+as String?,visibleMetadata: null == visibleMetadata ? _self.visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 /// Create a copy of ReportDataDTO
@@ -1128,10 +1144,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportDataDTO() when $default != null:
-return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning);case _:
+return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata);case _:
   return orElse();
 
 }
@@ -1149,10 +1165,10 @@ return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availab
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata)  $default,) {final _that = this;
 switch (_that) {
 case _ReportDataDTO():
-return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning);case _:
+return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1169,10 +1185,10 @@ return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availab
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportDataDTO() when $default != null:
-return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning);case _:
+return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata);case _:
   return null;
 
 }
@@ -1184,7 +1200,7 @@ return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availab
 @JsonSerializable()
 
 class _ReportDataDTO extends ReportDataDTO {
-  const _ReportDataDTO({@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'profile_id') required this.profileId, @JsonKey(name: 'profile_name') this.profileName, @JsonKey(name: 'available_profiles') required final  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score') this.globalScore, required final  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'org_name') this.orgName, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'total_tokens') this.totalTokens, @JsonKey(name: 'prompt_tokens') this.promptTokens, @JsonKey(name: 'completion_tokens') this.completionTokens, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens, @JsonKey(name: 'mcp_tool_audit') final  List<MCPToolAuditDTO> mcpToolAudit = const [], @JsonKey(name: 'has_warning') this.hasWarning = false}): _availableProfiles = availableProfiles,_layouts = layouts,_mcpToolAudit = mcpToolAudit,super._();
+  const _ReportDataDTO({@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'profile_id') required this.profileId, @JsonKey(name: 'profile_name') this.profileName, @JsonKey(name: 'available_profiles') required final  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score') this.globalScore, required final  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'org_name') this.orgName, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'total_tokens') this.totalTokens, @JsonKey(name: 'prompt_tokens') this.promptTokens, @JsonKey(name: 'completion_tokens') this.completionTokens, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens, @JsonKey(name: 'mcp_tool_audit') final  List<MCPToolAuditDTO> mcpToolAudit = const [], @JsonKey(name: 'has_warning') this.hasWarning = false, @JsonKey(name: 'synthesized_markdown') this.synthesizedMarkdown, @JsonKey(name: 'visible_metadata') final  List<String> visibleMetadata = const []}): _availableProfiles = availableProfiles,_layouts = layouts,_mcpToolAudit = mcpToolAudit,_visibleMetadata = visibleMetadata,super._();
   factory _ReportDataDTO.fromJson(Map<String, dynamic> json) => _$ReportDataDTOFromJson(json);
 
 @override@JsonKey(name: 'workflow_id') final  String workflowId;
@@ -1220,6 +1236,14 @@ class _ReportDataDTO extends ReportDataDTO {
 }
 
 @override@JsonKey(name: 'has_warning') final  bool hasWarning;
+@override@JsonKey(name: 'synthesized_markdown') final  String? synthesizedMarkdown;
+ final  List<String> _visibleMetadata;
+@override@JsonKey(name: 'visible_metadata') List<String> get visibleMetadata {
+  if (_visibleMetadata is EqualUnmodifiableListView) return _visibleMetadata;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_visibleMetadata);
+}
+
 
 /// Create a copy of ReportDataDTO
 /// with the given fields replaced by the non-null parameter values.
@@ -1234,16 +1258,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReportDataDTO&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.profileId, profileId) || other.profileId == profileId)&&(identical(other.profileName, profileName) || other.profileName == profileName)&&const DeepCollectionEquality().equals(other._availableProfiles, _availableProfiles)&&(identical(other.globalScore, globalScore) || other.globalScore == globalScore)&&const DeepCollectionEquality().equals(other._layouts, _layouts)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.orgName, orgName) || other.orgName == orgName)&&(identical(other.costEstimate, costEstimate) || other.costEstimate == costEstimate)&&(identical(other.totalTokens, totalTokens) || other.totalTokens == totalTokens)&&(identical(other.promptTokens, promptTokens) || other.promptTokens == promptTokens)&&(identical(other.completionTokens, completionTokens) || other.completionTokens == completionTokens)&&(identical(other.reasoningTokens, reasoningTokens) || other.reasoningTokens == reasoningTokens)&&const DeepCollectionEquality().equals(other._mcpToolAudit, _mcpToolAudit)&&(identical(other.hasWarning, hasWarning) || other.hasWarning == hasWarning));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReportDataDTO&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.profileId, profileId) || other.profileId == profileId)&&(identical(other.profileName, profileName) || other.profileName == profileName)&&const DeepCollectionEquality().equals(other._availableProfiles, _availableProfiles)&&(identical(other.globalScore, globalScore) || other.globalScore == globalScore)&&const DeepCollectionEquality().equals(other._layouts, _layouts)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.orgName, orgName) || other.orgName == orgName)&&(identical(other.costEstimate, costEstimate) || other.costEstimate == costEstimate)&&(identical(other.totalTokens, totalTokens) || other.totalTokens == totalTokens)&&(identical(other.promptTokens, promptTokens) || other.promptTokens == promptTokens)&&(identical(other.completionTokens, completionTokens) || other.completionTokens == completionTokens)&&(identical(other.reasoningTokens, reasoningTokens) || other.reasoningTokens == reasoningTokens)&&const DeepCollectionEquality().equals(other._mcpToolAudit, _mcpToolAudit)&&(identical(other.hasWarning, hasWarning) || other.hasWarning == hasWarning)&&(identical(other.synthesizedMarkdown, synthesizedMarkdown) || other.synthesizedMarkdown == synthesizedMarkdown)&&const DeepCollectionEquality().equals(other._visibleMetadata, _visibleMetadata));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,workflowId,profileId,profileName,const DeepCollectionEquality().hash(_availableProfiles),globalScore,const DeepCollectionEquality().hash(_layouts),createdAt,orgName,costEstimate,totalTokens,promptTokens,completionTokens,reasoningTokens,const DeepCollectionEquality().hash(_mcpToolAudit),hasWarning);
+int get hashCode => Object.hash(runtimeType,workflowId,profileId,profileName,const DeepCollectionEquality().hash(_availableProfiles),globalScore,const DeepCollectionEquality().hash(_layouts),createdAt,orgName,costEstimate,totalTokens,promptTokens,completionTokens,reasoningTokens,const DeepCollectionEquality().hash(_mcpToolAudit),hasWarning,synthesizedMarkdown,const DeepCollectionEquality().hash(_visibleMetadata));
 
 @override
 String toString() {
-  return 'ReportDataDTO(workflowId: $workflowId, profileId: $profileId, profileName: $profileName, availableProfiles: $availableProfiles, globalScore: $globalScore, layouts: $layouts, createdAt: $createdAt, orgName: $orgName, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit, hasWarning: $hasWarning)';
+  return 'ReportDataDTO(workflowId: $workflowId, profileId: $profileId, profileName: $profileName, availableProfiles: $availableProfiles, globalScore: $globalScore, layouts: $layouts, createdAt: $createdAt, orgName: $orgName, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit, hasWarning: $hasWarning, synthesizedMarkdown: $synthesizedMarkdown, visibleMetadata: $visibleMetadata)';
 }
 
 
@@ -1254,7 +1278,7 @@ abstract mixin class _$ReportDataDTOCopyWith<$Res> implements $ReportDataDTOCopy
   factory _$ReportDataDTOCopyWith(_ReportDataDTO value, $Res Function(_ReportDataDTO) _then) = __$ReportDataDTOCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore, List<ReportLayoutDTO> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> mcpToolAudit,@JsonKey(name: 'has_warning') bool hasWarning
+@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore, List<ReportLayoutDTO> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> mcpToolAudit,@JsonKey(name: 'has_warning') bool hasWarning,@JsonKey(name: 'synthesized_markdown') String? synthesizedMarkdown,@JsonKey(name: 'visible_metadata') List<String> visibleMetadata
 });
 
 
@@ -1271,7 +1295,7 @@ class __$ReportDataDTOCopyWithImpl<$Res>
 
 /// Create a copy of ReportDataDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? workflowId = null,Object? profileId = null,Object? profileName = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? layouts = null,Object? createdAt = freezed,Object? orgName = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,Object? hasWarning = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? workflowId = null,Object? profileId = null,Object? profileName = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? layouts = null,Object? createdAt = freezed,Object? orgName = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,Object? hasWarning = null,Object? synthesizedMarkdown = freezed,Object? visibleMetadata = null,}) {
   return _then(_ReportDataDTO(
 workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,profileId: null == profileId ? _self.profileId : profileId // ignore: cast_nullable_to_non_nullable
@@ -1288,7 +1312,9 @@ as int?,completionTokens: freezed == completionTokens ? _self.completionTokens :
 as int?,reasoningTokens: freezed == reasoningTokens ? _self.reasoningTokens : reasoningTokens // ignore: cast_nullable_to_non_nullable
 as int?,mcpToolAudit: null == mcpToolAudit ? _self._mcpToolAudit : mcpToolAudit // ignore: cast_nullable_to_non_nullable
 as List<MCPToolAuditDTO>,hasWarning: null == hasWarning ? _self.hasWarning : hasWarning // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,synthesizedMarkdown: freezed == synthesizedMarkdown ? _self.synthesizedMarkdown : synthesizedMarkdown // ignore: cast_nullable_to_non_nullable
+as String?,visibleMetadata: null == visibleMetadata ? _self._visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 

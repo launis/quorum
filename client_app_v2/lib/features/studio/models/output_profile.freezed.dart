@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$OutputLayoutBlock {
 
- String get presetView; I18nText? get title; I18nText? get description; List<String> get steps; List<String> get targetBlocks; bool get showText; SynthesisConfigDTO? get synthesis;
+ String get presetView; I18nText? get title; I18nText? get description; List<String> get steps; List<String> get targetBlocks; bool get showText; SynthesisConfigDTO? get synthesis;@JsonKey(name: 'synthesis_md') String? get synthesisMd;
 /// Create a copy of OutputLayoutBlock
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,7 +30,7 @@ $OutputLayoutBlockCopyWith<OutputLayoutBlock> get copyWith => _$OutputLayoutBloc
 
 @override
 String toString() {
-  return 'OutputLayoutBlock(presetView: $presetView, title: $title, description: $description, steps: $steps, targetBlocks: $targetBlocks, showText: $showText, synthesis: $synthesis)';
+  return 'OutputLayoutBlock(presetView: $presetView, title: $title, description: $description, steps: $steps, targetBlocks: $targetBlocks, showText: $showText, synthesis: $synthesis, synthesisMd: $synthesisMd)';
 }
 
 
@@ -41,7 +41,7 @@ abstract mixin class $OutputLayoutBlockCopyWith<$Res>  {
   factory $OutputLayoutBlockCopyWith(OutputLayoutBlock value, $Res Function(OutputLayoutBlock) _then) = _$OutputLayoutBlockCopyWithImpl;
 @useResult
 $Res call({
- String presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks, bool showText, SynthesisConfigDTO? synthesis
+ String presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks, bool showText, SynthesisConfigDTO? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
 });
 
 
@@ -58,7 +58,7 @@ class _$OutputLayoutBlockCopyWithImpl<$Res>
 
 /// Create a copy of OutputLayoutBlock
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? showText = null,Object? synthesis = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? showText = null,Object? synthesis = freezed,Object? synthesisMd = freezed,}) {
   return _then(_self.copyWith(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -67,7 +67,8 @@ as I18nText?,steps: null == steps ? _self.steps : steps // ignore: cast_nullable
 as List<String>,targetBlocks: null == targetBlocks ? _self.targetBlocks : targetBlocks // ignore: cast_nullable_to_non_nullable
 as List<String>,showText: null == showText ? _self.showText : showText // ignore: cast_nullable_to_non_nullable
 as bool,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
-as SynthesisConfigDTO?,
+as SynthesisConfigDTO?,synthesisMd: freezed == synthesisMd ? _self.synthesisMd : synthesisMd // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 /// Create a copy of OutputLayoutBlock
@@ -188,10 +189,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks,  bool showText,  SynthesisConfigDTO? synthesis)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks,  bool showText,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OutputLayoutBlock() when $default != null:
-return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.showText,_that.synthesis);case _:
+return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.showText,_that.synthesis,_that.synthesisMd);case _:
   return orElse();
 
 }
@@ -209,10 +210,10 @@ return $default(_that.presetView,_that.title,_that.description,_that.steps,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks,  bool showText,  SynthesisConfigDTO? synthesis)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks,  bool showText,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)  $default,) {final _that = this;
 switch (_that) {
 case _OutputLayoutBlock():
-return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.showText,_that.synthesis);case _:
+return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.showText,_that.synthesis,_that.synthesisMd);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -229,10 +230,10 @@ return $default(_that.presetView,_that.title,_that.description,_that.steps,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks,  bool showText,  SynthesisConfigDTO? synthesis)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks,  bool showText,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,) {final _that = this;
 switch (_that) {
 case _OutputLayoutBlock() when $default != null:
-return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.showText,_that.synthesis);case _:
+return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.showText,_that.synthesis,_that.synthesisMd);case _:
   return null;
 
 }
@@ -244,7 +245,7 @@ return $default(_that.presetView,_that.title,_that.description,_that.steps,_that
 @JsonSerializable()
 
 class _OutputLayoutBlock extends OutputLayoutBlock {
-  const _OutputLayoutBlock({this.presetView = 'default', this.title, this.description, final  List<String> steps = const [], final  List<String> targetBlocks = const [], this.showText = true, this.synthesis}): _steps = steps,_targetBlocks = targetBlocks,super._();
+  const _OutputLayoutBlock({this.presetView = 'default', this.title, this.description, final  List<String> steps = const [], final  List<String> targetBlocks = const [], this.showText = true, this.synthesis, @JsonKey(name: 'synthesis_md') this.synthesisMd}): _steps = steps,_targetBlocks = targetBlocks,super._();
   factory _OutputLayoutBlock.fromJson(Map<String, dynamic> json) => _$OutputLayoutBlockFromJson(json);
 
 @override@JsonKey() final  String presetView;
@@ -266,6 +267,7 @@ class _OutputLayoutBlock extends OutputLayoutBlock {
 
 @override@JsonKey() final  bool showText;
 @override final  SynthesisConfigDTO? synthesis;
+@override@JsonKey(name: 'synthesis_md') final  String? synthesisMd;
 
 /// Create a copy of OutputLayoutBlock
 /// with the given fields replaced by the non-null parameter values.
@@ -282,7 +284,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'OutputLayoutBlock(presetView: $presetView, title: $title, description: $description, steps: $steps, targetBlocks: $targetBlocks, showText: $showText, synthesis: $synthesis)';
+  return 'OutputLayoutBlock(presetView: $presetView, title: $title, description: $description, steps: $steps, targetBlocks: $targetBlocks, showText: $showText, synthesis: $synthesis, synthesisMd: $synthesisMd)';
 }
 
 
@@ -293,7 +295,7 @@ abstract mixin class _$OutputLayoutBlockCopyWith<$Res> implements $OutputLayoutB
   factory _$OutputLayoutBlockCopyWith(_OutputLayoutBlock value, $Res Function(_OutputLayoutBlock) _then) = __$OutputLayoutBlockCopyWithImpl;
 @override @useResult
 $Res call({
- String presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks, bool showText, SynthesisConfigDTO? synthesis
+ String presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks, bool showText, SynthesisConfigDTO? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
 });
 
 
@@ -310,7 +312,7 @@ class __$OutputLayoutBlockCopyWithImpl<$Res>
 
 /// Create a copy of OutputLayoutBlock
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? showText = null,Object? synthesis = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? showText = null,Object? synthesis = freezed,Object? synthesisMd = freezed,}) {
   return _then(_OutputLayoutBlock(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -319,7 +321,8 @@ as I18nText?,steps: null == steps ? _self._steps : steps // ignore: cast_nullabl
 as List<String>,targetBlocks: null == targetBlocks ? _self._targetBlocks : targetBlocks // ignore: cast_nullable_to_non_nullable
 as List<String>,showText: null == showText ? _self.showText : showText // ignore: cast_nullable_to_non_nullable
 as bool,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
-as SynthesisConfigDTO?,
+as SynthesisConfigDTO?,synthesisMd: freezed == synthesisMd ? _self.synthesisMd : synthesisMd // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -660,7 +663,7 @@ $I18nTextCopyWith<$Res>? get preambleText {
 /// @nodoc
 mixin _$OutputProfile {
 
-@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter() String get workflowId; I18nText get name; I18nText get description; List<String> get visibleMetadata; String get displayScale; SynthesisConfigDTO? get synthesis; List<OutputLayoutBlock> get layouts;
+@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter() String get workflowId; I18nText get name; I18nText? get description; List<String> get visibleMetadata; String get displayScale; SynthesisConfigDTO? get synthesis; List<OutputLayoutBlock> get layouts;
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -686,11 +689,11 @@ abstract mixin class $OutputProfileCopyWith<$Res>  {
   factory $OutputProfileCopyWith(OutputProfile value, $Res Function(OutputProfile) _then) = _$OutputProfileCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, I18nText name, I18nText description, List<String> visibleMetadata, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, I18nText name, I18nText? description, List<String> visibleMetadata, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
 });
 
 
-$I18nTextCopyWith<$Res> get name;$I18nTextCopyWith<$Res> get description;$SynthesisConfigDTOCopyWith<$Res>? get synthesis;
+$I18nTextCopyWith<$Res> get name;$I18nTextCopyWith<$Res>? get description;$SynthesisConfigDTOCopyWith<$Res>? get synthesis;
 
 }
 /// @nodoc
@@ -703,14 +706,14 @@ class _$OutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? name = null,Object? description = null,Object? visibleMetadata = null,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText,visibleMetadata: null == visibleMetadata ? _self.visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
+as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as I18nText?,visibleMetadata: null == visibleMetadata ? _self.visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
 as List<String>,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDTO?,layouts: null == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
@@ -730,9 +733,12 @@ $I18nTextCopyWith<$Res> get name {
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$I18nTextCopyWith<$Res> get description {
-  
-  return $I18nTextCopyWith<$Res>(_self.description, (value) {
+$I18nTextCopyWith<$Res>? get description {
+    if (_self.description == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.description!, (value) {
     return _then(_self.copyWith(description: value));
   });
 }/// Create a copy of OutputProfile
@@ -829,7 +835,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText description,  List<String> visibleMetadata,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OutputProfile() when $default != null:
 return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.description,_that.visibleMetadata,_that.displayScale,_that.synthesis,_that.layouts);case _:
@@ -850,7 +856,7 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.descriptio
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText description,  List<String> visibleMetadata,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
 switch (_that) {
 case _OutputProfile():
 return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.description,_that.visibleMetadata,_that.displayScale,_that.synthesis,_that.layouts);case _:
@@ -870,7 +876,7 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.descriptio
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText description,  List<String> visibleMetadata,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
 switch (_that) {
 case _OutputProfile() when $default != null:
 return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.description,_that.visibleMetadata,_that.displayScale,_that.synthesis,_that.layouts);case _:
@@ -885,14 +891,14 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.descriptio
 @JsonSerializable()
 
 class _OutputProfile extends OutputProfile {
-  const _OutputProfile({@StrictOpaqueIdConverter() required this.id, this.slug = '', @StrictOpaqueIdConverter() required this.workflowId, required this.name, required this.description, final  List<String> visibleMetadata = const ['date', 'organization'], this.displayScale = 'original', this.synthesis, final  List<OutputLayoutBlock> layouts = const []}): _visibleMetadata = visibleMetadata,_layouts = layouts,super._();
+  const _OutputProfile({@StrictOpaqueIdConverter() required this.id, this.slug = '', @StrictOpaqueIdConverter() required this.workflowId, required this.name, this.description, final  List<String> visibleMetadata = const ['date', 'organization'], this.displayScale = 'original', this.synthesis, final  List<OutputLayoutBlock> layouts = const []}): _visibleMetadata = visibleMetadata,_layouts = layouts,super._();
   factory _OutputProfile.fromJson(Map<String, dynamic> json) => _$OutputProfileFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
 @override@JsonKey() final  String slug;
 @override@StrictOpaqueIdConverter() final  String workflowId;
 @override final  I18nText name;
-@override final  I18nText description;
+@override final  I18nText? description;
  final  List<String> _visibleMetadata;
 @override@JsonKey() List<String> get visibleMetadata {
   if (_visibleMetadata is EqualUnmodifiableListView) return _visibleMetadata;
@@ -936,11 +942,11 @@ abstract mixin class _$OutputProfileCopyWith<$Res> implements $OutputProfileCopy
   factory _$OutputProfileCopyWith(_OutputProfile value, $Res Function(_OutputProfile) _then) = __$OutputProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, I18nText name, I18nText description, List<String> visibleMetadata, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, I18nText name, I18nText? description, List<String> visibleMetadata, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
 });
 
 
-@override $I18nTextCopyWith<$Res> get name;@override $I18nTextCopyWith<$Res> get description;@override $SynthesisConfigDTOCopyWith<$Res>? get synthesis;
+@override $I18nTextCopyWith<$Res> get name;@override $I18nTextCopyWith<$Res>? get description;@override $SynthesisConfigDTOCopyWith<$Res>? get synthesis;
 
 }
 /// @nodoc
@@ -953,14 +959,14 @@ class __$OutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? name = null,Object? description = null,Object? visibleMetadata = null,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
   return _then(_OutputProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText,visibleMetadata: null == visibleMetadata ? _self._visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
+as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as I18nText?,visibleMetadata: null == visibleMetadata ? _self._visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
 as List<String>,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDTO?,layouts: null == layouts ? _self._layouts : layouts // ignore: cast_nullable_to_non_nullable
@@ -981,9 +987,12 @@ $I18nTextCopyWith<$Res> get name {
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$I18nTextCopyWith<$Res> get description {
-  
-  return $I18nTextCopyWith<$Res>(_self.description, (value) {
+$I18nTextCopyWith<$Res>? get description {
+    if (_self.description == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.description!, (value) {
     return _then(_self.copyWith(description: value));
   });
 }/// Create a copy of OutputProfile

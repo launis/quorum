@@ -3497,32 +3497,13 @@
             "title": "Step States",
             "description": "Real-time status tracking for DAG nodes"
           },
-          "synthesized_markdown": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Synthesized Markdown",
-            "description": "The LLM generated output synthesis"
-          },
-          "cited_sources": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cited Sources",
-            "description": "Citations used in synthesis"
+          "profile_syntheses": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RenderedSynthesisCache"
+            },
+            "type": "object",
+            "title": "Profile Syntheses",
+            "description": "Multi-profile synthesis caching"
           },
           "duration_ms": {
             "type": "integer",
@@ -4575,6 +4556,18 @@
               }
             ],
             "description": "Optional Section-Level Synthesis configuration for this block."
+          },
+          "synthesis_md": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Synthesis Md",
+            "description": "Optional Section-Level Synthesis content."
           }
         },
         "additionalProperties": false,
@@ -4653,6 +4646,18 @@
               }
             ],
             "description": "Optional Section-Level Synthesis configuration for this block."
+          },
+          "synthesis_md": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Synthesis Md",
+            "description": "Optional Section-Level Synthesis content."
           }
         },
         "additionalProperties": false,
@@ -4695,6 +4700,14 @@
               }
             ],
             "description": "Localized description."
+          },
+          "visible_metadata": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Visible Metadata",
+            "description": "List of metadata fields visible on the UI and PDF cover header."
           },
           "display_scale": {
             "type": "string",
@@ -4764,6 +4777,13 @@
                 "type": "null"
               }
             ]
+          },
+          "visible_metadata": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Visible Metadata"
           },
           "display_scale": {
             "type": "string",
@@ -5234,6 +5254,43 @@
         ],
         "title": "ReasoningTrace",
         "description": "Stores hidden Chain-of-Thought (preserves \"Thinking Tokens\")."
+      },
+      "RenderedSynthesisCache": {
+        "properties": {
+          "synthesized_markdown": {
+            "type": "string",
+            "title": "Synthesized Markdown",
+            "description": "Global synthesis markdown text"
+          },
+          "section_syntheses": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Section Syntheses",
+            "description": "Mapping of layout ID to LLM generated Section-Level synthesis"
+          },
+          "cited_sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cited Sources",
+            "description": "Citations used in this profile's synthesis"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "synthesized_markdown"
+        ],
+        "title": "RenderedSynthesisCache",
+        "description": "Cached synthesis results tied to a specific OutputProfile ID."
       },
       "Step": {
         "properties": {

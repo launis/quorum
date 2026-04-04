@@ -53,14 +53,25 @@
 </catastrophic_system_bans>
 
 <architectural_invariants>
-    <rule_block id="desktop_first_layout">
-        <banned_pattern>Displaying full-screen list mobile routing layouts on a PC environment natively.</banned_pattern>
-        <mandatory_pattern>Enforce `VisualDensity.compact`. PC breakpoints (>1200dp) strictly utilize Three-Pane layout. Tablet (600dp-1199dp) uses TwoPane Split-Screen arrays.</mandatory_pattern>
+    <rule_block id="rigid_macro_breakpoint_standard">
+        <banned_pattern>Using `bool isMobile = MediaQuery.of(context).size.width < 600` at the root, or applying global screen size checks for component-level responsivness.</banned_pattern>
+        <mandatory_pattern>Enforce the 'Macro-Breakpoint' standard locally using `LayoutBuilder(builder: (context, constraints))`. Components must be agnostic of the global UI window and adapt strictly via:
+        1. Large/Desktop (maxWidth >= 1200): Three-Pane parallel Row `[ P1 | P2 | P3 ]`
+        2. Medium/Tablet (maxWidth >= 800): Two-Pane Split-Screen Row `[ Column(P1, P2) | P3 ]`
+        3. Small/Mobile (maxWidth < 800): Single-column linear layout (ListView/Column)</mandatory_pattern>
+        <catastrophic_reason>Global `MediaQuery` checks break component isolation in Multi-Window desktop deployments. LayoutBuilder guarantees pure component-level boundary constraints.</catastrophic_reason>
     </rule_block>
 
-    <rule_block id="mediaquery_thrashing_ban">
-        <banned_pattern>Using `MediaQuery.of(context).size` formulas (e.g., `width * 0.05`) to dynamically stretch paddings, fonts, or fixed widget dimensions representing "responsive flow".</banned_pattern>
-        <mandatory_pattern>Quorum relies on Desktop Rigid Pane architecture. Use relative Flexbox (`Expanded`, `Flexible`) inside Macro-Breakpoints (`LayoutBuilder`). Bind spacing purely to static Theme padding tokens to prevent massive >60fps render cycle rebuilds upon window resizes.</mandatory_pattern>
+    <rule_block id="flexbox_native_engine_standard">
+        <banned_pattern>Calculating responsive widths/heights manually using decimal multipliers (e.g., `width: constraints.maxWidth * 0.33`) creating "MediaQuery Thrashing".</banned_pattern>
+        <mandatory_pattern>Utilize the Rust-backed Impeller strictly via pure declarative CSS-style Flexbox equivalents (`Row`, `Expanded(flex: N)`, `Flexible`). Let native algorithms handle proportional filling.</mandatory_pattern>
+        <catastrophic_reason>Manual multipliers force the Dart UI thread to recalculate the full widget tree pixel-by-pixel upon window drag. Pure Flex constraints allow native GPU offloading, guaranteeing >60fps performance during continuous window scaling.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="horizontal_overflow_prevention">
+        <banned_pattern>Placing unbounded horizontal text (`Text()`) or dropdowns (`DropdownButtonFormField`) inside `Row` or dynamic grid layouts without containment.</banned_pattern>
+        <mandatory_pattern>ALWAYS wrap text with long dynamic labels in `Expanded` (or similar flexible constraints) AND strictly set `overflow: TextOverflow.ellipsis`. For Dropdowns, you MUST ALWAYS set `isExpanded: true` to force Impeller to calculate the truncation boundaries before rendering.</mandatory_pattern>
+        <catastrophic_reason>Unbounded text inside Flex layouts inevitably breaches maximum rendering dimensions, generating the fatal Yellow/Black Striped 'RenderFlex overflowed' crash, rendering the UI unusable.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="main_thread_jank_isolate">

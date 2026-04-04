@@ -130,6 +130,8 @@ _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
             'description',
             'axes',
             'show_text',
+            'synthesis',
+            'synthesis_md',
           ],
         );
         final val = _ReportLayoutDTO(
@@ -152,6 +154,11 @@ _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
                 .toList(),
           ),
           showText: $checkedConvert('show_text', (v) => v as bool),
+          synthesis: $checkedConvert(
+            'synthesis',
+            (v) => v as Map<String, dynamic>?,
+          ),
+          synthesisMd: $checkedConvert('synthesis_md', (v) => v as String?),
         );
         return val;
       },
@@ -159,6 +166,7 @@ _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
         'presetView': 'preset_view',
         'matrixType': 'matrix_type',
         'showText': 'show_text',
+        'synthesisMd': 'synthesis_md',
       },
     );
 
@@ -170,6 +178,8 @@ Map<String, dynamic> _$ReportLayoutDTOToJson(_ReportLayoutDTO instance) =>
       'description': instance.description?.toJson(),
       'axes': instance.axes.map((e) => e.toJson()).toList(),
       'show_text': instance.showText,
+      'synthesis': instance.synthesis,
+      'synthesis_md': instance.synthesisMd,
     };
 
 _MCPToolAuditDTO _$MCPToolAuditDTOFromJson(Map<String, dynamic> json) =>
@@ -255,6 +265,8 @@ _ReportDataDTO _$ReportDataDTOFromJson(
         'reasoning_tokens',
         'mcp_tool_audit',
         'has_warning',
+        'synthesized_markdown',
+        'visible_metadata',
       ],
     );
     final val = _ReportDataDTO(
@@ -310,6 +322,15 @@ _ReportDataDTO _$ReportDataDTOFromJson(
             const [],
       ),
       hasWarning: $checkedConvert('has_warning', (v) => v as bool? ?? false),
+      synthesizedMarkdown: $checkedConvert(
+        'synthesized_markdown',
+        (v) => v as String?,
+      ),
+      visibleMetadata: $checkedConvert(
+        'visible_metadata',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
     );
     return val;
   },
@@ -328,6 +349,8 @@ _ReportDataDTO _$ReportDataDTOFromJson(
     'reasoningTokens': 'reasoning_tokens',
     'mcpToolAudit': 'mcp_tool_audit',
     'hasWarning': 'has_warning',
+    'synthesizedMarkdown': 'synthesized_markdown',
+    'visibleMetadata': 'visible_metadata',
   },
 );
 
@@ -350,4 +373,6 @@ Map<String, dynamic> _$ReportDataDTOToJson(_ReportDataDTO instance) =>
       'reasoning_tokens': instance.reasoningTokens,
       'mcp_tool_audit': instance.mcpToolAudit.map((e) => e.toJson()).toList(),
       'has_warning': instance.hasWarning,
+      'synthesized_markdown': instance.synthesizedMarkdown,
+      'visible_metadata': instance.visibleMetadata,
     };

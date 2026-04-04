@@ -7,6 +7,7 @@ import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/theme/app_durations.dart';
@@ -217,10 +218,52 @@ class OutputProfileForm extends _$OutputProfileForm {
         throw AppException.validation("Profile ID is required");
 
       final profileWithId = updatedData.copyWith(id: idToSave);
+
+      // RIGOROUS DTO SANITIZATION (Flatten empty I18nTexts to null to satisfy strict backend extra='forbid' & English-Only Mandate)
+      bool isEmptyI18n(I18nText? text) {
+        if (text == null) return true;
+        if (text.translations.isEmpty) return true;
+        if (text.translations.values.every((v) => v.trim().isEmpty))
+          return true;
+        return false;
+      }
+
+      if (isEmptyI18n(profileWithId.name)) {
+        throw AppException.validation(
+          "Profile Name (English) is required due to the English-Only Mandate.",
+        );
+      }
+
+      final sanitized = profileWithId.copyWith(
+        description: isEmptyI18n(profileWithId.description)
+            ? null
+            : profileWithId.description,
+        synthesis: profileWithId.synthesis == null
+            ? null
+            : profileWithId.synthesis!.copyWith(
+                preambleText: isEmptyI18n(profileWithId.synthesis!.preambleText)
+                    ? null
+                    : profileWithId.synthesis!.preambleText,
+              ),
+        layouts: profileWithId.layouts.map((l) {
+          return l.copyWith(
+            title: isEmptyI18n(l.title) ? null : l.title,
+            description: isEmptyI18n(l.description) ? null : l.description,
+            synthesis: l.synthesis == null
+                ? null
+                : l.synthesis!.copyWith(
+                    preambleText: isEmptyI18n(l.synthesis!.preambleText)
+                        ? null
+                        : l.synthesis!.preambleText,
+                  ),
+          );
+        }).toList(),
+      );
+
       await ref
           .read(outputProfilesControllerProvider.notifier)
-          .saveProfile(idToSave, profileWithId);
-      return profileWithId;
+          .saveProfile(idToSave, sanitized);
+      return sanitized;
     });
   }
 }

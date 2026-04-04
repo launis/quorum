@@ -22,6 +22,7 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         'target_blocks',
         'show_text',
         'synthesis',
+        'synthesis_md',
       ],
     );
     final val = _OutputLayoutBlock(
@@ -54,6 +55,7 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
             ? null
             : SynthesisConfigDTO.fromJson(v as Map<String, dynamic>),
       ),
+      synthesisMd: $checkedConvert('synthesis_md', (v) => v as String?),
     );
     return val;
   },
@@ -61,6 +63,7 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
     'presetView': 'preset_view',
     'targetBlocks': 'target_blocks',
     'showText': 'show_text',
+    'synthesisMd': 'synthesis_md',
   },
 );
 
@@ -73,6 +76,7 @@ Map<String, dynamic> _$OutputLayoutBlockToJson(_OutputLayoutBlock instance) =>
       'target_blocks': instance.targetBlocks,
       'show_text': instance.showText,
       'synthesis': instance.synthesis?.toJson(),
+      'synthesis_md': instance.synthesisMd,
     };
 
 _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
@@ -177,7 +181,8 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
           ),
           description: $checkedConvert(
             'description',
-            (v) => I18nText.fromJson(v as Map<String, dynamic>),
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
           ),
           visibleMetadata: $checkedConvert(
             'visible_metadata',
@@ -223,7 +228,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'slug': instance.slug,
   'workflow_id': const StrictOpaqueIdConverter().toJson(instance.workflowId),
   'name': instance.name.toJson(),
-  'description': instance.description.toJson(),
+  'description': instance.description?.toJson(),
   'visible_metadata': instance.visibleMetadata,
   'display_scale': instance.displayScale,
   'synthesis': instance.synthesis?.toJson(),

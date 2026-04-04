@@ -35,6 +35,8 @@ async def test_synthesis_hook_success(
     mock_llm_client_class: MagicMock, mock_repo: MagicMock, base_state: HookState
 ) -> None:
     """Test that synthesis hook injects config constraints correctly and calls LLM."""
+    mock_repo.get_workflow_by_id = AsyncMock()
+    mock_repo.get_execution = AsyncMock(return_value=None)
     mock_workflow = {
         "id": "wf_1",
         "default_profile_id": "prf_test",
@@ -82,7 +84,7 @@ async def test_synthesis_hook_success(
     assert "empty_key" not in user_msg.get("content", "")
 
     # Check length constraint & preamble
-    assert "LENGTH CONSTRAINT: The output should be approximately 500 characters." in sys_msg.get("content", "")
+    assert "GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be ~500 characters." in sys_msg.get("content", "")
     assert "Always be concise." in sys_msg.get("content", "")
 
     assert delta["synthesized_markdown"] == "Synthesized [1]"

@@ -1,3 +1,4 @@
+// ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/utils/json_converters.dart';
@@ -17,6 +18,7 @@ abstract class OutputLayoutBlock with _$OutputLayoutBlock {
     @Default([]) List<String> targetBlocks,
     @Default(true) bool showText,
     SynthesisConfigDTO? synthesis,
+    @JsonKey(name: 'synthesis_md') String? synthesisMd,
   }) = _OutputLayoutBlock;
 
   factory OutputLayoutBlock.fromJson(Map<String, dynamic> json) =>
@@ -49,7 +51,7 @@ abstract class OutputProfile with _$OutputProfile {
     @Default('') String slug,
     @StrictOpaqueIdConverter() required String workflowId,
     required I18nText name,
-    required I18nText description,
+    I18nText? description,
     @Default(['date', 'organization']) List<String> visibleMetadata,
     @Default('original') String displayScale,
     SynthesisConfigDTO? synthesis,

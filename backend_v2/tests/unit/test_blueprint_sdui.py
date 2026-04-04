@@ -100,16 +100,7 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo: AsyncMock) -> N
     dto = await transformer.build_report_dto("exe_1111111122222222")
     assert dto.has_warning is True
 
-    # Synthesis layout is injected at the beginning (index 0)
-    assert len(dto.layouts) >= 1
-    synthesis_layout = dto.layouts[0]
-    assert synthesis_layout.preset_view == "text_only"
-
-    assert len(synthesis_layout.axes) == 1
-    synthesis_axis = synthesis_layout.axes[0]
-    assert synthesis_axis.name == "coach-markdown"
-
     # MVP XSS sanitization test
-    assert synthesis_axis.justification is not None
-    assert "<script>" not in synthesis_axis.justification
-    assert "Some content" in synthesis_axis.justification
+    assert dto.synthesized_markdown is not None
+    assert "<script>" not in dto.synthesized_markdown
+    assert "Some content." in dto.synthesized_markdown

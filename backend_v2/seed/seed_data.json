@@ -5887,7 +5887,6 @@
       ],
       "pre_hooks": [
         "sanitize_text",
-        "check_banned_phrases",
         "verify_structure",
         "inject_step_metadata"
       ],

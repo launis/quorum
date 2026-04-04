@@ -124,6 +124,7 @@ class LayoutEditorCard extends ConsumerWidget {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   initialValue: currentPreset,
+                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: l10n.presetViewLabel,
                     isDense: true,
@@ -131,23 +132,38 @@ class LayoutEditorCard extends ConsumerWidget {
                   items: [
                     DropdownMenuItem(
                       value: '1d_metrics',
-                      child: Text(l10n.preset1dTable),
+                      child: Text(
+                        l10n.preset1dTable,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     DropdownMenuItem(
                       value: '2d_compare',
-                      child: Text(l10n.preset2dGrid),
+                      child: Text(
+                        l10n.preset2dGrid,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     DropdownMenuItem(
                       value: '3d_complex',
-                      child: Text(l10n.preset3dRadar),
+                      child: Text(
+                        l10n.preset3dRadar,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     DropdownMenuItem(
                       value: 'text_only',
-                      child: Text(l10n.presetTextOnly),
+                      child: Text(
+                        l10n.presetTextOnly,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     DropdownMenuItem(
                       value: 'default',
-                      child: Text(l10n.presetAutomatic),
+                      child: Text(
+                        l10n.presetAutomatic,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                   onChanged: (val) {
@@ -187,7 +203,10 @@ class LayoutEditorCard extends ConsumerWidget {
             label: l10n.layoutBlockTitleLabel,
             initialData: layout.title ?? const I18nText(defaultLocale: 'en'),
             onChanged: (val) {
-              updateLayout(layout.copyWith(title: val));
+              final isEmpty =
+                  val.translations.isEmpty ||
+                  val.translations.values.every((v) => v.trim().isEmpty);
+              updateLayout(layout.copyWith(title: isEmpty ? null : val));
             },
           ),
           const SizedBox(height: 12),
@@ -280,6 +299,7 @@ class LayoutEditorCard extends ConsumerWidget {
                     padding: const EdgeInsets.only(bottom: 8.0),
                     child: DropdownButtonFormField<String>(
                       initialValue: selectedValue,
+                      isExpanded: true,
                       decoration: InputDecoration(
                         labelText: axisLabel,
                         isDense: true,
@@ -289,7 +309,10 @@ class LayoutEditorCard extends ConsumerWidget {
                       items: [
                         DropdownMenuItem(
                           value: '*',
-                          child: Text(l10n.selectAllComponentsLabel),
+                          child: Text(
+                            l10n.selectAllComponentsLabel,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         ...targetBlocks.map((block) {
                           final blockId = block.id;
@@ -303,7 +326,10 @@ class LayoutEditorCard extends ConsumerWidget {
 
                           return DropdownMenuItem(
                             value: blockId,
-                            child: Text(blockName),
+                            child: Text(
+                              blockName,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           );
                         }),
                       ],

@@ -68,7 +68,10 @@ class I18nText(V2CoreBase):
         # Enforce English-Only Mandate: 'en' translation must ALWAYS exist.
         en_trans = self.translations.get("en")
         if not en_trans or not en_trans.strip():
-            msg = "I18nText must contain a valid English ('en') translation due to the English-Only Mandate."
+            msg = (
+                "I18nText must contain a valid English ('en') translation due to the "
+                f"English-Only Mandate. Payload: {self.translations}"
+            )
             logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
 
@@ -307,8 +310,11 @@ class MCPAuditTrace(V2CoreBase):
             if isinstance(val, str):
                 try:
                     data["timestamp"] = datetime.fromisoformat(val)
-                except ValueError:
-                    pass
+                except ValueError as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error("Failed to parse MCPAuditTrace timestamp", exc_info=True)
+                    raise ValueError(f"Input should be a valid datetime or ISO format for timestamp: {val}") from e
         return data
 
 
@@ -512,9 +518,27 @@ class ReportAxisDTO(V2CoreBase):
     emotional_sentiment: str | None = None
     theory_link: str | None = None
 
-    scale_min: float = 0.0
-    scale_max: float = 6.0
+    scale_min: float | None = None
+    scale_max: float | None = None
     scale_labels: dict[str, str] = Field(default_factory=dict)
+
+
+class SynthesisConfigDTO(V2CoreBase):
+    """Configuration for LLM output synthesis length, masking, and formatting."""
+
+    length_constraint: int | None = Field(default=None, description="Length constraint for the synthesized text.")
+    preamble_text: I18nText | None = Field(
+        default=None, description="Multilingual preamble text added before synthesis."
+    )
+    include_historical_summary: bool = Field(
+        default=False, description="Flag for fetching sliding window history summary."
+    )
+    enable_pii_masking: bool = Field(default=False, description="Flag to enable algorithmic PII redaction.")
+    allowed_exports: list[Literal["pdf", "docx", "raw_json"]] = Field(
+        default_factory=lambda: cast(list[Literal["pdf", "docx", "raw_json"]], ["pdf", "raw_json"]),
+        description="Supported export file formats.",
+    )
+    omit_empty_sections: bool = Field(default=True, description="Flag to drop logically empty evaluation sections.")
 
 
 class ReportLayoutDTO(V2CoreBase):
@@ -523,6 +547,8 @@ class ReportLayoutDTO(V2CoreBase):
     description: I18nText | None = Field(default=None)
     axes: list[ReportAxisDTO] = Field(default_factory=list)
     show_text: bool = Field(default=True)
+    synthesis: SynthesisConfigDTO | None = Field(default=None)
+    synthesis_md: str | None = Field(default=None, description="The rendered synthesis text for this layout block")
 
 
 class ReportDataDTO(V2CoreBase):
@@ -535,6 +561,10 @@ class ReportDataDTO(V2CoreBase):
     )
     has_warning: bool = Field(
         default=False, description="Flag indicating if the report generation had non-fatal warnings."
+    )
+    synthesized_markdown: str | None = Field(default=None, description="Global synthesis markdown text")
+    visible_metadata: list[str] = Field(
+        default_factory=list, description="Fields visible on the UI and PDF cover header."
     )
     layouts: list[ReportLayoutDTO] = Field(default_factory=list)
 
@@ -569,24 +599,7 @@ class OutputLayoutBlock(V2CoreBase):
     synthesis: SynthesisConfigDTO | None = Field(
         default=None, description="Optional Section-Level Synthesis configuration for this block."
     )
-
-
-class SynthesisConfigDTO(V2CoreBase):
-    """Configuration for LLM output synthesis length, masking, and formatting."""
-
-    length_constraint: int | None = Field(default=None, description="Length constraint for the synthesized text.")
-    preamble_text: I18nText | None = Field(
-        default=None, description="Multilingual preamble text added before synthesis."
-    )
-    include_historical_summary: bool = Field(
-        default=False, description="Flag for fetching sliding window history summary."
-    )
-    enable_pii_masking: bool = Field(default=False, description="Flag to enable algorithmic PII redaction.")
-    allowed_exports: list[Literal["pdf", "docx", "raw_json"]] = Field(
-        default_factory=lambda: cast(list[Literal["pdf", "docx", "raw_json"]], ["pdf", "raw_json"]),
-        description="Supported export file formats.",
-    )
-    omit_empty_sections: bool = Field(default=True, description="Flag to drop logically empty evaluation sections.")
+    synthesis_md: str | None = Field(default=None, description="Optional Section-Level Synthesis content.")
 
 
 class OutputProfile(V2CoreBase):
@@ -744,6 +757,17 @@ class ExecutionStepState(V2CoreBase):
     last_error: str | None = Field(default=None, description="Error message if the step failed")
 
 
+class RenderedSynthesisCache(V2CoreBase):
+    """Cached synthesis results tied to a specific OutputProfile ID."""
+
+    synthesized_markdown: str = Field(description="Global synthesis markdown text")
+    section_syntheses: dict[str, str] = Field(
+        default_factory=dict, description="Mapping of layout ID to LLM generated Section-Level synthesis"
+    )
+    cited_sources: list[str] = Field(default_factory=list, description="Citations used in this profile's synthesis")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 class ExecutionRecord(V2CoreBase):
     """Record of a workflow execution, including the frozen context and results."""
 
@@ -771,8 +795,9 @@ class ExecutionRecord(V2CoreBase):
     step_states: dict[str, ExecutionStepState] = Field(
         default_factory=dict, description="Real-time status tracking for DAG nodes"
     )
-    synthesized_markdown: str | None = Field(default=None, description="The LLM generated output synthesis")
-    cited_sources: list[str] | None = Field(default=None, description="Citations used in synthesis")
+    profile_syntheses: dict[str, RenderedSynthesisCache] = Field(
+        default_factory=dict, description="Multi-profile synthesis caching"
+    )
 
     duration_ms: int = Field(default=0, description="Total execution duration in milliseconds")
     models_used: dict[str, int] = Field(

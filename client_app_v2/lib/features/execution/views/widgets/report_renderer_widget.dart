@@ -5,7 +5,6 @@ import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/execution/views/widgets/xai_evidence_box.dart';
-import 'package:client_app/core/ui/error_view.dart';
 
 /// Static MVC View Renderer mapping exactly to the workflow preset views.
 /// Adheres to the De-Generator Zero-Math rule natively traversing the array.
@@ -35,6 +34,9 @@ class ReportRendererWidget extends ConsumerWidget {
       primary: false,
       children: [
         _buildMetadataHeaderBox(context),
+        if (payload.synthesizedMarkdown != null &&
+            payload.synthesizedMarkdown!.isNotEmpty)
+          _buildGlobalSynthesisBox(context),
         if (payload.globalScore != null) _buildGlobalScoreBadge(context),
         ...payload.layouts.map(
           (layout) => _buildLayoutSequence(context, ref, layout),
@@ -43,6 +45,60 @@ class ReportRendererWidget extends ConsumerWidget {
         if (payload.mcpToolAudit.isNotEmpty)
           XAIEvidenceBox(auditTraces: payload.mcpToolAudit),
       ],
+    );
+  }
+
+  Widget _buildGlobalSynthesisBox(BuildContext context) {
+    final isFi = Localizations.localeOf(context).languageCode == 'fi';
+    return Padding(
+      padding: const EdgeInsets.only(
+        top: 16.0,
+        bottom: 8.0,
+        left: 16.0,
+        right: 16.0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isFi ? 'Yhteenveto' : 'Executive Summary',
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                left: BorderSide(
+                  color: Theme.of(context).primaryColor,
+                  width: 4,
+                ),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              payload.synthesizedMarkdown!,
+              style: const TextStyle(
+                fontSize: 15,
+                height: 1.5,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -56,6 +112,16 @@ class ReportRendererWidget extends ConsumerWidget {
     final costStr = payload.costEstimate != null
         ? '\$${payload.costEstimate!.toStringAsFixed(4)}'
         : '-';
+
+    bool isVisible(String key) {
+      if (payload.visibleMetadata.isEmpty) return true;
+      return payload.visibleMetadata.contains(key);
+    }
+
+    final showOrg = isVisible('organization');
+    final showDate = isVisible('date');
+    final showCost = isVisible('cost');
+    final showTokens = isVisible('tokens');
 
     return Card(
       elevation: 3,
@@ -74,68 +140,72 @@ class ReportRendererWidget extends ConsumerWidget {
             const SizedBox(height: 8),
 
             // KONTEKSTI
-            Text(
-              l10n.reportContext(defaultOrgName),
-              style: TextStyle(color: Colors.grey.shade800),
-            ),
-            if (payload.createdAt != null)
+            if (showOrg)
+              Text(
+                l10n.reportContext(defaultOrgName),
+                style: TextStyle(color: Colors.grey.shade800),
+              ),
+            if (showDate && payload.createdAt != null)
               Text(
                 l10n.reportTimestamp(payload.createdAt.toString()),
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               ),
 
-            const Divider(height: 24),
+            if (showCost || showTokens) const Divider(height: 24),
 
             // KUSTANNUKSET & KOGNITIIVINEN TYÖ
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.reportCosts,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
+            if (showCost || showTokens)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (showCost)
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.reportCosts,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Text(
+                            l10n.reportApiPrice(costStr),
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ],
                       ),
-                      Text(
-                        l10n.reportApiPrice(costStr),
-                        style: const TextStyle(fontSize: 13),
+                    ),
+                  if (showTokens)
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.reportCognitiveWork,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Text(
+                            "Prompt: ${payload.promptTokens ?? '-'}",
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          Text(
+                            "Completion: ${payload.completionTokens ?? '-'}",
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          Text(
+                            "Reasoning: ${payload.reasoningTokens ?? '-'}",
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.reportCognitiveWork,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                      Text(
-                        "Prompt: ${payload.promptTokens ?? '-'}",
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                      Text(
-                        "Completion: ${payload.completionTokens ?? '-'}",
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                      Text(
-                        "Reasoning: ${payload.reasoningTokens ?? '-'}",
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+                    ),
+                ],
+              ),
           ],
         ),
       ),
@@ -143,7 +213,11 @@ class ReportRendererWidget extends ConsumerWidget {
   }
 
   Widget _buildGlobalScoreBadge(BuildContext context) {
-    if (payload.globalScore == null) return const SizedBox.shrink();
+    if (payload.globalScore == null) {
+      throw Exception(
+        'payload.globalScore missing! Fail-Fast rule dictates UI crash rather than masking.',
+      );
+    }
 
     final l10n = AppLocalizations.of(context)!;
 
@@ -201,11 +275,20 @@ class ReportRendererWidget extends ConsumerWidget {
     WidgetRef ref,
     ReportLayoutDTO layout,
   ) {
-    if (layout.axes.isEmpty) return const SizedBox.shrink();
+    if (layout.axes.isEmpty) {
+      throw Exception(
+        'layout.axes is empty! Fail-Fast rule dictates UI crash rather than masking.',
+      );
+    }
 
     final lang = Localizations.localeOf(context).languageCode;
     final title = layout.title?.get(lang);
     final desc = layout.description?.get(lang);
+
+    final hasTitle = title != null && title.isNotEmpty;
+    final hasDesc = desc != null && desc.isNotEmpty;
+    final hasSynthesis =
+        layout.synthesisMd != null && layout.synthesisMd!.isNotEmpty;
 
     Widget content;
     try {
@@ -223,7 +306,6 @@ class ReportRendererWidget extends ConsumerWidget {
           content = _build1DMetrics(context, layout);
           break;
         default:
-          // Graceful degradation fallback
           content = _build1DMetrics(context, layout);
       }
     } catch (e, st) {
@@ -235,11 +317,10 @@ class ReportRendererWidget extends ConsumerWidget {
             e,
             st,
           );
-      return ErrorView(error: e, stackTrace: st, compact: true);
+      rethrow;
     }
 
-    if ((title != null && title.isNotEmpty) ||
-        (desc != null && desc.isNotEmpty)) {
+    if (hasTitle || hasDesc || hasSynthesis) {
       return Padding(
         padding: const EdgeInsets.only(
           top: 32.0,
@@ -250,7 +331,7 @@ class ReportRendererWidget extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (title != null && title.isNotEmpty)
+            if (hasTitle)
               Text(
                 title,
                 style: const TextStyle(
@@ -259,7 +340,7 @@ class ReportRendererWidget extends ConsumerWidget {
                   letterSpacing: -0.5,
                 ),
               ),
-            if (desc != null && desc.isNotEmpty) ...[
+            if (hasDesc) ...[
               const SizedBox(height: 8),
               Text(
                 desc,
@@ -267,6 +348,37 @@ class ReportRendererWidget extends ConsumerWidget {
                   fontSize: 15,
                   color: Colors.grey.shade700,
                   height: 1.4,
+                ),
+              ),
+            ],
+            if (hasSynthesis) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(
+                    left: BorderSide(
+                      color: Theme.of(context).primaryColor,
+                      width: 4,
+                    ),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  layout.synthesisMd!,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    height: 1.5,
+                    color: Colors.black87,
+                  ),
                 ),
               ),
             ],
@@ -281,7 +393,11 @@ class ReportRendererWidget extends ConsumerWidget {
   }
 
   Widget _build1DMetrics(BuildContext context, ReportLayoutDTO layout) {
-    if (layout.axes.isEmpty) return const SizedBox.shrink();
+    if (layout.axes.isEmpty) {
+      throw Exception(
+        'layout.axes empty in 1D metrics! Fail-Fast rule dictates UI crash.',
+      );
+    }
 
     final l10n = AppLocalizations.of(context)!;
     final Set<String> seenQuotes = {};

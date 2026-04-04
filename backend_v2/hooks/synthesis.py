@@ -25,6 +25,9 @@ class SynthesisOutputDTO(BaseModel):
 
     synthesized_markdown: str = Field(..., description="The fully synthesized and deduplicated markdown content.")
     cited_sources: list[str] = Field(default_factory=list, description="List of references or citations found.")
+    section_syntheses: dict[str, str] = Field(
+        default_factory=dict, description="Dictionary mapping Layout ID to its unique synthesized markdown content."
+    )
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -104,9 +107,18 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
         )
 
+    execution_data = await deps.repository.get_execution(state.execution_id)
+    output_profile_id = None
+    if execution_data:
+        output_profile_id = getattr(execution_data, "output_profile_id", None)
+        if not output_profile_id and isinstance(execution_data, dict):
+            output_profile_id = execution_data.get("output_profile_id")
+
     default_pid = workflow_data.get("default_profile_id", "default")
+    profile_to_use = output_profile_id or default_pid
+
     output_profiles = workflow_data.get("output_profiles", {})
-    active_profile = output_profiles.get(default_pid, {})
+    active_profile = output_profiles.get(profile_to_use, {})
     synthesis_cfg = active_profile.get("synthesis", {}) or {}
 
     length_constraint = synthesis_cfg.get("length_constraint")
@@ -185,21 +197,63 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     if enable_masking:
         raw_input_text = _mask_pii_local(raw_input_text)
 
-    # 3. Formulate Prompt
+    # --- Section-Level Synthesis Directives ---
+    layouts = active_profile.get("layouts", [])
+    section_instructions = []
+
+    for idx, layout in enumerate(layouts):
+        l_synthesis = layout.get("synthesis")
+        if not l_synthesis:
+            continue
+
+        l_title = _resolve_i18n_str(layout.get("title") or {}, language) or f"Section {idx}"
+        l_preamble = _resolve_i18n_str(l_synthesis.get("preamble_text") or {}, language)
+
+        # Calculate a deterministic Layout ID matching BlueprintTransformer
+        l_view = layout.get("preset_view", "default")
+        l_id = f"layout_{l_view}_{str(hash(l_title))}"
+
+        target_blocks = layout.get("target_blocks", [])
+
+        instruction = f"LAYOUT ID: {l_id} | TITLE: {l_title}\n"
+        if target_blocks and "*" not in target_blocks:
+            instruction += f"Only synthesize information regarding these keys: {', '.join(target_blocks)}\n"
+        else:
+            instruction += "Synthesize all relevant information for this section.\n"
+
+        if l_preamble:
+            instruction += f"CRITICAL TONE/PREAMBLE FOR THIS SECTION: '{l_preamble}'\n"
+
+        if l_synthesis.get("length_constraint"):
+            instruction += f"LENGTH LIMIT: ~{l_synthesis.get('length_constraint')} chars.\n"
+
+        section_instructions.append(instruction)
+
     sys_prompt = f"TARGET LANGUAGE: {language.upper()}\n"
     sys_prompt += (
         "You are a professional report synthesizer. Merge, deduplicate, and seamlessly "
         "synthesize the provided information into cohesive markdown.\n"
     )
     if length_constraint:
-        sys_prompt += f"LENGTH CONSTRAINT: The output should be approximately {length_constraint} characters.\n"
+        sys_prompt += (
+            f"GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be ~{length_constraint} characters.\n"
+        )
     if preamble:
         sys_prompt += (
-            "PREAMBLE INTRODUCTION: Start your synthesis intuitively using the following "
+            "GLOBAL PREAMBLE INTRODUCTION: Start your global synthesis intuitively using the following "
             f"preamble tone/context: '{preamble}'\n"
         )
+
+    if section_instructions:
+        sys_prompt += "\n\n=== SECTION-LEVEL SYNTHESIS REQUIRED ===\n"
+        sys_prompt += (
+            "You MUST ALSO provide targeted synthesized summaries for the following "
+            "distinct sections in the `section_syntheses` dict, mapped by LAYOUT ID.\n\n"
+        )
+        sys_prompt += "\n\n".join(section_instructions)
+
     sys_prompt += (
-        "Omit internal system identifiers or raw JSON keys. "
+        "\n\nOmit internal system identifiers or raw JSON keys. "
         "Cite your sources using inline tags [1], [2] if data originates from external tools."
     )
 
@@ -228,6 +282,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 success=True,
                 state_delta={
                     "synthesized_markdown": result.synthesized_markdown,
+                    "section_syntheses": result.section_syntheses,
                     "cited_sources": result.cited_sources,
                     "step_metadata_updates": {"token_usage": current_usage},
                 },

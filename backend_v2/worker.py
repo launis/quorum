@@ -125,10 +125,15 @@ async def execute_workflow_job(
                 deps = HookDependencies(repository=repository)
                 hook_res = await hook_registry.execute("text_consolidation_hook", state, deps)
 
-                if hook_res.success and hook_res.state_delta and "synthesized_markdown" in hook_res.state_delta:
-                    await repository.update_execution(
-                        exec_id, {"synthesized_markdown": hook_res.state_delta["synthesized_markdown"]}
-                    )
+                if hook_res.success and hook_res.state_delta:
+                    update_payload = {}
+                    if "synthesized_markdown" in hook_res.state_delta:
+                        update_payload["synthesized_markdown"] = hook_res.state_delta["synthesized_markdown"]
+                    if "section_syntheses" in hook_res.state_delta:
+                        update_payload["section_syntheses"] = hook_res.state_delta["section_syntheses"]
+                    
+                    if update_payload:
+                        await repository.update_execution(exec_id, update_payload)
             except Exception as e:
                 logger.error("[Worker] TextConsolidationHook failed for %s: %s", exec_id, str(e), exc_info=True)
 

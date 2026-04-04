@@ -61,21 +61,34 @@
 <body>
 
     {% if report_data %}
+        {% set show_org = not report_data.visible_metadata or 'organization' in report_data.visible_metadata %}
+        {% set show_date = not report_data.visible_metadata or 'date' in report_data.visible_metadata %}
+        {% set show_cost = not report_data.visible_metadata or 'cost' in report_data.visible_metadata %}
+        {% set show_tokens = not report_data.visible_metadata or 'tokens' in report_data.visible_metadata %}
+
         <div class="header-card" style="text-align: left;">
             <h1 style="margin: 0 0 10px 0;">{{ workflow_name }} {% if report_data %}({{ report_data.profile_id }}){% endif %}</h1>
             
             <div style="font-size: 12px; color: #444; margin-bottom: 12px;">
+                {% if show_org %}
                 <strong>Konteksti:</strong> {% if report_data and report_data.org_name %}{{ report_data.org_name }}{% else %}Tuntematon organisaatio{% endif %}<br>
+                {% endif %}
+                {% if show_date %}
                 <strong>Aikaleima:</strong> {% if report_data and report_data.created_at %}{{ report_data.created_at }}{% else %}{{ printed_at }}{% endif %}<br>
                 <div style="font-size: 10px; color: #888; margin-top: 4px;">ID: {{ execution_id }} &bull; Tulostettu: {{ printed_at }}</div>
+                {% endif %}
             </div>
 
+            {% if show_cost or show_tokens %}
             <table style="width: 100%; border-top: 1px solid #ccc; padding-top: 10px;">
                 <tr>
+                    {% if show_cost %}
                     <td style="width: 50%; vertical-align: top; text-align: left;">
                         <strong style="font-size: 12px;">Kustannukset</strong><br>
                         <span style="font-size: 11px;">API-hinta: {% if report_data and report_data.cost_estimate != None %}${{ "%.4f"|format(report_data.cost_estimate) }}{% else %}-{% endif %}</span>
                     </td>
+                    {% endif %}
+                    {% if show_tokens %}
                     <td style="width: 50%; vertical-align: top; text-align: left;">
                         <strong style="font-size: 12px;">Kognitiivinen työ (Tokens)</strong><br>
                         <span style="font-size: 11px;">
@@ -84,8 +97,10 @@
                             Reasoning: {% if report_data and report_data.reasoning_tokens != None %}{{ report_data.reasoning_tokens }}{% else %}-{% endif %}
                         </span>
                     </td>
+                    {% endif %}
                 </tr>
             </table>
+            {% endif %}
         </div>
 
         {% if report_data and report_data.global_score != None %}
@@ -96,6 +111,13 @@
                     <span style="font-size: 18px; color: #4CAF50; font-weight: 600;">/ 100</span>
                 </div>
             </div>
+        {% endif %}
+
+        {% if report_data and report_data.synthesized_markdown %}
+        <div class="card" style="border-left: 4px solid #1E88E5; padding: 20px; margin-bottom: 20px;">
+            <h2 style="color: #1a237e; margin-top: 0;">Yhteenveto</h2>
+            <div style="font-size: 13px; line-height: 1.6; color: #333;">{{ report_data.synthesized_markdown | md | safe }}</div>
+        </div>
         {% endif %}
 
         {% set ns = namespace(seen_quotes=[]) %}
@@ -220,12 +242,7 @@
             {% endfor %}
         {% endfor %}
 
-        {% if report_data.synthesis %}
-        <div class="card" style="border-top: 3px solid #9C27B0;">
-            <h2 style="color: #9C27B0;">Synthesis</h2>
-            <div style="font-size: 13px; line-height: 1.6; color: #333;">{{ report_data.synthesis | md | safe }}</div>
-        </div>
-        {% endif %}
+
 
         {% if report_data.mcp_tool_audit %}
         <div class="card" style="border-top: 3px solid #009688;">

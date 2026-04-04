@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+
 class SynthesisEditorCard extends StatelessWidget {
   final SynthesisConfigDTO? synthesis;
   final Function(SynthesisConfigDTO?) onChanged;
@@ -37,7 +38,10 @@ class SynthesisEditorCard extends StatelessWidget {
               label: AppLocalizations.of(context)!.synPreambleLabel,
               initialData: syn.preambleText,
               onChanged: (val) {
-                onChanged(syn.copyWith(preambleText: val));
+                final isEmpty =
+                    val.translations.isEmpty ||
+                    val.translations.values.every((v) => v.trim().isEmpty);
+                onChanged(syn.copyWith(preambleText: isEmpty ? null : val));
               },
             ),
             const SizedBox(height: 16),

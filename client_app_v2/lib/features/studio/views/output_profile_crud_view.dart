@@ -260,6 +260,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
 
                   return DropdownButtonFormField<String>(
                     initialValue: hasValidValue ? currentValue : null,
+                    isExpanded: true,
                     decoration: InputDecoration(
                       labelText: l10n.workflowIdBindingLabel,
                       border: const OutlineInputBorder(),
@@ -268,7 +269,10 @@ class OutputProfileCrudView extends HookConsumerWidget {
                     items: [
                       DropdownMenuItem(
                         value: '',
-                        child: Text(l10n.noneDefaultLabel),
+                        child: Text(
+                          l10n.noneDefaultLabel,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       ...workflows.map((flow) {
                         final flowId = flow.id;
@@ -279,7 +283,10 @@ class OutputProfileCrudView extends HookConsumerWidget {
 
                         return DropdownMenuItem(
                           value: flowId,
-                          child: Text('$displayName ($flowId)'),
+                          child: Text(
+                            '$displayName ($flowId)',
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         );
                       }),
                     ],
@@ -308,7 +315,12 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 label: l10n.profileDescriptionLabel,
                 initialData: payload.description,
                 onChanged: (val) {
-                  updatePayload(payload.copyWith(description: val));
+                  final isEmpty =
+                      val.translations.isEmpty ||
+                      val.translations.values.every((v) => v.trim().isEmpty);
+                  updatePayload(
+                    payload.copyWith(description: isEmpty ? null : val),
+                  );
                 },
               ),
               const SizedBox(height: 16),
@@ -326,15 +338,24 @@ class OutputProfileCrudView extends HookConsumerWidget {
                     items: [
                       DropdownMenuItem(
                         value: 'original',
-                        child: Text(l10n.scaleOriginal),
+                        child: Text(
+                          l10n.scaleOriginal,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       DropdownMenuItem(
                         value: 'custom',
-                        child: Text(l10n.scaleCustom),
+                        child: Text(
+                          l10n.scaleCustom,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       DropdownMenuItem(
                         value: 'normalized_100',
-                        child: Text(l10n.scaleNormalized100),
+                        child: Text(
+                          l10n.scaleNormalized100,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                     onChanged: (val) {
@@ -477,9 +498,14 @@ class OutputProfileCrudView extends HookConsumerWidget {
         ),
         body: Form(
           key: formKey,
-          child: enableThreePaneLayout.value
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth > 1100;
+              final useThreePane = enableThreePaneLayout.value && isWide;
+
+              if (useThreePane) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(
                       flex: 1,
@@ -505,8 +531,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
                       ),
                     ),
                   ],
-                )
-              : ListView(
+                );
+              } else {
+                return ListView(
                   padding: const EdgeInsets.all(16.0),
                   children: [
                     buildIdentityPane(),
@@ -515,7 +542,10 @@ class OutputProfileCrudView extends HookConsumerWidget {
                     const SizedBox(height: 24),
                     buildLayoutPane(),
                   ],
-                ),
+                );
+              }
+            },
+          ),
         ),
       ),
     );

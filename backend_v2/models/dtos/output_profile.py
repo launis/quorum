@@ -26,6 +26,10 @@ class OutputProfileCreateDTO(BaseModel):
     workflow_id: str = Field(..., description="References the execution DAG to scope Target Matrices.")
     name: I18nText = Field(..., description="Localized name.")
     description: I18nText | None = Field(default=None, description="Localized description.")
+    visible_metadata: list[str] = Field(
+        default_factory=lambda: ["date", "organization"],
+        description="List of metadata fields visible on the UI and PDF cover header.",
+    )
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original", description="UI rendering scale instruction."
     )
@@ -44,6 +48,10 @@ class OutputProfileUpdateDTO(BaseModel):
     workflow_id: str | None = Field(default=None, description="Optional workflow reassignment.")
     name: I18nText | None = Field(default=None, description="Localized name.")
     description: I18nText | None = Field(default=None, description="Localized description.")
+    visible_metadata: list[str] | None = Field(
+        default=None,
+        description="List of metadata fields visible on the UI and PDF cover header.",
+    )
     display_scale: Literal["original", "custom", "normalized_100"] | None = Field(
         default=None, description="UI rendering scale instruction."
     )
@@ -63,6 +71,7 @@ class OutputProfileResponseDTO(BaseModel):
     workflow_id: str
     name: I18nText
     description: I18nText | None = None
+    visible_metadata: list[str] = Field(default_factory=lambda: ["date", "organization"])
     display_scale: Literal["original", "custom", "normalized_100"] = "original"
     synthesis: SynthesisConfigDTO | None = None
     layouts: list[OutputLayoutBlock]
