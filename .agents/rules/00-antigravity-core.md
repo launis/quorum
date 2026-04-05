@@ -5,6 +5,10 @@
         <banned_pattern>Auto-executing the next steps in a plan, generating multiple files simultaneously, or rushing tasks without waiting.</banned_pattern>
         <mandatory_pattern>You MUST STOP after completing a single step in a plan. Do NOT proceed until the user explicitly says "PERMISSION GRANTED" or "PROCEED".</mandatory_pattern>
     </rule_block>
+    <rule_block id="strict_execution_mode_mandate">
+        <banned_pattern>Starting to execute an approved `implementation_plan.md` automatically or without switching to an explicit execution workflow setup.</banned_pattern>
+        <mandatory_pattern>You MUST NEVER write domain code to execute an implementation plan without the user explicitly providing a slash command like `/tier2-execute` or `/tier2-hardening-backend`. Force the user to invoke the required execution workflow tier to bind safety constraints before execution starts.</mandatory_pattern>
+    </rule_block>
     <rule_block id="anti_apology">
         <banned_pattern>Apologizing if you violate a rule.</banned_pattern>
         <mandatory_pattern>Acknowledge the error briefly and output the fixed code immediately.</mandatory_pattern>

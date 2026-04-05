@@ -81,6 +81,12 @@
         <banned_pattern>Directly calling OpenAI/VertexSDKs, relying on raw text outputs, or parsing responses with Regex.</banned_pattern>
         <mandatory_pattern>You MUST initialize the execution via `LLMClient.from_strategy("strategy_name", repo)`. For data retrieval, rely ONLY on the `run_structured_task()` methodology to force Socratic Self-Healing JSON parsing through a dedicated Pydantic model. If doing open-text generation, use `run_chat()`.</mandatory_pattern>
     </rule_block>
+
+    <rule_block id="ui_driven_synthesis_boundary">
+        <banned_pattern>Hardcoding UI-defined data keys (e.g., `product_text`, `document_text`) in backend Python code, or blindly feeding the entire raw execution state (including Eager Extracted PDF dumps) to an LLM during the synthesis/reporting phase.</banned_pattern>
+        <mandatory_pattern>Backend reporting and synthesis hooks MUST strictly filter data based on the UI-defined `target_blocks` (Output Profile Layouts). The raw `inputs` dictionary must be unpacked and evaluated strictly against this UI configuration to prevent massive token explosions (1.04M limits) from background data dumps.</mandatory_pattern>
+        <catastrophic_reason>Backend coupling to dynamic UI nomenclature breaks workflow relations. Pushing unfiltered execution state into an LLM context invariably causes `Resource Exhausted` limit triggers due to heavy Eager Extraction blobs intentionally stored in the execution state.</catastrophic_reason>
+    </rule_block>
 </architectural_invariants>
 
 <testing_and_verification_mandate>

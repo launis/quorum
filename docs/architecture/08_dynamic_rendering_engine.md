@@ -79,3 +79,20 @@ Koko tulostusarkkitehtuurin (Dynamic Rendering Engine) elinehto on sen täydelli
 1. **DB Mockaus (Kustannus & Nollaviive):** Ulkoinen I/O-riippuvuus ja LLM-generointi ohitetaan E2E-testeissä syöttämällä renderöintimoottorille 100 % deterministinen, laillisten Pydantic-validointien mukainen `ExecutionRecord`-mock. Tämä takaa nanosekuntitason suoritusnopeuden eristetyssä ympäristössä.
 2. **Kova Tiedosto (Visuaalinen Regressio):** Pelkkä tyyppitarkastus (`assert isinstance(pdf_bytes, bytes)`) on kielletty yksinomaisena laadunvarmistuksena Output Management -kerroksessa, sillä se ei paljasta esim. layout-katkoksista tai tyhjistä viiksistä johtuvia visuaalisia regressioita. Testin (`test_e2e_reporting_outputs.py`) on aina injektoitava mocked-data aitoon PDF-moottoriin saakka ja kirjoitettava tuotos fyysiseksi `test_report.pdf` -tiedostoksi levylle.
 3. **Koneluettava Audiotoitavuus:** Tästä kovalevylle pudotettavasta artefaktista järjestelmäarkkitehdit, katselmoijat ja tekoälyagentit pystyvät visuaalisesti ja forensisesti tarkastamaan, että uudet layout-laajennukset sijoittuvat oikein rikkomatta aikaisempaa renderöintiä – vaarantamatta CI/CD-automaatiota.
+
+## 5. Tiedonkeruun ja Synteesin Tietomalli (Epic 14 Token Optimization)
+
+Koska raporttisynteesi perustuu tekoälymallien LLM-analyysiin, olemme rakentaneet kolmikerroksisen suojamekanismin varmistamaan, ettei puhtaan tekstin synteesi tukehdu raakadataan (nk. *Token Explosion*).
+
+### A. V2 Amnesia Protocol (Binäärin tuhoaminen)
+Kun järjestelmään syötetään massiivisia lausuntoja (esim. PDF-tiedostoja), `input_processing.py` -hook poimii ja purkaa binäärin (Base64) välittömästi pelkäksi tekstiksi levylle. Raskas muistia kuormittava binääridata hävitetään lennosta koodilla `del val["content_base64"]`. Näin ollen dynaamista uudelleensynteesiä voidaan suorittaa jopa vuosia myöhemmin lataamatta megatavukaupalla puhdasta koodiroskaa välimuistiin. Kaikki inputit tallentuvat `execution_trace` taulukkoon `TraceEvent(event_type="input")` kapselissa.
+
+### B. Duck-Typing Token Shield (Kaksitasoinen Tulostuksen Suodatin)
+Kun taustatyöntekijä aloittaa raportin kirjoittamisen (`text_consolidation_hook`), data eristellään ehdottomilla "The Way" säännöillä `OutputLayoutBlock` -asetuksista:
+1. **Säännötön Imurointi (Wildcard `*`):** Jos käyttöliittymä haluaa vain "kaiken" oletuksena, suodatin suorittaa asiantuntijatuloksille Pydantic tason *Duck-Typing* operaation: `isinstance(v, dict) and "reasoning_trace" in v`. Synteesi hyväksyy mallille ainoastaan solmut, joista löytyy tekoälyn "reasoning_trace" -sormenjälki, torjuen brutaalisti kaiken tokenia tuhlaavan raakadatan, python-matematiikan ja epäpuhtaat tekstit.
+2. **Erikoiskutsu (Explicit Target):** Jos UI eksplisiittisesti kutsuu tiettyä avainta nimellä (`target_blocks = ["python_math_score", "report_metadata"]`), wildcard-suojakilpi ohitetaan kokonaan ja data syötetään suoraan lopputulokseen (tai synteesiin) tasan sellaisenaan. 
+
+### C. Multi-Profile Caching & On-Demand Reprocessing
+Kaikki puhdas asiantuntijadata makaa muuttumattomana tietokannan `ExecutionRecord.execution_trace` append-only-listassa.
+Kun tietty Output Profile (esim. Johdon Tiivistelmä) on prosessoitu, LLM:n palauttama DTO (`RenderedSynthesisCache`) välimuistitetaan ikuiseksi osaksi itse `ExecutionRecord` -tietuetta (`profile_syntheses["prof_executive"]`).
+Käyttäjä voi kuitenkin pyytää raportin katselunäkymästä järjestelmää kokoamaan uuden tiivistelmän vaikka viikkoa myöhemmin toisella konfiguraatiolla (esim. "Syvä tekninen"). Tällöin järjestelmä ohittaa vanhan välimuistin uudelleenreitityksellä, noukkii vanhan raakadatan yhdestä tietokantataulusta luoden uuden DTO:n (esim. `profile_syntheses["prof_tech"]`), ilman että ainuttakaan kallista analyysi-agenttia herätetään uudelleen horroksestaan.

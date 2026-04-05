@@ -117,6 +117,9 @@ async def test_pdf_extraction_and_questionnaire_blockquote(
     assert "Analyze this document." in pdf_res
     assert "# Extracted PDF Markdown" in pdf_res
 
+    # V2 AMNESIA VERIFICATION: Ensure the massive payload was destroyed in memory
+    assert "content_base64" not in state.inputs["my_pdf"], "Base64 payload must be destroyed to prevent Token Explosions"
+
     # Check Questionnaire Blockquote isolation (Epic 12 requirement)
     q_res = res_inputs.get("my_questionnaire", "")
     assert "### Q: Miten menee?" in q_res

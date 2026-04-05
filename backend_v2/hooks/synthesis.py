@@ -47,7 +47,6 @@ def _mask_pii_local(text: str) -> str:
     text = re.sub(pattern, "[REDACTED PHONE]", text)
     return text
 
-
 def _resolve_i18n_str(i18n_data: dict[str, str] | Any, language_code: str = "en") -> str:
     """Resolves Multilingual text."""
     if not i18n_data:
@@ -68,6 +67,7 @@ def _resolve_i18n_str(i18n_data: dict[str, str] | Any, language_code: str = "en"
     if "en" in data:
         return str(data["en"])
     return str(next(iter(data.values()))) if data else ""
+
 
 
 @hook_registry.register(name="text_consolidation_hook")
@@ -133,18 +133,37 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     preamble = _resolve_i18n_str(preamble_dict, language)
 
-    # 1. Clean up inputs (Omit Empty Sections & System Variables)
-    consolidated_inputs = {}
-    excluded_keys = {"raw_inputs", "metadata", "execution_id", "workflow_id", "organization_id", "user_id"}
+    # --- Collect Target Blocks from UI Layouts ---
+    layouts = active_profile.get("layouts", [])
+    required_blocks = set()
+    for layout in layouts:
+        tb = layout.get("target_blocks", [])
+        if isinstance(tb, list):
+            for b in tb:
+                required_blocks.add(b)
+
+    # 1. Clean up inputs (Omit Empty Sections & Original Inputs)
+    consolidated_inputs: dict[str, Any] = {}
+    
     for k, v in inputs.items():
-        if k in excluded_keys:
-            continue
+        is_requested = (k in required_blocks)
+        is_wildcard = ("*" in required_blocks) or not required_blocks
+        
+        if not is_requested:
+            # Automaattinen kokoaminen (wildcard) tutkii pelkästään data-tyyppiä.
+            # Jätetään mustat listat pois. Validin asiantuntijatuloksen tunnistaa reasoning_trace -kentästä.
+            if not is_wildcard:
+                continue
+            if not (isinstance(v, dict) and "reasoning_trace" in v):
+                continue
+
         empty_vals = ["null", "none", "n/a", "ei saatavilla"]
         if omit_empty and (
             v is None or v == "" or v == [] or str(v).strip() == "" or str(v).strip().lower() in empty_vals
         ):
             logger.debug("[SynthesisHook] Omitting empty section: %s", k)
             continue
+            
         consolidated_inputs[k] = v
 
     if not consolidated_inputs:
@@ -201,6 +220,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     # 2. Combine parts & PII mask
     combined_text_parts = []
+    
     for k, v in consolidated_inputs.items():
         if isinstance(v, (dict, list)):
             v_str = json.dumps(v, ensure_ascii=False, indent=2)

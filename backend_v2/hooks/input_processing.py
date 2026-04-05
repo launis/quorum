@@ -34,6 +34,14 @@ async def resolve_input(val: Any) -> str:
     if isinstance(val, dict) and "content_base64" in val:
         file_bytes = base64.b64decode(val["content_base64"])
         filename = val.get("filename", "unknown.txt").lower()
+
+        # V2 AMNESIA (Claim Check -tason optimointi):
+        # Tuhoamme massiivisen binääridatan viittauksen heti, kun se on luettu lokaaliin muistiin.
+        # Tämä estää StateProjectoria tallentamasta ja kopioimasta megatavujen kokoista
+        # Base64-roskaa ajon tietokantaan ja muihin työnkulun loppupään asiantuntijasolmuihin.
+        # Hylkäämme koodin The Wayn mukaisesti kokonaan ilman turhia placeholdereita.
+        del val["content_base64"]
+
         logger.info("[InputProcessingHook] Detected binary input payload: %s", filename)
 
         if filename.endswith(".pdf"):
