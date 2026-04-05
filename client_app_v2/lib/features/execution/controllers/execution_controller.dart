@@ -126,6 +126,12 @@ class ExecutionController extends _$ExecutionController {
       // Guard: Provider may have been disposed during the network call
       if (!ref.mounted) return;
 
+      // Epic 14: Guard against 202 Accepted pending synthesis poll
+      if (renderData.containsKey('status') &&
+          renderData['status'] == 'pending') {
+        return; // Synthesis is still running, abort parsing
+      }
+
       // We parse it in Isolate to guarantee no Jank.
       final reportData = await ReportDataDTO.parseInBackground(
         jsonEncode(renderData),

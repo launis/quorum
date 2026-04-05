@@ -122,6 +122,7 @@ async def render_execution(
     execution_id: str,
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
+    arq_pool: ArqPoolDep,
     format: str = Query("json", description="Output format: json, pdf, or flat"),
     profile_id: str | None = Query(None, description="The output profile to render"),
 ) -> Response:
@@ -134,6 +135,7 @@ async def render_execution(
         format_type=format,
         profile_id=profile_id,
         accept_language=accept_language,
+        arq_pool=arq_pool,
     )
 
     headers = {}
@@ -141,6 +143,8 @@ async def render_execution(
         headers["Content-Disposition"] = f'attachment; filename="{filename}"'
 
     if isinstance(content, (dict, list)):
+        if isinstance(content, dict) and content.get("status") == "pending":
+            return JSONResponse(content=content, status_code=status.HTTP_202_ACCEPTED)
         return JSONResponse(content=content)
 
     return Response(content=content, media_type=media_type, headers=headers)

@@ -8,7 +8,7 @@ void main() {
       'Successfully parses valid expectedInputs and outputSchema via Isolate',
       () async {
         final payload = {
-          'id': 'st_valid123',
+          'id': 'st_a1b2c3d4e5f60000',
           'slug': 'test_slug',
           'name': {
             'default_locale': 'en',
@@ -47,7 +47,7 @@ void main() {
       'Fails-Fast when expectedInputs is the wrong type (Map instead of List)',
       () async {
         final payload = {
-          'id': 'st_invalid123',
+          'id': 'st_a1b2c3d4e5f60001',
           'slug': 'test_slug',
           'name': {'default_locale': 'en'},
           'type': 'llm',
@@ -69,7 +69,7 @@ void main() {
       'Logic nodes parse successfully without requiring outputSchema',
       () async {
         final payload = {
-          'id': 'st_logic123',
+          'id': 'st_a1b2c3d4e5f60002',
           'slug': 'logic_slug',
           'name': {'default_locale': 'en'},
           'type': 'logic',

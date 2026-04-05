@@ -4,7 +4,7 @@ import pytest  # force cache reload
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
+from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, RenderedSynthesisCache
 from backend_v2.services.blueprint import BlueprintTransformer
 
 
@@ -84,12 +84,16 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo: AsyncMock) -> N
         id="exe_1111111122222222",
         workflow_id="wf_test",
         status=ExecutionStatus.COMPLETED,
+        profile_syntheses={
+            "prf_1234abcd1234abcd": RenderedSynthesisCache(
+                synthesized_markdown="### Title\\n<script>alert('xss');</script>Some content."
+            )
+        },
         execution_trace=[
             TraceEvent(
                 event_type="output",
                 step_name="step_1",
                 content={
-                    "synthesized_markdown": "### Title\\n<script>alert('xss');</script>Some content.",
                     "has_warning": True,
                 },
             )

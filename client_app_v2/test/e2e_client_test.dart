@@ -11,7 +11,7 @@ import 'package:logger/logger.dart' hide FileOutput;
 import 'package:client_app/core/logging/logger_service.dart';
 
 void main() {
-  test('E2E Real LLM Simulation runs ExecutionClient and logs activity', () async {
+  test('E2E Real LLM Simulation runs ExecutionClient and logs activity', skip: 'Requires live Python backend running on 127.0.0.1:8000', () async {
     // 1. Initialize custom Logger directly bound to client_debug.log
     // We bypass the global LoggerService init to force the path safely in the test env.
 

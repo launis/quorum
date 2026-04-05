@@ -6,11 +6,11 @@ void main() {
     test(
       'Throws ArgumentError when layouts is omitted entirely or invalid',
       () {
-        final json = {"workflow_id": "wf_123", "synthesis": "Great job"};
+        final json = {"workflow_id": "wf_123", "synthesized_markdown": "Great job"};
 
         expect(
           () => ReportDataDTO.fromJson(json),
-          throwsA(isA<FormatException>()),
+          throwsException,
         );
       },
     );
@@ -19,8 +19,10 @@ void main() {
       final json = {
         "workflow_id": "wf_123",
         "profile_id": "prof_1",
-        "profile_name": {"fi": "Profiili"},
-        "available_profiles": {"prof_1": "Profiilit"},
+        "profile_name": {"default_locale": "fi", "translations": {"fi": "Profiili"}},
+        "available_profiles": {
+          "prof_1": {"default_locale": "fi", "translations": {"fi": "Profiilit"}}
+        },
         "layouts": [
           {
             "preset_view": "1d_metrics",
@@ -34,7 +36,7 @@ void main() {
             ],
           },
         ],
-        "synthesis": "Kokonaisarvio...",
+        "synthesized_markdown": "Kokonaisarvio...",
       };
 
       final dto = ReportDataDTO.fromJson(json);

@@ -30,9 +30,9 @@ void main(List<String> args) async {
   // 2. Setup Dio
   final dio = Dio(
     BaseOptions(
-      baseUrl: 'http://localhost:8000/api/v2',
+      baseUrl: 'http://127.0.0.1:8000/api/v2',
       connectTimeout: const Duration(seconds: 5),
-      receiveTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 30),
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -69,7 +69,7 @@ void main(List<String> args) async {
       '/execution/executions/',
       data: {
         'workflow_id': workflowId,
-        'profile_id': 'prf_executive123',
+        'profile_id': 'prf_1234567812345678',
         'raw_inputs': rawInputs,
         'target_locale': 'fi',
       },

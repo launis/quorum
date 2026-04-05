@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import status
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
-from backend_v2.exceptions import AppException, ErrorCodes, SecurityViolationError
+from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -95,5 +95,3 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
         logger.debug("[SecurityHook] No PII detected.")
 
     return HookResult(success=True, state_delta={"sanitization_result": result})
-
-

@@ -312,6 +312,7 @@ class MCPAuditTrace(V2CoreBase):
                     data["timestamp"] = datetime.fromisoformat(val)
                 except ValueError as e:
                     import logging
+
                     logger = logging.getLogger(__name__)
                     logger.error("Failed to parse MCPAuditTrace timestamp", exc_info=True)
                     raise ValueError(f"Input should be a valid datetime or ISO format for timestamp: {val}") from e

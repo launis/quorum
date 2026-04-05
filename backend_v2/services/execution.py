@@ -353,6 +353,7 @@ class ExecutionService:
         format_type: str,
         profile_id: str | None,
         accept_language: str | None,
+        arq_pool: ArqRedis,
     ) -> tuple[bytes | list[Any] | dict[str, Any], str, str | None]:
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
 
@@ -366,6 +367,40 @@ class ExecutionService:
 
         fmt = format_type.lower()
 
+        if fmt == "flat":
+            from backend_v2.services.flattener import FlatFileService
+
+            flat_data = FlatFileService.flatten_results(execution)
+            return flat_data, "application/json", None
+
+        workflow_data = await self.repo.get_workflow_by_id(execution.workflow_id)
+        if not workflow_data:
+            msg = "Workflow not found"
+            logger.error(
+                "[ExecutionService] Workflow not found", extra={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+            )
+            raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
+        default_pid = workflow_data.get("default_profile_id", "default")
+        output_profiles = workflow_data.get("output_profiles", {})
+
+        resolved_pid = profile_id
+        if not resolved_pid or (resolved_pid == "default" and "default" not in output_profiles):
+            resolved_pid = default_pid
+
+        # NEW ON-DEMAND RENDERING LOGIC (Epic 14 M4)
+        if resolved_pid not in execution.profile_syntheses:
+            # Epic 14: Use deterministic job ID to prevent infinite enqueues while UI is polling
+            job_id = f"render_{execution_id}_{resolved_pid}_{accept_language or 'default'}"
+            await arq_pool.enqueue_job(
+                "render_profile_job",
+                _job_id=job_id,
+                execution_id=execution_id,
+                profile_id=resolved_pid,
+                accept_language=accept_language,
+            )
+            return {"status": "pending", "message": "Synthesis generating"}, "application/json", None
+
         if fmt == "json":
             from backend_v2.services.blueprint import BlueprintTransformer
 
@@ -373,30 +408,7 @@ class ExecutionService:
             dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
             return dto.model_dump(mode="json"), "application/json", None
 
-        elif fmt == "flat":
-            from backend_v2.services.flattener import FlatFileService
-
-            flat_data = FlatFileService.flatten_results(execution)
-            return flat_data, "application/json", None
-
         elif fmt == "pdf":
-            workflow_data = await self.repo.get_workflow_by_id(execution.workflow_id)
-            if not workflow_data:
-                msg = "Workflow not found"
-                logger.error(
-                    "[ExecutionService] Workflow not found", extra={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                )
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                )
-
-            default_pid = workflow_data.get("default_profile_id", "default")
-            output_profiles = workflow_data.get("output_profiles", {})
-
-            resolved_pid = profile_id
-            if not resolved_pid or (resolved_pid == "default" and "default" not in output_profiles):
-                resolved_pid = default_pid
-
             if resolved_pid == default_pid and execution.pdf_report_path:
                 from backend_v2.services.storage import get_storage_driver
 

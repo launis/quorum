@@ -108,42 +108,15 @@ async def execute_workflow_job(
 
             # V2 Strict Context Execution Engine
             exec_id = execution_id or f"exe_{uuid.uuid4().hex}"
-            exec_record = await engine.execute_workflow(execution_id=exec_id, workflow=workflow_def, raw_inputs=inputs)
-
-            try:
-                from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
-                from backend_v2.models.state import StateProjector
-
-                # Reconstruct blackboard from trace
-                projector = StateProjector()
-                for evt in exec_record.execution_trace:
-                    projector.apply_delta(evt)
-
-                final_inputs = projector.snapshot
-
-                state = HookState(execution_id=exec_id, workflow_id=workflow_id, inputs=final_inputs)
-                deps = HookDependencies(repository=repository)
-                hook_res = await hook_registry.execute("text_consolidation_hook", state, deps)
-
-                if hook_res.success and hook_res.state_delta:
-                    update_payload = {}
-                    if "synthesized_markdown" in hook_res.state_delta:
-                        update_payload["synthesized_markdown"] = hook_res.state_delta["synthesized_markdown"]
-                    if "section_syntheses" in hook_res.state_delta:
-                        update_payload["section_syntheses"] = hook_res.state_delta["section_syntheses"]
-                    
-                    if update_payload:
-                        await repository.update_execution(exec_id, update_payload)
-            except Exception as e:
-                logger.error("[Worker] TextConsolidationHook failed for %s: %s", exec_id, str(e), exc_info=True)
+            await engine.execute_workflow(execution_id=exec_id, workflow=workflow_def, raw_inputs=inputs)
 
             # Final Status Update (Completed)
-            if execution_id:
+            if exec_id:
                 models_used: dict[str, int] = {}
                 duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
 
                 await repository.update_execution(
-                    execution_id,
+                    exec_id,
                     {
                         "status": "completed",
                         "completed_at": datetime.now(UTC).isoformat(),
@@ -152,20 +125,23 @@ async def execute_workflow_job(
                     },
                 )
 
-                # TRIGGER ASYNC PDF GENERATION (Milestone 2)
+                # TRIGGER ASYNC RENDER JOB (Epic 14 M4)
                 redis = ctx.get("redis")
                 if redis:
-                    # Enqueue job to generate the static PDF report
-                    await redis.enqueue_job("generate_pdf_job", execution_id)
-                    logger.info(f"[Job] Enqueued PDF generation for {execution_id}")
+                    # Enqueue job to generate Synthesis cache and Static PDF
+                    default_profile = getattr(workflow_def, "default_profile_id", "default")
+                    if not default_profile:
+                        default_profile = "default"
+                    await redis.enqueue_job("render_profile_job", exec_id, profile_id=default_profile)
+                    logger.info(f"[Job] Enqueued render_profile_job for {exec_id} with profile {default_profile}")
                 else:
-                    logger.warning(f"[Job] Redis context missing. Could not enqueue PDF generation for {execution_id}")
+                    logger.warning(f"[Job] Redis context missing. Could not enqueue render_profile_job for {exec_id}")
 
             return {
                 "status": "COMPLETED",
-                "execution_id": execution_id,
+                "execution_id": exec_id,
                 "workflow_id": workflow_id,
-                "duration_ms": duration_ms if execution_id else 0,
+                "duration_ms": duration_ms if exec_id else 0,
             }
 
         except Exception as e:
@@ -179,11 +155,12 @@ async def execute_workflow_job(
                 e = AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR})
 
             # Final Status Update (Failed)
-            if execution_id:
+            local_exec_id = locals().get("exec_id", execution_id)
+            if local_exec_id:
                 try:
                     await repository.update_execution(
-                        execution_id,
-                        {"status": "failed", "error": str(e), "completed_at": datetime.now(UTC).isoformat()},
+                        local_exec_id,
+                        {"status": "failed", "error_reason": str(e), "completed_at": datetime.now(UTC).isoformat()},
                     )
                 except Exception as update_err:
                     update_msg = f"Failed to update execution failure status: {update_err}"
@@ -195,14 +172,15 @@ async def execute_workflow_job(
                     )
             raise e
         except asyncio.CancelledError:
-            logger.warning(f"[Job] Workflow {workflow_id} CANCELLED (Timeout/Shutdown). Execution ID: {execution_id}")
-            if execution_id:
+            local_exec_id = locals().get("exec_id", execution_id)
+            logger.warning(f"[Job] Workflow {workflow_id} CANCELLED (Timeout/Shutdown). Execution ID: {local_exec_id}")
+            if local_exec_id:
                 try:
                     await repository.update_execution(
-                        execution_id,
+                        local_exec_id,
                         {
                             "status": "failed",
-                            "error": "Task execution was cancelled or timed out.",
+                            "error_reason": "Task execution was cancelled or timed out.",
                             "completed_at": datetime.now(UTC).isoformat(),
                         },
                     )
@@ -286,6 +264,82 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
         )
 
 
+async def render_profile_job(
+    ctx: Any, execution_id: str, accept_language: str | None = None, profile_id: str = "default"
+) -> str:
+    """Invoked by Arq Worker to ensure background synthesis & PDF compilation resilience."""
+    await generate_profile_synthesis_and_pdf_task(execution_id, accept_language, profile_id, ctx.get("redis"))
+    return f"Render Job Completed for {execution_id}"
+
+
+async def generate_profile_synthesis_and_pdf_task(
+    execution_id: str, accept_language: str | None = None, profile_id: str = "default", redis: Any | None = None
+) -> None:
+    """Background Task. Synthesizes Markdown and enqueues PDF generation. Epic 14 M4."""
+    logger.info(f"[Task] Starting Async Text Synthesis for execution {execution_id} (Profile: {profile_id})")
+    try:
+        from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
+        from backend_v2.database.factory import get_repository
+        from backend_v2.models.state import StateProjector
+        from backend_v2.settings import get_settings
+
+        repo = await get_repository(get_settings())
+
+        execution = await repo.get_execution(execution_id)
+        if not execution:
+            logger.warning(f"[Task] Execution {execution_id} no longer exists. Skipping render.")
+            return
+
+        has_synthesis = profile_id in getattr(execution, "profile_syntheses", {})
+        if has_synthesis:
+            logger.info(f"[Task] Synthesis already exists for profile {profile_id}. Proceeding to PDF generation.")
+            if redis:
+                await redis.enqueue_job("generate_pdf_job", execution_id, accept_language, profile_id)
+            return
+
+        projector = StateProjector()
+        for evt in execution.execution_trace:
+            projector.apply_delta(evt)
+        final_inputs = projector.snapshot
+
+        # Temporarily inject target_profile_id into metadata to guide hook correctly
+        metadata = getattr(execution, "metadata", {}) or {}
+        metadata["target_profile_id"] = profile_id
+
+        state = HookState(
+            execution_id=execution_id, workflow_id=execution.workflow_id, inputs=final_inputs, metadata=metadata
+        )
+        deps = HookDependencies(repository=repo)
+
+        # Execute Text Consolidation Hook
+        hook_res = await hook_registry.execute("text_consolidation_hook", state, deps)
+
+        if hook_res.success and hook_res.state_delta:
+            from backend_v2.models.v2_core import RenderedSynthesisCache
+
+            cache = RenderedSynthesisCache(
+                synthesized_markdown=hook_res.state_delta.get("synthesized_markdown", ""),
+                section_syntheses=hook_res.state_delta.get("section_syntheses", {}),
+                cited_sources=hook_res.state_delta.get("cited_sources", []),
+            )
+            update_payload = {f"profile_syntheses.{profile_id}": cache.model_dump(mode="json")}
+            await repo.update_execution(execution_id, update_payload)
+            logger.info(f"[Task] Synthesis cached for {execution_id} (Profile: {profile_id})")
+
+        # Now trigger the statically cached PDF job based on our newly cached synthesis
+        if redis:
+            await redis.enqueue_job("generate_pdf_job", execution_id, accept_language, profile_id)
+
+    except Exception as e:
+        logger.error(
+            "[Task] Text Synthesis generation failed for %s. Cause: %s",
+            execution_id,
+            str(e),
+            exc_info=True,
+            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+        )
+
+
 # --- Lifecycle ---
 
 
@@ -351,7 +405,7 @@ from backend_v2.models.enums import SystemConcurrency
 class WorkerSettings:
     """Configuration for the Arq worker."""
 
-    functions = [health_check, execute_workflow_job, generate_pdf_job]
+    functions = [health_check, execute_workflow_job, generate_pdf_job, render_profile_job]
     on_startup = startup
     on_shutdown = shutdown
 

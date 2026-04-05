@@ -44,6 +44,10 @@
 </catastrophic_system_bans>
 
 <architectural_invariants>
+    <rule_block id="strict_variable_preservation">
+        <banned_pattern>Arbitrarily renaming variables, DTO fields, or DB properties (e.g., changing `synthesis_md` to `synthesized_markdown`) without explicit user permission just to "clean things up".</banned_pattern>
+        <mandatory_pattern>Respect and maintain the exact existing variable nomenclature across all boundaries unless an explicit schema refactoring is actively underway.</mandatory_pattern>
+    </rule_block>
     <rule_block id="universal_fail_fast">
         <banned_pattern>Allowing invalid data to pass silently through the system boundaries.</banned_pattern>
         <mandatory_pattern>Enforce "Fail-Fast" at every boundary. If data does not precisely match the Pydantic V2 or Dart 3 Freezed schema, the system MUST crash audibly and visibly (`AppException` or `AppErrorBoundary`).</mandatory_pattern>

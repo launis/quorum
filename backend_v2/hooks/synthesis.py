@@ -115,7 +115,8 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             output_profile_id = execution_data.get("output_profile_id")
 
     default_pid = workflow_data.get("default_profile_id", "default")
-    profile_to_use = output_profile_id or default_pid
+    target_pid = state.metadata.get("target_profile_id") if state.metadata else None
+    profile_to_use = target_pid or output_profile_id or default_pid
 
     output_profiles = workflow_data.get("output_profiles", {})
     active_profile = output_profiles.get(profile_to_use, {})
@@ -132,9 +133,12 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     preamble = _resolve_i18n_str(preamble_dict, language)
 
-    # 1. Clean up inputs (Omit Empty Sections)
+    # 1. Clean up inputs (Omit Empty Sections & System Variables)
     consolidated_inputs = {}
+    excluded_keys = {"raw_inputs", "metadata", "execution_id", "workflow_id", "organization_id", "user_id"}
     for k, v in inputs.items():
+        if k in excluded_keys:
+            continue
         empty_vals = ["null", "none", "n/a", "ei saatavilla"]
         if omit_empty and (
             v is None or v == "" or v == [] or str(v).strip() == "" or str(v).strip().lower() in empty_vals
@@ -169,19 +173,27 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                     continue
                 if e.status.value != "completed":
                     continue
-                if not e.synthesized_markdown:
+
+                best_cache = None
+                if e.profile_syntheses:
+                    best_cache = e.profile_syntheses.get(profile_to_use)
+                    if not best_cache:
+                        best_cache = next(iter(e.profile_syntheses.values()))
+
+                if not best_cache or not best_cache.synthesized_markdown:
                     continue
-                valid_past.append(e)
+
+                valid_past.append((e, best_cache.synthesized_markdown))
 
             # Sort by completion date descending, take top 3
-            valid_past.sort(key=lambda x: x.completed_at or x.created_at, reverse=True)
+            valid_past.sort(key=lambda x: x[0].completed_at or x[0].created_at, reverse=True)
             top_3 = valid_past[:3]
 
             if top_3:
                 historical_parts = []
-                for past_e in reversed(top_3):
+                for past_e, past_md in reversed(top_3):
                     dt_str = past_e.completed_at.strftime("%Y-%m-%d") if past_e.completed_at else "Unknown Date"
-                    historical_parts.append(f"--- Execution Date: {dt_str} ---\n{past_e.synthesized_markdown}")
+                    historical_parts.append(f"--- Execution Date: {dt_str} ---\n{past_md}")
 
                 historical_context_text = (
                     "<HistoricalContext>\n" + "\n\n".join(historical_parts) + "\n</HistoricalContext>\n\n"
@@ -190,7 +202,11 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     # 2. Combine parts & PII mask
     combined_text_parts = []
     for k, v in consolidated_inputs.items():
-        combined_text_parts.append(f"### {k}\n{v}")
+        if isinstance(v, (dict, list)):
+            v_str = json.dumps(v, ensure_ascii=False, indent=2)
+        else:
+            v_str = str(v)
+        combined_text_parts.append(f"### {k}\n{v_str}")
 
     raw_input_text = historical_context_text + "\n\n".join(combined_text_parts)
 

@@ -18,11 +18,29 @@ class ReportController extends _$ReportController {
     String variant = 'default',
   }) async {
     final client = ref.watch(executionClientProvider);
-    final rawData = await client.renderExecution(
-      executionId,
-      lang: lang,
-      variant: variant,
-    );
-    return await Isolate.run(() => ReportDataDTO.fromJson(rawData));
+
+    // Epic 14 M4: Omni-Channel Polling for 202 Accepted Background Tasks
+    int attempts = 0;
+    const maxAttempts = 60; // 2 minutes max
+
+    while (true) {
+      final rawData = await client.renderExecution(
+        executionId,
+        lang: lang,
+        variant: variant,
+      );
+
+      if (rawData.containsKey('status') && rawData['status'] == 'pending') {
+        attempts++;
+        if (attempts >= maxAttempts) {
+          throw Exception('Timeout waiting for synthesis to complete.');
+        }
+        // Poll every 2 seconds while the Arq Worker generates profile syntheses
+        await Future.delayed(const Duration(seconds: 2));
+        continue;
+      }
+
+      return await Isolate.run(() => ReportDataDTO.fromJson(rawData));
+    }
   }
 }

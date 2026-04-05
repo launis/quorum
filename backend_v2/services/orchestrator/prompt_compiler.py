@@ -379,7 +379,8 @@ class PromptCompiler:
             if block_type == "string":
                 value_type = str
             else:
-                value_type = float if crit.get("allow_decimals", False) else int
+                # Epic 14: Enforce float for all numeric scores to allow decimal precision (e.g., 4.4)
+                value_type = float
 
             # Epic 12: Scales injected into XML rubrics, removed from description.
 
@@ -525,7 +526,8 @@ class PromptCompiler:
                 Field(
                     ...,
                     description=(
-                        f"Numeric score strictly evaluated using the <MATRIX id='{crit_id}'> in the system prompt."
+                        f"Numeric score strictly evaluated using the <MATRIX id='{crit_id}'> in the system prompt. "
+                        "You may use decimals (e.g. 4.5) if the evaluation falls between scale points."
                     ),
                 ),
             )

@@ -50,5 +50,3 @@ def sanitize_text(text: str) -> tuple[str, list[str]]:
             clean_value = re.sub(pattern, f"[REDACTED_{pii_type}]", clean_value)
 
     return clean_value, threats_detected
-
-

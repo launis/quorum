@@ -84,7 +84,9 @@ async def test_synthesis_hook_success(
     assert "empty_key" not in user_msg.get("content", "")
 
     # Check length constraint & preamble
-    assert "GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be ~500 characters." in sys_msg.get("content", "")
+    assert "GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be ~500 characters." in sys_msg.get(
+        "content", ""
+    )
     assert "Always be concise." in sys_msg.get("content", "")
 
     assert delta["synthesized_markdown"] == "Synthesized [1]"
