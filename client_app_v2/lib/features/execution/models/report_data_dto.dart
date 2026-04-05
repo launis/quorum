@@ -49,7 +49,7 @@ abstract class ReportLayoutDTO with _$ReportLayoutDTO {
     @JsonKey(name: 'matrix_type') String? matrixType,
     I18nText? title,
     I18nText? description,
-    required List<ReportAxisDTO> axes,
+    @Default([]) List<ReportAxisDTO> axes,
     @JsonKey(name: 'show_text') required bool showText,
     Map<String, dynamic>? synthesis,
     @JsonKey(name: 'synthesis_md') String? synthesisMd,
@@ -87,9 +87,10 @@ abstract class ReportDataDTO with _$ReportDataDTO {
     @JsonKey(name: 'profile_id') required String profileId,
     @JsonKey(name: 'profile_name') I18nText? profileName,
     @JsonKey(name: 'available_profiles')
-    required Map<String, I18nText> availableProfiles,
+    @Default({})
+    Map<String, I18nText> availableProfiles,
     @JsonKey(name: 'global_score') double? globalScore,
-    required List<ReportLayoutDTO> layouts,
+    @Default([]) List<ReportLayoutDTO> layouts,
     @JsonKey(name: 'created_at') String? createdAt,
     @JsonKey(name: 'org_name') String? orgName,
     @JsonKey(name: 'cost_estimate') double? costEstimate,

@@ -570,7 +570,7 @@ return $default(_that.presetView,_that.matrixType,_that.title,_that.description,
 @JsonSerializable()
 
 class _ReportLayoutDTO implements ReportLayoutDTO {
-  const _ReportLayoutDTO({@JsonKey(name: 'preset_view') required this.presetView, @JsonKey(name: 'matrix_type') this.matrixType, this.title, this.description, required final  List<ReportAxisDTO> axes, @JsonKey(name: 'show_text') required this.showText, final  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md') this.synthesisMd}): _axes = axes,_synthesis = synthesis;
+  const _ReportLayoutDTO({@JsonKey(name: 'preset_view') required this.presetView, @JsonKey(name: 'matrix_type') this.matrixType, this.title, this.description, final  List<ReportAxisDTO> axes = const [], @JsonKey(name: 'show_text') required this.showText, final  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md') this.synthesisMd}): _axes = axes,_synthesis = synthesis;
   factory _ReportLayoutDTO.fromJson(Map<String, dynamic> json) => _$ReportLayoutDTOFromJson(json);
 
 @override@JsonKey(name: 'preset_view') final  String presetView;
@@ -578,7 +578,7 @@ class _ReportLayoutDTO implements ReportLayoutDTO {
 @override final  I18nText? title;
 @override final  I18nText? description;
  final  List<ReportAxisDTO> _axes;
-@override List<ReportAxisDTO> get axes {
+@override@JsonKey() List<ReportAxisDTO> get axes {
   if (_axes is EqualUnmodifiableListView) return _axes;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_axes);
@@ -1200,7 +1200,7 @@ return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availab
 @JsonSerializable()
 
 class _ReportDataDTO extends ReportDataDTO {
-  const _ReportDataDTO({@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'profile_id') required this.profileId, @JsonKey(name: 'profile_name') this.profileName, @JsonKey(name: 'available_profiles') required final  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score') this.globalScore, required final  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'org_name') this.orgName, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'total_tokens') this.totalTokens, @JsonKey(name: 'prompt_tokens') this.promptTokens, @JsonKey(name: 'completion_tokens') this.completionTokens, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens, @JsonKey(name: 'mcp_tool_audit') final  List<MCPToolAuditDTO> mcpToolAudit = const [], @JsonKey(name: 'has_warning') this.hasWarning = false, @JsonKey(name: 'synthesized_markdown') this.synthesizedMarkdown, @JsonKey(name: 'visible_metadata') final  List<String> visibleMetadata = const []}): _availableProfiles = availableProfiles,_layouts = layouts,_mcpToolAudit = mcpToolAudit,_visibleMetadata = visibleMetadata,super._();
+  const _ReportDataDTO({@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'profile_id') required this.profileId, @JsonKey(name: 'profile_name') this.profileName, @JsonKey(name: 'available_profiles') final  Map<String, I18nText> availableProfiles = const {}, @JsonKey(name: 'global_score') this.globalScore, final  List<ReportLayoutDTO> layouts = const [], @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'org_name') this.orgName, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'total_tokens') this.totalTokens, @JsonKey(name: 'prompt_tokens') this.promptTokens, @JsonKey(name: 'completion_tokens') this.completionTokens, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens, @JsonKey(name: 'mcp_tool_audit') final  List<MCPToolAuditDTO> mcpToolAudit = const [], @JsonKey(name: 'has_warning') this.hasWarning = false, @JsonKey(name: 'synthesized_markdown') this.synthesizedMarkdown, @JsonKey(name: 'visible_metadata') final  List<String> visibleMetadata = const []}): _availableProfiles = availableProfiles,_layouts = layouts,_mcpToolAudit = mcpToolAudit,_visibleMetadata = visibleMetadata,super._();
   factory _ReportDataDTO.fromJson(Map<String, dynamic> json) => _$ReportDataDTOFromJson(json);
 
 @override@JsonKey(name: 'workflow_id') final  String workflowId;
@@ -1215,7 +1215,7 @@ class _ReportDataDTO extends ReportDataDTO {
 
 @override@JsonKey(name: 'global_score') final  double? globalScore;
  final  List<ReportLayoutDTO> _layouts;
-@override List<ReportLayoutDTO> get layouts {
+@override@JsonKey() List<ReportLayoutDTO> get layouts {
   if (_layouts is EqualUnmodifiableListView) return _layouts;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_layouts);

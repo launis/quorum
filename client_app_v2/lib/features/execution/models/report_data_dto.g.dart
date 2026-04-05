@@ -149,9 +149,13 @@ _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
           ),
           axes: $checkedConvert(
             'axes',
-            (v) => (v as List<dynamic>)
-                .map((e) => ReportAxisDTO.fromJson(e as Map<String, dynamic>))
-                .toList(),
+            (v) =>
+                (v as List<dynamic>?)
+                    ?.map(
+                      (e) => ReportAxisDTO.fromJson(e as Map<String, dynamic>),
+                    )
+                    .toList() ??
+                const [],
           ),
           showText: $checkedConvert('show_text', (v) => v as bool),
           synthesis: $checkedConvert(
@@ -278,9 +282,12 @@ _ReportDataDTO _$ReportDataDTOFromJson(
       ),
       availableProfiles: $checkedConvert(
         'available_profiles',
-        (v) => (v as Map<String, dynamic>).map(
-          (k, e) => MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
-        ),
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) =>
+                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
+            ) ??
+            const {},
       ),
       globalScore: $checkedConvert(
         'global_score',
@@ -288,9 +295,13 @@ _ReportDataDTO _$ReportDataDTOFromJson(
       ),
       layouts: $checkedConvert(
         'layouts',
-        (v) => (v as List<dynamic>)
-            .map((e) => ReportLayoutDTO.fromJson(e as Map<String, dynamic>))
-            .toList(),
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) => ReportLayoutDTO.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
       ),
       createdAt: $checkedConvert('created_at', (v) => v as String?),
       orgName: $checkedConvert('org_name', (v) => v as String?),
