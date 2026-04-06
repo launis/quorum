@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from backend_v2.api.dependencies import get_arq_pool, get_current_user_from_header, get_repo
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
     ExecutionStatus,
@@ -19,7 +20,12 @@ from backend_v2.models.v2_core import (
 
 
 def mock_get_current_user_admin() -> Any:
-    return TokenData(email="admin@test.com", id="usr_1111222233334444", role=UserRole.ADMIN, organization_id="org_1111222233334444")
+    return TokenData(
+        email="admin@test.com",
+        id="usr_1111222233334444",
+        role=UserRole.ADMIN,
+        organization_id="org_1111222233334444",
+    )
 
 
 @pytest.fixture
@@ -85,14 +91,14 @@ def mock_repository() -> Any:
         created_by="usr_1111222233334444",
         status=ExecutionStatus.COMPLETED,
         execution_trace=[
-            {
-                "step_name": "step_1",
-                "event_type": "output",
-                "content": {
+            TraceEvent(
+                step_name="step_1",
+                event_type="output",
+                content={
                     "blk_1111111111111111": 88.0,
-                    "blk_1111111111111111_justification": "Analyysi perustelu..."
-                }
-            }
+                    "blk_1111111111111111_justification": "Analyysi perustelu...",
+                },
+            )
         ],
         profile_syntheses={
             "prf_2233445566778899": RenderedSynthesisCache(

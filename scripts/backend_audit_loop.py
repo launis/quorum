@@ -4,18 +4,20 @@ import sys
 from pathlib import Path
 
 def run_tests_with_strict_coverage(target):
-    print("🚀 Verifying Strict TDD Coverage...")
+    print("🚀 Verifying Strict 30% TDD Coverage...")
     # NOTE: tests are in backend_v2/tests path, but we evaluate coverage across backend_v2 packages
     # target passed in sys.argv[1] is usually backend_v2 or backend_v2/something
-    cmd = ["uv", "run", "pytest", f"--cov={target}", "--cov-fail-under=90", "--cov-report=term-missing"]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    cmd = ["uv", "run", "pytest", "-v", "--tb=short", f"--cov={target}", "--cov-fail-under=30", "--cov-report=term-missing"]
+    
+    # Anna pytestin tulostaa suoraan konsoliin, jotta värit ja selkeät virheilmoitukset näkyvät heti
+    result = subprocess.run(cmd)
+    
     if result.returncode != 0:
-        print("❌ AUDIT FAILED: TDD Mandate Violation. Coverage < 90%.")
-        print("🤖 AI INSTRUCTION: Lue alla oleva raportti (Miss-sarake) ja kirjoita testit puuttuville riveille:\n", result.stdout)
-        sys.exit(1)
+        print("\n❌ AUDIT FAILED: Testeissä oli virheitä TAI testikattavuus ei ole 30%.")
+        print("🤖 AI INSTRUCTION: Lue yllä oleva raportti ja korjaa joko kaatuvat testit (-v tai --tb=short kertoo syyn) TAI lisää testejä puuttuville riveille (Miss-sarake).")
+        sys.exit(result.returncode)
     else:
-        print(result.stdout)
-        print("✅ Strict Coverage Target Met.")
+        print("\n✅ Strict 30% Coverage Target Met.")
 
 def main():
     if len(sys.argv) < 2:

@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -136,8 +137,6 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
         average_score = total_score_accum / count
 
     # 4. Apply Penalties (Log traces and apply to average without corrupting base)
-    from backend_v2.settings import get_settings
-
     settings = get_settings()
 
     final_score = average_score
@@ -202,7 +201,6 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
 
 
 from backend_v2.models.enums import ScoringPenalty
-from backend_v2.settings import get_settings
 
 
 def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:

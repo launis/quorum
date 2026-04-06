@@ -8,7 +8,7 @@ from backend_v2.worker import generate_profile_synthesis_and_pdf_task
 
 
 @pytest.mark.asyncio
-async def test_worker_invokes_synthesis_hook():
+async def test_worker_invokes_synthesis_hook() -> None:
     """Test that the worker background task invokes the text_consolidation_hook and updates the execution record."""
     with patch("backend_v2.database.factory.get_repository") as mock_get_repo:
         mock_repo = AsyncMock()

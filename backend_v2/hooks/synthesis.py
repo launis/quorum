@@ -47,6 +47,7 @@ def _mask_pii_local(text: str) -> str:
     text = re.sub(pattern, "[REDACTED PHONE]", text)
     return text
 
+
 def _resolve_i18n_str(i18n_data: dict[str, str] | Any, language_code: str = "en") -> str:
     """Resolves Multilingual text."""
     if not i18n_data:
@@ -67,7 +68,6 @@ def _resolve_i18n_str(i18n_data: dict[str, str] | Any, language_code: str = "en"
     if "en" in data:
         return str(data["en"])
     return str(next(iter(data.values()))) if data else ""
-
 
 
 @hook_registry.register(name="text_consolidation_hook")
@@ -129,11 +129,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     include_historical_summary = synthesis_cfg.get("include_historical_summary", False)
 
     hook_metadata = state.metadata or {}
-    language = str(
-        hook_metadata.get("target_locale") or
-        inputs.get("language") or
-        "en"
-    )
+    language = str(hook_metadata.get("target_locale") or inputs.get("language") or "en")
     language = language.split("-")[0].lower()
 
     preamble = _resolve_i18n_str(preamble_dict, language)
@@ -149,11 +145,11 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     # 1. Clean up inputs (Omit Empty Sections & Original Inputs)
     consolidated_inputs: dict[str, Any] = {}
-    
+
     for k, v in inputs.items():
-        is_requested = (k in required_blocks)
+        is_requested = k in required_blocks
         is_wildcard = ("*" in required_blocks) or not required_blocks
-        
+
         if not is_requested:
             # Automaattinen kokoaminen (wildcard) tutkii pelkästään data-tyyppiä.
             # Jätetään mustat listat pois. Validin asiantuntijatuloksen tunnistaa reasoning_trace -kentästä.
@@ -168,7 +164,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         ):
             logger.debug("[SynthesisHook] Omitting empty section: %s", k)
             continue
-            
+
         consolidated_inputs[k] = v
 
     if not consolidated_inputs:
@@ -225,7 +221,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     # 2. Combine parts & PII mask
     combined_text_parts = []
-    
+
     for k, v in consolidated_inputs.items():
         if isinstance(v, (dict, list)):
             v_str = json.dumps(v, ensure_ascii=False, indent=2)

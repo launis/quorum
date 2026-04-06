@@ -7,6 +7,7 @@ import re
 from typing import Any
 
 from backend_v2.llm.mock_data import AGENT_CLASS_TO_MOCK_KEY, MOCK_REGISTRY, get_fallback_data
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +20,6 @@ class MockLLMService:
 
     def __init__(self):  # type: ignore
         """Initializes the Mock Service."""
-        from backend_v2.settings import get_settings
-
         if not get_settings().use_mock_llm:
             raise RuntimeError(
                 "STRICT EXECUTION AUTHORITY: MockLLMService usage is FORBIDDEN when 'use_mock_llm' is False. "

@@ -7,6 +7,8 @@ from typing import Any
 
 from tinydb import TinyDB
 
+from backend_v2.settings import get_settings
+
 # from backend_v2.config import USE_MOCK_DB, DB_PATH # Removed
 
 
@@ -339,8 +341,6 @@ class FirestoreClient(AbstractDatabase):
     def __init__(self):  # type: ignore
         """Initialize Firestore Client and verify connection."""
         # Lazy import settings to avoid circular deps if any
-        from backend_v2.settings import get_settings
-
         settings = get_settings()
 
         if not firebase_admin._apps:
@@ -388,8 +388,6 @@ class FirestoreClient(AbstractDatabase):
 
 def get_db_client() -> AbstractDatabase:
     """Factory to get the appropriate database client based on configuration."""
-    from backend_v2.settings import get_settings
-
     settings = get_settings()
 
     # 1. Mock Mode (Priority)

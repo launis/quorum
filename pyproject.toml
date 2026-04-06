@@ -101,3 +101,5 @@ module = [
 ]
 warn_unused_ignores = false
 
+[tool.logfire]
+ignore_no_config = true

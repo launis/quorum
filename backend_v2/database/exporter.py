@@ -5,6 +5,8 @@ import os
 
 from tinydb import TinyDB
 
+from backend_v2.settings import get_settings
+
 # from backend_v2.config import DB_PATH # Removed
 
 # Paths (mirroring seeder.py)
@@ -16,8 +18,6 @@ SEED_DATA_PATH = os.path.join(DATA_DIR, "seed_data.json")
 
 def export_db_to_files(source_db_path=None):  # type: ignore
     """Exports the current state of the database back to `seed_data.json`."""
-    from backend_v2.settings import get_settings
-
     settings = get_settings()
 
     db_path_to_use = source_db_path if source_db_path else settings.start_db_path

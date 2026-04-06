@@ -5,6 +5,8 @@ import os
 import sys
 from typing import Any
 
+from backend_v2.settings import get_settings
+
 # Force UTF-8 on Windows to prevent Logfire/Rich box-drawing crashes (cp1252 to undefined)
 if sys.platform == "win32":
     try:
@@ -114,8 +116,6 @@ def setup_logging(log_level: int = logging.INFO) -> None:
 
     # Determine path to log file in project root
     # backend/logging_config.py -> backend/ -> root/
-    from backend_v2.settings import get_settings
-
     settings = get_settings()
     log_file_path = settings.log_file_path
 

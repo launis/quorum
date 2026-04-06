@@ -1,6 +1,7 @@
 from pytest_archon import archrule
 
-def test_routers_cannot_import_database_directly():
+
+def test_routers_cannot_import_database_directly() -> None:
     (
         archrule("Anemic Routers Rule: No DB in Routers")
         .match("backend_v2.api.routers.*")

@@ -368,9 +368,7 @@ class ReportRendererWidget extends ConsumerWidget {
                     ),
                   ],
                 ),
-                child: OutputRenderer(
-                  markdownContent: layout.synthesisMd!,
-                ),
+                child: OutputRenderer(markdownContent: layout.synthesisMd!),
               ),
             ],
             const SizedBox(height: 16),

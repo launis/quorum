@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -217,8 +218,6 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
         total_count,
         len(invalid_citations),
     )
-
-    from backend_v2.settings import get_settings
 
     # Option B: We already nullified hallucinations, so we don't strictly Fail Fast the whole system
     # unless the absolute user-defined threshold demands it. We usually let it pass without the quotes.

@@ -110,6 +110,12 @@
             </pro_pattern>
         </code_example>
     </rule_block>
+
+    <rule_block id="global_settings_import">
+        <banned_pattern>Importing `get_settings` locally inside a function (e.g., `from backend_v2.settings import get_settings` inside `def`).</banned_pattern>
+        <mandatory_pattern>ALWAYS import `get_settings` globally at the top of the file. In unit tests, `monkeypatch` MUST target the module where it is used (e.g., `backend_v2.hooks.scoring.get_settings`), NOT `backend_v2.settings.get_settings`.</mandatory_pattern>
+        <catastrophic_reason>Local imports create fragmented mutable references that silently bypass `pytest` monkeypatching, causing unit tests to execute against uncontrollable production configs.</catastrophic_reason>
+    </rule_block>
 </architectural_invariants>
 
 <testing_and_verification_mandate>

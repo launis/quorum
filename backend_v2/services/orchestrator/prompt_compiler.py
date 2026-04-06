@@ -527,7 +527,8 @@ class PromptCompiler:
                     ...,
                     description=(
                         f"Numeric score strictly evaluated using the <MATRIX id='{crit_id}'> in the system prompt. "
-                        "Do not use only integers or halves. You MUST provide a precise, high-granularity decimal score "
+                        "Do not use only integers or halves. You MUST provide a precise, "
+                        "high-granularity decimal score "
                         "(e.g., 4.2, 5.7, 6.8, 8.1) reflecting the exact nuance and weight of the evidence."
                     ),
                 ),

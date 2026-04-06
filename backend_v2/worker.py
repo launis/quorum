@@ -211,7 +211,6 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
     try:
         from backend_v2.database.factory import get_repository
         from backend_v2.services.blueprint import BlueprintTransformer
-        from backend_v2.settings import get_settings
 
         repo = await get_repository(get_settings())
         transformer = BlueprintTransformer(repo)
@@ -281,7 +280,6 @@ async def generate_profile_synthesis_and_pdf_task(
         from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
         from backend_v2.database.factory import get_repository
         from backend_v2.models.state import StateProjector
-        from backend_v2.settings import get_settings
 
         repo = await get_repository(get_settings())
 
