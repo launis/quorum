@@ -41,6 +41,11 @@
         <file path="app.dart">Top-level Application Shell enforcing global UI Theme protocols seamlessly wrapping `AppErrorBoundary`.</file>
     </layer>
 
+    <layer id="ephemeral_storage" path="tmp/">
+        <description>The AI Workspace Sandbox. A designated scratch directory for temporary execution and artifacts.</description>
+        <instruction>All Antigravity-generated temporary scripts, debugging logs, and testing programs MUST be siloed here to protect the core architectural boundaries.</instruction>
+    </layer>
+
     <layer id="root_environment" path="/">
         <description>Primary development setup files natively guiding automated systems.</description>
         <directory path=".agents/rules/">Master Architectural Directives natively formatted via structural constraints guiding intelligent machine compilation behaviors (AI Only).</directory>

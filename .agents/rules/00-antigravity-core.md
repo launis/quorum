@@ -41,6 +41,10 @@
         <banned_pattern>Using lazy placeholders like `// ... rest of the file ...` when outputting code.</banned_pattern>
         <mandatory_pattern>You MUST be surgical. Truncation is an act of data destruction. Provide the ENTIRE compilable structural block or use precise search-and-replace tools.</mandatory_pattern>
     </rule_block>
+    <rule_block id="temporary_workspace_sandbox">
+        <banned_pattern>Creating scratch scripts, temporary data dumps, or one-off debugging programs in the repository root or inside core architectural directories (`backend_v2`, `client_app_v2`).</banned_pattern>
+        <mandatory_pattern>All temporary files, debugging scripts, and ad-hoc execution programs MUST be written to and executed from `c:\src\quorum\tmp\`. Treat `tmp\` as your exclusive scratchpad.</mandatory_pattern>
+    </rule_block>
 </ide_orchestration_protocol>
 
 <catastrophic_system_bans>
