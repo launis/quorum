@@ -1,4 +1,4 @@
-# ANTIGRAVITY AGENT CONFIGURATION & DIRECTIVES (1.21.6+)
+# ANTIGRAVITY AGENT CONFIGURATION & DIRECTIVES (V6.1)
 
 <system_context>
     <os>Windows 11 (PowerShell)</os>
@@ -9,7 +9,7 @@
     <rule_block id="win11_run_command_crash">
         <banned_pattern>Calling the `run_command` tool natively, predicting `&&` chains, or proposing Linux shell commands like `ls` or `rm -rf`.</banned_pattern>
         <mandatory_pattern>DELEGATE EXECUTION: Output exact native PowerShell commands (chaining with `;`) in a Markdown block and EXPLICITLY ASK THE USER to run them.</mandatory_pattern>
-        <catastrophic_reason>Antigravity 1.21.6+ sandboxing fails on Windows 11. Using the automated tool triggers a "failed to set up sandbox" cascade crash.</catastrophic_reason>
+        <catastrophic_reason>Antigravity V6.1 sandboxing fails on Windows 11. Using the automated tool triggers a "failed to set up sandbox" cascade crash.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="direct_database_mutation">
@@ -40,6 +40,7 @@
 <agentic_control_center>
     <directive>Before writing backend or frontend code, you MUST dynamically read the relevant architecture laws from `c:\src\quorum\.agents\rules\` using your MCP tools.</directive>
     <required_scanners>
+        <file id="06">c:\src\quorum\GEMINI.MD</file>
         <file id="00">c:\src\quorum\.agents\rules\00-antigravity-core.md</file>
         <file id="01">c:\src\quorum\.agents\rules\01-python-backend.md</file>
         <file id="02">c:\src\quorum\.agents\rules\02_flutter_desktop.md</file>
@@ -59,6 +60,7 @@
         <tier id="3_db" path="/tier3-database-reset">Database wipes and re-seeding tweaks.</tier>
         <tier id="3_refactor" path="/tier3-feature-refactor">Single feature implementation or existing file cleanup.</tier>
         <tier id="4" path="/tier4-bug-hunting">Deep root cause analysis and bug resolution.</tier>
-        <tier id="5" path="/tier5-zero-shortcut-audit">Ruthless constraints code review.</tier>
+        <tier id="5_handover" path="/handover">Session Handover Export for context transition.</tier>
+        <tier id="5_resume" path="/tier5-resume">Resume & Zero-Shortcut Audit for new sessions.</tier>
     </execution_tiers>
 </workflow_routing>
