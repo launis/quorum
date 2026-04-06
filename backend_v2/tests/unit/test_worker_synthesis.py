@@ -32,5 +32,6 @@ async def test_worker_invokes_synthesis_hook():
             args, kwargs = mock_repo.update_execution.call_args
             assert args[0] == "exec_1234567812345678"
             payload = args[1]
-            assert "profile_syntheses.default" in payload
-            assert payload["profile_syntheses.default"]["synthesized_markdown"] == "Test MD"
+            assert "profile_syntheses" in payload
+            assert "default" in payload["profile_syntheses"]
+            assert payload["profile_syntheses"]["default"]["synthesized_markdown"] == "Test MD"

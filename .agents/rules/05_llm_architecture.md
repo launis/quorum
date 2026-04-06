@@ -40,9 +40,13 @@
         <mandatory_pattern>LLM Workflows exceeding 500ms MUST be sent to the Arq background worker. Furthermore, you must include an "SSE-Heartbeat" pulse in the long-running worker to prevent Cloud Load Balancers from timing out the HTTP connection.</mandatory_pattern>
     </rule_block>
     
-    <rule_block id="role_segregation">
-        <banned_pattern>Concatenating System rules and raw User Paste data into a single massive string inside the `user` role array.</banned_pattern>
-        <mandatory_pattern>Always segregate `messages` strictly into `{"role": "system", "content": _SYSTEM_INSTRUCTION}` and `{"role": "user", "content": payload}`. This acts as a firewall against Prompt Injection and enables Anthropic Ephemeral Context Caching.</mandatory_pattern>
+    <rule_block id="role_segregation_and_fencing">
+        <banned_pattern>Passing unescaped user inputs directly into prompts.</banned_pattern>
+        <mandatory_pattern>You MUST fence untrusted user payloads inside explicit XML tags (e.g., `<user_payload>...</user_payload>`) as a firewall against Prompt Injection.</mandatory_pattern>
+        <code_example>
+            <anti_pattern>{"role": "user", "content": f"Parse this: {user_text}"}</anti_pattern>
+            <pro_pattern>{"role": "user", "content": f"Data:\n<user_payload>\n{user_text}\n</user_payload>"}</pro_pattern>
+        </code_example>
     </rule_block>
     
     <rule_block id="internal_utility_llm_execution">
@@ -51,7 +55,34 @@
     </rule_block>
 
     <rule_block id="hybrid_prompting_mandate">
-        <banned_pattern>Writing flat, unstructured strings or monolithic text paragraphs for LLM `_SYSTEM_INSTRUCTION` prompts within the backend.</banned_pattern>
-        <mandatory_pattern>All internal system prompts MUST be written using the "Hybrid Prompting" methodology (XML tags embedded in Markdown). Use explicit tags like `<context>`, `<rules>`, and `<output_constraints>` to define semantic boundaries for the AI. This guarantees predictable behavior and eliminates prompt bleed.</mandatory_pattern>
+        <banned_pattern>Writing flat, unstructured strings for system prompts.</banned_pattern>
+        <mandatory_pattern>All system prompts MUST use "Hybrid Prompting" (XML tags inside Markdown) to define semantic boundaries.</mandatory_pattern>
+        <code_example>
+            <pro_pattern>
+                _SYSTEM = """<system_directive>
+                <objective>Extract data</objective>
+                <rules><rule>Be exact.</rule></rules>
+                </system_directive>"""
+            </pro_pattern>
+        </code_example>
+    </rule_block>
+    
+    <rule_block id="llm_structured_execution_mandate">
+        <banned_pattern>Asking LLM to "output valid JSON" in text and parsing it with Regex/json.loads.</banned_pattern>
+        <mandatory_pattern>Rely ONLY on `run_structured_task()` to force execution via API native Structural Constraining (e.g. OpenAI Structured Outputs).</mandatory_pattern>
+        <code_example>
+            <anti_pattern>data = json.loads(await client.run_chat(prompt))</anti_pattern>
+            <pro_pattern>result: UserDTO = await client.run_structured_task(messages, response_model=UserDTO)</pro_pattern>
+        </code_example>
+    </rule_block>
+
+    <rule_block id="ai_bloatware_ban">
+        <banned_pattern>Proposing frameworks like `langchain`, `llamaindex`, or `crewai`.</banned_pattern>
+        <mandatory_pattern>AI logic MUST remain strictly in our native `LLMClient` wrapper. Complex orchestrations MUST use Python async patterns and Pydantic.</mandatory_pattern>
+    </rule_block>
+
+    <rule_block id="ephemeral_caching_topology">
+        <banned_pattern>Injecting dynamic variables (timestamps, UUIDs) into `_SYSTEM_INSTRUCTION`.</banned_pattern>
+        <mandatory_pattern>To maximize Context Caching (FinOps), the System Prompt MUST be 100% static. ALL dynamic data MUST be injected exclusively into the `user` message at the end.</mandatory_pattern>
     </rule_block>
 </architectural_invariants>

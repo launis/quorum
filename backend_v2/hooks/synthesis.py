@@ -128,7 +128,12 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     enable_masking = synthesis_cfg.get("enable_pii_masking", False)
     include_historical_summary = synthesis_cfg.get("include_historical_summary", False)
 
-    language = str(state.global_context_vars.get("language") or inputs.get("language") or "en")
+    hook_metadata = state.metadata or {}
+    language = str(
+        hook_metadata.get("target_locale") or
+        inputs.get("language") or
+        "en"
+    )
     language = language.split("-")[0].lower()
 
     preamble = _resolve_i18n_str(preamble_dict, language)
@@ -245,9 +250,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         l_title = _resolve_i18n_str(layout.get("title") or {}, language) or f"Section {idx}"
         l_preamble = _resolve_i18n_str(l_synthesis.get("preamble_text") or {}, language)
 
-        # Calculate a deterministic Layout ID matching BlueprintTransformer
+        # Calculate a deterministic Layout ID matching BlueprintTransformer (using idx)
         l_view = layout.get("preset_view", "default")
-        l_id = f"layout_{l_view}_{str(hash(l_title))}"
+        l_id = f"layout_{idx}_{l_view}"
 
         target_blocks = layout.get("target_blocks", [])
 

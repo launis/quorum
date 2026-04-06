@@ -3,6 +3,19 @@ import subprocess
 import sys
 from pathlib import Path
 
+def run_tests_with_strict_coverage(target):
+    print("🚀 Verifying Strict TDD Coverage...")
+    # NOTE: tests are in backend_v2/tests path, but we evaluate coverage across backend_v2 packages
+    # target passed in sys.argv[1] is usually backend_v2 or backend_v2/something
+    cmd = ["uv", "run", "pytest", f"--cov={target}", "--cov-fail-under=90", "--cov-report=term-missing"]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print("❌ AUDIT FAILED: TDD Mandate Violation. Coverage < 90%.")
+        print("🤖 AI INSTRUCTION: Lue alla oleva raportti (Miss-sarake) ja kirjoita testit puuttuville riveille:\n", result.stdout)
+        sys.exit(1)
+    else:
+        print(result.stdout)
+        print("✅ Strict Coverage Target Met.")
 
 def main():
     if len(sys.argv) < 2:
@@ -54,11 +67,8 @@ def main():
         print("✅ OpenAPI-dokumentaatio päivitetty varmaotteisesti.")
         
     if run_test:
-        print("\n⏳ Optio: Ajetaan Pytest-yksikkötestit (--test)...")
-        res = subprocess.run(["uv", "run", "pytest", "backend_v2/tests/", "-v"])
-        if res.returncode != 0:
-            print("❌ Yksikkötestit epäonnistuivat!")
-            sys.exit(res.returncode)
+        print("\n⏳ Optio: Ajetaan Pytest-yksikkötestit ja Coverage (--test)...")
+        run_tests_with_strict_coverage(target_dir)
         print("✅ Yksikkötestit läpäisty.")
 
     print("\n🏆 Kaikki puhdasta! Backend-kansio on Phase 9 asennossa.\n")

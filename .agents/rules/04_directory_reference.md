@@ -21,6 +21,15 @@
         <directory path="services/">Complex business orchestration processing logic routines. E.g., The core Async DAG Executor orchestrator and the dynamic PDF Blueprint generator.</directory>
         <file path="main.py">FastAPI framework server execution point instantiating web boundaries.</file>
         <file path="worker.py">ARQ (Asynchronous Redis Queue) Worker loop driving automated DAG task resolutions concurrently.</file>
+        
+        <directory path="tests/">
+            <description>Deterministinen Shift-Left testausinfrastruktuuri.</description>
+            <file_rules>
+                <file path="conftest.py">Sisältää verkkolukon (Airgap), joka estää oikeat API-kutsut testeissä.</file>
+                <file path="factories.py">Polyfactory-luokat mock-datan generointiin.</file>
+            </file_rules>
+            <directory path="architecture/">pytest-archon säännöt, jotka valvovat moduulirajoja (esim. reitittimet vs tietokanta).</directory>
+        </directory>
     </layer>
 
     <layer id="frontend" path="client_app_v2/">

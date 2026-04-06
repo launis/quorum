@@ -583,6 +583,24 @@ class ReportDataDTO(V2CoreBase):
         default_factory=list, description="Serialized MCPAuditTrace entries for XAI Evidence Box rendering."
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def parse_db_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            val = data.get("created_at")
+            if isinstance(val, str):
+                try:
+                    if val.endswith("Z"):
+                        val = val.replace("Z", "+00:00")
+                    data["created_at"] = datetime.fromisoformat(val)
+                except ValueError as e:
+                    import logging
+
+                    logger = logging.getLogger(__name__)
+                    logger.error("Failed to parse ReportDataDTO created_at", exc_info=True)
+                    raise ValueError(f"Input should be a valid datetime or ISO format for created_at: {val}") from e
+        return data
+
 
 class OutputLayoutBlock(V2CoreBase):
     """A single sequential rendering block for a report profile."""
@@ -767,6 +785,24 @@ class RenderedSynthesisCache(V2CoreBase):
     )
     cited_sources: list[str] = Field(default_factory=list, description="Citations used in this profile's synthesis")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @model_validator(mode="before")
+    @classmethod
+    def parse_db_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            val = data.get("created_at")
+            if isinstance(val, str):
+                try:
+                    if val.endswith("Z"):
+                        val = val.replace("Z", "+00:00")
+                    data["created_at"] = datetime.fromisoformat(val)
+                except ValueError as e:
+                    import logging
+
+                    logger = logging.getLogger(__name__)
+                    logger.error("Failed to parse RenderedSynthesisCache created_at", exc_info=True)
+                    raise ValueError(f"Input should be a valid datetime or ISO format for created_at: {val}") from e
+        return data
 
 
 class ExecutionRecord(V2CoreBase):

@@ -33,6 +33,14 @@
         <banned_pattern>Silently persisting in the same chat session after executing multiple massive file reads (e.g., 3+ directories in Tier 2 Hardening) or complex refactors.</banned_pattern>
         <mandatory_pattern>You MUST proactively suggest that the user starts a new context window to prevent 'Context Amnesia' and protect strict architectural rule adherence whenever the session gets uncomfortably heavy.</mandatory_pattern>
     </rule_block>
+    <rule_block id="mandatory_chain_of_thought">
+        <banned_pattern>Outputting code blocks or executing file-write tools immediately after receiving a user prompt.</banned_pattern>
+        <mandatory_pattern>You MUST wrap your architectural thinking inside `<thinking_process>` XML tags BEFORE writing any code. State: 1) Rules applied, 2) Root cause, 3) Execution plan.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="surgical_precision_edits">
+        <banned_pattern>Using lazy placeholders like `// ... rest of the file ...` when outputting code.</banned_pattern>
+        <mandatory_pattern>You MUST be surgical. Truncation is an act of data destruction. Provide the ENTIRE compilable structural block or use precise search-and-replace tools.</mandatory_pattern>
+    </rule_block>
 </ide_orchestration_protocol>
 
 <catastrophic_system_bans>
@@ -44,6 +52,10 @@
     <rule_block id="the_no_legacy_mandate">
         <banned_pattern>Writing code that maintains "backwards compatibility" with old V1 structures, deprecated APIs, or legacy databases.</banned_pattern>
         <mandatory_pattern>Obsolete code must be ruthlessly deleted and replaced with modern V2 Architecture.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="dependency_hallucination_firewall">
+        <banned_pattern>Autonomously proposing new third-party packages to `pubspec.yaml` or `uv.lock`.</banned_pattern>
+        <mandatory_pattern>Zero-Trust dependency environment. Solve problems using natively installed tools. If an external library is mathematically necessary, wait for "PERMISSION GRANTED".</mandatory_pattern>
     </rule_block>
 </catastrophic_system_bans>
 
@@ -90,5 +102,13 @@
     <rule_block id="mocking_mandate_for_llm">
         <banned_pattern>Executing direct HTTP calls to external LLM services or performing slow network requests during unit testing or CI/CD pipelines.</banned_pattern>
         <mandatory_pattern>Test Mandate Exception: When testing LLM interfaces or network operations, you MUST ABSOLUTELY use mocked JSON fixtures to mock the responses. You must utilize the global `backend_v2/llm/mock.py` and `mock_data.py` framework files when constructing Pytest fixtures. Live LLM calls during tests are strictly forbidden to prevent flaky, slow, and expensive test suites.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="circuit_breaker_protocol">
+        <banned_pattern>Attempting to autonomously fix the exact same Pytest or Flutter error more than 3 times iteratively.</banned_pattern>
+        <mandatory_pattern>Implement the "Rule of Three". If failing 3 times, you MUST STOP. Output `<circuit_breaker_tripped>`, explain the paradox, and WAIT for human guidance.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="deterministic_testing_delegation">
+        <banned_pattern>Writing manual JSON dictionary mock data or claiming "Tests are complete" without passing Coverage.</banned_pattern>
+        <mandatory_pattern>You are the worker, Python is the judge. 1) Use `polyfactory` for mock data. 2) The `conftest.py` blocks networks. 3) The `backend_audit_loop.py` enforces >90% coverage. Analyze the `Miss` column if it fails.</mandatory_pattern>
     </rule_block>
 </universal_quality_gate>

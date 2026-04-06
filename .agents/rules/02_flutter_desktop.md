@@ -34,9 +34,12 @@
     </rule_block>
 
     <rule_block id="freezed_when_ban">
-        <banned_pattern>Using Freezed `.when()`, `.map()`, or manual `if-else` chains on State objects or nested Union types.</banned_pattern>
-        <mandatory_pattern>ALWAYS use Dart 3 native `switch` expressions (pattern matching destructuring: `return switch(state) { AsyncData(:final value) => Text(value) };`).</mandatory_pattern>
-        <catastrophic_reason>Older syntax mapping defeats modern compiler exhaustiveness checks and severely inflates line count.</catastrophic_reason>
+        <banned_pattern>Using Freezed `.when()`, `.map()`, or manual `if-else` chains.</banned_pattern>
+        <mandatory_pattern>ALWAYS use Dart 3 native `switch` expressions (pattern matching destructuring).</mandatory_pattern>
+        <code_example>
+            <anti_pattern>return state.when(data: (v) => Text(v), loading: () => Spinner());</anti_pattern>
+            <pro_pattern>return switch (state) { AsyncData(:final value) => Text(value), AsyncLoading() => const Spinner() };</pro_pattern>
+        </code_example>
     </rule_block>
     
     <rule_block id="manual_riverpod_providers">
@@ -49,6 +52,15 @@
         <banned_pattern>Using immutable collections packages for list state or deeply checking massive arrays manually.</banned_pattern>
         <mandatory_pattern>Use native Dart `List<T>` combined explicitly with `@Freezed(equal: false)` to bypass O(N^2) deep equality performance hits on Master Views.</mandatory_pattern>
         <catastrophic_reason>Deeply comparing 10,000 DAG nodes continuously freezes the main loop.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="riverpod_read_vs_watch_ban">
+        <banned_pattern>Using `ref.read` inside `build()`, or `ref.watch` inside callbacks.</banned_pattern>
+        <mandatory_pattern>Inside `build()`, use ONLY `ref.watch(provider)`. `ref.read` is strictly reserved for one-time execution inside event callbacks (`onPressed`).</mandatory_pattern>
+        <code_example>
+            <anti_pattern>Widget build() { final x = ref.read(prov); onPressed: () => ref.watch(prov); }</anti_pattern>
+            <pro_pattern>Widget build() { final x = ref.watch(prov); onPressed: () => ref.read(prov); }</pro_pattern>
+        </code_example>
     </rule_block>
 </catastrophic_system_bans>
 
@@ -107,6 +119,16 @@
     <rule_block id="graceful_network_degradation">
         <banned_pattern>Crashing the entire UI via AppErrorBoundary into a red error screen due to transient network latency, HTTP 500/503 errors, or SocketExceptions.</banned_pattern>
         <mandatory_pattern>Exception to Fail-Fast: While JSON parsing errors MUST crash visibly, pure network connectivity or timeout errors MUST be caught at the Repository or Notifier level. The UI must degrade gracefully into a 'Reconnecting...' or 'AI is processing...' state without destroying the user's active local workspace (e.g., canvas or input forms).</mandatory_pattern>
+    </rule_block>
+
+    <rule_block id="desktop_pro_tool_interaction">
+        <banned_pattern>Raw `GestureDetector` without hover states, missing `FocusNode`, or lacking keyboard shortcuts.</banned_pattern>
+        <mandatory_pattern>This is a Desktop-Class Pro Tool. ALL interactive elements MUST support mouse hover (`SystemMouseCursors.click`), keyboard traversal (`FocusNode`), and `Shortcuts` actions.</mandatory_pattern>
+    </rule_block>
+
+    <rule_block id="design_token_absolute_rule">
+        <banned_pattern>Hardcoding magic numbers (`EdgeInsets.all(16)`) or colors (`Colors.blue`).</banned_pattern>
+        <mandatory_pattern>Exclusively use global Design Tokens (e.g., `AppSpacing.p16`, `Theme.of(context).textTheme`).</mandatory_pattern>
     </rule_block>
 </architectural_invariants>
 

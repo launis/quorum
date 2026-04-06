@@ -160,7 +160,7 @@ async def execute_workflow_job(
                 try:
                     await repository.update_execution(
                         local_exec_id,
-                        {"status": "failed", "error_reason": str(e), "completed_at": datetime.now(UTC).isoformat()},
+                        {"status": "failed", "error": str(e), "completed_at": datetime.now(UTC).isoformat()},
                     )
                 except Exception as update_err:
                     update_msg = f"Failed to update execution failure status: {update_err}"
@@ -180,7 +180,7 @@ async def execute_workflow_job(
                         local_exec_id,
                         {
                             "status": "failed",
-                            "error_reason": "Task execution was cancelled or timed out.",
+                            "error": "Task execution was cancelled or timed out.",
                             "completed_at": datetime.now(UTC).isoformat(),
                         },
                     )
@@ -302,9 +302,16 @@ async def generate_profile_synthesis_and_pdf_task(
             projector.apply_delta(evt)
         final_inputs = projector.snapshot
 
-        # Temporarily inject target_profile_id into metadata to guide hook correctly
+        # 0b. Get explicit locale via Execution
         metadata = getattr(execution, "metadata", {}) or {}
+        loc = metadata.get("target_locale")
+        if loc and not accept_language:
+            accept_language = loc
+
+        # Temporarily inject target_profile_id and language into metadata to guide hook correctly
         metadata["target_profile_id"] = profile_id
+        if accept_language:
+            metadata["target_locale"] = accept_language
 
         state = HookState(
             execution_id=execution_id, workflow_id=execution.workflow_id, inputs=final_inputs, metadata=metadata
@@ -322,7 +329,11 @@ async def generate_profile_synthesis_and_pdf_task(
                 section_syntheses=hook_res.state_delta.get("section_syntheses", {}),
                 cited_sources=hook_res.state_delta.get("cited_sources", []),
             )
-            update_payload = {f"profile_syntheses.{profile_id}": cache.model_dump(mode="json")}
+            # Resolve existing syntheses to avoid dot-notation issues with TinyDB
+            current_syntheses = getattr(execution, "profile_syntheses", {})
+            current_syntheses[profile_id] = cache
+            dict_syntheses = {k: v.model_dump(mode="json") for k, v in current_syntheses.items()}
+            update_payload = {"profile_syntheses": dict_syntheses}
             await repo.update_execution(execution_id, update_payload)
             logger.info(f"[Task] Synthesis cached for {execution_id} (Profile: {profile_id})")
 

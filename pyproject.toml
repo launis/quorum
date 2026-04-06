@@ -56,6 +56,9 @@ dev = [
     "pytest-asyncio>=0.25.0",
     "ruff",
     "types-requests>=2.32.4.20260107",
+    "polyfactory>=3.3.0",
+    "pytest-archon>=0.0.7",
+    "pytest-cov>=7.1.0",
 ]
 
 [tool.ruff]

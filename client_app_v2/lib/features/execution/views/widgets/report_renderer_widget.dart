@@ -5,6 +5,7 @@ import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/execution/views/widgets/xai_evidence_box.dart';
+import 'package:client_app/shared/widgets/output_renderer.dart';
 
 /// Static MVC View Renderer mapping exactly to the workflow preset views.
 /// Adheres to the De-Generator Zero-Math rule natively traversing the array.
@@ -88,13 +89,8 @@ class ReportRendererWidget extends ConsumerWidget {
                 ),
               ],
             ),
-            child: Text(
-              payload.synthesizedMarkdown!,
-              style: const TextStyle(
-                fontSize: 15,
-                height: 1.5,
-                color: Colors.black87,
-              ),
+            child: OutputRenderer(
+              markdownContent: payload.synthesizedMarkdown!,
             ),
           ),
         ],
@@ -372,13 +368,8 @@ class ReportRendererWidget extends ConsumerWidget {
                     ),
                   ],
                 ),
-                child: Text(
-                  layout.synthesisMd!,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    height: 1.5,
-                    color: Colors.black87,
-                  ),
+                child: OutputRenderer(
+                  markdownContent: layout.synthesisMd!,
                 ),
               ),
             ],

@@ -10,15 +10,27 @@
     </rule_block>
 
     <rule_block id="inline_terminal_scripting">
-        <banned_pattern>Using one-liner inline terminal commands like `python -c` or `sed` to replace JSON strings dynamically.</banned_pattern>
-        <mandatory_pattern>ALWAYS create dedicated temporary Python script files (e.g., `modify_seed.py`). Use `json.load()` and `json.dump()` to parse and save safely in-memory.</mandatory_pattern>
-        <catastrophic_reason>PowerShell silently expands variable hashes like `$c1f...` inside strings, irreversibly destroying Stripe UUID string topologies.</catastrophic_reason>
+        <banned_pattern>Using one-liner terminal commands (`python -c`, `sed`) or PowerShell variable expansion to modify JSON data.</banned_pattern>
+        <mandatory_pattern>ALWAYS create a dedicated `modify_seed.py` script. You MUST strictly use `json.load()` and `json.dump(..., indent=2)` to guarantee file structure integrity.</mandatory_pattern>
+        <code_example>
+            <anti_pattern>run_command("sed -i 's/old_id/new_id/g' backend_v2/seed/seed_data.json")</anti_pattern>
+            <pro_pattern>
+                # modify_seed.py
+                import json
+                with open('backend_v2/seed/seed_data.json', 'r') as f: data = json.load(f)
+                data['users'][0]['id'] = "usr_abc123"
+                with open('backend_v2/seed/seed_data.json', 'w') as f: json.dump(data, f, indent=2)
+            </pro_pattern>
+        </code_example>
     </rule_block>
 
     <rule_block id="hallucinated_data_keys">
-        <banned_pattern>Inventing undocumented "extra keys", employing human-readable strings as IDs, or fabricating schema paths (e.g., `id: "new_matrix_1"`).</banned_pattern>
-        <mandatory_pattern>Observe strict Pydantic configurations. All generated IDs MUST follow the Opaque ID System (Stripe Hash Pattern) rigorously.</mandatory_pattern>
-        <catastrophic_reason>The API validator will immediately drop the hallucinated payload, causing 500 fatal errors upon application fetch operations.</catastrophic_reason>
+        <banned_pattern>Inventing extra JSON keys not strictly defined in Pydantic models, or using human-readable IDs like `id: "new_user_1"`.</banned_pattern>
+        <mandatory_pattern>All generated IDs MUST strictly follow the Opaque Stripe ID pattern (e.g. `usr_x8f9a2b1`). No semantic strings allowed.</mandatory_pattern>
+        <code_example>
+            <anti_pattern>{ "id": "admin_user", "email": "test@test.com" } # FATAL: Invalid ID</anti_pattern>
+            <pro_pattern>{ "id": "usr_x8f9a2b1", "email": "test@test.com" } # STRICT ALIGNMENT</pro_pattern>
+        </code_example>
     </rule_block>
 </catastrophic_system_bans>
 

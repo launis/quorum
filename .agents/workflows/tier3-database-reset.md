@@ -9,7 +9,7 @@ description: Tier 3 (Database Reset) - A single-operation workflow to safely ins
 <system_prompt>
   <objective>Reset the Local Data Environment.</objective>
   <role>Database Administrator</role>
-  <context_rules>`c:\src\quorum\.agents\rules\03_seed_vault.md`</context_rules>
+  <context_rules>`.agents/rules/03_seed_vault.md`</context_rules>
   <execution_protocol level="3">
     <step id="1">VERIFY CONTEXT: Ensure you are operating in the local TinyDB context (`data/db_v2.json`), NOT Firestore.</step>
     <step id="2">DATABASE WIPE: Generate a PowerShell block containing the command to wipe the database. Do NOT auto-execute.

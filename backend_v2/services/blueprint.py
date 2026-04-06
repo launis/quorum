@@ -150,7 +150,7 @@ class BlueprintTransformer:
             global_score = float(round(float(t_score), 1)) if t_score is not None else None
 
         try:
-            for layout_def in layout_defs:
+            for idx, layout_def in enumerate(layout_defs):
                 preset_view = layout_def.preset_view
                 target_blocks = layout_def.target_blocks
                 # if target_blocks missing, default to empty list. But models say it is guaranteed and non-empty.
@@ -344,13 +344,7 @@ class BlueprintTransformer:
 
                 if axes or preset_view == "text_only":
                     synthesis_config = getattr(layout_def, "synthesis", None)
-                    if layout_title:
-                        title_str = (
-                            str(layout_title.model_dump()) if hasattr(layout_title, "model_dump") else str(layout_title)
-                        )
-                    else:
-                        title_str = ""
-                    layout_id = f"layout_{preset_view}_{str(hash(title_str))}"
+                    layout_id = f"layout_{idx}_{preset_view}"
 
                     section_md = None
                     if synthesis_config:

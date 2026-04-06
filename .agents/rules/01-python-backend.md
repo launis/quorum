@@ -47,9 +47,12 @@
     </rule_block>
 
     <rule_block id="pydantic_native_field_priority">
-        <banned_pattern>Using `@field_validator` or `@model_validator` for simple bounds checking, regex, or standard type validation.</banned_pattern>
-        <mandatory_pattern>Suosi AINA natiivia `Field(ge=0, pattern=...)`. Käytä `@field_validator` (mode="before") VAIN kun on aivan pakko muuntaa/siivota saapuvaa dataa lennossa tai ajaa järeää (esim. ulkoista) liiketoimintalogiikkaa.</mandatory_pattern>
-        <catastrophic_reason>Natiivi Field() ajetaan suoraan Rust-ytimessä (pydantic-core) salamannopeasti. @field_validator vaatii context switchin takaisin hitaampaan Python-tulkkiin, mikä tuhoaa järjestelmätason suorituskyvyn.</catastrophic_reason>
+        <banned_pattern>Using `@field_validator` for simple bounds checking or regex.</banned_pattern>
+        <mandatory_pattern>ALWAYS prefer native `Field(ge=0, pattern=...)`. Native Field is executed in Rust (pydantic-core) at lightning speed.</mandatory_pattern>
+        <code_example>
+            <anti_pattern>@field_validator('age') ... if v < 18: raise ValueError()</anti_pattern>
+            <pro_pattern>age: int = Field(ge=18)</pro_pattern>
+        </code_example>
     </rule_block>
 
     <rule_block id="frozen_state_mutability">
@@ -86,6 +89,26 @@
         <banned_pattern>Hardcoding UI-defined data keys (e.g., `product_text`, `document_text`) in backend Python code, or blindly feeding the entire raw execution state (including Eager Extracted PDF dumps) to an LLM during the synthesis/reporting phase.</banned_pattern>
         <mandatory_pattern>Backend reporting and synthesis hooks MUST strictly filter data based on the UI-defined `target_blocks` (Output Profile Layouts). The raw `inputs` dictionary must be unpacked and evaluated strictly against this UI configuration to prevent massive token explosions (1.04M limits) from background data dumps.</mandatory_pattern>
         <catastrophic_reason>Backend coupling to dynamic UI nomenclature breaks workflow relations. Pushing unfiltered execution state into an LLM context invariably causes `Resource Exhausted` limit triggers due to heavy Eager Extraction blobs intentionally stored in the execution state.</catastrophic_reason>
+    </rule_block>
+    <rule_block id="zero_orm_bleed">
+        <banned_pattern>Returning raw DB dictionaries directly from Repository to API routers.</banned_pattern>
+        <mandatory_pattern>The Repository layer is an absolute firewall. Raw records MUST be mapped into strict Pydantic Domain Models (`ConfigDict(frozen=True)`).</mandatory_pattern>
+        <code_example>
+            <anti_pattern>return db.table('users').get(doc_id=1)</anti_pattern>
+            <pro_pattern>return UserDTO.model_validate(raw[0])</pro_pattern>
+        </code_example>
+    </rule_block>
+
+    <rule_block id="strict_dependency_injection">
+        <banned_pattern>Instantiating services or databases directly inside FastAPI routers.</banned_pattern>
+        <mandatory_pattern>Dependencies MUST be injected exclusively via FastAPI's `Depends()` + PEP 593 `Annotated`.</mandatory_pattern>
+        <code_example>
+            <anti_pattern>service = UserService()</anti_pattern>
+            <pro_pattern>
+                DatabaseSession = Annotated[Session, Depends(get_database)]
+                async def route(db: DatabaseSession): ...
+            </pro_pattern>
+        </code_example>
     </rule_block>
 </architectural_invariants>
 
