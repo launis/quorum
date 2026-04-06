@@ -179,3 +179,19 @@ async def generate_pdf_async(
 
     # 4. Return 202 Accepted Fast
     return JobAcceptedDTO(status="Accepted", message="PDF Generation queued", execution_id=execution_id)
+
+
+@router.delete("/{execution_id}/profiles/{profile_id}", status_code=status.HTTP_200_OK)
+async def delete_profile_synthesis(
+    execution_id: str,
+    profile_id: str,
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+) -> dict[str, str]:
+    """Clears the cached synthesis state for a specific profile.
+    This forces the next render request to dispatch On-Demand Rendering.
+    """
+    await execution_service.clear_profile_synthesis(
+        initiator=current_user, execution_id=execution_id, profile_id=profile_id
+    )
+    return {"status": "success", "message": "Profile synthesis cache cleared"}

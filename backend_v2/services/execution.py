@@ -346,6 +346,37 @@ class ExecutionService:
         frozen_json = execution.frozen_context.model_dump_json(indent=2)
         return frozen_json.encode("utf-8"), f"frozen_context_{execution_id}.json"
 
+    async def clear_profile_synthesis(self, initiator: TokenData, execution_id: str, profile_id: str) -> None:
+        """Removes the synthesized data for a specific profile to force re-render via LLM Hook."""
+        execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
+        
+        needs_update = False
+        if profile_id in execution.profile_syntheses:
+            del execution.profile_syntheses[profile_id]
+            needs_update = True
+            
+        workflow_data = await self.repo.get_workflow_by_id(execution.workflow_id)
+        default_pid = workflow_data.get("default_profile_id", "default") if workflow_data else "default"
+        
+        update_payload: dict[str, Any] = {"profile_syntheses": execution.profile_syntheses}
+        
+        if profile_id == default_pid and execution.pdf_report_path:
+            try:
+                from backend_v2.services.storage import get_storage_driver
+                storage = get_storage_driver()
+                await storage.delete(execution.pdf_report_path)
+            except Exception as e:
+                logger.warning("[ExecutionService] Failed to delete old PDF blob", exc_info=True)
+            update_payload["pdf_report_path"] = None
+            needs_update = True
+            
+        if needs_update:
+            await self.repo.update_execution(execution_id, update_payload)
+            logger.info(
+                "[ExecutionService] Cleared profile synthesis",
+                extra={"execution_id": execution_id, "profile_id": profile_id}
+            )
+
     async def render_execution(
         self,
         initiator: TokenData,
