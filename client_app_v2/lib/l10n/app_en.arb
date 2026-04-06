@@ -120,6 +120,26 @@
   "failedToLoad": "Failed to load executions: {error}",
   "retry": "Retry",
   "newAnalysis": "New Analysis",
+  "rerunExecutionTooltip": "Re-run this analysis (clones data)",
+  "rerunExecutionSuccess": "New analysis spawned successfully!",
+  "rerunExecutionFailed": "Cloning failed: {error}",
+  "@rerunExecutionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "regenerateProfileTooltip": "Regenerate only this report via AI",
+  "regenerateProfileSuccess": "Regeneration scheduled! You can now open the report.",
+  "regenerateProfileFailed": "Failed to restart generation: {error}",
+  "@regenerateProfileFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "executionDetails": "Execution Details",
   "overview": "Overview",
   "report": "Report",

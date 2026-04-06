@@ -25,6 +25,16 @@
   "failedToLoad": "Virhe ladattaessa: {error}",
   "retry": "Yrit\u00e4 uudelleen",
   "newAnalysis": "Uusi analyysi",
+  "rerunExecutionTooltip": "Aja uudestaan (kopioi tiedot)",
+  "rerunExecutionSuccess": "Uusi ajo k\u00e4ynnistetty menestyksekk\u00e4\u00e4sti!",
+  "rerunExecutionFailed": "Ajon kopiointi ep\u00e4onnistui: {error}",
+  "@rerunExecutionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "executionDetails": "Suorituksen tiedot",
   "overview": "Yleiskatsaus",
   "report": "Raportti",
@@ -120,6 +130,9 @@
   "analysisCompletedSuccess": "Analyysi valmistui onnistuneesti!",
   "viewFullReport": "N\u00e4yt\u00e4 koko raportti",
   "viewRawDataComingSoon": "N\u00e4yt\u00e4 raakadata (Tulossa pian)",
+  "regenerateProfileTooltip": "Luo t\u00e4m\u00e4 tuloste uudelleen teko\u00e4lyll\u00e4",
+  "regenerateProfileSuccess": "Uudelleengenerointi aloitettu! Voit nyt avata raportin.",
+  "regenerateProfileFailed": "Generoinnin k\u00e4ynnistys ep\u00e4onnistui: {error}",
   "stepGuard": "Turva-agentti (Guard)",
   "stepAnalyst": "Analyytikko (Analyst)",
   "stepInteraction": "Vuorovaikutus (Interaction)",

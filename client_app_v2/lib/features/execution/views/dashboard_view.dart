@@ -224,6 +224,18 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                       ],
                       IconButton(
                         icon: Icon(
+                          Icons.replay,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        tooltip: AppLocalizations.of(
+                          context,
+                        )!.rerunExecutionTooltip,
+                        onPressed: () =>
+                            _cloneAndRunExecution(context, ref, id),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: Icon(
                           Icons.delete,
                           color: Theme.of(context).colorScheme.error,
                         ),
@@ -339,6 +351,24 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                                 v,
                                 outputProfiles,
                               ),
+                            ),
+                            trailing: IconButton(
+                              icon: Icon(
+                                Icons.refresh,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              tooltip: AppLocalizations.of(
+                                context,
+                              )!.regenerateProfileTooltip,
+                              onPressed: () {
+                                Navigator.of(ctx).pop();
+                                _clearProfileCache(
+                                  context,
+                                  ref,
+                                  executionId,
+                                  v,
+                                );
+                              },
                             ),
                             onTap: () {
                               Navigator.of(ctx).pop();
@@ -500,6 +530,129 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
             ),
           );
         }
+      }
+    }
+  }
+
+  Future<void> _cloneAndRunExecution(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.processingStatus)));
+
+    try {
+      final dio = ref.read(apiClientProvider);
+
+      // 1. Fetch old execution
+      final getResponse = await dio.get('/execution/executions/$id');
+      final Map<String, dynamic> oldExec = getResponse.data is Map
+          ? getResponse.data as Map<String, dynamic>
+          : throw Exception('Invalid response');
+
+      // 2. Prepare payload
+      final metadata = oldExec['metadata'] is Map
+          ? oldExec['metadata'] as Map<String, dynamic>
+          : {};
+      final payload = {
+        'workflow_id': oldExec['workflow_id'],
+        'raw_inputs': oldExec['raw_inputs'],
+        'profile_id':
+            oldExec['output_profile_id'], // In Python it's output_profile_id inside ExecutionRecord
+        'target_locale':
+            metadata['target_locale'] ??
+            Localizations.localeOf(context).languageCode,
+      };
+
+      // 3. Post to create new execution
+      await dio.post('/execution/executions/', data: payload);
+
+      // 4. Success UI & Invalidate Cache
+      ref.invalidate(executionListProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.rerunExecutionSuccess),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      }
+    } catch (e, st) {
+      if (context.mounted) {
+        ref
+            .read(loggerServiceProvider)
+            .error(
+              'DashboardView',
+              'RERUN_FAILED: Failed to clone execution',
+              e,
+              st,
+            );
+        final errorMsg = AppExceptionX.extractLocalizedHint(
+          e,
+          AppLocalizations.of(context)!,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.rerunExecutionFailed(errorMsg),
+            ),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _clearProfileCache(
+    BuildContext context,
+    WidgetRef ref,
+    String executionId,
+    String profileId,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.processingStatus)));
+
+    try {
+      final dio = ref.read(apiClientProvider);
+      await dio.delete(
+        '/execution/executions/$executionId/profiles/$profileId',
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.regenerateProfileSuccess),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      }
+    } catch (e, st) {
+      if (context.mounted) {
+        ref
+            .read(loggerServiceProvider)
+            .error(
+              'DashboardView',
+              'CLEAR_CACHE_FAILED: Failed to clear profile synthesis',
+              e,
+              st,
+            );
+        final errorMsg = AppExceptionX.extractLocalizedHint(
+          e,
+          AppLocalizations.of(context)!,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.regenerateProfileFailed(errorMsg),
+            ),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
       }
     }
   }
