@@ -356,6 +356,42 @@ abstract class AppLocalizations {
   /// **'New Analysis'**
   String get newAnalysis;
 
+  /// No description provided for @rerunExecutionTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-run this analysis (clones data)'**
+  String get rerunExecutionTooltip;
+
+  /// No description provided for @rerunExecutionSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'New analysis spawned successfully!'**
+  String get rerunExecutionSuccess;
+
+  /// No description provided for @rerunExecutionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloning failed: {error}'**
+  String rerunExecutionFailed(String error);
+
+  /// No description provided for @regenerateProfileTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate only this report via AI'**
+  String get regenerateProfileTooltip;
+
+  /// No description provided for @regenerateProfileSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Regeneration scheduled! You can now open the report.'**
+  String get regenerateProfileSuccess;
+
+  /// No description provided for @regenerateProfileFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to restart generation: {error}'**
+  String regenerateProfileFailed(String error);
+
   /// No description provided for @executionDetails.
   ///
   /// In en, this message translates to:
@@ -4891,6 +4927,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select component...'**
   String get selectComponentHint;
+
+  /// No description provided for @duplicateComponentError.
+  ///
+  /// In en, this message translates to:
+  /// **'The same target component is already selected.'**
+  String get duplicateComponentError;
 
   /// No description provided for @editProfilesTitle.
   ///

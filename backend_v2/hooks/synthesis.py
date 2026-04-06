@@ -20,13 +20,18 @@ from backend_v2.llm.client import LLMClient
 logger = logging.getLogger(__name__)
 
 
+class SynthesisSectionDTO(BaseModel):
+    layout_id: str = Field(..., description="The EXACT layout ID provided in the section instructions")
+    synthesized_markdown: str = Field(..., description="The synthesized markdown content for this section")
+
+
 class SynthesisOutputDTO(BaseModel):
     """Structured output expected from the Synthesis LLM."""
 
     synthesized_markdown: str = Field(..., description="The fully synthesized and deduplicated markdown content.")
     cited_sources: list[str] = Field(default_factory=list, description="List of references or citations found.")
-    section_syntheses: dict[str, str] = Field(
-        default_factory=dict, description="Dictionary mapping Layout ID to its unique synthesized markdown content."
+    section_syntheses: list[SynthesisSectionDTO] = Field(
+        default_factory=list, description="List of synthesized sections, mapped by their Layout ID."
     )
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
@@ -118,8 +123,26 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     target_pid = state.metadata.get("target_profile_id") if state.metadata else None
     profile_to_use = target_pid or output_profile_id or default_pid
 
-    output_profiles = workflow_data.get("output_profiles", {})
-    active_profile = output_profiles.get(profile_to_use, {})
+    # --- Epic 13 M1: Fetch Output Profile from SSOT ---
+    all_profiles_data = await deps.repository.get_all_output_profiles()
+    active_profile = {}
+    for p_dict in all_profiles_data:
+        if p_dict.get("id") == profile_to_use:
+            active_profile = p_dict
+            break
+
+    # Hardcoded fallback for missing 'default' specification in older executions
+    if not active_profile and profile_to_use == "default":
+        for p_dict in all_profiles_data:
+            if p_dict.get("slug") in ("default", "executive_summary"):
+                active_profile = p_dict
+                break
+
+    # If SSOT profile not found, fallback to the embedded legacy one
+    if not active_profile:
+        output_profiles = workflow_data.get("output_profiles", {})
+        active_profile = output_profiles.get(profile_to_use, {})
+
     synthesis_cfg = active_profile.get("synthesis", {}) or {}
 
     length_constraint = synthesis_cfg.get("length_constraint")
@@ -129,10 +152,15 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     include_historical_summary = synthesis_cfg.get("include_historical_summary", False)
 
     hook_metadata = state.metadata or {}
-    language = str(hook_metadata.get("target_locale") or inputs.get("language") or "en")
-    language = language.split("-")[0].lower()
+    raw_lang = str(hook_metadata.get("target_locale") or inputs.get("language") or "en")
+    
+    # Täydellinen sanitointi Accept-Language otsikoille (esim "fi-FI,fi;q=0.9")
+    language = raw_lang.replace(",", ";").split(";")[0].split("-")[0].strip().lower()
+    
+    lang_map = {"fi": "Finnish", "en": "English", "sv": "Swedish", "et": "Estonian"}
+    lang_name = lang_map.get(language, language.upper())
 
-    preamble = _resolve_i18n_str(preamble_dict, language)
+    preamble = _resolve_i18n_str(preamble_dict, "en")
 
     # --- Collect Target Blocks from UI Layouts ---
     layouts = active_profile.get("layouts", [])
@@ -147,7 +175,16 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     consolidated_inputs: dict[str, Any] = {}
 
     for k, v in inputs.items():
-        is_requested = k in required_blocks
+        is_requested = False
+        if isinstance(v, dict):
+            # Epic 14: UI provides PromptBlock IDs, inputs contains Step IDs -> step_data mapping.
+            # We must check if any requested PromptBlock ID exists inside the step_data keys.
+            if any(block_id in v for block_id in required_blocks):
+                is_requested = True
+        # Fallback if k happens to be a block ID
+        if not is_requested and k in required_blocks:
+            is_requested = True
+
         is_wildcard = ("*" in required_blocks) or not required_blocks
 
         if not is_requested:
@@ -247,7 +284,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         l_preamble = _resolve_i18n_str(l_synthesis.get("preamble_text") or {}, language)
 
         # Calculate a deterministic Layout ID matching BlueprintTransformer (using idx)
-        l_view = layout.get("preset_view", "default")
+        l_view = layout.get("preset_view", layout.get("presetView", "default"))
         l_id = f"layout_{idx}_{l_view}"
 
         target_blocks = layout.get("target_blocks", [])
@@ -266,10 +303,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
         section_instructions.append(instruction)
 
-    sys_prompt = f"TARGET LANGUAGE: {language.upper()}\n"
-    sys_prompt += (
+    sys_prompt = (
         "You are a professional report synthesizer. Merge, deduplicate, and seamlessly "
-        "synthesize the provided information into cohesive markdown.\n"
+        "synthesize the provided information into cohesive markdown in English.\n"
     )
     if length_constraint:
         sys_prompt += (
@@ -285,7 +321,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         sys_prompt += "\n\n=== SECTION-LEVEL SYNTHESIS REQUIRED ===\n"
         sys_prompt += (
             "You MUST ALSO provide targeted synthesized summaries for the following "
-            "distinct sections in the `section_syntheses` dict, mapped by LAYOUT ID.\n\n"
+            "distinct sections as an array in `section_syntheses`.\n\n"
         )
         sys_prompt += "\n\n".join(section_instructions)
 
@@ -315,11 +351,59 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             for k, v in token_usage.items():
                 current_usage[k] = current_usage.get(k, 0) + v
 
+            section_dict = {}
+            if result.section_syntheses:
+                for s in result.section_syntheses:
+                    section_dict[s.layout_id] = s.synthesized_markdown
+
+            if language != "en":
+                logger.info(f"[SynthesisHook] Synthesis completed in English. Translating to {lang_name.upper()}...")
+                from backend_v2.hooks.translation_hook import translation_hook
+                trans_state = HookState(
+                    execution_id=state.execution_id,
+                    workflow_id=state.workflow_id,
+                    inputs={
+                        "language": language,
+                        "synthesized_markdown": result.synthesized_markdown,
+                        **section_dict
+                    }
+                )
+                trans_res = await translation_hook(trans_state, deps)
+                if trans_res.success and trans_res.state_delta:
+                    logger.info("[SynthesisHook] Translation successful. Mapping back values.")
+                    translated_global = trans_res.state_delta.get("synthesized_markdown", result.synthesized_markdown)
+                    
+                    if result.cited_sources:
+                        bib_title = "\n\n### Lähdeluettelo\n" if language == "fi" else "\n\n### References\n"
+                        bib_text = bib_title + "\n".join([f"[{i+1}] {src}" for i, src in enumerate(result.cited_sources)])
+                        translated_global += bib_text
+                        
+                    translated_sections = {}
+                    for k in section_dict.keys():
+                        translated_sections[k] = trans_res.state_delta.get(k, section_dict[k])
+                    
+                    return HookResult(
+                        success=True,
+                        state_delta={
+                            "synthesized_markdown": translated_global,
+                            "section_syntheses": translated_sections,
+                            "cited_sources": result.cited_sources,
+                            "step_metadata_updates": {"token_usage": current_usage},
+                        },
+                    )
+
+            # Return native English payload or fallback if translation failed
+            global_md = result.synthesized_markdown
+            if result.cited_sources:
+                bib_title = "\n\n### Lähdeluettelo\n" if language == "fi" else "\n\n### References\n"
+                bib_text = bib_title + "\n".join([f"[{i+1}] {src}" for i, src in enumerate(result.cited_sources)])
+                global_md += bib_text
+            
             return HookResult(
                 success=True,
                 state_delta={
-                    "synthesized_markdown": result.synthesized_markdown,
-                    "section_syntheses": result.section_syntheses,
+                    "synthesized_markdown": global_md,
+                    "section_syntheses": section_dict,
                     "cited_sources": result.cited_sources,
                     "step_metadata_updates": {"token_usage": current_usage},
                 },

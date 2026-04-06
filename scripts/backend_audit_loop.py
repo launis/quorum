@@ -5,12 +5,28 @@ from pathlib import Path
 
 def run_tests_with_strict_coverage(target):
     print("🚀 Verifying Strict 30% TDD Coverage...")
-    # NOTE: tests are in backend_v2/tests path, but we evaluate coverage across backend_v2 packages
-    # target passed in sys.argv[1] is usually backend_v2 or backend_v2/something
-    cmd = ["uv", "run", "pytest", "-v", "--tb=short", f"--cov={target}", "--cov-fail-under=30", "--cov-report=term-missing"]
     
-    # Anna pytestin tulostaa suoraan konsoliin, jotta värit ja selkeät virheilmoitukset näkyvät heti
-    result = subprocess.run(cmd)
+    # Use directory for pytest-cov to harvest data without PyO3 collision/path bugs
+    cov_target = os.path.dirname(target) if target.endswith(".py") else target
+    if not cov_target: cov_target = target
+    
+    if target.endswith(".py"):
+        parts = target.replace("\\", "/").split("/")
+        parts[-1] = "test_" + parts[-1]
+        test_path = "tests/" + "/".join(parts)
+        
+        # 1. Ajetaan Pytest ja kerätään kattavuusdata (ei kaatumista fail-underiin vielä)
+        cmd = ["uv", "run", "pytest", test_path, "-v", "--tb=short", f"--cov={cov_target}"]
+        result = subprocess.run(cmd)
+        
+        # 2. Ajetaan Coverage Report, joka filtteröi laatuportin vaatimuksen KOSKEMAAN VAIN tätä kyseistä tiedostoa
+        if result.returncode == 0:
+            target_name = os.path.basename(target) # esim. synthesis.py
+            coverage_cmd = ["uv", "run", "coverage", "report", f"--include=*{target_name}", "--fail-under=30", "-m"]
+            result = subprocess.run(coverage_cmd)
+    else:
+        cmd = ["uv", "run", "pytest", "-v", "--tb=short", f"--cov={cov_target}", "--cov-fail-under=30", "--cov-report=term-missing"]
+        result = subprocess.run(cmd)
     
     if result.returncode != 0:
         print("\n❌ AUDIT FAILED: Testeissä oli virheitä TAI testikattavuus ei ole 30%.")

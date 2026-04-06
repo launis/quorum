@@ -94,6 +94,8 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         # Call LLM for translation. We expect raw JSON back.
         logger.info("[TranslationHook] Translating %s fields to '%s'...", len(payload_to_translate), target_language)
         # A generic dict string output, not a Pydantic strict model since input is dynamic
+        # SALLIVA ASETUS (User Preference): Odotetaan Enumissa määritelty (esim. 120s), jotta LiteLLM voi nukkua
+        # 5 RPM doormanin vaatiman ajan ilman, että joudumme pakotettuun englanninkieliseen fallbackiin.
         response_text = await llm_client.run_chat(messages=messages)
 
         # Clean potential markdown formatting if LLM didn't listen

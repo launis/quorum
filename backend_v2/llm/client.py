@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from backend_v2.exceptions import AgentExecutionError, AppException, ErrorCodes
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.llm import LLMProviderConfig
+from backend_v2.models.enums import SystemConcurrency
 
 T = TypeVar("T", bound=BaseModel)
 logger = logging.getLogger(__name__)
@@ -236,6 +237,9 @@ class LLMClient:
             config=self._config,  # type: ignore
         )
 
+        # STRICT TIMEOUT PROTOCOL: Apply global Enum constraint to structured tasks as well
+        strict_timeout = SystemConcurrency.LLM_DEFAULT_TIMEOUT_SECONDS.value
+
         try:
             import pydantic
 
@@ -261,6 +265,7 @@ class LLMClient:
                         temperature=temperature,
                         max_tokens=max_tokens,
                         mock_identity=mock_identity,
+                        timeout=strict_timeout,
                     )
 
                     # Extract usage securely into a simple dictionary from LLMResponse model
@@ -442,6 +447,9 @@ class LLMClient:
             target_model_name = model
             target_provider_type = "litellm"
 
+        # STRICT TIMEOUT PROTOCOL: Never overridden by caller, always uses global Enum constraint.
+        strict_timeout = SystemConcurrency.LLM_DEFAULT_TIMEOUT_SECONDS.value
+
         # Parse Prompt — detect if this is a multi-turn tool conversation
         # If messages contain roles other than system/user (e.g. assistant, tool),
         # we MUST pass them as-is to generate(messages=...) for correct tool loop behavior.
@@ -484,6 +492,7 @@ class LLMClient:
                     max_tokens=max_tokens,
                     tools=tools,
                     tool_choice=tool_choice,
+                    timeout=strict_timeout,
                 )
             else:
                 response = await provider.generate(
@@ -493,6 +502,7 @@ class LLMClient:
                     max_tokens=max_tokens,
                     tools=tools,
                     tool_choice=tool_choice,
+                    timeout=strict_timeout,
                 )
 
             # If LLM returned tool_calls, return as dict for Tool Loop processing

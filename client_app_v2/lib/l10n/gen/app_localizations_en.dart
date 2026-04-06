@@ -154,6 +154,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newAnalysis => 'New Analysis';
 
   @override
+  String get rerunExecutionTooltip => 'Re-run this analysis (clones data)';
+
+  @override
+  String get rerunExecutionSuccess => 'New analysis spawned successfully!';
+
+  @override
+  String rerunExecutionFailed(String error) {
+    return 'Cloning failed: $error';
+  }
+
+  @override
+  String get regenerateProfileTooltip => 'Regenerate only this report via AI';
+
+  @override
+  String get regenerateProfileSuccess =>
+      'Regeneration scheduled! You can now open the report.';
+
+  @override
+  String regenerateProfileFailed(String error) {
+    return 'Failed to restart generation: $error';
+  }
+
+  @override
   String get executionDetails => 'Execution Details';
 
   @override
@@ -2651,6 +2674,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectComponentHint => 'Select component...';
+
+  @override
+  String get duplicateComponentError =>
+      'The same target component is already selected.';
 
   @override
   String editProfilesTitle(String slug) {

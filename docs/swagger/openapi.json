@@ -1189,6 +1189,67 @@
         }
       }
     },
+    "/api/v2/execution/executions/{execution_id}/profiles/{profile_id}": {
+      "delete": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Delete Profile Synthesis",
+        "description": "Clears the cached synthesis state for a specific profile.\nThis forces the next render request to dispatch On-Demand Rendering.",
+        "operationId": "delete_profile_synthesis_api_v2_execution_executions__execution_id__profiles__profile_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "execution_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Execution Id"
+            }
+          },
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Delete Profile Synthesis Api V2 Execution Executions  Execution Id  Profiles  Profile Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v2/execution/workflows/{workflow_id}/ui_schema": {
       "get": {
         "tags": [

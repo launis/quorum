@@ -154,6 +154,31 @@ class AppLocalizationsFi extends AppLocalizations {
   String get newAnalysis => 'Uusi analyysi';
 
   @override
+  String get rerunExecutionTooltip => 'Aja uudestaan (kopioi tiedot)';
+
+  @override
+  String get rerunExecutionSuccess =>
+      'Uusi ajo käynnistetty menestyksekkäästi!';
+
+  @override
+  String rerunExecutionFailed(String error) {
+    return 'Ajon kopiointi epäonnistui: $error';
+  }
+
+  @override
+  String get regenerateProfileTooltip =>
+      'Luo tämä tuloste uudelleen tekoälyllä';
+
+  @override
+  String get regenerateProfileSuccess =>
+      'Uudelleengenerointi aloitettu! Voit nyt avata raportin.';
+
+  @override
+  String regenerateProfileFailed(String error) {
+    return 'Generoinnin käynnistys epäonnistui: $error';
+  }
+
+  @override
   String get executionDetails => 'Suorituksen tiedot';
 
   @override
@@ -2664,6 +2689,10 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get selectComponentHint => 'Valitse komponentti...';
+
+  @override
+  String get duplicateComponentError =>
+      'Sama kohteen kriteeri/komponentti on valittu jo aiemmin.';
 
   @override
   String editProfilesTitle(String slug) {

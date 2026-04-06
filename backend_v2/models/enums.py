@@ -45,6 +45,7 @@ class SystemConcurrency(int, Enum):
     MAX_CONCURRENT_WORKFLOWS = 1
     MAX_CONCURRENT_LLM_STEPS = 2
     LLM_MAX_RETRIES = 10
+    LLM_DEFAULT_TIMEOUT_SECONDS = 120
 
 
 # --- Restored V1 Enums ---

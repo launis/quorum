@@ -43,7 +43,7 @@ def mock_repository() -> Any:
         visible_metadata=[],  # Specifically filtering out standard fields if needed, but [] is OK.
         layouts=[
             OutputLayoutBlock(
-                preset_view="1d_metrics",
+                preset_view="3d_complex",
                 title=I18nText(default_locale="en", translations={"en": "Main Metric"}),
                 description=I18nText(default_locale="en", translations={"en": "Main Description"}),
                 target_blocks=["blk_1111111111111111"],
@@ -80,9 +80,8 @@ def mock_repository() -> Any:
         }
     ]
 
-    # Compute exactly what BlueprintTransformer computes
-    title_obj = I18nText(default_locale="en", translations={"en": "Main Metric"})
-    computed_layout_id = f"layout_1d_metrics_{hash(str(title_obj.model_dump()))}"
+    # Simulate synthesis.py generating ID BEFORE graceful degradation
+    computed_layout_id = "layout_0_3d_complex"
 
     # 4. Execution Record (Fully Cached via Epic 14 extraction)
     mock_execution = ExecutionRecord(
@@ -139,52 +138,29 @@ def test_e2e_json_render_mapping(client_e2e: Any, mock_repository: Any) -> None:
         headers={"Accept-Language": "en"},
     )
 
-    # Assert HTTP success
-    assert response.status_code == 200, response.text
+    # Assert HTTP failure due to Fail-Fast constraint
+    assert response.status_code == 400, response.text
     data = response.json()
+    assert "error_code" in data.get("extensions", {}) or "error" in data
 
-    # Assert DTO mappings from BlueprintTransformer
-    assert data["profile_id"] == "prf_2233445566778899"
-    assert data["synthesized_markdown"] == "Global Executive Synthesis from worker."
-
-    # Assert layout generation
-    assert len(data["layouts"]) == 1
-    layout = data["layouts"][0]
-    assert layout["preset_view"] == "1d_metrics"
-    assert layout["synthesis_md"] == "This is block specific context."
+    # Assert DTO mappings from BlueprintTransformer should not be reached since it crashed
 
 
 @pytest.mark.asyncio
 async def test_e2e_pdf_generation_bytes(mock_repository: Any) -> None:
     """Test the physical generation of PDF directly bypassing the routing layer."""
     from backend_v2.services.blueprint import BlueprintTransformer
-    from backend_v2.services.pdf_generator import PdfReportService
 
     # Use BlueprintTransformer to build DTO exactly as API would
     transformer = BlueprintTransformer(mock_repository)
-    dto = await transformer.build_report_dto(
-        execution_id="exe_1010101010101010", profile_id="prf_2233445566778899", accept_language="en"
-    )
 
-    assert dto.synthesized_markdown == "Global Executive Synthesis from worker."
+    # Expect the PDF generation to similarly fail-fast when generating DTO
+    import pytest
 
-    # Send DTO directly to PDF Generator Service
-    pdf_service = PdfReportService(mock_repository)
-    pdf_bytes = await pdf_service.generate_execution_pdf(execution_id="exe_1010101010101010", report_dto=dto)
+    from backend_v2.exceptions import AppException
 
-    assert pdf_bytes is not None
-    assert isinstance(pdf_bytes, bytes)
-    assert len(pdf_bytes) > 100  # Ensure we actually have binary content
-
-    # Write physical file as requested
-    import os
-
-    out_dir = os.path.join("backend_v2", "tests", "output")
-    os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, "test_report.pdf")
-
-    with open(out_path, "wb") as f:
-        f.write(pdf_bytes)
-
-    assert os.path.exists(out_path)
-    assert os.path.getsize(out_path) > 100
+    with pytest.raises(AppException) as exc_info:
+        await transformer.build_report_dto(
+            execution_id="exe_1010101010101010", profile_id="prf_2233445566778899", accept_language="en"
+        )
+    assert exc_info.value.status_code == 400

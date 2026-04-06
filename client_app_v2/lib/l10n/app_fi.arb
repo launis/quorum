@@ -890,6 +890,7 @@
   "componentGenericLabel": "Komponentti {num}",
   "selectAllComponentsLabel": "Kaikki komponentit (*)",
   "selectComponentHint": "Valitse komponentti...",
+  "duplicateComponentError": "Sama kohteen kriteeri/komponentti on valittu jo aiemmin.",
   "editProfilesTitle": "Muokkaa profiileja: {slug}",
   "outputProfilesDictionary": "Tulostusprofiilien sanakirja",
   "addVariantBtn": "Lisää variantti",

@@ -371,6 +371,8 @@ class ExecutionService:
             needs_update = True
             
         if needs_update:
+            from datetime import datetime, timezone
+            update_payload["updated_at"] = datetime.now(timezone.utc).isoformat()
             await self.repo.update_execution(execution_id, update_payload)
             logger.info(
                 "[ExecutionService] Cleared profile synthesis",
@@ -422,7 +424,14 @@ class ExecutionService:
         # NEW ON-DEMAND RENDERING LOGIC (Epic 14 M4)
         if resolved_pid not in execution.profile_syntheses:
             # Epic 14: Use deterministic job ID to prevent infinite enqueues while UI is polling
-            job_id = f"render_{execution_id}_{resolved_pid}_{accept_language or 'default'}"
+            
+            # Incorporate updated_at to ensure regenerating (which updates DB) creates a fresh valid job lock
+            updated_ts = "0"
+            if execution.updated_at:
+                updated_ts = str(execution.updated_at).replace(":", "").replace("-", "").replace(".", "").replace(" ", "_")
+                
+            job_id = f"render_{execution_id}_{resolved_pid}_{accept_language or 'default'}_{updated_ts}"
+            
             await arq_pool.enqueue_job(
                 "render_profile_job",
                 _job_id=job_id,

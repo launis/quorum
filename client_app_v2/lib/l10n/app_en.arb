@@ -1313,6 +1313,7 @@
   "@componentGenericLabel": { "placeholders": { "num": { "type": "String" } } },
   "selectAllComponentsLabel": "All Components (*)",
   "selectComponentHint": "Select component...",
+  "duplicateComponentError": "The same target component is already selected.",
   "editProfilesTitle": "Edit Profiles: {slug}",
   "@editProfilesTitle": { "placeholders": { "slug": { "type": "String" } } },
   "outputProfilesDictionary": "Output Profiles Dictionary",

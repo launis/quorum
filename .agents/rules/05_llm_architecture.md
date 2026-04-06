@@ -85,4 +85,10 @@
         <banned_pattern>Injecting dynamic variables (timestamps, UUIDs) into `_SYSTEM_INSTRUCTION`.</banned_pattern>
         <mandatory_pattern>To maximize Context Caching (FinOps), the System Prompt MUST be 100% static. ALL dynamic data MUST be injected exclusively into the `user` message at the end.</mandatory_pattern>
     </rule_block>
+
+    <rule_block id="native_english_generation_mandate">
+        <banned_pattern>Prompting the LLM to simultaneously generate complex analytical texts (like hypotheses or markdown syntheses) and translate them into a non-English target language in a single pass.</banned_pattern>
+        <mandatory_pattern>Enforce Native English Strategy: High-cognitive tasks MUST be generated natively in English to preserve reasoning depth and "cognitive friction". The robust output MUST then be intercepted (e.g., via `backend_v2.hooks.translation_hook`) and translated into the user's target language in a subsequent low-latency pass.</mandatory_pattern>
+        <catastrophic_reason>Generating complex logic natively in non-English languages severely reduces the LLM's analytical capacity, forcing it to split token computation between linguistic grammar and structural reasoning, causing "intelligence dropping".</catastrophic_reason>
+    </rule_block>
 </architectural_invariants>
