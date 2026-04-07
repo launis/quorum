@@ -10,9 +10,6 @@ import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_exception.dart';
-import 'package:file_saver/file_saver.dart';
-import 'dart:typed_data';
-import 'package:dio/dio.dart';
 
 import 'dart:async'; // Add dart:async for Timer
 
@@ -22,9 +19,6 @@ class DashboardSettings {
 
   /// Auto-refresh interval for the continuous background polling
   static const Duration refreshRate = Duration(seconds: 10);
-
-  /// Global timeout for the PDF streams
-  static const Duration downloadTimeout = Duration(seconds: 15);
 }
 
 // Provider to fetch executions using native casting (No Freezed API DTOs)
@@ -285,22 +279,30 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     );
 
     if (wf.isEmpty) {
-      _downloadPdf(executionId, 'default');
-      return;
+      throw AppException.validation(
+        'CRITICAL FAIL-FAST: Workflow $workflowId is not found in the payload for execution $executionId.',
+      );
     }
 
     final opRaw = wf['output_profiles'];
     final outputProfiles = opRaw is Map ? opRaw : {};
     final variants = outputProfiles.keys.toList();
-    if (variants.isEmpty) variants.add('default');
 
-    if (variants.length == 1) {
-      ExecutionReportRoute(
-        executionId: executionId,
-        variant: variants.first,
-      ).go(context);
-      return;
+    if (variants.isEmpty) {
+      // Epic 14: Graceful Degradation for Workflow Builder (No-String Mandate compliant)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Tällä työnkululla ei ole tulostusprofiileja (Missing Output Profiles)',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return; // Do not crash the UI, just abort opening the modal.
     }
+
+    // Navigation short-circuit removed to enforce modal appearance,
+    // ensuring the user always has access to the "Clear profile synthesis" action.
 
     showModalBottomSheet(
       context: context,
@@ -416,58 +418,6 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
       }
     }
     return key;
-  }
-
-  Future<void> _downloadPdf(String executionId, String profileId) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context)!.processingStatus)),
-    );
-
-    try {
-      final dio = ref.read(apiClientProvider);
-      final response = await dio.get<List<int>>(
-        '/execution/executions/$executionId/render',
-        queryParameters: {'format': 'pdf', 'profile_id': profileId},
-        options: Options(responseType: ResponseType.bytes),
-      );
-
-      final bytes = Uint8List.fromList(response.data!);
-      await FileSaver.instance
-          .saveAs(
-            name: 'Report_${executionId}_$profileId',
-            bytes: bytes,
-            fileExtension: 'pdf',
-            mimeType: MimeType.pdf,
-          )
-          .timeout(
-            DashboardSettings.downloadTimeout,
-            onTimeout: () => throw AppException.timeout(
-              AppLocalizations.of(context)!.errSaveTimeout,
-            ),
-          );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.downloadSuccess),
-          ),
-        );
-      }
-    } catch (e, st) {
-      if (mounted) {
-        ref
-            .read(loggerServiceProvider)
-            .error('DashboardView', 'Failed to download PDF', e, st);
-
-        final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppExceptionX.extractLocalizedHint(e, l10n)),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
-    }
   }
 
   Future<void> _confirmDelete(

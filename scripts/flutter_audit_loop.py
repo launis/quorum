@@ -1,3 +1,36 @@
+"""
+Flutter Audit Loop Script (Antigravity Phase 9)
+
+**Mitä tämä skripti tekee:**
+Tämä skripti on Automatisoitu Laatuportti (Quality Gate) Flutter-käyttöliittymälle (`client_app_v2`). Se suorittaa peräkkäiset koodin puhtaanapitotoimet:
+1. `build_runner` (Valinnainen): Ajaa Dartin koodigeneraattorin, joka kääntää SDUI/Freezed/JSON -mallit automaattisesti.
+2. `dart format`: Formatoi Dart-tiedostot oikeellisen sisennyksen mukaiseksi.
+3. `dart analyze`: Analysoi lähdekoodin staattisesti varmistaakseen, ettei siinä ole kognitiivisia tai rakenteellisia virheitä (The Component Generativity Mandate).
+
+**Ohjeet käyttöön:**
+Skripti suositellaan ajettavaksi projektin juuresta eristettynä `uv run python` -komennolla varman versionhallinnan takaamiseksi:
+
+```bash
+uv run python scripts/flutter_audit_loop.py <kohdekansio> [--build]
+```
+
+**Kopioitavia esimerkkejä:**
+
+1. Aja laatuportti pelkille komponenteille ilman raskasta generointia:
+```bash
+uv run python scripts/flutter_audit_loop.py lib/core/components/
+```
+
+2. Aja laatuportti koko frontendille ja pakota koodigeneraattori päivittämään mallit:
+```bash
+uv run python scripts/flutter_audit_loop.py client_app_v2 --build
+```
+
+3. Aja tiettyyn uuteen kansioon generointi ja laatuportti:
+```bash
+uv run python scripts/flutter_audit_loop.py lib/features/sdui/ --build
+```
+"""
 import os
 import subprocess
 import sys

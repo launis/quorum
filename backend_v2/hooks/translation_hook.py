@@ -23,6 +23,7 @@ TEHTÄVÄ: Käännä alla olevan JSON-objektin **KAIKKI MERKKIJONOARVOT** kielel
 
 KRIITTINEN RAJOITE: ÄLÄ KOSKAAN KÄÄNNÄ TAI MUUTA JSON-AVAIMIA (Keys).
 Ne sisältävät ohjelmoitavia muuttujia. Vain "Values" käännetään.
+ÄLÄ KOSKAAN lisää kielikoodeja, kuten "fi - " tai "en - ", käännettyjen tekstien alkuun.
 Älä lisää mitään ylimääräistä tekstiä tai markdown-koodiblokkeja vasuksesesi alkuun tai loppuun.
 Palauta puhdasta, validia JSONia."""
 
@@ -85,7 +86,10 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         return HookResult(success=False, state_delta={})
 
     # 2. Build the exact translation prompt strictly adhering to Role Segregation
-    system_content = _SYSTEM_INSTRUCTION.replace("{target_language}", target_language)
+    lang_map = {"fi": "suomeksi (Finnish)", "en": "englanniksi (English)", "sv": "ruotsiksi (Swedish)", "et": "viroksi (Estonian)"}
+    target_lang_name = lang_map.get(target_language, target_language)
+
+    system_content = _SYSTEM_INSTRUCTION.replace("{target_language}", target_lang_name)
     user_content = f"Lähde JSON:\n{json.dumps(payload_to_translate, ensure_ascii=False)}"
 
     messages = [{"role": "system", "content": system_content}, {"role": "user", "content": user_content}]

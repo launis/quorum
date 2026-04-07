@@ -1,3 +1,37 @@
+"""
+Backend Audit Loop Script (Antigravity Phase 9)
+
+**Mitä tämä skripti tekee:**
+Tämä skripti on Automatisoitu Laatuportti (Quality Gate) Python-backendille. Se suorittaa kolmivaiheisen putken:
+1. `ruff check --fix`: Etsii asennointivirheitä ja pyrkii korjaamaan ne automaattisesti.
+2. `ruff format`: Formatoi koodin täysin standardien mukaiseksi.
+3. `mypy --strict`: Suorittaa ankaran tyyppitarkastuksen The Universal Quality Gaten mukaisesti.
+Lisäksi skripti voi päivittää OpenAPI-skeemat ja ajaa yksikkötestit tiukalla (30%) kattavuusvaatimuksella.
+
+**Ohjeet käyttöön:**
+Suorita skripti projektin juuressa eristettynä `uv run python` -komennolla:
+
+```bash
+uv run python scripts/backend_audit_loop.py <kohdekansio_tai_tiedosto> [--openapi] [--test]
+```
+
+**Kopioitavia esimerkkejä:**
+
+1. Tarkista ja korjaa yksittäinen tiedosto:
+```bash
+uv run python scripts/backend_audit_loop.py backend_v2/hooks/synthesis.py
+```
+
+2. Tarkista koko reititin-kansio ja aja samalla testit:
+```bash
+uv run python scripts/backend_audit_loop.py backend_v2/api/ --test
+```
+
+3. Aja laatuportti ytimeen ja luo uusi OpenAPI-spesifikaatio:
+```bash
+uv run python scripts/backend_audit_loop.py backend_v2/core/ --openapi
+```
+"""
 import os
 import subprocess
 import sys

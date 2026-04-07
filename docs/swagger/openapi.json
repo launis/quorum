@@ -5573,14 +5573,6 @@
             "title": "Input Mappings",
             "description": "Maps upstream results to LLM inputs. e.g. {\"context\": \"$inputs.document\"}"
           },
-          "allowed_mcp_tools": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Allowed Mcp Tools",
-            "description": "Workflow-level MCP tools override (e.g. ['mcp_tavily_search']). Takes priority over Step template."
-          },
           "ui_pos_x": {
             "type": "number",
             "title": "Ui Pos X",

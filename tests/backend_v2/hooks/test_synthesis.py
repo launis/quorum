@@ -39,11 +39,17 @@ async def test_text_consolidation_hook_success(mock_state: HookState, mock_deps:
     # Set up active profile dict
     active_profile = {
         "id": "prf_456",
+        "synthesis": {
+            "system_prompt": "Global prompt mock."
+        },
         "layouts": [
             {
                 "presetView": "1d_metrics",
                 "title": {"fi": "Otsikko 1"},
-                "synthesis": {"preamble_text": {"fi": "Tee vitsi"}},
+                "synthesis": {
+                    "preamble_text": {"fi": "Tee vitsi"},
+                    "system_prompt": "Section prompt mock."
+                },
             }
         ]
     }

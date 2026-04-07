@@ -369,15 +369,15 @@ class ExecutionService:
             except Exception:
                 logger.warning("[ExecutionService] Failed to delete old PDF blob", exc_info=True)
             update_payload["pdf_report_path"] = None
-            needs_update = True
 
-        if needs_update:
-            from datetime import datetime, timezone
-
-            update_payload["updated_at"] = datetime.now(timezone.utc).isoformat()
-            await self.repo.update_execution(execution_id, update_payload)
-            logger.info(
-                "[ExecutionService] Cleared profile synthesis",
+        from datetime import datetime, timezone
+        
+        # Always update timestamp to invalidate any cached Arq background task locks
+        update_payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+        await self.repo.update_execution(execution_id, update_payload)
+        
+        logger.info(
+            "[ExecutionService] Cleared profile synthesis",
                 extra={"execution_id": execution_id, "profile_id": profile_id},
             )
 

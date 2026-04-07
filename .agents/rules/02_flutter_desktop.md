@@ -106,6 +106,12 @@
         <mandatory_pattern>UI strings must be evaluated exclusively via `AppLocalizations` (`.arb` locale runtime logic). Dynamic UI elements map API Backend Enums directly. Utilize App Theme Tokens for layout padding.</mandatory_pattern>
     </rule_block>
 
+    <rule_block id="centralized_frontend_enums">
+        <banned_pattern>Scattering systemic frontend Enum definitions (like API polling timeouts, maximum attempts, or concurrency limits) randomly across individual feature controllers or files.</banned_pattern>
+        <mandatory_pattern>All systemic or global Client constraints MUST be centralized in `client_app_v2/lib/core/models/enums.dart` (e.g., `SystemConcurrency`). This ensures 1-to-1 architectural parity with the backend's strict enum definitions.</mandatory_pattern>
+        <catastrophic_reason>Scattered magic timeouts and loosely typed enums create unmaintainable fail-fast regressions and duplicate logic when the backend architecture evolves.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="tenant_data_isolation">
         <banned_pattern>Leaving old cached Master Data arrays visually intact memory-resident when switching tenant organization context.</banned_pattern>
         <mandatory_pattern>Upon User/Organization modification, the prior context state MUST be deliberately and safely invalidated (`ref.invalidate()`) protecting cross-tenant privacy leaks instantly.</mandatory_pattern>

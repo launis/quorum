@@ -64,10 +64,38 @@ class StudioService:
                 )
                 raise PermissionDeniedError("Cannot modify resources outside your organization.")
 
+    async def _stitch_profiles_to_workflows(self, workflows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Dynamically attach standalone output profiles to the workflow dict for backward compatibility with the client App."""
+        all_profiles = await self.repo.get_all_output_profiles()
+        for wf in workflows:
+            attached = {}
+            for p in all_profiles:
+                target_wf_id = p.get("workflow_id")
+                if target_wf_id == wf.get("id") or target_wf_id == "*":
+                    attached[p.get("id")] = {
+                        "name": p.get("name"),
+                        "description": p.get("description"),
+                        "visible_metadata": p.get("visible_metadata", ["date", "organization"]),
+                        "display_scale": p.get("display_scale", "original"),
+                        "synthesis": p.get("synthesis"),
+                        "layouts": p.get("layouts", [])
+                    }
+            
+            existing = wf.get("output_profiles")
+            if not isinstance(existing, dict):
+                existing = {}
+                
+            existing.update(attached)
+            wf["output_profiles"] = existing
+            
+        return workflows
+
     # --- Workflows ---
 
     async def list_workflows(self, initiator: TokenData) -> list[Workflow]:
         all_data = await self.repo.get_all("workflows")
+        all_data = await self._stitch_profiles_to_workflows(all_data)
+        
         if initiator.role == "ROOT":
             return [Workflow.model_validate(x) for x in all_data]
 
@@ -80,6 +108,9 @@ class StudioService:
         if not data:
             logger.error("[StudioService] %s: Workflow %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
+
+        data_list = await self._stitch_profiles_to_workflows([data])
+        data = data_list[0]
 
         self._enforce_tenant_isolation(initiator, data, "workflow")
         return Workflow.model_validate(data)
@@ -179,10 +210,27 @@ class StudioService:
                     new_mappings[k] = v
             step["input_mappings"] = new_mappings
 
-        for profile in cloned_data.get("output_profiles", {}).values():
-            for layout in profile.get("layouts", []):
-                old_layout_steps = layout.get("steps", [])
-                layout["steps"] = [sr_mapping.get(s, s) for s in old_layout_steps]
+        # Deep clone standalone output profiles mapped to this old workflow
+        all_profiles = await self.repo.get_all("output_profiles")
+        for p in all_profiles:
+            if p.get("workflow_id") == id:
+                new_profile_id = f"prof_{uuid.uuid4().hex[:30]}"
+                cloned_profile = p.copy()
+                cloned_profile["id"] = new_profile_id
+                cloned_profile["workflow_id"] = new_id
+                if initiator.role not in ["ROOT", "ADMIN", "ROOT_MASTER"]:
+                    cloned_profile["organization_id"] = getattr(initiator, "organization_id", None)
+                
+                # Remap the step IDs inside layout
+                for layout in cloned_profile.get("layouts", []):
+                    old_layout_steps = layout.get("steps", [])
+                    layout["steps"] = [sr_mapping.get(s, s) for s in old_layout_steps]
+                
+                await self.repo.create_raw("output_profiles", cloned_profile)
+
+        # Clear embedded profiles from workflow clone since they are standalone now
+        if "output_profiles" in cloned_data:
+            cloned_data["output_profiles"] = {}
 
         cloned_workflow = Workflow.model_validate(cloned_data)
         return await self.save_workflow(initiator, new_id, cloned_workflow)

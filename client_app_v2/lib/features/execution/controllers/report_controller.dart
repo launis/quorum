@@ -2,6 +2,7 @@ import 'dart:isolate';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
+import 'package:client_app/core/models/enums.dart';
 
 part 'report_controller.g.dart';
 
@@ -21,7 +22,7 @@ class ReportController extends _$ReportController {
 
     // Epic 14 M4: Omni-Channel Polling for 202 Accepted Background Tasks
     int attempts = 0;
-    const maxAttempts = 60; // 2 minutes max
+    final maxAttempts = SystemConcurrency.pollingMaxAttempts.value;
 
     while (true) {
       final rawData = await client.renderExecution(
