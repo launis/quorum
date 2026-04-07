@@ -15,9 +15,11 @@ flowchart TD
     Concurrency --> NodeExec["NodeExecutor ⚡ (Strategy Pattern)"]
     
     subgraph TaskGroup["Asynkroninen TaskGroup"]
-        NodeExec --> LLMCall["Ulkoisen API:n Kutsu"]
+        NodeExec --> Breaker{"FinOps Circuit Breaker"}
+        Breaker -- "Estetty/Raja ylittyi" --> AbortTask((TaskGroup Abort / 422))
+        Breaker -- "Sallittu" --> LLMCall["Ulkoisen API:n Kutsu (Native English)"]
         LLMCall -- "Onnistui" --> CommitTrace["TraceEvent & ExecutionCommitter"]
-        LLMCall -- "Epäonnistui (Error)" --> FailBoundary["Fail-Fast (Koko TaskGroup perutaan)"]
+        LLMCall -- "Epäonnistui (Error)" --> FailBoundary["Fail-Fast (Koko TaskGroup perutaan välittömästi)"]
     end
     
     CommitTrace --> Check

@@ -26,11 +26,11 @@ Alla on arkkitehtoninen Sequence-verkko, joka kuvaa koko tulostusprosessin (`/re
 
 ```mermaid
 sequenceDiagram
-    participant Client as Flutter Client
+    participant Client as Client App V2 (Riverpod)
     participant API as FastAPI (ExecutionService)
     participant Repo as Tietokanta (ExecutionRecord)
     participant Worker as Arq Worker (render_profile_job)
-    participant LLM as HookRegistry (LLM Text Hooks)
+    participant LLM as HookRegistry (Text Consolidation)
     participant BFF as BlueprintTransformer
     participant PDF as PdfReportService
 
@@ -43,24 +43,25 @@ sequenceDiagram
         API-->>Client: 202 Accepted {"status": "pending"}
         note over Worker,LLM: Asynkroninen LLM Generointi
         Worker->>LLM: execute("text_consolidation_hook")
+        LLM->>LLM: Duck-Typing Token Shield (Filter Data)
         LLM-->>Worker: HookResult (synthesized_markdown)
         Worker->>Repo: update_execution(profile_syntheses[X])
         
-        note over Client,API: Client Pollaa / SSE
+        note over Client,API: Riverpod Polling / SSE
         Client->>API: GET /executions/{id}/render?format=json&profile_id=X
     end
 
-    alt Synteesi löytyy (Renderöinti)
+    alt Synteesi löytyy välimuistista (O(1))
         API->>BFF: build_report_dto(execution_id, profile_id_X)
-        BFF->>Repo: Hae OutputProfile (Säännöt & visible_metadata)
+        BFF->>Repo: Hae OutputProfile (Säännöt & target_blocks)
         BFF->>BFF: Injektoi valmiit synteesit tiukkoihin Layout-rakenteisiin (Zero-Math)
         BFF-->>API: ReportDataDTO
         
         alt format=json
-            API-->>Client: 200 OK (ReportDataDTO JSON)
+            API-->>Client: 200 OK (ReportDataDTO JSON strict schema)
         else format=pdf
             API->>PDF: generate_execution_pdf(ReportDataDTO)
-            PDF-->>API: PDF Bytes
+            PDF-->>API: PDF Bytes (Hard Artifact)
             API-->>Client: 200 OK (application/pdf + Content-Disposition)
         end
     end
@@ -84,15 +85,15 @@ Koko tulostusarkkitehtuurin (Dynamic Rendering Engine) elinehto on sen täydelli
 
 Koska raporttisynteesi perustuu tekoälymallien LLM-analyysiin, olemme rakentaneet kolmikerroksisen suojamekanismin varmistamaan, ettei puhtaan tekstin synteesi tukehdu raakadataan (nk. *Token Explosion*).
 
-### A. V2 Amnesia Protocol (Binäärin tuhoaminen)
-Kun järjestelmään syötetään massiivisia lausuntoja (esim. PDF-tiedostoja), `input_processing.py` -hook poimii ja purkaa binäärin (Base64) välittömästi pelkäksi tekstiksi levylle. Raskas muistia kuormittava binääridata hävitetään lennosta koodilla `del val["content_base64"]`. Näin ollen dynaamista uudelleensynteesiä voidaan suorittaa jopa vuosia myöhemmin lataamatta megatavukaupalla puhdasta koodiroskaa välimuistiin. Kaikki inputit tallentuvat `execution_trace` taulukkoon `TraceEvent(event_type="input")` kapselissa.
+### A. V2 Amnesia Protocol (Binäärin tuhoaminen ja PII eristys)
+Kun järjestelmään syötetään massiivisia lausuntoja (esim. PDF/Word-tiedostoja), `input_processing.py` -hook poimii ja purkaa binäärin (Base64) välittömästi pelkäksi tekstiksi levylle Eager Extraction -mallin mukaisesti. Raskas muistia kuormittava binääridata hävitetään lennosta koodilla `del val["content_base64"]`. Näin ollen dynaamista uudelleensynteesiä voidaan suorittaa jopa vuosia myöhemmin lataamatta megatavukaupalla puhdasta koodiroskaa välimuistiin. Kaikki inputit tallentuvat `execution_trace` taulukkoon `TraceEvent(event_type="input")` kapselissa.
 
-### B. Duck-Typing Token Shield (Kaksitasoinen Tulostuksen Suodatin)
-Kun taustatyöntekijä aloittaa raportin kirjoittamisen (`text_consolidation_hook`), data eristellään ehdottomilla "The Way" säännöillä `OutputLayoutBlock` -asetuksista:
-1. **Säännötön Imurointi (Wildcard `*`):** Jos käyttöliittymä haluaa vain "kaiken" oletuksena, suodatin suorittaa asiantuntijatuloksille Pydantic tason *Duck-Typing* operaation: `isinstance(v, dict) and "reasoning_trace" in v`. Synteesi hyväksyy mallille ainoastaan solmut, joista löytyy tekoälyn "reasoning_trace" -sormenjälki, torjuen brutaalisti kaiken tokenia tuhlaavan raakadatan, python-matematiikan ja epäpuhtaat tekstit.
-2. **Erikoiskutsu (Explicit Target):** Jos UI eksplisiittisesti kutsuu tiettyä avainta nimellä (`target_blocks = ["python_math_score", "report_metadata"]`), wildcard-suojakilpi ohitetaan kokonaan ja data syötetään suoraan lopputulokseen (tai synteesiin) tasan sellaisenaan. 
+### B. Duck-Typing Token Shield (Token Exhaustion Suojamuuri)
+Backendin suurin arkkitehtuurinen riski dynaamisessa tulostuksessa on koko `execution_trace` laatikon sokkosyöttö LLM-mallille, mikä laukaisee API-tarjoajalla (esim. Vertex AI) "Resource Exhausted" 400 -virheen ja tukkii yli miljoonan tokenin rajat sekunneissa. Tämä estetään **"Duck-Typing Token Shield"** kerroksella:
+1. **Säännötön Imurointi (Wildcard `*`):** Jos UI pyytää kaikki osiot, Token Shield ei hae kaikkea dataa, vaan iteratiivisesti poimii ainoastaan Pydantic-solmut, joista löytyy tekoälyn luoma `reasoning_trace` eli "sormenjälki". Tämä leikkaa massiivisen Eager Extraction taustadatan satojen sivujen raakatekstit ja pitää kontekstin kurissa, antaen tekoälylle luettavaksi vain sen omat edellisen ajon asiantuntijalausunnot ja tiivistelmät.
+2. **Erikoiskohteistettu Kutsu (Explicit `target_blocks`):** Jos UI hakee raporttiin vain tiettyjä palikoita (esim. `["python_math_score", "report_metadata"]`), Token Shield ohittaa wildcard asiantuntijalogian ja purkaa Pydantic `frozen_context` rakenteesta natiivisti vain tasan nuo erikoisavaimet kielelliseen tulkkaukseen ilman muun malliston sotkeentumista päälle.
 
-### C. Multi-Profile Caching & On-Demand Reprocessing
-Kaikki puhdas asiantuntijadata makaa muuttumattomana tietokannan `ExecutionRecord.execution_trace` append-only-listassa.
+### C. Multi-Profile Caching & On-Demand Reprocessing (FinOps)
+Koko järjestelmä tallentaa kalliin prosessin vain kerran `ExecutionRecord.execution_trace` taulukkoon Pydantic Event Sourcing -mallilla.
 Kun tietty Output Profile (esim. Johdon Tiivistelmä) on prosessoitu, LLM:n palauttama DTO (`RenderedSynthesisCache`) välimuistitetaan ikuiseksi osaksi itse `ExecutionRecord` -tietuetta (`profile_syntheses["prof_executive"]`).
-Käyttäjä voi kuitenkin pyytää raportin katselunäkymästä järjestelmää kokoamaan uuden tiivistelmän vaikka viikkoa myöhemmin toisella konfiguraatiolla (esim. "Syvä tekninen"). Tällöin järjestelmä ohittaa vanhan välimuistin uudelleenreitityksellä, noukkii vanhan raakadatan yhdestä tietokantataulusta luoden uuden DTO:n (esim. `profile_syntheses["prof_tech"]`), ilman että ainuttakaan kallista analyysi-agenttia herätetään uudelleen horroksestaan.
+Käyttäjä voi kuitenkin pyytää renderöinnin katselunäkymästä uuden tiivistelmän viikkoa myöhemmin toisella konfiguraatiolla (esim. "Syvä tekninen"). Tällöin järjestelmä ohittaa vanhan välimuistin uudelleenreitityksellä, noukkii vanhan raakadatan yhdellä tietokantahaulla ja puskee sen Token Shieldin läpi uudeksi DTO:ksi (esim. `profile_syntheses["prof_tech"]`), ilman että ainuttakaan alkuperäistä kognitiivista analyysi-agenttia herätetään uudelleen.

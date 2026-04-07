@@ -34,16 +34,17 @@ classDiagram
     }
 
     class Workflow{
-        +String id (Opaque blk_)
+        +String id (Opaque Stripe ID 'wor_')
         +List~StepRule~ steps
         +validate_dag_integrity()
     }
 
     class StepRule{
-        +String task_blueprint (Opaque Step ID)
+        +String task_blueprint (Opaque Step ID 'stp_')
         +int ui_pos_x
         +int ui_pos_y
         +List~String~ depends_on
+        +dict input_mappings
     }
     
     class Step{
@@ -53,7 +54,7 @@ classDiagram
     }
 
     class PromptBlock{
-        +String id
+        +String id (Opaque Block ID 'blk_')
         +I18nText content
         +String ai_description
         +List~MatrixScale~ scales
@@ -61,8 +62,10 @@ classDiagram
     }
 
     class ExecutionRecord{
+        <<Event Sourcing Root>>
         +String id
         +String status
+        +ConfigDict frozen=True
         +FrozenContext frozen_context
         +List~TraceEvent~ execution_trace
     }
@@ -74,9 +77,9 @@ classDiagram
     V2CoreBase <|-- PromptBlock
     V2CoreBase <|-- ExecutionRecord
 
-    Workflow *-- StepRule : "sisältää (DAG Nodes)"
-    StepRule --> Step : "viittaa (Blueprint)"
-    Step --> PromptBlock : "koostaa kognition"
+    Workflow *-- StepRule : "sisältää (Opaque DAG Nodes)"
+    StepRule --> Step : "viittaa (Blueprint Reference)"
+    Step --> PromptBlock : "fuusioi kognition"
 ```
 
 ### Keskeiset Arkkitehtuuriset Kokonaisuudet

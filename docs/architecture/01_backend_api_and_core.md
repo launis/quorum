@@ -1,14 +1,14 @@
 # 01: API-kerros ja Asynkroninen tapahtumahallinta (Core)
 
-Cognitive Quorum rakentuu järeän asynkronisen Python FastAPI -kerroksen ja tilattomien reitittimien varaan. Järjestelmä on optimoitu raskaiden tekoäly-DAG:ien käsittelyyn "Fire and Forget" -mallilla (rajapinnat palauttavat nopeasti 202 Accepted). Käyttöliittymä (Flutter) lukee tulokset ja tilamuutokset asynkronisesti erillisen synkronointimekanismin kautta (Firestore snapshots).
+Cognitive Quorum rakentuu järeän asynkronisen Python 3.14 FastAPI -kerroksen ja tilattomien reitittimien varaan. Järjestelmä on optimoitu raskaiden tekoäly-DAG:ien käsittelyyn "Fire and Forget" -mallilla (rajapinnat palauttavat nopeasti 202 Accepted). Käyttöliittymä (Flutter) lukee tulokset ja tilamuutokset asynkronisesti erillisen synkronointimekanismin kautta (Firestore snapshots tai Riverpod polling).
 
 ## Asynkroninen tapahtumahallinta (Event-Driven Loop)
 
-Kognitiivisesti raskaat tekoälyajot ja raporttien kääntämiset prosessoidaan API-kerroksen ulkopuolella taustalla. Alla oleva sekvenssikaavio havainnollistaa työnkulun asynkronisen "Fire and Forget" -elinkaaren:
+Kognitiivisesti raskaat tekoälyajot ja raporttien kääntämiset prosessoidaan API-kerroksen ulkopuolella taustalla. Alla oleva sekvenssikaavio havainnollistaa työnkulun asynkronisen elinkaaren ja Fail-Fast Pydantic -kardinaalisuojan:
 
 ```mermaid
 sequenceDiagram
-    participant UI as Flutter Client
+    participant UI as Flutter Client V2
     participant API as FastAPI Router
     participant Redis as Arq Queue (Redis)
     participant Worker as Background NodeExecutor
@@ -16,22 +16,27 @@ sequenceDiagram
 
     UI->>API: POST /executions (Payload)
     activate API
-    API->>API: Pydantic V2 Strict Validation
-    API->>Redis: Enqueue Job (Opaque ID)
-    API-->>UI: HTTP 202 Accepted (Task ID)
+    API->>API: Pydantic V2 Strict (Rust Core Validation)
+    
+    alt Validation Failed (extra fields / type mismatch)
+        API-->>UI: HTTP 422 Unprocessable Entity (RFC 7807 Problem Details)
+    else Validation Passed
+        API->>Redis: Enqueue Job (Opaque ID)
+        API-->>UI: HTTP 202 Accepted (Task ID)
+    end
     deactivate API
 
     Redis-->>Worker: Dequeue Task
     activate Worker
     Worker->>DB: Status -> RUNNING
-    Worker->>Worker: LLM Network Execution...
+    Worker->>Worker: Asynchronous LLM Network Execution...
     Worker->>DB: TraceEvents & OutputProfile DTO
     Worker->>DB: Status -> COMPLETED
     deactivate Worker
 
-    loop SWR Polling / Snapshots
-        UI->>DB: Listen for trace updates
-        DB-->>UI: Render O(1) Reactive changes
+    loop Riverpod SWR Polling / Snapshots
+        UI->>DB: Listen for trace updates via Opaque ID
+        DB-->>UI: Render O(1) Reactive changes (Isolate JSON Decode)
     end
 ```
 
@@ -47,11 +52,11 @@ Koodikannassa ohjaustaso asuu vahvasti rajatuissa kansioissa. Tärkein sääntö
 Ylin REST-rajapintakerros vastaa HTTP-pyyntöihin. Se pysäyttää virheellisen datan RFC 7807 -turvamuuriin (Pydantic ValidationError) ennen kuin se siirtää vastuun Services-kerrokselle.
 
 Käytössä olevat reitittimet:
-- **`execution/`**: Työnkulkujen (DAG) ajojen aloitus ja historian haku.
-- **`iam/`**: Identiteetin, organisaatioiden (org) ja käyttäjäroolien mutaatiot.
-- **`studio/`**: Graafisen työnkulkustudion rakenteiden CRUD -operaatiot.
-- **`output_profiles/`**: Tulostusprofiilien hallinta.
-- **`system/`**: Järjestelmän yleiset konfiguraatiot ja meta-operaatiot.
+- **`execution/`**: Työnkulkujen (DAG) ajojen aloitus ja historian asynkroninen haku.
+- **`iam/`**: Identiteetin, organisaatioiden (Tenant Isolation) ja käyttäjäroolien mutaatiot.
+- **`studio/`**: Graafisen työnkulkustudion dynaamisten Blueprinttien CRUD-operaatiot.
+- **`output_profiles/`**: Tulostusprofiilien ja näkymien (SDUI) hallinta.
+- **`system/`**: Järjestelmän yleiset konfiguraatiot ja Polymorfisen reitityksen meta-operaatiot.
 
 ### `backend_v2/core/` (Arkkitehtuuriresurssit)
 Sisältää sovelluksen kriittisen asynkronisen infran ja rekisterit, jotka hallinnoivat järjestelmän toimintaa taustalla.

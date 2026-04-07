@@ -24,6 +24,12 @@ flowchart TD
     
     Tiny --> DB1[("Paikallinen db_v2.json")]
     Fire --> DB2[("Dynaaminen Google Firestore")]
+
+    subgraph SeedVault ["The Seed Vault (Zero-Compromise Turvamuuri)"]
+        SeedData["seed_data.json (Master Source)"] --> SeedRunner["run_seed.py (Pydantic V2 Strict)"]
+        SeedRunner -->|Valid| Driver
+        SeedRunner -->|Invalid Payload| Crash((Seed Abort))
+    end
 ```
 
 ### Raskaiden Blobien Offload (Firestore Limits)
@@ -40,7 +46,7 @@ Repository-kerros siirtää luetun tiedon Service-kerrokselle muodossa `dict[str
 
 Globaalien järjestelmäkonfiguraatioiden (PromptBlocks, Workflow DAGs, Output Profiles) perustiheys on irrotettu tuotantokannasta turvalliseen **Seed Vault** -järjestelmään (`backend_v2/seed/`).
 
-* **Manuaalinen muokkauskielto:** `.db` tai `db_v2.json` (TinyDB lokalisoitu) suora manuaalinen muokkaus kehittäjien tai tekoälyn toimesta on ehdottoman kielletty järjestelmätason direktiiveissä. Tämä sääntö suojaa "Opaque Stripe IDs" rikkoutumiselta (solmujen topologia-avainten sekoittumiselta).
+* **Manuaalinen muokkauskielto:** `.db` tai `db_v2.json` (TinyDB lokalisoitu) suora manuaalinen muokkaus kehittäjien tai tekoälyn toimesta on ehdottoman kielletty järjestelmätason direktiiveissä. Tämä sääntö suojaa "Opaque Stripe IDs" rikkoutumiselta (solmujen topologia-avainten sekoittumiselta). Järjestelmä valvoo tätä vahvasti eikä tekoäly voi suoraan muuttaa näitä tiedostoja ohi `seed_data.json`:ia sorkkivien python-skriptien (modify_seed.py).
 * **Source of Truth:** Lokaalit tai globaalit testidata ja vakiot asuvat pelkästään ihmisluettavassa mastertiedostossa `backend_v2/seed/seed_data.json`.
-* **Evoluution kulku:** Jos työnkulkujen arkkitehtuuria pitää muuttaa (esim. uusi Bipolar Matrix skaala lisätään AI:lle), tekoäly luo deterministisen päivitysskriptin hakemistoon (esim. `patch_epic11.py`).
-* Data astuu virallisesti voimaan vasta kun "seeding"-komento (`uv run python backend_v2/seed/run_seed.py local`) puhdistaa olemassaolevat taulut ja ajaa seed_data.jsonin vahvojen Pydantic-mallien läpi nollavirhein tallentaen sen takaisin kantaan.
+* **Evoluution kulku:** Jos työnkulkujen arkkitehtuuria pitää muuttaa (esim. uusi Bipolar Matrix skaala lisätään AI:lle), tekoäly luo deterministisen päivitysskriptin hakemistoon (esim. `patch_epic11.py`). Tekoäly lukee mastertiedoston, päivittää arvon turvallisesti ja kirjoittaa takaisin, suojellen JSON-korruptioilta.
+* Data astuu virallisesti voimaan vasta kun "seeding"-komento (`uv run python backend_v2/seed/run_seed.py local`) puhdistaa olemassaolevat taulut ja ajaa `seed_data.json`:in tiukimpien mahdollisten Pydantic-mallien läpi nollavirhein tallentaen sen takaisin kantaan. Yksikin ylimääräinen tuntematon JSON-avain tai muutos pysäyttää Seed-prosessin kokonaan ja pakottaa koodarin/tekoälyn korjaamaan mallit ennen jatkamista.

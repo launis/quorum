@@ -24,21 +24,21 @@ Quorumin käyttäjäkunta jakautuu kahteen rooliin: asiantuntijat (Manager), jot
 
 ```mermaid
 graph TD
-    UI[Flutter Desktop Client] -->|Read-Only Streams| FB[(Firestore / TinyDB)]
-    UI -->|Mutations HTTP/REST| API[FastAPI Backend]
+    UI[Client App V2 / Flutter 3 Desktop] -->|SWR / Read-Only Streams| DB[(Firestore / TinyDB)]
+    UI -->|Mutations HTTP/REST| API[FastAPI Backend V2]
     API -->|Validation| PYD[Strict Pydantic V2 / Rust Core]
+    PYD -->|Fail-Fast 422 RFC 7807| UI
     PYD -->|Pass| SERV[Domain Service Layer]
-    PYD -->|Fail-Fast 422| UI
     SERV -->|Heavy Tasks 202 Accepted| ARQ[Arq / Redis Worker]
-    SERV -->|Admin SDK Writes| FB
+    SERV -->|Admin SDK Writes| DB
     ARQ -->|LLM / MCP Tools| LLM[Vertex AI / OpenAI]
 ```
 
 ## Arkkitehtuurin Ydinfilosofiat
 
 1. **CQRS-malli (Read/Write Separation):** Flutter-käyttöliittymä on tietokannan suhteen täysin **Read-Only**. Kaikki mutaatiot (mukaan lukien asetuksien ja työnkulkujen muutokset) kulkevat keskitetysti Python FastAPI -backendin reitittimien kautta.
-2. **Fail-Fast -periaate:** Niellyt virheet ja vaimennetut ohitukset (esim. puuttuvan datan paikkaaminen oletusarvoilla) ovat koodikannassa kiellettyjä. Puuttuva tai virheellinen data aiheuttaa välittömän 400/422 -virheen (RFC 7807).
-3. **Strict Pydantic V2 & Flutter Freezed -pariteetti:** Backendin rajapinnat validoivat datan `model_validate_json` -metodilla torjuen tuntemattomat avaimet (`extra='forbid'`). Frontend purkaa saapuvan datan yhtä tiukasti kiellettyjen avaimien säännöllä (`disallow_unrecognized_keys: true`).
-4. **Taustaprosessointi (Asynkroninen Arq Worker):** Raskaat tekoälyajot (DAG-ketjut) eristetään synkronisesta HTTP-käsittelystä. Reititin palauttaa asiakkaalle välittömästi `202 Accepted`, ja työnkulkua ajetaan Arq/Redis-taustajonossa.
-5. **Kognitiivinen Riippumattomuus:** Tekoälyagentit eristetään (Blind Audit) toisistaan rinnakkaisissa työnkuluissa, jotta vältetään ketjuuntuvat hallusinaatiot.
-6. **Opaque Stripe ID -reititys:** Järjestelmän tietokanta-avaimet ja URL-reititykset perustuvat puhtaasti generoituihin tunnisteisiin (esim. `org_abc123`). Ihmisluettavia slugeja ei käytetä järjestelmän sisäisessä logiikassa eikä reitityksessä.
+2. **Fail-Fast -periaate:** Niellyt virheet ja vaimennetut ohitukset (esim. puuttuvan datan paikkaaminen oletusarvoilla) ovat koodikannassa ehdottomasti kiellettyjä. Puuttuva tai virheellinen data aiheuttaa välittömän 400/422 -virheen (RFC 7807 Problem Details), estäen arkkitehtuurillisen mätänemisen.
+3. **Strict Pydantic V2 & Flutter Freezed -pariteetti:** Backendin rajapinnat validoivat datan Pydanticin Ruoste-ytimeen perustuvalla `model_validate_json` -metodilla, torjuen tuntemattomat avaimet (`extra='forbid'`). Frontend purkaa saapuvan datan Riverpod Isolate -säikeissä yhtä tiukasti kiellettyjen avaimien säännöllä (`disallow_unrecognized_keys: true`).
+4. **Taustaprosessointi (Asynkroninen Arq Worker):** Raskaat tekoälyajot (DAG-ketjut) eristetään synkronisesta HTTP-käsittelystä. Reititin palauttaa asiakkaalle välittömästi `202 Accepted`, ja työnkulkua ajetaan asynkronisessa Arq/Redis-taustajonossa.
+5. **Kognitiivinen Riippumattomuus:** Tekoälyagentit eristetään (Blind Audit) toisistaan rinnakkaisissa työnkuluissa (Workflow ja HookStates), jotta vältetään ketjuuntuvat hallusinaatiot.
+6. **Opaque Stripe ID -reititys:** Järjestelmän tietokanta-avaimet, Pydantic-relaatiot ja GoRouter-reititykset perustuvat puhtaasti järjestelmässä generoituihin Stripe-tyyppisiin tunnisteisiin (esim. `org_abc123`). Ihmisluettavia slugeja (kuten `/users/risto`) ei käytetä järjestelmän sisäisessä verkkologiikassa eikä Pydantic-malleissa.

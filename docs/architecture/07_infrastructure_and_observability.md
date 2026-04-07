@@ -22,28 +22,28 @@ Quorum pohjaa kontitettuun "Infrastructure as Code" -toimintamalliin. Siksi jär
 ```mermaid
 flowchart LR
     subgraph Infastructure ["Docker / Paikallinen Infra"]
-        UI["Flutter Client"]
-        API["FastAPI (Portteri)"]
+        UI["Client App V2 (Flutter 3)"]
+        API["FastAPI V2 (Portteri)"]
         Redis[("Redis (Arq)")]
-        Worker["Python Worker"]
+        Worker["Python Worker (Arq)"]
     end
 
     subgraph Observability ["Observability / Lokitus"]
         Context["ContextFilter (execution_id)"]
         LogFile[("backend_debug.log")]
-        LogfireCloud(("Pydantic Logfire"))
+        LogfireCloud(("Pydantic Logfire Cloud"))
     end
 
     UI -->|"HTTP Request"| API
     API --> Redis
     Redis -->|"Asynkroninen ajo"| Worker
 
-    API -->|"Dual-Reporting"| Context
-    Worker -->|"Dual-Reporting"| Context
+    API -->|"Dual-Reporting RFC 7807"| Context
+    Worker -->|"Dual-Reporting RFC 7807"| Context
     Context --> LogFile
 
-    API -.->|"HTTP Traces"| LogfireCloud
-    Worker -.->|"LLM/Token Traces"| LogfireCloud
+    API -.->|"HTTP Traces & Exceptions"| LogfireCloud
+    Worker -.->|"LLM Token Traces & Pydantic Validations"| LogfireCloud
 ```
 * **Worker Queue (Arq + Redis):** Kuten aiemmin mainittu, työnkulut eivät koskaan elä NginX tai Uvicorn pääprosessin sisällä. Kun asiakas laukaisee evaluaation, FastAPI -päärajapinta tallentaa Pydantic-mallit tietokantaan, lähettää tiedon sadasosasekunneissa Arq-palvelimelle (Redis), joka aloittaa raskaiden tekoälymallien asynkronisen ohjaamisen eristetyssä Worker-säikeessä.
 * **Paikallinen Ajo:** Kehittäjät hyödyntävät käynnistysrutiineja kuten `run_local.bat` ja taustamallistoa `docker-compose.yml`, nostaen paikallisen Redis-ilmentymän sekunneissa kehityskäyttöön varmistaen täydellisen pilvipariteetin.

@@ -8,14 +8,14 @@ Yksi suurimmista arkkitehtuurisista paradigmoista on "**Zero-Math UI**": Käytt�
 
 Järjestelmä perustuu täyteen IDE-kankaaseen (Integrated Development Environment).
 
-1. **Reititys ja Kolmikerroksinen (Three-Pane) Ikkuna:** Yli 1200dp näytöillä reitin navigointi rakentuu staattisen Sidebarin (Moduulit), Master List -sivupalkin (Datat, suodatukset) sekä asynkronisen Detail Canvas -näkymän (Esim. ajonaikainen PDF-raportti) välille. Kapeammissa 600-1199dp ikkunoissa siirrytään TwoPane-malliin ja alle 600dp vapaan muotoiseen pinottuun navigaatioon.
+1. **Reititys ja **Macro-Breakpoints**:** Koodissa ei käytetä lokaalia `MediaQuery` purkkaa vaan joustavia Rust-Impeller Flexbox/Expanded sääntöjä ja pakotettuja 'Macro-Breakpoints' luokkia. Yli 1200dp näytöillä komponentit asettuvat Three-Pane Row -rakenteeseen (SideBar | MasterList | Canvas). Kapeammissa 800-1199dp ikkunoissa siirrytään Two-Pane malliin jne. Tämä estää nk. "MediaQuery Thrashing" ilmiön Ikkunan skaalauksessa.
 2. **Infinite 2D Canvas:** Asiantuntijajärjestelmän työnkulkujen (DAG) tai matriisien konfigurointi hylkää yksittäiset listamuuttujat. **SystemInspector** luo `InteractiveViewer`in päälle äärettömän ruutupaperimaisen editorin, missä kaikki työnkulun Pydantic-solmut liikkuvat visuaalisesti x/y -avaruudessa. Objektin painaminen aukaisee kyseisten parametrien asetusnäkymän sivupalkkiin irroittamatta silmää verkon kokonaisuudesta.
 
 ## 2. Koodin Pariteetti ja Freezed-turva (Fail-Fast)
 
 Frontend-mallien (Data Transfer Objects) pitää jatkuvasti vastata yksi-yhteen (`1:1`) Python Backendin uusia Pydantic V2 -muutoksia.
 * **Code Generaatio:** Koodaus tapahtuu tiukalla `@freezed` (Dart) ja rakenteellisella `disallow_unrecognized_keys: true` -rajoitteella. Frontend perii kaatumisturvansa backendiltä – jos palvelin yrittää lähettää liikaa avaimia ("extra fields"), Flutter-koodi räjähtää mieluummin äänekkäästi käsiin sen sijaan että hiljaa ohittaisi mallin sisältörikkeet.
-* **Pääsäikeen suojaus (Isolates):** Raskaiden Backendin tulostamien raporttien JSON-purku (Deseriliazation) ei saa missään tilanteessa vaikuttaa ikkunan päivitysnopeuteen (60FPS Frame Drop). Se on erotettu omaan säikeeseen käyttämällä rutiinia: `await Isolate.run(() => jsonDecode(chunk));`
+* **Pääsäikeen suojaus (Isolates Main Thread Jank Prevent):** Raskaiden Backendin tulostamien raporttien (kymmenien tuhansien rivien) JSON-purku (Deseriliazation) ei saa missään tilanteessa vaikuttaa ikkunan päivitysnopeuteen (60FPS Frame Drop). Se on irroitettu pääsäikeestä omaan Background Isolateen käyttämällä rutiinia: `await Isolate.run(() => jsonDecode(chunk));`
 
 ## 3. Riverpod 3.0 ja Dynaaminen Reititys (SWR)
 
@@ -31,18 +31,20 @@ Arkkitehtuuri ei yritä enää piilotella ongelmaisia näyttöelementtejä kutsu
 
 ```mermaid
 flowchart TD
-    API["FastAPI (Raskas JSON Payload)"] --> Isolate["Flutter Isolate (Background Thread)"]
+    API["FastAPI (Raskas JSON Payload)"] --> Isolate["Flutter Isolate.run() (Background Thread)"]
     Isolate --> Riverpod["Riverpod 3.0 (AsyncValue)"]
     
-    Riverpod --> UI_Build{"Widget build() & @freezed validointi"}
-    
-    UI_Build -- "Data täsmää (Valid)" --> Render["Renderöi Normaali IDE Komponentti"]
-    
-    UI_Build -- "Tuntematon Avain / Tyyppivirhe" --> Exception["CheckedFromJsonException"]
-    Exception --> ErrorBoundary["AppErrorBoundary (Catch)"]
-    
-    ErrorBoundary --> RedBox["Näytä Punainen varoitus Widgetin paikalla"]
-    RedBox --> IsolateUI["Muu IDE & Sidebar pysyvät 100% käyttökelpoisina"]
+    subgraph UI_Architecture [Strict Declarative Layout]
+        Riverpod --> UI_Build{"Widget build() & @freezed validointi"}
+        
+        UI_Build -- "Data täsmää (Valid)" --> Render["Renderöi Normaali IDE Komponentti"]
+        
+        UI_Build -- "Tuntematon Avain / Tyyppi" --> Exception["CheckedFromJsonException"]
+        Exception --> ErrorBoundary["AppErrorBoundary (Fail-Fast Trap)"]
+        
+        ErrorBoundary --> RedBox["Näytä Punainen varoitus Widgetin paikalla"]
+        RedBox --> IsolateUI["Muu IDE & Sidebar pysyvät 100% käyttökelpoisina"]
+    end
 ```
 
 * Järjestelmä on kapseloitu globaaliin **AppErrorBoundary** -verkkoon.
