@@ -350,10 +350,8 @@ class ExecutionService:
         """Removes the synthesized data for a specific profile to force re-render via LLM Hook."""
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
 
-        needs_update = False
         if profile_id in execution.profile_syntheses:
             del execution.profile_syntheses[profile_id]
-            needs_update = True
 
         workflow_data = await self.repo.get_workflow_by_id(execution.workflow_id)
         default_pid = workflow_data.get("default_profile_id", "default") if workflow_data else "default"
@@ -371,15 +369,15 @@ class ExecutionService:
             update_payload["pdf_report_path"] = None
 
         from datetime import datetime, timezone
-        
+
         # Always update timestamp to invalidate any cached Arq background task locks
         update_payload["updated_at"] = datetime.now(timezone.utc).isoformat()
         await self.repo.update_execution(execution_id, update_payload)
-        
+
         logger.info(
             "[ExecutionService] Cleared profile synthesis",
-                extra={"execution_id": execution_id, "profile_id": profile_id},
-            )
+            extra={"execution_id": execution_id, "profile_id": profile_id},
+        )
 
     async def render_execution(
         self,

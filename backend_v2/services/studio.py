@@ -65,7 +65,9 @@ class StudioService:
                 raise PermissionDeniedError("Cannot modify resources outside your organization.")
 
     async def _stitch_profiles_to_workflows(self, workflows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Dynamically attach standalone output profiles to the workflow dict for backward compatibility with the client App."""
+        """Dynamically attach standalone output profiles to the workflow dict for backward compatibility.
+        Supports the client App during the V2 transition.
+        """
         all_profiles = await self.repo.get_all_output_profiles()
         for wf in workflows:
             attached = {}
@@ -78,16 +80,16 @@ class StudioService:
                         "visible_metadata": p.get("visible_metadata", ["date", "organization"]),
                         "display_scale": p.get("display_scale", "original"),
                         "synthesis": p.get("synthesis"),
-                        "layouts": p.get("layouts", [])
+                        "layouts": p.get("layouts", []),
                     }
-            
+
             existing = wf.get("output_profiles")
             if not isinstance(existing, dict):
                 existing = {}
-                
+
             existing.update(attached)
             wf["output_profiles"] = existing
-            
+
         return workflows
 
     # --- Workflows ---
@@ -95,7 +97,7 @@ class StudioService:
     async def list_workflows(self, initiator: TokenData) -> list[Workflow]:
         all_data = await self.repo.get_all("workflows")
         all_data = await self._stitch_profiles_to_workflows(all_data)
-        
+
         if initiator.role == "ROOT":
             return [Workflow.model_validate(x) for x in all_data]
 
@@ -220,12 +222,12 @@ class StudioService:
                 cloned_profile["workflow_id"] = new_id
                 if initiator.role not in ["ROOT", "ADMIN", "ROOT_MASTER"]:
                     cloned_profile["organization_id"] = getattr(initiator, "organization_id", None)
-                
+
                 # Remap the step IDs inside layout
                 for layout in cloned_profile.get("layouts", []):
                     old_layout_steps = layout.get("steps", [])
                     layout["steps"] = [sr_mapping.get(s, s) for s in old_layout_steps]
-                
+
                 await self.repo.create_raw("output_profiles", cloned_profile)
 
         # Clear embedded profiles from workflow clone since they are standalone now

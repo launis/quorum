@@ -75,10 +75,20 @@ class LLMNodeStrategy(NodeStrategy):
         criteria_blocks = []
         all_prompt_blocks = await self.repository.get_all_prompt_blocks()
         block_map = {b["id"]: b for b in all_prompt_blocks if "id" in b}
+        # Epic 18: Fetch workflow's output profile to dynamically inject requested visible_extensions
+        wf = await self.repository.get_workflow_by_id(context.workflow_id)
+        global_extensions = []
+        if wf and hasattr(wf, "output_profile") and getattr(wf, "output_profile", None):
+            op = wf.output_profile
+            ve = getattr(op, "visible_extensions", [])
+            global_extensions = [v.value if hasattr(v, "value") else str(v) for v in ve]
+
         for m_id in step_obj.prompt_blocks:
             b = block_map.get(m_id)
             if b:
-                criteria_blocks.append(b)
+                b_copy = dict(b)
+                b_copy["output_extensions"] = global_extensions
+                criteria_blocks.append(b_copy)
             else:
                 logger.error(
                     f"PromptBlock '{m_id}' not found.",

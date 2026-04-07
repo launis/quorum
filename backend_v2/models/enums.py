@@ -30,6 +30,21 @@ class ComponentType(str, Enum):
     HIDDEN = "hidden"
 
 
+class XaiExtensionType(str, Enum):
+    """Supported XAI Output Extensions for global visibility."""
+
+    CITATION = "citation"
+    JUSTIFICATION = "justification"
+    FALSIFICATION = "falsification"
+    THEORY_LINK = "theory_link"
+    RISK_FLAG = "risk_flag"
+    COACHING = "coaching"
+    MISSING_CONTEXT = "missing_context"
+    REMEDIATION_STEPS = "remediation_steps"
+    EMOTIONAL_SENTIMENT = "emotional_sentiment"
+    CONFIDENCE = "confidence"
+
+
 class ExecutionStatus(str, Enum):
     """Execution lifecycle status."""
 

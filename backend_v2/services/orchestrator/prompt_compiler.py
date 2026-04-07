@@ -315,6 +315,31 @@ class PromptCompiler:
         """
         import json
 
+        from pydantic import BaseModel, model_validator
+
+        def make_micro_cot_base(_t: float, _cid: str) -> type[BaseModel]:
+            class MicroCotBase(BaseModel):
+                @model_validator(mode="after")
+                def validate_micro_cot(self: Any) -> Any:
+                    if hasattr(self, "step_4_final_score") and hasattr(self, "step_1_evidence_quote"):
+                        score = self.step_4_final_score
+                        quote = self.step_1_evidence_quote
+                        if isinstance(score, (int, float)) and score >= _t:
+                            if not quote or str(quote).strip() == "":
+                                msg = (
+                                    f"CRITICAL LOGICAL ERROR: You assigned a high score ({score}) "
+                                    f"but failed to provide a 'step_1_evidence_quote'. "
+                                    "Semantic self-healing triggered."
+                                )
+                                logger.warning(
+                                    "Semantic Self-Healing Triggered: High score logic error.",
+                                    extra={"score": score, "block_id": f"{_cid}_Evaluation"},
+                                )
+                                raise ValueError(msg)
+                    return self
+
+            return MicroCotBase
+
         criteria = json.loads(criteria_json)
 
         # Dictionary of fields to define for create_model
@@ -357,34 +382,24 @@ class PromptCompiler:
             # V2 Strict Fail-Fast: Rely on Pydantic to ensure valid identifiers.
             crit_id = crit_id_raw
 
-            # Resolve I18n label and description
-            label_obj = crit.get("label")
-            label = self.resolve_i18n(label_obj, "en") if label_obj else crit_id_raw
+            # Resolve I18n label and enforce mandatory fields (Fail-Fast)
+            try:
+                label_obj = crit["label"]
+                block_type = crit.get("type", "float")  # Oletuksena vanhoissa taaksepäin yhteensopivuus? Ei!
+                # Mutta Epic 12 sallii type="float", tyhjän tyypin ollessa legacy:
+                block_type = crit.get("type", "float")
+                extensions = crit.get("output_extensions", [])
+            except KeyError as e:
+                from backend_v2.exceptions import ConfigurationError, ErrorCodes
 
-            # Enforce `ai_description` existence (Fail-Fast)
-            base_desc = crit.get("ai_description")
-            if not base_desc:
-                from backend_v2.exceptions import ConfigurationError
-
-                msg = f"PromptBlock '{crit_id}' is missing mandatory 'ai_description'."
+                msg = f"PromptBlock '{crit_id}' is missing strict evaluation parameter: {str(e)}."
                 logger.error(
-                    "PromptBlock is missing mandatory 'ai_description'.",
+                    "PromptBlock structurally invalid.",
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": crit_id},
                 )
-                raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+                raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}) from e
 
-            # Determine type based on explicit block type, otherwise fallback to BARS scales
-            block_type = crit.get("type")
-            value_type: Any
-            if block_type == "string":
-                value_type = str
-            else:
-                # Epic 14: Enforce float for all numeric scores to allow decimal precision (e.g., 4.4)
-                value_type = float
-
-            # Epic 12: Scales injected into XML rubrics, removed from description.
-
-            extensions = crit.get("output_extensions", [])
+            label = self.resolve_i18n(label_obj, target_locale)
 
             # Epic 12: Micro-CoT Nested Fields
             sub_fields: dict[str, tuple[Any, Any]] = {}
@@ -520,42 +535,68 @@ class PromptCompiler:
                     ),
                 )
 
-            # ARVOSANA ON AINA VIIMEISENÄ
-            sub_fields["step_4_final_score"] = (
-                value_type,
-                Field(
-                    ...,
-                    description=(
-                        f"Numeric score strictly evaluated using the <MATRIX id='{crit_id}'> in the system prompt. "
-                        "Do not use only integers or halves. You MUST provide a precise, "
-                        "high-granularity decimal score "
-                        "(e.g., 4.2, 5.7, 6.8, 8.1) reflecting the exact nuance and weight of the evidence."
+            if block_type == "string":
+                # String-tyyppisillä lokeilla (TEXT inputs) ei ole numeerista kaavaa
+                sub_fields["step_4_final_score"] = (
+                    str,
+                    Field(..., description=f"Textual evaluation strictly mapped to <MATRIX id='{crit_id}'>."),
+                )
+            else:
+                # FLOAT-lohkojen matemaattinen tyyppiturvallisuus
+                # LLM NATIVE BOUNDS: Johdetaan puhtaasti matrizin sisäisistä todellisista asteikoista
+                # Ei post-processing scale_min/scale_max arvoja, ei default-arvoja (`.get()`), ei taustoja.
+                try:
+                    scales_data = crit["scales"]
+                    allow_decimals = bool(crit["allow_decimals"])
+                except KeyError as e:
+                    from backend_v2.exceptions import ConfigurationError, ErrorCodes
+
+                    msg = f"PromptBlock '{crit_id}' is missing strict evaluation parameter: {str(e)}."
+                    logger.error(
+                        "PromptBlock structurally invalid.",
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": crit_id},
+                    )
+                    raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}) from e
+
+                if not scales_data:
+                    from backend_v2.exceptions import ConfigurationError, ErrorCodes
+
+                    msg = f"PromptBlock '{crit_id}' has empty 'scales' array."
+                    raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+
+                llm_min = float(min(s["score"] for s in scales_data))
+                llm_max = float(max(s["score"] for s in scales_data))
+
+                if allow_decimals:
+                    decimal_instruction = "Select a precise score with exactly one decimal place"
+                else:
+                    decimal_instruction = "Select a whole integer score"
+
+                # ARVOSANA ON AINA VIIMEISENÄ
+                sub_fields["step_4_final_score"] = (
+                    float,
+                    Field(
+                        ...,
+                        ge=llm_min,
+                        le=llm_max,
+                        description=(
+                            f"Numeric score strictly evaluated using the <MATRIX id='{crit_id}'>. "
+                            f"{decimal_instruction} reflecting the exact nuance and weight of the evidence."
+                        ),
                     ),
-                ),
-            )
+                )
 
-            # Epic 12: Liiketoimintalogiikan validointi (Semantic Self-Healing)
-            def make_validator(cid: str) -> Any:
-                def validate_logic(cls: Any, values: Any) -> Any:
-                    score = values.get("step_4_final_score")
-                    quote = values.get("step_1_evidence_quote")
-                    if score is not None and isinstance(score, (int, float)) and score >= 4 and not quote:
-                        raise ValueError(
-                            f"CRITICAL LOGICAL ERROR: You assigned a high score ({score}) for '{cid}', "
-                            "but failed to provide 'step_1_evidence_quote'. "
-                            "You MUST provide a verbatim quote or a strong semantic justification "
-                            "from the input text."
-                        )
-                    return values
+            from pydantic import ConfigDict
 
-                return validate_logic
+            # Calculate dynamic threshold for "high score" (e.g. top 25% of the scale)
+            threshold = llm_min + (llm_max - llm_min) * 0.75
 
-            from pydantic import ConfigDict, model_validator
+            MicroCotBase = make_micro_cot_base(threshold, crit_id)
 
             NestedModel = create_model(  # type: ignore[call-overload]
                 f"{crit_id}_Evaluation",
+                __base__=MicroCotBase,
                 __config__=ConfigDict(extra="forbid", strict=True),
-                __validators__={"logic_check": model_validator(mode="before")(make_validator(crit_id))},
                 **sub_fields,
             )
 

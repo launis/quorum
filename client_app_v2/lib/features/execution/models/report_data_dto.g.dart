@@ -271,6 +271,8 @@ _ReportDataDTO _$ReportDataDTOFromJson(
         'has_warning',
         'synthesized_markdown',
         'visible_metadata',
+        'grouped_extensions',
+        'penalties_applied',
       ],
     );
     final val = _ReportDataDTO(
@@ -342,6 +344,19 @@ _ReportDataDTO _$ReportDataDTOFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
+      groupedExtensions: $checkedConvert(
+        'grouped_extensions',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(k, e as List<dynamic>),
+            ) ??
+            const {},
+      ),
+      penaltiesApplied: $checkedConvert(
+        'penalties_applied',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
     );
     return val;
   },
@@ -362,6 +377,8 @@ _ReportDataDTO _$ReportDataDTOFromJson(
     'hasWarning': 'has_warning',
     'synthesizedMarkdown': 'synthesized_markdown',
     'visibleMetadata': 'visible_metadata',
+    'groupedExtensions': 'grouped_extensions',
+    'penaltiesApplied': 'penalties_applied',
   },
 );
 
@@ -386,4 +403,6 @@ Map<String, dynamic> _$ReportDataDTOToJson(_ReportDataDTO instance) =>
       'has_warning': instance.hasWarning,
       'synthesized_markdown': instance.synthesizedMarkdown,
       'visible_metadata': instance.visibleMetadata,
+      'grouped_extensions': instance.groupedExtensions,
+      'penalties_applied': instance.penaltiesApplied,
     };

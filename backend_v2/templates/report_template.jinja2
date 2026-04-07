@@ -247,9 +247,45 @@
                     {% endif %}
                 </div>
             {% endfor %}
-        {% endfor %}
 
+        {% if report_data.grouped_extensions %}
+            {% set ext_title_map = {
+                'citation': 'Viitteet',
+                'justification': 'Perustelut',
+                'falsification': 'Vasta-argumentit ja Sokeat Pisteet',
+                'theory_link': 'Teoreettinen Viitekehys',
+                'risk_flag': 'Riskit ja Ristiriidat',
+                'coaching': 'Arjen Vinkit / Coaching',
+                'missing_context': 'Ongelmanrajauksen Puutteet',
+                'remediation_steps': 'Korjaavat Toimenpiteet',
+                'emotional_sentiment': 'Emotionaalinen Sävy',
+                'confidence': 'Luotettavuus ja Varmuus'
+            } %}
 
+            {% for ext_key, ext_items in report_data.grouped_extensions.items() %}
+                {% if ext_items and ext_items | length > 0 %}
+                    <div class="card" style="border: 2px solid #673ab7; background-color: #fdf8ff; border-radius: 12px; margin-bottom: 20px; page-break-inside: avoid;">
+                        <h2 style="color: #673ab7; margin-top: 0; padding-bottom: 8px; border-bottom: 2px solid #673ab7;">
+                            <span style="color: #ffca28; margin-right: 8px; font-size: 18px;">★</span>
+                            {{ ext_title_map.get(ext_key, ext_key | upper) }}
+                        </h2>
+                        <ul style="padding-left: 20px; font-size: 13px; line-height: 1.6; color: #333;">
+                        {% for item in ext_items %}
+                            {% if item is mapping %}
+                                <li style="margin-bottom: 8px;">
+                                    {% for k, v in item.items() %}
+                                        <strong>{{ k }}:</strong> {{ v }}<br>
+                                    {% endfor %}
+                                </li>
+                            {% else %}
+                                <li style="margin-bottom: 8px;">{{ item }}</li>
+                            {% endif %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
 
         {% if report_data.mcp_tool_audit %}
         <div class="card" style="border-top: 3px solid #009688;">
@@ -276,6 +312,17 @@
                 {% endif %}
             </div>
             {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if report.penalties_applied %}
+        <div style="margin-top: 40px; padding: 15px; background-color: #ffebee; border: 1px solid #ffcdd2; border-radius: 6px;">
+            <div style="font-size: 13px; font-weight: bold; color: #c62828; margin-bottom: 8px;">Rangaistukset (Sovelletut vääristymät)</div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 11px; color: #b71c1c;">
+                {% for penalty in report.penalties_applied %}
+                <li>{{ penalty }}</li>
+                {% endfor %}
+            </ul>
         </div>
         {% endif %}
         

@@ -3,10 +3,11 @@
 These models handle the ingestion and output formats for the Output Profile REST APIs.
 """
 
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from backend_v2.models.enums import XaiExtensionType
 from backend_v2.models.v2_core import (
     I18nText,
     OutputLayoutBlock,
@@ -30,6 +31,10 @@ class OutputProfileCreateDTO(BaseModel):
         default_factory=lambda: ["date", "organization"],
         description="List of metadata fields visible on the UI and PDF cover header.",
     )
+    visible_extensions: list[XaiExtensionType] = Field(
+        default_factory=list,
+        description="List of XAI extensions visible at the end of the report.",
+    )
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original", description="UI rendering scale instruction."
     )
@@ -37,6 +42,13 @@ class OutputProfileCreateDTO(BaseModel):
         default=None, description="Nested definition for synthesis configurations."
     )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Sequence of layouts.")
+
+    @field_validator("visible_extensions", mode="before")
+    @classmethod
+    def coerce_xai_extensions(cls, v: Any) -> Any:
+        if isinstance(v, list):
+            return [XaiExtensionType(x) if isinstance(x, str) else x for x in v]
+        return v
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -52,6 +64,10 @@ class OutputProfileUpdateDTO(BaseModel):
         default=None,
         description="List of metadata fields visible on the UI and PDF cover header.",
     )
+    visible_extensions: list[XaiExtensionType] | None = Field(
+        default=None,
+        description="List of XAI extensions visible at the end of the report.",
+    )
     display_scale: Literal["original", "custom", "normalized_100"] | None = Field(
         default=None, description="UI rendering scale instruction."
     )
@@ -59,6 +75,13 @@ class OutputProfileUpdateDTO(BaseModel):
         default=None, description="Nested definition for synthesis configurations."
     )
     layouts: list[OutputLayoutBlock] | None = Field(default=None, description="Sequence of layouts.")
+
+    @field_validator("visible_extensions", mode="before")
+    @classmethod
+    def coerce_xai_extensions(cls, v: Any) -> Any:
+        if isinstance(v, list):
+            return [XaiExtensionType(x) if isinstance(x, str) else x for x in v]
+        return v
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -72,6 +95,7 @@ class OutputProfileResponseDTO(BaseModel):
     name: I18nText
     description: I18nText | None = None
     visible_metadata: list[str] = Field(default_factory=lambda: ["date", "organization"])
+    visible_extensions: list[XaiExtensionType] = Field(default_factory=list)
     display_scale: Literal["original", "custom", "normalized_100"] = "original"
     synthesis: SynthesisConfigDTO | None = None
     layouts: list[OutputLayoutBlock]

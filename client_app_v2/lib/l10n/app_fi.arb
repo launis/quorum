@@ -38,6 +38,7 @@
   "executionDetails": "Suorituksen tiedot",
   "overview": "Yleiskatsaus",
   "report": "Raportti",
+  "reportPenaltiesApplied": "Rangaistukset (Sovelletut vääristymät)",
   "rawData": "Raakadata",
   "status": "TILA",
   "timeline": "Aikajana",

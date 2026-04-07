@@ -86,7 +86,12 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         return HookResult(success=False, state_delta={})
 
     # 2. Build the exact translation prompt strictly adhering to Role Segregation
-    lang_map = {"fi": "suomeksi (Finnish)", "en": "englanniksi (English)", "sv": "ruotsiksi (Swedish)", "et": "viroksi (Estonian)"}
+    lang_map = {
+        "fi": "suomeksi (Finnish)",
+        "en": "englanniksi (English)",
+        "sv": "ruotsiksi (Swedish)",
+        "et": "viroksi (Estonian)",
+    }
     target_lang_name = lang_map.get(target_language, target_language)
 
     system_content = _SYSTEM_INSTRUCTION.replace("{target_language}", target_lang_name)

@@ -709,20 +709,42 @@ class MockProvider(LLMProvider):
         content_str = ""
         parsed_result = None
 
-        if isinstance(result, dict):
-            content_str = json.dumps(result, ensure_ascii=False)
-            parsed_result = result
-        elif isinstance(result, BaseModel):
-            content_str = result.model_dump_json()
-            parsed_result = result.model_dump()
+        if isinstance(result, dict) and "message" in result and result.get("message") == "Mock data not found for key":
+            # If standard mock failed, and we have a dynamic schema, we just hydrate it!
+            if isinstance(response_schema, type) and issubclass(response_schema, BaseModel):
+                mock_dynamic = {}
+                schema_props = response_schema.model_json_schema().get("properties", {})
+                for prop_name, prop_details in schema_props.items():
+                    p_type = prop_details.get("type", "string")
+                    if "integer" in p_type or "number" in p_type:
+                        mock_dynamic[prop_name] = 4
+                    elif "array" in p_type:
+                        mock_dynamic[prop_name] = ["[MOCK] Simulated array item"]
+                    elif "boolean" in p_type:
+                        mock_dynamic[prop_name] = True
+                    else:
+                        mock_dynamic[prop_name] = f"[MOCK] Simulated text for {prop_name}"
+
+                content_str = json.dumps(mock_dynamic, ensure_ascii=False)
+                parsed_result = mock_dynamic
+            else:
+                content_str = json.dumps(result, ensure_ascii=False)
+                parsed_result = result
         else:
-            # Assume it's a string (JSON)
-            content_str = str(result)
-            try:
-                parsed_result = json.loads(content_str)
-            except Exception:
-                # If it's not JSON, it's just text
-                parsed_result = None
+            if isinstance(result, dict):
+                content_str = json.dumps(result, ensure_ascii=False)
+                parsed_result = result
+            elif isinstance(result, BaseModel):
+                content_str = result.model_dump_json()
+                parsed_result = result.model_dump()
+            else:
+                # Assume it's a string (JSON)
+                content_str = str(result)
+                try:
+                    parsed_result = json.loads(content_str)
+                except Exception:
+                    # If it's not JSON, it's just text
+                    parsed_result = None
 
         # Simulated Usage
 

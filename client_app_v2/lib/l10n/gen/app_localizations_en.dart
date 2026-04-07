@@ -186,6 +186,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get report => 'Report';
 
   @override
+  String get reportPenaltiesApplied => 'Penalties (Applied Biases)';
+
+  @override
   String get rawData => 'Raw Data';
 
   @override

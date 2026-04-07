@@ -289,7 +289,10 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
         l_system_prompt = l_synthesis.get("system_prompt")
         if not l_system_prompt or not str(l_system_prompt).strip():
-            msg = f"Layout '{idx}' has Section-Level Synthesis enabled but is missing the MANDATORY Cognitive Blueprint (system_prompt). Fallbacks are forbidden."
+            msg = (
+                f"Layout '{idx}' has Section-Level Synthesis enabled but is missing the "
+                "MANDATORY Cognitive Blueprint (system_prompt). Fallbacks are forbidden."
+            )
             logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
@@ -306,7 +309,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         instruction += f"SECTION-SPECIFIC COGNITIVE BLUEPRINT:\n{str(l_system_prompt).strip()}\n"
 
         if target_blocks and "*" not in target_blocks:
-            instruction += f"Target Data Filter: Only synthesize information regarding these keys: {', '.join(target_blocks)}\n"
+            instruction += (
+                f"Target Data Filter: Only synthesize information regarding these keys: {', '.join(target_blocks)}\n"
+            )
         else:
             instruction += "Target Data Filter: Synthesize all relevant information for this section.\n"
 
@@ -320,10 +325,13 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     custom_sys_prompt = synthesis_cfg.get("system_prompt")
     if not custom_sys_prompt or not str(custom_sys_prompt).strip():
-        msg = f"Profile '{profile_to_use}' is missing the MANDATORY Global Cognitive Blueprint (system_prompt). Fallbacks are forbidden."
+        msg = (
+            f"Profile '{profile_to_use}' is missing the MANDATORY Global Cognitive "
+            "Blueprint (system_prompt). Fallbacks are forbidden."
+        )
         logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        
+
     sys_prompt = f"{str(custom_sys_prompt).strip()}\n\n"
     if length_constraint:
         sys_prompt += (
@@ -346,9 +354,13 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     sys_prompt += (
         "\n\nOmit internal system identifiers or raw JSON keys. "
         "When referring to information, use inline numerical tags like [1], [2].\n"
-        "CRITICAL RULE FOR CITATIONS: The numbers in your inline tags MUST perfectly correspond to the items in the `cited_sources` list (1-indexed). "
-        "ONLY create a numerical citation tag AND add an entry to `cited_sources` if the source is an actual literary reference, empirical citation, methodology framework, or external document (e.g., 'Toulmin 2003', 'Sitra Report'). "
-        "DO NOT use citation tags for general analysis sections, step titles, or internal data dumps. If you mention internal findings, state them directly without using a numerical tag."
+        "CRITICAL RULE FOR CITATIONS: The numbers in your inline tags MUST perfectly correspond "
+        "to the items in the `cited_sources` list (1-indexed). "
+        "ONLY create a numerical citation tag AND add an entry to `cited_sources` if the source "
+        "is an actual literary reference, empirical citation, methodology framework, or external "
+        "document (e.g., 'Toulmin 2003', 'Sitra Report'). "
+        "DO NOT use citation tags for general analysis sections, step titles, or internal data "
+        "dumps. If you mention internal findings, state them directly without using it."
     )
 
     messages = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": raw_input_text}]

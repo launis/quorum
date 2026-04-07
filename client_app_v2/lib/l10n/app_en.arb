@@ -143,6 +143,7 @@
   "executionDetails": "Execution Details",
   "overview": "Overview",
   "report": "Report",
+  "reportPenaltiesApplied": "Penalties (Applied Biases)",
   "rawData": "Raw Data",
   "status": "STATUS",
   "timeline": "Timeline",

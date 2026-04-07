@@ -146,7 +146,9 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
         p_val = settings.scoring_security_penalty
         if p_val > 0:
             final_score *= 1.0 - p_val
-            penalties.append(f"Security Threat Detected (-{p_val * 100:.0f}%)")
+            pct_val = p_val * 100
+            penalties.append(f"Security Threat Detected (-{pct_val:.0f}%)")
+            logger.warning("[ScoringHook] Security Threat penalty applied: -%.0f%% to final score.", pct_val)
         else:
             logger.warning("[ScoringHook] Security Threat Detected (Logged Only - Penalty Disabled in Settings)")
 
@@ -154,30 +156,12 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
         p_val = settings.scoring_post_hoc_penalty
         if p_val > 0:
             final_score *= 1.0 - p_val
-            penalties.append(f"Post-Hoc Rationalization Detected (-{p_val * 100:.0f}%)")
+            pct_val = p_val * 100
+            penalties.append(f"Post-Hoc Rationalization Detected (-{pct_val:.0f}%)")
+            logger.warning("[ScoringHook] Post-Hoc Rationalization penalty applied: -%.0f%% to final score.", pct_val)
         else:
             logger.warning(
                 "[ScoringHook] Post-Hoc Rationalization Detected (Logged Only - Penalty Disabled in Settings)"
-            )
-
-    # 4.5 Algorithmic Tyranny Kill Switch (V2 Phase 9)
-    # Extracts profiling metrics and strictness from the isolated Pydantic inputs block
-    inputs = lookup_ctx.get("inputs", {})
-    strictness_level = int(inputs.get("strictness_level", 3))
-
-    if strictness_level == 5:
-        profiler = lookup_ctx.get("profiler_metrics", {})
-        control_ratio = float(profiler.get("control_ratio", 1.0))
-        lexical_diversity = float(profiler.get("lexical_diversity", 1.0))
-
-        if control_ratio > 0.90 or lexical_diversity < 0.40:
-            final_score = 0.0
-            penalties.append("Algorithmic Tyranny Kill Switch Activated (Objective Criteria Failed)")
-            logger.warning(
-                "[ScoringHook] Algorithmic Tyranny Kill Switch Activated! "
-                "Control Ratio: %s, Lexical Diversity: %s. Override to 0.0.",
-                control_ratio,
-                lexical_diversity,
             )
 
     # Safety Clamp (0.0 - 100.0)
@@ -198,129 +182,6 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
         len(penalties),
     )
     return HookResult(success=True, state_delta={"scoring_result": result})
-
-
-from backend_v2.models.enums import ScoringPenalty
-
-
-def enforce_scoring_penalties(result: Any, context_data: dict[str, Any]) -> Any:
-    """Refined Truth Protocol: Applies penalties to the output of an evaluation.
-
-    Args:
-        result (Any | dict): The initial judgment result to penalize.
-        context_data (dict): The input context (JudgeInput or dict) containing other agent outputs.
-
-    Returns:
-        Any | dict: The penalized result.
-    """
-    settings = get_settings()
-    logger.info("[ScoringHook] Enforcing penalties on EvaluationResult...")
-
-    # 1. Detect Penalties
-    penalties = []
-    penalty_factor = 1.0
-
-    # Helper for polymorphic access (Dict or Pydantic)
-    def _get_ctx(key: str) -> Any:
-        return context_data.get(key)
-
-    step_guard = _get_ctx("step_guard")
-
-    # Expects pure dictionaries
-    if _extract_guard_flag({"step_guard": step_guard}):
-        # Load penalty from settings
-        p_val = settings.scoring_security_penalty
-        if p_val > 0:
-            # Standard: Append Enum Key + Percentage
-            penalties.append(f"{ScoringPenalty.SECURITY_THREAT.value} (-{p_val * 100:.0f}%)")
-            penalty_factor *= 1.0 - p_val
-        else:
-            logger.warning("[ScoringHook] %s (Logged Only - Penalty Disabled)", ScoringPenalty.SECURITY_THREAT.value)
-
-    # 1.2 Falsifier Findings
-    step_falsifier = _get_ctx("step_falsifier")
-    step_panel = _get_ctx("step_panel")
-
-    falsifier_data = None
-    if step_falsifier and isinstance(step_falsifier, dict):
-        falsifier_data = step_falsifier.get("falsifier_data")
-    elif step_panel and isinstance(step_panel, dict):
-        falsifier_data = step_panel.get("falsifier_data")
-
-    post_hoc = False
-    if isinstance(falsifier_data, dict):
-        audit = falsifier_data.get("fidelity_audit", {})
-        if isinstance(audit, dict):
-            post_hoc = audit.get("post_hoc_rationalization", False)
-
-    if post_hoc:
-        # Load penalty from settings
-        p_val = settings.scoring_post_hoc_penalty
-        if p_val > 0:
-            # Standard: Append Enum Key + Percentage
-            penalties.append(f"{ScoringPenalty.POST_HOC.value} (-{p_val * 100:.0f}%)")
-            penalty_factor *= 1.0 - p_val
-        else:
-            logger.warning("[ScoringHook] %s (Logged Only - Penalty Disabled)", ScoringPenalty.POST_HOC.value)
-
-    if not penalties:
-        return result
-
-    # 2. Extract Data
-
-    # Determine type of scoring we have to work with
-    is_judge_output = isinstance(result, dict) and "score_card" in result
-    is_eval_result = isinstance(result, dict) and "total_score" in result
-
-    # 3. Apply Penalties
-    current_score: float | None = None
-    field_name: str | None = None
-
-    # Extraction (Dict only)
-    # Case A: JudgeOutput
-    if is_judge_output:
-        current_score = result.get("score_card", {}).get("total_score")
-        field_name = "score_card.total_score"
-
-    # Case B: EvaluationResult
-    elif is_eval_result:
-        current_score = result.get("total_score")
-        field_name = "total_score"
-
-    # FAIL FAST: If we still don't have a score
-    if current_score is None:
-        from backend_v2.exceptions import AppException, ErrorCodes
-
-        msg = f"Strict Scoring: Could not extract 'total_score' from {type(result).__name__}."
-        logger.error("[ScoringHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
-        raise AppException(
-            message=msg,
-            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA},
-        )
-
-    # Calculate New Score
-    new_score = current_score * penalty_factor
-
-    logger.info(
-        f"[ScoringHook] Penalties applied: {penalties}. "
-        f"Factor: {penalty_factor:.2f}. Score {current_score} -> {new_score}"
-    )
-
-    # 4. Return Updated Model (Immutable Update - Dict Only)
-    new_result = result.copy() if isinstance(result, dict) else {}
-    if not isinstance(result, dict):
-        return result
-
-    new_result["penalties"] = penalties
-
-    if field_name == "score_card.total_score":
-        score_card = new_result.get("score_card", {}).copy()
-        score_card["total_score"] = new_score
-        new_result["score_card"] = score_card
-    elif field_name is not None:
-        new_result[field_name] = new_score
-
-    return new_result
 
 
 @hook_registry.register(name="enforce_passivity_penalty")

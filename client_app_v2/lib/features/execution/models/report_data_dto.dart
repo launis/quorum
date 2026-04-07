@@ -106,6 +106,12 @@ abstract class ReportDataDTO with _$ReportDataDTO {
     @JsonKey(name: 'visible_metadata')
     @Default([])
     List<String> visibleMetadata,
+    @JsonKey(name: 'grouped_extensions')
+    @Default({})
+    Map<String, List<dynamic>> groupedExtensions,
+    @JsonKey(name: 'penalties_applied')
+    @Default([])
+    List<String> penaltiesApplied,
   }) = _ReportDataDTO;
 
   factory ReportDataDTO.fromJson(Map<String, dynamic> json) =>

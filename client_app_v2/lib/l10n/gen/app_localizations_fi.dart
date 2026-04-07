@@ -188,6 +188,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get report => 'Raportti';
 
   @override
+  String get reportPenaltiesApplied => 'Rangaistukset (Sovelletut vääristymät)';
+
+  @override
   String get rawData => 'Raakadata';
 
   @override

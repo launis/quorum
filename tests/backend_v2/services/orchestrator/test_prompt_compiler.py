@@ -84,7 +84,9 @@ def test_micro_cot_validation_healing() -> None:
             "type": "int",
             "label": {"translations": {"en": "Strict Logic Test"}},
             "ai_description": "Evaluate securely.",
-            "output_extensions": ["citation"]  # This triggers step_1_evidence_quote
+            "output_extensions": ["citation"],  # This triggers step_1_evidence_quote
+            "allow_decimals": False,
+            "scales": [{"score": 1}, {"score": 5}]
         }
     ])
 
@@ -108,7 +110,7 @@ def test_micro_cot_validation_healing() -> None:
 
     # Verify the exact custom logic error message we defined in PromptCompiler
     assert "CRITICAL LOGICAL ERROR" in str(exc.value)
-    assert "high score (5)" in str(exc.value)
+    assert "high score (5.0)" in str(exc.value)
     assert "step_1_evidence_quote" in str(exc.value)
 
     # 2. Positive Test: Score >= 4 WITH quote

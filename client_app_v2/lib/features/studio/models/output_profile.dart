@@ -2,6 +2,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/utils/json_converters.dart';
+import 'package:client_app/core/models/enums.dart';
 
 part 'output_profile.freezed.dart';
 part 'output_profile.g.dart';
@@ -54,6 +55,7 @@ abstract class OutputProfile with _$OutputProfile {
     required I18nText name,
     I18nText? description,
     @Default(['date', 'organization']) List<String> visibleMetadata,
+    required List<XaiExtensionType> visibleExtensions,
     @Default('original') String displayScale,
     SynthesisConfigDTO? synthesis,
     @Default([]) List<OutputLayoutBlock> layouts,
@@ -71,6 +73,7 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
     required I18nText name,
     I18nText? description,
     @Default(['date', 'organization']) List<String> visibleMetadata,
+    required List<XaiExtensionType> visibleExtensions,
     @Default('original') String displayScale,
     SynthesisConfigDTO? synthesis,
     @Default([]) List<OutputLayoutBlock> layouts,

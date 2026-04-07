@@ -164,6 +164,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
             'name',
             'description',
             'visible_metadata',
+            'visible_extensions',
             'display_scale',
             'synthesis',
             'layouts',
@@ -194,6 +195,12 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
                 (v as List<dynamic>?)?.map((e) => e as String).toList() ??
                 const ['date', 'organization'],
           ),
+          visibleExtensions: $checkedConvert(
+            'visible_extensions',
+            (v) => (v as List<dynamic>)
+                .map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
+                .toList(),
+          ),
           displayScale: $checkedConvert(
             'display_scale',
             (v) => v as String? ?? 'original',
@@ -221,6 +228,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
       fieldKeyMap: const {
         'workflowId': 'workflow_id',
         'visibleMetadata': 'visible_metadata',
+        'visibleExtensions': 'visible_extensions',
         'displayScale': 'display_scale',
       },
     );
@@ -234,9 +242,25 @@ Map<String, dynamic> _$OutputProfileToJson(
   'name': instance.name.toJson(),
   'description': instance.description?.toJson(),
   'visible_metadata': instance.visibleMetadata,
+  'visible_extensions': instance.visibleExtensions
+      .map((e) => _$XaiExtensionTypeEnumMap[e]!)
+      .toList(),
   'display_scale': instance.displayScale,
   'synthesis': instance.synthesis?.toJson(),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
+};
+
+const _$XaiExtensionTypeEnumMap = {
+  XaiExtensionType.citation: 'citation',
+  XaiExtensionType.justification: 'justification',
+  XaiExtensionType.falsification: 'falsification',
+  XaiExtensionType.theoryLink: 'theory_link',
+  XaiExtensionType.riskFlag: 'risk_flag',
+  XaiExtensionType.coaching: 'coaching',
+  XaiExtensionType.missingContext: 'missing_context',
+  XaiExtensionType.remediationSteps: 'remediation_steps',
+  XaiExtensionType.emotionalSentiment: 'emotional_sentiment',
+  XaiExtensionType.confidence: 'confidence',
 };
 
 _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
@@ -251,6 +275,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         'name',
         'description',
         'visible_metadata',
+        'visible_extensions',
         'display_scale',
         'synthesis',
         'layouts',
@@ -270,6 +295,12 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ??
             const ['date', 'organization'],
+      ),
+      visibleExtensions: $checkedConvert(
+        'visible_extensions',
+        (v) => (v as List<dynamic>)
+            .map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
+            .toList(),
       ),
       displayScale: $checkedConvert(
         'display_scale',
@@ -296,6 +327,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
   },
   fieldKeyMap: const {
     'visibleMetadata': 'visible_metadata',
+    'visibleExtensions': 'visible_extensions',
     'displayScale': 'display_scale',
   },
 );
@@ -306,6 +338,9 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
   'name': instance.name.toJson(),
   'description': instance.description?.toJson(),
   'visible_metadata': instance.visibleMetadata,
+  'visible_extensions': instance.visibleExtensions
+      .map((e) => _$XaiExtensionTypeEnumMap[e]!)
+      .toList(),
   'display_scale': instance.displayScale,
   'synthesis': instance.synthesis?.toJson(),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),

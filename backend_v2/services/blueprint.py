@@ -111,6 +111,10 @@ class BlueprintTransformer:
         layout_defs = profile.layouts
         display_scale = getattr(profile, "display_scale", "original")
 
+        # Epic: XAI Output Extensions
+        visible_extensions = [v.value for v in getattr(profile, "visible_extensions", [])]
+        grouped_extensions: dict[str, list[typing.Any]] = {ext: [] for ext in visible_extensions}
+
         layouts_list = []
         # Pre-fetch prompt blocks to enrich axis labels
         all_blocks = await self.repo.get_all_prompt_blocks()
@@ -145,9 +149,11 @@ class BlueprintTransformer:
             has_warning = True
 
         global_score = None
+        penalties_applied = []
         if isinstance(scoring_out, dict):
             t_score = scoring_out.get("total_score")
             global_score = float(round(float(t_score), 1)) if t_score is not None else None
+            penalties_applied = scoring_out.get("penalties_applied", [])
 
         try:
             for idx, layout_def in enumerate(layout_defs):
@@ -293,23 +299,99 @@ class BlueprintTransformer:
                                 theory_link = None
 
                                 if show_text:
+                                    # Collect Raw Data
                                     if is_legacy_score:
-                                        justification = str(step_data.get("justification", ""))
+                                        raw_justification = str(step_data.get("justification", ""))
+                                        raw_cited_source_id = ""
+                                        raw_cited_text_quote = ""
+                                        raw_cited_web_citation = ""
+                                        raw_falsification = None
+                                        raw_theory_link = None
+                                        raw_risk_flag = None
+                                        coaching = None
+                                        confidence = None
+                                        missing_context = None
+                                        remediation_steps = None
+                                        emotional_sentiment = None
                                     else:
                                         eval_notes = step_data.get("evaluation_notes", "")
-                                        justification = str(step_data.get(f"{k}_justification", eval_notes) or "")
-                                    cited_source_id = str(step_data.get(f"{k}_cited_source_id", ""))
-                                    cited_text_quote = str(step_data.get(f"{k}_cited_text_quote", ""))
-                                    cited_web_citation = str(step_data.get(f"{k}_google_citation", ""))
+                                        raw_justification = str(
+                                            step_data.get("step_3_logical_friction", eval_notes) or ""
+                                        )
+                                        raw_cited_source_id = str(step_data.get("step_1b_cited_source_id", ""))
+                                        raw_cited_text_quote = str(step_data.get("step_1_evidence_quote", ""))
+                                        raw_cited_web_citation = str(step_data.get("step_1c_google_citation", ""))
 
-                                    coaching = step_data.get(f"{k}_coaching")
-                                    confidence = step_data.get(f"{k}_confidence")
-                                    falsification = step_data.get(f"{k}_falsification")
-                                    missing_context = step_data.get(f"{k}_missing_context")
-                                    risk_flag = step_data.get(f"{k}_risk_flag")
-                                    remediation_steps = step_data.get(f"{k}_remediation_steps")
-                                    emotional_sentiment = step_data.get(f"{k}_emotional_sentiment")
-                                    theory_link = step_data.get(f"{k}_theory_link")
+                                        raw_falsification = step_data.get("step_2_falsification")
+                                        raw_theory_link = step_data.get("extension_theory_link")
+                                        raw_risk_flag = step_data.get("extension_risk_flag")
+
+                                        # Non-Extension generic text fields
+                                        coaching = step_data.get("extension_coaching")
+                                        confidence = step_data.get("extension_confidence")
+                                        missing_context = step_data.get("extension_missing_context")
+                                        remediation_steps = step_data.get("extension_remediation_steps")
+                                        emotional_sentiment = step_data.get("extension_emotional_sentiment")
+
+                                    # Grouping Logic for XAI Extensions
+                                    # (Strict Validation & Immutability rule dictates omitting unselected)
+                                    if "justification" in visible_extensions and raw_justification:
+                                        grouped_extensions["justification"].append(
+                                            {"axis_name": axis_name, "justification": raw_justification}
+                                        )
+                                    if "citation" in visible_extensions and (
+                                        raw_cited_source_id or raw_cited_text_quote or raw_cited_web_citation
+                                    ):
+                                        grouped_extensions["citation"].append(
+                                            {
+                                                "axis_name": axis_name,
+                                                "cited_source_id": raw_cited_source_id,
+                                                "cited_text_quote": raw_cited_text_quote,
+                                                "cited_web_citation": raw_cited_web_citation,
+                                            }
+                                        )
+                                    if "falsification" in visible_extensions and raw_falsification:
+                                        grouped_extensions["falsification"].append(
+                                            {"axis_name": axis_name, "falsification": raw_falsification}
+                                        )
+                                    if "theory_link" in visible_extensions and raw_theory_link:
+                                        grouped_extensions["theory_link"].append(
+                                            {"axis_name": axis_name, "theory_link": raw_theory_link}
+                                        )
+                                    if "risk_flag" in visible_extensions and raw_risk_flag is not None:
+                                        grouped_extensions["risk_flag"].append(
+                                            {"axis_name": axis_name, "risk_flag": raw_risk_flag}
+                                        )
+                                    if "coaching" in visible_extensions and coaching:
+                                        if "coaching" not in grouped_extensions:
+                                            grouped_extensions["coaching"] = []
+                                        grouped_extensions["coaching"].append(
+                                            {"axis_name": axis_name, "coaching": coaching}
+                                        )
+                                    if "missing_context" in visible_extensions and missing_context:
+                                        if "missing_context" not in grouped_extensions:
+                                            grouped_extensions["missing_context"] = []
+                                        grouped_extensions["missing_context"].append(
+                                            {"axis_name": axis_name, "missing_context": missing_context}
+                                        )
+                                    if "remediation_steps" in visible_extensions and remediation_steps:
+                                        if "remediation_steps" not in grouped_extensions:
+                                            grouped_extensions["remediation_steps"] = []
+                                        grouped_extensions["remediation_steps"].append(
+                                            {"axis_name": axis_name, "remediation_steps": remediation_steps}
+                                        )
+                                    if "emotional_sentiment" in visible_extensions and emotional_sentiment:
+                                        if "emotional_sentiment" not in grouped_extensions:
+                                            grouped_extensions["emotional_sentiment"] = []
+                                        grouped_extensions["emotional_sentiment"].append(
+                                            {"axis_name": axis_name, "emotional_sentiment": emotional_sentiment}
+                                        )
+                                    if "confidence" in visible_extensions and confidence is not None:
+                                        if "confidence" not in grouped_extensions:
+                                            grouped_extensions["confidence"] = []
+                                        grouped_extensions["confidence"].append(
+                                            {"axis_name": axis_name, "confidence": confidence}
+                                        )
 
                                 # Use a combined key for uniqueness
                                 unique_k = f"{step_id}_{k}"
@@ -381,7 +463,7 @@ class BlueprintTransformer:
             final_synthesis = None
             if synthesis_md:
                 # M3 Output Management Hardening: Bleach HTML XSS Sanitization
-                import bleach  # type: ignore[import-untyped]
+                import bleach
 
                 allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + [
                     "h1",
@@ -520,6 +602,8 @@ class BlueprintTransformer:
                 completion_tokens=c_tokens,
                 reasoning_tokens=r_tokens,
                 mcp_tool_audit=mcp_audit_data,
+                grouped_extensions=grouped_extensions,
+                penalties_applied=penalties_applied,
             )
             return dto
         except Exception as e:

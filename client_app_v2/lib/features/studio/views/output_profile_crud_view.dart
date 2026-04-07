@@ -15,6 +15,7 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/core/models/enums.dart';
 
 /// Admin Studio View for managing Output Profiles.
 /// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
@@ -410,6 +411,38 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   updatePayload(payload.copyWith(visibleMetadata: list));
                 },
                 controlAffinity: ListTileControlAffinity.leading,
+              ),
+              const SizedBox(height: 24),
+              InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Visible XAI Extensions',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: XaiExtensionType.values.map((ext) {
+                    return CheckboxListTile(
+                      title: Text(ext.name),
+                      value: payload.visibleExtensions.contains(ext),
+                      onChanged: (val) {
+                        final updatedList = List<XaiExtensionType>.from(
+                          payload.visibleExtensions,
+                        );
+                        if (val == true) {
+                          updatedList.add(ext);
+                        } else {
+                          updatedList.remove(ext);
+                        }
+                        updatePayload(
+                          payload.copyWith(visibleExtensions: updatedList),
+                        );
+                      },
+                      controlAffinity: ListTileControlAffinity.leading,
+                      dense: true,
+                    );
+                  }).toList(),
+                ),
               ),
             ],
           ),

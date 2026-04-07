@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/views/widgets/profile/synthesis_editor_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/layout_editor_card.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
@@ -93,6 +94,7 @@ class ProfileEditorView extends HookConsumerWidget {
               defaultLocale: 'en',
               translations: {'fi': 'Oletusraportti', 'en': 'Default Report'},
             ),
+            visibleExtensions: [],
             layouts: [
               OutputLayoutBlock(
                 presetView: '1d_metrics',
@@ -170,6 +172,7 @@ class ProfileEditorView extends HookConsumerWidget {
                     defaultLocale: 'en',
                     translations: {'fi': 'Uusi profiili', 'en': 'New Profile'},
                   ),
+                  visibleExtensions: [],
                   layouts: [],
                 );
 
@@ -351,6 +354,73 @@ class ProfileEditorView extends HookConsumerWidget {
                     }
                   },
                 ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            InputDecorator(
+              decoration: const InputDecoration(
+                labelText: 'Visible XAI Extensions',
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: XaiExtensionType.values.map((ext) {
+                  final l10n = AppLocalizations.of(context)!;
+                  String label = ext.name;
+                  switch (ext) {
+                    case XaiExtensionType.citation:
+                      label = l10n.xaiSourceCitation;
+                      break;
+                    case XaiExtensionType.justification:
+                      label = l10n.xaiJustification;
+                      break;
+                    case XaiExtensionType.falsification:
+                      label = l10n.xaiDevilsAdvocate;
+                      break;
+                    case XaiExtensionType.theoryLink:
+                      label = l10n.xaiTheoryLink;
+                      break;
+                    case XaiExtensionType.riskFlag:
+                      label = l10n.xaiRiskFlag;
+                      break;
+                    case XaiExtensionType.coaching:
+                      label = l10n.xaiCoachingTip;
+                      break;
+                    case XaiExtensionType.missingContext:
+                      label = l10n.xaiMissingContext;
+                      break;
+                    case XaiExtensionType.remediationSteps:
+                      label = l10n.xaiRemediation;
+                      break;
+                    case XaiExtensionType.emotionalSentiment:
+                      label = l10n.xaiSentiment;
+                      break;
+                    case XaiExtensionType.confidence:
+                      label = l10n.xaiConfidence;
+                      break;
+                  }
+
+                  return CheckboxListTile(
+                    title: Text(label),
+                    value: profileDef.visibleExtensions.contains(ext),
+                    onChanged: (val) {
+                      final updatedList = List<XaiExtensionType>.from(
+                        profileDef.visibleExtensions,
+                      );
+                      if (val == true) {
+                        updatedList.add(ext);
+                      } else {
+                        updatedList.remove(ext);
+                      }
+                      rebuildProfile(
+                        profileDef.copyWith(visibleExtensions: updatedList),
+                      );
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    dense: true,
+                  );
+                }).toList(),
               ),
             ),
             const SizedBox(height: 24),

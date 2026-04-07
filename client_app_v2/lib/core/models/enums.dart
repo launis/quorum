@@ -1,6 +1,8 @@
 /// Enums for Client App V2.
 /// Strict definition of allowed types to enforce the No-String Mandate.
 
+import 'package:freezed_annotation/freezed_annotation.dart';
+
 /// Global concurrency limits for DAG Execution to prevent API Rate Limits.
 /// Mirrors the backend SystemConcurrency enum.
 enum SystemConcurrency {
@@ -14,4 +16,28 @@ enum SystemConcurrency {
 
   final int value;
   const SystemConcurrency(this.value);
+}
+
+/// Supported XAI Output Extensions for global visibility.
+enum XaiExtensionType {
+  @JsonValue('citation')
+  citation,
+  @JsonValue('justification')
+  justification,
+  @JsonValue('falsification')
+  falsification,
+  @JsonValue('theory_link')
+  theoryLink,
+  @JsonValue('risk_flag')
+  riskFlag,
+  @JsonValue('coaching')
+  coaching,
+  @JsonValue('missing_context')
+  missingContext,
+  @JsonValue('remediation_steps')
+  remediationSteps,
+  @JsonValue('emotional_sentiment')
+  emotionalSentiment,
+  @JsonValue('confidence')
+  confidence,
 }

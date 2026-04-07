@@ -132,6 +132,9 @@ class XAIOutputDTO(ReasoningTraceDTO):
         description="Structured comparison data.",
         json_schema_extra={"x-ui-label": "Comparison Data"},
     )
+    grouped_extensions: dict[str, list[Any]] | None = Field(
+        default_factory=dict, description="Keskitetysti ryhmitellyt XAI-laajennukset (esim. 'citation': [...])"
+    )
 
     model_config = ConfigDict(frozen=True, extra="ignore")
 

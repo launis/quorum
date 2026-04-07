@@ -5,6 +5,7 @@ import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/execution/views/widgets/xai_evidence_box.dart';
+import 'package:client_app/features/execution/views/widgets/xai_extensions_box.dart';
 import 'package:client_app/shared/widgets/output_renderer.dart';
 
 /// Static MVC View Renderer mapping exactly to the workflow preset views.
@@ -42,9 +43,16 @@ class ReportRendererWidget extends ConsumerWidget {
         ...payload.layouts.map(
           (layout) => _buildLayoutSequence(context, ref, layout),
         ),
+
+        // Milestone 4: Render Grouped XAI Extensions
+        if (payload.groupedExtensions.isNotEmpty)
+          XAIExtensionsBox(groupedExtensions: payload.groupedExtensions),
+
         // XAI Evidence Box — only renders when MCP tool searches were executed
         if (payload.mcpToolAudit.isNotEmpty)
           XAIEvidenceBox(auditTraces: payload.mcpToolAudit),
+
+        if (payload.penaltiesApplied.isNotEmpty) _buildPenaltiesBox(context),
       ],
     );
   }
@@ -94,6 +102,62 @@ class ReportRendererWidget extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPenaltiesBox(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          border: Border.all(color: Colors.red.shade200),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              AppLocalizations.of(context)!.reportPenaltiesApplied,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.red.shade900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...payload.penaltiesApplied.map(
+              (penalty) => Padding(
+                padding: const EdgeInsets.only(bottom: 4.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0, right: 8.0),
+                      child: Icon(
+                        Icons.warning,
+                        size: 12,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        penalty,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.red.shade800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

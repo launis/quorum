@@ -9,7 +9,6 @@ from backend_v2.hooks.scoring import (
     _extract_falsifier_data,
     _calculate_falsifier_penalty,
     apply_scoring_logic_hook,
-    enforce_scoring_penalties,
     enforce_passivity_penalty_hook,
     normalize_matrix_scores_hook,
 )
@@ -98,56 +97,6 @@ def test_apply_scoring_logic_hook_applies_penalties(monkeypatch: pytest.MonkeyPa
     assert len(delta["penalties_applied"]) == 2
 
 
-def test_apply_scoring_logic_hook_algorithmic_tyranny(monkeypatch: pytest.MonkeyPatch) -> None:
-    from backend_v2.settings import Settings
-
-    monkeypatch.setattr(
-        "backend_v2.hooks.scoring.get_settings",
-        lambda: Settings(scoring_security_penalty=0.1, scoring_post_hoc_penalty=0.1, scoring_passivity_multiplier=0.8),
-    )
-
-    state = _make_state(
-        inputs={
-            "matrix_1_is_evaluative": True,
-            "matrix_1_normalized": 100.0,
-            "inputs": {"strictness_level": 5},
-            "profiler_metrics": {"control_ratio": 0.95, "lexical_diversity": 0.3},
-        }
-    )
-    res = apply_scoring_logic_hook(state, None)
-    delta = res.state_delta["scoring_result"]  # type: ignore
-    assert delta["total_score"] == 0.0
-    assert "Algorithmic Tyranny Kill Switch" in delta["penalties_applied"][0]
-
-
-def test_enforce_scoring_penalties(monkeypatch: pytest.MonkeyPatch) -> None:
-    from backend_v2.settings import Settings
-
-    monkeypatch.setattr(
-        "backend_v2.hooks.scoring.get_settings",
-        lambda: Settings(scoring_security_penalty=0.5, scoring_post_hoc_penalty=0.5, scoring_passivity_multiplier=0.8),
-    )
-
-    res = enforce_scoring_penalties(
-        {"total_score": 100.0},
-        {"step_guard": {"security_check": {"threat_detected": True}}},
-    )
-    assert res["total_score"] == 50.0
-
-
-def test_enforce_scoring_penalties_invalid_schema(monkeypatch: pytest.MonkeyPatch) -> None:
-    from backend_v2.settings import Settings
-
-    monkeypatch.setattr(
-        "backend_v2.hooks.scoring.get_settings",
-        lambda: Settings(scoring_security_penalty=0.5, scoring_post_hoc_penalty=0.5, scoring_passivity_multiplier=0.8),
-    )
-    with pytest.raises(AppException) as exc:
-        enforce_scoring_penalties(
-            {"foo": "bar"},  # Invalid schema, no total_score or score_card
-            {"step_guard": {"security_check": {"threat_detected": True}}}  # Trigger penalty processing
-        )
-    assert exc.value.status_code == 500
 
 
 def test_enforce_passivity_penalty_hook_v2_matrix(monkeypatch: pytest.MonkeyPatch) -> None:

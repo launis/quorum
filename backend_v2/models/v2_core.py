@@ -6,10 +6,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.models.domain.inputs import WorkflowInputs
-from backend_v2.models.enums import BlockDataType, ComponentType, ExecutionStatus
+from backend_v2.models.enums import BlockDataType, ComponentType, ExecutionStatus, XaiExtensionType
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
 logger = logging.getLogger(__name__)
@@ -580,6 +580,14 @@ class ReportDataDTO(V2CoreBase):
         default_factory=list, description="Serialized MCPAuditTrace entries for XAI Evidence Box rendering."
     )
 
+    grouped_extensions: dict[str, list[Any]] | None = Field(
+        default_factory=dict, description="Keskitetysti ryhmitellyt XAI-laajennukset (esim. 'citation': [...])"
+    )
+
+    penalties_applied: list[str] = Field(
+        default_factory=list, description="List of penalty warnings formatted for print."
+    )
+
     @model_validator(mode="before")
     @classmethod
     def parse_db_fields(cls, data: Any) -> Any:
@@ -630,6 +638,10 @@ class OutputProfile(V2CoreBase):
         default_factory=lambda: ["date", "organization"],
         description="List of metadata fields visible on the UI and PDF cover header.",
     )
+    visible_extensions: list[XaiExtensionType] = Field(
+        default_factory=list,
+        description="List of XAI extensions visible at the end of the report.",
+    )
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original",
         description="Selects the source scaling for the scores printed by Blueprint.",
@@ -638,6 +650,15 @@ class OutputProfile(V2CoreBase):
         default=None, description="Nested definition for synthesis configurations."
     )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
+
+    @field_validator("visible_extensions", mode="before")
+    @classmethod
+    def coerce_xai_extensions(cls, v: Any) -> Any:
+        if isinstance(v, list):
+            from backend_v2.models.enums import XaiExtensionType
+
+            return [XaiExtensionType(x) if isinstance(x, str) else x for x in v]
+        return v
 
 
 class EmbeddedOutputProfile(V2CoreBase):
@@ -649,6 +670,10 @@ class EmbeddedOutputProfile(V2CoreBase):
         default_factory=lambda: ["date", "organization"],
         description="List of metadata fields visible on the UI and PDF cover header.",
     )
+    visible_extensions: list[XaiExtensionType] = Field(
+        default_factory=list,
+        description="List of XAI extensions visible at the end of the report.",
+    )
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original",
         description="Selects the source scaling for the scores printed by Blueprint.",
@@ -657,6 +682,15 @@ class EmbeddedOutputProfile(V2CoreBase):
         default=None, description="Nested definition for synthesis configurations."
     )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
+
+    @field_validator("visible_extensions", mode="before")
+    @classmethod
+    def coerce_xai_extensions(cls, v: Any) -> Any:
+        if isinstance(v, list):
+            from backend_v2.models.enums import XaiExtensionType
+
+            return [XaiExtensionType(x) if isinstance(x, str) else x for x in v]
+        return v
 
 
 class Workflow(V2CoreBase):

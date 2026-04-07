@@ -3230,6 +3230,14 @@
             "title": "Visible Metadata",
             "description": "List of metadata fields visible on the UI and PDF cover header."
           },
+          "visible_extensions": {
+            "items": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "array",
+            "title": "Visible Extensions",
+            "description": "List of XAI extensions visible at the end of the report."
+          },
           "display_scale": {
             "type": "string",
             "enum": [
@@ -3293,6 +3301,14 @@
             "type": "array",
             "title": "Visible Metadata",
             "description": "List of metadata fields visible on the UI and PDF cover header."
+          },
+          "visible_extensions": {
+            "items": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "array",
+            "title": "Visible Extensions",
+            "description": "List of XAI extensions visible at the end of the report."
           },
           "display_scale": {
             "type": "string",
@@ -4782,6 +4798,14 @@
             "title": "Visible Metadata",
             "description": "List of metadata fields visible on the UI and PDF cover header."
           },
+          "visible_extensions": {
+            "items": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "array",
+            "title": "Visible Extensions",
+            "description": "List of XAI extensions visible at the end of the report."
+          },
           "display_scale": {
             "type": "string",
             "enum": [
@@ -4857,6 +4881,13 @@
             },
             "type": "array",
             "title": "Visible Metadata"
+          },
+          "visible_extensions": {
+            "items": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "array",
+            "title": "Visible Extensions"
           },
           "display_scale": {
             "type": "string",
@@ -6650,6 +6681,23 @@
         "additionalProperties": true,
         "type": "object",
         "title": "WorkflowSimulationResponse"
+      },
+      "XaiExtensionType": {
+        "type": "string",
+        "enum": [
+          "citation",
+          "justification",
+          "falsification",
+          "theory_link",
+          "risk_flag",
+          "coaching",
+          "missing_context",
+          "remediation_steps",
+          "emotional_sentiment",
+          "confidence"
+        ],
+        "title": "XaiExtensionType",
+        "description": "Supported XAI Output Extensions for global visibility."
       }
     },
     "securitySchemes": {

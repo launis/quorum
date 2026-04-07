@@ -24,12 +24,12 @@ uv run python scripts/backend_audit_loop.py backend_v2/hooks/synthesis.py
 
 2. Tarkista koko reititin-kansio ja aja samalla testit:
 ```bash
-uv run python scripts/backend_audit_loop.py backend_v2/api/ --test
+uv run python scripts/backend_audit_loop.py backend_v2/ --test
 ```
 
 3. Aja laatuportti ytimeen ja luo uusi OpenAPI-spesifikaatio:
 ```bash
-uv run python scripts/backend_audit_loop.py backend_v2/core/ --openapi
+uv run python scripts/backend_audit_loop.py backend_v2/ --openapi
 ```
 """
 import os

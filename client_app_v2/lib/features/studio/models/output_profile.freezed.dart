@@ -666,7 +666,7 @@ $I18nTextCopyWith<$Res>? get preambleText {
 /// @nodoc
 mixin _$OutputProfile {
 
-@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter() String get workflowId; I18nText get name; I18nText? get description; List<String> get visibleMetadata; String get displayScale; SynthesisConfigDTO? get synthesis; List<OutputLayoutBlock> get layouts;
+@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter() String get workflowId; I18nText get name; I18nText? get description; List<String> get visibleMetadata; List<XaiExtensionType> get visibleExtensions; String get displayScale; SynthesisConfigDTO? get synthesis; List<OutputLayoutBlock> get layouts;
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -681,7 +681,7 @@ $OutputProfileCopyWith<OutputProfile> get copyWith => _$OutputProfileCopyWithImp
 
 @override
 String toString() {
-  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, name: $name, description: $description, visibleMetadata: $visibleMetadata, displayScale: $displayScale, synthesis: $synthesis, layouts: $layouts)';
+  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, displayScale: $displayScale, synthesis: $synthesis, layouts: $layouts)';
 }
 
 
@@ -692,7 +692,7 @@ abstract mixin class $OutputProfileCopyWith<$Res>  {
   factory $OutputProfileCopyWith(OutputProfile value, $Res Function(OutputProfile) _then) = _$OutputProfileCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, I18nText name, I18nText? description, List<String> visibleMetadata, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
 });
 
 
@@ -709,7 +709,7 @@ class _$OutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -717,7 +717,8 @@ as String,workflowId: null == workflowId ? _self.workflowId : workflowId // igno
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,visibleMetadata: null == visibleMetadata ? _self.visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
-as List<String>,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
+as List<String>,visibleExtensions: null == visibleExtensions ? _self.visibleExtensions : visibleExtensions // ignore: cast_nullable_to_non_nullable
+as List<XaiExtensionType>,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDTO?,layouts: null == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,
@@ -838,10 +839,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OutputProfile() when $default != null:
-return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.description,_that.visibleMetadata,_that.displayScale,_that.synthesis,_that.layouts);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.displayScale,_that.synthesis,_that.layouts);case _:
   return orElse();
 
 }
@@ -859,10 +860,10 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.descriptio
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
 switch (_that) {
 case _OutputProfile():
-return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.description,_that.visibleMetadata,_that.displayScale,_that.synthesis,_that.layouts);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.displayScale,_that.synthesis,_that.layouts);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -879,10 +880,10 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.descriptio
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
 switch (_that) {
 case _OutputProfile() when $default != null:
-return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.description,_that.visibleMetadata,_that.displayScale,_that.synthesis,_that.layouts);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.displayScale,_that.synthesis,_that.layouts);case _:
   return null;
 
 }
@@ -894,7 +895,7 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.descriptio
 @JsonSerializable()
 
 class _OutputProfile extends OutputProfile {
-  const _OutputProfile({@StrictOpaqueIdConverter() required this.id, this.slug = '', @StrictOpaqueIdConverter() required this.workflowId, required this.name, this.description, final  List<String> visibleMetadata = const ['date', 'organization'], this.displayScale = 'original', this.synthesis, final  List<OutputLayoutBlock> layouts = const []}): _visibleMetadata = visibleMetadata,_layouts = layouts,super._();
+  const _OutputProfile({@StrictOpaqueIdConverter() required this.id, this.slug = '', @StrictOpaqueIdConverter() required this.workflowId, required this.name, this.description, final  List<String> visibleMetadata = const ['date', 'organization'], required final  List<XaiExtensionType> visibleExtensions, this.displayScale = 'original', this.synthesis, final  List<OutputLayoutBlock> layouts = const []}): _visibleMetadata = visibleMetadata,_visibleExtensions = visibleExtensions,_layouts = layouts,super._();
   factory _OutputProfile.fromJson(Map<String, dynamic> json) => _$OutputProfileFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -907,6 +908,13 @@ class _OutputProfile extends OutputProfile {
   if (_visibleMetadata is EqualUnmodifiableListView) return _visibleMetadata;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_visibleMetadata);
+}
+
+ final  List<XaiExtensionType> _visibleExtensions;
+@override List<XaiExtensionType> get visibleExtensions {
+  if (_visibleExtensions is EqualUnmodifiableListView) return _visibleExtensions;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_visibleExtensions);
 }
 
 @override@JsonKey() final  String displayScale;
@@ -934,7 +942,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, name: $name, description: $description, visibleMetadata: $visibleMetadata, displayScale: $displayScale, synthesis: $synthesis, layouts: $layouts)';
+  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, displayScale: $displayScale, synthesis: $synthesis, layouts: $layouts)';
 }
 
 
@@ -945,7 +953,7 @@ abstract mixin class _$OutputProfileCopyWith<$Res> implements $OutputProfileCopy
   factory _$OutputProfileCopyWith(_OutputProfile value, $Res Function(_OutputProfile) _then) = __$OutputProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, I18nText name, I18nText? description, List<String> visibleMetadata, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
 });
 
 
@@ -962,7 +970,7 @@ class __$OutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
   return _then(_OutputProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -970,7 +978,8 @@ as String,workflowId: null == workflowId ? _self.workflowId : workflowId // igno
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,visibleMetadata: null == visibleMetadata ? _self._visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
-as List<String>,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
+as List<String>,visibleExtensions: null == visibleExtensions ? _self._visibleExtensions : visibleExtensions // ignore: cast_nullable_to_non_nullable
+as List<XaiExtensionType>,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDTO?,layouts: null == layouts ? _self._layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,
@@ -1017,7 +1026,7 @@ $SynthesisConfigDTOCopyWith<$Res>? get synthesis {
 /// @nodoc
 mixin _$EmbeddedOutputProfile {
 
- I18nText get name; I18nText? get description; List<String> get visibleMetadata; String get displayScale; SynthesisConfigDTO? get synthesis; List<OutputLayoutBlock> get layouts;
+ I18nText get name; I18nText? get description; List<String> get visibleMetadata; List<XaiExtensionType> get visibleExtensions; String get displayScale; SynthesisConfigDTO? get synthesis; List<OutputLayoutBlock> get layouts;
 /// Create a copy of EmbeddedOutputProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1032,7 +1041,7 @@ $EmbeddedOutputProfileCopyWith<EmbeddedOutputProfile> get copyWith => _$Embedded
 
 @override
 String toString() {
-  return 'EmbeddedOutputProfile(name: $name, description: $description, visibleMetadata: $visibleMetadata, displayScale: $displayScale, synthesis: $synthesis, layouts: $layouts)';
+  return 'EmbeddedOutputProfile(name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, displayScale: $displayScale, synthesis: $synthesis, layouts: $layouts)';
 }
 
 
@@ -1043,7 +1052,7 @@ abstract mixin class $EmbeddedOutputProfileCopyWith<$Res>  {
   factory $EmbeddedOutputProfileCopyWith(EmbeddedOutputProfile value, $Res Function(EmbeddedOutputProfile) _then) = _$EmbeddedOutputProfileCopyWithImpl;
 @useResult
 $Res call({
- I18nText name, I18nText? description, List<String> visibleMetadata, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
+ I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
 });
 
 
@@ -1060,12 +1069,13 @@ class _$EmbeddedOutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of EmbeddedOutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
   return _then(_self.copyWith(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,visibleMetadata: null == visibleMetadata ? _self.visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
-as List<String>,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
+as List<String>,visibleExtensions: null == visibleExtensions ? _self.visibleExtensions : visibleExtensions // ignore: cast_nullable_to_non_nullable
+as List<XaiExtensionType>,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDTO?,layouts: null == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,
@@ -1186,10 +1196,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText name,  I18nText? description,  List<String> visibleMetadata,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EmbeddedOutputProfile() when $default != null:
-return $default(_that.name,_that.description,_that.visibleMetadata,_that.displayScale,_that.synthesis,_that.layouts);case _:
+return $default(_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.displayScale,_that.synthesis,_that.layouts);case _:
   return orElse();
 
 }
@@ -1207,10 +1217,10 @@ return $default(_that.name,_that.description,_that.visibleMetadata,_that.display
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText name,  I18nText? description,  List<String> visibleMetadata,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
 switch (_that) {
 case _EmbeddedOutputProfile():
-return $default(_that.name,_that.description,_that.visibleMetadata,_that.displayScale,_that.synthesis,_that.layouts);case _:
+return $default(_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.displayScale,_that.synthesis,_that.layouts);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1227,10 +1237,10 @@ return $default(_that.name,_that.description,_that.visibleMetadata,_that.display
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText name,  I18nText? description,  List<String> visibleMetadata,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions,  String displayScale,  SynthesisConfigDTO? synthesis,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
 switch (_that) {
 case _EmbeddedOutputProfile() when $default != null:
-return $default(_that.name,_that.description,_that.visibleMetadata,_that.displayScale,_that.synthesis,_that.layouts);case _:
+return $default(_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.displayScale,_that.synthesis,_that.layouts);case _:
   return null;
 
 }
@@ -1242,7 +1252,7 @@ return $default(_that.name,_that.description,_that.visibleMetadata,_that.display
 @JsonSerializable()
 
 class _EmbeddedOutputProfile extends EmbeddedOutputProfile {
-  const _EmbeddedOutputProfile({required this.name, this.description, final  List<String> visibleMetadata = const ['date', 'organization'], this.displayScale = 'original', this.synthesis, final  List<OutputLayoutBlock> layouts = const []}): _visibleMetadata = visibleMetadata,_layouts = layouts,super._();
+  const _EmbeddedOutputProfile({required this.name, this.description, final  List<String> visibleMetadata = const ['date', 'organization'], required final  List<XaiExtensionType> visibleExtensions, this.displayScale = 'original', this.synthesis, final  List<OutputLayoutBlock> layouts = const []}): _visibleMetadata = visibleMetadata,_visibleExtensions = visibleExtensions,_layouts = layouts,super._();
   factory _EmbeddedOutputProfile.fromJson(Map<String, dynamic> json) => _$EmbeddedOutputProfileFromJson(json);
 
 @override final  I18nText name;
@@ -1252,6 +1262,13 @@ class _EmbeddedOutputProfile extends EmbeddedOutputProfile {
   if (_visibleMetadata is EqualUnmodifiableListView) return _visibleMetadata;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_visibleMetadata);
+}
+
+ final  List<XaiExtensionType> _visibleExtensions;
+@override List<XaiExtensionType> get visibleExtensions {
+  if (_visibleExtensions is EqualUnmodifiableListView) return _visibleExtensions;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_visibleExtensions);
 }
 
 @override@JsonKey() final  String displayScale;
@@ -1279,7 +1296,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'EmbeddedOutputProfile(name: $name, description: $description, visibleMetadata: $visibleMetadata, displayScale: $displayScale, synthesis: $synthesis, layouts: $layouts)';
+  return 'EmbeddedOutputProfile(name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, displayScale: $displayScale, synthesis: $synthesis, layouts: $layouts)';
 }
 
 
@@ -1290,7 +1307,7 @@ abstract mixin class _$EmbeddedOutputProfileCopyWith<$Res> implements $EmbeddedO
   factory _$EmbeddedOutputProfileCopyWith(_EmbeddedOutputProfile value, $Res Function(_EmbeddedOutputProfile) _then) = __$EmbeddedOutputProfileCopyWithImpl;
 @override @useResult
 $Res call({
- I18nText name, I18nText? description, List<String> visibleMetadata, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
+ I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions, String displayScale, SynthesisConfigDTO? synthesis, List<OutputLayoutBlock> layouts
 });
 
 
@@ -1307,12 +1324,13 @@ class __$EmbeddedOutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of EmbeddedOutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? displayScale = null,Object? synthesis = freezed,Object? layouts = null,}) {
   return _then(_EmbeddedOutputProfile(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,visibleMetadata: null == visibleMetadata ? _self._visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
-as List<String>,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
+as List<String>,visibleExtensions: null == visibleExtensions ? _self._visibleExtensions : visibleExtensions // ignore: cast_nullable_to_non_nullable
+as List<XaiExtensionType>,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDTO?,layouts: null == layouts ? _self._layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,
