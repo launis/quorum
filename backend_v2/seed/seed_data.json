@@ -9,7 +9,8 @@
           "max_tokens": 65536,
           "model_name": "vertex_ai/gemini-2.5-pro",
           "temperature": 0.5,
-          "top_p": null,
+          "top_p": 0.95,
+          "top_k": 40,
           "supports_grounding": true,
           "tpm_limit": 4000000,
           "rpm_limit": 5,
@@ -21,7 +22,8 @@
           "max_tokens": 65536,
           "model_name": "vertex_ai/gemini-2.5-pro",
           "temperature": 0.3,
-          "top_p": null,
+          "top_p": 0.95,
+          "top_k": 40,
           "supports_grounding": false,
           "tpm_limit": 4000000,
           "rpm_limit": 5,
@@ -32,8 +34,9 @@
         "fast": {
           "max_tokens": 65536,
           "model_name": "vertex_ai/gemini-2.5-flash",
-          "temperature": 0.1,
-          "top_p": null,
+          "temperature": 0.0,
+          "top_p": 0.1,
+          "top_k": 1,
           "supports_grounding": false,
           "tpm_limit": 4000000,
           "rpm_limit": 5,
@@ -45,7 +48,8 @@
           "max_tokens": 65536,
           "model_name": "vertex_ai/gemini-2.5-flash",
           "temperature": 0.0,
-          "top_p": null,
+          "top_p": 0.1,
+          "top_k": 1,
           "supports_grounding": true,
           "tpm_limit": 4000000,
           "rpm_limit": 5,
@@ -56,8 +60,9 @@
         "precise": {
           "max_tokens": 65536,
           "model_name": "vertex_ai/gemini-2.5-pro",
-          "temperature": 0.3,
-          "top_p": null,
+          "temperature": 0.0,
+          "top_p": 0.1,
+          "top_k": 1,
           "supports_grounding": false,
           "tpm_limit": 4000000,
           "rpm_limit": 5,
@@ -68,8 +73,9 @@
         "strict": {
           "max_tokens": 65536,
           "model_name": "vertex_ai/gemini-2.5-pro",
-          "temperature": 0.1,
-          "top_p": null,
+          "temperature": 0.0,
+          "top_p": 0.1,
+          "top_k": 1,
           "supports_grounding": false,
           "tpm_limit": 4000000,
           "rpm_limit": 5,
@@ -81,7 +87,8 @@
           "max_tokens": 65536,
           "model_name": "vertex_ai/gemini-2.5-flash",
           "temperature": 0.0,
-          "top_p": null,
+          "top_p": 0.1,
+          "top_k": 1,
           "supports_grounding": true,
           "tpm_limit": 4000000,
           "rpm_limit": 5,
@@ -134,8 +141,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Arvioi argumentin laatua ja sen rakenteellisia osia Toulminin mallin mukaisesti.",
-          "en": "Evaluates the quality and structural components of an argument using the Toulmin model."
+          "fi": "Arvioi logiikan kestävyyttä ja väitteiden perusteluja.",
+          "en": "Evaluates the robustness of logic and the justification of claims."
         }
       },
       "category_id": "matrix",
@@ -427,8 +434,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Arvioi kognitiivista syvyyttä Bloomin taksonomian perusteella.",
-          "en": "Evaluates cognitive depth using Bloom's Taxonomy."
+          "fi": "Arvioi kognitiivisen prosessoinnin ja tekemisen syvyyttä.",
+          "en": "Evaluates the depth of cognitive processing and actionable execution."
         }
       },
       "category_id": "matrix",
@@ -723,8 +730,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Arvioi ajattelun hitautta tai nopeutta (System 1 vs System 2).",
-          "en": "Evaluates the speed and depth of cognitive processing using System 1/System 2."
+          "fi": "Mittaa tasapainoa intuitiivisen nopeuden ja analyyttisen harkinnan välillä.",
+          "en": "Measures the balance between intuitive speed and analytical deliberation."
         }
       },
       "category_id": "matrix",
@@ -940,8 +947,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Arvioi mittarin ja tavoitteen vääristymää.",
-          "en": "Evaluates whether the user acts as a driver or a passenger in the interaction."
+          "fi": "Paljastaa strategian pinnallisuuden ja pelkkiin mittareihin keskittymisen.",
+          "en": "Exposes superficial strategies and over-reliance on optimizable metrics."
         }
       },
       "category_id": "matrix",
@@ -1439,8 +1446,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Tehtäväsi on peilata tekoälyn toimintaa organisaation aikaisempiin linjauksiin ja ohjeisiin.",
-          "en": "Evaluates compliance with organizational standards and precedent."
+          "fi": "Mittaa tiedon jäljitettävyyttä ja ankkurointia luotettaviin lähteisiin.",
+          "en": "Measures data traceability and logical anchoring to reliable references."
         }
       },
       "category_id": "matrix",
@@ -1762,8 +1769,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Olet Kausaalinen Analyytikko (Causal Analyst). Tehtäväsi on tunnistaa syy-seuraussuhteet, rakentaa kontrafaktuaalisia (mitä jos) skenaarioita ja arvioida väitteiden uskottavuutta.",
-          "en": "Evaluates causal direction and guidance quality."
+          "fi": "Arvioi syy-seuraussuhteiden paikkansapitävyyttä ja kestävyyttä.",
+          "en": "Evaluates the validity and robustness of direct causal relationships."
         }
       },
       "category_id": "matrix",
@@ -2004,8 +2011,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Arvioi aktiivista testausta ja tekoälyoletusten kumoamista.",
-          "en": "Evaluates active testing and falsification of AI assumptions."
+          "fi": "Mittaa vastaväitteiden huomioimista ja heikkouksien aktiivista testaamista.",
+          "en": "Measures the acknowledgment of counterarguments and active vulnerability testing."
         }
       },
       "category_id": "matrix",
@@ -2271,8 +2278,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Syntetisoi useiden toimijoiden arvioinnit lopulliseksi arvioinniksi.",
-          "en": "Synthesizes multi-agent evaluations into a final verdict."
+          "fi": "Arvioi päätöksentekijän lopullista toiminnan ohjausta ja kontrollia.",
+          "en": "Evaluates the final executive command and control over decision making."
         }
       },
       "category_id": "matrix",
@@ -2665,8 +2672,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Arvioi päätöksentekoraportin läpinäkyvyyttä ja selkeyttä.",
-          "en": "Evaluates the transparency and clarity of the decision-making report."
+          "fi": "Antaa lopullisen tuomion tuotetun analyysin sisäisestä ristiriidattomuudesta.",
+          "en": "Delivers the final verdict on the internal coherence of the generated analyses."
         }
       },
       "category_id": "matrix",
@@ -3510,8 +3517,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Arvioi tietoturvan ja syötteiden suojamekanismien (guardrails) noudattamista eettisten jännitteiden, tietoturvariskien ja asenteellisuuksien varalta.",
-          "en": "Evaluates adherence to security and input guardrails."
+          "fi": "Tunnistaa ja mittaa järjestelmätason turvallisuus- sekä eettisiä riskejä.",
+          "en": "Identifies and measures systemic security and ethical risks."
         }
       },
       "category_id": "matrix",
@@ -3848,8 +3855,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Arvioi datan abduktiivisia päättelyketjuja: Määrittää objektiivisesti, onko käyttäjän esittämä ohjaustarina aito strateginen ennakkovalinta, vai pelkkä tekoälyn tuotosta myötäilevä, jälkikäteen rakennettu (Post-Hoc) rationalisointi.",
-          "en": "Evaluates abductive reasoning patterns in the data."
+          "fi": "Paljastaa jälkikäteisen selittelyn ja epäloogiset johtopäätökset päätöksenteossa.",
+          "en": "Exposes post-hoc rationalizations and illogical leaps in decision making."
         }
       },
       "category_id": "matrix",
@@ -4140,8 +4147,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Arvioi tuomion ymmärrettävyyttä ja läpinäkyvyyttä.",
-          "en": "Evaluates the comprehensibility and transparency of the verdict."
+          "fi": "Mittaa sitä, kuinka avoimesti ja selitettävästi johtopäätökset on muodostettu.",
+          "en": "Measures how transparently and explainably conclusions are reached."
         }
       },
       "category_id": "matrix",
@@ -4861,8 +4868,8 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "fi": "Matriisi: Tekstin omien rajoitteiden ja riskien tunnistus.",
-          "en": "Matrix: Recognition of the text's own limitations and risks."
+          "fi": "Arvioi kykyä tunnistaa oman tiedon rajat ja mahdolliset epävarmuustekijät avoimesti.",
+          "en": "Evaluates the ability to openly recognize boundaries of context and inherent uncertainties."
         }
       },
       "category_id": "matrix",
@@ -5388,147 +5395,11 @@
         }
       ],
       "slug": "kokonaisvaltainen_auditointi",
-      "output_profiles": {
-        "prf_7cc661da3f9f405c": {
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "en": "Executive Summary",
-              "fi": "C-Tason Tiivistelmä"
-            }
-          },
-          "description": {
-            "default_locale": "fi",
-            "translations": {
-              "en": "High-level overview focused on strategic indicators.",
-              "fi": "Korkean tason strateginen katsaus ylimmälle johdolle."
-            }
-          },
-          "display_scale": "original",
-          "layouts": [
-            {
-              "preset_view": "3d_complex",
-              "show_text": false,
-              "target_blocks": [
-                "*"
-              ],
-              "steps": []
-            }
-          ]
-        },
-        "prf_2a3b4c5d6e7f8091": {
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "en": "Technical Deep Dive",
-              "fi": "Tekninen Syväluotaus"
-            }
-          },
-          "description": {
-            "default_locale": "fi",
-            "translations": {
-              "en": "Detailed analysis for domain experts.",
-              "fi": "Yksityiskohtainen katsaus ja lähdekritiikki asiantuntijoille."
-            }
-          },
-          "display_scale": "original",
-          "layouts": [
-            {
-              "preset_view": "2d_compare",
-              "show_text": true,
-              "target_blocks": [
-                "*"
-              ],
-              "steps": []
-            }
-          ]
-        },
-        "prf_3b4c5d6e7f8091a2": {
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "en": "Public Stakeholder Report",
-              "fi": "Julkinen Sidosryhmäraportti"
-            }
-          },
-          "description": {
-            "default_locale": "fi",
-            "translations": {
-              "en": "Redacted, safe report for public distribution.",
-              "fi": "Turvallinen ja maskattu raportti julkiseen jakeluun."
-            }
-          },
-          "display_scale": "original",
-          "layouts": [
-            {
-              "preset_view": "1d_metrics",
-              "show_text": true,
-              "target_blocks": [
-                "*"
-              ],
-              "steps": []
-            }
-          ]
-        },
-        "prf_4c5d6e7f8091a2b3": {
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "en": "Actionable Coaching",
-              "fi": "Valmennusraportti"
-            }
-          },
-          "description": {
-            "default_locale": "fi",
-            "translations": {
-              "en": "Focuses on explicit remediations and coaching steps.",
-              "fi": "Keskittyy korjaaviin toimenpiteisiin ja oppimiseen."
-            }
-          },
-          "display_scale": "original",
-          "layouts": [
-            {
-              "preset_view": "text_only",
-              "show_text": true,
-              "target_blocks": [
-                "*"
-              ],
-              "steps": []
-            }
-          ]
-        },
-        "prf_5d6e7f8091a2b3c4": {
-          "name": {
-            "default_locale": "fi",
-            "translations": {
-              "en": "Holistic Audit",
-              "fi": "Kokonaisvaltainen Auditointi"
-            }
-          },
-          "description": {
-            "default_locale": "fi",
-            "translations": {
-              "en": "End-to-end transparent system evaluation.",
-              "fi": "Kaikki osa-alueet avaava täydellinen auditointiraportti."
-            }
-          },
-          "display_scale": "original",
-          "layouts": [
-            {
-              "preset_view": "default",
-              "show_text": true,
-              "target_blocks": [
-                "*"
-              ],
-              "steps": []
-            }
-          ]
-        }
-      },
+      "output_profiles": {},
       "status": "active",
       "is_public": true,
       "version": 1,
-      "default_profile_id": "prf_7cc661da3f9f405c"
+      "default_profile_id": "prf_5d6e7f8091a2b3c4"
     }
   ],
   "steps": [
@@ -6331,193 +6202,6 @@
   ],
   "output_profiles": [
     {
-      "id": "prf_7cc661da3f9f405c",
-      "slug": "executive_summary",
-      "workflow_id": "wf_9d68c573802341db",
-      "name": {
-        "default_locale": "fi",
-        "translations": {
-          "en": "Executive Summary",
-          "fi": "C-Tason Tiivistelmä"
-        }
-      },
-      "description": {
-        "default_locale": "fi",
-        "translations": {
-          "en": "High-level overview focused on strategic indicators.",
-          "fi": "Korkean tason strateginen katsaus ylimmälle johdolle."
-        }
-      },
-      "display_scale": "original",
-      "synthesis": {
-        "length_constraint": 1000,
-        "preamble_text": {
-          "default_locale": "fi",
-          "translations": {
-            "en": "Executive Summary",
-            "fi": "Johdon Tiivistelmä"
-          }
-        },
-        "include_historical_summary": true,
-        "enable_pii_masking": false,
-        "allowed_exports": [
-          "pdf",
-          "docx"
-        ],
-        "omit_empty_sections": true
-      },
-      "layouts": [
-        {
-          "preset_view": "3d_complex",
-          "show_text": false,
-          "target_blocks": [
-            "*"
-          ],
-          "steps": []
-        }
-      ]
-    },
-    {
-      "id": "prf_2a3b4c5d6e7f8091",
-      "slug": "technical_deep_dive",
-      "workflow_id": "wf_9d68c573802341db",
-      "name": {
-        "default_locale": "fi",
-        "translations": {
-          "en": "Technical Deep Dive",
-          "fi": "Tekninen Syväluotaus"
-        }
-      },
-      "description": {
-        "default_locale": "fi",
-        "translations": {
-          "en": "Detailed analysis for domain experts.",
-          "fi": "Yksityiskohtainen katsaus ja lähdekritiikki asiantuntijoille."
-        }
-      },
-      "display_scale": "original",
-      "synthesis": {
-        "length_constraint": 3000,
-        "preamble_text": {
-          "default_locale": "fi",
-          "translations": {
-            "en": "Technical Analysis",
-            "fi": "Tekninen Analyysi"
-          }
-        },
-        "include_historical_summary": false,
-        "enable_pii_masking": false,
-        "allowed_exports": [
-          "pdf",
-          "docx",
-          "raw_json"
-        ],
-        "omit_empty_sections": false
-      },
-      "layouts": [
-        {
-          "preset_view": "2d_compare",
-          "show_text": true,
-          "target_blocks": [
-            "*"
-          ],
-          "steps": []
-        }
-      ]
-    },
-    {
-      "id": "prf_3b4c5d6e7f8091a2",
-      "slug": "public_stakeholder",
-      "workflow_id": "wf_9d68c573802341db",
-      "name": {
-        "default_locale": "fi",
-        "translations": {
-          "en": "Public Stakeholder Report",
-          "fi": "Julkinen Sidosryhmäraportti"
-        }
-      },
-      "description": {
-        "default_locale": "fi",
-        "translations": {
-          "en": "Redacted, safe report for public distribution.",
-          "fi": "Turvallinen ja maskattu raportti julkiseen jakeluun."
-        }
-      },
-      "display_scale": "original",
-      "synthesis": {
-        "length_constraint": 1500,
-        "preamble_text": {
-          "default_locale": "fi",
-          "translations": {
-            "en": "Public Report",
-            "fi": "Julkinen Raportti"
-          }
-        },
-        "include_historical_summary": false,
-        "enable_pii_masking": true,
-        "allowed_exports": [
-          "pdf"
-        ],
-        "omit_empty_sections": true
-      },
-      "layouts": [
-        {
-          "preset_view": "1d_metrics",
-          "show_text": true,
-          "target_blocks": [
-            "*"
-          ],
-          "steps": []
-        }
-      ]
-    },
-    {
-      "id": "prf_4c5d6e7f8091a2b3",
-      "slug": "actionable_coaching",
-      "workflow_id": "wf_9d68c573802341db",
-      "name": {
-        "default_locale": "fi",
-        "translations": {
-          "en": "Actionable Coaching",
-          "fi": "Valmennusraportti"
-        }
-      },
-      "description": {
-        "default_locale": "fi",
-        "translations": {
-          "en": "Focuses on explicit remediations and coaching steps.",
-          "fi": "Keskittyy korjaaviin toimenpiteisiin ja oppimiseen."
-        }
-      },
-      "display_scale": "original",
-      "synthesis": {
-        "length_constraint": 2000,
-        "preamble_text": {
-          "default_locale": "fi",
-          "translations": {
-            "en": "Coaching Report",
-            "fi": "Kehitysraportti"
-          }
-        },
-        "include_historical_summary": true,
-        "enable_pii_masking": false,
-        "allowed_exports": [
-          "pdf"
-        ],
-        "omit_empty_sections": true
-      },
-      "layouts": [
-        {
-          "preset_view": "text_only",
-          "show_text": true,
-          "target_blocks": [
-            "*"
-          ],
-          "steps": []
-        }
-      ]
-    },
-    {
       "id": "prf_5d6e7f8091a2b3c4",
       "slug": "holistic_audit",
       "workflow_id": "wf_9d68c573802341db",
@@ -6531,34 +6215,235 @@
       "description": {
         "default_locale": "fi",
         "translations": {
-          "en": "End-to-end transparent system evaluation.",
-          "fi": "Kaikki osa-alueet avaava täydellinen auditointiraportti."
+          "en": "End-to-end transparent evaluation.",
+          "fi": "Koko datan läpäisevä täydellinen auditointiraportti."
         }
       },
       "display_scale": "original",
+      "visible_metadata": [
+        "date",
+        "organization"
+      ],
       "synthesis": {
-        "length_constraint": 4000,
+        "system_prompt": "Produce a clear, coherent, and concise executive summary. Do not use complex academic jargon or rambling prose. Focus strictly on synthesizing the key findings. NEVER mention internal system IDs, node names, or file names. Aim for maximum informativeness.",
+        "length_constraint": 2000,
         "preamble_text": {
           "default_locale": "fi",
           "translations": {
-            "en": "Holistic Audit",
-            "fi": "Kokonaisvaltainen Auditointi"
+            "en": "Global Executive Summary",
+            "fi": "Globaali Johdon Yhteenveto"
           }
         },
         "include_historical_summary": true,
         "enable_pii_masking": false,
         "allowed_exports": [
           "pdf",
-          "docx"
+          "docx",
+          "raw_json"
         ],
         "omit_empty_sections": false
       },
       "layouts": [
         {
-          "preset_view": "default",
-          "show_text": true,
+          "preset_view": "3d_complex",
+          "title": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Data Epistemology & Logic",
+              "fi": "Argumentaation ja Todennettavuuden Perusta"
+            }
+          },
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Evaluation of input data sanitization.",
+              "fi": "Datan todennettavuus ja looginen rakenne."
+            }
+          },
+          "synthesis": {
+            "system_prompt": "Synthesize the interplay of these specific 3 analytical components (Argumentation, Falsification, Standards Compliance). If Toulmin argumentation is high but Falsification is low, it indicates a logically sound but empirically untested assumption. Produce a strictly concise, jargon-free, and coherent synthesis. DO NOT mention internal IDs or file names. Maximize informativeness.",
+            "length_constraint": 300,
+            "preamble_text": {
+              "default_locale": "fi",
+              "translations": {
+                "en": "Logical Baseline",
+                "fi": "Looginen Perusta"
+              }
+            },
+            "include_historical_summary": false,
+            "enable_pii_masking": false,
+            "allowed_exports": [
+              "pdf"
+            ],
+            "omit_empty_sections": false
+          },
+          "show_text": false,
           "target_blocks": [
-            "*"
+            "blk_440a5fef9331451b",
+            "blk_b476f89fb732448c",
+            "blk_fb15f8dcf23f4865"
+          ],
+          "steps": []
+        },
+        {
+          "preset_view": "3d_complex",
+          "title": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Cognitive Depth & Objectives",
+              "fi": "Kognitiivinen Syvyys ja Tavoiteasettelu"
+            }
+          },
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Evaluation of cognitive rigor and goals.",
+              "fi": "Tavoitteiden ja kognitiivisen reflektion yhteensovittaminen."
+            }
+          },
+          "synthesis": {
+            "system_prompt": "Synthesize the thematic interplay of these 3 components (Objectives, Epistemic Humility, Cognitive Processing). If Bloom's objectives are clearly defined but Epistemic Humility is low and cognitive processing relies on heuristics (System 1), it flags a significant execution risk due to overconfidence. Produce a strictly concise, jargon-free, and coherent synthesis. DO NOT mention internal IDs or file names. Maximize informativeness.",
+            "length_constraint": 300,
+            "preamble_text": {
+              "default_locale": "fi",
+              "translations": {
+                "en": "Cognitive Synthesis",
+                "fi": "Kognitiivinen Synteesi"
+              }
+            },
+            "include_historical_summary": false,
+            "enable_pii_masking": false,
+            "allowed_exports": [
+              "pdf"
+            ],
+            "omit_empty_sections": false
+          },
+          "show_text": false,
+          "target_blocks": [
+            "blk_f921c7c0989b47e8",
+            "blk_22e3598e06414409",
+            "blk_109dab5b6b3f403a"
+          ],
+          "steps": []
+        },
+        {
+          "preset_view": "3d_complex",
+          "title": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Strategic Control & Risk Management",
+              "fi": "Strateginen Hallinta ja Riskinhallinta"
+            }
+          },
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Final strategic and threat recommendations.",
+              "fi": "Laajempi konteksti ja täytäntöönpanon hallinta."
+            }
+          },
+          "synthesis": {
+            "system_prompt": "Synthesize the thematic interplay of these 3 strategic components (Security vs Ethics Risk, Performativity, Executive Control). If Executive Control is high but Security Risk is triggered or Performativity indicates gamed metrics, the strategy is dangerous or illusory. Produce a strictly concise, jargon-free, and coherent synthesis. DO NOT mention internal IDs or file names. Maximize informativeness.",
+            "length_constraint": 300,
+            "preamble_text": {
+              "default_locale": "fi",
+              "translations": {
+                "en": "Strategic Vector",
+                "fi": "Strateginen Vektori"
+              }
+            },
+            "include_historical_summary": false,
+            "enable_pii_masking": false,
+            "allowed_exports": [
+              "pdf"
+            ],
+            "omit_empty_sections": false
+          },
+          "show_text": false,
+          "target_blocks": [
+            "blk_80732a33fe1947ee",
+            "blk_53f32679aa514fcb",
+            "blk_ff72c2d79edb4ebf"
+          ],
+          "steps": []
+        },
+        {
+          "preset_view": "3d_complex",
+          "title": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Causal Integrity & Explainability",
+              "fi": "Kausaalisuus ja Selitettävyys"
+            }
+          },
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Evaluation of causal logic and AI transparency.",
+              "fi": "Syy-seuraussuhteiden ja tekoälyn läpinäkyvyyden arviointi."
+            }
+          },
+          "synthesis": {
+            "system_prompt": "Synthesize the thematic interplay of these 3 components (Causal Impact, Abductive Integrity, Explainability). If Causal Impact is high but Explainability is low, the mechanism remains an opaque black box. If Abductive Integrity indicates post-hoc rationalization, claimed causality is invalid. Produce a strictly concise, jargon-free, and coherent synthesis. DO NOT mention internal IDs or file names. Maximize informativeness.",
+            "length_constraint": 300,
+            "preamble_text": {
+              "default_locale": "fi",
+              "translations": {
+                "en": "Transparency Synthesis",
+                "fi": "Läpinäkyvyyden Synteesi"
+              }
+            },
+            "include_historical_summary": false,
+            "enable_pii_masking": false,
+            "allowed_exports": [
+              "pdf"
+            ],
+            "omit_empty_sections": false
+          },
+          "show_text": false,
+          "target_blocks": [
+            "blk_c5804a9143c34cb1",
+            "blk_c3bc5f3eb8e74110",
+            "blk_f6e286f050c94d60"
+          ],
+          "steps": []
+        },
+        {
+          "preset_view": "1d_metrics",
+          "title": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Meta-Evaluation: Antagonistic Prosecutor",
+              "fi": "Metatarkastus: Antagonistinen Syyttäjä"
+            }
+          },
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Final verdict on report coherence and contradictions.",
+              "fi": "Lopullinen tuomio raportin luotettavuudesta ja agenttien välisistä ristiriidoista."
+            }
+          },
+          "synthesis": {
+            "system_prompt": "You are the final Antagonistic Prosecutor (XAI Meta-Evaluator). Review the explicit findings passed to you. Summarize the overall epistemological confidence, highlighting any irreconcilable contradictions among underlying agents or critical missing context. Provide a ruthless, final verdict on the report's trustworthiness. Produce a strictly concise, jargon-free synthesis. DO NOT mention internal IDs.",
+            "length_constraint": 300,
+            "preamble_text": {
+              "default_locale": "fi",
+              "translations": {
+                "en": "Prosecutor's Final Verdict",
+                "fi": "Syyttäjän Lopullinen Tuomio"
+              }
+            },
+            "include_historical_summary": false,
+            "enable_pii_masking": false,
+            "allowed_exports": [
+              "pdf"
+            ],
+            "omit_empty_sections": false
+          },
+          "show_text": false,
+          "target_blocks": [
+            "blk_6b8c766185294f7e"
           ],
           "steps": []
         }

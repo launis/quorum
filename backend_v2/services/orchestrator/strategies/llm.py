@@ -98,7 +98,7 @@ class LLMNodeStrategy(NodeStrategy):
         xml_rubrics = self.compiler.compile_xml_rubrics(criteria_blocks, target_locale)
 
         # Epic 13 M2: Resolve tools and build dynamic instruction
-        effective_mcp_tools = step.allowed_mcp_tools or step_obj.allowed_mcp_tools
+        effective_mcp_tools = step_obj.allowed_mcp_tools
         mcp_instruction = self.compiler.generate_mcp_instruction(effective_mcp_tools)
 
         system_prompt = "Complete the evaluation according to the provided schema."

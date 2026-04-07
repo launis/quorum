@@ -6,8 +6,8 @@ from pydantic import BaseModel
 
 from backend_v2.exceptions import AgentExecutionError, AppException, ErrorCodes
 from backend_v2.llm.provider import LLMFactory
-from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.enums import SystemConcurrency
+from backend_v2.models.llm import LLMProviderConfig
 
 T = TypeVar("T", bound=BaseModel)
 logger = logging.getLogger(__name__)
@@ -119,6 +119,8 @@ class LLMClient:
             model_name=target_strategy.model_name,
             api_key=target_strategy.api_key,
             temperature=target_strategy.temperature,
+            top_p=target_strategy.top_p,
+            top_k=target_strategy.top_k,
             tpm_limit=target_strategy.tpm_limit,
             rpm_limit=target_strategy.rpm_limit,
             default_max_tokens=target_strategy.max_tokens,
@@ -225,10 +227,14 @@ class LLMClient:
                     if hasattr(self._config, "default_max_tokens")
                     else self._config.get("default_max_tokens")
                 )
+            top_p = self._config.top_p if hasattr(self._config, "top_p") else self._config.get("top_p")
+            top_k = self._config.top_k if hasattr(self._config, "top_k") else self._config.get("top_k")
         else:
             # Legacy pass-through
             target_model_name = model
             target_provider_type = "litellm"
+            top_p = None
+            top_k = None
 
         # 3. Create Provider via Factory
         provider = LLMFactory.create_provider(
@@ -264,6 +270,8 @@ class LLMClient:
                         response_schema=response_model,
                         temperature=temperature,
                         max_tokens=max_tokens,
+                        top_p=top_p,
+                        top_k=top_k,
                         mock_identity=mock_identity,
                         timeout=strict_timeout,
                     )
@@ -442,10 +450,14 @@ class LLMClient:
                     if hasattr(self._config, "default_max_tokens")
                     else self._config.get("default_max_tokens")
                 )
+            top_p = self._config.top_p if hasattr(self._config, "top_p") else self._config.get("top_p")
+            top_k = self._config.top_k if hasattr(self._config, "top_k") else self._config.get("top_k")
         else:
             # Legacy pass-through
             target_model_name = model
             target_provider_type = "litellm"
+            top_p = None
+            top_k = None
 
         # STRICT TIMEOUT PROTOCOL: Never overridden by caller, always uses global Enum constraint.
         strict_timeout = SystemConcurrency.LLM_DEFAULT_TIMEOUT_SECONDS.value
@@ -490,6 +502,8 @@ class LLMClient:
                     messages=messages,
                     temperature=temperature,
                     max_tokens=max_tokens,
+                    top_p=top_p,
+                    top_k=top_k,
                     tools=tools,
                     tool_choice=tool_choice,
                     timeout=strict_timeout,
@@ -500,6 +514,8 @@ class LLMClient:
                     system_instruction=system_instruction,
                     temperature=temperature,
                     max_tokens=max_tokens,
+                    top_p=top_p,
+                    top_k=top_k,
                     tools=tools,
                     tool_choice=tool_choice,
                     timeout=strict_timeout,

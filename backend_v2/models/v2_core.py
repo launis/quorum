@@ -254,6 +254,7 @@ class ModelProfile(V2CoreBase):
     model_name: str = Field(description="The underlying API model name")
     temperature: float | None = Field(default=None, description="Generation temperature")
     top_p: float | None = Field(default=None, description="Nucleus sampling probability")
+    top_k: int | None = Field(default=None, description="Top-K sampling")
     tpm_limit: int | None = Field(default=None, description="Tokens per minute limit")
     rpm_limit: int | None = Field(default=None, description="Requests per minute limit")
     max_tokens: int | None = Field(default=None, description="Max generated tokens")
@@ -408,12 +409,7 @@ class StepRule(V2CoreBase):
         default_factory=dict,
         description='Maps upstream results to LLM inputs. e.g. {"context": "$inputs.document"}',
     )
-    allowed_mcp_tools: list[str] = Field(
-        default_factory=list,
-        description=(
-            "Workflow-level MCP tools override (e.g. ['mcp_tavily_search']). Takes priority over Step template."
-        ),
-    )
+
     ui_pos_x: float = Field(default=0.0, description="X coordinate on the 2D DAG canvas.")
     ui_pos_y: float = Field(default=0.0, description="Y coordinate on the 2D DAG canvas.")
 
@@ -527,6 +523,7 @@ class ReportAxisDTO(V2CoreBase):
 class SynthesisConfigDTO(V2CoreBase):
     """Configuration for LLM output synthesis length, masking, and formatting."""
 
+    system_prompt: str | None = Field(default=None, description="Optional system prompt overriding default synthesis.")
     length_constraint: int | None = Field(default=None, description="Length constraint for the synthesized text.")
     preamble_text: I18nText | None = Field(
         default=None, description="Multilingual preamble text added before synthesis."

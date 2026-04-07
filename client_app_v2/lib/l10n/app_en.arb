@@ -781,6 +781,7 @@
   "configTypeLabel": "Config Type",
   "maxTokensLabel": "Max Tokens",
   "topPLabel": "Top-P (Nucleus Sampling)",
+  "topKLabel": "Top-K (Candidates)",
   "tpmLimitLabel": "TPM Limit (Tokens/Min)",
   "rpmLimitLabel": "RPM Limit (Requests/Min)",
   "parsingModeLabel": "Parsing Mode",

@@ -606,7 +606,7 @@ $I18nTextCopyWith<$Res> get description {
 /// @nodoc
 mixin _$StepRule {
 
-@StrictOpaqueIdConverter() String get id;@StrictOpaqueIdConverter() String get taskBlueprint; List<String> get dependsOn; Map<String, String> get inputMappings; List<String> get allowedMcpTools; double get uiPosX; double get uiPosY;
+@StrictOpaqueIdConverter() String get id;@StrictOpaqueIdConverter() String get taskBlueprint; List<String> get dependsOn; Map<String, String> get inputMappings; double get uiPosX; double get uiPosY;
 /// Create a copy of StepRule
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -621,7 +621,7 @@ $StepRuleCopyWith<StepRule> get copyWith => _$StepRuleCopyWithImpl<StepRule>(thi
 
 @override
 String toString() {
-  return 'StepRule(id: $id, taskBlueprint: $taskBlueprint, dependsOn: $dependsOn, inputMappings: $inputMappings, allowedMcpTools: $allowedMcpTools, uiPosX: $uiPosX, uiPosY: $uiPosY)';
+  return 'StepRule(id: $id, taskBlueprint: $taskBlueprint, dependsOn: $dependsOn, inputMappings: $inputMappings, uiPosX: $uiPosX, uiPosY: $uiPosY)';
 }
 
 
@@ -632,7 +632,7 @@ abstract mixin class $StepRuleCopyWith<$Res>  {
   factory $StepRuleCopyWith(StepRule value, $Res Function(StepRule) _then) = _$StepRuleCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter() String taskBlueprint, List<String> dependsOn, Map<String, String> inputMappings, List<String> allowedMcpTools, double uiPosX, double uiPosY
+@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter() String taskBlueprint, List<String> dependsOn, Map<String, String> inputMappings, double uiPosX, double uiPosY
 });
 
 
@@ -649,14 +649,13 @@ class _$StepRuleCopyWithImpl<$Res>
 
 /// Create a copy of StepRule
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? taskBlueprint = null,Object? dependsOn = null,Object? inputMappings = null,Object? allowedMcpTools = null,Object? uiPosX = null,Object? uiPosY = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? taskBlueprint = null,Object? dependsOn = null,Object? inputMappings = null,Object? uiPosX = null,Object? uiPosY = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,taskBlueprint: null == taskBlueprint ? _self.taskBlueprint : taskBlueprint // ignore: cast_nullable_to_non_nullable
 as String,dependsOn: null == dependsOn ? _self.dependsOn : dependsOn // ignore: cast_nullable_to_non_nullable
 as List<String>,inputMappings: null == inputMappings ? _self.inputMappings : inputMappings // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,allowedMcpTools: null == allowedMcpTools ? _self.allowedMcpTools : allowedMcpTools // ignore: cast_nullable_to_non_nullable
-as List<String>,uiPosX: null == uiPosX ? _self.uiPosX : uiPosX // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,uiPosX: null == uiPosX ? _self.uiPosX : uiPosX // ignore: cast_nullable_to_non_nullable
 as double,uiPosY: null == uiPosY ? _self.uiPosY : uiPosY // ignore: cast_nullable_to_non_nullable
 as double,
   ));
@@ -743,10 +742,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings,  List<String> allowedMcpTools,  double uiPosX,  double uiPosY)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings,  double uiPosX,  double uiPosY)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _StepRule() when $default != null:
-return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.allowedMcpTools,_that.uiPosX,_that.uiPosY);case _:
+return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.uiPosX,_that.uiPosY);case _:
   return orElse();
 
 }
@@ -764,10 +763,10 @@ return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings,  List<String> allowedMcpTools,  double uiPosX,  double uiPosY)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings,  double uiPosX,  double uiPosY)  $default,) {final _that = this;
 switch (_that) {
 case _StepRule():
-return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.allowedMcpTools,_that.uiPosX,_that.uiPosY);case _:
+return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.uiPosX,_that.uiPosY);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -784,10 +783,10 @@ return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings,  List<String> allowedMcpTools,  double uiPosX,  double uiPosY)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings,  double uiPosX,  double uiPosY)?  $default,) {final _that = this;
 switch (_that) {
 case _StepRule() when $default != null:
-return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.allowedMcpTools,_that.uiPosX,_that.uiPosY);case _:
+return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.uiPosX,_that.uiPosY);case _:
   return null;
 
 }
@@ -799,7 +798,7 @@ return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings
 @JsonSerializable()
 
 class _StepRule extends StepRule {
-  const _StepRule({@StrictOpaqueIdConverter() required this.id, @StrictOpaqueIdConverter() required this.taskBlueprint, final  List<String> dependsOn = const [], final  Map<String, String> inputMappings = const {}, final  List<String> allowedMcpTools = const [], this.uiPosX = 0.0, this.uiPosY = 0.0}): _dependsOn = dependsOn,_inputMappings = inputMappings,_allowedMcpTools = allowedMcpTools,super._();
+  const _StepRule({@StrictOpaqueIdConverter() required this.id, @StrictOpaqueIdConverter() required this.taskBlueprint, final  List<String> dependsOn = const [], final  Map<String, String> inputMappings = const {}, this.uiPosX = 0.0, this.uiPosY = 0.0}): _dependsOn = dependsOn,_inputMappings = inputMappings,super._();
   factory _StepRule.fromJson(Map<String, dynamic> json) => _$StepRuleFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -816,13 +815,6 @@ class _StepRule extends StepRule {
   if (_inputMappings is EqualUnmodifiableMapView) return _inputMappings;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_inputMappings);
-}
-
- final  List<String> _allowedMcpTools;
-@override@JsonKey() List<String> get allowedMcpTools {
-  if (_allowedMcpTools is EqualUnmodifiableListView) return _allowedMcpTools;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_allowedMcpTools);
 }
 
 @override@JsonKey() final  double uiPosX;
@@ -843,7 +835,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'StepRule(id: $id, taskBlueprint: $taskBlueprint, dependsOn: $dependsOn, inputMappings: $inputMappings, allowedMcpTools: $allowedMcpTools, uiPosX: $uiPosX, uiPosY: $uiPosY)';
+  return 'StepRule(id: $id, taskBlueprint: $taskBlueprint, dependsOn: $dependsOn, inputMappings: $inputMappings, uiPosX: $uiPosX, uiPosY: $uiPosY)';
 }
 
 
@@ -854,7 +846,7 @@ abstract mixin class _$StepRuleCopyWith<$Res> implements $StepRuleCopyWith<$Res>
   factory _$StepRuleCopyWith(_StepRule value, $Res Function(_StepRule) _then) = __$StepRuleCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter() String taskBlueprint, List<String> dependsOn, Map<String, String> inputMappings, List<String> allowedMcpTools, double uiPosX, double uiPosY
+@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter() String taskBlueprint, List<String> dependsOn, Map<String, String> inputMappings, double uiPosX, double uiPosY
 });
 
 
@@ -871,14 +863,13 @@ class __$StepRuleCopyWithImpl<$Res>
 
 /// Create a copy of StepRule
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? taskBlueprint = null,Object? dependsOn = null,Object? inputMappings = null,Object? allowedMcpTools = null,Object? uiPosX = null,Object? uiPosY = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? taskBlueprint = null,Object? dependsOn = null,Object? inputMappings = null,Object? uiPosX = null,Object? uiPosY = null,}) {
   return _then(_StepRule(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,taskBlueprint: null == taskBlueprint ? _self.taskBlueprint : taskBlueprint // ignore: cast_nullable_to_non_nullable
 as String,dependsOn: null == dependsOn ? _self._dependsOn : dependsOn // ignore: cast_nullable_to_non_nullable
 as List<String>,inputMappings: null == inputMappings ? _self._inputMappings : inputMappings // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,allowedMcpTools: null == allowedMcpTools ? _self._allowedMcpTools : allowedMcpTools // ignore: cast_nullable_to_non_nullable
-as List<String>,uiPosX: null == uiPosX ? _self.uiPosX : uiPosX // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,uiPosX: null == uiPosX ? _self.uiPosX : uiPosX // ignore: cast_nullable_to_non_nullable
 as double,uiPosY: null == uiPosY ? _self.uiPosY : uiPosY // ignore: cast_nullable_to_non_nullable
 as double,
   ));

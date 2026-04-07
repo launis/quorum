@@ -3116,6 +3116,12 @@ abstract class AppLocalizations {
   /// **'Top-P (Nucleus Sampling)'**
   String get topPLabel;
 
+  /// No description provided for @topKLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Top-K (Candidates)'**
+  String get topKLabel;
+
   /// No description provided for @tpmLimitLabel.
   ///
   /// In en, this message translates to:

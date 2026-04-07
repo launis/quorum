@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/shared/models/i18n_text.dart';
 
 class SynthesisEditorCard extends StatelessWidget {
   final SynthesisConfigDTO? synthesis;
@@ -39,30 +38,40 @@ class SynthesisEditorCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextFormField(
-                  initialValue: syn.preambleText?.translations['en'] ?? '',
+                  initialValue: syn.systemPrompt ?? '',
                   maxLines: 4,
                   minLines: 2,
                   decoration: InputDecoration(
-                    labelText: 'Järjestelmäkehote / Kognitiivinen suunnitelma (PAKOLLINEN ENGLANTI)',
+                    labelText:
+                        'Järjestelmäkehote / Kognitiivinen suunnitelma (PAKOLLINEN ENGLANTI)',
                     border: OutlineInputBorder(
-                      borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
                     ),
                     filled: true,
-                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.2),
+                    fillColor: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.2),
                   ),
                   onChanged: (val) {
-                    final isEmpty = val.trim().isEmpty;
-                    if (isEmpty) {
+                    onChanged(
+                      syn.copyWith(
+                        systemPrompt: val.trim().isEmpty ? null : val,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                I18nTextField(
+                  label: 'Osion Väliotsikko (Preamble Text)',
+                  initialData: syn.preambleText,
+                  onChanged: (val) {
+                    if (val.translations.isEmpty) {
                       onChanged(syn.copyWith(preambleText: null));
                     } else {
-                      onChanged(
-                        syn.copyWith(
-                          preambleText: I18nText(
-                            defaultLocale: 'en',
-                            translations: {'en': val},
-                          ),
-                        ),
-                      );
+                      onChanged(syn.copyWith(preambleText: val));
                     }
                   },
                 ),

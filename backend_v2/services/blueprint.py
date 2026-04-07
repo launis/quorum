@@ -338,20 +338,22 @@ class BlueprintTransformer:
 
                 # Strict Fail-Fast Constraint: Do not degrade missing UI inputs silently
                 if preset_view == "3d_complex" and len(axes) < 3:
-                    msg = f"Layout '{layout_title}' requires at least 3 axes for 3d_complex view, but only found {len(axes)}."
+                    msg = (
+                        f"Layout '{layout_title}' requires at least 3 axes for "
+                        f"3d_complex view, but only found {len(axes)}."
+                    )
                     logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                     raise AppException(
-                        message=msg,
-                        status_code=400,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                        message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                     )
                 elif preset_view == "2d_compare" and len(axes) < 2:
-                    msg = f"Layout '{layout_title}' requires at least 2 axes for 2d_compare view, but only found {len(axes)}."
+                    msg = (
+                        f"Layout '{layout_title}' requires at least 2 axes for "
+                        f"2d_compare view, but only found {len(axes)}."
+                    )
                     logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                     raise AppException(
-                        message=msg,
-                        status_code=400,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                        message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                     )
 
                 if axes or preset_view == "text_only":

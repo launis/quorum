@@ -59,6 +59,8 @@ class LLMProvider(ABC):
         response_schema: type[BaseModel] | dict[str, Any] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
         pass_reasoning_token: str | None = None,
         **kwargs,
     ) -> LLMResponse:
@@ -183,6 +185,8 @@ class LiteLLMProvider(LLMProvider):
         response_schema: type[BaseModel] | dict[str, Any] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
         pass_reasoning_token: str | None = None,
         **kwargs,
     ) -> LLMResponse:
@@ -273,6 +277,8 @@ class LiteLLMProvider(LLMProvider):
                 "messages": final_messages,
                 "temperature": temperature,
                 "max_tokens": max_tokens,
+                "top_p": top_p,
+                "top_k": top_k,
                 "response_format": response_format,
                 "api_key": self.api_key,
                 "drop_params": True,
@@ -651,6 +657,8 @@ class MockProvider(LLMProvider):
         response_schema: type[BaseModel] | dict[str, Any] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
         pass_reasoning_token: str | None = None,
         **kwargs,
     ) -> LLMResponse:

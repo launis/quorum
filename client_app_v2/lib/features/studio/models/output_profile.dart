@@ -30,6 +30,7 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
   const SynthesisConfigDTO._();
 
   const factory SynthesisConfigDTO({
+    String? systemPrompt,
     int? lengthConstraint,
     I18nText? preambleText,
     @Default(false) bool includeHistoricalSummary,

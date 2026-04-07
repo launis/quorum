@@ -28,8 +28,7 @@ class WorkflowStepsTab extends StatelessWidget {
         id: 'step_${DateTime.now().millisecondsSinceEpoch}',
         taskBlueprint: '',
         dependsOn: const [],
-        inputMappings: const {'inputs': '\$inputs'},
-        allowedMcpTools: const [],
+        inputMappings: const {'inputs': r'$inputs'},
       ),
     );
     onChanged(workflow.copyWith(steps: steps));

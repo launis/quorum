@@ -1660,6 +1660,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get topPLabel => 'Top-P (Ydinotanta)';
 
   @override
+  String get topKLabel => 'Top-K (Ehdokkaat)';
+
+  @override
   String get tpmLimitLabel => 'TPM-raja (Tokens per min)';
 
   @override

@@ -394,6 +394,11 @@ class ModelRegistryView extends HookConsumerWidget {
                         (val) => updateModel(modelId, cfg.copyWith(topP: val)),
                       ),
                       _buildIntField(
+                        cfg.topK,
+                        l10n.topKLabel,
+                        (val) => updateModel(modelId, cfg.copyWith(topK: val)),
+                      ),
+                      _buildIntField(
                         cfg.tpmLimit,
                         l10n.tpmLimitLabel,
                         (val) =>

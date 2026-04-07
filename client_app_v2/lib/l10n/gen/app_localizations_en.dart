@@ -1655,6 +1655,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get topPLabel => 'Top-P (Nucleus Sampling)';
 
   @override
+  String get topKLabel => 'Top-K (Candidates)';
+
+  @override
   String get tpmLimitLabel => 'TPM Limit (Tokens/Min)';
 
   @override

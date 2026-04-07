@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import '../../../../../l10n/gen/app_localizations.dart';
 import '../i18n_text_field.dart';
+import '../../../controllers/output_profile_controller.dart';
 
 /// **WorkflowGeneralTab**
 ///
@@ -156,25 +157,39 @@ class WorkflowGeneralTab extends ConsumerWidget {
                     const SizedBox(height: 16),
                     Builder(
                       builder: (context) {
-                        final outputProfiles = workflow.outputProfiles;
-                        final profileKeys = outputProfiles.keys.toList();
-                        if (profileKeys.isEmpty) profileKeys.add('default');
+                        final globalProfilesAsync = ref.watch(
+                          outputProfilesControllerProvider,
+                        );
+                        final globalProfiles = globalProfilesAsync.value ?? [];
+                        final applicableProfiles = globalProfiles
+                            .where((p) => p.workflowId == workflow.id)
+                            .toList();
+
+                        final profileIds = applicableProfiles
+                            .map((p) => p.id)
+                            .toList();
+                        final fallbackId = workflow.defaultProfileId.isNotEmpty
+                            ? workflow.defaultProfileId
+                            : 'default';
+                        if (profileIds.isEmpty) profileIds.add(fallbackId);
 
                         final currentDefault = workflow.defaultProfileId;
-                        final safeDefault = profileKeys.contains(currentDefault)
+                        final safeDefault = profileIds.contains(currentDefault)
                             ? currentDefault
-                            : profileKeys.first;
+                            : profileIds.first;
 
                         return DropdownButtonFormField<String>(
-                          key: ValueKey(profileKeys.join(':')),
+                          key: ValueKey(profileIds.join(':')),
                           initialValue: safeDefault == '' ? null : safeDefault,
                           decoration: InputDecoration(
                             labelText: l10n.studioWorkflowDefaultProfile,
                             border: const OutlineInputBorder(),
                             isDense: true,
                           ),
-                          items: profileKeys.map((key) {
-                            final profileData = outputProfiles[key];
+                          items: profileIds.map((key) {
+                            final profileData = applicableProfiles
+                                .where((p) => p.id == key)
+                                .firstOrNull;
                             final title =
                                 profileData?.name.translations['fi'] ??
                                 profileData?.name.translations['en'] ??

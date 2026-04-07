@@ -153,10 +153,10 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     hook_metadata = state.metadata or {}
     raw_lang = str(hook_metadata.get("target_locale") or inputs.get("language") or "en")
-    
+
     # Täydellinen sanitointi Accept-Language otsikoille (esim "fi-FI,fi;q=0.9")
     language = raw_lang.replace(",", ";").split(";")[0].split("-")[0].strip().lower()
-    
+
     lang_map = {"fi": "Finnish", "en": "English", "sv": "Swedish", "et": "Estonian"}
     lang_name = lang_map.get(language, language.upper())
 
@@ -359,29 +359,27 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             if language != "en":
                 logger.info(f"[SynthesisHook] Synthesis completed in English. Translating to {lang_name.upper()}...")
                 from backend_v2.hooks.translation_hook import translation_hook
+
                 trans_state = HookState(
                     execution_id=state.execution_id,
                     workflow_id=state.workflow_id,
-                    inputs={
-                        "language": language,
-                        "synthesized_markdown": result.synthesized_markdown,
-                        **section_dict
-                    }
+                    inputs={"language": language, "synthesized_markdown": result.synthesized_markdown, **section_dict},
                 )
-                trans_res = await translation_hook(trans_state, deps)
+                trans_res = await translation_hook(trans_state, deps)  # type: ignore[misc]
                 if trans_res.success and trans_res.state_delta:
                     logger.info("[SynthesisHook] Translation successful. Mapping back values.")
                     translated_global = trans_res.state_delta.get("synthesized_markdown", result.synthesized_markdown)
-                    
+
                     if result.cited_sources:
                         bib_title = "\n\n### Lähdeluettelo\n" if language == "fi" else "\n\n### References\n"
-                        bib_text = bib_title + "\n".join([f"[{i+1}] {src}" for i, src in enumerate(result.cited_sources)])
+                        bib_items = [f"[{i + 1}] {src}" for i, src in enumerate(result.cited_sources)]
+                        bib_text = bib_title + "\n".join(bib_items)
                         translated_global += bib_text
-                        
+
                     translated_sections = {}
                     for k in section_dict.keys():
                         translated_sections[k] = trans_res.state_delta.get(k, section_dict[k])
-                    
+
                     return HookResult(
                         success=True,
                         state_delta={
@@ -396,9 +394,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             global_md = result.synthesized_markdown
             if result.cited_sources:
                 bib_title = "\n\n### Lähdeluettelo\n" if language == "fi" else "\n\n### References\n"
-                bib_text = bib_title + "\n".join([f"[{i+1}] {src}" for i, src in enumerate(result.cited_sources)])
+                bib_text = bib_title + "\n".join([f"[{i + 1}] {src}" for i, src in enumerate(result.cited_sources)])
                 global_md += bib_text
-            
+
             return HookResult(
                 success=True,
                 state_delta={

@@ -81,5 +81,5 @@ async def test_text_consolidation_hook_success(mock_state: HookState, mock_deps:
 
         assert result.success is True
         assert result.state_delta is not None
-        assert result.state_delta["synthesized_markdown"] == "Global markdown."
+        assert result.state_delta["synthesized_markdown"] == "Global markdown.\n\n### References\n[1] [1] Source A"
         assert result.state_delta["section_syntheses"] == {"layout_0_1d_metrics": "Section markdown."}

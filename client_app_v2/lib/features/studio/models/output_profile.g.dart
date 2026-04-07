@@ -87,6 +87,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
         $checkKeys(
           json,
           allowedKeys: const [
+            'system_prompt',
             'length_constraint',
             'preamble_text',
             'include_historical_summary',
@@ -96,6 +97,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
           ],
         );
         final val = _SynthesisConfigDTO(
+          systemPrompt: $checkedConvert('system_prompt', (v) => v as String?),
           lengthConstraint: $checkedConvert(
             'length_constraint',
             (v) => (v as num?)?.toInt(),
@@ -127,6 +129,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
         return val;
       },
       fieldKeyMap: const {
+        'systemPrompt': 'system_prompt',
         'lengthConstraint': 'length_constraint',
         'preambleText': 'preamble_text',
         'includeHistoricalSummary': 'include_historical_summary',
@@ -138,6 +141,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
     <String, dynamic>{
+      'system_prompt': instance.systemPrompt,
       'length_constraint': instance.lengthConstraint,
       'preamble_text': instance.preambleText?.toJson(),
       'include_historical_summary': instance.includeHistoricalSummary,

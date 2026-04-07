@@ -19,8 +19,13 @@ logger = logging.getLogger(__name__)
 class ReasoningTrace(BaseModel):
     """Stores hidden Chain-of-Thought (preserves "Thinking Tokens")."""
 
-    thought_process: str = Field(description="The raw chain-of-thought or reasoning trace.")
-    conclusion: str = Field(description="The final conclusion derived from the reasoning.")
+    thought_process: str = Field(
+        description="The raw chain-of-thought or reasoning trace. "
+        "MUST be written strictly in English to ensure cross-run determinism."
+    )
+    conclusion: str = Field(
+        description="The final conclusion derived from the reasoning. MUST be written strictly in English."
+    )
     confidence_score: float = Field(ge=0.0, le=1.0, description="Confidence in the conclusion.")
     model_name: str | None = Field(default=None, description="The model used for reasoning.")
     token_usage: dict[str, int] = Field(default_factory=dict, description="Token usage statistics.")

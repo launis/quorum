@@ -4261,6 +4261,18 @@
             "title": "Top P",
             "description": "Nucleus sampling probability"
           },
+          "top_k": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top K",
+            "description": "Top-K sampling"
+          },
           "tpm_limit": {
             "anyOf": [
               {
@@ -5271,12 +5283,12 @@
           "thought_process": {
             "type": "string",
             "title": "Thought Process",
-            "description": "The raw chain-of-thought or reasoning trace."
+            "description": "The raw chain-of-thought or reasoning trace. MUST be written strictly in English to ensure cross-run determinism."
           },
           "conclusion": {
             "type": "string",
             "title": "Conclusion",
-            "description": "The final conclusion derived from the reasoning."
+            "description": "The final conclusion derived from the reasoning. MUST be written strictly in English."
           },
           "confidence_score": {
             "type": "number",
@@ -5627,6 +5639,18 @@
       },
       "SynthesisConfigDTO": {
         "properties": {
+          "system_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Prompt",
+            "description": "Optional system prompt overriding default synthesis."
+          },
           "length_constraint": {
             "anyOf": [
               {

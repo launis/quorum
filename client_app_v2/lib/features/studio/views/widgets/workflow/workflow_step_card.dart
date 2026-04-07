@@ -43,7 +43,6 @@ class WorkflowStepCard extends StatelessWidget {
 
     final dependsOn = List<String>.from(stepDef.dependsOn);
     final mappings = Map<String, String>.from(stepDef.inputMappings);
-    final allowedMcpTools = List<String>.from(stepDef.allowedMcpTools);
 
     String getBlueprintLabel(String stepId) {
       if (stepId.isEmpty) return '';
@@ -143,33 +142,6 @@ class WorkflowStepCard extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-
-            const SizedBox(height: 16),
-            Text(
-              l10n.studioWorkflowXaiReporting,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: mcpGateways.map((toolMap) {
-                final slug = toolMap['slug']?.toString() ?? '';
-                final isSelected = allowedMcpTools.contains(slug);
-                return FilterChip(
-                  label: Text(slug),
-                  selected: isSelected,
-                  onSelected: (bool selected) {
-                    final newMcpTools = List<String>.from(allowedMcpTools);
-                    if (selected) {
-                      if (!newMcpTools.contains(slug)) newMcpTools.add(slug);
-                    } else {
-                      newMcpTools.remove(slug);
-                    }
-                    update(stepDef.copyWith(allowedMcpTools: newMcpTools));
-                  },
-                );
-              }).toList(),
             ),
 
             const SizedBox(height: 16),

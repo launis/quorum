@@ -120,6 +120,23 @@ class LLMProviderConfig(BaseModel):
             json_schema_extra={"x-ui-label": "Temperature"},
         ),
     ] = 0.7
+    top_p: Annotated[
+        float | None,
+        Field(
+            ge=0.0,
+            le=1.0,
+            description="Nucleus sampling probability.",
+            json_schema_extra={"x-ui-label": "Top-P"},
+        ),
+    ] = None
+    top_k: Annotated[
+        int | None,
+        Field(
+            ge=1,
+            description="Top-K sampling limit.",
+            json_schema_extra={"x-ui-label": "Top-K"},
+        ),
+    ] = None
     tpm_limit: Annotated[
         int,
         Field(

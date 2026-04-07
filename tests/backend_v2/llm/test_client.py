@@ -14,6 +14,8 @@ class DummyConfig(BaseModel):
     temperature: float = 0.0
     default_max_tokens: int = 1000
     caching_strategy: str = "none"
+    top_p: float | None = None
+    top_k: int | None = None
 
 
 class DummyStrictModel(BaseModel):

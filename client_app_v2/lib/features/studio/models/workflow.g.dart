@@ -115,7 +115,6 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
         'task_blueprint',
         'depends_on',
         'input_mappings',
-        'allowed_mcp_tools',
         'ui_pos_x',
         'ui_pos_y',
       ],
@@ -142,11 +141,6 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
             ) ??
             const {},
       ),
-      allowedMcpTools: $checkedConvert(
-        'allowed_mcp_tools',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
-      ),
       uiPosX: $checkedConvert(
         'ui_pos_x',
         (v) => (v as num?)?.toDouble() ?? 0.0,
@@ -162,7 +156,6 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
     'taskBlueprint': 'task_blueprint',
     'dependsOn': 'depends_on',
     'inputMappings': 'input_mappings',
-    'allowedMcpTools': 'allowed_mcp_tools',
     'uiPosX': 'ui_pos_x',
     'uiPosY': 'ui_pos_y',
   },
@@ -175,7 +168,6 @@ Map<String, dynamic> _$StepRuleToJson(_StepRule instance) => <String, dynamic>{
   ),
   'depends_on': instance.dependsOn,
   'input_mappings': instance.inputMappings,
-  'allowed_mcp_tools': instance.allowedMcpTools,
   'ui_pos_x': instance.uiPosX,
   'ui_pos_y': instance.uiPosY,
 };

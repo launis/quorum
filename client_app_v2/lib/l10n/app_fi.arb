@@ -547,6 +547,7 @@
   "configTypeLabel": "Asetuksen Tyyppi",
   "maxTokensLabel": "Maksimi Tokenit",
   "topPLabel": "Top-P (Ydinotanta)",
+  "topKLabel": "Top-K (Ehdokkaat)",
   "tpmLimitLabel": "TPM-raja (Tokens per min)",
   "rpmLimitLabel": "RPM-raja (Requests per min)",
   "parsingModeLabel": "J\u00e4sennystila",

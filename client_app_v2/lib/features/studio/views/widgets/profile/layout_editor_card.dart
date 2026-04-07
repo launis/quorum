@@ -336,7 +336,9 @@ class LayoutEditorCard extends ConsumerWidget {
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                       validator: (val) {
                         if (val != null && val != '*') {
-                          final occurrenceCount = blocksList.where((b) => b == val).length;
+                          final occurrenceCount = blocksList
+                              .where((b) => b == val)
+                              .length;
                           if (occurrenceCount > 1) {
                             // Dynamic fallback directly from L10n without regenerating all locales fully if l10n fails slightly
                             try {
