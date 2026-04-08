@@ -37,6 +37,7 @@ class OutputProfileCreateDTO(BaseModel):
     )
     max_extension_items: int | None = Field(
         default=None,
+        ge=1,
         description="Max number of items to show per grouped XAI extension. Sorted by severity.",
     )
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
@@ -74,6 +75,7 @@ class OutputProfileUpdateDTO(BaseModel):
     )
     max_extension_items: int | None = Field(
         default=None,
+        ge=1,
         description="Max number of items to show per grouped XAI extension. Sorted by severity.",
     )
     display_scale: Literal["original", "custom", "normalized_100"] | None = Field(

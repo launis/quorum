@@ -1095,5 +1095,12 @@
   "synAllowedExports": "Sallitut vientimuodot",
   "profileEditorVisibleExtensions": "Näytettävät XAI-laajennukset",
   "profileEditorMaxExtensionItems": "Maksimimäärä per XAI-laajennus (Top X)",
-  "profileEditorMaxExtensionItemsDesc": "Rajoittaa kuinka monta kriteeriä näytetään per osio (lajiteltu kriittisyyden mukaan)."
+  "profileEditorMaxExtensionItemsDesc": "Rajoittaa kuinka monta kriteeriä näytetään per osio (lajiteltu kriittisyyden mukaan).",
+  "reportExecutiveSummary": "Yhteenveto",
+  "reportPromptTokens": "Syöte: {count}",
+  "@reportPromptTokens": { "placeholders": { "count": { "type": "String" } } },
+  "reportCompletionTokens": "Vastaus: {count}",
+  "@reportCompletionTokens": { "placeholders": { "count": { "type": "String" } } },
+  "reportReasoningTokens": "Päättely: {count}",
+  "@reportReasoningTokens": { "placeholders": { "count": { "type": "String" } } }
 }

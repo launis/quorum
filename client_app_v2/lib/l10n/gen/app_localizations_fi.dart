@@ -3329,4 +3329,22 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get profileEditorMaxExtensionItemsDesc =>
       'Rajoittaa kuinka monta kriteeriä näytetään per osio (lajiteltu kriittisyyden mukaan).';
+
+  @override
+  String get reportExecutiveSummary => 'Yhteenveto';
+
+  @override
+  String reportPromptTokens(String count) {
+    return 'Syöte: $count';
+  }
+
+  @override
+  String reportCompletionTokens(String count) {
+    return 'Vastaus: $count';
+  }
+
+  @override
+  String reportReasoningTokens(String count) {
+    return 'Päättely: $count';
+  }
 }

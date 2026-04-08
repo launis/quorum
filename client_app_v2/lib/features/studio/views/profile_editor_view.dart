@@ -31,32 +31,30 @@ class ProfileEditorView extends HookConsumerWidget {
     final promptBlocksState = ref.watch(promptBlocksControllerProvider);
     final stepsState = ref.watch(stepsControllerProvider);
 
-    return formState.when(
-      loading: () => Scaffold(
-        appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowId))),
-        body: const Center(child: CircularProgressIndicator()),
+    return switch (formState) {
+      AsyncData(:final value) => _buildScaffold(
+        context,
+        ref,
+        l10n,
+        formState,
+        value,
+        promptBlocksState,
+        stepsState,
       ),
-      error: (e, st) => Scaffold(
+      AsyncError(:final error, :final stackTrace) => Scaffold(
         appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowId))),
         body: ErrorView(
-          error: e,
-          stackTrace: st,
+          error: error,
+          stackTrace: stackTrace,
           compact: false,
           onRetry: () => ref.invalidate(workflowFormProvider(workflowId)),
         ),
       ),
-      data: (payload) {
-        return _buildScaffold(
-          context,
-          ref,
-          l10n,
-          formState,
-          payload,
-          promptBlocksState,
-          stepsState,
-        );
-      },
-    );
+      _ => Scaffold(
+        appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowId))),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+    };
   }
 
   Widget _buildScaffold(
@@ -221,10 +219,14 @@ class ProfileEditorView extends HookConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  l10n.outputProfilesDictionary,
-                  style: Theme.of(context).textTheme.headlineSmall,
+                Expanded(
+                  child: Text(
+                    l10n.outputProfilesDictionary,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
+                const SizedBox(width: 8),
                 FilledButton.icon(
                   onPressed: addProfileDialog,
                   icon: const Icon(Icons.add),
@@ -287,14 +289,18 @@ class ProfileEditorView extends HookConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  l10n.variantIdLabel(profileId),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                Expanded(
+                  child: Text(
+                    l10n.variantIdLabel(profileId),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 8),
                 IconButton(
                   icon: Icon(
                     Icons.delete,
@@ -359,7 +365,9 @@ class ProfileEditorView extends HookConsumerWidget {
             const SizedBox(height: 24),
             InputDecorator(
               decoration: InputDecoration(
-                labelText: AppLocalizations.of(context)!.profileEditorVisibleExtensions,
+                labelText: AppLocalizations.of(
+                  context,
+                )!.profileEditorVisibleExtensions,
                 isDense: true,
                 border: OutlineInputBorder(),
               ),
@@ -424,22 +432,59 @@ class ProfileEditorView extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
-            TextFormField(
-              initialValue: profileDef.maxExtensionItems?.toString() ?? '',
-              decoration: InputDecoration(
-                labelText: AppLocalizations.of(context)!.profileEditorMaxExtensionItems,
-                helperText: AppLocalizations.of(context)!.profileEditorMaxExtensionItemsDesc,
-                border: const OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-              onChanged: (val) {
-                final parsed = int.tryParse(val);
-                if (val.isEmpty) {
-                  rebuildProfile(profileDef.copyWith(maxExtensionItems: null));
-                } else if (parsed != null) {
-                  rebuildProfile(profileDef.copyWith(maxExtensionItems: parsed));
-                }
-              },
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.profileEditorMaxExtensionItems,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Slider(
+                        value: (profileDef.maxExtensionItems ?? 21).toDouble(),
+                        min: 1,
+                        max: 21,
+                        divisions: 20,
+                        label: profileDef.maxExtensionItems == null
+                            ? '∞'
+                            : profileDef.maxExtensionItems.toString(),
+                        onChanged: (val) {
+                          if (val.round() >= 21) {
+                            rebuildProfile(
+                              profileDef.copyWith(maxExtensionItems: null),
+                            );
+                          } else {
+                            rebuildProfile(
+                              profileDef.copyWith(
+                                maxExtensionItems: val.round(),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                    SizedBox(
+                      width: 40,
+                      child: Text(
+                        profileDef.maxExtensionItems?.toString() ?? '∞',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.profileEditorMaxExtensionItemsDesc,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             SynthesisEditorCard(

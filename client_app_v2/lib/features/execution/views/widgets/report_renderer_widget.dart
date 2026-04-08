@@ -58,7 +58,6 @@ class ReportRendererWidget extends ConsumerWidget {
   }
 
   Widget _buildGlobalSynthesisBox(BuildContext context) {
-    final isFi = Localizations.localeOf(context).languageCode == 'fi';
     return Padding(
       padding: const EdgeInsets.only(
         top: 16.0,
@@ -70,7 +69,7 @@ class ReportRendererWidget extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isFi ? 'Yhteenveto' : 'Executive Summary',
+            AppLocalizations.of(context)!.reportExecutiveSummary,
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -250,15 +249,21 @@ class ReportRendererWidget extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            "Prompt: ${payload.promptTokens ?? '-'}",
+                            l10n.reportPromptTokens(
+                              (payload.promptTokens ?? '-').toString(),
+                            ),
                             style: const TextStyle(fontSize: 13),
                           ),
                           Text(
-                            "Completion: ${payload.completionTokens ?? '-'}",
+                            l10n.reportCompletionTokens(
+                              (payload.completionTokens ?? '-').toString(),
+                            ),
                             style: const TextStyle(fontSize: 13),
                           ),
                           Text(
-                            "Reasoning: ${payload.reasoningTokens ?? '-'}",
+                            l10n.reportReasoningTokens(
+                              (payload.reasoningTokens ?? '-').toString(),
+                            ),
                             style: const TextStyle(fontSize: 13),
                           ),
                         ],
@@ -522,7 +527,8 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                             ),
 
-                          if (layout.textDeliveryMode == 'full' && axis.confidence != null)
+                          if (layout.textDeliveryMode == 'full' &&
+                              axis.confidence != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Text(
@@ -537,7 +543,8 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                             ),
 
-                          if (layout.textDeliveryMode == 'full' && axis.riskFlag == true)
+                          if (layout.textDeliveryMode == 'full' &&
+                              axis.riskFlag == true)
                             Container(
                               margin: const EdgeInsets.only(top: 8.0),
                               padding: const EdgeInsets.symmetric(
@@ -742,7 +749,8 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                             ),
 
-                          if (layout.textDeliveryMode != 'none' && shouldShowQuote[index])
+                          if (layout.textDeliveryMode != 'none' &&
+                              shouldShowQuote[index])
                             Container(
                               margin: const EdgeInsets.only(top: 12.0),
                               padding: const EdgeInsets.all(12.0),
@@ -894,8 +902,7 @@ class ReportRendererWidget extends ConsumerWidget {
             ),
           ),
         ),
-        if (layout.textDeliveryMode != 'none')
-          _build1DMetrics(context, layout),
+        if (layout.textDeliveryMode != 'none') _build1DMetrics(context, layout),
       ],
     );
   }
@@ -936,8 +943,7 @@ class ReportRendererWidget extends ConsumerWidget {
             ),
           ),
         ),
-        if (layout.textDeliveryMode != 'none')
-          _build1DMetrics(context, layout),
+        if (layout.textDeliveryMode != 'none') _build1DMetrics(context, layout),
       ],
     );
   }

@@ -3238,6 +3238,19 @@
             "title": "Visible Extensions",
             "description": "List of XAI extensions visible at the end of the report."
           },
+          "max_extension_items": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Extension Items",
+            "description": "Max number of items to show per grouped XAI extension. Sorted by severity."
+          },
           "display_scale": {
             "type": "string",
             "enum": [
@@ -3309,6 +3322,19 @@
             "type": "array",
             "title": "Visible Extensions",
             "description": "List of XAI extensions visible at the end of the report."
+          },
+          "max_extension_items": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Extension Items",
+            "description": "Max number of items to show per grouped XAI extension. Sorted by severity."
           },
           "display_scale": {
             "type": "string",
@@ -4047,6 +4073,18 @@
       },
       "MCPAuditTrace": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Unique identifier for the trace injected by the driver."
+          },
           "tool_id": {
             "type": "string",
             "title": "Tool Id",
@@ -4629,11 +4667,16 @@
             "title": "Target Blocks",
             "description": "Optional explicit block IDs to plot, filtering and ordering the axes."
           },
-          "show_text": {
-            "type": "boolean",
-            "title": "Show Text",
-            "description": "Whether to include text justifications in this block.",
-            "default": true
+          "text_delivery_mode": {
+            "type": "string",
+            "enum": [
+              "full",
+              "titles_only",
+              "none"
+            ],
+            "title": "Text Delivery Mode",
+            "description": "Granularity of text output in PDF and UI grids.",
+            "default": "full"
           },
           "synthesis": {
             "anyOf": [
@@ -4719,11 +4762,16 @@
             "title": "Target Blocks",
             "description": "Optional explicit block IDs to plot, filtering and ordering the axes."
           },
-          "show_text": {
-            "type": "boolean",
-            "title": "Show Text",
-            "description": "Whether to include text justifications in this block.",
-            "default": true
+          "text_delivery_mode": {
+            "type": "string",
+            "enum": [
+              "full",
+              "titles_only",
+              "none"
+            ],
+            "title": "Text Delivery Mode",
+            "description": "Granularity of text output in PDF and UI grids.",
+            "default": "full"
           },
           "synthesis": {
             "anyOf": [
@@ -4805,6 +4853,19 @@
             "type": "array",
             "title": "Visible Extensions",
             "description": "List of XAI extensions visible at the end of the report."
+          },
+          "max_extension_items": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Extension Items",
+            "description": "Max number of items to show per grouped XAI extension. Sorted by severity."
           },
           "display_scale": {
             "type": "string",
@@ -4888,6 +4949,17 @@
             },
             "type": "array",
             "title": "Visible Extensions"
+          },
+          "max_extension_items": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Extension Items"
           },
           "display_scale": {
             "type": "string",

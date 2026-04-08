@@ -6053,6 +6053,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Limits how many most critical items are shown per section (Severity sorted).'**
   String get profileEditorMaxExtensionItemsDesc;
+
+  /// No description provided for @reportExecutiveSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Executive Summary'**
+  String get reportExecutiveSummary;
+
+  /// No description provided for @reportPromptTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt: {count}'**
+  String reportPromptTokens(String count);
+
+  /// No description provided for @reportCompletionTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Completion: {count}'**
+  String reportCompletionTokens(String count);
+
+  /// No description provided for @reportReasoningTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Reasoning: {count}'**
+  String reportReasoningTokens(String count);
 }
 
 class _AppLocalizationsDelegate

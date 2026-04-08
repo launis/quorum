@@ -561,6 +561,7 @@ class ReportLayoutDTO(V2CoreBase):
             data.pop("show_text", None)
             data.pop("showText", None)
         return data
+
     synthesis: SynthesisConfigDTO | None = Field(default=None)
     synthesis_md: str | None = Field(default=None, description="The rendered synthesis text for this layout block")
 
@@ -651,6 +652,7 @@ class OutputLayoutBlock(V2CoreBase):
             data.pop("show_text", None)
             data.pop("showText", None)
         return data
+
     synthesis: SynthesisConfigDTO | None = Field(
         default=None, description="Optional Section-Level Synthesis configuration for this block."
     )
@@ -675,6 +677,7 @@ class OutputProfile(V2CoreBase):
     )
     max_extension_items: int | None = Field(
         default=None,
+        ge=1,
         description="Max number of items to show per grouped XAI extension. Sorted by severity.",
     )
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
@@ -711,6 +714,7 @@ class EmbeddedOutputProfile(V2CoreBase):
     )
     max_extension_items: int | None = Field(
         default=None,
+        ge=1,
         description="Max number of items to show per grouped XAI extension. Sorted by severity.",
     )
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
@@ -929,7 +933,13 @@ class ExecutionRecord(V2CoreBase):
                 val = data.get(field)
                 if isinstance(val, str):
                     try:
+                        if val.endswith("Z"):
+                            val = val.replace("Z", "+00:00")
                         data[field] = datetime.fromisoformat(val)
-                    except ValueError:
-                        pass
+                    except ValueError as e:
+                        import logging
+
+                        logger = logging.getLogger(__name__)
+                        logger.error("Failed to parse ExecutionRecord %s", field, exc_info=True)
+                        raise ValueError(f"Input should be a valid datetime or ISO format for {field}: {val}") from e
         return data

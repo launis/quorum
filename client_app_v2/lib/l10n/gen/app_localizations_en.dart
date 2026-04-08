@@ -3304,4 +3304,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get profileEditorMaxExtensionItemsDesc =>
       'Limits how many most critical items are shown per section (Severity sorted).';
+
+  @override
+  String get reportExecutiveSummary => 'Executive Summary';
+
+  @override
+  String reportPromptTokens(String count) {
+    return 'Prompt: $count';
+  }
+
+  @override
+  String reportCompletionTokens(String count) {
+    return 'Completion: $count';
+  }
+
+  @override
+  String reportReasoningTokens(String count) {
+    return 'Reasoning: $count';
+  }
 }

@@ -442,8 +442,8 @@ class PromptCompiler:
                         Field(
                             default=None,
                             description=(
-                                "CRITICAL FAKTANTARKISTUS: Peilaa tulostasi 'search_result' XML-elementtiin. "
-                                "Tukeeko vai kumoako Google-data väitteen? Jos ei liity, palauta null."
+                                "CRITICAL FACT CHECK: Mirror your output against the 'search_result' XML element. "
+                                "Does the Google data support or refute the claim? If unrelated, return null."
                             ),
                         ),
                     )
@@ -762,7 +762,7 @@ class PromptCompiler:
         tool_list = ", ".join(allowed_tools)
         return (
             "[SYSTEM: DYNAMIC TOOL AUTOMATION]\n"
-            f"Käytä dynaamisia työkaluja [{tool_list}] tarvittaessa etsiäksesi ajantasaista materiaalia. "
-            "Pysäytä tiedonkeruu heti, kun sinulla on riittävästi kontekstia. "
-            "Upota löytämäsi lähteet näihin laajennuskenttiin."
+            f"Use the dynamic tools [{tool_list}] proactively to search for up-to-date material. "
+            "Stop data collection as soon as you have sufficient context. "
+            "Embed your discovered sources into the corresponding extension fields."
         )

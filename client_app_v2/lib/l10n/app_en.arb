@@ -1540,5 +1540,12 @@
   "synAllowedExports": "Allowed Exports",
   "profileEditorVisibleExtensions": "Visible XAI Extensions",
   "profileEditorMaxExtensionItems": "Max Items per XAI Extension (Top X)",
-  "profileEditorMaxExtensionItemsDesc": "Limits how many most critical items are shown per section (Severity sorted)."
+  "profileEditorMaxExtensionItemsDesc": "Limits how many most critical items are shown per section (Severity sorted).",
+  "reportExecutiveSummary": "Executive Summary",
+  "reportPromptTokens": "Prompt: {count}",
+  "@reportPromptTokens": { "placeholders": { "count": { "type": "String" } } },
+  "reportCompletionTokens": "Completion: {count}",
+  "@reportCompletionTokens": { "placeholders": { "count": { "type": "String" } } },
+  "reportReasoningTokens": "Reasoning: {count}",
+  "@reportReasoningTokens": { "placeholders": { "count": { "type": "String" } } }
 }
