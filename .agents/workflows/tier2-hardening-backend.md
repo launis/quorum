@@ -7,13 +7,14 @@ description: Tier 2 (Backend Hardening) - Step-by-step auditing loop for Python 
 ```xml
 <system_prompt>
   <objective>Tier 2: Python Backend Hardening Loop</objective>
-  <context_rules>Lue ensin uusi Antigravity-säännöstö `.agents/rules/01-python-backend.md` ja `.agents/rules/00-antigravity-core.md`: UNIVERSAL MANDATE & ARCHITECTURE CONSTRAINTS (V5.2 - PHASE 9 HARDENING). Noudata näitä ohjeita ehdottomasti.</context_rules>
+  <context_rules>Lue ensin uusi Antigravity-säännöstö `.agents/rules/01-python-backend.md` ja `.agents/rules/00-antigravity-core.md`: UNIVERSAL MANDATE & ARCHITECTURE CONSTRAINTS (V5.2 - PHASE 9 HARDENING). Noudata näitä ohjeita ehdottomasti. Lue säännöstö `.agents/rules/04_directory_reference.md` hakemistorakenteen ymmärtämiseksi tarvittaessa.</context_rules>
   <phases>
     <phase id="1" name="Mapping (Kartoitus ja Suunnitelma)">
 Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus) ja hahmottaa hakemiston rakenteen syvyys.
 * Jos käyttäjä antaa komennossaan tarkan alipolun (esim. `backend_v2/api/routers/studio`), kartoita RAKENNE VAIN TÄSTÄ POLUSTA alaspäin. Jos alipolkua ei erikseen määritetä, kartoita koko `backend_v2`.
 * **EHDOTON KIELTO (Sivuutettavat tiedostot):** Sivuuta analyysissä täysin `__pycache__` -kansiot, virtuaaliympäristöt (`venv`, `.venv`), alembic-migraatioiden versiotiedostot (`alembic/versions`) ja täysin tyhjät `__init__.py` -tiedostot. Älä lue, auditoi tai yritä muokata niitä säästääksesi resursseja ja kontekstia.
 * **SÄÄNTÖ:** Rakenna havainnoistasi chattiin tulostettava virtuaalinen Markdown-tarkistuslista (`task_backend.md`). Jaa lista niin hienojakoiseksi, että **JOKAINEN alin alihakemisto (leaf directory) on oma erillinen kohtansa listalla** (esim. pelkkä `backend_v2/api/routers` ei riitä, vaan listalla on oltava erikseen `backend_v2/api/routers/studio` jne.). Hakemistoja ei saa niputtaa.
+* **STATE PERSISTENCE & CONTEXT RENEWAL:** Jos käyttäjän komennossa on `--resume` tai tiedosto `c:\src\quorum\tmp\hardening_state.json` on olemassa, lue se. Jätä listalta pois kaikki hakemistot, jotka on siellä merkitty tilaan "DONE". Tuo lista vain tekemättömistä hakemistoista. Aseta samalla lokaali tavoite: "Käsittelen maksimissaan 5 kansiota tässä sessiossa estääkseni kontekstin hajoamisen."
 * **KIELTO:** ÄLÄ tee koodimuutoksia tässä vaiheessa. Päätä vastauksesi aina sanoihin: *"Lista valmis. Odotan PROCEED-komentoa."*
     </phase>
     <phase id="2" name="Auditing (Systemaattinen Auditointi, One Subdirectory At A Time)">
@@ -31,6 +32,8 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
 </audit_mandates>
 
 3. Lue KAIKKI kyseisen alihakemiston `.py`-tiedostot (huomioiden sivuutettavat kansiot). Työskentele yllä olevan tarkistuslistan avulla peilaten löydöksiä `01-python-backend.md` mukaisiksi. Raportoi löydökset kansion sisältä. Jos alihakemisto on puhdas, kerro se. Pysähdy odottamaan komentoa "FIX" (jos virheitä löytyi) tai "NEXT" (jos kansio oli puhdas).
+4. **STATE PERSISTENCE (TALLENNUS):** Kun kansio on valmis (eli se oli puhdas TAI sait komennon korjata ja korjasit onnistuneesti), päivitä VÄLITTÖMÄSTI (lue, lisää, tallenna) `c:\src\quorum\tmp\hardening_state.json` ja merkkaa tämä alihakemisto tilaan "DONE".
+5. **SESSION LIMIT**: Jos olet käsitellyt 5 kansiota TÄSSÄ sessiossa, LOPETA välittömästi. Älä siirry seuraavaan. Tulosta käyttäjälle: *"Sessioraja (5 kansiota) saavutettu. Avaa uusi chat-ikkuna ja anna komento `/tier2-hardening-backend --resume` jatkaaksesi laatuporttia turvallisesti."* 
     </phase>
     <critical_remediation_protocol name="STEP 3 - FIX (Korjausvaihe)">
 Tämä on kriittinen suoritusprotokolla. Kun annan komennon **"FIX"**, sinun on välittömästi korjattava listaamasi kansion virheet 2026-mandaatin tiukkojen sääntöjen mukaisesti. Sinun on noudatettava alla olevia rajoitteita poikkeuksetta:

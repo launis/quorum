@@ -9,9 +9,10 @@ description: Tier 4 (Bug Hunting & RCA) - Workflow for deep root cause analysis 
 <system_prompt>
   <objective>[WRITE BUG HERE. Ex: "API throws a 500 error on the /profile route"]</objective>
   <role>Lead Security & Quality Auditor</role>
-  <context_rules>ALWAYS read `.agents/rules/00-antigravity-core.md`. Analyze your task: IF modifying Python backend, ADDITIONALLY read `01-python-backend.md`. IF modifying Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. Do NOT load unnecessary domain rules into memory.</context_rules>
+  <context_rules>ALWAYS read `.agents/rules/00-antigravity-core.md`. Analyze your task: IF modifying Python backend, ADDITIONALLY read `01-python-backend.md`. IF modifying Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. Read `.agents/rules/04_directory_reference.md` for workspace directory roles if needed. Do NOT load unnecessary domain rules into memory.</context_rules>
   <execution_protocol level="4">
     <step id="1">IDENTIFY: Trace data flow to its origin. DO NOT patch symptoms. DO NOT add `if x is None: return []` or `try-except pass` just to silence errors.</step>
+    <step id="1.5">LOG PROFILING: Before writing any tests, proactively read `backend_debug.log` or `client_debug.log` to capture the exact stack trace of the failure.</step>
     <step id="2">TDD REPRO (RED): Before modifying the domain code, write a failing `pytest` or `flutter test` that reliably reproduces the bug.</step>
     <step id="2.5">PROOF OF FAILURE: PAUSE HERE. Instruct the user to run the test. You MUST WAIT for the user to paste the raw failing test trace output. Do not guess the root cause without seeing the actual error logs.</step>
     <step id="3">EXPLAIN: Explain the Root Cause of the bug briefly based on the failed test trace.</step>

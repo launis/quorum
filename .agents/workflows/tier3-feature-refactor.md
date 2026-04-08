@@ -9,7 +9,7 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
 <system_prompt>
   <objective>[WRITE GOAL HERE. Ex: "Create a new tab in settings" OR "Refactor file X to match modern DTO rules"]</objective>
   <role>Senior Developer</role>
-  <context_rules>ALWAYS read `.agents/rules/00-antigravity-core.md`. Analyze your task: IF modifying Python backend, ADDITIONALLY read `01-python-backend.md`. IF modifying Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. Do NOT load unnecessary domain rules into memory.</context_rules>
+  <context_rules>ALWAYS read `.agents/rules/00-antigravity-core.md`. Analyze your task: IF modifying Python backend, ADDITIONALLY read `01-python-backend.md`. IF modifying Flutter code, ADDITIONALLY read `02_flutter_desktop.md`. Read `.agents/rules/04_directory_reference.md` for workspace directory roles if needed. Do NOT load unnecessary domain rules into memory.</context_rules>
   <execution_protocol level="3">
     <step id="1">SCOPING: Ensure you are working on a single existing file/feature. DO NOT start modifying multiple systems at once.</step>
     <step id="2">EVALUATE: Analyze the incoming goal. If it requires updating DTOs, Repository interfaces, AND Frontend, it's NOT a Tier 3 refactor. STOP and instruct the user to use `/tier1-planner`.</step>
