@@ -455,6 +455,7 @@ class PromptCompiler:
                         ...,
                         description=(
                             "Devil's advocate formulation argument. Why might your initial assumption be wrong? "
+                            "Limit to MAX 2 short, punchy sentences. "
                             f"MANDATORY LANGUAGE: '{target_locale}'."
                         ),
                     ),
@@ -479,6 +480,7 @@ class PromptCompiler:
                         ...,
                         description=(
                             "Concrete coaching tip/remediation advice to the subject. "
+                            "Limit to strictly 1-2 short sentences. "
                             f"MANDATORY LANGUAGE: '{target_locale}'."
                         ),
                     ),
@@ -509,7 +511,8 @@ class PromptCompiler:
                     Field(
                         ...,
                         description=(
-                            f"Actionable array of textual remediation steps. MANDATORY LANGUAGE: '{target_locale}'."
+                            "Actionable array of MAX 3 most critical textual remediation steps. "
+                            f"MANDATORY LANGUAGE: '{target_locale}'."
                         ),
                     ),
                 )
@@ -535,12 +538,13 @@ class PromptCompiler:
                     ),
                 )
 
-            if block_type == "string":
-                # String-tyyppisillä lokeilla (TEXT inputs) ei ole numeerista kaavaa
+            if block_type not in ("float", "int"):
+                # Ei-numeerisilla lokeilla (TEXT/INFORMATION/QUESTION) ei ole numeerista kaavaa
                 sub_fields["step_4_final_score"] = (
                     str,
                     Field(..., description=f"Textual evaluation strictly mapped to <MATRIX id='{crit_id}'>."),
                 )
+                threshold = 0.0
             else:
                 # FLOAT-lohkojen matemaattinen tyyppiturvallisuus
                 # LLM NATIVE BOUNDS: Johdetaan puhtaasti matrizin sisäisistä todellisista asteikoista
@@ -585,11 +589,16 @@ class PromptCompiler:
                         ),
                     ),
                 )
+                from backend_v2.models.enums import SelfHealingThresholdRatio
+
+                # Fetch explicit ratio from block or fallback to STRICT
+                raw_ratio = crit.get("self_healing_evidence_threshold_ratio", SelfHealingThresholdRatio.STRICT.value)
+                ratio_val = float(raw_ratio)
+
+                # Calculate dynamic threshold for "high score"
+                threshold = llm_min + (llm_max - llm_min) * ratio_val
 
             from pydantic import ConfigDict
-
-            # Calculate dynamic threshold for "high score" (e.g. top 25% of the scale)
-            threshold = llm_min + (llm_max - llm_min) * 0.75
 
             MicroCotBase = make_micro_cot_base(threshold, crit_id)
 

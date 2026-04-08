@@ -2653,7 +2653,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get presetAutomatic => 'Automatic Validation';
 
   @override
-  String get showTextLabel => 'Show Text';
+  String get textDeliveryModeLabel => 'Text Detail Level';
+
+  @override
+  String get textModeFull => 'Full (Graph, titles and body text)';
+
+  @override
+  String get textModeTitlesOnly => 'Titles Only (Graph and titles/scores)';
+
+  @override
+  String get textModeNone => 'Reduced (Graph and summary only)';
 
   @override
   String get layoutBlockTitleLabel => 'Layout Block Title';
@@ -3284,4 +3293,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get synAllowedExports => 'Allowed Exports';
+
+  @override
+  String get profileEditorVisibleExtensions => 'Visible XAI Extensions';
+
+  @override
+  String get profileEditorMaxExtensionItems =>
+      'Max Items per XAI Extension (Top X)';
+
+  @override
+  String get profileEditorMaxExtensionItemsDesc =>
+      'Limits how many most critical items are shown per section (Severity sorted).';
 }

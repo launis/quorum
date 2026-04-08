@@ -20,7 +20,7 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         'description',
         'steps',
         'target_blocks',
-        'show_text',
+        'text_delivery_mode',
         'synthesis',
         'synthesis_md',
       ],
@@ -48,7 +48,10 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
-      showText: $checkedConvert('show_text', (v) => v as bool? ?? true),
+      textDeliveryMode: $checkedConvert(
+        'text_delivery_mode',
+        (v) => v as String? ?? 'full',
+      ),
       synthesis: $checkedConvert(
         'synthesis',
         (v) => v == null
@@ -62,7 +65,7 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
   fieldKeyMap: const {
     'presetView': 'preset_view',
     'targetBlocks': 'target_blocks',
-    'showText': 'show_text',
+    'textDeliveryMode': 'text_delivery_mode',
     'synthesisMd': 'synthesis_md',
   },
 );
@@ -74,7 +77,7 @@ Map<String, dynamic> _$OutputLayoutBlockToJson(_OutputLayoutBlock instance) =>
       'description': instance.description?.toJson(),
       'steps': instance.steps,
       'target_blocks': instance.targetBlocks,
-      'show_text': instance.showText,
+      'text_delivery_mode': instance.textDeliveryMode,
       'synthesis': instance.synthesis?.toJson(),
       'synthesis_md': instance.synthesisMd,
     };
@@ -165,6 +168,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
             'description',
             'visible_metadata',
             'visible_extensions',
+            'max_extension_items',
             'display_scale',
             'synthesis',
             'layouts',
@@ -201,6 +205,10 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
                 .map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
                 .toList(),
           ),
+          maxExtensionItems: $checkedConvert(
+            'max_extension_items',
+            (v) => (v as num?)?.toInt(),
+          ),
           displayScale: $checkedConvert(
             'display_scale',
             (v) => v as String? ?? 'original',
@@ -229,6 +237,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
         'workflowId': 'workflow_id',
         'visibleMetadata': 'visible_metadata',
         'visibleExtensions': 'visible_extensions',
+        'maxExtensionItems': 'max_extension_items',
         'displayScale': 'display_scale',
       },
     );
@@ -245,6 +254,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'visible_extensions': instance.visibleExtensions
       .map((e) => _$XaiExtensionTypeEnumMap[e]!)
       .toList(),
+  'max_extension_items': instance.maxExtensionItems,
   'display_scale': instance.displayScale,
   'synthesis': instance.synthesis?.toJson(),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
@@ -276,6 +286,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         'description',
         'visible_metadata',
         'visible_extensions',
+        'max_extension_items',
         'display_scale',
         'synthesis',
         'layouts',
@@ -301,6 +312,10 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         (v) => (v as List<dynamic>)
             .map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
             .toList(),
+      ),
+      maxExtensionItems: $checkedConvert(
+        'max_extension_items',
+        (v) => (v as num?)?.toInt(),
       ),
       displayScale: $checkedConvert(
         'display_scale',
@@ -328,6 +343,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
   fieldKeyMap: const {
     'visibleMetadata': 'visible_metadata',
     'visibleExtensions': 'visible_extensions',
+    'maxExtensionItems': 'max_extension_items',
     'displayScale': 'display_scale',
   },
 );
@@ -341,6 +357,7 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
   'visible_extensions': instance.visibleExtensions
       .map((e) => _$XaiExtensionTypeEnumMap[e]!)
       .toList(),
+  'max_extension_items': instance.maxExtensionItems,
   'display_scale': instance.displayScale,
   'synthesis': instance.synthesis?.toJson(),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),

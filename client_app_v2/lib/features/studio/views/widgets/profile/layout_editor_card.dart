@@ -27,7 +27,7 @@ class LayoutEditorCard extends ConsumerWidget {
       const OutputLayoutBlock(
         presetView: '1d_metrics',
         title: I18nText(defaultLocale: 'en'),
-        showText: true,
+        textDeliveryMode: 'full',
         targetBlocks: [],
       ),
     );
@@ -93,7 +93,7 @@ class LayoutEditorCard extends ConsumerWidget {
       currentPreset = '1d_metrics';
     }
 
-    final bool showText = layout.showText;
+    final String textDeliveryMode = layout.textDeliveryMode;
 
     void updateLayout(OutputLayoutBlock updated) {
       final newList = List<OutputLayoutBlock>.from(layouts);
@@ -174,16 +174,43 @@ class LayoutEditorCard extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Row(
-                children: [
-                  Text(l10n.showTextLabel),
-                  Switch(
-                    value: showText,
-                    onChanged: (val) {
-                      updateLayout(layout.copyWith(showText: val));
-                    },
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: textDeliveryMode,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: l10n.textDeliveryModeLabel,
+                    isDense: true,
                   ),
-                ],
+                  items: [
+                    DropdownMenuItem(
+                      value: 'full',
+                      child: Text(
+                        l10n.textModeFull,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'titles_only',
+                      child: Text(
+                        l10n.textModeTitlesOnly,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'none',
+                      child: Text(
+                        l10n.textModeNone,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      updateLayout(layout.copyWith(textDeliveryMode: val));
+                    }
+                  },
+                ),
               ),
               IconButton(
                 icon: Icon(

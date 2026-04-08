@@ -168,6 +168,30 @@ class ExecutionService:
                     details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value},
                 )
 
+        # V2 MANDATE: Strict Fail-Fast Validation of required inputs synchronously
+        raw_inputs_dict = payload.raw_inputs.model_dump(exclude_unset=True)
+        missing_fields = []
+        for expected in workflow.expected_inputs:
+            if expected.required:
+                val = raw_inputs_dict.get(expected.input_key)
+                if val is None:
+                    missing_fields.append(expected.input_key)
+                elif isinstance(val, str) and not val.strip():
+                    missing_fields.append(expected.input_key)
+                elif isinstance(val, list) and not val:
+                    missing_fields.append(expected.input_key)
+                elif isinstance(val, dict) and not val:
+                    missing_fields.append(expected.input_key)
+
+        if missing_fields:
+            msg = f"Missing required inputs from payload: {', '.join(missing_fields)}"
+            logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "fields": missing_fields},
+            )
+
         # V2 MANDATE: Dynamically generate SDUI hints synchronously before execution
         ui_hints: dict[str, DataDictionaryField] = {}
         step_states: dict[str, ExecutionStepState] = {}
@@ -247,16 +271,23 @@ class ExecutionService:
         # Strict Target Locale from Payload (Fail-Fast)
         target_locale = payload.target_locale
 
+        # Fail-Fast: Resolve and Validate Output Profile immediately at ingress
+        resolved_profile_id = payload.profile_id or workflow.default_profile_id
+        if not workflow.output_profiles or resolved_profile_id not in workflow.output_profiles:
+            msg = f"Profile ID '{resolved_profile_id}' not found in workflow '{workflow.id}'."
+            logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+
         execution_id = f"exe_{uuid4().hex}"
         initial_record = ExecutionRecord(
             id=execution_id,
             workflow_id=workflow.id,
             status=ExecutionStatus.PENDING,
             raw_inputs=payload.raw_inputs,
-            output_profile_id=payload.profile_id,
+            output_profile_id=resolved_profile_id,
             frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
             step_states=step_states,
-            metadata={"target_locale": target_locale},
+            metadata={"target_locale": target_locale, "profile_id": resolved_profile_id},
             created_by=initiator.id,
             organization_id=getattr(initiator, "organization_id", None),
         )

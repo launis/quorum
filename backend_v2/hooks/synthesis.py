@@ -119,9 +119,16 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         if not output_profile_id and isinstance(execution_data, dict):
             output_profile_id = execution_data.get("output_profile_id")
 
-    default_pid = workflow_data.get("default_profile_id", "default")
-    target_pid = state.metadata.get("target_profile_id") if state.metadata else None
-    profile_to_use = target_pid or output_profile_id or default_pid
+    profile_to_use = output_profile_id
+
+    if not profile_to_use:
+        msg = f"Execution {state.execution_id} missing mandatory output_profile_id."
+        logger.error("[SynthesisHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
 
     # --- Epic 13 M1: Fetch Output Profile from SSOT ---
     all_profiles_data = await deps.repository.get_all_output_profiles()
@@ -131,17 +138,14 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             active_profile = p_dict
             break
 
-    # Hardcoded fallback for missing 'default' specification in older executions
-    if not active_profile and profile_to_use == "default":
-        for p_dict in all_profiles_data:
-            if p_dict.get("slug") in ("default", "executive_summary"):
-                active_profile = p_dict
-                break
-
-    # If SSOT profile not found, fallback to the embedded legacy one
     if not active_profile:
-        output_profiles = workflow_data.get("output_profiles", {})
-        active_profile = output_profiles.get(profile_to_use, {})
+        msg = f"Resolved output profile '{profile_to_use}' not found in SSOT database."
+        logger.error("[SynthesisHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_404_NOT_FOUND,
+            details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+        )
 
     synthesis_cfg = active_profile.get("synthesis", {}) or {}
 

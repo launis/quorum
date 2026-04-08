@@ -113,10 +113,10 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
         for k, v in source.items():
             # Epic 10: Dynamic Evaluative Matrix resolution. Only average matrices explicitly flagged.
             if isinstance(k, str) and k.endswith("_is_evaluative") and v is True:
-                base_slug = k.replace("_is_evaluative", "")
-                norm_key = f"{base_slug}_normalized"
+                block_id = k.replace("_is_evaluative", "")
+                norm_key = f"{block_id}_normalized"
                 if norm_key in source:
-                    unique_matrices[base_slug] = float(source[norm_key])
+                    unique_matrices[block_id] = float(source[norm_key])
             elif isinstance(v, dict):
                 _extract_scores(v)
 

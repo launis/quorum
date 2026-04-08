@@ -498,25 +498,37 @@ class StepBuilderView extends HookConsumerWidget {
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
-                  children: mcpGateways.map((toolMap) {
-                    final slug = toolMap['slug']?.toString() ?? '';
-                    if (slug.isEmpty) return const SizedBox.shrink();
+                  children: mcpGateways.expand((gateway) {
+                    final tools = gateway['tools'] as List<dynamic>? ?? [];
+                    return tools;
+                  }).map((toolRaw) {
+                    final toolData = toolRaw as Map<String, dynamic>;
+                    final toolId = toolData['tool_id']?.toString() ?? '';
+                    if (toolId.isEmpty) return const SizedBox.shrink();
+
+                    final nameMap = toolData['name'] as Map<String, dynamic>? ?? {};
+                    final translations = nameMap['translations'] as Map<String, dynamic>? ?? {};
+                    final defaultLocale = nameMap['default_locale']?.toString() ?? 'en';
+                    
+                    // Current locale via Localizations or simple fallback
+                    final currentLocale = Localizations.localeOf(context).languageCode;
+                    final labelText = translations[currentLocale] ?? translations['fi'] ?? translations['en'] ?? toolId;
 
                     final allowedMcpTools = List<String>.from(
                       payload.allowedMcpTools,
                     );
-                    final isSelected = allowedMcpTools.contains(slug);
+                    final isSelected = allowedMcpTools.contains(toolId);
 
                     return FilterChip(
-                      label: Text(slug),
+                      label: Text(labelText),
                       selected: isSelected,
                       onSelected: (bool selected) {
                         if (selected) {
-                          if (!allowedMcpTools.contains(slug)) {
-                            allowedMcpTools.add(slug);
+                          if (!allowedMcpTools.contains(toolId)) {
+                            allowedMcpTools.add(toolId);
                           }
                         } else {
-                          allowedMcpTools.remove(slug);
+                          allowedMcpTools.remove(toolId);
                         }
                         ref
                             .read(stepFormProvider(stepId).notifier)

@@ -883,7 +883,10 @@
   "preset3dRadar": "3D Tutka/Kooste",
   "presetTextOnly": "Vain teksti/synteesi",
   "presetAutomatic": "Automaattinen validointi",
-  "showTextLabel": "Näytä leipäteksti",
+  "textDeliveryModeLabel": "Sisällön laajuus",
+  "textModeFull": "Kaikki (Graafi, otsikot ja leipäteksti)",
+  "textModeTitlesOnly": "Otsikot (vain graafi ja otsikot/arviot)",
+  "textModeNone": "Supistettu (vain graafi ja yhteenveto)",
   "layoutBlockTitleLabel": "Raportin osion otsikko",
   "targetComponentsTitle": "Kohdekomponentit",
   "componentXAxisLabel": "Komponentti 1 (X-akseli/Ensisijainen)",
@@ -1089,5 +1092,8 @@
   "synEnablePiiHelper": "Varmista henkilötietojen maskaus ennen LLM-kutsua",
   "synIncludeHistory": "Sisällytä historiallinen yhteenveto",
   "synOmitEmpty": "Jätä tyhjät osiot pois",
-  "synAllowedExports": "Sallitut vientimuodot"
+  "synAllowedExports": "Sallitut vientimuodot",
+  "profileEditorVisibleExtensions": "Näytettävät XAI-laajennukset",
+  "profileEditorMaxExtensionItems": "Maksimimäärä per XAI-laajennus (Top X)",
+  "profileEditorMaxExtensionItemsDesc": "Rajoittaa kuinka monta kriteeriä näytetään per osio (lajiteltu kriittisyyden mukaan)."
 }

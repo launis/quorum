@@ -50,7 +50,7 @@ abstract class ReportLayoutDTO with _$ReportLayoutDTO {
     I18nText? title,
     I18nText? description,
     @Default([]) List<ReportAxisDTO> axes,
-    @JsonKey(name: 'show_text') required bool showText,
+    @JsonKey(name: 'text_delivery_mode') required String textDeliveryMode,
     Map<String, dynamic>? synthesis,
     @JsonKey(name: 'synthesis_md') String? synthesisMd,
   }) = _ReportLayoutDTO;
@@ -64,6 +64,7 @@ abstract class ReportLayoutDTO with _$ReportLayoutDTO {
 @freezed
 abstract class MCPToolAuditDTO with _$MCPToolAuditDTO {
   const factory MCPToolAuditDTO({
+    String? id,
     @JsonKey(name: 'tool_id') required String toolId,
     @JsonKey(name: 'step_name') required String stepName,
     required String query,

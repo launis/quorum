@@ -145,10 +145,11 @@
                 </div>
             {% endif %}
             
-            {% for axis in layout.axes %}
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                        <h3 style="margin: 0; color: #1a1a1a; font-size: 16px;">{{ axis.name }}</h3>
+            {% if layout.text_delivery_mode != 'none' %}
+                {% for axis in layout.axes %}
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <h3 style="margin: 0; color: #1a1a1a; font-size: 16px;">{{ axis.name }}</h3>
                         {% if axis.score != None %}
                         <div style="background-color: #e3f2fd; color: #1976D2; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 14px;">
                             {{ "%.1f"|format(axis.score) }} {% if axis.scale_max > axis.scale_min %}/ {{ "%.1f"|format(axis.scale_max) }}{% endif %}
@@ -156,11 +157,11 @@
                         {% endif %}
                     </div>
                     
-                    {% if axis.description %}
+                    {% if axis.description and layout.text_delivery_mode == 'full' %}
                         <div style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 8px;">{{ axis.description }}</div>
                     {% endif %}
                     
-                    {% if axis.justification and layout.show_text %}
+                    {% if axis.justification and layout.text_delivery_mode == 'full' %}
                         <div style="font-size: 13px; line-height: 1.5; color: #333; margin-top: 8px;">
                             {{ axis.justification | md | safe }}
                         </div>
@@ -247,6 +248,8 @@
                     {% endif %}
                 </div>
             {% endfor %}
+            {% endif %}
+        {% endfor %}
 
         {% if report_data.grouped_extensions %}
             {% set ext_title_map = {
@@ -315,11 +318,11 @@
         </div>
         {% endif %}
 
-        {% if report.penalties_applied %}
+        {% if report_data.penalties_applied %}
         <div style="margin-top: 40px; padding: 15px; background-color: #ffebee; border: 1px solid #ffcdd2; border-radius: 6px;">
             <div style="font-size: 13px; font-weight: bold; color: #c62828; margin-bottom: 8px;">Rangaistukset (Sovelletut vääristymät)</div>
             <ul style="margin: 0; padding-left: 20px; font-size: 11px; color: #b71c1c;">
-                {% for penalty in report.penalties_applied %}
+                {% for penalty in report_data.penalties_applied %}
                 <li>{{ penalty }}</li>
                 {% endfor %}
             </ul>

@@ -1305,7 +1305,10 @@
   "preset3dRadar": "3D Radar/Composite",
   "presetTextOnly": "Text/Synthesis Only",
   "presetAutomatic": "Automatic Validation",
-  "showTextLabel": "Show Text",
+  "textDeliveryModeLabel": "Text Detail Level",
+  "textModeFull": "Full (Graph, titles and body text)",
+  "textModeTitlesOnly": "Titles Only (Graph and titles/scores)",
+  "textModeNone": "Reduced (Graph and summary only)",
   "layoutBlockTitleLabel": "Layout Block Title",
   "targetComponentsTitle": "Target Components",
   "componentXAxisLabel": "Component 1 (X-Axis/Primary)",
@@ -1534,5 +1537,8 @@
   "synEnablePiiHelper": "Ensure PII is masked before LLM call",
   "synIncludeHistory": "Include Historical Summary",
   "synOmitEmpty": "Omit Empty Sections",
-  "synAllowedExports": "Allowed Exports"
+  "synAllowedExports": "Allowed Exports",
+  "profileEditorVisibleExtensions": "Visible XAI Extensions",
+  "profileEditorMaxExtensionItems": "Max Items per XAI Extension (Top X)",
+  "profileEditorMaxExtensionItemsDesc": "Limits how many most critical items are shown per section (Severity sorted)."
 }

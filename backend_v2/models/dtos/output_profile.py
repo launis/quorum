@@ -35,6 +35,10 @@ class OutputProfileCreateDTO(BaseModel):
         default_factory=list,
         description="List of XAI extensions visible at the end of the report.",
     )
+    max_extension_items: int | None = Field(
+        default=None,
+        description="Max number of items to show per grouped XAI extension. Sorted by severity.",
+    )
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original", description="UI rendering scale instruction."
     )
@@ -68,6 +72,10 @@ class OutputProfileUpdateDTO(BaseModel):
         default=None,
         description="List of XAI extensions visible at the end of the report.",
     )
+    max_extension_items: int | None = Field(
+        default=None,
+        description="Max number of items to show per grouped XAI extension. Sorted by severity.",
+    )
     display_scale: Literal["original", "custom", "normalized_100"] | None = Field(
         default=None, description="UI rendering scale instruction."
     )
@@ -96,6 +104,7 @@ class OutputProfileResponseDTO(BaseModel):
     description: I18nText | None = None
     visible_metadata: list[str] = Field(default_factory=lambda: ["date", "organization"])
     visible_extensions: list[XaiExtensionType] = Field(default_factory=list)
+    max_extension_items: int | None = None
     display_scale: Literal["original", "custom", "normalized_100"] = "original"
     synthesis: SynthesisConfigDTO | None = None
     layouts: list[OutputLayoutBlock]

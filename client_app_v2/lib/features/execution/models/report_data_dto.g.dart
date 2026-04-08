@@ -129,7 +129,7 @@ _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
             'title',
             'description',
             'axes',
-            'show_text',
+            'text_delivery_mode',
             'synthesis',
             'synthesis_md',
           ],
@@ -157,7 +157,10 @@ _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
                     .toList() ??
                 const [],
           ),
-          showText: $checkedConvert('show_text', (v) => v as bool),
+          textDeliveryMode: $checkedConvert(
+            'text_delivery_mode',
+            (v) => v as String,
+          ),
           synthesis: $checkedConvert(
             'synthesis',
             (v) => v as Map<String, dynamic>?,
@@ -169,7 +172,7 @@ _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
       fieldKeyMap: const {
         'presetView': 'preset_view',
         'matrixType': 'matrix_type',
-        'showText': 'show_text',
+        'textDeliveryMode': 'text_delivery_mode',
         'synthesisMd': 'synthesis_md',
       },
     );
@@ -181,7 +184,7 @@ Map<String, dynamic> _$ReportLayoutDTOToJson(_ReportLayoutDTO instance) =>
       'title': instance.title?.toJson(),
       'description': instance.description?.toJson(),
       'axes': instance.axes.map((e) => e.toJson()).toList(),
-      'show_text': instance.showText,
+      'text_delivery_mode': instance.textDeliveryMode,
       'synthesis': instance.synthesis,
       'synthesis_md': instance.synthesisMd,
     };
@@ -194,6 +197,7 @@ _MCPToolAuditDTO _$MCPToolAuditDTOFromJson(Map<String, dynamic> json) =>
         $checkKeys(
           json,
           allowedKeys: const [
+            'id',
             'tool_id',
             'step_name',
             'query',
@@ -204,6 +208,7 @@ _MCPToolAuditDTO _$MCPToolAuditDTOFromJson(Map<String, dynamic> json) =>
           ],
         );
         final val = _MCPToolAuditDTO(
+          id: $checkedConvert('id', (v) => v as String?),
           toolId: $checkedConvert('tool_id', (v) => v as String),
           stepName: $checkedConvert('step_name', (v) => v as String),
           query: $checkedConvert('query', (v) => v as String),
@@ -236,6 +241,7 @@ _MCPToolAuditDTO _$MCPToolAuditDTOFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$MCPToolAuditDTOToJson(_MCPToolAuditDTO instance) =>
     <String, dynamic>{
+      'id': instance.id,
       'tool_id': instance.toolId,
       'step_name': instance.stepName,
       'query': instance.query,

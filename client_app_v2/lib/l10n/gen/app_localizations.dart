@@ -4886,11 +4886,29 @@ abstract class AppLocalizations {
   /// **'Automatic Validation'**
   String get presetAutomatic;
 
-  /// No description provided for @showTextLabel.
+  /// No description provided for @textDeliveryModeLabel.
   ///
   /// In en, this message translates to:
-  /// **'Show Text'**
-  String get showTextLabel;
+  /// **'Text Detail Level'**
+  String get textDeliveryModeLabel;
+
+  /// No description provided for @textModeFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Full (Graph, titles and body text)'**
+  String get textModeFull;
+
+  /// No description provided for @textModeTitlesOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Titles Only (Graph and titles/scores)'**
+  String get textModeTitlesOnly;
+
+  /// No description provided for @textModeNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Reduced (Graph and summary only)'**
+  String get textModeNone;
 
   /// No description provided for @layoutBlockTitleLabel.
   ///
@@ -6017,6 +6035,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Allowed Exports'**
   String get synAllowedExports;
+
+  /// No description provided for @profileEditorVisibleExtensions.
+  ///
+  /// In en, this message translates to:
+  /// **'Visible XAI Extensions'**
+  String get profileEditorVisibleExtensions;
+
+  /// No description provided for @profileEditorMaxExtensionItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Items per XAI Extension (Top X)'**
+  String get profileEditorMaxExtensionItems;
+
+  /// No description provided for @profileEditorMaxExtensionItemsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Limits how many most critical items are shown per section (Severity sorted).'**
+  String get profileEditorMaxExtensionItemsDesc;
 }
 
 class _AppLocalizationsDelegate

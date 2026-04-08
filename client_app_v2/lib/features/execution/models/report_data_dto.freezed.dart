@@ -345,7 +345,7 @@ as Map<String, String>,
 /// @nodoc
 mixin _$ReportLayoutDTO {
 
-@JsonKey(name: 'preset_view') String get presetView;@JsonKey(name: 'matrix_type') String? get matrixType; I18nText? get title; I18nText? get description; List<ReportAxisDTO> get axes;@JsonKey(name: 'show_text') bool get showText; Map<String, dynamic>? get synthesis;@JsonKey(name: 'synthesis_md') String? get synthesisMd;
+@JsonKey(name: 'preset_view') String get presetView;@JsonKey(name: 'matrix_type') String? get matrixType; I18nText? get title; I18nText? get description; List<ReportAxisDTO> get axes;@JsonKey(name: 'text_delivery_mode') String get textDeliveryMode; Map<String, dynamic>? get synthesis;@JsonKey(name: 'synthesis_md') String? get synthesisMd;
 /// Create a copy of ReportLayoutDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -358,16 +358,16 @@ $ReportLayoutDTOCopyWith<ReportLayoutDTO> get copyWith => _$ReportLayoutDTOCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReportLayoutDTO&&(identical(other.presetView, presetView) || other.presetView == presetView)&&(identical(other.matrixType, matrixType) || other.matrixType == matrixType)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.axes, axes)&&(identical(other.showText, showText) || other.showText == showText)&&const DeepCollectionEquality().equals(other.synthesis, synthesis)&&(identical(other.synthesisMd, synthesisMd) || other.synthesisMd == synthesisMd));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReportLayoutDTO&&(identical(other.presetView, presetView) || other.presetView == presetView)&&(identical(other.matrixType, matrixType) || other.matrixType == matrixType)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.axes, axes)&&(identical(other.textDeliveryMode, textDeliveryMode) || other.textDeliveryMode == textDeliveryMode)&&const DeepCollectionEquality().equals(other.synthesis, synthesis)&&(identical(other.synthesisMd, synthesisMd) || other.synthesisMd == synthesisMd));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,presetView,matrixType,title,description,const DeepCollectionEquality().hash(axes),showText,const DeepCollectionEquality().hash(synthesis),synthesisMd);
+int get hashCode => Object.hash(runtimeType,presetView,matrixType,title,description,const DeepCollectionEquality().hash(axes),textDeliveryMode,const DeepCollectionEquality().hash(synthesis),synthesisMd);
 
 @override
 String toString() {
-  return 'ReportLayoutDTO(presetView: $presetView, matrixType: $matrixType, title: $title, description: $description, axes: $axes, showText: $showText, synthesis: $synthesis, synthesisMd: $synthesisMd)';
+  return 'ReportLayoutDTO(presetView: $presetView, matrixType: $matrixType, title: $title, description: $description, axes: $axes, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisMd: $synthesisMd)';
 }
 
 
@@ -378,7 +378,7 @@ abstract mixin class $ReportLayoutDTOCopyWith<$Res>  {
   factory $ReportLayoutDTOCopyWith(ReportLayoutDTO value, $Res Function(ReportLayoutDTO) _then) = _$ReportLayoutDTOCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'preset_view') String presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<ReportAxisDTO> axes,@JsonKey(name: 'show_text') bool showText, Map<String, dynamic>? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
+@JsonKey(name: 'preset_view') String presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<ReportAxisDTO> axes,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, Map<String, dynamic>? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
 });
 
 
@@ -395,15 +395,15 @@ class _$ReportLayoutDTOCopyWithImpl<$Res>
 
 /// Create a copy of ReportLayoutDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? matrixType = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? showText = null,Object? synthesis = freezed,Object? synthesisMd = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? matrixType = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisMd = freezed,}) {
   return _then(_self.copyWith(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as String,matrixType: freezed == matrixType ? _self.matrixType : matrixType // ignore: cast_nullable_to_non_nullable
 as String?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,axes: null == axes ? _self.axes : axes // ignore: cast_nullable_to_non_nullable
-as List<ReportAxisDTO>,showText: null == showText ? _self.showText : showText // ignore: cast_nullable_to_non_nullable
-as bool,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
+as List<ReportAxisDTO>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
+as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,synthesisMd: freezed == synthesisMd ? _self.synthesisMd : synthesisMd // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
@@ -514,10 +514,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  String presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'show_text')  bool showText,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  String presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportLayoutDTO() when $default != null:
-return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.showText,_that.synthesis,_that.synthesisMd);case _:
+return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
   return orElse();
 
 }
@@ -535,10 +535,10 @@ return $default(_that.presetView,_that.matrixType,_that.title,_that.description,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  String presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'show_text')  bool showText,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  String presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)  $default,) {final _that = this;
 switch (_that) {
 case _ReportLayoutDTO():
-return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.showText,_that.synthesis,_that.synthesisMd);case _:
+return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -555,10 +555,10 @@ return $default(_that.presetView,_that.matrixType,_that.title,_that.description,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view')  String presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'show_text')  bool showText,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view')  String presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportLayoutDTO() when $default != null:
-return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.showText,_that.synthesis,_that.synthesisMd);case _:
+return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
   return null;
 
 }
@@ -570,7 +570,7 @@ return $default(_that.presetView,_that.matrixType,_that.title,_that.description,
 @JsonSerializable()
 
 class _ReportLayoutDTO implements ReportLayoutDTO {
-  const _ReportLayoutDTO({@JsonKey(name: 'preset_view') required this.presetView, @JsonKey(name: 'matrix_type') this.matrixType, this.title, this.description, final  List<ReportAxisDTO> axes = const [], @JsonKey(name: 'show_text') required this.showText, final  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md') this.synthesisMd}): _axes = axes,_synthesis = synthesis;
+  const _ReportLayoutDTO({@JsonKey(name: 'preset_view') required this.presetView, @JsonKey(name: 'matrix_type') this.matrixType, this.title, this.description, final  List<ReportAxisDTO> axes = const [], @JsonKey(name: 'text_delivery_mode') required this.textDeliveryMode, final  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md') this.synthesisMd}): _axes = axes,_synthesis = synthesis;
   factory _ReportLayoutDTO.fromJson(Map<String, dynamic> json) => _$ReportLayoutDTOFromJson(json);
 
 @override@JsonKey(name: 'preset_view') final  String presetView;
@@ -584,7 +584,7 @@ class _ReportLayoutDTO implements ReportLayoutDTO {
   return EqualUnmodifiableListView(_axes);
 }
 
-@override@JsonKey(name: 'show_text') final  bool showText;
+@override@JsonKey(name: 'text_delivery_mode') final  String textDeliveryMode;
  final  Map<String, dynamic>? _synthesis;
 @override Map<String, dynamic>? get synthesis {
   final value = _synthesis;
@@ -609,16 +609,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReportLayoutDTO&&(identical(other.presetView, presetView) || other.presetView == presetView)&&(identical(other.matrixType, matrixType) || other.matrixType == matrixType)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._axes, _axes)&&(identical(other.showText, showText) || other.showText == showText)&&const DeepCollectionEquality().equals(other._synthesis, _synthesis)&&(identical(other.synthesisMd, synthesisMd) || other.synthesisMd == synthesisMd));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReportLayoutDTO&&(identical(other.presetView, presetView) || other.presetView == presetView)&&(identical(other.matrixType, matrixType) || other.matrixType == matrixType)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._axes, _axes)&&(identical(other.textDeliveryMode, textDeliveryMode) || other.textDeliveryMode == textDeliveryMode)&&const DeepCollectionEquality().equals(other._synthesis, _synthesis)&&(identical(other.synthesisMd, synthesisMd) || other.synthesisMd == synthesisMd));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,presetView,matrixType,title,description,const DeepCollectionEquality().hash(_axes),showText,const DeepCollectionEquality().hash(_synthesis),synthesisMd);
+int get hashCode => Object.hash(runtimeType,presetView,matrixType,title,description,const DeepCollectionEquality().hash(_axes),textDeliveryMode,const DeepCollectionEquality().hash(_synthesis),synthesisMd);
 
 @override
 String toString() {
-  return 'ReportLayoutDTO(presetView: $presetView, matrixType: $matrixType, title: $title, description: $description, axes: $axes, showText: $showText, synthesis: $synthesis, synthesisMd: $synthesisMd)';
+  return 'ReportLayoutDTO(presetView: $presetView, matrixType: $matrixType, title: $title, description: $description, axes: $axes, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisMd: $synthesisMd)';
 }
 
 
@@ -629,7 +629,7 @@ abstract mixin class _$ReportLayoutDTOCopyWith<$Res> implements $ReportLayoutDTO
   factory _$ReportLayoutDTOCopyWith(_ReportLayoutDTO value, $Res Function(_ReportLayoutDTO) _then) = __$ReportLayoutDTOCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'preset_view') String presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<ReportAxisDTO> axes,@JsonKey(name: 'show_text') bool showText, Map<String, dynamic>? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
+@JsonKey(name: 'preset_view') String presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<ReportAxisDTO> axes,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, Map<String, dynamic>? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
 });
 
 
@@ -646,15 +646,15 @@ class __$ReportLayoutDTOCopyWithImpl<$Res>
 
 /// Create a copy of ReportLayoutDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? matrixType = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? showText = null,Object? synthesis = freezed,Object? synthesisMd = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? matrixType = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisMd = freezed,}) {
   return _then(_ReportLayoutDTO(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as String,matrixType: freezed == matrixType ? _self.matrixType : matrixType // ignore: cast_nullable_to_non_nullable
 as String?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,axes: null == axes ? _self._axes : axes // ignore: cast_nullable_to_non_nullable
-as List<ReportAxisDTO>,showText: null == showText ? _self.showText : showText // ignore: cast_nullable_to_non_nullable
-as bool,synthesis: freezed == synthesis ? _self._synthesis : synthesis // ignore: cast_nullable_to_non_nullable
+as List<ReportAxisDTO>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
+as String,synthesis: freezed == synthesis ? _self._synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,synthesisMd: freezed == synthesisMd ? _self.synthesisMd : synthesisMd // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
@@ -691,7 +691,7 @@ $I18nTextCopyWith<$Res>? get description {
 /// @nodoc
 mixin _$MCPToolAuditDTO {
 
-@JsonKey(name: 'tool_id') String get toolId;@JsonKey(name: 'step_name') String get stepName; String get query;@JsonKey(name: 'response_summary') String get responseSummary;@JsonKey(name: 'source_urls') List<String> get sourceUrls; String? get timestamp;@JsonKey(name: 'duration_ms') int get durationMs;
+ String? get id;@JsonKey(name: 'tool_id') String get toolId;@JsonKey(name: 'step_name') String get stepName; String get query;@JsonKey(name: 'response_summary') String get responseSummary;@JsonKey(name: 'source_urls') List<String> get sourceUrls; String? get timestamp;@JsonKey(name: 'duration_ms') int get durationMs;
 /// Create a copy of MCPToolAuditDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -704,16 +704,16 @@ $MCPToolAuditDTOCopyWith<MCPToolAuditDTO> get copyWith => _$MCPToolAuditDTOCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MCPToolAuditDTO&&(identical(other.toolId, toolId) || other.toolId == toolId)&&(identical(other.stepName, stepName) || other.stepName == stepName)&&(identical(other.query, query) || other.query == query)&&(identical(other.responseSummary, responseSummary) || other.responseSummary == responseSummary)&&const DeepCollectionEquality().equals(other.sourceUrls, sourceUrls)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MCPToolAuditDTO&&(identical(other.id, id) || other.id == id)&&(identical(other.toolId, toolId) || other.toolId == toolId)&&(identical(other.stepName, stepName) || other.stepName == stepName)&&(identical(other.query, query) || other.query == query)&&(identical(other.responseSummary, responseSummary) || other.responseSummary == responseSummary)&&const DeepCollectionEquality().equals(other.sourceUrls, sourceUrls)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,toolId,stepName,query,responseSummary,const DeepCollectionEquality().hash(sourceUrls),timestamp,durationMs);
+int get hashCode => Object.hash(runtimeType,id,toolId,stepName,query,responseSummary,const DeepCollectionEquality().hash(sourceUrls),timestamp,durationMs);
 
 @override
 String toString() {
-  return 'MCPToolAuditDTO(toolId: $toolId, stepName: $stepName, query: $query, responseSummary: $responseSummary, sourceUrls: $sourceUrls, timestamp: $timestamp, durationMs: $durationMs)';
+  return 'MCPToolAuditDTO(id: $id, toolId: $toolId, stepName: $stepName, query: $query, responseSummary: $responseSummary, sourceUrls: $sourceUrls, timestamp: $timestamp, durationMs: $durationMs)';
 }
 
 
@@ -724,7 +724,7 @@ abstract mixin class $MCPToolAuditDTOCopyWith<$Res>  {
   factory $MCPToolAuditDTOCopyWith(MCPToolAuditDTO value, $Res Function(MCPToolAuditDTO) _then) = _$MCPToolAuditDTOCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'tool_id') String toolId,@JsonKey(name: 'step_name') String stepName, String query,@JsonKey(name: 'response_summary') String responseSummary,@JsonKey(name: 'source_urls') List<String> sourceUrls, String? timestamp,@JsonKey(name: 'duration_ms') int durationMs
+ String? id,@JsonKey(name: 'tool_id') String toolId,@JsonKey(name: 'step_name') String stepName, String query,@JsonKey(name: 'response_summary') String responseSummary,@JsonKey(name: 'source_urls') List<String> sourceUrls, String? timestamp,@JsonKey(name: 'duration_ms') int durationMs
 });
 
 
@@ -741,9 +741,10 @@ class _$MCPToolAuditDTOCopyWithImpl<$Res>
 
 /// Create a copy of MCPToolAuditDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? toolId = null,Object? stepName = null,Object? query = null,Object? responseSummary = null,Object? sourceUrls = null,Object? timestamp = freezed,Object? durationMs = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? toolId = null,Object? stepName = null,Object? query = null,Object? responseSummary = null,Object? sourceUrls = null,Object? timestamp = freezed,Object? durationMs = null,}) {
   return _then(_self.copyWith(
-toolId: null == toolId ? _self.toolId : toolId // ignore: cast_nullable_to_non_nullable
+id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String?,toolId: null == toolId ? _self.toolId : toolId // ignore: cast_nullable_to_non_nullable
 as String,stepName: null == stepName ? _self.stepName : stepName // ignore: cast_nullable_to_non_nullable
 as String,query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,responseSummary: null == responseSummary ? _self.responseSummary : responseSummary // ignore: cast_nullable_to_non_nullable
@@ -835,10 +836,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName,  String query, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName,  String query, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MCPToolAuditDTO() when $default != null:
-return $default(_that.toolId,_that.stepName,_that.query,_that.responseSummary,_that.sourceUrls,_that.timestamp,_that.durationMs);case _:
+return $default(_that.id,_that.toolId,_that.stepName,_that.query,_that.responseSummary,_that.sourceUrls,_that.timestamp,_that.durationMs);case _:
   return orElse();
 
 }
@@ -856,10 +857,10 @@ return $default(_that.toolId,_that.stepName,_that.query,_that.responseSummary,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName,  String query, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName,  String query, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)  $default,) {final _that = this;
 switch (_that) {
 case _MCPToolAuditDTO():
-return $default(_that.toolId,_that.stepName,_that.query,_that.responseSummary,_that.sourceUrls,_that.timestamp,_that.durationMs);case _:
+return $default(_that.id,_that.toolId,_that.stepName,_that.query,_that.responseSummary,_that.sourceUrls,_that.timestamp,_that.durationMs);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -876,10 +877,10 @@ return $default(_that.toolId,_that.stepName,_that.query,_that.responseSummary,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName,  String query, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName,  String query, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)?  $default,) {final _that = this;
 switch (_that) {
 case _MCPToolAuditDTO() when $default != null:
-return $default(_that.toolId,_that.stepName,_that.query,_that.responseSummary,_that.sourceUrls,_that.timestamp,_that.durationMs);case _:
+return $default(_that.id,_that.toolId,_that.stepName,_that.query,_that.responseSummary,_that.sourceUrls,_that.timestamp,_that.durationMs);case _:
   return null;
 
 }
@@ -891,9 +892,10 @@ return $default(_that.toolId,_that.stepName,_that.query,_that.responseSummary,_t
 @JsonSerializable()
 
 class _MCPToolAuditDTO implements MCPToolAuditDTO {
-  const _MCPToolAuditDTO({@JsonKey(name: 'tool_id') required this.toolId, @JsonKey(name: 'step_name') required this.stepName, required this.query, @JsonKey(name: 'response_summary') this.responseSummary = '', @JsonKey(name: 'source_urls') final  List<String> sourceUrls = const [], this.timestamp, @JsonKey(name: 'duration_ms') this.durationMs = 0}): _sourceUrls = sourceUrls;
+  const _MCPToolAuditDTO({this.id, @JsonKey(name: 'tool_id') required this.toolId, @JsonKey(name: 'step_name') required this.stepName, required this.query, @JsonKey(name: 'response_summary') this.responseSummary = '', @JsonKey(name: 'source_urls') final  List<String> sourceUrls = const [], this.timestamp, @JsonKey(name: 'duration_ms') this.durationMs = 0}): _sourceUrls = sourceUrls;
   factory _MCPToolAuditDTO.fromJson(Map<String, dynamic> json) => _$MCPToolAuditDTOFromJson(json);
 
+@override final  String? id;
 @override@JsonKey(name: 'tool_id') final  String toolId;
 @override@JsonKey(name: 'step_name') final  String stepName;
 @override final  String query;
@@ -921,16 +923,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MCPToolAuditDTO&&(identical(other.toolId, toolId) || other.toolId == toolId)&&(identical(other.stepName, stepName) || other.stepName == stepName)&&(identical(other.query, query) || other.query == query)&&(identical(other.responseSummary, responseSummary) || other.responseSummary == responseSummary)&&const DeepCollectionEquality().equals(other._sourceUrls, _sourceUrls)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MCPToolAuditDTO&&(identical(other.id, id) || other.id == id)&&(identical(other.toolId, toolId) || other.toolId == toolId)&&(identical(other.stepName, stepName) || other.stepName == stepName)&&(identical(other.query, query) || other.query == query)&&(identical(other.responseSummary, responseSummary) || other.responseSummary == responseSummary)&&const DeepCollectionEquality().equals(other._sourceUrls, _sourceUrls)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,toolId,stepName,query,responseSummary,const DeepCollectionEquality().hash(_sourceUrls),timestamp,durationMs);
+int get hashCode => Object.hash(runtimeType,id,toolId,stepName,query,responseSummary,const DeepCollectionEquality().hash(_sourceUrls),timestamp,durationMs);
 
 @override
 String toString() {
-  return 'MCPToolAuditDTO(toolId: $toolId, stepName: $stepName, query: $query, responseSummary: $responseSummary, sourceUrls: $sourceUrls, timestamp: $timestamp, durationMs: $durationMs)';
+  return 'MCPToolAuditDTO(id: $id, toolId: $toolId, stepName: $stepName, query: $query, responseSummary: $responseSummary, sourceUrls: $sourceUrls, timestamp: $timestamp, durationMs: $durationMs)';
 }
 
 
@@ -941,7 +943,7 @@ abstract mixin class _$MCPToolAuditDTOCopyWith<$Res> implements $MCPToolAuditDTO
   factory _$MCPToolAuditDTOCopyWith(_MCPToolAuditDTO value, $Res Function(_MCPToolAuditDTO) _then) = __$MCPToolAuditDTOCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'tool_id') String toolId,@JsonKey(name: 'step_name') String stepName, String query,@JsonKey(name: 'response_summary') String responseSummary,@JsonKey(name: 'source_urls') List<String> sourceUrls, String? timestamp,@JsonKey(name: 'duration_ms') int durationMs
+ String? id,@JsonKey(name: 'tool_id') String toolId,@JsonKey(name: 'step_name') String stepName, String query,@JsonKey(name: 'response_summary') String responseSummary,@JsonKey(name: 'source_urls') List<String> sourceUrls, String? timestamp,@JsonKey(name: 'duration_ms') int durationMs
 });
 
 
@@ -958,9 +960,10 @@ class __$MCPToolAuditDTOCopyWithImpl<$Res>
 
 /// Create a copy of MCPToolAuditDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? toolId = null,Object? stepName = null,Object? query = null,Object? responseSummary = null,Object? sourceUrls = null,Object? timestamp = freezed,Object? durationMs = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? toolId = null,Object? stepName = null,Object? query = null,Object? responseSummary = null,Object? sourceUrls = null,Object? timestamp = freezed,Object? durationMs = null,}) {
   return _then(_MCPToolAuditDTO(
-toolId: null == toolId ? _self.toolId : toolId // ignore: cast_nullable_to_non_nullable
+id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String?,toolId: null == toolId ? _self.toolId : toolId // ignore: cast_nullable_to_non_nullable
 as String,stepName: null == stepName ? _self.stepName : stepName // ignore: cast_nullable_to_non_nullable
 as String,query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,responseSummary: null == responseSummary ? _self.responseSummary : responseSummary // ignore: cast_nullable_to_non_nullable

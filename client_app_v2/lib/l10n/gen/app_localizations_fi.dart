@@ -2668,7 +2668,16 @@ class AppLocalizationsFi extends AppLocalizations {
   String get presetAutomatic => 'Automaattinen validointi';
 
   @override
-  String get showTextLabel => 'Näytä leipäteksti';
+  String get textDeliveryModeLabel => 'Sisällön laajuus';
+
+  @override
+  String get textModeFull => 'Kaikki (Graafi, otsikot ja leipäteksti)';
+
+  @override
+  String get textModeTitlesOnly => 'Otsikot (vain graafi ja otsikot/arviot)';
+
+  @override
+  String get textModeNone => 'Supistettu (vain graafi ja yhteenveto)';
 
   @override
   String get layoutBlockTitleLabel => 'Raportin osion otsikko';
@@ -3309,4 +3318,15 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get synAllowedExports => 'Sallitut vientimuodot';
+
+  @override
+  String get profileEditorVisibleExtensions => 'Näytettävät XAI-laajennukset';
+
+  @override
+  String get profileEditorMaxExtensionItems =>
+      'Maksimimäärä per XAI-laajennus (Top X)';
+
+  @override
+  String get profileEditorMaxExtensionItemsDesc =>
+      'Rajoittaa kuinka monta kriteeriä näytetään per osio (lajiteltu kriittisyyden mukaan).';
 }

@@ -170,6 +170,42 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       }
     });
 
+    // Validate required inputs (Fail-Fast Client-Side)
+    final expectedInputsRaw = _selectedWorkflow!['expected_inputs'];
+    if (expectedInputsRaw is List) {
+      for (final e in expectedInputsRaw) {
+        final item = e is Map ? e as Map<String, dynamic> : <String, dynamic>{};
+        final key = item['input_key']?.toString() ?? '';
+        final isRequired =
+            item['required'] == true || item['required']?.toString() == 'true';
+
+        if (isRequired && key.isNotEmpty) {
+          final val = _compiledInputs[key];
+          bool isEmpty = true;
+
+          if (val is String && val.trim().isNotEmpty) {
+            isEmpty = false;
+          } else if (val is Map && val.isNotEmpty) {
+            isEmpty = false;
+          }
+
+          if (isEmpty) {
+            if (mounted) {
+              final l10n = AppLocalizations.of(context)!;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(l10n.fillRequiredInputs),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            }
+            return; // Halt submission
+          }
+        }
+      }
+    }
+
     final workflowId = _selectedWorkflow!['id']?.toString() ?? '';
 
     try {

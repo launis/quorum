@@ -75,20 +75,17 @@ class LLMNodeStrategy(NodeStrategy):
         criteria_blocks = []
         all_prompt_blocks = await self.repository.get_all_prompt_blocks()
         block_map = {b["id"]: b for b in all_prompt_blocks if "id" in b}
-        # Epic 18: Fetch workflow's output profile to dynamically inject requested visible_extensions
-        wf = await self.repository.get_workflow_by_id(context.workflow_id)
-        global_extensions = []
-        if wf and hasattr(wf, "output_profile") and getattr(wf, "output_profile", None):
-            op = wf.output_profile
-            ve = getattr(op, "visible_extensions", [])
-            global_extensions = [v.value if hasattr(v, "value") else str(v) for v in ve]
+        # Enforce Architectual Parity: Fail-Fast if Pipeline Amnesia occurs
+        target_profile = context.metadata.get("profile_id")
+        if not target_profile:
+            from backend_v2.exceptions import ConfigurationError
+            msg = f"Execution metadata missing mandatory 'profile_id' for workflow {context.workflow_id}."
+            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
         for m_id in step_obj.prompt_blocks:
             b = block_map.get(m_id)
             if b:
-                b_copy = dict(b)
-                b_copy["output_extensions"] = global_extensions
-                criteria_blocks.append(b_copy)
+                criteria_blocks.append(b)
             else:
                 logger.error(
                     f"PromptBlock '{m_id}' not found.",
@@ -189,7 +186,15 @@ class LLMNodeStrategy(NodeStrategy):
                 usage_dict = dict(loop_result.usage) if loop_result.usage else {}
 
                 if frozen_ctx and loop_result.audit_traces:
-                    frozen_ctx.mcp_tool_audit.extend(loop_result.audit_traces)
+                    # Deduplicate at the orchestrator root to prevent DB bloat across DAG retries or LLM loop confusions
+                    existing_hashes = {
+                        f"{a.tool_id}::{a.query}" for a in frozen_ctx.mcp_tool_audit
+                    }
+                    for trace in loop_result.audit_traces:
+                        thash = f"{trace.tool_id}::{trace.query}"
+                        if thash not in existing_hashes:
+                            frozen_ctx.mcp_tool_audit.append(trace)
+                            existing_hashes.add(thash)
             except Exception as e:
                 logger.error(
                     "Execution of MCP tool loop failed.",

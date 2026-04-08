@@ -99,7 +99,7 @@ class ProfileEditorView extends HookConsumerWidget {
               OutputLayoutBlock(
                 presetView: '1d_metrics',
                 title: I18nText(defaultLocale: 'en'),
-                showText: true,
+                textDeliveryMode: 'full',
                 targetBlocks: [],
               ),
             ],
@@ -358,8 +358,8 @@ class ProfileEditorView extends HookConsumerWidget {
             ),
             const SizedBox(height: 24),
             InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Visible XAI Extensions',
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.profileEditorVisibleExtensions,
                 isDense: true,
                 border: OutlineInputBorder(),
               ),
@@ -422,6 +422,24 @@ class ProfileEditorView extends HookConsumerWidget {
                   );
                 }).toList(),
               ),
+            ),
+            const SizedBox(height: 24),
+            TextFormField(
+              initialValue: profileDef.maxExtensionItems?.toString() ?? '',
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.profileEditorMaxExtensionItems,
+                helperText: AppLocalizations.of(context)!.profileEditorMaxExtensionItemsDesc,
+                border: const OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              onChanged: (val) {
+                final parsed = int.tryParse(val);
+                if (val.isEmpty) {
+                  rebuildProfile(profileDef.copyWith(maxExtensionItems: null));
+                } else if (parsed != null) {
+                  rebuildProfile(profileDef.copyWith(maxExtensionItems: parsed));
+                }
+              },
             ),
             const SizedBox(height: 24),
             SynthesisEditorCard(

@@ -114,11 +114,151 @@ class BlueprintTransformer:
         # Epic: XAI Output Extensions
         visible_extensions = [v.value for v in getattr(profile, "visible_extensions", [])]
         grouped_extensions: dict[str, list[typing.Any]] = {ext: [] for ext in visible_extensions}
+        max_extension_items = getattr(profile, "max_extension_items", None)
+
+        # -- GLOBAL XAI EXTENSION AGGREGATION --
+        # Aggregate XAI extensions globally across all execution steps before processing layout constraints.
+        # This ensures extensions are collected even if a block is excluded from visual charts or show_text is false.
+        def _add_ext(group: str, val_key: str, content: typing.Any, axis: str, score: float | int | None = None) -> None:
+            camel_group = "".join(word.capitalize() if i > 0 else word for i, word in enumerate(group.split("_")))
+            if (group not in visible_extensions and camel_group not in visible_extensions) or content is None or content == "":
+                return
+            if group not in grouped_extensions:
+                grouped_extensions[group] = []
+            
+            # Deduplicate by exact content match
+            for existing in grouped_extensions[group]:
+                if existing.get(val_key) == content:
+                    if axis not in existing["axis_name"]:
+                        existing["axis_name"] += f" & {axis}"
+                    # If this matching content came from a worse score, update it
+                    if score is not None and score < existing.get("_score", 999):
+                        existing["_score"] = score
+                    return
+                    
+            grouped_extensions[group].append({
+                "axis_name": axis,
+                val_key: content,
+                "_score": score if score is not None else 999
+            })
+
+        # We must pre-fetch blocks early for resolving axis_label
+        all_blocks = await self.repo.get_all_prompt_blocks()
+        blocks_by_id = {b["id"]: b for b in all_blocks if "id" in b}
+
+        for step_id, step_data_res in results.items():
+            if isinstance(step_data_res, dict):
+                for k, v in step_data_res.items():
+                    is_legacy_score = k == "score"
+                    
+                    suffix_list = [
+                        "_justification", "_scaled", "_normalized", "_raw",
+                        "_cited_source_id", "_cited_text_quote", "_google_citation",
+                        "_coaching", "_confidence", "_falsification", "_missing_context",
+                        "_risk_flag", "_remediation_steps", "_emotional_sentiment", "_theory_link",
+                    ]
+                    if any(k.endswith(sfx) for sfx in suffix_list):
+                        continue
+                        
+                    block = blocks_by_id.get(k)
+                    if not block and not is_legacy_score:
+                        continue
+                        
+                    axis_name = step_id if is_legacy_score else k
+                    if block:
+                        label_obj = block.get("label", {})
+                        axis_name = _resolve_i18n_str(label_obj, locale, k) or k
+                        
+                    # Build Ext Vars
+                    if is_legacy_score:
+                        raw_justification = str(step_data_res.get("justification", ""))
+                        raw_cited_source_id = ""
+                        raw_cited_text_quote = ""
+                        raw_cited_web_citation = ""
+                        raw_falsification = None
+                        raw_theory_link = None
+                        raw_risk_flag = None
+                        coaching = None
+                        confidence = None
+                        missing_context = None
+                        remediation_steps = None
+                        emotional_sentiment = None
+                    else:
+                        if isinstance(v, dict):
+                            eval_notes = v.get("evaluation_notes", "")
+                            raw_justification = str(v.get("step_3_logical_friction", eval_notes) or "")
+                            raw_cited_source_id = str(v.get("step_1b_cited_source_id", ""))
+                            raw_cited_text_quote = str(v.get("step_1_evidence_quote", ""))
+                            raw_cited_web_citation = str(v.get("step_1c_google_citation", ""))
+                            raw_falsification = v.get("extension_falsification", v.get("step_2_falsification"))
+                            raw_theory_link = v.get("extension_theory_link")
+                            raw_risk_flag = v.get("extension_risk_flag")
+                            coaching = v.get("extension_coaching")
+                            confidence = v.get("extension_confidence")
+                            missing_context = v.get("extension_missing_context")
+                            remediation_steps = v.get("extension_remediation_steps")
+                            emotional_sentiment = v.get("extension_emotional_sentiment")
+                        else:
+                            eval_notes = step_data_res.get("evaluation_notes", "")
+                            raw_justification = str(step_data_res.get("step_3_logical_friction", eval_notes) or "")
+                            raw_cited_source_id = str(step_data_res.get("step_1b_cited_source_id", ""))
+                            raw_cited_text_quote = str(step_data_res.get("step_1_evidence_quote", ""))
+                            raw_cited_web_citation = str(step_data_res.get("step_1c_google_citation", ""))
+                            raw_falsification = step_data_res.get("step_2_falsification")
+                            raw_theory_link = step_data_res.get("extension_theory_link")
+                            raw_risk_flag = step_data_res.get("extension_risk_flag")
+                            coaching = step_data_res.get("extension_coaching")
+                            confidence = step_data_res.get("extension_confidence")
+                            missing_context = step_data_res.get("extension_missing_context")
+                            remediation_steps = step_data_res.get("extension_remediation_steps")
+                            emotional_sentiment = step_data_res.get("extension_emotional_sentiment")
+                            score_val = step_data_res.get("step_4_final_score", 999) if isinstance(step_data_res, dict) else 999
+
+                    _add_ext("justification", "justification", raw_justification, axis_name, score_val)
+                    _add_ext("falsification", "falsification", raw_falsification, axis_name, score_val)
+                    _add_ext("theory_link", "theory_link", raw_theory_link, axis_name, score_val)
+                    _add_ext("risk_flag", "risk_flag", raw_risk_flag, axis_name, score_val)
+                    _add_ext("coaching", "coaching", coaching, axis_name, score_val)
+                    _add_ext("missing_context", "missing_context", missing_context, axis_name, score_val)
+                    _add_ext("remediation_steps", "remediation_steps", remediation_steps, axis_name, score_val)
+                    _add_ext("emotional_sentiment", "emotional_sentiment", emotional_sentiment, axis_name, score_val)
+                    _add_ext("confidence", "confidence", confidence, axis_name, score_val)
+
+                    if "citation" in visible_extensions and (raw_cited_source_id or raw_cited_text_quote or raw_cited_web_citation):
+                        if "citation" not in grouped_extensions:
+                            grouped_extensions["citation"] = []
+                        
+                        citation_hash = str(raw_cited_source_id) + str(raw_cited_text_quote) + str(raw_cited_web_citation)
+                        cite_exists = False
+                        for existing in grouped_extensions["citation"]:
+                            existing_hash = str(existing.get("cited_source_id","")) + str(existing.get("cited_text_quote","")) + str(existing.get("cited_web_citation",""))
+                            if existing_hash == citation_hash:
+                                if axis_name not in existing["axis_name"]:
+                                    existing["axis_name"] += f" & {axis_name}"
+                                cite_exists = True
+                                break
+                        if not cite_exists:
+                            grouped_extensions["citation"].append({
+                                "axis_name": axis_name,
+                                "cited_source_id": raw_cited_source_id,
+                                "cited_text_quote": raw_cited_text_quote,
+                                "cited_web_citation": raw_cited_web_citation,
+                            })
+
+        # Process limit/truncation based on max_extension_items
+        for ext_group, items in list(grouped_extensions.items()):
+            if max_extension_items is not None and len(items) > max_extension_items:
+                # Sort by score ascending (lowest score is most critical)
+                items.sort(key=lambda x: x.get("_score", 999))
+                grouped_extensions[ext_group] = items[:max_extension_items]
+            
+            # Clean up the internal _score key
+            for item in grouped_extensions[ext_group]:
+                item.pop("_score", None)
 
         layouts_list = []
         # Pre-fetch prompt blocks to enrich axis labels
-        all_blocks = await self.repo.get_all_prompt_blocks()
-        blocks_by_id = {b["id"]: b for b in all_blocks if "id" in b}
+        # (Blocks already fetched above for global aggregation)
 
         # Pre-fetch DAG workflow steps for collision avoidance renaming
         workflow_steps = {s["id"]: s for s in workflow_data.get("steps", [])}
@@ -160,7 +300,7 @@ class BlueprintTransformer:
                 preset_view = layout_def.preset_view
                 target_blocks = layout_def.target_blocks
                 # if target_blocks missing, default to empty list. But models say it is guaranteed and non-empty.
-                show_text = layout_def.show_text
+                text_delivery_mode = layout_def.text_delivery_mode
 
                 layout_title = layout_def.title
                 layout_desc = layout_def.description
@@ -298,100 +438,38 @@ class BlueprintTransformer:
                                 emotional_sentiment = None
                                 theory_link = None
 
-                                if show_text:
-                                    # Collect Raw Data
+                                if text_delivery_mode != "none":
                                     if is_legacy_score:
-                                        raw_justification = str(step_data.get("justification", ""))
-                                        raw_cited_source_id = ""
-                                        raw_cited_text_quote = ""
-                                        raw_cited_web_citation = ""
-                                        raw_falsification = None
-                                        raw_theory_link = None
-                                        raw_risk_flag = None
-                                        coaching = None
-                                        confidence = None
-                                        missing_context = None
-                                        remediation_steps = None
-                                        emotional_sentiment = None
+                                        justification = str(step_data.get("justification", ""))
                                     else:
-                                        eval_notes = step_data.get("evaluation_notes", "")
-                                        raw_justification = str(
-                                            step_data.get("step_3_logical_friction", eval_notes) or ""
-                                        )
-                                        raw_cited_source_id = str(step_data.get("step_1b_cited_source_id", ""))
-                                        raw_cited_text_quote = str(step_data.get("step_1_evidence_quote", ""))
-                                        raw_cited_web_citation = str(step_data.get("step_1c_google_citation", ""))
-
-                                        raw_falsification = step_data.get("step_2_falsification")
-                                        raw_theory_link = step_data.get("extension_theory_link")
-                                        raw_risk_flag = step_data.get("extension_risk_flag")
-
-                                        # Non-Extension generic text fields
-                                        coaching = step_data.get("extension_coaching")
-                                        confidence = step_data.get("extension_confidence")
-                                        missing_context = step_data.get("extension_missing_context")
-                                        remediation_steps = step_data.get("extension_remediation_steps")
-                                        emotional_sentiment = step_data.get("extension_emotional_sentiment")
-
-                                    # Grouping Logic for XAI Extensions
-                                    # (Strict Validation & Immutability rule dictates omitting unselected)
-                                    if "justification" in visible_extensions and raw_justification:
-                                        grouped_extensions["justification"].append(
-                                            {"axis_name": axis_name, "justification": raw_justification}
-                                        )
-                                    if "citation" in visible_extensions and (
-                                        raw_cited_source_id or raw_cited_text_quote or raw_cited_web_citation
-                                    ):
-                                        grouped_extensions["citation"].append(
-                                            {
-                                                "axis_name": axis_name,
-                                                "cited_source_id": raw_cited_source_id,
-                                                "cited_text_quote": raw_cited_text_quote,
-                                                "cited_web_citation": raw_cited_web_citation,
-                                            }
-                                        )
-                                    if "falsification" in visible_extensions and raw_falsification:
-                                        grouped_extensions["falsification"].append(
-                                            {"axis_name": axis_name, "falsification": raw_falsification}
-                                        )
-                                    if "theory_link" in visible_extensions and raw_theory_link:
-                                        grouped_extensions["theory_link"].append(
-                                            {"axis_name": axis_name, "theory_link": raw_theory_link}
-                                        )
-                                    if "risk_flag" in visible_extensions and raw_risk_flag is not None:
-                                        grouped_extensions["risk_flag"].append(
-                                            {"axis_name": axis_name, "risk_flag": raw_risk_flag}
-                                        )
-                                    if "coaching" in visible_extensions and coaching:
-                                        if "coaching" not in grouped_extensions:
-                                            grouped_extensions["coaching"] = []
-                                        grouped_extensions["coaching"].append(
-                                            {"axis_name": axis_name, "coaching": coaching}
-                                        )
-                                    if "missing_context" in visible_extensions and missing_context:
-                                        if "missing_context" not in grouped_extensions:
-                                            grouped_extensions["missing_context"] = []
-                                        grouped_extensions["missing_context"].append(
-                                            {"axis_name": axis_name, "missing_context": missing_context}
-                                        )
-                                    if "remediation_steps" in visible_extensions and remediation_steps:
-                                        if "remediation_steps" not in grouped_extensions:
-                                            grouped_extensions["remediation_steps"] = []
-                                        grouped_extensions["remediation_steps"].append(
-                                            {"axis_name": axis_name, "remediation_steps": remediation_steps}
-                                        )
-                                    if "emotional_sentiment" in visible_extensions and emotional_sentiment:
-                                        if "emotional_sentiment" not in grouped_extensions:
-                                            grouped_extensions["emotional_sentiment"] = []
-                                        grouped_extensions["emotional_sentiment"].append(
-                                            {"axis_name": axis_name, "emotional_sentiment": emotional_sentiment}
-                                        )
-                                    if "confidence" in visible_extensions and confidence is not None:
-                                        if "confidence" not in grouped_extensions:
-                                            grouped_extensions["confidence"] = []
-                                        grouped_extensions["confidence"].append(
-                                            {"axis_name": axis_name, "confidence": confidence}
-                                        )
+                                        if isinstance(v, dict):
+                                            eval_notes = v.get("evaluation_notes", "")
+                                            justification = str(v.get("step_3_logical_friction", eval_notes) or "")
+                                            cited_source_id = str(v.get("step_1b_cited_source_id", ""))
+                                            cited_text_quote = str(v.get("step_1_evidence_quote", ""))
+                                            cited_web_citation = str(v.get("step_1c_google_citation", ""))
+                                            falsification = v.get("extension_falsification", v.get("step_2_falsification"))
+                                            theory_link = v.get("extension_theory_link")
+                                            risk_flag = v.get("extension_risk_flag")
+                                            coaching = v.get("extension_coaching")
+                                            confidence = v.get("extension_confidence")
+                                            missing_context = v.get("extension_missing_context")
+                                            remediation_steps = v.get("extension_remediation_steps")
+                                            emotional_sentiment = v.get("extension_emotional_sentiment")
+                                        else:
+                                            eval_notes = step_data.get("evaluation_notes", "")
+                                            justification = str(step_data.get("step_3_logical_friction", eval_notes) or "")
+                                            cited_source_id = str(step_data.get("step_1b_cited_source_id", ""))
+                                            cited_text_quote = str(step_data.get("step_1_evidence_quote", ""))
+                                            cited_web_citation = str(step_data.get("step_1c_google_citation", ""))
+                                            falsification = step_data.get("step_2_falsification")
+                                            theory_link = step_data.get("extension_theory_link")
+                                            risk_flag = step_data.get("extension_risk_flag")
+                                            coaching = step_data.get("extension_coaching")
+                                            confidence = step_data.get("extension_confidence")
+                                            missing_context = step_data.get("extension_missing_context")
+                                            remediation_steps = step_data.get("extension_remediation_steps")
+                                            emotional_sentiment = step_data.get("extension_emotional_sentiment")
 
                                 # Use a combined key for uniqueness
                                 unique_k = f"{step_id}_{k}"
@@ -454,7 +532,7 @@ class BlueprintTransformer:
                             title=layout_title,
                             description=layout_desc,
                             axes=axes,
-                            show_text=show_text,
+                            text_delivery_mode=text_delivery_mode,
                             synthesis=synthesis_config,
                             synthesis_md=section_md,
                         )
@@ -578,9 +656,20 @@ class BlueprintTransformer:
             from backend_v2.models.v2_core import MCPAuditTrace
 
             mcp_audit_data: list[MCPAuditTrace] = []
-            if hasattr(execution, "frozen_context") and execution.frozen_context:
-                if hasattr(execution.frozen_context, "mcp_tool_audit") and execution.frozen_context.mcp_tool_audit:
-                    mcp_audit_data = execution.frozen_context.mcp_tool_audit
+            f_context = getattr(execution, "frozen_context", None)
+            if f_context:
+                raw_audits = f_context.get("mcp_tool_audit", []) if isinstance(f_context, dict) else getattr(f_context, "mcp_tool_audit", [])
+                if raw_audits:
+                    seen_audits = set()
+                    for audit in raw_audits:
+                        # Defensive parsing in case elements are Pydantic models vs dicts
+                        t_name = getattr(audit, "tool_id", None) or (audit.get("tool_id") if isinstance(audit, dict) else "")
+                        t_args = getattr(audit, "query", None) or (audit.get("query") if isinstance(audit, dict) else "")
+                        
+                        audit_hash = f"{t_name}::{t_args}"
+                        if audit_hash not in seen_audits:
+                            seen_audits.add(audit_hash)
+                            mcp_audit_data.append(audit)
 
             visible_metadata = getattr(profile, "visible_metadata", [])
 

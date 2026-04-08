@@ -293,6 +293,7 @@ class AllowedMCPTool(V2CoreBase):
 class MCPAuditTrace(V2CoreBase):
     """Immutable audit log entry for a single MCP tool invocation."""
 
+    id: str | None = Field(default=None, description="Unique identifier for the trace injected by the driver.")
     tool_id: str = Field(description="Which tool was called.")
     step_name: str = Field(description="DAG step that triggered the call.")
     query: str = Field(description="The search query or tool input.")
@@ -544,7 +545,22 @@ class ReportLayoutDTO(V2CoreBase):
     title: I18nText | None = Field(default=None)
     description: I18nText | None = Field(default=None)
     axes: list[ReportAxisDTO] = Field(default_factory=list)
-    show_text: bool = Field(default=True)
+    text_delivery_mode: Literal["full", "titles_only", "none"] = Field(
+        default="full", description="Granularity of text output for this layout."
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_text_mode(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if "text_delivery_mode" not in data:
+                show = data.get("show_text", True)
+                if "showText" in data and "show_text" not in data:
+                    show = data.get("showText", True)
+                data["text_delivery_mode"] = "full" if show else "none"
+            data.pop("show_text", None)
+            data.pop("showText", None)
+        return data
     synthesis: SynthesisConfigDTO | None = Field(default=None)
     synthesis_md: str | None = Field(default=None, description="The rendered synthesis text for this layout block")
 
@@ -619,7 +635,22 @@ class OutputLayoutBlock(V2CoreBase):
     target_blocks: list[str] = Field(
         default_factory=list, description="Optional explicit block IDs to plot, filtering and ordering the axes."
     )
-    show_text: bool = Field(default=True, description="Whether to include text justifications in this block.")
+    text_delivery_mode: Literal["full", "titles_only", "none"] = Field(
+        default="full", description="Granularity of text output in PDF and UI grids."
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_text_mode(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if "text_delivery_mode" not in data:
+                show = data.get("show_text", True)
+                if "showText" in data and "show_text" not in data:
+                    show = data.get("showText", True)
+                data["text_delivery_mode"] = "full" if show else "none"
+            data.pop("show_text", None)
+            data.pop("showText", None)
+        return data
     synthesis: SynthesisConfigDTO | None = Field(
         default=None, description="Optional Section-Level Synthesis configuration for this block."
     )
@@ -641,6 +672,10 @@ class OutputProfile(V2CoreBase):
     visible_extensions: list[XaiExtensionType] = Field(
         default_factory=list,
         description="List of XAI extensions visible at the end of the report.",
+    )
+    max_extension_items: int | None = Field(
+        default=None,
+        description="Max number of items to show per grouped XAI extension. Sorted by severity.",
     )
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original",
@@ -673,6 +708,10 @@ class EmbeddedOutputProfile(V2CoreBase):
     visible_extensions: list[XaiExtensionType] = Field(
         default_factory=list,
         description="List of XAI extensions visible at the end of the report.",
+    )
+    max_extension_items: int | None = Field(
+        default=None,
+        description="Max number of items to show per grouped XAI extension. Sorted by severity.",
     )
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original",

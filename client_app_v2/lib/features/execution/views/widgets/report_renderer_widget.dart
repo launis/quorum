@@ -512,7 +512,7 @@ class ReportRendererWidget extends ConsumerWidget {
                             ),
                           ],
                           const SizedBox(height: 8),
-                          if (layout.showText &&
+                          if (layout.textDeliveryMode == 'full' &&
                               axis.justification.trim().isNotEmpty)
                             Text(
                               axis.justification,
@@ -522,7 +522,7 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                             ),
 
-                          if (layout.showText && axis.confidence != null)
+                          if (layout.textDeliveryMode == 'full' && axis.confidence != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Text(
@@ -537,7 +537,7 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                             ),
 
-                          if (layout.showText && axis.riskFlag == true)
+                          if (layout.textDeliveryMode == 'full' && axis.riskFlag == true)
                             Container(
                               margin: const EdgeInsets.only(top: 8.0),
                               padding: const EdgeInsets.symmetric(
@@ -558,7 +558,7 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                             ),
 
-                          if (layout.showText &&
+                          if (layout.textDeliveryMode == 'full' &&
                               axis.coaching != null &&
                               axis.coaching!.isNotEmpty)
                             Container(
@@ -596,7 +596,7 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                             ),
 
-                          if (layout.showText &&
+                          if (layout.textDeliveryMode == 'full' &&
                               axis.falsification != null &&
                               axis.falsification!.isNotEmpty)
                             Container(
@@ -637,7 +637,7 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                             ),
 
-                          if (layout.showText &&
+                          if (layout.textDeliveryMode == 'full' &&
                               axis.missingContext != null &&
                               axis.missingContext!.isNotEmpty)
                             Container(
@@ -675,7 +675,7 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                             ),
 
-                          if (layout.showText &&
+                          if (layout.textDeliveryMode == 'full' &&
                               axis.remediationSteps != null &&
                               axis.remediationSteps!.isNotEmpty)
                             Container(
@@ -713,7 +713,7 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                             ),
 
-                          if (layout.showText &&
+                          if (layout.textDeliveryMode == 'full' &&
                               axis.emotionalSentiment != null &&
                               axis.emotionalSentiment!.isNotEmpty)
                             Padding(
@@ -728,7 +728,7 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                             ),
 
-                          if (layout.showText &&
+                          if (layout.textDeliveryMode == 'full' &&
                               axis.theoryLink != null &&
                               axis.theoryLink!.isNotEmpty)
                             Padding(
@@ -742,7 +742,7 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                             ),
 
-                          if (layout.showText && shouldShowQuote[index])
+                          if (layout.textDeliveryMode != 'none' && shouldShowQuote[index])
                             Container(
                               margin: const EdgeInsets.only(top: 12.0),
                               padding: const EdgeInsets.all(12.0),
@@ -764,7 +764,7 @@ class ReportRendererWidget extends ConsumerWidget {
                                 ),
                               ),
                             ),
-                          if (layout.showText &&
+                          if (layout.textDeliveryMode != 'none' &&
                               axis.citedSourceId != null &&
                               axis.citedSourceId!.isNotEmpty)
                             Padding(
@@ -780,7 +780,7 @@ class ReportRendererWidget extends ConsumerWidget {
                                 ),
                               ),
                             ),
-                          if (layout.showText &&
+                          if (layout.textDeliveryMode != 'none' &&
                               axis.citedWebCitation != null &&
                               axis.citedWebCitation!.isNotEmpty)
                             Container(
@@ -894,7 +894,8 @@ class ReportRendererWidget extends ConsumerWidget {
             ),
           ),
         ),
-        _build1DMetrics(context, layout),
+        if (layout.textDeliveryMode != 'none')
+          _build1DMetrics(context, layout),
       ],
     );
   }
@@ -935,7 +936,8 @@ class ReportRendererWidget extends ConsumerWidget {
             ),
           ),
         ),
-        _build1DMetrics(context, layout),
+        if (layout.textDeliveryMode != 'none')
+          _build1DMetrics(context, layout),
       ],
     );
   }
