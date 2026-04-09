@@ -127,12 +127,12 @@ class BlueprintTransformer:
                 return
             if group not in grouped_extensions:
                 grouped_extensions[group] = []
-            
+
             # Deduplicate by exact content match
             for existing in grouped_extensions[group]:
                 exist_content = existing.content if isinstance(existing, HighlightBoxDisplay) else existing.get("content")
                 if exist_content == content or (isinstance(existing, dict) and existing.get(val_key) == content):
-                    # We skip axis merging for HighlightBoxDisplay objects right now for simplicity 
+                    # We skip axis merging for HighlightBoxDisplay objects right now for simplicity
                     # since they are structurally complete, but we could extend it if necessary.
                     if isinstance(existing, dict):
                         if axis not in existing.get("axis_name", ""):
@@ -141,10 +141,10 @@ class BlueprintTransformer:
                             existing["_score"] = score
                     # For HighlightBoxDisplay, deduplication drops the duplicate completely.
                     return
-            
+
             color_theme: typing.Literal["danger", "info", "warning", "success", "primary"] = "info"
             icon_name = "info"
-            
+
             if group in [XaiExtensionType.FALSIFICATION.value, XaiExtensionType.RISK_FLAG.value]:
                 color_theme = "danger"
                 icon_name = "warning"
@@ -171,10 +171,10 @@ class BlueprintTransformer:
             )
             # Dump to dict to avoid naive __repr__ stringification by FastAPI fallback for List[Any]
             box_dict = box.model_dump()
-            
+
             # Monkey-patch internal fields needed for algorithmic processing before final serialization
             box_dict["_score"] = score if score is not None else 999
-            
+
             grouped_extensions[group].append(box_dict)
 
         # We must pre-fetch blocks early for resolving axis_label
@@ -185,7 +185,7 @@ class BlueprintTransformer:
             if isinstance(step_data_res, dict):
                 for k, v in step_data_res.items():
                     is_legacy_score = k == "score"
-                    
+
                     suffix_list = [
                         "_justification", "_scaled", "_normalized", "_raw",
                         "_cited_source_id", "_cited_text_quote", "_google_citation",
@@ -194,16 +194,16 @@ class BlueprintTransformer:
                     ]
                     if any(k.endswith(sfx) for sfx in suffix_list):
                         continue
-                        
+
                     block = blocks_by_id.get(k)
                     if not block and not is_legacy_score:
                         continue
-                        
+
                     axis_name = step_id if is_legacy_score else k
                     if block:
                         label_obj = block.get("label", {})
                         axis_name = _resolve_i18n_str(label_obj, locale, k) or k
-                        
+
                     # Build Ext Vars
                     if is_legacy_score:
                         raw_justification = str(step_data_res.get("justification", ""))
@@ -265,7 +265,7 @@ class BlueprintTransformer:
                     if "citation" in visible_extensions and (raw_cited_source_id or raw_cited_text_quote or raw_cited_web_citation):
                         if "citation" not in grouped_extensions:
                             grouped_extensions["citation"] = []
-                        
+
                         citation_hash = str(raw_cited_source_id) + str(raw_cited_text_quote) + str(raw_cited_web_citation)
                         cite_exists = False
                         for existing in grouped_extensions["citation"]:
@@ -289,7 +289,7 @@ class BlueprintTransformer:
                 # Sort by score ascending (lowest score is most critical)
                 items.sort(key=lambda x: getattr(x, "_score", x.get("_score", 999)) if isinstance(x, dict) else getattr(x, "_score", 999))
                 grouped_extensions[ext_group] = items[:max_extension_items]
-            
+
             # Clean up the internal _score key (dicts only; Pydantic ignores private attributes)
             for item in grouped_extensions[ext_group]:
                 if isinstance(item, dict):
@@ -324,14 +324,14 @@ class BlueprintTransformer:
             section_syntheses = profile_cache.section_syntheses
             synthesis_md = profile_cache.synthesized_markdown
             xai_highlights_cache = getattr(profile_cache, "xai_highlights", [])
-            
+
         # Merge XAI Highlights from cache into grouped_extensions
         for highlight in xai_highlights_cache:
             # Type name should act as the group key, mapping it to SDUI's new box dictionary.
             group_key = highlight.get("type_name", "insight").lower().replace(" ", "_")
             if group_key not in grouped_extensions:
                 grouped_extensions[group_key] = []
-            
+
             # Use XAI evidence box definition which XAIExtensionsBox will gracefully parse!
             grouped_extensions[group_key].append(highlight)
 
@@ -716,7 +716,7 @@ class BlueprintTransformer:
                         # Defensive parsing in case elements are Pydantic models vs dicts
                         t_name = getattr(audit, "tool_id", None) or (audit.get("tool_id") if isinstance(audit, dict) else "")
                         t_args = getattr(audit, "query", None) or (audit.get("query") if isinstance(audit, dict) else "")
-                        
+
                         audit_hash = f"{t_name}::{t_args}"
                         if audit_hash not in seen_audits:
                             seen_audits.add(audit_hash)

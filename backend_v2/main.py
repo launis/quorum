@@ -187,7 +187,7 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
 
     # Extract the Enum Name if it's an ErrorCode, otherwise use the string.
     err_name = exc.error_code.name if hasattr(exc.error_code, "name") else str(exc.error_code)
-    
+
     if exc.status_code >= 500:
         # Dual-Reporting: Log full traceback for system errors
         logger.error("[FastAPI] %s (Status: %s)", exc.message, exc.status_code, exc_info=exc, extra={"error_code": err_name})

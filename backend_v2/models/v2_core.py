@@ -13,8 +13,6 @@ from backend_v2.models.enums import (
     BlockDataType,
     ComponentType,
     ExecutionStatus,
-    SelfHealingThresholdRatio,
-    SystemConcurrency,
     XaiExtensionType,
 )
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
