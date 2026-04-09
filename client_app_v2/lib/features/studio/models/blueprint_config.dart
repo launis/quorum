@@ -1,5 +1,6 @@
 // ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:client_app/core/models/enums.dart';
 
 part 'blueprint_config.freezed.dart';
 part 'blueprint_config.g.dart';
@@ -9,7 +10,9 @@ part 'blueprint_config.g.dart';
 @freezed
 abstract class BlueprintConfig with _$BlueprintConfig {
   const factory BlueprintConfig({
-    @JsonKey(name: 'preset_view') @Default('1d_metrics') String presetView,
+    @JsonKey(name: 'preset_view', unknownEnumValue: PresetView.metrics1d)
+    @Default(PresetView.metrics1d)
+    PresetView presetView,
   }) = _BlueprintConfig;
 
   factory BlueprintConfig.fromJson(Map<String, dynamic> json) =>

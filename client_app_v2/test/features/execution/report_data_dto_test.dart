@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
+import 'package:client_app/core/models/enums.dart';
 
 void main() {
   group('ReportDataDTO Parsing (Fail-Fast Verification)', () {
@@ -32,7 +33,7 @@ void main() {
         "layouts": [
           {
             "preset_view": "1d_metrics",
-            "show_text": true,
+            "text_delivery_mode": "full",
             "axes": [
               {
                 "name": "Loogisuus",
@@ -48,7 +49,7 @@ void main() {
       final dto = ReportDataDTO.fromJson(json);
       expect(dto.workflowId, 'wf_123');
       expect(dto.layouts.length, 1);
-      expect(dto.layouts.first.presetView, '1d_metrics');
+      expect(dto.layouts.first.presetView, PresetView.metrics1d);
       expect(dto.layouts.first.axes.length, 1);
       expect(dto.layouts.first.axes.first.score, 88.0);
     });

@@ -4,6 +4,7 @@ import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/views/widgets/profile/synthesis_editor_card.dart';
 
@@ -25,7 +26,7 @@ class LayoutEditorCard extends ConsumerWidget {
     final newList = List<OutputLayoutBlock>.from(layouts);
     newList.add(
       const OutputLayoutBlock(
-        presetView: '1d_metrics',
+        presetView: PresetView.metrics1d,
         title: I18nText(defaultLocale: 'en'),
         textDeliveryMode: 'full',
         targetBlocks: [],
@@ -82,16 +83,7 @@ class LayoutEditorCard extends ConsumerWidget {
   ) {
     final blocksList = List<String>.from(layout.targetBlocks);
 
-    String currentPreset = layout.presetView;
-    if (![
-      '1d_metrics',
-      '2d_compare',
-      '3d_complex',
-      'text_only',
-      'default',
-    ].contains(currentPreset)) {
-      currentPreset = '1d_metrics';
-    }
+    final PresetView currentPreset = layout.presetView;
 
     final String textDeliveryMode = layout.textDeliveryMode;
 
@@ -122,7 +114,7 @@ class LayoutEditorCard extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: DropdownButtonFormField<String>(
+                child: DropdownButtonFormField<PresetView>(
                   initialValue: currentPreset,
                   isExpanded: true,
                   decoration: InputDecoration(
@@ -131,35 +123,42 @@ class LayoutEditorCard extends ConsumerWidget {
                   ),
                   items: [
                     DropdownMenuItem(
-                      value: '1d_metrics',
+                      value: PresetView.metrics1d,
                       child: Text(
                         l10n.preset1dTable,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     DropdownMenuItem(
-                      value: '2d_compare',
+                      value: PresetView.compare2d,
                       child: Text(
                         l10n.preset2dGrid,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     DropdownMenuItem(
-                      value: '3d_complex',
+                      value: PresetView.complex3d,
                       child: Text(
-                        l10n.preset3dRadar,
+                        '3D: Radar (Spider)',
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     DropdownMenuItem(
-                      value: 'text_only',
+                      value: PresetView.matrix3d,
+                      child: Text(
+                        '3D: Matrix (Bubble)',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: PresetView.textOnly,
                       child: Text(
                         l10n.presetTextOnly,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     DropdownMenuItem(
-                      value: 'default',
+                      value: PresetView.defaultView,
                       child: Text(
                         l10n.presetAutomatic,
                         overflow: TextOverflow.ellipsis,
@@ -298,9 +297,10 @@ class LayoutEditorCard extends ConsumerWidget {
               }).toList();
 
               final int requiredDropdowns = switch (currentPreset) {
-                '1d_metrics' => 1,
-                '2d_compare' => 2,
-                '3d_complex' => 3,
+                PresetView.metrics1d => 1,
+                PresetView.compare2d => 2,
+                PresetView.complex3d => 3,
+                PresetView.matrix3d => 3,
                 _ => 1,
               };
 

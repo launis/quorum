@@ -112,6 +112,12 @@
         <catastrophic_reason>Scattered magic timeouts and loosely typed enums create unmaintainable fail-fast regressions and duplicate logic when the backend architecture evolves.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="no_raw_string_enum_mappings">
+        <banned_pattern>Using `if (!['a', 'b'].contains(val))` or `switch (val) { case 'a': }` to render UI logic based on a backend string value. Dropping invalid strings into a default fallback without warning.</banned_pattern>
+        <mandatory_pattern>All backend Pydantic Literals and Enums that control UI structures MUST be defined as strict `@JsonEnum()` elements in `enums.dart` and assigned to Freezed model fields. Any unsupported string sent by the server MUST crash the JSON parser natively before the UI attempts to render a broken state.</mandatory_pattern>
+        <catastrophic_reason>Failing to parse the exact backend Enum causes the Dart UI to silently fall back to defaults, hiding elements off-screen and subsequently wiping those fields from the live Database upon the next User Save.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="tenant_data_isolation">
         <banned_pattern>Leaving old cached Master Data arrays visually intact memory-resident when switching tenant organization context.</banned_pattern>
         <mandatory_pattern>Upon User/Organization modification, the prior context state MUST be deliberately and safely invalidated (`ref.invalidate()`) protecting cross-tenant privacy leaks instantly.</mandatory_pattern>

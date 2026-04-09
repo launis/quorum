@@ -28,7 +28,13 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
     final val = _OutputLayoutBlock(
       presetView: $checkedConvert(
         'preset_view',
-        (v) => v as String? ?? 'default',
+        (v) =>
+            $enumDecodeNullable(
+              _$PresetViewEnumMap,
+              v,
+              unknownValue: PresetView.defaultView,
+            ) ??
+            PresetView.defaultView,
       ),
       title: $checkedConvert(
         'title',
@@ -72,7 +78,7 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
 
 Map<String, dynamic> _$OutputLayoutBlockToJson(_OutputLayoutBlock instance) =>
     <String, dynamic>{
-      'preset_view': instance.presetView,
+      'preset_view': _$PresetViewEnumMap[instance.presetView]!,
       'title': instance.title?.toJson(),
       'description': instance.description?.toJson(),
       'steps': instance.steps,
@@ -81,6 +87,15 @@ Map<String, dynamic> _$OutputLayoutBlockToJson(_OutputLayoutBlock instance) =>
       'synthesis': instance.synthesis?.toJson(),
       'synthesis_md': instance.synthesisMd,
     };
+
+const _$PresetViewEnumMap = {
+  PresetView.metrics1d: '1d_metrics',
+  PresetView.compare2d: '2d_compare',
+  PresetView.complex3d: '3d_complex',
+  PresetView.matrix3d: '3d_matrix',
+  PresetView.textOnly: 'text_only',
+  PresetView.defaultView: 'default',
+};
 
 _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
     $checkedCreate(

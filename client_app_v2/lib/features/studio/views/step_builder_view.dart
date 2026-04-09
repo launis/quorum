@@ -513,8 +513,6 @@ class StepBuilderView extends HookConsumerWidget {
                         final translations =
                             nameMap['translations'] as Map<String, dynamic>? ??
                             {};
-                        final defaultLocale =
-                            nameMap['default_locale']?.toString() ?? 'en';
 
                         // Current locale via Localizations or simple fallback
                         final currentLocale = Localizations.localeOf(

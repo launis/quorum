@@ -35,7 +35,6 @@ SystemConfigUnion = Annotated[
 STANDARD_REGISTRY = {
     "system_config": {"table": "system_config", "model": TypeAdapter(SystemConfigUnion), "id_field": "id"},
     "workflows": {"table": "workflows", "model": TypeAdapter(Workflow), "id_field": "id"},
-    "agents": {"table": "agents", "model": TypeAdapter(Role), "id_field": "id"},
     "prompt_blocks": {"table": "prompt_blocks", "model": TypeAdapter(PromptBlock), "id_field": "id"},
     "steps": {"table": "steps", "model": TypeAdapter(Step), "id_field": "id"},
     "output_profiles": {"table": "output_profiles", "model": TypeAdapter(OutputProfile), "id_field": "id"},

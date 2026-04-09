@@ -135,7 +135,14 @@ _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
           ],
         );
         final val = _ReportLayoutDTO(
-          presetView: $checkedConvert('preset_view', (v) => v as String),
+          presetView: $checkedConvert(
+            'preset_view',
+            (v) => $enumDecode(
+              _$PresetViewEnumMap,
+              v,
+              unknownValue: PresetView.defaultView,
+            ),
+          ),
           matrixType: $checkedConvert('matrix_type', (v) => v as String?),
           title: $checkedConvert(
             'title',
@@ -179,7 +186,7 @@ _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ReportLayoutDTOToJson(_ReportLayoutDTO instance) =>
     <String, dynamic>{
-      'preset_view': instance.presetView,
+      'preset_view': _$PresetViewEnumMap[instance.presetView]!,
       'matrix_type': instance.matrixType,
       'title': instance.title?.toJson(),
       'description': instance.description?.toJson(),
@@ -188,6 +195,15 @@ Map<String, dynamic> _$ReportLayoutDTOToJson(_ReportLayoutDTO instance) =>
       'synthesis': instance.synthesis,
       'synthesis_md': instance.synthesisMd,
     };
+
+const _$PresetViewEnumMap = {
+  PresetView.metrics1d: '1d_metrics',
+  PresetView.compare2d: '2d_compare',
+  PresetView.complex3d: '3d_complex',
+  PresetView.matrix3d: '3d_matrix',
+  PresetView.textOnly: 'text_only',
+  PresetView.defaultView: 'default',
+};
 
 _MCPToolAuditDTO _$MCPToolAuditDTOFromJson(Map<String, dynamic> json) =>
     $checkedCreate(

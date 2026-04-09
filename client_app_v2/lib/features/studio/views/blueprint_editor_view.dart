@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/controllers/blueprint_editor_controller.dart';
 
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/models/enums.dart';
 
 /// **Blueprint Editor View (Phase 9 Rebuild)**
 ///
@@ -40,7 +41,7 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
     final config = ref.watch(blueprintEditorControllerProvider);
     final controller = ref.read(blueprintEditorControllerProvider.notifier);
 
-    final presetView = config.presetView;
+    final PresetView presetView = config.presetView;
 
     return Scaffold(
       appBar: AppBar(
@@ -70,24 +71,28 @@ class _BlueprintEditorViewState extends ConsumerState<BlueprintEditorView> {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: DropdownButtonFormField<String>(
-                  initialValue: presetView.isEmpty ? '1d_metrics' : presetView,
+                child: DropdownButtonFormField<PresetView>(
+                  initialValue: presetView,
                   decoration: InputDecoration(
                     labelText: l10n.studioViewsPresetViewTheme,
                     border: const OutlineInputBorder(),
                   ),
                   items: [
                     DropdownMenuItem(
-                      value: '1d_metrics',
+                      value: PresetView.metrics1d,
                       child: Text(l10n.studioViews1dMetricsList),
                     ),
                     DropdownMenuItem(
-                      value: '2d_compare',
+                      value: PresetView.compare2d,
                       child: Text(l10n.studioViews2dCompare),
                     ),
                     DropdownMenuItem(
-                      value: '3d_complex',
+                      value: PresetView.complex3d,
                       child: Text(l10n.studioViews3dComplex),
+                    ),
+                    DropdownMenuItem(
+                      value: PresetView.matrix3d,
+                      child: Text('3D: Matrix (Bubble)'),
                     ),
                   ],
                   onChanged: (val) {

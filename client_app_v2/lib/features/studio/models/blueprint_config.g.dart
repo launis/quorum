@@ -12,11 +12,26 @@ _BlueprintConfig _$BlueprintConfigFromJson(Map<String, dynamic> json) =>
       final val = _BlueprintConfig(
         presetView: $checkedConvert(
           'preset_view',
-          (v) => v as String? ?? '1d_metrics',
+          (v) =>
+              $enumDecodeNullable(
+                _$PresetViewEnumMap,
+                v,
+                unknownValue: PresetView.metrics1d,
+              ) ??
+              PresetView.metrics1d,
         ),
       );
       return val;
     }, fieldKeyMap: const {'presetView': 'preset_view'});
 
 Map<String, dynamic> _$BlueprintConfigToJson(_BlueprintConfig instance) =>
-    <String, dynamic>{'preset_view': instance.presetView};
+    <String, dynamic>{'preset_view': _$PresetViewEnumMap[instance.presetView]!};
+
+const _$PresetViewEnumMap = {
+  PresetView.metrics1d: '1d_metrics',
+  PresetView.compare2d: '2d_compare',
+  PresetView.complex3d: '3d_complex',
+  PresetView.matrix3d: '3d_matrix',
+  PresetView.textOnly: 'text_only',
+  PresetView.defaultView: 'default',
+};

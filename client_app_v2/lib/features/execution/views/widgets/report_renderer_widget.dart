@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
 import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
+import 'package:client_app/shared/widgets/logic_radar_chart.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/views/widgets/xai_evidence_box.dart';
 import 'package:client_app/features/execution/views/widgets/xai_extensions_box.dart';
 import 'package:client_app/shared/widgets/output_renderer.dart';
@@ -358,16 +360,19 @@ class ReportRendererWidget extends ConsumerWidget {
     Widget content;
     try {
       switch (layout.presetView) {
-        case '1d_metrics':
+        case PresetView.metrics1d:
           content = _build1DMetrics(context, layout);
           break;
-        case '2d_compare':
+        case PresetView.compare2d:
           content = _build2DCompare(context, layout);
           break;
-        case '3d_complex':
+        case PresetView.matrix3d:
           content = _build3DComplex(context, layout);
           break;
-        case 'text_only':
+        case PresetView.complex3d:
+          content = _build3DRadar(context, layout);
+          break;
+        case PresetView.textOnly:
           content = _build1DMetrics(context, layout);
           break;
         default:
@@ -939,6 +944,41 @@ class ReportRendererWidget extends ConsumerWidget {
                   yAxis: layout.axes[1],
                   zAxis: layout.axes.length >= 3 ? layout.axes[2] : null,
                 ),
+              ],
+            ),
+          ),
+        ),
+        if (layout.textDeliveryMode != 'none') _build1DMetrics(context, layout),
+      ],
+    );
+  }
+
+  Widget _build3DRadar(BuildContext context, ReportLayoutDTO layout) {
+    if (layout.axes.length < 3) {
+      return _build1DMetrics(context, layout);
+    }
+
+    final l10n = AppLocalizations.of(context)!;
+    final String title = l10n.reportAnalyticalFramework3D;
+
+    return Column(
+      children: [
+        Card(
+          elevation: 2,
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                LogicRadarChart(axes: layout.axes),
               ],
             ),
           ),

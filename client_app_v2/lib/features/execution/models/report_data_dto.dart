@@ -4,6 +4,7 @@ import 'dart:isolate';
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/core/models/enums.dart';
 
 part 'report_data_dto.freezed.dart';
 part 'report_data_dto.g.dart';
@@ -45,7 +46,8 @@ abstract class ReportAxisDTO with _$ReportAxisDTO {
 @freezed
 abstract class ReportLayoutDTO with _$ReportLayoutDTO {
   const factory ReportLayoutDTO({
-    @JsonKey(name: 'preset_view') required String presetView,
+    @JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)
+    required PresetView presetView,
     @JsonKey(name: 'matrix_type') String? matrixType,
     I18nText? title,
     I18nText? description,

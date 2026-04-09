@@ -12,7 +12,9 @@ abstract class OutputLayoutBlock with _$OutputLayoutBlock {
   const OutputLayoutBlock._();
 
   const factory OutputLayoutBlock({
-    @Default('default') String presetView,
+    @Default(PresetView.defaultView)
+    @JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)
+    PresetView presetView,
     I18nText? title,
     I18nText? description,
     @Default([]) List<String> steps,

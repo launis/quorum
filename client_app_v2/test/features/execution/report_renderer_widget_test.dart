@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
 import 'package:client_app/features/execution/views/widgets/report_renderer_widget.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
@@ -25,10 +26,10 @@ void main() {
         },
         layouts: [
           ReportLayoutDTO(
-            presetView: '1d_metrics',
+            presetView: PresetView.metrics1d,
             title: null,
             description: null,
-            showText: true,
+            textDeliveryMode: 'full',
             axes: [
               ReportAxisDTO(
                 name: 'Mock Axis',
@@ -82,10 +83,10 @@ void main() {
         },
         layouts: [
           ReportLayoutDTO(
-            presetView: 'text_only',
+            presetView: PresetView.textOnly,
             title: null,
             description: null,
-            showText: true,
+            textDeliveryMode: 'full',
             axes: [
               ReportAxisDTO(
                 name: 'Text Axis',

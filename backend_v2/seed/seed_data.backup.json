@@ -6891,19 +6891,13 @@
           "fi": "Koko datan läpäisevä täydellinen auditointiraportti."
         }
       },
+      "display_scale": "original",
       "visible_metadata": [
         "date",
         "organization"
       ],
-      "visible_extensions": [
-        "falsification",
-        "coaching",
-        "remediation_steps",
-        "emotional_sentiment"
-      ],
-      "display_scale": "original",
       "synthesis": {
-        "system_prompt": "<system_directive>\r\n  <role>Senior Executive Coach</role>\r\n  \r\n  <objective>\r\n    Produce a clear, coherent, and highly concrete executive summary of the entire evaluation. You possess the complete context of the workflow, including multiple configured XAI output perspectives (e.g., falsification, missing context, remediation steps).\r\n    \r\n    Your goal is to synthesize these diverse findings into a strictly structured, unified narrative. Do not just summarize the text; actively map the combined effects of the XAI findings. For example, explain how the specifically flagged \"missing context\" directly impacts the structural flaws flagged in \"falsification\", and how the combined \"remediation steps\" will fix both.\r\n    \r\n    You must balance sharp professional criticism with strong forward-looking encouragement. Conclude decisively by explaining what this overarching result means for their skill development.\r\n  </objective>\r\n\r\n  <rules>\r\n    <rule>STRUCTURAL RIGIDITY: You MUST adhere to this exact 3-paragraph coaching structure in every output:\r\n      PARAGRAPH 1 (The Core Competency): Synthesize their main analytical strength based on the overarching data. What did the user practically do well?\r\n      PARAGRAPH 2 (The Cross-Examined Risk): Combine at least two distinct XAI findings (e.g., how the missing context relates to the falsification gap). Highlight the biggest logical blind spot truthfully and concretely.\r\n      PARAGRAPH 3 (The Actionable Path Forward): Provide concrete coaching based on the remediation steps. Empower the user by framing the flaw as a stepping stone to mastery.\r\n    </rule>\r\n    <rule>CROSS-EXAMINE FINDINGS: Never list findings separately. Always weave them together. Show the causal link between different flaws (e.g., \"Because you lacked X context, your foundational claim became vulnerable to Y\").</rule>\r\n    <rule>CONSTRUCTIVE CRITICISM: Speak truthfully. Highlight logical gaps without sugarcoating, but do so as a mentor assessing a candidate.</rule>\r\n    <rule>NO ACADEMIC JARGON: Translate complex theory and output configurations into punchy, plain business language.</rule>\r\n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, file names, or meta-terms like 'output configurations' or 'XAI'. Act as a human coach reading a holistic profile.</rule>\r\n    <rule>LANGUAGE OUTPUT: Write the final summary strictly in Finnish.</rule>\r\n  </rules>\r\n</system_directive>",
+        "system_prompt": "Produce a clear, coherent, and concise executive summary. Do not use complex academic jargon or rambling prose. Focus strictly on synthesizing the key findings. NEVER mention internal system IDs, node names, or file names. Aim for maximum informativeness.",
         "length_constraint": 2000,
         "preamble_text": {
           "default_locale": "fi",
@@ -6927,8 +6921,8 @@
           "title": {
             "default_locale": "fi",
             "translations": {
-              "en": " Intellectual Self-Defense Radar: 3D Cognitive Analysis",
-              "fi": "Älyllisen Itsepuolustuksen Tutka: 3D-Kognitioanalyysi"
+              "en": "Data Epistemology & Logic",
+              "fi": "Argumentaation ja Todennettavuuden Perusta"
             }
           },
           "description": {
@@ -6938,21 +6932,14 @@
               "fi": "Datan todennettavuus ja looginen rakenne."
             }
           },
-          "steps": [],
-          "target_blocks": [
-            "blk_440a5fef9331451b",
-            "blk_53f32679aa514fcb",
-            "blk_109dab5b6b3f403a"
-          ],
-          "text_delivery_mode": "none",
           "synthesis": {
-            "system_prompt": "<system_directive>\r\n  <role>Senior Executive Coach & Visual Analyst</role>\r\n  \r\n  <objective>\r\n    Synthesize the evaluation results by bridging the visual dimensions to the \"Toulmin-Kahneman-Goodhart test\" – an intellectual self-defense radar against bad strategy:\r\n\r\n    1. Horizontal Shift (X-Axis/Vaaka-akseli): Kahneman's Dual Process. Moving right means deep analytical System 2 thinking instead of fast intuition.\r\n    2. Vertical Height (Y-Axis/Pystyakseli): Toulmin's Model. Moving up means strong structural logic and validated underlying assumptions (piilo-oletukset).\r\n    3. Bubble Size (Z-Axis/Pallon koko): Goodhart's Law. In this graph, larger is better. A LARGE, robust ball (high score) means they successfully fought off performativity. A TINY, collapsed ball (low score) exposes \"system gaming\" where metrics became the target.\r\n  </objective>\r\n\r\n  <rules>\r\n    <rule>TWO-PARAGRAPH STRUCTURE: You MUST format your response into exactly two paragraphs. Do not use bullet points or headers. Paragraph 1 explains the visual reality. Paragraph 2 explains the combined chain reaction.</rule>\r\n    <rule>PARAGRAPH 1 (VISUAL STORYTELLING): Ground your analysis in the visual graph natively in Finnish (e.g., \"Sijainti kaukana oikealla...\", \"Kutistunut pallo paljastaa...\"). Break down what their specific X, Y, and Z positions mean individually. Remember: A large ball is positive, a tiny/collapsed ball is negative.</rule>\r\n    <rule>PARAGRAPH 2 (COMBINED EFFECT & CAPSTONE): Explain how X, Y, and Z interact to create a holistic business reality. For example, explain how high logical validity (Y) combined with a tiny ball (low Goodhart) means their logic is just performative theater. Conclude this paragraph with actionable advice on how to fix the weakest link.</rule>\r\n    <rule>CONCRETE CRITICISM: Speak truthfully without sugarcoating. Translate theories into punchy reality (piilo-oletukset, sijaistamisharha, järjestelmän pelaaminen).</rule>\r\n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, or file names. Output strictly in Finnish.</rule>\r\n  </rules>\r\n</system_directive>",
+            "system_prompt": "Synthesize the interplay of these specific 3 analytical components (Argumentation, Falsification, Standards Compliance). If Toulmin argumentation is high but Falsification is low, it indicates a logically sound but empirically untested assumption. Produce a strictly concise, jargon-free, and coherent synthesis. DO NOT mention internal IDs or file names. Maximize informativeness.",
             "length_constraint": 300,
             "preamble_text": {
               "default_locale": "fi",
               "translations": {
-                "en": "Structural Logic (Toulmin), Cognitive Bias (Kahneman), and Performativity Risk (Goodhart)",
-                "fi": " Looginen perusta (Toulmin), ajatteluvääristymät (Kahneman) ja suorituskykyharha (Goodhart)"
+                "en": "Logical Baseline",
+                "fi": "Looginen Perusta"
               }
             },
             "include_historical_summary": false,
@@ -6962,84 +6949,188 @@
             ],
             "omit_empty_sections": false
           },
-          "synthesis_md": null
+          "show_text": false,
+          "target_blocks": [
+            "blk_440a5fef9331451b",
+            "blk_b476f89fb732448c",
+            "blk_fb15f8dcf23f4865"
+          ],
+          "steps": []
         },
         {
           "preset_view": "3d_matrix",
           "title": {
-            "default_locale": "en",
+            "default_locale": "fi",
             "translations": {
-              "en": " Reality Radar: Idea Robustness and Cognitive Blindness",
-              "fi": "Reaalimaailman Tutka: Idean Kestävyys ja Kognitiivinen Sokeus"
+              "en": "Cognitive Depth & Objectives",
+              "fi": "Kognitiivinen Syvyys ja Tavoiteasettelu"
             }
           },
-          "description": null,
-          "steps": [],
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Evaluation of cognitive rigor and goals.",
+              "fi": "Tavoitteiden ja kognitiivisen reflektion yhteensovittaminen."
+            }
+          },
+          "synthesis": {
+            "system_prompt": "Synthesize the thematic interplay of these 3 components (Objectives, Epistemic Humility, Cognitive Processing). If Bloom's objectives are clearly defined but Epistemic Humility is low and cognitive processing relies on heuristics (System 1), it flags a significant execution risk due to overconfidence. Produce a strictly concise, jargon-free, and coherent synthesis. DO NOT mention internal IDs or file names. Maximize informativeness.",
+            "length_constraint": 300,
+            "preamble_text": {
+              "default_locale": "fi",
+              "translations": {
+                "en": "Cognitive Synthesis",
+                "fi": "Kognitiivinen Synteesi"
+              }
+            },
+            "include_historical_summary": false,
+            "enable_pii_masking": false,
+            "allowed_exports": [
+              "pdf"
+            ],
+            "omit_empty_sections": false
+          },
+          "show_text": false,
+          "target_blocks": [
+            "blk_f921c7c0989b47e8",
+            "blk_22e3598e06414409",
+            "blk_109dab5b6b3f403a"
+          ],
+          "steps": []
+        },
+        {
+          "preset_view": "3d_matrix",
+          "title": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Strategic Control & Risk Management",
+              "fi": "Strateginen Hallinta ja Riskinhallinta"
+            }
+          },
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Final strategic and threat recommendations.",
+              "fi": "Laajempi konteksti ja täytäntöönpanon hallinta."
+            }
+          },
+          "synthesis": {
+            "system_prompt": "Synthesize the thematic interplay of these 3 strategic components (Security vs Ethics Risk, Performativity, Executive Control). If Executive Control is high but Security Risk is triggered or Performativity indicates gamed metrics, the strategy is dangerous or illusory. Produce a strictly concise, jargon-free, and coherent synthesis. DO NOT mention internal IDs or file names. Maximize informativeness.",
+            "length_constraint": 300,
+            "preamble_text": {
+              "default_locale": "fi",
+              "translations": {
+                "en": "Strategic Vector",
+                "fi": "Strateginen Vektori"
+              }
+            },
+            "include_historical_summary": false,
+            "enable_pii_masking": false,
+            "allowed_exports": [
+              "pdf"
+            ],
+            "omit_empty_sections": false
+          },
+          "show_text": false,
+          "target_blocks": [
+            "blk_80732a33fe1947ee",
+            "blk_53f32679aa514fcb",
+            "blk_ff72c2d79edb4ebf"
+          ],
+          "steps": []
+        },
+        {
+          "preset_view": "3d_matrix",
+          "title": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Causal Integrity & Explainability",
+              "fi": "Kausaalisuus ja Selitettävyys"
+            }
+          },
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Evaluation of causal logic and AI transparency.",
+              "fi": "Syy-seuraussuhteiden ja tekoälyn läpinäkyvyyden arviointi."
+            }
+          },
+          "synthesis": {
+            "system_prompt": "Synthesize the thematic interplay of these 3 components (Causal Impact, Abductive Integrity, Explainability). If Causal Impact is high but Explainability is low, the mechanism remains an opaque black box. If Abductive Integrity indicates post-hoc rationalization, claimed causality is invalid. Produce a strictly concise, jargon-free, and coherent synthesis. DO NOT mention internal IDs or file names. Maximize informativeness.",
+            "length_constraint": 300,
+            "preamble_text": {
+              "default_locale": "fi",
+              "translations": {
+                "en": "Transparency Synthesis",
+                "fi": "Läpinäkyvyyden Synteesi"
+              }
+            },
+            "include_historical_summary": false,
+            "enable_pii_masking": false,
+            "allowed_exports": [
+              "pdf"
+            ],
+            "omit_empty_sections": false
+          },
+          "show_text": false,
           "target_blocks": [
             "blk_c5804a9143c34cb1",
-            "blk_b476f89fb732448c",
-            "blk_22e3598e06414409"
+            "blk_c3bc5f3eb8e74110",
+            "blk_f6e286f050c94d60"
           ],
-          "text_delivery_mode": "none",
-          "synthesis": {
-            "system_prompt": "<system_directive>\r\n  <role>Senior Strategic Risk Analyst & Visual Guide</role>\r\n  \r\n  <objective>\r\n    Synthesize the evaluation results by bridging the visual dimensions to the \"Popper-Pearl-Humility stress test\" – a severe intellectual radar against fragile strategies:\r\n\r\n    1. Horizontal Shift (X-Axis/Vaaka-akseli): Judea Pearl's Causality. Moving right means they moved past simple correlation into true causal mechanisms.\r\n    2. Vertical Height (Y-Axis/Pystyakseli): Karl Popper's Falsification. Moving up means they actively tested their idea against counterarguments rather than relying on confirmation bias.\r\n    3. Bubble Size (Z-Axis/Pallon koko): Epistemic Humility. In this graph, larger is better. A LARGE, robust ball (high score) means they are self-critical and realistic about unknown risks. A TINY, collapsed ball (low score) exposes \"Epistemic Arrogance\" (absolute certainty and intellectual blindness).\r\n  </objective>\r\n\r\n  <rules>\r\n    <rule>TWO-PARAGRAPH STRUCTURE: You MUST format your response into exactly two paragraphs. Do not use bullet points or headers. Paragraph 1 explains the visual reality. Paragraph 2 explains the combined compound risk and synergy.</rule>\r\n    <rule>PARAGRAPH 1 (VISUAL STORYTELLING): Ground your analysis in the visual graph natively in Finnish (e.g., \"Sijainti oikealla vaaka-akselilla osoittaa...\", \"Matalalla kyntävä pystyakseli paljastaa...\"). Break down what their specific X, Y, and Z positions mean individually. Remember: A large ball is a positive sign of humility, a tiny/collapsed ball is a dangerous sign of arrogance.</rule>\r\n    <rule>PARAGRAPH 2 (COMBINED EFFECT & CAPSTONE): Explain the dangerous or powerful synergy between the dimensions. For example: Explain how a strong grasp of causality (right side) but a tiny, collapsed ball (arrogance) creates a brittle leader who understands mechanics but is completely blind to external shocks. Conclude this paragraph with actionable advice.</rule>\r\n    <rule>CONCRETE CRITICISM: Speak truthfully. Translate the theories into business reality (vahvistusharha, aito syy-seuraus, episteeminen sokeus).</rule>\r\n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, or file names. Output strictly in Finnish.</rule>\r\n  </rules>\r\n</system_directive>",
-            "length_constraint": 200,
-            "preamble_text": {
-              "default_locale": "en",
-              "translations": {
-                "en": "Causal Mechanics (Pearl), Falsification (Popper), and Epistemic Humility",
-                "fi": "Mekanismien ymmärrys (Pearl), falsifikaatio (Popper) ja episteeminen nöyryys"
-              }
-            },
-            "include_historical_summary": false,
-            "enable_pii_masking": false,
-            "allowed_exports": [
-              "pdf",
-              "raw_json"
-            ],
-            "omit_empty_sections": true
-          },
-          "synthesis_md": null
+          "steps": []
         },
         {
-          "preset_view": "3d_matrix",
+          "preset_view": "1d_metrics",
           "title": {
-            "default_locale": "en",
+            "default_locale": "fi",
             "translations": {
-              "fi": "Illuusionpaljastin: Analyysin Läpinäkyvyyden ja Vastuullisuuden Testi",
-              "en": "The Illusion Detector: Test of Analytical Transparency and Accountability"
+              "en": "Meta-Evaluation: Antagonistic Prosecutor",
+              "fi": "Metatarkastus: Antagonistinen Syyttäjä"
             }
           },
-          "description": null,
-          "steps": [],
-          "target_blocks": [
-            "blk_fb15f8dcf23f4865",
-            "blk_6b8c766185294f7e",
-            "blk_c3bc5f3eb8e74110"
-          ],
-          "text_delivery_mode": "none",
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Final verdict on report coherence and contradictions.",
+              "fi": "Lopullinen tuomio raportin luotettavuudesta ja agenttien välisistä ristiriidoista."
+            }
+          },
           "synthesis": {
-            "system_prompt": "<system_directive>\r\n  <role>Senior Integrity Auditor & Visual Analyst</role>\r\n  \r\n  <objective>\r\n    Synthesize the evaluation results by bridging the visual dimensions to the \"Accountability & Illusion Detector\" – a severe intellectual radar against corporate rubber-stamping and fabricated narratives:\r\n\r\n    1. Horizontal Shift (X-Axis/Vaaka-akseli): Traceability & Anchoring. Moving right means claims are anchored to hard, verified sources rather than floating on assumptions (mututuntuma).\r\n    2. Vertical Height (Y-Axis/Pystyakseli): Internal Coherence. Moving up means the structural narrative is structurally sound and avoids logical paradoxes or internal contradictions.\r\n    3. Bubble Size (Z-Axis/Pallon koko): Post-Hoc Rationalization (Texas Sharpshooter effect). In this graph, larger is better. A LARGE, robust ball (high score) means logic genuinely preceded the conclusion. A TINY, collapsed ball (low score) exposes a dangerous illusion: the decision was made beforehand, and the entire analysis is just a retroactive, fabricated excuse to justify it (jälkikäteinen selittely).\r\n  </objective>\r\n\r\n  <rules>\r\n    <rule>TWO-PARAGRAPH STRUCTURE: You MUST format your response into exactly two paragraphs. Do not use bullet points or headers. Paragraph 1 explains the visual reality. Paragraph 2 explains the combined compound risk and synergy.</rule>\r\n    <rule>PARAGRAPH 1 (VISUAL STORYTELLING): Ground your analysis in the visual graph natively in Finnish (e.g., \"Siirtymä vaaka-akselilla oikealle kertoo...\", \"Pystyakselin sijoitus paljastaa...\"). Break down what their specific X, Y, and Z positions mean individually. Remember: A large ball is a positive sign of intellectual integrity, a tiny/collapsed ball is a dangerous sign of post-hoc rationalization.</rule>\r\n    <rule>PARAGRAPH 2 (COMBINED EFFECT & CAPSTONE): Explain the dangerous or powerful synergy between the dimensions. For example: Explain how a perfectly coherent logical structure (high Y) combined with a tiny, collapsed ball (rationalization) creates a \"Corporate Rubber Stamp\": a beautifully crafted document built entirely to justify a reckless, pre-determined agenda. Conclude this paragraph with actionable advice.</rule>\r\n    <rule>CONCRETE CRITICISM: Speak truthfully. Translate the concepts into punchy business reality (kelluvat oletukset, sisäinen ristiriita, jälkikäteinen selittely, kumileimasin).</rule>\r\n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, or file names. Output strictly in Finnish.</rule>\r\n  </rules>\r\n</system_directive>",
-            "length_constraint": 200,
+            "system_prompt": "You are the final Antagonistic Prosecutor (XAI Meta-Evaluator). Review the explicit findings passed to you. Summarize the overall epistemological confidence, highlighting any irreconcilable contradictions among underlying agents or critical missing context. Provide a ruthless, final verdict on the report's trustworthiness. Produce a strictly concise, jargon-free synthesis. DO NOT mention internal IDs.",
+            "length_constraint": 300,
             "preamble_text": {
-              "default_locale": "en",
+              "default_locale": "fi",
               "translations": {
-                "en": "Data Anchoring, Internal Logic, and Post-Hoc Rationalization",
-                "fi": "Datan ankkurointi, sisäinen logiikka ja jälkikäteinen selittely"
+                "en": "Prosecutor's Final Verdict",
+                "fi": "Syyttäjän Lopullinen Tuomio"
               }
             },
             "include_historical_summary": false,
             "enable_pii_masking": false,
             "allowed_exports": [
-              "pdf",
-              "raw_json"
+              "pdf"
             ],
-            "omit_empty_sections": true
+            "omit_empty_sections": false
           },
-          "synthesis_md": null
+          "show_text": false,
+          "target_blocks": [
+            "blk_6b8c766185294f7e"
+          ],
+          "steps": []
         }
       ],
-      "max_extension_items": 2
+      "visible_extensions": [
+        "citation",
+        "justification",
+        "falsification",
+        "theory_link",
+        "risk_flag",
+        "coaching",
+        "remediation_steps",
+        "missing_context",
+        "emotional_sentiment"
+      ]
     }
   ],
   "executions": []

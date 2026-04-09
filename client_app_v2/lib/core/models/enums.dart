@@ -41,3 +41,20 @@ enum XaiExtensionType {
   @JsonValue('confidence')
   confidence,
 }
+
+/// Static UI Renderer presets for report blocks.
+/// STRICT PARITY MANDATE: Must precisely match backend Pydantic Literals.
+enum PresetView {
+  @JsonValue('1d_metrics')
+  metrics1d,
+  @JsonValue('2d_compare')
+  compare2d,
+  @JsonValue('3d_complex')
+  complex3d,
+  @JsonValue('3d_matrix')
+  matrix3d,
+  @JsonValue('text_only')
+  textOnly,
+  @JsonValue('default')
+  defaultView,
+}
