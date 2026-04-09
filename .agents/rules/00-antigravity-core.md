@@ -53,6 +53,11 @@
         <mandatory_pattern>Fix the root cause instead of patching symptoms.</mandatory_pattern>
         <catastrophic_reason>Silent fallbacks mask deeper architectural failures and corrupt state management.</catastrophic_reason>
     </rule_block>
+    <rule_block id="zero_service_layer_fallbacks">
+        <banned_pattern>Using Python `.get(key, default)`, `getattr(obj, key, default)`, or `if value is None: value = default` inside the Service or Controller layers to patch missing configuration.</banned_pattern>
+        <mandatory_pattern>Domain definitions MUST be strictly typed utilizing Enum overrides and Pydantic `@model_validator`s. Services MUST crash Fail-Fast if the Domain Model does not provide a guaranteed value natively.</mandatory_pattern>
+        <catastrophic_reason>Injecting "magic defaults" deeply in the controller/service logic bypasses the Pydantic/Dart structural audits, leading to untraceable shadow-states when the database or LLM behaves anomalously.</catastrophic_reason>
+    </rule_block>
     <rule_block id="the_no_legacy_mandate">
         <banned_pattern>Writing code that maintains "backwards compatibility" with old V1 structures, deprecated APIs, or legacy databases.</banned_pattern>
         <mandatory_pattern>Obsolete code must be ruthlessly deleted and replaced with modern V2 Architecture.</mandatory_pattern>

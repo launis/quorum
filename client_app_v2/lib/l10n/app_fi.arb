@@ -600,7 +600,7 @@
   "workflowInputAddQuestionBtn": "Lis\u00e4\u00e4 Kysymys",
   "actionHintCheckInput": "Vihje: Tarkista sy\u00f6tt\u00e4m\u00e4si tiedot ja yrit\u00e4 uudelleen.",
   "actionHintLoginAgain": "Vihje: Tunnistautuminen vanhentui. Kirjaudu sis\u00e4\u00e4n uudelleen.",
-  "actionHintTryAgainLater": "Vihje: Palvelinvirhe. Odota hetki ja yrit\u00e4 my\u00f6hemmin uudelleen.",
+  "actionHintTryAgainLater": "Vihje: Odota hetki ja yrit\u00e4 my\u00f6hemmin uudelleen.",
   "actionHintContactSupport": "Vihje: Jos ongelma jatkuu, ota yhteytt\u00e4 yll\u00e4pitoon.",
   "actionHintRunIngestion": "Vihje: Lataa tietokantaan dokumentteja ensin.",
   "actionHintCheckUrl": "Vihje: Tarkista antamasi URL-osoitteen oikeinkirjoitus.",

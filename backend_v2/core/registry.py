@@ -91,13 +91,12 @@ class TaskRegistry:
 
             from backend_v2.exceptions import AppException, ErrorCodes
 
-            msg = f"Agent {agent_cls.__name__} instantiation failed: {e}"
-            logger.error("[TaskRegistry] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
+            logger.error("[TaskRegistry] %s: Agent %s instantiation failed: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, agent_cls.__name__, str(e), exc_info=True)
 
             raise AppException(
-                message=msg,
+                message="An unexpected system error occurred during AI agent initialization.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "original_error": str(e)},
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
             ) from e
 
         # Resolve Input Schema from Agent Class (Refactored Feb 2026: Strict Type Propagation)
@@ -136,8 +135,7 @@ class TaskRegistry:
                         config=model_config,
                     )
             except Exception as e:
-                msg = f"Agent configuration failed: {e}"
-                logger.error("[TaskRegistry] %s: %s", ErrorCodes.AGENT_NOT_CONFIGURED.name, msg, exc_info=True)
+                logger.error("[TaskRegistry] %s: Agent configuration failed: %s", ErrorCodes.AGENT_NOT_CONFIGURED.name, str(e), exc_info=True)
                 from fastapi import status
 
                 from backend_v2.exceptions import AppException, ErrorCodes
@@ -145,12 +143,10 @@ class TaskRegistry:
                 if isinstance(e, AppException):
                     raise e
                 raise AppException(
-                    message=msg,
+                    message="An unexpected error occurred during AI agent configuration.",
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     details={
                         "error_code": ErrorCodes.AGENT_NOT_CONFIGURED.value,
-                        "agent": agent_cls.__name__,
-                        "original_error": str(e),
                     },
                 ) from e
 
@@ -274,16 +270,15 @@ class TaskRegistry:
                         resolved_override = await registry.resolve_model_name(override_model)
                         execution_config["model"] = resolved_override
                     except Exception as e:
-                        msg = f"Invalid model override: {e}"
-                        logger.error("[TaskRegistry] %s: %s", ErrorCodes.INVALID_JSON_PAYLOAD.name, msg, exc_info=True)
+                        # Business Error (400) - No stacktrace needed, fast fail without dataleak
                         from fastapi import status
 
                         from backend_v2.exceptions import AppException, ErrorCodes
 
                         raise AppException(
-                            message=msg,
+                            message="Invalid AI Model override mapping provided in the request.",
                             status_code=status.HTTP_400_BAD_REQUEST,
-                            details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD.value, "original_error": str(e)},
+                            details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD.value},
                         ) from e
                 exec_kwargs.update(execution_config)
 

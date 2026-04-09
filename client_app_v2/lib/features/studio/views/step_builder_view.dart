@@ -498,48 +498,61 @@ class StepBuilderView extends HookConsumerWidget {
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
-                  children: mcpGateways.expand((gateway) {
-                    final tools = gateway['tools'] as List<dynamic>? ?? [];
-                    return tools;
-                  }).map((toolRaw) {
-                    final toolData = toolRaw as Map<String, dynamic>;
-                    final toolId = toolData['tool_id']?.toString() ?? '';
-                    if (toolId.isEmpty) return const SizedBox.shrink();
+                  children: mcpGateways
+                      .expand((gateway) {
+                        final tools = gateway['tools'] as List<dynamic>? ?? [];
+                        return tools;
+                      })
+                      .map((toolRaw) {
+                        final toolData = toolRaw as Map<String, dynamic>;
+                        final toolId = toolData['tool_id']?.toString() ?? '';
+                        if (toolId.isEmpty) return const SizedBox.shrink();
 
-                    final nameMap = toolData['name'] as Map<String, dynamic>? ?? {};
-                    final translations = nameMap['translations'] as Map<String, dynamic>? ?? {};
-                    final defaultLocale = nameMap['default_locale']?.toString() ?? 'en';
-                    
-                    // Current locale via Localizations or simple fallback
-                    final currentLocale = Localizations.localeOf(context).languageCode;
-                    final labelText = translations[currentLocale] ?? translations['fi'] ?? translations['en'] ?? toolId;
+                        final nameMap =
+                            toolData['name'] as Map<String, dynamic>? ?? {};
+                        final translations =
+                            nameMap['translations'] as Map<String, dynamic>? ??
+                            {};
+                        final defaultLocale =
+                            nameMap['default_locale']?.toString() ?? 'en';
 
-                    final allowedMcpTools = List<String>.from(
-                      payload.allowedMcpTools,
-                    );
-                    final isSelected = allowedMcpTools.contains(toolId);
+                        // Current locale via Localizations or simple fallback
+                        final currentLocale = Localizations.localeOf(
+                          context,
+                        ).languageCode;
+                        final labelText =
+                            translations[currentLocale] ??
+                            translations['fi'] ??
+                            translations['en'] ??
+                            toolId;
 
-                    return FilterChip(
-                      label: Text(labelText),
-                      selected: isSelected,
-                      onSelected: (bool selected) {
-                        if (selected) {
-                          if (!allowedMcpTools.contains(toolId)) {
-                            allowedMcpTools.add(toolId);
-                          }
-                        } else {
-                          allowedMcpTools.remove(toolId);
-                        }
-                        ref
-                            .read(stepFormProvider(stepId).notifier)
-                            .forceRebuild(
-                              payload.copyWith(
-                                allowedMcpTools: allowedMcpTools,
-                              ),
-                            );
-                      },
-                    );
-                  }).toList(),
+                        final allowedMcpTools = List<String>.from(
+                          payload.allowedMcpTools,
+                        );
+                        final isSelected = allowedMcpTools.contains(toolId);
+
+                        return FilterChip(
+                          label: Text(labelText),
+                          selected: isSelected,
+                          onSelected: (bool selected) {
+                            if (selected) {
+                              if (!allowedMcpTools.contains(toolId)) {
+                                allowedMcpTools.add(toolId);
+                              }
+                            } else {
+                              allowedMcpTools.remove(toolId);
+                            }
+                            ref
+                                .read(stepFormProvider(stepId).notifier)
+                                .forceRebuild(
+                                  payload.copyWith(
+                                    allowedMcpTools: allowedMcpTools,
+                                  ),
+                                );
+                          },
+                        );
+                      })
+                      .toList(),
                 ),
 
                 const SizedBox(height: 24),

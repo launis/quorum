@@ -1834,7 +1834,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get actionHintTryAgainLater =>
-      'Vihje: Palvelinvirhe. Odota hetki ja yritä myöhemmin uudelleen.';
+      'Vihje: Odota hetki ja yritä myöhemmin uudelleen.';
 
   @override
   String get actionHintContactSupport =>

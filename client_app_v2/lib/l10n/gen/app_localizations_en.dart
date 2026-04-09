@@ -1827,7 +1827,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get actionHintTryAgainLater =>
-      'Hint: Server error. Please wait a moment and try again.';
+      'Hint: Please wait a moment and try again.';
 
   @override
   String get actionHintContactSupport =>

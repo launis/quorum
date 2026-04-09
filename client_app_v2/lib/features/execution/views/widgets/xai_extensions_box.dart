@@ -119,28 +119,94 @@ class XAIExtensionsBox extends ConsumerWidget {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: extItems.length,
-                    separatorBuilder: (context, index) => const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8.0),
-                      child: Divider(),
-                    ),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 8.0),
                     itemBuilder: (context, index) {
                       final val = extItems[index];
 
                       if (val is Map) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: val.entries.map((vEntry) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 4.0),
-                              child: Text(
-                                '- ${vEntry.key}: ${vEntry.value}',
-                                style: const TextStyle(fontSize: 14),
+                        // Support Zero-Math UI or Legacy UI
+                        String displayContent = val.toString();
+                        if (!val.containsKey('content') &&
+                            val.containsKey('axis_name')) {
+                          final innerKey = val.keys.firstWhere(
+                            (k) => k != 'axis_name' && k != '_score',
+                            orElse: () => '',
+                          );
+                          if (innerKey.toString().isNotEmpty) {
+                            displayContent =
+                                '${val['axis_name']}:\n${val[innerKey]}';
+                          }
+                        }
+
+                        final content =
+                            val['content']?.toString() ?? displayContent;
+                        final colorTheme =
+                            val['color_theme']?.toString() ?? 'info';
+                        final iconName = val['icon_name']?.toString() ?? 'info';
+
+                        Color bgColor = theme.colorScheme.primaryContainer;
+                        Color fgColor = theme.colorScheme.onPrimaryContainer;
+                        IconData innerIcon = Icons.info_outline;
+
+                        switch (colorTheme) {
+                          case 'danger':
+                            bgColor = theme.colorScheme.errorContainer;
+                            fgColor = theme.colorScheme.error;
+                            break;
+                          case 'warning':
+                            bgColor = const Color(0xFFFFF3E0);
+                            fgColor = const Color(0xFFE65100);
+                            break;
+                          case 'success':
+                            bgColor = const Color(0xFFE8F5E9);
+                            fgColor = const Color(0xFF1B5E20);
+                            break;
+                          case 'info':
+                          default:
+                            bgColor = theme.colorScheme.secondaryContainer;
+                            fgColor = theme.colorScheme.onSecondaryContainer;
+                        }
+
+                        if (iconName == 'warning' || iconName == 'alert')
+                          innerIcon = Icons.warning_amber_rounded;
+                        if (iconName == 'check' || iconName == 'success')
+                          innerIcon = Icons.check_circle_outline;
+                        if (iconName == 'lightbulb' || iconName == 'idea')
+                          innerIcon = Icons.lightbulb_outline;
+                        if (iconName == 'psychology' || iconName == 'brain')
+                          innerIcon = Icons.psychology;
+
+                        return Container(
+                          padding: const EdgeInsets.all(12.0),
+                          decoration: BoxDecoration(
+                            color: bgColor,
+                            borderRadius: BorderRadius.circular(8.0),
+                            border: Border(
+                              left: BorderSide(color: fgColor, width: 4.0),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(innerIcon, color: fgColor, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  content,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: theme.colorScheme.onSurface,
+                                    height: 1.4,
+                                  ),
+                                ),
                               ),
-                            );
-                          }).toList(),
+                            ],
+                          ),
                         );
                       }
 
+                      // Fallback for legacy strings
                       return Text(
                         val.toString(),
                         style: const TextStyle(

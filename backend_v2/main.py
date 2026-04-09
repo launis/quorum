@@ -187,8 +187,13 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
 
     # Extract the Enum Name if it's an ErrorCode, otherwise use the string.
     err_name = exc.error_code.name if hasattr(exc.error_code, "name") else str(exc.error_code)
-    logger.error("[FastAPI] %s (Status: %s)", exc.message, exc.status_code, extra={"error_code": err_name})
-
+    
+    if exc.status_code >= 500:
+        # Dual-Reporting: Log full traceback for system errors
+        logger.error("[FastAPI] %s (Status: %s)", exc.message, exc.status_code, exc_info=exc, extra={"error_code": err_name})
+    else:
+        # 4xx Business Errors don't need tracebacks
+        logger.warning("[FastAPI] %s (Status: %s)", exc.message, exc.status_code, extra={"error_code": err_name})
     return JSONResponse(
         status_code=exc.status_code,
         content=exc.to_problem_detail(instance=str(request.url.path)),
@@ -291,11 +296,11 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
     )
 
-    # Create a generic AppException for RFC 7807 formatting
+    # Create a generic AppException for RFC 7807 formatting (DO NOT leak str(exc) to client)
     error = AppException(
         message="An unexpected system error occurred.",
         status_code=500,
-        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "original_error": str(exc)},
+        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
     )
 
     return JSONResponse(

@@ -16,6 +16,7 @@ class SectionType(str, Enum):
     DATA_TABLE = "DATA_TABLE"  # For lists of rows (e.g. Hypotheses)
     ACCORDION = "ACCORDION"  # For nested details
     USAGE_STATS = "USAGE_STATS"  # Token usage & cost
+    HIGHLIGHT_BOXES = "HIGHLIGHT_BOXES"  # Colored XAI Extension boxes top-3 list
 
     # Specialist Agent Sections (Courtroom 3.0 Backbone)
     LOGIC_ANALYSIS = "LOGIC_ANALYSIS"  # Toulmin & Cognitive Level
@@ -89,6 +90,25 @@ class MarkdownBlockDisplay(BaseModel):
     """Server-Driven UI Data for Markdown Content."""
 
     content: str
+
+    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+
+    @field_validator("content")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only.")
+        return v.strip()
+
+
+class HighlightBoxDisplay(BaseModel):
+    """Server-Driven UI Data for a highlighted XAI extension box."""
+
+    content: str
+    color_theme: Literal["danger", "info", "warning", "success", "primary"] = Field(
+        default="info", description="UI background color class"
+    )
+    icon_name: str | None = Field(default=None, description="e.g. 'shield', 'warning', 'psychology'")
 
     model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 

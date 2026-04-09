@@ -412,6 +412,30 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 },
                 controlAffinity: ListTileControlAffinity.leading,
               ),
+              const SizedBox(height: 16),
+              TextFormField(
+                initialValue: payload.maxExtensionItems?.toString() ?? '3',
+                decoration: const InputDecoration(
+                  labelText: 'Max Extension Items',
+                  border: OutlineInputBorder(),
+                  helperText:
+                      'Maximum number of items to show per XAI extension. 999 for unlimited.',
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (val) {
+                  final parsed = int.tryParse(val);
+                  if (parsed != null && parsed >= 1) {
+                    updatePayload(payload.copyWith(maxExtensionItems: parsed));
+                  }
+                },
+                validator: (val) {
+                  if (val == null || val.isEmpty) return null;
+                  final parsed = int.tryParse(val);
+                  if (parsed == null || parsed < 1)
+                    return 'Given value must be an integer >= 1';
+                  return null;
+                },
+              ),
               const SizedBox(height: 24),
               InputDecorator(
                 decoration: const InputDecoration(

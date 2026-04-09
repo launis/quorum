@@ -842,7 +842,7 @@
   },
   "actionHintCheckInput": "Hint: Please check your input and try again.",
   "actionHintLoginAgain": "Hint: Session expired. Please log in again.",
-  "actionHintTryAgainLater": "Hint: Server error. Please wait a moment and try again.",
+  "actionHintTryAgainLater": "Hint: Please wait a moment and try again.",
   "actionHintContactSupport": "Hint: If the issue persists, contact support.",
   "actionHintRunIngestion": "Hint: Please upload documents to the Knowledge Base first.",
   "actionHintCheckUrl": "Hint: Please verify the spelling of the URL.",

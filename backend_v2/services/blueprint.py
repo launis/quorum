@@ -4,7 +4,9 @@ import logging
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.enums import XaiExtensionType
 from backend_v2.models.v2_core import ReportAxisDTO, ReportDataDTO, ReportLayoutDTO
+from backend_v2.models.view.sdui import HighlightBoxDisplay
 
 logger = logging.getLogger(__name__)
 
@@ -128,19 +130,44 @@ class BlueprintTransformer:
             
             # Deduplicate by exact content match
             for existing in grouped_extensions[group]:
-                if existing.get(val_key) == content:
-                    if axis not in existing["axis_name"]:
-                        existing["axis_name"] += f" & {axis}"
-                    # If this matching content came from a worse score, update it
-                    if score is not None and score < existing.get("_score", 999):
-                        existing["_score"] = score
+                exist_content = existing.content if isinstance(existing, HighlightBoxDisplay) else existing.get("content")
+                if exist_content == content or (isinstance(existing, dict) and existing.get(val_key) == content):
+                    # We skip axis merging for HighlightBoxDisplay objects right now for simplicity 
+                    # since they are structurally complete, but we could extend it if necessary.
+                    if isinstance(existing, dict):
+                        if axis not in existing.get("axis_name", ""):
+                            existing["axis_name"] = existing.get("axis_name", "") + f" & {axis}"
+                        if score is not None and score < existing.get("_score", 999):
+                            existing["_score"] = score
+                    # For HighlightBoxDisplay, deduplication drops the duplicate completely.
                     return
-                    
-            grouped_extensions[group].append({
-                "axis_name": axis,
-                val_key: content,
-                "_score": score if score is not None else 999
-            })
+            
+            color_theme: typing.Literal["danger", "info", "warning", "success", "primary"] = "info"
+            icon_name = "info"
+            
+            if group in [XaiExtensionType.FALSIFICATION.value, XaiExtensionType.RISK_FLAG.value]:
+                color_theme = "danger"
+                icon_name = "warning"
+            elif group in [XaiExtensionType.COACHING.value, XaiExtensionType.REMEDIATION_STEPS.value, XaiExtensionType.MISSING_CONTEXT.value]:
+                color_theme = "warning"
+                icon_name = "lightbulb"
+            elif group in [XaiExtensionType.THEORY_LINK.value]:
+                color_theme = "info"
+                icon_name = "psychology"
+            elif group in [XaiExtensionType.EMOTIONAL_SENTIMENT.value, XaiExtensionType.CONFIDENCE.value]:
+                color_theme = "success"
+                icon_name = "check"
+
+            # Render as strictly typed UI Box instead of Naked Dict
+            box = HighlightBoxDisplay(
+                content=str(content),
+                color_theme=color_theme,
+                icon_name=icon_name,
+            )
+            # Monkey-patch internal fields needed for algorithmic processing before final serialization
+            box._score = score if score is not None else 999
+            
+            grouped_extensions[group].append(box)
 
         # We must pre-fetch blocks early for resolving axis_label
         all_blocks = await self.repo.get_all_prompt_blocks()
@@ -224,6 +251,8 @@ class BlueprintTransformer:
                     _add_ext("emotional_sentiment", "emotional_sentiment", emotional_sentiment, axis_name, score_val)
                     _add_ext("confidence", "confidence", confidence, axis_name, score_val)
 
+                    # We perform algorithmic extraction of Citations here!
+
                     if "citation" in visible_extensions and (raw_cited_source_id or raw_cited_text_quote or raw_cited_web_citation):
                         if "citation" not in grouped_extensions:
                             grouped_extensions["citation"] = []
@@ -249,12 +278,13 @@ class BlueprintTransformer:
         for ext_group, items in list(grouped_extensions.items()):
             if max_extension_items is not None and len(items) > max_extension_items:
                 # Sort by score ascending (lowest score is most critical)
-                items.sort(key=lambda x: x.get("_score", 999))
+                items.sort(key=lambda x: getattr(x, "_score", x.get("_score", 999)) if isinstance(x, dict) else getattr(x, "_score", 999))
                 grouped_extensions[ext_group] = items[:max_extension_items]
             
-            # Clean up the internal _score key
+            # Clean up the internal _score key (dicts only; Pydantic ignores private attributes)
             for item in grouped_extensions[ext_group]:
-                item.pop("_score", None)
+                if isinstance(item, dict):
+                    item.pop("_score", None)
 
         layouts_list = []
         # Pre-fetch prompt blocks to enrich axis labels
@@ -277,13 +307,25 @@ class BlueprintTransformer:
                 if step_res.get("synthesized_markdown"):
                     synthesis_md = step_res.get("synthesized_markdown")
 
-        # Load section_syntheses if available from SSOT
         profile_cache = execution.profile_syntheses.get(resolved_pid)
         section_syntheses = {}
         synthesis_md = None
+        xai_highlights_cache = []
         if profile_cache:
             section_syntheses = profile_cache.section_syntheses
             synthesis_md = profile_cache.synthesized_markdown
+            xai_highlights_cache = getattr(profile_cache, "xai_highlights", [])
+            
+        # Merge XAI Highlights from cache into grouped_extensions
+        for highlight in xai_highlights_cache:
+            # Type name should act as the group key, mapping it to SDUI's new box dictionary.
+            group_key = highlight.get("type_name", "insight").lower().replace(" ", "_")
+            if group_key not in grouped_extensions:
+                grouped_extensions[group_key] = []
+            
+            # Use XAI evidence box definition which XAIExtensionsBox will gracefully parse!
+            grouped_extensions[group_key].append(highlight)
+
 
         if results.get("has_warning"):
             has_warning = True

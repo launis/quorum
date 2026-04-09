@@ -29,9 +29,9 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
   <rule>Riverpod Code Gen Mandate (Vain `@riverpod` sallittu, ei manuaalisia providereita).</rule>
   <rule>State Management & Loading Flags (Optimistic updates, ei raskaiden latausten vilkuttamista UI:ssa).</rule>
   <rule>The Three Riverpod Boundaries (Säännöt Widgettien, Notifierien ja Repo-rajapintojen välillä, ei "Jumala-widgettejä").</rule>
-  <rule>Frontend Zero Leaks (Riverpod tilojen invalidointi suojauksena).</rule>
-  <rule>Error Handling & Unwrapping (RFC 7807, AppErrorBoundary, ei tyhjiä catch-lohkoja, InnerError esiin).</rule>
-  <rule>Concurrency & Isolate Mandate (Raskaat JSON-purut turvakaranteeniin).</rule>
+  <rule>Frontend Zero Leaks (Riverpod tilojen invalidointi suojauksena. Puhdista herkkä data aina kun Widget hävitetään).</rule>
+  <rule>Error Handling & Unwrapping (RFC 7807, AppErrorBoundary): ÄLÄ tuplageneroi virheviestejä UI:ssa. Pura `DioException` `AppException`-luokaksi ja tulosta ErrorView:ssä vain `detail` asiakkaalle, tekniset jäljet laitetaan haitariin. Ei tyhjiä `catch`-lohkoja.</rule>
+  <rule>Concurrency & Isolate Mandate (Raskaat JSON-purut turvakaranteeniin `Isolate.run`in taakse).</rule>
   <rule>Strict Freezed & Dart 3 Pattern Matching (Natiivi switch, map/when kiellot, O(1) listat).</rule>
   <rule>Native Freezed/JSON parsing Priority over custom fromJson logic (Sama periaate kuin Pydantic Field() vs @field_validator).</rule>
   <rule>Strongly Typed Routing & $extra Ban (Vain URL-pohjainen Opaque ID-reititys, ei objektien siirtoa reitittimen avulla).</rule>

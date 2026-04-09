@@ -9,7 +9,14 @@ from typing import Any, Literal, cast
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.models.domain.inputs import WorkflowInputs
-from backend_v2.models.enums import BlockDataType, ComponentType, ExecutionStatus, XaiExtensionType
+from backend_v2.models.enums import (
+    BlockDataType,
+    ComponentType,
+    ExecutionStatus,
+    SelfHealingThresholdRatio,
+    SystemConcurrency,
+    XaiExtensionType,
+)
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
 logger = logging.getLogger(__name__)
@@ -675,11 +682,19 @@ class OutputProfile(V2CoreBase):
         default_factory=list,
         description="List of XAI extensions visible at the end of the report.",
     )
-    max_extension_items: int | None = Field(
-        default=None,
+    max_extension_items: int = Field(
+        default=3,
         ge=1,
-        description="Max number of items to show per grouped XAI extension. Sorted by severity.",
+        le=100,
+        description="Max number of items to show per grouped XAI extension.",
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_max_extensions(cls, data: Any) -> Any:
+        if isinstance(data, dict) and data.get("max_extension_items") is None:
+            data["max_extension_items"] = 3
+        return data
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original",
         description="Selects the source scaling for the scores printed by Blueprint.",
@@ -858,6 +873,7 @@ class RenderedSynthesisCache(V2CoreBase):
         default_factory=dict, description="Mapping of layout ID to LLM generated Section-Level synthesis"
     )
     cited_sources: list[str] = Field(default_factory=list, description="Citations used in this profile's synthesis")
+    xai_highlights: list[dict[str, Any]] = Field(default_factory=list, description="Generated XAI highlight boxes")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @model_validator(mode="before")

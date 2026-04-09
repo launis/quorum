@@ -17,7 +17,9 @@ abstract class OutputLayoutBlock with _$OutputLayoutBlock {
     I18nText? description,
     @Default([]) List<String> steps,
     @Default([]) List<String> targetBlocks,
-    @Default('full') @JsonKey(name: 'text_delivery_mode') String textDeliveryMode,
+    @Default('full')
+    @JsonKey(name: 'text_delivery_mode')
+    String textDeliveryMode,
     SynthesisConfigDTO? synthesis,
     @JsonKey(name: 'synthesis_md') String? synthesisMd,
   }) = _OutputLayoutBlock;

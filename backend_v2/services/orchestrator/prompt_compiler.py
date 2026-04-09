@@ -455,7 +455,6 @@ class PromptCompiler:
                         ...,
                         description=(
                             "Devil's advocate formulation argument. Why might your initial assumption be wrong? "
-                            "Limit to MAX 2 short, punchy sentences. "
                             f"MANDATORY LANGUAGE: '{target_locale}'."
                         ),
                     ),
@@ -480,7 +479,6 @@ class PromptCompiler:
                         ...,
                         description=(
                             "Concrete coaching tip/remediation advice to the subject. "
-                            "Limit to strictly 1-2 short sentences. "
                             f"MANDATORY LANGUAGE: '{target_locale}'."
                         ),
                     ),
@@ -511,7 +509,7 @@ class PromptCompiler:
                     Field(
                         ...,
                         description=(
-                            "Actionable array of MAX 3 most critical textual remediation steps. "
+                            "Actionable array of all necessary textual remediation steps. "
                             f"MANDATORY LANGUAGE: '{target_locale}'."
                         ),
                     ),

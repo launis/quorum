@@ -25,6 +25,10 @@ class SynthesisSectionDTO(BaseModel):
     synthesized_markdown: str = Field(..., description="The synthesized markdown content for this section")
 
 
+class XaiHighlightItem(BaseModel):
+    extension_type: str = Field(..., description="Category of the insight (e.g. 'falsification', 'coaching', 'remediation', 'risk_flag')")
+    content: str = Field(..., description="The synthesized, deduplicated insight or tip. Max 2 sentences.")
+
 class SynthesisOutputDTO(BaseModel):
     """Structured output expected from the Synthesis LLM."""
 
@@ -32,6 +36,9 @@ class SynthesisOutputDTO(BaseModel):
     cited_sources: list[str] = Field(default_factory=list, description="List of references or citations found.")
     section_syntheses: list[SynthesisSectionDTO] = Field(
         default_factory=list, description="List of synthesized sections, mapped by their Layout ID."
+    )
+    xai_highlights: list[XaiHighlightItem] = Field(
+        default_factory=list, description="Top 3 deduplicated items per extension category across all steps."
     )
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
@@ -367,6 +374,15 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         "dumps. If you mention internal findings, state them directly without using it."
     )
 
+    sys_prompt += (
+        "\n\nCRITICAL XAI DEDUPLICATION RULE:\n"
+        "Scan all raw inputs for specific outcome extensions (like 'falsification', 'coaching', 'risk_flag', 'remediation_steps'). "
+        "Because these may be generated repeatedly across multiple steps, you MUST deduplicate them globally. "
+        "Group them logically, rank them descending by absolute criticality (impact/risk), and output ONLY "
+        "the TOP 3 items per category into the `xai_highlights` array. Provide ONLY the core text, omitting "
+        "any internal titles like 'Vasta-argumentti 1:'."
+    )
+
     messages = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": raw_input_text}]
 
     # 4. LLM execution with telemetry
@@ -417,12 +433,17 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                     for k in section_dict.keys():
                         translated_sections[k] = trans_res.state_delta.get(k, section_dict[k])
 
+                    # Note: We do not translate xai_highlights right now (it requires proper i18n hook payload mapping later)
+                    # For now, pass them as raw dict strings which the UI will handle
+                    raw_highlights = [h.model_dump() for h in result.xai_highlights] if getattr(result, "xai_highlights", None) else []
+
                     return HookResult(
                         success=True,
                         state_delta={
                             "synthesized_markdown": translated_global,
                             "section_syntheses": translated_sections,
                             "cited_sources": result.cited_sources,
+                            "xai_highlights": raw_highlights,
                             "step_metadata_updates": {"token_usage": current_usage},
                         },
                     )
@@ -434,12 +455,15 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 bib_text = bib_title + "\n".join([f"[{i + 1}] {src}" for i, src in enumerate(result.cited_sources)])
                 global_md += bib_text
 
+            raw_highlights = [h.model_dump() for h in result.xai_highlights] if getattr(result, "xai_highlights", None) else []
+
             return HookResult(
                 success=True,
                 state_delta={
                     "synthesized_markdown": global_md,
                     "section_syntheses": section_dict,
                     "cited_sources": result.cited_sources,
+                    "xai_highlights": raw_highlights,
                     "step_metadata_updates": {"token_usage": current_usage},
                 },
             )

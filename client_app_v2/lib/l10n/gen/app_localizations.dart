@@ -3437,7 +3437,7 @@ abstract class AppLocalizations {
   /// No description provided for @actionHintTryAgainLater.
   ///
   /// In en, this message translates to:
-  /// **'Hint: Server error. Please wait a moment and try again.'**
+  /// **'Hint: Please wait a moment and try again.'**
   String get actionHintTryAgainLater;
 
   /// No description provided for @actionHintContactSupport.

@@ -23,11 +23,13 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
 2. Vastaa aina ensin tällä tarkistuslistalla ennen analyysin tulostamista tai koodin lukemista. Konkreettiset ohjeet, kiellot ja soveltamistavat jokaiselle teemalle löytyvät sähkeestä `01-python-backend.md`. Etsi ja auditoi koodista nämä teemat:
 
 <audit_mandates>
-  <rule>Fail-Fast & Dual-Reporting</rule>
-  <rule>AppException (RFC 7807)</rule>
-  <rule>Strict Pydantic V2 & No Naked Dicts</rule>
+  <rule>Fail-Fast & Dual-Reporting (Bisnesvirheet vs Järjestelmävirheet): Tarkenna virheen taso:
+    1. BISNESVIRHEET (Status 400, 401, 404): Käytä ainoastaan `raise AppException(...)`. Ylimääräinen `logger.error` koodin sisällä on kielletty, koska backendin `global_exception_handler` loggaa 4xx-tason API-virheet automaattisesti.
+    2. JÄRJESTELMÄVIRHEET (Status 500, kaatumiset, datakorruptio): EHDOTON DUAL-REPORTING. Koska kyseessä on odottamaton vika (esim. ValueError), tee VÄLITTÖMÄSTI `logger.error("Syy", exc_info=True)` säilyttääksesi pinojalanjäljen lokissa, JA heitä sen perään turvallinen `raise AppException(RFC 7807)`, joka palauttaa asiakkaalle geneerisen "Internal Server Error" (ilman `str(exc)` vuotoja).</rule>
+  <rule>AppException (RFC 7807): Kaikki clientille menevät virheet kääritään `AppException`-muotoon. EHDOTON KIELTO (Data Leak): Älä koskaan laita raakoja Pydantic-stacktraceja tai `str(exc)`-tietoja `AppException`in `details` tai `extensions` -kenttiin.</rule>
+  <rule>Strict Pydantic V2 & No Naked Dicts (chain .model_validate().model_dump() for DB sync if needed)</rule>
   <rule>Native Pydantic Field() Priority over @field_validator</rule>
-  <rule>Data Leak Prevention & SRP</rule>
+  <rule>Data Leak Prevention & SRP: Eristä asiakkaalle näkyvä datamalli levylle tallentuvasta tai lokaalista logituksesta.</rule>
   <rule>Modern Typing & No-Strings Mandate</rule>
 </audit_mandates>
 

@@ -45,6 +45,7 @@ class XaiExtensionType(str, Enum):
     CONFIDENCE = "confidence"
 
 
+
 class SelfHealingThresholdRatio(float, Enum):
     """Semantic Self-Healing strictness ratios for LLM Evaluation.
     Defines what top percentage of a numerical scale triggers mandatory evidence constraints.
