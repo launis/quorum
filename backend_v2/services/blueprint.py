@@ -123,7 +123,7 @@ class BlueprintTransformer:
         # This ensures extensions are collected even if a block is excluded from visual charts or show_text is false.
         def _add_ext(group: str, val_key: str, content: typing.Any, axis: str, score: float | int | None = None) -> None:
             camel_group = "".join(word.capitalize() if i > 0 else word for i, word in enumerate(group.split("_")))
-            if (group not in visible_extensions and camel_group not in visible_extensions) or content is None or content == "":
+            if (group not in visible_extensions and camel_group not in visible_extensions) or not content:
                 return
             if group not in grouped_extensions:
                 grouped_extensions[group] = []
@@ -158,16 +158,24 @@ class BlueprintTransformer:
                 color_theme = "success"
                 icon_name = "check"
 
+            if isinstance(content, list):
+                content_str = "\n".join(f"- {str(item)}" for item in content)
+            else:
+                content_str = str(content)
+
             # Render as strictly typed UI Box instead of Naked Dict
             box = HighlightBoxDisplay(
-                content=str(content),
+                content=content_str,
                 color_theme=color_theme,
                 icon_name=icon_name,
             )
-            # Monkey-patch internal fields needed for algorithmic processing before final serialization
-            box._score = score if score is not None else 999
+            # Dump to dict to avoid naive __repr__ stringification by FastAPI fallback for List[Any]
+            box_dict = box.model_dump()
             
-            grouped_extensions[group].append(box)
+            # Monkey-patch internal fields needed for algorithmic processing before final serialization
+            box_dict["_score"] = score if score is not None else 999
+            
+            grouped_extensions[group].append(box_dict)
 
         # We must pre-fetch blocks early for resolving axis_label
         all_blocks = await self.repo.get_all_prompt_blocks()
@@ -225,6 +233,7 @@ class BlueprintTransformer:
                             missing_context = v.get("extension_missing_context")
                             remediation_steps = v.get("extension_remediation_steps")
                             emotional_sentiment = v.get("extension_emotional_sentiment")
+                            score_val = v.get("step_4_final_score", 999)
                         else:
                             eval_notes = step_data_res.get("evaluation_notes", "")
                             raw_justification = str(step_data_res.get("step_3_logical_friction", eval_notes) or "")
