@@ -525,6 +525,13 @@ class ReportAxisDTO(V2CoreBase):
     scale_max: float | None = None
     scale_labels: dict[str, str] = Field(default_factory=dict)
 
+    ui_plot_ratio: float | None = Field(
+        default=None, description="Absolute normalized plot plot ratio [0.0 - 1.0] for mathless Flutter plotting"
+    )
+    ui_boundary_labels: dict[str, str] = Field(
+        default_factory=dict, description="Pre-computed labels for extremes, e.g. {'0.0': 'Low', '1.0': 'High'}"
+    )
+
 
 class SynthesisConfigDTO(V2CoreBase):
     """Configuration for LLM output synthesis length, masking, and formatting."""

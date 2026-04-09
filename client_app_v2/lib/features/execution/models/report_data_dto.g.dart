@@ -33,6 +33,8 @@ _ReportAxisDTO _$ReportAxisDTOFromJson(
         'scale_min',
         'scale_max',
         'scale_labels',
+        'ui_plot_ratio',
+        'ui_boundary_labels',
       ],
     );
     final val = _ReportAxisDTO(
@@ -76,6 +78,18 @@ _ReportAxisDTO _$ReportAxisDTOFromJson(
             ) ??
             const {},
       ),
+      uiPlotRatio: $checkedConvert(
+        'ui_plot_ratio',
+        (v) => (v as num?)?.toDouble(),
+      ),
+      uiBoundaryLabels: $checkedConvert(
+        'ui_boundary_labels',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(k, e as String),
+            ) ??
+            const {},
+      ),
     );
     return val;
   },
@@ -91,6 +105,8 @@ _ReportAxisDTO _$ReportAxisDTOFromJson(
     'scaleMin': 'scale_min',
     'scaleMax': 'scale_max',
     'scaleLabels': 'scale_labels',
+    'uiPlotRatio': 'ui_plot_ratio',
+    'uiBoundaryLabels': 'ui_boundary_labels',
   },
 );
 
@@ -114,6 +130,8 @@ Map<String, dynamic> _$ReportAxisDTOToJson(_ReportAxisDTO instance) =>
       'scale_min': instance.scaleMin,
       'scale_max': instance.scaleMax,
       'scale_labels': instance.scaleLabels,
+      'ui_plot_ratio': instance.uiPlotRatio,
+      'ui_boundary_labels': instance.uiBoundaryLabels,
     };
 
 _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>

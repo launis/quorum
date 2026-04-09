@@ -35,6 +35,10 @@ abstract class ReportAxisDTO with _$ReportAxisDTO {
     @JsonKey(name: 'scale_min') @Default(0.0) double scaleMin,
     @JsonKey(name: 'scale_max') @Default(6.0) double scaleMax,
     @JsonKey(name: 'scale_labels') @Default({}) Map<String, String> scaleLabels,
+    @JsonKey(name: 'ui_plot_ratio') double? uiPlotRatio,
+    @JsonKey(name: 'ui_boundary_labels')
+    @Default({})
+    Map<String, String> uiBoundaryLabels,
   }) = _ReportAxisDTO;
 
   factory ReportAxisDTO.fromJson(Map<String, dynamic> json) =>

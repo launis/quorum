@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.hooks.context_mapper import ContextMapper
 from backend_v2.llm.client import LLMClient
 
 logger = logging.getLogger(__name__)
@@ -26,8 +27,11 @@ class SynthesisSectionDTO(BaseModel):
 
 
 class XaiHighlightItem(BaseModel):
-    extension_type: str = Field(..., description="Category of the insight (e.g. 'falsification', 'coaching', 'remediation', 'risk_flag')")
+    extension_type: str = Field(
+        ..., description="Category of the insight (e.g. 'falsification', 'coaching', 'remediation', 'risk_flag')"
+    )
     content: str = Field(..., description="The synthesized, deduplicated insight or tip. Max 2 sentences.")
+
 
 class SynthesisOutputDTO(BaseModel):
     """Structured output expected from the Synthesis LLM."""
@@ -284,7 +288,8 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             v_str = str(v)
         combined_text_parts.append(f"### Source: {step_title} (ID: {k})\n{v_str}")
 
-    raw_input_text = historical_context_text + "\n\n".join(combined_text_parts)
+    global_mapping = ContextMapper.build_global_mapping(workflow_data, layouts) if workflow_data else ""
+    raw_input_text = historical_context_text + global_mapping + "\n\n".join(combined_text_parts)
 
     if enable_masking:
         raw_input_text = _mask_pii_local(raw_input_text)
@@ -320,9 +325,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         instruction += f"SECTION-SPECIFIC COGNITIVE BLUEPRINT:\n{str(l_system_prompt).strip()}\n"
 
         if target_blocks and "*" not in target_blocks:
-            instruction += (
-                f"Target Data Filter: Only synthesize information regarding these keys: {', '.join(target_blocks)}\n"
-            )
+            instruction += ContextMapper.build_ordinal_mapping(target_blocks)
         else:
             instruction += "Target Data Filter: Synthesize all relevant information for this section.\n"
 
@@ -376,7 +379,8 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     sys_prompt += (
         "\n\nCRITICAL XAI DEDUPLICATION RULE:\n"
-        "Scan all raw inputs for specific outcome extensions (like 'falsification', 'coaching', 'risk_flag', 'remediation_steps'). "
+        "Scan all raw inputs for specific outcome extensions (like 'falsification', 'coaching', "
+        "'risk_flag', 'remediation_steps'). "
         "Because these may be generated repeatedly across multiple steps, you MUST deduplicate them globally. "
         "Group them logically, rank them descending by absolute criticality (impact/risk), and output ONLY "
         "the TOP 3 items per category into the `xai_highlights` array. Provide ONLY the core text, omitting "
@@ -433,9 +437,13 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                     for k in section_dict.keys():
                         translated_sections[k] = trans_res.state_delta.get(k, section_dict[k])
 
-                    # Note: We do not translate xai_highlights right now (it requires proper i18n hook payload mapping later)
+                    # Note: We do not translate xai_highlights right now (requires proper i18n mapping later)
                     # For now, pass them as raw dict strings which the UI will handle
-                    raw_highlights = [h.model_dump() for h in result.xai_highlights] if getattr(result, "xai_highlights", None) else []
+                    raw_highlights = (
+                        [h.model_dump() for h in result.xai_highlights]
+                        if getattr(result, "xai_highlights", None)
+                        else []
+                    )
 
                     return HookResult(
                         success=True,
@@ -455,7 +463,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 bib_text = bib_title + "\n".join([f"[{i + 1}] {src}" for i, src in enumerate(result.cited_sources)])
                 global_md += bib_text
 
-            raw_highlights = [h.model_dump() for h in result.xai_highlights] if getattr(result, "xai_highlights", None) else []
+            raw_highlights = (
+                [h.model_dump() for h in result.xai_highlights] if getattr(result, "xai_highlights", None) else []
+            )
 
             return HookResult(
                 success=True,

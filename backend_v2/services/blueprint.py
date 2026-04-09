@@ -121,7 +121,9 @@ class BlueprintTransformer:
         # -- GLOBAL XAI EXTENSION AGGREGATION --
         # Aggregate XAI extensions globally across all execution steps before processing layout constraints.
         # This ensures extensions are collected even if a block is excluded from visual charts or show_text is false.
-        def _add_ext(group: str, val_key: str, content: typing.Any, axis: str, score: float | int | None = None) -> None:
+        def _add_ext(
+            group: str, val_key: str, content: typing.Any, axis: str, score: float | int | None = None
+        ) -> None:
             camel_group = "".join(word.capitalize() if i > 0 else word for i, word in enumerate(group.split("_")))
             if (group not in visible_extensions and camel_group not in visible_extensions) or not content:
                 return
@@ -130,7 +132,9 @@ class BlueprintTransformer:
 
             # Deduplicate by exact content match
             for existing in grouped_extensions[group]:
-                exist_content = existing.content if isinstance(existing, HighlightBoxDisplay) else existing.get("content")
+                exist_content = (
+                    existing.content if isinstance(existing, HighlightBoxDisplay) else existing.get("content")
+                )
                 if exist_content == content or (isinstance(existing, dict) and existing.get(val_key) == content):
                     # We skip axis merging for HighlightBoxDisplay objects right now for simplicity
                     # since they are structurally complete, but we could extend it if necessary.
@@ -148,7 +152,11 @@ class BlueprintTransformer:
             if group in [XaiExtensionType.FALSIFICATION.value, XaiExtensionType.RISK_FLAG.value]:
                 color_theme = "danger"
                 icon_name = "warning"
-            elif group in [XaiExtensionType.COACHING.value, XaiExtensionType.REMEDIATION_STEPS.value, XaiExtensionType.MISSING_CONTEXT.value]:
+            elif group in [
+                XaiExtensionType.COACHING.value,
+                XaiExtensionType.REMEDIATION_STEPS.value,
+                XaiExtensionType.MISSING_CONTEXT.value,
+            ]:
                 color_theme = "warning"
                 icon_name = "lightbulb"
             elif group in [XaiExtensionType.THEORY_LINK.value]:
@@ -187,10 +195,21 @@ class BlueprintTransformer:
                     is_legacy_score = k == "score"
 
                     suffix_list = [
-                        "_justification", "_scaled", "_normalized", "_raw",
-                        "_cited_source_id", "_cited_text_quote", "_google_citation",
-                        "_coaching", "_confidence", "_falsification", "_missing_context",
-                        "_risk_flag", "_remediation_steps", "_emotional_sentiment", "_theory_link",
+                        "_justification",
+                        "_scaled",
+                        "_normalized",
+                        "_raw",
+                        "_cited_source_id",
+                        "_cited_text_quote",
+                        "_google_citation",
+                        "_coaching",
+                        "_confidence",
+                        "_falsification",
+                        "_missing_context",
+                        "_risk_flag",
+                        "_remediation_steps",
+                        "_emotional_sentiment",
+                        "_theory_link",
                     ]
                     if any(k.endswith(sfx) for sfx in suffix_list):
                         continue
@@ -248,7 +267,9 @@ class BlueprintTransformer:
                             missing_context = step_data_res.get("extension_missing_context")
                             remediation_steps = step_data_res.get("extension_remediation_steps")
                             emotional_sentiment = step_data_res.get("extension_emotional_sentiment")
-                            score_val = step_data_res.get("step_4_final_score", 999) if isinstance(step_data_res, dict) else 999
+                            score_val = (
+                                step_data_res.get("step_4_final_score", 999) if isinstance(step_data_res, dict) else 999
+                            )
 
                     _add_ext("justification", "justification", raw_justification, axis_name, score_val)
                     _add_ext("falsification", "falsification", raw_falsification, axis_name, score_val)
@@ -262,32 +283,46 @@ class BlueprintTransformer:
 
                     # We perform algorithmic extraction of Citations here!
 
-                    if "citation" in visible_extensions and (raw_cited_source_id or raw_cited_text_quote or raw_cited_web_citation):
+                    if "citation" in visible_extensions and (
+                        raw_cited_source_id or raw_cited_text_quote or raw_cited_web_citation
+                    ):
                         if "citation" not in grouped_extensions:
                             grouped_extensions["citation"] = []
 
-                        citation_hash = str(raw_cited_source_id) + str(raw_cited_text_quote) + str(raw_cited_web_citation)
+                        citation_hash = (
+                            str(raw_cited_source_id) + str(raw_cited_text_quote) + str(raw_cited_web_citation)
+                        )
                         cite_exists = False
                         for existing in grouped_extensions["citation"]:
-                            existing_hash = str(existing.get("cited_source_id","")) + str(existing.get("cited_text_quote","")) + str(existing.get("cited_web_citation",""))
+                            existing_hash = (
+                                str(existing.get("cited_source_id", ""))
+                                + str(existing.get("cited_text_quote", ""))
+                                + str(existing.get("cited_web_citation", ""))
+                            )
                             if existing_hash == citation_hash:
                                 if axis_name not in existing["axis_name"]:
                                     existing["axis_name"] += f" & {axis_name}"
                                 cite_exists = True
                                 break
                         if not cite_exists:
-                            grouped_extensions["citation"].append({
-                                "axis_name": axis_name,
-                                "cited_source_id": raw_cited_source_id,
-                                "cited_text_quote": raw_cited_text_quote,
-                                "cited_web_citation": raw_cited_web_citation,
-                            })
+                            grouped_extensions["citation"].append(
+                                {
+                                    "axis_name": axis_name,
+                                    "cited_source_id": raw_cited_source_id,
+                                    "cited_text_quote": raw_cited_text_quote,
+                                    "cited_web_citation": raw_cited_web_citation,
+                                }
+                            )
 
         # Process limit/truncation based on max_extension_items
         for ext_group, items in list(grouped_extensions.items()):
             if max_extension_items is not None and len(items) > max_extension_items:
                 # Sort by score ascending (lowest score is most critical)
-                items.sort(key=lambda x: getattr(x, "_score", x.get("_score", 999)) if isinstance(x, dict) else getattr(x, "_score", 999))
+                items.sort(
+                    key=lambda x: getattr(x, "_score", x.get("_score", 999))
+                    if isinstance(x, dict)
+                    else getattr(x, "_score", 999)
+                )
                 grouped_extensions[ext_group] = items[:max_extension_items]
 
             # Clean up the internal _score key (dicts only; Pydantic ignores private attributes)
@@ -334,7 +369,6 @@ class BlueprintTransformer:
 
             # Use XAI evidence box definition which XAIExtensionsBox will gracefully parse!
             grouped_extensions[group_key].append(highlight)
-
 
         if results.get("has_warning"):
             has_warning = True
@@ -445,11 +479,10 @@ class BlueprintTransformer:
                                 scales_def = block.get("scales", [])
 
                                 # Epic 12: Handle UI Visual Scale Boundaries
-                                if display_scale == "normalized_100" and is_matrix_category:
-                                    scale_min = 0.0
-                                    scale_max = 100.0
-                                    scale_labels = {}  # Purge mapping to prevent disproportionate labeling
-                                elif scales_def:
+                                semantic_min_str = ""
+                                semantic_max_str = ""
+
+                                if scales_def:
                                     scores = [float(s.get("score", 0)) for s in scales_def if "score" in s]
                                     if scores:
                                         scale_max = max(scores)
@@ -459,9 +492,38 @@ class BlueprintTransformer:
                                         s_score = float(s.get("score", 0))
                                         s_label_obj = s.get("name", {})
                                         s_label = _resolve_i18n_str(s_label_obj, locale, "")
-                                        # Only write int cleanly for mapping
                                         cleaned_score = int(s_score) if s_score.is_integer() else s_score
                                         scale_labels[str(cleaned_score)] = s_label
+
+                                    if scores:
+                                        clean_orig_min = str(int(scale_min) if scale_min.is_integer() else scale_min)
+                                        clean_orig_max = str(int(scale_max) if scale_max.is_integer() else scale_max)
+                                        semantic_min_str = scale_labels.get(clean_orig_min, "")
+                                        semantic_max_str = scale_labels.get(clean_orig_max, "")
+
+                                # Override boundaries if visual display requires mapping
+                                if display_scale == "normalized_100" and is_matrix_category:
+                                    scale_min = 0.0
+                                    scale_max = 100.0
+                                    scale_labels = {}  # Purge mapping to prevent disproportionate labeling
+                                elif (
+                                    display_scale == "custom"
+                                    and block.get("scale_min") is not None
+                                    and block.get("scale_max") is not None
+                                ):
+                                    scale_min = float(block.get("scale_min"))
+                                    scale_max = float(block.get("scale_max"))
+
+                                # SDUI Logic calculation for Mathless Flutter
+                                ui_plot_ratio = None
+                                ui_boundary_labels = {}
+                                if scale_max > scale_min and score_float is not None:
+                                    ratio = (score_float - scale_min) / (scale_max - scale_min)
+                                    ui_plot_ratio = float(max(0.0, min(1.0, ratio)))
+
+                                    # Use semantic boundaries derived before visual override
+                                    ui_boundary_labels["0.0"] = semantic_min_str
+                                    ui_boundary_labels["1.0"] = semantic_max_str
 
                                 # Collision Avoidance
                                 original_axis_name = axis_name
@@ -499,7 +561,9 @@ class BlueprintTransformer:
                                             cited_source_id = str(v.get("step_1b_cited_source_id", ""))
                                             cited_text_quote = str(v.get("step_1_evidence_quote", ""))
                                             cited_web_citation = str(v.get("step_1c_google_citation", ""))
-                                            falsification = v.get("extension_falsification", v.get("step_2_falsification"))
+                                            falsification = v.get(
+                                                "extension_falsification", v.get("step_2_falsification")
+                                            )
                                             theory_link = v.get("extension_theory_link")
                                             risk_flag = v.get("extension_risk_flag")
                                             coaching = v.get("extension_coaching")
@@ -509,7 +573,9 @@ class BlueprintTransformer:
                                             emotional_sentiment = v.get("extension_emotional_sentiment")
                                         else:
                                             eval_notes = step_data.get("evaluation_notes", "")
-                                            justification = str(step_data.get("step_3_logical_friction", eval_notes) or "")
+                                            justification = str(
+                                                step_data.get("step_3_logical_friction", eval_notes) or ""
+                                            )
                                             cited_source_id = str(step_data.get("step_1b_cited_source_id", ""))
                                             cited_text_quote = str(step_data.get("step_1_evidence_quote", ""))
                                             cited_web_citation = str(step_data.get("step_1c_google_citation", ""))
@@ -543,9 +609,21 @@ class BlueprintTransformer:
                                     scale_min=scale_min,
                                     scale_max=scale_max,
                                     scale_labels=scale_labels,
+                                    ui_plot_ratio=ui_plot_ratio,
+                                    ui_boundary_labels=ui_boundary_labels,
                                 )
 
-                axes = list(unsorted_axes.values())
+                # Epic 13: Enforce strict 3D Tuple Ordinality (X, Y, Z)
+                # Dictionary iteration is non-deterministic. We MUST sort the extracted axes 
+                # according to the explicitly provided `target_blocks` array order.
+                axes = []
+                if target_blocks and "*" not in target_blocks:
+                    for target_k in target_blocks:
+                        for unique_k, axis_dto in unsorted_axes.items():
+                            if unique_k.endswith(f"_{target_k}"):
+                                axes.append(axis_dto)
+                else:
+                    axes = list(unsorted_axes.values())
 
                 # Strict Fail-Fast Constraint: Do not degrade missing UI inputs silently
                 if preset_view == "3d_complex" and len(axes) < 3:
@@ -709,13 +787,21 @@ class BlueprintTransformer:
             mcp_audit_data: list[MCPAuditTrace] = []
             f_context = getattr(execution, "frozen_context", None)
             if f_context:
-                raw_audits = f_context.get("mcp_tool_audit", []) if isinstance(f_context, dict) else getattr(f_context, "mcp_tool_audit", [])
+                raw_audits = (
+                    f_context.get("mcp_tool_audit", [])
+                    if isinstance(f_context, dict)
+                    else getattr(f_context, "mcp_tool_audit", [])
+                )
                 if raw_audits:
                     seen_audits = set()
                     for audit in raw_audits:
                         # Defensive parsing in case elements are Pydantic models vs dicts
-                        t_name = getattr(audit, "tool_id", None) or (audit.get("tool_id") if isinstance(audit, dict) else "")
-                        t_args = getattr(audit, "query", None) or (audit.get("query") if isinstance(audit, dict) else "")
+                        t_name = getattr(audit, "tool_id", None) or (
+                            audit.get("tool_id") if isinstance(audit, dict) else ""
+                        )
+                        t_args = getattr(audit, "query", None) or (
+                            audit.get("query") if isinstance(audit, dict) else ""
+                        )
 
                         audit_hash = f"{t_name}::{t_args}"
                         if audit_hash not in seen_audits:

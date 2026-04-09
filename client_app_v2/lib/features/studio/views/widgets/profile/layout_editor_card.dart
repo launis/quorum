@@ -236,6 +236,17 @@ class LayoutEditorCard extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 12),
+          I18nTextField(
+            label: "Osion kuvaus (valinnainen väliotsikko)", // Fallback if L10n missing
+            initialData: layout.description ?? const I18nText(defaultLocale: 'fi'),
+            onChanged: (val) {
+              final isEmpty =
+                  val.translations.isEmpty ||
+                  val.translations.values.every((v) => v.trim().isEmpty);
+              updateLayout(layout.copyWith(description: isEmpty ? null : val));
+            },
+          ),
+          const SizedBox(height: 12),
           SwitchListTile(
             title: const Text(
               'Käytä osiokohtaista synteesiä (Section-Level Synthesis)',

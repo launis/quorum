@@ -10,6 +10,7 @@ import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/theme/app_durations.dart';
+import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
 
 part 'studio_controller.g.dart';
 
@@ -218,6 +219,10 @@ class WorkflowsController extends _$WorkflowsController {
         currentList.insert(0, clonedWorkflow);
         state = AsyncValue.data(currentList);
       }
+
+      // Proactively refresh output profiles since cloning a workflow also clones its bound output profiles!
+      ref.read(outputProfilesControllerProvider.notifier).refresh();
+
       return clonedWorkflow;
     } catch (e, st) {
       state = previousState;

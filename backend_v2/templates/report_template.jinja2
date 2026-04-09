@@ -134,7 +134,12 @@
 
             {% if layout.synthesis_md %}
             <div class="justify-box" style="margin-bottom: 20px; border-left: 4px solid #4CAF50; background-color: #F1F8E9;">
-                <h3 style="margin: 0 0 8px 0; color: #2E7D32; font-size: 14px;">Osion Synteesi</h3>
+                {% if layout.synthesis and layout.synthesis.preamble_text %}
+                    {% set section_synthesis_title = layout.synthesis.preamble_text.get('fi', layout.synthesis.preamble_text.get('en', '')) %}
+                    {% if section_synthesis_title %}
+                        <h3 style="margin: 0 0 8px 0; color: #2E7D32; font-size: 14px;">{{ section_synthesis_title }}</h3>
+                    {% endif %}
+                {% endif %}
                 <div style="font-size: 12px; color: #333; line-height: 1.5;">{{ layout.synthesis_md | md | safe }}</div>
             </div>
             {% endif %}

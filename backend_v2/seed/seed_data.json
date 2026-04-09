@@ -6969,11 +6969,17 @@
           "title": {
             "default_locale": "en",
             "translations": {
-              "en": " Reality Radar: Idea Robustness and Cognitive Blindness",
+              "en": "Reality Radar: Idea Robustness and Cognitive Blindness",
               "fi": "Reaalimaailman Tutka: Idean Kestävyys ja Kognitiivinen Sokeus"
             }
           },
-          "description": null,
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Analysis of True Causality, Falsifiability, and Epistemic Humility.",
+              "fi": "Datan aito syy-seuraussuhde, väitteen falsifioitavuus sekä arvioijan episteeminen nöyryys."
+            }
+          },
           "steps": [],
           "target_blocks": [
             "blk_c5804a9143c34cb1",
@@ -7010,7 +7016,13 @@
               "en": "The Illusion Detector: Test of Analytical Transparency and Accountability"
             }
           },
-          "description": null,
+          "description": {
+            "default_locale": "fi",
+            "translations": {
+              "en": "Measurement of Unfounded Assumptions, Internal Contradictions, and Post-Hoc Rationalization.",
+              "fi": "Kryptisten oletusten, sisäisen ristiriitaisuuden ja jälkikäteisen selittelyn riskimitta."
+            }
+          },
           "steps": [],
           "target_blocks": [
             "blk_fb15f8dcf23f4865",

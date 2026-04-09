@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 mixin _$ReportAxisDTO {
 
  String get name; String? get description; double? get score; String get justification;@JsonKey(name: 'cited_source_id') String? get citedSourceId;@JsonKey(name: 'cited_text_quote') String? get citedTextQuote;@JsonKey(name: 'cited_web_citation') String? get citedWebCitation;// Epic 6: XAI Output Extensions
- String? get coaching; double? get confidence; String? get falsification;@JsonKey(name: 'missing_context') String? get missingContext;@JsonKey(name: 'risk_flag') bool? get riskFlag;@JsonKey(name: 'remediation_steps') List<String>? get remediationSteps;@JsonKey(name: 'emotional_sentiment') String? get emotionalSentiment;@JsonKey(name: 'theory_link') String? get theoryLink;@JsonKey(name: 'scale_min') double get scaleMin;@JsonKey(name: 'scale_max') double get scaleMax;@JsonKey(name: 'scale_labels') Map<String, String> get scaleLabels;
+ String? get coaching; double? get confidence; String? get falsification;@JsonKey(name: 'missing_context') String? get missingContext;@JsonKey(name: 'risk_flag') bool? get riskFlag;@JsonKey(name: 'remediation_steps') List<String>? get remediationSteps;@JsonKey(name: 'emotional_sentiment') String? get emotionalSentiment;@JsonKey(name: 'theory_link') String? get theoryLink;@JsonKey(name: 'scale_min') double get scaleMin;@JsonKey(name: 'scale_max') double get scaleMax;@JsonKey(name: 'scale_labels') Map<String, String> get scaleLabels;@JsonKey(name: 'ui_plot_ratio') double? get uiPlotRatio;@JsonKey(name: 'ui_boundary_labels') Map<String, String> get uiBoundaryLabels;
 /// Create a copy of ReportAxisDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +29,16 @@ $ReportAxisDTOCopyWith<ReportAxisDTO> get copyWith => _$ReportAxisDTOCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReportAxisDTO&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.score, score) || other.score == score)&&(identical(other.justification, justification) || other.justification == justification)&&(identical(other.citedSourceId, citedSourceId) || other.citedSourceId == citedSourceId)&&(identical(other.citedTextQuote, citedTextQuote) || other.citedTextQuote == citedTextQuote)&&(identical(other.citedWebCitation, citedWebCitation) || other.citedWebCitation == citedWebCitation)&&(identical(other.coaching, coaching) || other.coaching == coaching)&&(identical(other.confidence, confidence) || other.confidence == confidence)&&(identical(other.falsification, falsification) || other.falsification == falsification)&&(identical(other.missingContext, missingContext) || other.missingContext == missingContext)&&(identical(other.riskFlag, riskFlag) || other.riskFlag == riskFlag)&&const DeepCollectionEquality().equals(other.remediationSteps, remediationSteps)&&(identical(other.emotionalSentiment, emotionalSentiment) || other.emotionalSentiment == emotionalSentiment)&&(identical(other.theoryLink, theoryLink) || other.theoryLink == theoryLink)&&(identical(other.scaleMin, scaleMin) || other.scaleMin == scaleMin)&&(identical(other.scaleMax, scaleMax) || other.scaleMax == scaleMax)&&const DeepCollectionEquality().equals(other.scaleLabels, scaleLabels));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReportAxisDTO&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.score, score) || other.score == score)&&(identical(other.justification, justification) || other.justification == justification)&&(identical(other.citedSourceId, citedSourceId) || other.citedSourceId == citedSourceId)&&(identical(other.citedTextQuote, citedTextQuote) || other.citedTextQuote == citedTextQuote)&&(identical(other.citedWebCitation, citedWebCitation) || other.citedWebCitation == citedWebCitation)&&(identical(other.coaching, coaching) || other.coaching == coaching)&&(identical(other.confidence, confidence) || other.confidence == confidence)&&(identical(other.falsification, falsification) || other.falsification == falsification)&&(identical(other.missingContext, missingContext) || other.missingContext == missingContext)&&(identical(other.riskFlag, riskFlag) || other.riskFlag == riskFlag)&&const DeepCollectionEquality().equals(other.remediationSteps, remediationSteps)&&(identical(other.emotionalSentiment, emotionalSentiment) || other.emotionalSentiment == emotionalSentiment)&&(identical(other.theoryLink, theoryLink) || other.theoryLink == theoryLink)&&(identical(other.scaleMin, scaleMin) || other.scaleMin == scaleMin)&&(identical(other.scaleMax, scaleMax) || other.scaleMax == scaleMax)&&const DeepCollectionEquality().equals(other.scaleLabels, scaleLabels)&&(identical(other.uiPlotRatio, uiPlotRatio) || other.uiPlotRatio == uiPlotRatio)&&const DeepCollectionEquality().equals(other.uiBoundaryLabels, uiBoundaryLabels));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,name,description,score,justification,citedSourceId,citedTextQuote,citedWebCitation,coaching,confidence,falsification,missingContext,riskFlag,const DeepCollectionEquality().hash(remediationSteps),emotionalSentiment,theoryLink,scaleMin,scaleMax,const DeepCollectionEquality().hash(scaleLabels));
+int get hashCode => Object.hashAll([runtimeType,name,description,score,justification,citedSourceId,citedTextQuote,citedWebCitation,coaching,confidence,falsification,missingContext,riskFlag,const DeepCollectionEquality().hash(remediationSteps),emotionalSentiment,theoryLink,scaleMin,scaleMax,const DeepCollectionEquality().hash(scaleLabels),uiPlotRatio,const DeepCollectionEquality().hash(uiBoundaryLabels)]);
 
 @override
 String toString() {
-  return 'ReportAxisDTO(name: $name, description: $description, score: $score, justification: $justification, citedSourceId: $citedSourceId, citedTextQuote: $citedTextQuote, citedWebCitation: $citedWebCitation, coaching: $coaching, confidence: $confidence, falsification: $falsification, missingContext: $missingContext, riskFlag: $riskFlag, remediationSteps: $remediationSteps, emotionalSentiment: $emotionalSentiment, theoryLink: $theoryLink, scaleMin: $scaleMin, scaleMax: $scaleMax, scaleLabels: $scaleLabels)';
+  return 'ReportAxisDTO(name: $name, description: $description, score: $score, justification: $justification, citedSourceId: $citedSourceId, citedTextQuote: $citedTextQuote, citedWebCitation: $citedWebCitation, coaching: $coaching, confidence: $confidence, falsification: $falsification, missingContext: $missingContext, riskFlag: $riskFlag, remediationSteps: $remediationSteps, emotionalSentiment: $emotionalSentiment, theoryLink: $theoryLink, scaleMin: $scaleMin, scaleMax: $scaleMax, scaleLabels: $scaleLabels, uiPlotRatio: $uiPlotRatio, uiBoundaryLabels: $uiBoundaryLabels)';
 }
 
 
@@ -49,7 +49,7 @@ abstract mixin class $ReportAxisDTOCopyWith<$Res>  {
   factory $ReportAxisDTOCopyWith(ReportAxisDTO value, $Res Function(ReportAxisDTO) _then) = _$ReportAxisDTOCopyWithImpl;
 @useResult
 $Res call({
- String name, String? description, double? score, String justification,@JsonKey(name: 'cited_source_id') String? citedSourceId,@JsonKey(name: 'cited_text_quote') String? citedTextQuote,@JsonKey(name: 'cited_web_citation') String? citedWebCitation, String? coaching, double? confidence, String? falsification,@JsonKey(name: 'missing_context') String? missingContext,@JsonKey(name: 'risk_flag') bool? riskFlag,@JsonKey(name: 'remediation_steps') List<String>? remediationSteps,@JsonKey(name: 'emotional_sentiment') String? emotionalSentiment,@JsonKey(name: 'theory_link') String? theoryLink,@JsonKey(name: 'scale_min') double scaleMin,@JsonKey(name: 'scale_max') double scaleMax,@JsonKey(name: 'scale_labels') Map<String, String> scaleLabels
+ String name, String? description, double? score, String justification,@JsonKey(name: 'cited_source_id') String? citedSourceId,@JsonKey(name: 'cited_text_quote') String? citedTextQuote,@JsonKey(name: 'cited_web_citation') String? citedWebCitation, String? coaching, double? confidence, String? falsification,@JsonKey(name: 'missing_context') String? missingContext,@JsonKey(name: 'risk_flag') bool? riskFlag,@JsonKey(name: 'remediation_steps') List<String>? remediationSteps,@JsonKey(name: 'emotional_sentiment') String? emotionalSentiment,@JsonKey(name: 'theory_link') String? theoryLink,@JsonKey(name: 'scale_min') double scaleMin,@JsonKey(name: 'scale_max') double scaleMax,@JsonKey(name: 'scale_labels') Map<String, String> scaleLabels,@JsonKey(name: 'ui_plot_ratio') double? uiPlotRatio,@JsonKey(name: 'ui_boundary_labels') Map<String, String> uiBoundaryLabels
 });
 
 
@@ -66,7 +66,7 @@ class _$ReportAxisDTOCopyWithImpl<$Res>
 
 /// Create a copy of ReportAxisDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? description = freezed,Object? score = freezed,Object? justification = null,Object? citedSourceId = freezed,Object? citedTextQuote = freezed,Object? citedWebCitation = freezed,Object? coaching = freezed,Object? confidence = freezed,Object? falsification = freezed,Object? missingContext = freezed,Object? riskFlag = freezed,Object? remediationSteps = freezed,Object? emotionalSentiment = freezed,Object? theoryLink = freezed,Object? scaleMin = null,Object? scaleMax = null,Object? scaleLabels = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? description = freezed,Object? score = freezed,Object? justification = null,Object? citedSourceId = freezed,Object? citedTextQuote = freezed,Object? citedWebCitation = freezed,Object? coaching = freezed,Object? confidence = freezed,Object? falsification = freezed,Object? missingContext = freezed,Object? riskFlag = freezed,Object? remediationSteps = freezed,Object? emotionalSentiment = freezed,Object? theoryLink = freezed,Object? scaleMin = null,Object? scaleMax = null,Object? scaleLabels = null,Object? uiPlotRatio = freezed,Object? uiBoundaryLabels = null,}) {
   return _then(_self.copyWith(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
@@ -86,6 +86,8 @@ as String?,theoryLink: freezed == theoryLink ? _self.theoryLink : theoryLink // 
 as String?,scaleMin: null == scaleMin ? _self.scaleMin : scaleMin // ignore: cast_nullable_to_non_nullable
 as double,scaleMax: null == scaleMax ? _self.scaleMax : scaleMax // ignore: cast_nullable_to_non_nullable
 as double,scaleLabels: null == scaleLabels ? _self.scaleLabels : scaleLabels // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,uiPlotRatio: freezed == uiPlotRatio ? _self.uiPlotRatio : uiPlotRatio // ignore: cast_nullable_to_non_nullable
+as double?,uiBoundaryLabels: null == uiBoundaryLabels ? _self.uiBoundaryLabels : uiBoundaryLabels // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,
   ));
 }
@@ -171,10 +173,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  String? description,  double? score,  String justification, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  List<String>? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'scale_min')  double scaleMin, @JsonKey(name: 'scale_max')  double scaleMax, @JsonKey(name: 'scale_labels')  Map<String, String> scaleLabels)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  String? description,  double? score,  String justification, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  List<String>? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'scale_min')  double scaleMin, @JsonKey(name: 'scale_max')  double scaleMax, @JsonKey(name: 'scale_labels')  Map<String, String> scaleLabels, @JsonKey(name: 'ui_plot_ratio')  double? uiPlotRatio, @JsonKey(name: 'ui_boundary_labels')  Map<String, String> uiBoundaryLabels)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportAxisDTO() when $default != null:
-return $default(_that.name,_that.description,_that.score,_that.justification,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.scaleMin,_that.scaleMax,_that.scaleLabels);case _:
+return $default(_that.name,_that.description,_that.score,_that.justification,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.scaleMin,_that.scaleMax,_that.scaleLabels,_that.uiPlotRatio,_that.uiBoundaryLabels);case _:
   return orElse();
 
 }
@@ -192,10 +194,10 @@ return $default(_that.name,_that.description,_that.score,_that.justification,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  String? description,  double? score,  String justification, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  List<String>? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'scale_min')  double scaleMin, @JsonKey(name: 'scale_max')  double scaleMax, @JsonKey(name: 'scale_labels')  Map<String, String> scaleLabels)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  String? description,  double? score,  String justification, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  List<String>? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'scale_min')  double scaleMin, @JsonKey(name: 'scale_max')  double scaleMax, @JsonKey(name: 'scale_labels')  Map<String, String> scaleLabels, @JsonKey(name: 'ui_plot_ratio')  double? uiPlotRatio, @JsonKey(name: 'ui_boundary_labels')  Map<String, String> uiBoundaryLabels)  $default,) {final _that = this;
 switch (_that) {
 case _ReportAxisDTO():
-return $default(_that.name,_that.description,_that.score,_that.justification,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.scaleMin,_that.scaleMax,_that.scaleLabels);case _:
+return $default(_that.name,_that.description,_that.score,_that.justification,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.scaleMin,_that.scaleMax,_that.scaleLabels,_that.uiPlotRatio,_that.uiBoundaryLabels);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -212,10 +214,10 @@ return $default(_that.name,_that.description,_that.score,_that.justification,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  String? description,  double? score,  String justification, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  List<String>? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'scale_min')  double scaleMin, @JsonKey(name: 'scale_max')  double scaleMax, @JsonKey(name: 'scale_labels')  Map<String, String> scaleLabels)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  String? description,  double? score,  String justification, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  List<String>? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'scale_min')  double scaleMin, @JsonKey(name: 'scale_max')  double scaleMax, @JsonKey(name: 'scale_labels')  Map<String, String> scaleLabels, @JsonKey(name: 'ui_plot_ratio')  double? uiPlotRatio, @JsonKey(name: 'ui_boundary_labels')  Map<String, String> uiBoundaryLabels)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportAxisDTO() when $default != null:
-return $default(_that.name,_that.description,_that.score,_that.justification,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.scaleMin,_that.scaleMax,_that.scaleLabels);case _:
+return $default(_that.name,_that.description,_that.score,_that.justification,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.scaleMin,_that.scaleMax,_that.scaleLabels,_that.uiPlotRatio,_that.uiBoundaryLabels);case _:
   return null;
 
 }
@@ -227,7 +229,7 @@ return $default(_that.name,_that.description,_that.score,_that.justification,_th
 @JsonSerializable()
 
 class _ReportAxisDTO implements ReportAxisDTO {
-  const _ReportAxisDTO({required this.name, this.description, this.score, required this.justification, @JsonKey(name: 'cited_source_id') this.citedSourceId, @JsonKey(name: 'cited_text_quote') this.citedTextQuote, @JsonKey(name: 'cited_web_citation') this.citedWebCitation, this.coaching, this.confidence, this.falsification, @JsonKey(name: 'missing_context') this.missingContext, @JsonKey(name: 'risk_flag') this.riskFlag, @JsonKey(name: 'remediation_steps') final  List<String>? remediationSteps, @JsonKey(name: 'emotional_sentiment') this.emotionalSentiment, @JsonKey(name: 'theory_link') this.theoryLink, @JsonKey(name: 'scale_min') this.scaleMin = 0.0, @JsonKey(name: 'scale_max') this.scaleMax = 6.0, @JsonKey(name: 'scale_labels') final  Map<String, String> scaleLabels = const {}}): _remediationSteps = remediationSteps,_scaleLabels = scaleLabels;
+  const _ReportAxisDTO({required this.name, this.description, this.score, required this.justification, @JsonKey(name: 'cited_source_id') this.citedSourceId, @JsonKey(name: 'cited_text_quote') this.citedTextQuote, @JsonKey(name: 'cited_web_citation') this.citedWebCitation, this.coaching, this.confidence, this.falsification, @JsonKey(name: 'missing_context') this.missingContext, @JsonKey(name: 'risk_flag') this.riskFlag, @JsonKey(name: 'remediation_steps') final  List<String>? remediationSteps, @JsonKey(name: 'emotional_sentiment') this.emotionalSentiment, @JsonKey(name: 'theory_link') this.theoryLink, @JsonKey(name: 'scale_min') this.scaleMin = 0.0, @JsonKey(name: 'scale_max') this.scaleMax = 6.0, @JsonKey(name: 'scale_labels') final  Map<String, String> scaleLabels = const {}, @JsonKey(name: 'ui_plot_ratio') this.uiPlotRatio, @JsonKey(name: 'ui_boundary_labels') final  Map<String, String> uiBoundaryLabels = const {}}): _remediationSteps = remediationSteps,_scaleLabels = scaleLabels,_uiBoundaryLabels = uiBoundaryLabels;
   factory _ReportAxisDTO.fromJson(Map<String, dynamic> json) => _$ReportAxisDTOFromJson(json);
 
 @override final  String name;
@@ -263,6 +265,14 @@ class _ReportAxisDTO implements ReportAxisDTO {
   return EqualUnmodifiableMapView(_scaleLabels);
 }
 
+@override@JsonKey(name: 'ui_plot_ratio') final  double? uiPlotRatio;
+ final  Map<String, String> _uiBoundaryLabels;
+@override@JsonKey(name: 'ui_boundary_labels') Map<String, String> get uiBoundaryLabels {
+  if (_uiBoundaryLabels is EqualUnmodifiableMapView) return _uiBoundaryLabels;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_uiBoundaryLabels);
+}
+
 
 /// Create a copy of ReportAxisDTO
 /// with the given fields replaced by the non-null parameter values.
@@ -277,16 +287,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReportAxisDTO&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.score, score) || other.score == score)&&(identical(other.justification, justification) || other.justification == justification)&&(identical(other.citedSourceId, citedSourceId) || other.citedSourceId == citedSourceId)&&(identical(other.citedTextQuote, citedTextQuote) || other.citedTextQuote == citedTextQuote)&&(identical(other.citedWebCitation, citedWebCitation) || other.citedWebCitation == citedWebCitation)&&(identical(other.coaching, coaching) || other.coaching == coaching)&&(identical(other.confidence, confidence) || other.confidence == confidence)&&(identical(other.falsification, falsification) || other.falsification == falsification)&&(identical(other.missingContext, missingContext) || other.missingContext == missingContext)&&(identical(other.riskFlag, riskFlag) || other.riskFlag == riskFlag)&&const DeepCollectionEquality().equals(other._remediationSteps, _remediationSteps)&&(identical(other.emotionalSentiment, emotionalSentiment) || other.emotionalSentiment == emotionalSentiment)&&(identical(other.theoryLink, theoryLink) || other.theoryLink == theoryLink)&&(identical(other.scaleMin, scaleMin) || other.scaleMin == scaleMin)&&(identical(other.scaleMax, scaleMax) || other.scaleMax == scaleMax)&&const DeepCollectionEquality().equals(other._scaleLabels, _scaleLabels));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReportAxisDTO&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.score, score) || other.score == score)&&(identical(other.justification, justification) || other.justification == justification)&&(identical(other.citedSourceId, citedSourceId) || other.citedSourceId == citedSourceId)&&(identical(other.citedTextQuote, citedTextQuote) || other.citedTextQuote == citedTextQuote)&&(identical(other.citedWebCitation, citedWebCitation) || other.citedWebCitation == citedWebCitation)&&(identical(other.coaching, coaching) || other.coaching == coaching)&&(identical(other.confidence, confidence) || other.confidence == confidence)&&(identical(other.falsification, falsification) || other.falsification == falsification)&&(identical(other.missingContext, missingContext) || other.missingContext == missingContext)&&(identical(other.riskFlag, riskFlag) || other.riskFlag == riskFlag)&&const DeepCollectionEquality().equals(other._remediationSteps, _remediationSteps)&&(identical(other.emotionalSentiment, emotionalSentiment) || other.emotionalSentiment == emotionalSentiment)&&(identical(other.theoryLink, theoryLink) || other.theoryLink == theoryLink)&&(identical(other.scaleMin, scaleMin) || other.scaleMin == scaleMin)&&(identical(other.scaleMax, scaleMax) || other.scaleMax == scaleMax)&&const DeepCollectionEquality().equals(other._scaleLabels, _scaleLabels)&&(identical(other.uiPlotRatio, uiPlotRatio) || other.uiPlotRatio == uiPlotRatio)&&const DeepCollectionEquality().equals(other._uiBoundaryLabels, _uiBoundaryLabels));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,name,description,score,justification,citedSourceId,citedTextQuote,citedWebCitation,coaching,confidence,falsification,missingContext,riskFlag,const DeepCollectionEquality().hash(_remediationSteps),emotionalSentiment,theoryLink,scaleMin,scaleMax,const DeepCollectionEquality().hash(_scaleLabels));
+int get hashCode => Object.hashAll([runtimeType,name,description,score,justification,citedSourceId,citedTextQuote,citedWebCitation,coaching,confidence,falsification,missingContext,riskFlag,const DeepCollectionEquality().hash(_remediationSteps),emotionalSentiment,theoryLink,scaleMin,scaleMax,const DeepCollectionEquality().hash(_scaleLabels),uiPlotRatio,const DeepCollectionEquality().hash(_uiBoundaryLabels)]);
 
 @override
 String toString() {
-  return 'ReportAxisDTO(name: $name, description: $description, score: $score, justification: $justification, citedSourceId: $citedSourceId, citedTextQuote: $citedTextQuote, citedWebCitation: $citedWebCitation, coaching: $coaching, confidence: $confidence, falsification: $falsification, missingContext: $missingContext, riskFlag: $riskFlag, remediationSteps: $remediationSteps, emotionalSentiment: $emotionalSentiment, theoryLink: $theoryLink, scaleMin: $scaleMin, scaleMax: $scaleMax, scaleLabels: $scaleLabels)';
+  return 'ReportAxisDTO(name: $name, description: $description, score: $score, justification: $justification, citedSourceId: $citedSourceId, citedTextQuote: $citedTextQuote, citedWebCitation: $citedWebCitation, coaching: $coaching, confidence: $confidence, falsification: $falsification, missingContext: $missingContext, riskFlag: $riskFlag, remediationSteps: $remediationSteps, emotionalSentiment: $emotionalSentiment, theoryLink: $theoryLink, scaleMin: $scaleMin, scaleMax: $scaleMax, scaleLabels: $scaleLabels, uiPlotRatio: $uiPlotRatio, uiBoundaryLabels: $uiBoundaryLabels)';
 }
 
 
@@ -297,7 +307,7 @@ abstract mixin class _$ReportAxisDTOCopyWith<$Res> implements $ReportAxisDTOCopy
   factory _$ReportAxisDTOCopyWith(_ReportAxisDTO value, $Res Function(_ReportAxisDTO) _then) = __$ReportAxisDTOCopyWithImpl;
 @override @useResult
 $Res call({
- String name, String? description, double? score, String justification,@JsonKey(name: 'cited_source_id') String? citedSourceId,@JsonKey(name: 'cited_text_quote') String? citedTextQuote,@JsonKey(name: 'cited_web_citation') String? citedWebCitation, String? coaching, double? confidence, String? falsification,@JsonKey(name: 'missing_context') String? missingContext,@JsonKey(name: 'risk_flag') bool? riskFlag,@JsonKey(name: 'remediation_steps') List<String>? remediationSteps,@JsonKey(name: 'emotional_sentiment') String? emotionalSentiment,@JsonKey(name: 'theory_link') String? theoryLink,@JsonKey(name: 'scale_min') double scaleMin,@JsonKey(name: 'scale_max') double scaleMax,@JsonKey(name: 'scale_labels') Map<String, String> scaleLabels
+ String name, String? description, double? score, String justification,@JsonKey(name: 'cited_source_id') String? citedSourceId,@JsonKey(name: 'cited_text_quote') String? citedTextQuote,@JsonKey(name: 'cited_web_citation') String? citedWebCitation, String? coaching, double? confidence, String? falsification,@JsonKey(name: 'missing_context') String? missingContext,@JsonKey(name: 'risk_flag') bool? riskFlag,@JsonKey(name: 'remediation_steps') List<String>? remediationSteps,@JsonKey(name: 'emotional_sentiment') String? emotionalSentiment,@JsonKey(name: 'theory_link') String? theoryLink,@JsonKey(name: 'scale_min') double scaleMin,@JsonKey(name: 'scale_max') double scaleMax,@JsonKey(name: 'scale_labels') Map<String, String> scaleLabels,@JsonKey(name: 'ui_plot_ratio') double? uiPlotRatio,@JsonKey(name: 'ui_boundary_labels') Map<String, String> uiBoundaryLabels
 });
 
 
@@ -314,7 +324,7 @@ class __$ReportAxisDTOCopyWithImpl<$Res>
 
 /// Create a copy of ReportAxisDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? description = freezed,Object? score = freezed,Object? justification = null,Object? citedSourceId = freezed,Object? citedTextQuote = freezed,Object? citedWebCitation = freezed,Object? coaching = freezed,Object? confidence = freezed,Object? falsification = freezed,Object? missingContext = freezed,Object? riskFlag = freezed,Object? remediationSteps = freezed,Object? emotionalSentiment = freezed,Object? theoryLink = freezed,Object? scaleMin = null,Object? scaleMax = null,Object? scaleLabels = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? description = freezed,Object? score = freezed,Object? justification = null,Object? citedSourceId = freezed,Object? citedTextQuote = freezed,Object? citedWebCitation = freezed,Object? coaching = freezed,Object? confidence = freezed,Object? falsification = freezed,Object? missingContext = freezed,Object? riskFlag = freezed,Object? remediationSteps = freezed,Object? emotionalSentiment = freezed,Object? theoryLink = freezed,Object? scaleMin = null,Object? scaleMax = null,Object? scaleLabels = null,Object? uiPlotRatio = freezed,Object? uiBoundaryLabels = null,}) {
   return _then(_ReportAxisDTO(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
@@ -334,6 +344,8 @@ as String?,theoryLink: freezed == theoryLink ? _self.theoryLink : theoryLink // 
 as String?,scaleMin: null == scaleMin ? _self.scaleMin : scaleMin // ignore: cast_nullable_to_non_nullable
 as double,scaleMax: null == scaleMax ? _self.scaleMax : scaleMax // ignore: cast_nullable_to_non_nullable
 as double,scaleLabels: null == scaleLabels ? _self._scaleLabels : scaleLabels // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,uiPlotRatio: freezed == uiPlotRatio ? _self.uiPlotRatio : uiPlotRatio // ignore: cast_nullable_to_non_nullable
+as double?,uiBoundaryLabels: null == uiBoundaryLabels ? _self._uiBoundaryLabels : uiBoundaryLabels // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,
   ));
 }

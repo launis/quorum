@@ -214,9 +214,13 @@ class StudioService:
 
         # Deep clone standalone output profiles mapped to this old workflow
         all_profiles = await self.repo.get_all("output_profiles")
+        profile_mapping = {}
+
         for p in all_profiles:
             if p.get("workflow_id") == id:
                 new_profile_id = f"prof_{uuid.uuid4().hex[:30]}"
+                profile_mapping[p.get("id")] = new_profile_id
+                
                 cloned_profile = p.copy()
                 cloned_profile["id"] = new_profile_id
                 cloned_profile["workflow_id"] = new_id
@@ -229,6 +233,10 @@ class StudioService:
                     layout["steps"] = [sr_mapping.get(s, s) for s in old_layout_steps]
 
                 await self.repo.create_raw("output_profiles", cloned_profile)
+
+        # Update the default profile ID referencing the old profile
+        if cloned_data.get("default_profile_id") in profile_mapping:
+            cloned_data["default_profile_id"] = profile_mapping[cloned_data["default_profile_id"]]
 
         # Clear embedded profiles from workflow clone since they are standalone now
         if "output_profiles" in cloned_data:

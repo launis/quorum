@@ -51,18 +51,16 @@ def generate_scatter_chart(axes: list[ReportAxisDTO]) -> str:
     if y_max <= y_min:
         y_max = y_min + 6.0
 
-    radius = 200
+    area = 300
     if z_axis and z_axis.score is not None:
-        z_min = z_axis.scale_min if z_axis.scale_min is not None else 0.0
-        z_max = z_axis.scale_max if z_axis.scale_max is not None else 6.0
-        if z_max <= z_min:
-            z_max = z_min + 1.0
-        pct = max(0.0, min(1.0, (z_axis.score - z_min) / (z_max - z_min)))
-        radius = int(100 + (pct * 500))
+        # Use SDUI pre-calculated plot ratio if available, otherwise fallback
+        pct = z_axis.ui_plot_ratio if z_axis.ui_plot_ratio is not None else 0.5
+        # Mapped to 6x visual diameter contrast (sqrt(1800/50) = 6) to match Flutter UI
+        area = int(50 + (pct * 1750))
 
     fig, ax = plt.subplots(figsize=(6, 4))
 
-    ax.scatter([x_val], [y_val], s=radius, c="#2196F3", alpha=0.7, edgecolors="#0D47A1", linewidths=2)
+    ax.scatter([x_val], [y_val], s=area, c="#2196F3", alpha=0.7, edgecolors="#0D47A1", linewidths=2)
 
     ax.set_xlim(x_min, x_max + (x_max - x_min) * 0.05)
     ax.set_ylim(y_min, y_max + (y_max - y_min) * 0.05)
