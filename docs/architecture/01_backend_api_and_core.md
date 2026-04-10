@@ -51,12 +51,11 @@ Koodikannassa ohjaustaso asuu vahvasti rajatuissa kansioissa. Tärkein sääntö
 ### `backend_v2/api/routers/` (FastAPI Control Plane)
 Ylin REST-rajapintakerros vastaa HTTP-pyyntöihin. Se pysäyttää virheellisen datan RFC 7807 -turvamuuriin (Pydantic ValidationError) ennen kuin se siirtää vastuun Services-kerrokselle.
 
-Käytössä olevat reitittimet:
-- **`execution/`**: Työnkulkujen (DAG) ajojen aloitus ja historian asynkroninen haku.
-- **`iam/`**: Identiteetin, organisaatioiden (Tenant Isolation) ja käyttäjäroolien mutaatiot.
-- **`studio/`**: Graafisen työnkulkustudion dynaamisten Blueprinttien CRUD-operaatiot.
-- **`output_profiles/`**: Tulostusprofiilien ja näkymien (SDUI) hallinta.
-- **`system/`**: Järjestelmän yleiset konfiguraatiot ja Polymorfisen reitityksen meta-operaatiot.
+- **`execution/`**: Työnkulkujen asynkronisten ajojen ominaisuudet, koostaen tiedostot `executions.py` (ajojen aloitus ja historian haku) sekä ajonaikaisen työnkulkujen kytkennän `workflows.py`.
+- **`iam/`**: Identiteetin ja organisaatiotason hallinta (Tenant Isolation) tukeutuen tiedostoihin `auth.py`, `organizations.py` ja `users.py`.
+- **`studio/`**: "Cognitive Studio" hallitsee suoraan arkkitehtuurisia Pydantic-rakennuspalikoita. Kansion alla elää koko dynaamisten Blueprinttien CRUD-operaatiot erillisinä tiedostoina: `prompt_blocks.py`, `steps.py` ja `workflows.py`, sekä järjestelmän fyysiset hallintareitittimet: `mcp_gateways.py`, `model_registry.py` ja `system_configs.py`.
+- **`output_profiles.py`**: Yksittäinen reititintiedosto (ei kansio) tulostusprofiilien ja näkymien (SDUI) hallintaan.
+- **`system/`**: Järjestelmän infrastruktuurioperaatiot tiedostoina, kuten terveystarkistukset (`health.py`) ja telemetria (`telemetry.py`). (Ohjelmalliset konfiguraatiot ovat täysin siirretty `studio/` -reitittimen alaisuuteen.)
 
 ### `backend_v2/core/` (Arkkitehtuuriresurssit)
 Sisältää sovelluksen kriittisen asynkronisen infran ja rekisterit, jotka hallinnoivat järjestelmän toimintaa taustalla.
@@ -66,6 +65,9 @@ Sisältää sovelluksen kriittisen asynkronisen infran ja rekisterit, jotka hall
 
 ### The Entrypoint: `backend_v2/main.py`
 Järjestelmän juurikäynnistäjä, joka sitoo arkkitehtuurin kasaan:
-1. **Lifespan Management:** Kytkee Redis-jonot (Arq) ja lokituksen (Logfire/Python Logger) päälle.
+1. **Lifespan Management & Telemetry:** 
+   - Ennen Arq-poolin alustamista sovellus käynnistää (importtaa) `backend_v2.hooks` -moduulin. Tämä lataa kaikki `@hook_trigger`-dekoraattorit muistiin reaaliaikaista Hook Registryn käyttöä varten (dynaaminen ajonaikainen kognitiomutaatio).
+   - Alustaa Arq Redis -poolin (FakeRedis fallback-mekanismein) vikasietoisuuden takaajana.
+   - Välittömästi FastAPI-applikaation luonnin jälkeen logfire instrumentoidaan `logfire.instrument_fastapi(app)` avulla, turvaten telemetrian kirjaamisen jo ennen middlewarejen käynnistystä ja "One Truth Error Protocol" -jäljitettävyyden takaamiseksi.
 2. **Middlewaret:** `RequestIdMiddleware` mahdollistaa pyyntöjen jäljitettävyyden lokiketjuissa ja `LocalizationMiddleware` parsii asiakkaan kielen (Accept-Language) dynaamisia käännöksiä varten.
 3. **Global Error Catchers:** Sieppaa kaikki järjestelmästä irtoavat Pydantic- ja domain-virheet ja asettaa ne ehdottomasti yhtenäiseen RFC 7807 "Problem Details" -JSON-muotoon. Näin "Fail-Fast" periaatteen mukainen suorituksen katkaiseminen näkyy standardoituna ohjelmistorajapinnassa.

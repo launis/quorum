@@ -8,6 +8,9 @@
 
 **Tavoite:** Puhdistaa DSL (JSON-matriisit) ja muuttaa LLM:n psykologinen konteksti. Torjutaan "Garbage In, Garbage Out" \-ilmiö, mutta vältetään "Brittle Recall" (liian tiukan haun aiheuttamat väärät negatiiviset tulokset).
 
+**Vaihe 1 Toteutus (Pragmaattinen 2026):** Milestone 1 keskittyy ydin-JSON-matriiseihin nykyisten ominaisuuksien (Toulmin, Bloom, Pydantic CoT) raameissa.
+**Vaihe 2 Toteutuskohde (Target Architecture):** Task 1.3 "Virhetilojen koneluettavuus" (`is_flaw: true`) ja Task 1.4 "Kognitiivisen Omistajuuden BARS-matriisi" ovat nyt varsinaisia Epicin tavoittelemia toteutusvaatimuksia seuraavalle kehitysjaksolle.
+
 * **Task 1.1: JSON-matriisien (DSL) kliininen puhdistus ja joustavuus.**  
   * **Toimenpide:** Kaikki ai\_description \-kentät seed\_data.json \-tiedostossa kirjoitetaan uusiksi. Emotionaalisesti latautuneet ja rankaisevat ohjeet (esim. SEVERE HUBRIS PENALTY) poistetaan, sillä ne aiheuttavat epädeterminististä varianssia mallin piiloavaruudessa.  
   * **Anti-Brittle Recall \-ratkaisu:** Ohjeet korvataan neutraaleilla, mutta riittävän joustavilla tiedonlouhintaohjeilla. LLM:ää ei käsketä etsimään vain "100 % absoluuttista faktaa", vaan ohjeistetaan Native English \-mandaatin mukaisesti: *"EXTRACTION DIRECTIVE: Scan the text for instances where the author presents a subjective view as an absolute fact. Also note implicit strong claims lacking justification or reservations. If found, extract the exact verbatim quote."*"  
@@ -21,6 +24,9 @@
 **MILESTONE 2: Käänteinen Skeema ja Y-Funnel Reititys (Interface Layer)**
 
 **Tavoite:** Pakotetaan LLM sitomaan itsensä aineistoon *ennen* totuusarvojen generointia. Ratkaistaan laiskuusongelma puhtaalla ohjaustason arkkitehtuurilla raskaiden asynkronisten JSON-mergejen sijaan.
+
+**Vaihe 1 Toteutus (Pragmaattinen 2026):** V2-arkkitehtuurissa `schema_builder.py` käyttää numeerisia lukuja (float) logiikassa yhä. Pydantic-itsekorjautuminen vertaa numeerista tulosta kynnysarvoon.
+**Vaihe 2 Toteutuskohde (Target Architecture):** Enum-arvot (`EXPLICIT_PROOF`) ja tiukat dynaamiset Pydantic-taulukkorakenteet ovat Epicin virallinen Target Architecture.
 
 * **Task 2.1: Dynaaminen AST-Skeemageneraattori (schema\_builder.py).**  
   * **Toimenpide:** Koodataan generaattori, joka lukee puhdistetun JSONin ja rakentaa lennosta tiukan Pydantic V2 \-skeeman create\_model \-funktiolla (extra='forbid'). Arvosanoja ei pyydetä LLM:ltä lainkaan.  
@@ -39,6 +45,9 @@
 **MILESTONE 3: Deterministinen Python-Tuomari (Execution Layer)**
 
 **Tavoite:** Siirretään tuomarointi täysin Python-koodille. Asennetaan pragmaattinen suodatin, joka hylkää tekoälyn hallusinoimat katteettomat väitteet, mutta sallii aidoissa lainauksissa esiintyvät pienet OCR-virheet.
+
+**Vaihe 1 Toteutus (Pragmaattinen 2026):** `integrity.py` (`verify_citation_integrity_hook`) hyödyntää kevyttä `normalize()`-pohjaista merkkijonovertailua, joka poistaa hallusinoidut viitteet Option B (Graceful Nullification) tason peruutuksella ilman rinnakkaisajon oikosulkua.
+**Vaihe 2 Toteutuskohde (Target Architecture):** PyTorch/ONNX NLP-suodatus, Sliding Window N-gram ja aggressiivinen rinnakkaisten API-kutsujen oikosulku (`asyncio.TaskGroup`) luodaan tavoitetilana (Target).
 
 * **Task 3.1: Joustava Hallusinaatiosuodatin (integrity.py).**  
   * **Haasteen ratkaisu:** Raaka Levenshtein-etäisyys hylätään, koska se kaatuu PDF-asiakirjojen rivinvaihtoihin ja tavuviivoihin, tuhoten aidot lainaukset.  
@@ -94,3 +103,9 @@ Saman tekstin ajaminen 100 kertaa järjestelmän läpi tuottaa 100 kertaa täsm�
 **4\. XAI muuttuu todistusaineistoksi:**
 
 XAI-raportti ei ole enää LLM:n keksimä narratiivi (post-hoc rationalisointi). Raportti generoidaan suoraan Pythonin totuustaulusta: *"Arvosana lukittiin tasolle 2, koska tason 3 ehto 'Vastaväitteet' jäi täyttymättä. Tekoäly poimi lainauksen, mutta N-gram \-suodatin hylkäsi sen, koska tekstiä ei löytynyt alkuperäisestä dokumentista."* Tämä tekee raporteista kiistattomia compliance-dokumentteja Enterprise-asiakkaille.
+
+### ---
+
+**LIITTEET: Kognitiivisen Omistajuuden Case-Esimerkit**
+
+**Vaihe 2 Toteutuskohde (Target Architecture):** Olemassa olevat skenaariot ("Laiska Matkustaja" ja "Suvereeni Arkkitehti") sekä BARS-matriisin JSON-kuvaus säilytetään ja toteutetaan sitovana Vaiheen 2 Target Architecture -toteutuksena, jota tullaan koodaamaan kun Vaiheen 1 bugit on torjuttu.

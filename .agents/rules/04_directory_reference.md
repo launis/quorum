@@ -32,6 +32,10 @@
         <directory path="services/">
             <description>Complex business orchestration processing logic routines. Subdivided into drivers, mcp, orchestrator (with strategies).</description>
         </directory>
+        <directory path="scripts/">Backendin sisäiset aputyökalut, kuten OpenAPI-skeemojen automaattinen generointi.</directory>
+        <directory path="templates/">Jinja2/HTML pohjat dynaamiselle PDF- ja tulostusraporttigeneroinnille (PDF Service).</directory>
+        <directory path="tests/">Automaattisen laatuportin (Pytest) yksikkö- ja integraatiotestit.</directory>
+        <directory path="utils/">Uudelleenkäytettävät apufunktiot, graafiset piirtotyökalut (kuten rader/scatter_chart) ja muut apuohjelmat.</directory>
         <file path="main.py">FastAPI framework server execution point instantiating web boundaries.</file>
         <file path="worker.py">ARQ Worker loop driving automated DAG task resolutions concurrently.</file>
     </layer>
@@ -48,6 +52,8 @@
         <directory path="lib/l10n/">Localization storage mechanisms natively enforcing the codebase strict No-String Rule.</directory>
         <directory path="lib/router/">GoRouter navigational constraints resolving deep linking rules effectively against application authorization states.</directory>
         <directory path="lib/shared/">Shared models and widgets reusable across features.</directory>
+        <directory path="lib/theme/">Globaalit tyylimäärittelyt (Colors, Typography) Desktop-First UI:ta varten.</directory>
+        <directory path="lib/utils/">Yhteiset dart-apufunktiot ja rakenteet.</directory>
         <file path="lib/app.dart">Top-level Application Shell enforcing global UI Theme protocols seamlessly wrapping `AppErrorBoundary`.</file>
         <file path="pubspec.yaml">Dart dependencies and asset declarations.</file>
     </layer>
@@ -61,6 +67,8 @@
         <description>Primary development setup files natively guiding automated systems.</description>
         <directory path=".agents/rules/">Master Architectural Directives natively formatted via structural constraints guiding intelligent machine compilation behaviors (AI Only).</directory>
         <directory path=".agents/workflows/">Autonomous procedural orchestration playbooks ensuring code alterations properly resolve across specific isolated AI logic paths.</directory>
+        <directory path="data/">Paikallinen konfiguraatiodata, workflows -prototyyppimäärittelyt JSON-muodossa ja lokaali TinyDB tietokanta.</directory>
+        <directory path="docs/">Projektin arkkitehtuuridokumentit ja Epic-suunnitelmat (Tier 1). Sisältää erilliset `architecture/` ja `epic/` alihakemistot.</directory>
         <directory path="scripts/">Cross-functional development utilities. Features `flutter_audit_loop.py` which unifies CD routines.</directory>
         <file path="AGENTS.md">The Core Root Agent Configuration file ensuring foundational Windows 11 context laws exist natively before anything else.</file>
         <file path="backend_debug.log">Crucial Server Runtime trace logs exposing hidden Python/FastAPI validation faults natively generated during asynchronous events.</file>
