@@ -134,6 +134,12 @@
         <mandatory_pattern>The Prompt Compiler is a frozen architectural cornerstone. Do NOT touch this file. If a change is absolutely necessary, you must explicitly flag it and seek USER CONFIRMATION before making any edits.</mandatory_pattern>
         <catastrophic_reason>Altering the Prompt Compiler risks breaking the deterministic synthesis pipeline, Schema V2 generation, and the core Fail-Fast architecture.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="zero_type_ignore_shortcuts">
+        <banned_pattern>Using `# type: ignore` arbitrarily to silence MyPy without investigating the root cause or refactoring the underlying Pydantic/Domain types.</banned_pattern>
+        <mandatory_pattern>ALWAYS investigate the root cause of a typing error. Fix the actual variable types, models, or function signatures. If an external library boundary forces a type violation that absolutely cannot be fixed natively, you MUST use a strictly scoped ignore marker with the exact error code (e.g., `# type: ignore[attr-defined]`) AND provide a comment explaining the external constraint. Blanket ignores are strictly forbidden.</mandatory_pattern>
+        <catastrophic_reason>Overusing type ignores defeats the purpose of strict typing, allowing 'Any' or disjointed types to leak into the Fail-Fast domain logic, inevitably causing 500 Internals or UI rendering crashes downstream.</catastrophic_reason>
+    </rule_block>
 </architectural_invariants>
 
 <testing_and_verification_mandate>

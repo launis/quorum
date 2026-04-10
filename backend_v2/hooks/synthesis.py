@@ -297,6 +297,14 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     # --- Section-Level Synthesis Directives ---
     layouts = active_profile.get("layouts", [])
     section_instructions = []
+    
+    # Fetch all blocks to inject extrema scale bounds into the context mapper (V2 Architecture)
+    all_blocks = []
+    if hasattr(deps.repository, "get_all"):
+        raw_blocks = await deps.repository.get_all("prompt_blocks")
+        from backend_v2.models.v2_core import PromptBlock
+        # FAIL-FAST: Map raw dicts to strict Pydantic Domain Models
+        all_blocks = [PromptBlock.model_validate(rb) for rb in raw_blocks]
 
     for idx, layout in enumerate(layouts):
         l_synthesis = layout.get("synthesis")
@@ -325,7 +333,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         instruction += f"SECTION-SPECIFIC COGNITIVE BLUEPRINT:\n{str(l_system_prompt).strip()}\n"
 
         if target_blocks and "*" not in target_blocks:
-            instruction += ContextMapper.build_ordinal_mapping(target_blocks)
+            instruction += ContextMapper.build_ordinal_mapping(target_blocks, all_blocks)
         else:
             instruction += "Target Data Filter: Synthesize all relevant information for this section.\n"
 

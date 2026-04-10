@@ -4623,6 +4623,7 @@
               "1d_metrics",
               "2d_compare",
               "3d_complex",
+              "3d_matrix",
               "default",
               "text_only"
             ],
@@ -4718,6 +4719,7 @@
               "1d_metrics",
               "2d_compare",
               "3d_complex",
+              "3d_matrix",
               "default",
               "text_only"
             ],
@@ -5298,6 +5300,32 @@
             ],
             "title": "Columns",
             "description": "Optional columns for grid matrices."
+          },
+          "computed_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Computed Min",
+            "description": "Dynamically computes the absolute minimum score from the scales array.",
+            "readOnly": true
+          },
+          "computed_max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Computed Max",
+            "description": "Dynamically computes the absolute maximum score from the scales array.",
+            "readOnly": true
           }
         },
         "additionalProperties": false,
@@ -5308,7 +5336,9 @@
           "label",
           "description",
           "category_id",
-          "type"
+          "type",
+          "computed_min",
+          "computed_max"
         ],
         "title": "PromptBlock",
         "description": "V2 PromptBlock representation.\nFuses legacy Components and Matrices into a unified directive model."
@@ -5453,6 +5483,15 @@
             "type": "array",
             "title": "Cited Sources",
             "description": "Citations used in this profile's synthesis"
+          },
+          "xai_highlights": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Xai Highlights",
+            "description": "Generated XAI highlight boxes"
           },
           "created_at": {
             "type": "string",

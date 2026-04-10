@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.enums import (
@@ -180,6 +180,29 @@ class PromptBlock(V2CoreBase):
     )
     rows: list[MatrixRow] | None = Field(default=None, description="Optional rows for grid matrices.")
     columns: list[I18nText] | None = Field(default=None, description="Optional columns for grid matrices.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _strip_computed_fields(cls, data: dict[str, Any]) -> dict[str, Any]:
+        if isinstance(data, dict):
+            # Strip computed properties that are serialized to the DB to prevent 'extra_forbidden' Pydantic crashes during load
+            data.pop("computed_min", None)
+            data.pop("computed_max", None)
+        return data
+
+    @computed_field
+    def computed_min(self) -> int | None:
+        """Dynamically computes the absolute minimum score from the scales array."""
+        if not self.scales:
+            return None
+        return min(s.score for s in self.scales)
+
+    @computed_field
+    def computed_max(self) -> int | None:
+        """Dynamically computes the absolute maximum score from the scales array."""
+        if not self.scales:
+            return None
+        return max(s.score for s in self.scales)
 
     @model_validator(mode="after")
     def validate_block_consistency(self) -> PromptBlock:
@@ -700,6 +723,7 @@ class OutputProfile(V2CoreBase):
         if isinstance(data, dict) and data.get("max_extension_items") is None:
             data["max_extension_items"] = 3
         return data
+
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original",
         description="Selects the source scaling for the scores printed by Blueprint.",

@@ -81,6 +81,11 @@
         <banned_pattern>Writing prompt responses or code in language other than English, or explaining WHAT the code mechanically does in comments.</banned_pattern>
         <mandatory_pattern>Prompts / Code Blocks MUST be in English. Explanations/Context MUST be in Finnish. Only comment WHY business logic exists using Imperative Mood.</mandatory_pattern>
     </rule_block>
+    <rule_block id="mathematical_extrema_anchoring">
+        <banned_pattern>Hardcoding min/max scale values (e.g., 1 to 5) or relying on assumed defaults when interpreting BARS or matrices.</banned_pattern>
+        <mandatory_pattern>You MUST dynamically resolve absolute mathematical extrema by extracting the minimum and maximum `score` from the block's `scales` array. This MUST be implemented directly at the Domain Model layer (e.g., as `@property computed_min` and `computed_max` on the `PromptBlock` model) so that the exact same API payload seamlessly enforces absolute parity for both Frontend UI rendering and Backend LLM Context Mapping.</mandatory_pattern>
+        <catastrophic_reason>Assuming static 1-5 scale bounds causes fatal LLM hallucinations ("pohjalukemissa" for 2.0/3) and logic blindness.</catastrophic_reason>
+    </rule_block>
 </architectural_invariants>
 
 <universal_quality_gate>
