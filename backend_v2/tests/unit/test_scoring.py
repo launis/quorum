@@ -228,7 +228,7 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
     evaluations.append({"atom_id": hashlib.md5("L2_A1".encode("utf-8")).hexdigest(), "boolean": True, "reasoning": "Oikein"})
     evaluations.append({"atom_id": hashlib.md5("L2_A2".encode("utf-8")).hexdigest(), "boolean": True, "reasoning": "Oikein"})
     
-    # Taso 3 (50% osuma -> Hit Rate < 75% -> VESIPUTOUS PYSÄHTYY)
+    # Taso 3 (50% osuma -> Hit Rate < 90% -> VESIPUTOUS PYSÄHTYY)
     evaluations.append({"atom_id": hashlib.md5("L3_A1".encode("utf-8")).hexdigest(), "boolean": True, "reasoning": "Oikein"})
     evaluations.append({"atom_id": hashlib.md5("L3_A2".encode("utf-8")).hexdigest(), "boolean": False, "reasoning": "Aihetodistetta EI esitetty."})
     

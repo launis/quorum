@@ -365,6 +365,7 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
 
         import hashlib
 
+        from backend_v2.models.enums import WaterfallThreshold
         from backend_v2.utils.math_utils import calculate_waterfall_floor, calculate_weighted_score
 
         atom_mapping = {}
@@ -458,7 +459,7 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
             scale_min = float(meta["scale_min"])
             scale_max = float(meta["scale_max"])
 
-            floor_score = calculate_waterfall_floor(stats, scale_min, threshold=0.75)
+            floor_score = calculate_waterfall_floor(stats, scale_min, threshold=WaterfallThreshold.STANDARD.value)
             weighted_score = calculate_weighted_score(stats, scale_min, scale_max)
 
             # Hybrid cap limit formula: min(weighted, floor + 1.0)
@@ -475,7 +476,7 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
                 t_total = level_data["total"]
                 pct = int((t_hits / t_total) * 100) if t_total > 0 else 0
 
-                if pct >= 75 and not waterfall_broken:
+                if pct >= int(WaterfallThreshold.STANDARD.value * 100) and not waterfall_broken:
                     status = "OK"
                 else:
                     if not waterfall_broken:
@@ -692,20 +693,20 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                     target_max = max(scores_in_scales)
 
             if scales and target_min is not None and target_max is not None:
-                from backend_v2.utils.math_utils import scale_to_custom_range, normalize_score_to_100
+                from backend_v2.utils.math_utils import normalize_score_to_100, scale_to_custom_range
 
                 # 1. The original AI output, calculated on the internal Math bounds
                 raw_float = float(raw_val)
-                
+
                 scores_in_scales = []
                 for s in scales:
                     val = s.get("score") if isinstance(s, dict) else getattr(s, "score", None)
                     if val is not None:
                         scores_in_scales.append(float(val))
-                
+
                 if not scores_in_scales:
                     continue
-                    
+
                 math_min = min(scores_in_scales)
                 math_max = max(scores_in_scales)
 

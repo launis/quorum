@@ -7,6 +7,7 @@ prioritizing strict validation and Fail Fast principles.
 import logging
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.enums import WaterfallThreshold
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +89,7 @@ def scale_to_custom_range(score: float, raw_min: float, raw_max: float, target_m
 
 
 def calculate_waterfall_floor(
-    level_stats: dict[float, dict[str, int]], scale_min: float, threshold: float = 0.75
+    level_stats: dict[float, dict[str, int]], scale_min: float, threshold: float = WaterfallThreshold.STANDARD.value
 ) -> float:
     """Calculate the absolute waterfall floor score (Guttman scale).
 

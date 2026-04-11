@@ -1,0 +1,1 @@
+Ajon rakenne selvitetty.

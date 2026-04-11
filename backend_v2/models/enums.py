@@ -56,6 +56,16 @@ class SelfHealingThresholdRatio(float, Enum):
     NONE = 0.00
 
 
+class WaterfallThreshold(float, Enum):
+    """Guttman Waterfall mathematical passing threshold.
+    Defines the hit rate percentage required to pass a scale level.
+    """
+
+    STRICT = 1.00
+    STANDARD = 0.90
+    LENIENT = 0.75
+
+
 class ExecutionStatus(str, Enum):
     """Execution lifecycle status."""
 

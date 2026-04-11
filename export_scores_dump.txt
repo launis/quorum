@@ -1,0 +1,39 @@
+
+========================================
+Execution ID: exe_c83d4eb23cef4a4e9aeaa4ea38a1d820
+
+--- RAW DATA ---
+execution_trace.[3].content.blk_80732a33fe1947ee_normalized: 50.0
+execution_trace.[3].content.blk_80732a33fe1947ee_is_evaluative: True
+execution_trace.[4].content.blk_033180746a954415.step_4_final_score: Epäonnistunut
+execution_trace.[6].content.blk_9c0c7c46568648c4.step_4_final_score: Käyttäjän kognitiivinen profiili on 'Strateginen Editoija, jolla on taipumus jälkikäteiseen rationalisointiin'. Hän osoittaa kykyä merkittävään käsitteelliseen synteesiin ('supermegatrendit') kriittisellä hetkellä, mutta hänen oma kuvauksensa prosessin strategisesta johdonmukaisuudesta on todistettavasti vääristynyt.
+execution_trace.[6].content.blk_109dab5b6b3f403a_normalized: 60.00000000000001
+execution_trace.[6].content.blk_109dab5b6b3f403a_is_evaluative: True
+execution_trace.[7].content.blk_652fce41dcb54793.step_4_final_score: Pätevä, mutta yksipuolinen argumentti, jonka väitteet ovat liian jyrkkiä.
+execution_trace.[7].content.blk_440a5fef9331451b_normalized: 70.0
+execution_trace.[7].content.blk_440a5fef9331451b_is_evaluative: True
+execution_trace.[7].content.blk_f921c7c0989b47e8_normalized: 100.0
+execution_trace.[7].content.blk_f921c7c0989b47e8_is_evaluative: True
+
+========================================
+
+========================================
+Execution ID: exe_6a3184b794264f6bbbb16c21102b7954
+
+--- RAW DATA ---
+execution_trace.[3].content.blk_80732a33fe1947ee_normalized: 0.0
+execution_trace.[3].content.blk_80732a33fe1947ee_is_evaluative: True
+execution_trace.[4].content.blk_033180746a954415.step_4_final_score: Tekoälyn vastaus on erinomainen sen kontekstissa, mutta matriisin vaatimusten näkökulmasta se ei tarjoa monimutkaisia tai uusia väitteitä dekonstruoitavaksi. Väitteet ovat yleisiä ja luonteeltaan neuvoa-antavia. Siksi dekonstruktion syvyys jää rajalliseksi. Tekoäly on kuitenkin täyttänyt käyttäjän tarpeen ja antanut hyvän päätöksen keskustelulle.
+execution_trace.[6].content.blk_9c0c7c46568648c4.step_4_final_score: Analyyttinen ja strateginen ohjaaja
+execution_trace.[6].content.blk_109dab5b6b3f403a_normalized: 100.0
+execution_trace.[6].content.blk_109dab5b6b3f403a_is_evaluative: True
+execution_trace.[7].content.blk_652fce41dcb54793.step_4_final_score: Käyttäjän päättelyketju on loogisesti validi ja johdonmukainen. Hän tunnistaa tekoälyn ehdotuksesta puutteen, joka on ristiriidassa alkuperäisen tavoitteen (premissin) kanssa, ja esittää loogisen korjausliikkeen. Argumentaatio ei sisällä tunnettuja loogisia virhepäätelmiä.
+execution_trace.[7].content.blk_440a5fef9331451b_normalized: 50.0
+execution_trace.[7].content.blk_440a5fef9331451b_is_evaluative: True
+execution_trace.[7].content.blk_f921c7c0989b47e8_normalized: 80.0
+execution_trace.[7].content.blk_f921c7c0989b47e8_is_evaluative: True
+execution_trace.[8].content.blk_90d0dd098757433e.step_4_final_score: IDEALISOIDUN VÄITTEEN HYVÄKSYMINEN: Käyttäjä hyväksyy tekoälyn kattavat ja näennäisen virheettömät ehdotukset ilman minkäänlaista popperilaista falsifiointiyritystä, rajojen testausta tai taustalla olevan logiikan haastamista.
+execution_trace.[8].content.blk_b476f89fb732448c_normalized: 33.33333333333333
+execution_trace.[8].content.blk_b476f89fb732448c_is_evaluative: True
+
+========================================

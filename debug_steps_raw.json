@@ -1,0 +1,731 @@
+[
+  {
+    "id": "sp_db849f9790984585",
+    "slug": "step_input_processing",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Input Processing",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Parses files and raw text into standard variables.",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "type": "llm",
+    "hook": null,
+    "task_key": null,
+    "prompt_blocks": [
+      "blk_599645bd5baf44e2"
+    ],
+    "pre_hooks": [
+      "inject_step_metadata"
+    ],
+    "post_hooks": [
+      "normalize_matrix_scores"
+    ],
+    "safety": "safe",
+    "allowed_mcp_tools": [],
+    "model_strategy": "precise",
+    "expected_inputs": [
+      "inputs"
+    ],
+    "output_schema": null
+  },
+  {
+    "id": "sp_b5c751d1cbe24735",
+    "slug": "sp_1624bd0454c9425e",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Analyst",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Imported from sequential_audit_chain",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "type": "llm",
+    "hook": null,
+    "task_key": null,
+    "prompt_blocks": [
+      "blk_ad6f491a05ec4386",
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_f2cb51b5d074419a",
+      "blk_665b2e223f214564",
+      "blk_78d110eb0bad4541",
+      "blk_6a02268ad79542de",
+      "blk_f27f6d04c1f74257",
+      "blk_44b0c6cc5ec24151",
+      "blk_1ca6f187c5b04d2b",
+      "blk_3cc672a8038144e0",
+      "blk_71b84ce7c6554639",
+      "blk_280fd9eb2f2543f6",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336"
+    ],
+    "pre_hooks": [
+      "calculate_text_metrics",
+      "calculate_control_ratio",
+      "inject_step_metadata"
+    ],
+    "post_hooks": [
+      "verify_citation_integrity",
+      "enforce_hypothesis_linking",
+      "normalize_matrix_scores"
+    ],
+    "safety": "safe",
+    "allowed_mcp_tools": [],
+    "model_strategy": "precise",
+    "expected_inputs": [
+      "inputs"
+    ],
+    "output_schema": null
+  },
+  {
+    "id": "sp_f22db9f1dde048b7",
+    "slug": "sp_2a81cb9e3e4b4694",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Archivist",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Best Practices Audit",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "type": "llm",
+    "hook": null,
+    "task_key": null,
+    "prompt_blocks": [
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_2cbe96bffde04571",
+      "blk_f2cb51b5d074419a",
+      "blk_c1cc56f65f6a47e1",
+      "blk_71b84ce7c6554639",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336",
+      "blk_fb15f8dcf23f4865",
+      "blk_3744757fbff44175"
+    ],
+    "pre_hooks": [
+      "retrieve_precedent",
+      "inject_step_metadata"
+    ],
+    "post_hooks": [
+      "normalize_matrix_scores"
+    ],
+    "safety": "safe",
+    "allowed_mcp_tools": [],
+    "model_strategy": "precise",
+    "expected_inputs": [
+      "inputs"
+    ],
+    "output_schema": null
+  },
+  {
+    "id": "sp_bd0b3054fe664960",
+    "slug": "step_causal_analyst",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Causal Analyst",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Impact Verification",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "type": "llm",
+    "hook": null,
+    "task_key": null,
+    "prompt_blocks": [
+      "blk_3568312503964aec",
+      "blk_cb6217bccc974cca",
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_2cbe96bffde04571",
+      "blk_f2cb51b5d074419a",
+      "blk_c1cc56f65f6a47e1",
+      "blk_3cc672a8038144e0",
+      "blk_71b84ce7c6554639",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336",
+      "blk_c5804a9143c34cb1",
+      "blk_c3bc5f3eb8e74110",
+      "blk_43e297666d3b4359"
+    ],
+    "pre_hooks": [
+      "inject_step_metadata"
+    ],
+    "post_hooks": [
+      "normalize_matrix_scores"
+    ],
+    "safety": "safe",
+    "allowed_mcp_tools": [],
+    "model_strategy": "precise",
+    "expected_inputs": [
+      "inputs"
+    ],
+    "output_schema": null
+  },
+  {
+    "id": "sp_25664f44773a4354",
+    "slug": "sp_744ca2e40b51424b",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Coach",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Imported from sequential_audit_chain",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "type": "llm",
+    "hook": null,
+    "task_key": null,
+    "prompt_blocks": [
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_9d68ceff695b4196",
+      "blk_23ca73cf267d4078",
+      "blk_2cbe96bffde04571",
+      "blk_f2cb51b5d074419a",
+      "blk_665b2e223f214564",
+      "blk_78d110eb0bad4541",
+      "blk_cc852aa44a1a464e",
+      "blk_04544fa8b5ca408f",
+      "blk_c1cc56f65f6a47e1",
+      "blk_e71bcbeb90244b37",
+      "blk_080a729c8b974492",
+      "blk_5b5f6faf0144401f",
+      "blk_6a02268ad79542de",
+      "blk_2c13f67014094f3b",
+      "blk_fb0b98da76e046dd",
+      "blk_cb6217bccc974cca",
+      "blk_3568312503964aec",
+      "blk_8b6e5fba923642f2",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336",
+      "blk_5d26dff39e574d5f",
+      "blk_2305f4ac865a4815",
+      "blk_0217b0b725b54b10"
+    ],
+    "pre_hooks": [
+      "inject_step_metadata"
+    ],
+    "post_hooks": [
+      "normalize_matrix_scores"
+    ],
+    "safety": "safe",
+    "allowed_mcp_tools": [],
+    "model_strategy": "deep",
+    "expected_inputs": [
+      "inputs"
+    ],
+    "output_schema": null
+  },
+  {
+    "id": "sp_7f9649114d2344dc",
+    "slug": "step_performativity_detector",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Performativity Detector",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Illusion of Control Audit",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "type": "llm",
+    "hook": null,
+    "task_key": null,
+    "prompt_blocks": [
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_2cbe96bffde04571",
+      "blk_f2cb51b5d074419a",
+      "blk_c1cc56f65f6a47e1",
+      "blk_3cc672a8038144e0",
+      "blk_71b84ce7c6554639",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336",
+      "blk_53f32679aa514fcb",
+      "blk_b4912f9ff3a24b31"
+    ],
+    "pre_hooks": [
+      "inject_step_metadata"
+    ],
+    "post_hooks": [
+      "normalize_matrix_scores"
+    ],
+    "safety": "safe",
+    "allowed_mcp_tools": [],
+    "model_strategy": "strict",
+    "expected_inputs": [
+      "inputs"
+    ],
+    "output_schema": null
+  },
+  {
+    "id": "sp_6f40b964895c426b",
+    "slug": "sp_d948cb51bed3454c",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Falsifier",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Critical Loop Audit",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "type": "llm",
+    "hook": null,
+    "task_key": null,
+    "prompt_blocks": [
+      "blk_04544fa8b5ca408f",
+      "blk_ab65a936bca34bf1",
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_2cbe96bffde04571",
+      "blk_f2cb51b5d074419a",
+      "blk_c1cc56f65f6a47e1",
+      "blk_3cc672a8038144e0",
+      "blk_71b84ce7c6554639",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336",
+      "blk_b476f89fb732448c",
+      "blk_90d0dd098757433e"
+    ],
+    "pre_hooks": [
+      "inject_step_metadata"
+    ],
+    "post_hooks": [
+      "verify_citation_integrity",
+      "normalize_matrix_scores"
+    ],
+    "safety": "safe",
+    "allowed_mcp_tools": [],
+    "model_strategy": "deep",
+    "expected_inputs": [
+      "inputs"
+    ],
+    "output_schema": null
+  },
+  {
+    "id": "sp_ddb7cf7c8a0245d4",
+    "slug": "sp_b080d22fcc2f4ff0",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Guard",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Imported from sequential_audit_chain",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "type": "llm",
+    "hook": null,
+    "task_key": null,
+    "prompt_blocks": [
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_2cbe96bffde04571",
+      "blk_f2cb51b5d074419a",
+      "blk_665b2e223f214564",
+      "blk_78d110eb0bad4541",
+      "blk_5b5f6faf0144401f",
+      "blk_f27f6d04c1f74257",
+      "blk_6e08842eae9146a2",
+      "blk_608ba7099d07428f",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336",
+      "blk_80732a33fe1947ee"
+    ],
+    "pre_hooks": [
+      "sanitize_text",
+      "verify_structure",
+      "inject_step_metadata"
+    ],
+    "post_hooks": [
+      "normalize_matrix_scores"
+    ],
+    "safety": "safe",
+    "allowed_mcp_tools": [],
+    "model_strategy": "strict",
+    "expected_inputs": [
+      "inputs"
+    ],
+    "output_schema": null
+  },
+  {
+    "id": "sp_48974af1fc584407",
+    "slug": "sp_282a7b15f76d4c9e",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Judge",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Imported from sequential_audit_chain",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "type": "llm",
+    "hook": null,
+    "task_key": null,
+    "prompt_blocks": [
+      "blk_a93c517915f94e09",
+      "blk_6a02268ad79542de",
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_9d68ceff695b4196",
+      "blk_23ca73cf267d4078",
+      "blk_2cbe96bffde04571",
+      "blk_2c13f67014094f3b",
+      "blk_fb0b98da76e046dd",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336",
+      "blk_ff72c2d79edb4ebf",
+      "blk_f971def5b3864ba4",
+      "blk_2305f4ac865a4815"
+    ],
+    "pre_hooks": [
+      "inject_step_metadata"
+    ],
+    "post_hooks": [
+      "verify_citation_integrity",
+      "enforce_passivity_penalty",
+      "normalize_matrix_scores"
+    ],
+    "safety": "safe",
+    "allowed_mcp_tools": [],
+    "model_strategy": "precise",
+    "expected_inputs": [
+      "inputs"
+    ],
+    "output_schema": null
+  },
+  {
+    "id": "sp_8daee218c6b14f02",
+    "slug": "sp_b7aea7179c1b4193",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Logician",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Imported from sequential_audit_chain",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "type": "llm",
+    "hook": null,
+    "task_key": null,
+    "prompt_blocks": [
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_2cbe96bffde04571",
+      "blk_f2cb51b5d074419a",
+      "blk_cc852aa44a1a464e",
+      "blk_3cc672a8038144e0",
+      "blk_71b84ce7c6554639",
+      "blk_280fd9eb2f2543f6",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336",
+      "blk_440a5fef9331451b",
+      "blk_f921c7c0989b47e8",
+      "blk_652fce41dcb54793",
+      "blk_2305f4ac865a4815"
+    ],
+    "pre_hooks": [
+      "inject_step_metadata"
+    ],
+    "post_hooks": [
+      "normalize_matrix_scores"
+    ],
+    "safety": "safe",
+    "allowed_mcp_tools": [],
+    "model_strategy": "strict",
+    "expected_inputs": [
+      "inputs"
+    ],
+    "output_schema": null
+  },
+  {
+    "id": "sp_dfc365994fa944b2",
+    "slug": "sp_76b0dbf44e36495e",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Overseer",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Imported from sequential_audit_chain",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "type": "llm",
+    "hook": null,
+    "task_key": null,
+    "prompt_blocks": [
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_9d68ceff695b4196",
+      "blk_23ca73cf267d4078",
+      "blk_2cbe96bffde04571",
+      "blk_f2cb51b5d074419a",
+      "blk_665b2e223f214564",
+      "blk_78d110eb0bad4541",
+      "blk_cc852aa44a1a464e",
+      "blk_04544fa8b5ca408f",
+      "blk_c1cc56f65f6a47e1",
+      "blk_e71bcbeb90244b37",
+      "blk_080a729c8b974492",
+      "blk_5b5f6faf0144401f",
+      "blk_6a02268ad79542de",
+      "blk_2c13f67014094f3b",
+      "blk_fb0b98da76e046dd",
+      "blk_cb6217bccc974cca",
+      "blk_3568312503964aec",
+      "blk_8b6e5fba923642f2",
+      "blk_7260c1b6ac5648ca",
+      "blk_3cc672a8038144e0",
+      "blk_71b84ce7c6554639",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336",
+      "blk_58f750206a4c4af0"
+    ],
+    "pre_hooks": [
+      "inject_step_metadata"
+    ],
+    "post_hooks": [
+      "normalize_matrix_scores"
+    ],
+    "safety": "safe",
+    "allowed_mcp_tools": [],
+    "model_strategy": "precise",
+    "expected_inputs": [
+      "inputs"
+    ],
+    "output_schema": null
+  },
+  {
+    "id": "sp_6a45d484ad5b497c",
+    "slug": "sp_d86aaa8a2756481b",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Profiler",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Imported from sequential_audit_chain",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "type": "llm",
+    "hook": null,
+    "task_key": null,
+    "prompt_blocks": [
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_9d68ceff695b4196",
+      "blk_2cbe96bffde04571",
+      "blk_f2cb51b5d074419a",
+      "blk_c1cc56f65f6a47e1",
+      "blk_3568312503964aec",
+      "blk_3cc672a8038144e0",
+      "blk_71b84ce7c6554639",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336",
+      "blk_cb6217bccc974cca",
+      "blk_109dab5b6b3f403a",
+      "blk_9c0c7c46568648c4"
+    ],
+    "pre_hooks": [
+      "calculate_text_metrics",
+      "calculate_control_ratio",
+      "inject_step_metadata"
+    ],
+    "post_hooks": [
+      "normalize_matrix_scores"
+    ],
+    "safety": "safe",
+    "allowed_mcp_tools": [],
+    "model_strategy": "precise",
+    "expected_inputs": [
+      "inputs"
+    ],
+    "output_schema": null
+  },
+  {
+    "id": "sp_192910b5f5a34c79",
+    "slug": "step_xai_reporter",
+    "name": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "XAI Reporter",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "description": {
+      "default_locale": "fi",
+      "translations": {
+        "fi": "Imported from sequential_audit_chain",
+        "en": "Auto-filled English (Need to update)"
+      }
+    },
+    "type": "llm",
+    "hook": null,
+    "task_key": null,
+    "prompt_blocks": [
+      "blk_9e44687dff884ff6",
+      "blk_bd7c5a9f27504a2c",
+      "blk_9d68ceff695b4196",
+      "blk_23ca73cf267d4078",
+      "blk_2c13f67014094f3b",
+      "blk_fb0b98da76e046dd",
+      "blk_a5ce16009a514628",
+      "blk_091db241c5154336",
+      "blk_6b8c766185294f7e",
+      "blk_22e3598e06414409",
+      "blk_f6e286f050c94d60"
+    ],
+    "pre_hooks": [
+      "inject_step_metadata"
+    ],
+    "post_hooks": [
+      "normalize_matrix_scores"
+    ],
+    "safety": "safe",
+    "allowed_mcp_tools": [],
+    "model_strategy": "deep",
+    "expected_inputs": [
+      "context"
+    ],
+    "output_schema": null
+  },
+  {
+    "id": "sp_76eedbc020274f66",
+    "slug": "step_fact_checker",
+    "name": {
+      "default_locale": "en",
+      "translations": {
+        "fi": "Faktantarkistaja",
+        "en": "Fact Checker"
+      }
+    },
+    "description": {
+      "default_locale": "en",
+      "translations": {
+        "fi": "Hakee taustatietoa tieteelliseen analyysiin.",
+        "en": "Extracts hypotheses and runs Google Search in background"
+      }
+    },
+    "type": "llm",
+    "hook": null,
+    "task_key": null,
+    "prompt_blocks": [
+      "blk_033180746a954415"
+    ],
+    "pre_hooks": [
+      "inject_step_metadata"
+    ],
+    "post_hooks": [],
+    "safety": "safe",
+    "allowed_mcp_tools": [
+      "mcp_tavily_search"
+    ],
+    "model_strategy": "search",
+    "expected_inputs": [
+      "inputs"
+    ],
+    "output_schema": null
+  },
+  {
+    "id": "sp_d245365e4a274b9e",
+    "slug": "sp_d245365e4a274b9e",
+    "name": {
+      "default_locale": "en",
+      "translations": {
+        "en": "Scoring Engine",
+        "fi": "Scoring Engine"
+      }
+    },
+    "description": {
+      "default_locale": "en",
+      "translations": {
+        "en": "Aggregates final holistic scores",
+        "fi": "Laskee loppupisteet"
+      }
+    },
+    "type": "logic",
+    "hook": "apply_scoring_logic",
+    "task_key": null,
+    "prompt_blocks": [],
+    "pre_hooks": [],
+    "post_hooks": [],
+    "safety": "safe",
+    "allowed_mcp_tools": [],
+    "model_strategy": null,
+    "expected_inputs": [
+      "results"
+    ],
+    "output_schema": null
+  }
+]

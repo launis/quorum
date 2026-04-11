@@ -21,3 +21,8 @@ Rakennetaan täysin mekaaninen, 100 % deterministinen Python-laskentahook (`scor
 ## Verification & Quality Gate Plan
 * Kirjoitetaan yksikkötestit Waterfall-laskennalle eri reuna-arvoilla (False Negative tilanteet joissa LLM hallusinoi satunnaisia virheitä).
 * Komento: `uv run pytest backend_v2/tests/unit/test_scoring.py -v` (Kattavuus yli 90%).
+
+## 🏆 Validation & Outcome (Status: COMPLETED)
+Systemaattinen arkkitehtuuriauditointi (Huhtikuu 2026) ja tietokannan "Zero-Trust" -mittarien verifiointi todisti:
+1. **Pydantic Scoring Logic on aktiivinen**: The Hook ajaa numeerisen arvioinnin onnistuneesti LLM:n palautteelle (`scoring.py`), laskee matriisien pisteet (`blk_[id]_normalized`) ja asettaa lopullisen Score-arvon oikein muuttujaan `final_score`.
+2. Moottori erottelee kylmästi sallitut ja sanktioidut väitteet ja ohjaa nämä ulkoiseen XAI audit-tiedostoon, täyttäen `Zero-Math UI` -velvoitteet. Valmiiksi käsitelty data ladataan käyttöliittymälle puhtaana numeerisena esityksenä (Final Score + Numeeriset dimensiokohtaiset pisteet).
