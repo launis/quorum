@@ -330,6 +330,209 @@ def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> 
     return HookResult(success=True, state_delta={})
 
 
+@hook_registry.register(name="waterfall_scoring_hook")
+async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> HookResult:
+    """Post-Hook to calculate Hybrid Waterfall scores from blind atom evaluations."""
+    logger.info("[ScoringHook] Running waterfall_scoring_hook...")
+
+    repository = deps.repository
+    if not repository:
+        logger.warning("[ScoringHook] No repository provided in HookDependencies. Skipping hybrid scoring.")
+        return HookResult(success=True, state_delta={})
+
+    if not isinstance(state.inputs, dict):
+        logger.debug("[ScoringHook] State inputs is not a dictionary. Skipping.")
+        return HookResult(success=True, state_delta={})
+
+    content_payload = state.inputs
+    evaluations = content_payload.get("evaluations", [])
+
+    if not evaluations or not isinstance(evaluations, list):
+        return HookResult(success=True, state_delta={})
+
+    blueprint_id = state.task_blueprint or state.step_id
+    if not blueprint_id:
+        return HookResult(success=True, state_delta={})
+
+    try:
+        step_obj = await repository.get_step_by_id(blueprint_id)
+        if not step_obj:
+            return HookResult(success=True, state_delta={})
+
+        prompt_block_ids = (
+            step_obj.get("prompt_blocks", []) if isinstance(step_obj, dict) else getattr(step_obj, "prompt_blocks", [])
+        )
+
+        import hashlib
+
+        from backend_v2.utils.math_utils import calculate_waterfall_floor, calculate_weighted_score
+
+        atom_mapping = {}
+        blocks_meta: dict[str, dict[str, Any]] = {}
+
+        # 1. Reverse extraction of Atom Hashes
+        for pb_id in prompt_block_ids:
+            pb_dict = await repository.get_prompt_block_by_id(pb_id)
+            if not pb_dict:
+                continue
+
+            scales = pb_dict.get("scales", [])
+            if not scales:
+                continue
+
+            blocks_meta[pb_id] = {"scales": []}
+
+            for scale in scales:
+                s_val = float(scale.get("score"))
+                blocks_meta[pb_id]["scales"].append(s_val)
+                claims = scale.get("claims", [])
+                for claim in claims:
+                    micro_atoms = claim.get("micro_atoms", [])
+                    for text in micro_atoms:
+                        atom_hash = hashlib.md5(text.encode("utf-8")).hexdigest()
+                        atom_mapping[atom_hash] = {"block_id": pb_id, "score": s_val, "text": text}
+
+            # Fail-fast: Ei fallbackeja. Korjattu normaalin virhehallinnan tyyliin.
+            if not blocks_meta[pb_id]["scales"]:
+                from backend_v2.exceptions import AppException, ErrorCodes
+
+                msg = f"PromptBlock '{pb_id}' scales array failed to provide numeric values for waterfall bounds."
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
+
+            blocks_meta[pb_id]["scale_min"] = min(blocks_meta[pb_id]["scales"])
+            blocks_meta[pb_id]["scale_max"] = max(blocks_meta[pb_id]["scales"])
+
+        block_scale_stats: dict[str, dict[float, dict[str, int]]] = {}
+        missing_atoms_by_block: dict[str, list[str]] = {}
+
+        # 2. Iterate evaluations
+        for ev in evaluations:
+            # Handle both dict and Pydantic object inputs
+            if isinstance(ev, dict):
+                atom_id = ev.get("atom_id")
+                boolean_val = ev.get("boolean", False)
+                reasoning = ev.get("reasoning", "")
+            else:
+                atom_id = getattr(ev, "atom_id", None)
+                boolean_val = getattr(ev, "boolean", False)
+                reasoning = getattr(ev, "reasoning", "")
+
+            if not atom_id:
+                continue
+
+            mapping = atom_mapping.get(atom_id)
+            if not mapping:
+                continue
+
+            pb_id = mapping["block_id"]
+            s_val = mapping["score"]
+            text = mapping["text"]
+
+            if pb_id not in block_scale_stats:
+                block_scale_stats[pb_id] = {}
+                missing_atoms_by_block[pb_id] = []
+
+            if s_val not in block_scale_stats[pb_id]:
+                block_scale_stats[pb_id][s_val] = {"hits": 0, "total": 0}
+
+            block_scale_stats[pb_id][s_val]["total"] += 1
+            if boolean_val:
+                block_scale_stats[pb_id][s_val]["hits"] += 1
+            else:
+                if reasoning:
+                    missing_atoms_by_block[pb_id].append(f"- {text} (Tuomio: {reasoning})")
+                else:
+                    missing_atoms_by_block[pb_id].append(f"- {text}")
+
+        # 3. Hybrid Calculation
+        new_payload = content_payload.copy()
+        updates_made = False
+
+        for pb_id, stats in block_scale_stats.items():
+            meta = blocks_meta[pb_id]
+            scale_min = float(meta["scale_min"])
+            scale_max = float(meta["scale_max"])
+
+            floor_score = calculate_waterfall_floor(stats, scale_min, threshold=0.75)
+            weighted_score = calculate_weighted_score(stats, scale_min, scale_max)
+
+            # Hybrid cap limit formula: min(weighted, floor + 1.0)
+            capped_score = min(weighted_score, floor_score + 1.0)
+
+            # Formatting the calculation log
+            log_lines = ["### Hybridilaskennan erittely:"]
+            sorted_levels = sorted(stats.keys())
+
+            waterfall_broken = False
+            for s_level in sorted_levels:
+                level_data = stats[s_level]
+                t_hits = level_data["hits"]
+                t_total = level_data["total"]
+                pct = int((t_hits / t_total) * 100) if t_total > 0 else 0
+
+                if pct >= 75 and not waterfall_broken:
+                    status = "OK"
+                else:
+                    if not waterfall_broken:
+                        status = "HYLÄTTY: Vesiputous pysähtyi"
+                        waterfall_broken = True
+                    else:
+                        status = "Huomioitiin painotuksessa"
+
+                log_lines.append(f"- **Taso {s_level}:** {t_hits}/{t_total} ({pct}% - {status})")
+
+            log_lines.append("")
+            log_lines.append(f"1. **Vesiputous-lattia:** {floor_score:.1f} (Todistettu perusta)")
+            log_lines.append(f"2. **Painotettu numeerinen arvosana:** {weighted_score:.2f} (Koko matriisin kattavuus)")
+
+            if weighted_score > floor_score + 1.0:
+                log_lines.append(
+                    f"3. **Kattosääntö (Lattia + 1.0 maksimi):** {weighted_score:.2f} "
+                    f"ylittää kynnyksen {floor_score + 1.0:.1f}, leikataan kattoon."
+                )
+            else:
+                log_lines.append(
+                    f"3. **Kattosääntö (Lattia + 1.0 maksimi):** {weighted_score:.2f} on sallitun rajan sisällä."
+                )
+
+            log_lines.append(f"**Lopullinen arvosana:** {capped_score:.1f}")
+
+            calculation_log = "\n".join(log_lines)
+
+            # Inject to new payload so normalize_matrix_scores_hook can scale it further
+            new_payload[pb_id] = float(capped_score)
+            new_payload[f"{pb_id}_justification"] = calculation_log
+
+            # Use extending logic to append without overwriting previous UI texts
+            if missing_atoms_by_block[pb_id]:
+                new_payload[f"{pb_id}_missing_context"] = "\n".join(missing_atoms_by_block[pb_id])
+
+            updates_made = True
+
+        if updates_made:
+            return HookResult(success=True, state_delta=new_payload)
+
+    except Exception as e:
+        from backend_v2.exceptions import AppException, ErrorCodes
+
+        if isinstance(e, AppException):
+            raise
+        msg = f"Hybrid waterfall scoring failed for step '{blueprint_id}': {e}"
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.HOOK_EXECUTION_FAILED.name, msg, exc_info=True)
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value},
+        ) from e
+
+    return HookResult(success=True, state_delta={})
+
+
 @hook_registry.register(name="normalize_matrix_scores")
 async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Post-Hook to normalize any raw matrix scores into a user-defined target scale.
@@ -411,7 +614,11 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                     just_parts.append(str(raw_input_val["step_3_logical_friction"]))
 
                 if just_parts:
-                    new_payload[f"{pb_id}_justification"] = "\n\n".join(just_parts)
+                    existing_just = new_payload.get(f"{pb_id}_justification", "")
+                    if existing_just:
+                        new_payload[f"{pb_id}_justification"] = existing_just + "\n\n---\n\n" + "\n\n".join(just_parts)
+                    else:
+                        new_payload[f"{pb_id}_justification"] = "\n\n".join(just_parts)
                     updates_made = True
 
                 # Keep text as text, numbers as numbers (Tapa 1 vs Tapa 2)
@@ -485,24 +692,37 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                     target_max = max(scores_in_scales)
 
             if scales and target_min is not None and target_max is not None:
-                from backend_v2.utils.math_utils import calculate_scaled_score, normalize_score_to_100
+                from backend_v2.utils.math_utils import scale_to_custom_range, normalize_score_to_100
 
-                # 1. The original AI output
+                # 1. The original AI output, calculated on the internal Math bounds
                 raw_float = float(raw_val)
-                number_of_options = len(scales)
+                
+                scores_in_scales = []
+                for s in scales:
+                    val = s.get("score") if isinstance(s, dict) else getattr(s, "score", None)
+                    if val is not None:
+                        scores_in_scales.append(float(val))
+                
+                if not scores_in_scales:
+                    continue
+                    
+                math_min = min(scores_in_scales)
+                math_max = max(scores_in_scales)
 
-                # 2. The Python-scaled calculated value based on relative proportion of options (V2 Logic)
-                scaled_val = calculate_scaled_score(
+                # 2. Scale from internal math mathematically to custom Output Target Range (DB scale_min/scale_max)
+                scaled_val = scale_to_custom_range(
                     score=raw_float,
-                    number_of_options=number_of_options,
-                    scale_min=float(target_min),
-                    scale_max=float(target_max),
+                    raw_min=math_min,
+                    raw_max=math_max,
+                    target_min=float(target_min),
+                    target_max=float(target_max),
                 )
 
                 # 3. The 1-100 normalized value for commensurable aggregation (V2 Logic)
                 normalized_val = normalize_score_to_100(
                     score=raw_float,
-                    number_of_options=number_of_options,
+                    math_min=math_min,
+                    math_max=math_max,
                 )
 
                 # Epic 12: Flatten the Micro-CoT dict so the Flutter UI can plot the float on the XY graphs!

@@ -9,6 +9,7 @@ import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/studio/views/widgets/scale_editor_modal.dart';
 import 'package:client_app/features/studio/views/widgets/row_editor_modal.dart';
+import 'package:client_app/features/studio/views/components/bars_matrix_builder.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/models/prompt_block_category.dart';
@@ -1169,58 +1170,14 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              ...payload.scales!.asMap().entries.map((scaleEntry) {
-                final sIndex = scaleEntry.key;
-                final scale = scaleEntry.value;
-                final claimsLength = scale.claims.length;
-                final gradeName = scale.name != null
-                    ? scale.name!.translations[scale.name!.defaultLocale] ??
-                          scale.name!.defaultLocale
-                    : '';
-
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8.0),
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: ListTile(
-                    title: Text(
-                      l10n.gradeScoreLabel(
-                        scale.score.toString(),
-                        gradeName.isNotEmpty ? "- $gradeName" : "",
-                      ),
-                    ),
-                    subtitle: Text(
-                      l10n.claimsCountLabel(claimsLength.toString()),
-                    ),
-                    trailing: IconButton(
-                      icon: Icon(
-                        Icons.delete,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      onPressed: () => _removeListItem<MatrixScale>(
-                        ref,
-                        payload,
-                        blockId,
-                        payload.scales!,
-                        sIndex,
-                        (p, list) => p.copyWith(scales: list),
-                      ),
-                    ),
-                    onTap: () async {
-                      final result = await showDialog<MatrixScale>(
-                        context: context,
-                        builder: (ctx) => ScaleEditorModal(initialScale: scale),
-                      );
-                      if (result != null) {
-                        final list = List<MatrixScale>.from(payload.scales!);
-                        list[sIndex] = result;
-                        ref
-                            .read(promptBlockFormProvider(blockId).notifier)
-                            .forceRebuild(payload.copyWith(scales: list));
-                      }
-                    },
-                  ),
-                );
-              }),
+              BarsMatrixBuilder(
+                scales: payload.scales!,
+                onChanged: (newList) {
+                  ref
+                      .read(promptBlockFormProvider(blockId).notifier)
+                      .forceRebuild(payload.copyWith(scales: newList));
+                },
+              ),
             ],
           ],
         ),

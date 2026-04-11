@@ -3,6 +3,7 @@
 # Initialize all hooks to trigger the @hook_registry.register decorators
 from . import (
     archival,
+    atom_flattening,
     hydration,
     input_processing,
     integrity,
@@ -21,6 +22,7 @@ from . import (
 
 __all__ = [
     "archival",
+    "atom_flattening",
     "hydration",
     "input_processing",
     "integrity",

@@ -8,6 +8,7 @@ import pytest
 from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.synthesis import SynthesisOutputDTO, text_consolidation_hook
+from backend_v2.services.mcp.mcp_tool_loop import MCPToolLoopResult
 
 
 @pytest.fixture
@@ -34,9 +35,10 @@ def base_state() -> HookState:
 
 
 @pytest.mark.asyncio
+@patch("backend_v2.hooks.synthesis.execute_tool_loop")
 @patch("backend_v2.hooks.synthesis.LLMClient")
 async def test_synthesis_hook_success(
-    mock_llm_client_class: MagicMock, mock_repo: MagicMock, base_state: HookState
+    mock_llm_client_class: MagicMock, mock_execute_tool_loop: MagicMock, mock_repo: MagicMock, base_state: HookState
 ) -> None:
     """Test that synthesis hook injects config constraints correctly and calls LLM."""
     mock_repo.get_workflow_by_id = AsyncMock()
@@ -62,9 +64,13 @@ async def test_synthesis_hook_success(
     mock_client_instance = AsyncMock()
     mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
 
-    # Return (SynthesisOutputDTO, token_usage_dict) from run_structured_task
-    mock_dto = SynthesisOutputDTO(synthesized_markdown="Synthesized [1]", cited_sources=["source1"])
-    mock_client_instance.run_structured_task.return_value = (mock_dto, {"total_tokens": 100})
+    # Return MCPToolLoopResult
+    mock_dto_dict = {"synthesized_markdown": "Synthesized [1]", "cited_sources": ["source1"], "section_syntheses": [], "xai_highlights": []}
+    mock_execute_tool_loop.return_value = MCPToolLoopResult(
+        result_data=mock_dto_dict,
+        audit_traces=[],
+        usage={"total_tokens": 100}
+    )
 
     result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
 
@@ -72,11 +78,11 @@ async def test_synthesis_hook_success(
     delta = result.state_delta
     assert delta is not None
 
-    # Verify that LLM was called
-    mock_client_instance.run_structured_task.assert_called_once()
+    # Verify that LLM tools loop was called
+    mock_execute_tool_loop.assert_called_once()
 
     # Check if PII was masked (the email inside inputs should be [REDACTED EMAIL])
-    call_args = mock_client_instance.run_structured_task.call_args
+    call_args = mock_execute_tool_loop.call_args
     messages = call_args.kwargs.get("messages", [])
     user_msg: dict[str, Any] = next((m for m in messages if m["role"] == "user"), {})
     sys_msg: dict[str, Any] = next((m for m in messages if m["role"] == "system"), {})
@@ -109,9 +115,10 @@ async def test_synthesis_hook_workflow_not_found(mock_repo: MagicMock, base_stat
 
 
 @pytest.mark.asyncio
+@patch("backend_v2.hooks.synthesis.execute_tool_loop")
 @patch("backend_v2.hooks.synthesis.LLMClient")
 async def test_synthesis_hook_multi_profile_routing(
-    mock_llm_client_class: MagicMock, mock_repo: MagicMock, base_state: HookState
+    mock_llm_client_class: MagicMock, mock_execute_tool_loop: MagicMock, mock_repo: MagicMock, base_state: HookState
 ) -> None:
     """Test that synthesis routes to requested target_profile_id and uses its distinct rules."""
     mock_repo.get_execution = AsyncMock(return_value=None)
@@ -132,15 +139,16 @@ async def test_synthesis_hook_multi_profile_routing(
 
     mock_client_instance = AsyncMock()
     mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
-    mock_client_instance.run_structured_task.return_value = (
-        SynthesisOutputDTO(synthesized_markdown="Beta result", cited_sources=[]),
-        {"total_tokens": 50},
+    mock_execute_tool_loop.return_value = MCPToolLoopResult(
+        result_data={"synthesized_markdown": "Beta result", "cited_sources": [], "section_syntheses": [], "xai_highlights": []},
+        audit_traces=[],
+        usage={"total_tokens": 50}
     )
 
     result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
     assert result.success is True
 
-    call_args = mock_client_instance.run_structured_task.call_args
+    call_args = mock_execute_tool_loop.call_args
     sys_msg: dict[str, Any] = next((m for m in call_args.kwargs.get("messages", []) if m["role"] == "system"), {})
 
     # Assert Prof B's constraints are found, NOT Prof A's
@@ -151,9 +159,10 @@ async def test_synthesis_hook_multi_profile_routing(
 
 
 @pytest.mark.asyncio
+@patch("backend_v2.hooks.synthesis.execute_tool_loop")
 @patch("backend_v2.hooks.synthesis.LLMClient")
 async def test_synthesis_hook_target_blocks_wildcard_bypass(
-    mock_llm_client_class: MagicMock, mock_repo: MagicMock, base_state: HookState
+    mock_llm_client_class: MagicMock, mock_execute_tool_loop: MagicMock, mock_repo: MagicMock, base_state: HookState
 ) -> None:
     """Test the dual-layer filter: AI traces are included by *, explicit Python variables bypass the check."""
     mock_repo.get_execution = AsyncMock(return_value=None)
@@ -185,15 +194,16 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
 
     mock_client_instance = AsyncMock()
     mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
-    mock_client_instance.run_structured_task.return_value = (
-        SynthesisOutputDTO(synthesized_markdown="Summary", cited_sources=[]),
-        {"total_tokens": 10},
+    mock_execute_tool_loop.return_value = MCPToolLoopResult(
+        result_data={"synthesized_markdown": "Summary", "cited_sources": [], "section_syntheses": [], "xai_highlights": []},
+        audit_traces=[],
+        usage={"total_tokens": 10}
     )
 
     result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
     assert result.success is True
 
-    call_args = mock_client_instance.run_structured_task.call_args
+    call_args = mock_execute_tool_loop.call_args
     user_msg: dict[str, Any] = next((m for m in call_args.kwargs.get("messages", []) if m["role"] == "user"), {})
     content = user_msg.get("content", "")
 

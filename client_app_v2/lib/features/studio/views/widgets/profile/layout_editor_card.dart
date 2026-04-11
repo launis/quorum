@@ -237,8 +237,10 @@ class LayoutEditorCard extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           I18nTextField(
-            label: "Osion kuvaus (valinnainen väliotsikko)", // Fallback if L10n missing
-            initialData: layout.description ?? const I18nText(defaultLocale: 'fi'),
+            label:
+                "Osion kuvaus (valinnainen väliotsikko)", // Fallback if L10n missing
+            initialData:
+                layout.description ?? const I18nText(defaultLocale: 'fi'),
             onChanged: (val) {
               final isEmpty =
                   val.translations.isEmpty ||

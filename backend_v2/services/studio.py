@@ -360,6 +360,15 @@ class StudioService:
         org_id = getattr(data, "organization_id", None)
         self._enforce_modification_rights(initiator, org_id)
 
+        # -- EPIC 20: Design-Time Syvä-atomisointi
+        try:
+            from backend_v2.services.orchestrator.atomizer import PromptAtomizer
+            data = await PromptAtomizer.atomize_prompt_block(data, repository=self.repo)
+        except Exception as e:
+            logger.error("[StudioService] Atomization failed prior to save: %s", e)
+            from backend_v2.exceptions import AppException, ErrorCodes
+            raise AppException(message=f"Atomization failed: {e}", status_code=500, details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL})
+
         dump = data.model_dump(mode="json")
         if "id" not in dump:
             dump["id"] = id

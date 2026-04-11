@@ -58,6 +58,7 @@ abstract class MatrixClaim with _$MatrixClaim {
   const factory MatrixClaim({
     required I18nText label,
     required String aiDescription,
+    List<String>? microAtoms,
   }) = _MatrixClaim;
 
   factory MatrixClaim.fromJson(Map<String, dynamic> json) =>
@@ -112,6 +113,8 @@ abstract class PromptBlock with _$PromptBlock {
     TheoryGrounding? theoryGrounding,
     int? scaleMin,
     int? scaleMax,
+    double? computedMin,
+    double? computedMax,
     List<MatrixScale>? scales,
     List<MatrixRow>? rows,
     List<I18nText>? columns,

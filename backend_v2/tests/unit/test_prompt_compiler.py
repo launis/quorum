@@ -137,6 +137,35 @@ def test_generate_mcp_instruction() -> None:
     assert "mcp_tavily_search" in instruction
     assert "mcp_other_tool" in instruction
 
-    # Verify the logic instructions explicitly encourage 'tarvittaessa'
-    assert "tarvittaessa" in instruction
-    assert "Pysäytä tiedonkeruu heti, kun sinulla on riittävästi kontekstia." in instruction
+    # Verify the logic instructions explicitly encourage usage
+    assert "proactively to search" in instruction
+    assert "Stop data collection as soon as you have sufficient context." in instruction
+
+def test_build_blind_evaluation_schema() -> None:
+    compiler = PromptCompiler()
+    DynamicSchema = compiler.build_blind_evaluation_schema("BlindTest")
+    assert issubclass(DynamicSchema, BaseModel)
+    
+    llm_payload = {
+        "evaluations": [
+            {
+                "atom_id": "test_hash_123",
+                "quote": "This is a test.",
+                "reasoning": "Simple logic.",
+                "boolean": True
+            }
+        ]
+    }
+    parsed = DynamicSchema.model_validate(llm_payload)
+    assert len(parsed.evaluations) == 1  # type: ignore[attr-defined]
+    assert parsed.evaluations[0].atom_id == "test_hash_123"  # type: ignore[attr-defined]
+    assert parsed.evaluations[0].boolean is True  # type: ignore[attr-defined]
+
+def test_compile_blind_system_instruction() -> None:
+    compiler = PromptCompiler()
+    instruction_en = compiler.compile_blind_system_instruction("en")
+    assert "Duck-Typing Token Shield" in instruction_en
+    assert "exclusively in the 'en' language" in instruction_en
+    
+    instruction_fi = compiler.compile_blind_system_instruction("fi")
+    assert "exclusively in the 'fi' language" in instruction_fi

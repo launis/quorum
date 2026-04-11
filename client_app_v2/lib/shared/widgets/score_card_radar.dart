@@ -200,7 +200,7 @@ class ScoreCardRadar extends StatelessWidget {
                       ),
                       child: Text(
                         ((d['score'] as num?)?.toDouble() ?? 0.0)
-                            .toStringAsFixed(0),
+                            .toStringAsFixed(1),
                         style: textTheme.titleMedium!.copyWith(
                           color: colorScheme.onPrimaryContainer,
                           fontWeight: FontWeight.bold,

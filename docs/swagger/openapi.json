@@ -4165,6 +4165,21 @@
             "type": "string",
             "title": "Ai Description",
             "description": "Specific AI enforcement rule for this claim."
+          },
+          "micro_atoms": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Micro Atoms",
+            "description": "Scaffolded atoms generated from the claim during design time for deeper evaluation."
           }
         },
         "additionalProperties": false,

@@ -17,6 +17,7 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.context_mapper import ContextMapper
 from backend_v2.llm.client import LLMClient
+from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 
 logger = logging.getLogger(__name__)
 
@@ -297,12 +298,13 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     # --- Section-Level Synthesis Directives ---
     layouts = active_profile.get("layouts", [])
     section_instructions = []
-    
+
     # Fetch all blocks to inject extrema scale bounds into the context mapper (V2 Architecture)
     all_blocks = []
     if hasattr(deps.repository, "get_all"):
         raw_blocks = await deps.repository.get_all("prompt_blocks")
         from backend_v2.models.v2_core import PromptBlock
+
         # FAIL-FAST: Map raw dicts to strict Pydantic Domain Models
         all_blocks = [PromptBlock.model_validate(rb) for rb in raw_blocks]
 
@@ -402,11 +404,23 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         # Fail-fast: Assuming the strategy for output formatting is named 'synthesis_strategy'
         client = await LLMClient.from_strategy("synthesis", repository=deps.repository)
 
+        allowed_tools = synthesis_cfg.get("allowed_mcp_tools", [])
+        if not isinstance(allowed_tools, list):
+            allowed_tools = []
+
         with logfire.span("text_consolidation_hook") as span:
-            result, token_usage = await client.run_structured_task(
+            tool_res = await execute_tool_loop(
+                llm_client=client,
                 messages=messages,
                 response_model=SynthesisOutputDTO,
+                allowed_tools=allowed_tools,
+                step_name="text_consolidation_hook",
+                target_language=language,
             )
+
+            result = SynthesisOutputDTO.model_validate(tool_res.result_data)
+            token_usage = tool_res.usage
+            audit_traces = tool_res.audit_traces
 
             span.set_attribute("synthesized_markdown_length", len(result.synthesized_markdown))
             span.set_attribute("synthesis_token_usage", json.dumps(token_usage))
@@ -415,6 +429,8 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             current_usage = step_metadata.get("token_usage", {})
             for k, v in token_usage.items():
                 current_usage[k] = current_usage.get(k, 0) + v
+
+            raw_audits = [a.model_dump(mode="json") for a in audit_traces] if audit_traces else []
 
             section_dict = {}
             if result.section_syntheses:
@@ -461,6 +477,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                             "cited_sources": result.cited_sources,
                             "xai_highlights": raw_highlights,
                             "step_metadata_updates": {"token_usage": current_usage},
+                            "mcp_tool_audit": raw_audits,
                         },
                     )
 
@@ -483,6 +500,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                     "cited_sources": result.cited_sources,
                     "xai_highlights": raw_highlights,
                     "step_metadata_updates": {"token_usage": current_usage},
+                    "mcp_tool_audit": raw_audits,
                 },
             )
 

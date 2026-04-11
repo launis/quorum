@@ -95,6 +95,19 @@
           "parsing_mode": "GEMINI_JSON",
           "is_active": true,
           "provider": "google"
+        },
+        "blind": {
+          "max_tokens": 65536,
+          "model_name": "vertex_ai/gemini-2.5-flash",
+          "temperature": 0.0,
+          "top_p": 0.1,
+          "top_k": 1,
+          "supports_grounding": false,
+          "tpm_limit": 4000000,
+          "rpm_limit": 5,
+          "parsing_mode": "GEMINI_JSON",
+          "is_active": true,
+          "provider": "google"
         }
       }
     },

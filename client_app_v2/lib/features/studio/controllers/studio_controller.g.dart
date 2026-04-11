@@ -381,7 +381,7 @@ final class WorkflowsControllerProvider
 }
 
 String _$workflowsControllerHash() =>
-    r'f0fc592501685a9c30cd6dc5da9225ab702b5ad3';
+    r'74f1283575487de0f148847c838447958506efbf';
 
 /// Controller managing Studio Workflows (DAGs) strictly using `Workflow` mapped domain model.
 /// Implements Optimistic UI principles where possible.

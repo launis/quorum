@@ -37,7 +37,7 @@ class LogicMatrixChart extends StatelessWidget {
       // Use the pre-computed Backend SDUI ratio!
       final double pct = zAxis!.uiPlotRatio ?? 0.5;
       // Massive visual contrast for Z-axis detection (12px to 72px diameter)
-      radius = 6.0 + (pct.clamp(0.0, 1.0) * 30.0); 
+      radius = 6.0 + (pct.clamp(0.0, 1.0) * 30.0);
     }
 
     return Column(

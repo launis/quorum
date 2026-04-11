@@ -267,7 +267,7 @@ as String,
 /// @nodoc
 mixin _$MatrixClaim {
 
- I18nText get label; String get aiDescription;
+ I18nText get label; String get aiDescription; List<String>? get microAtoms;
 /// Create a copy of MatrixClaim
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -282,7 +282,7 @@ $MatrixClaimCopyWith<MatrixClaim> get copyWith => _$MatrixClaimCopyWithImpl<Matr
 
 @override
 String toString() {
-  return 'MatrixClaim(label: $label, aiDescription: $aiDescription)';
+  return 'MatrixClaim(label: $label, aiDescription: $aiDescription, microAtoms: $microAtoms)';
 }
 
 
@@ -293,7 +293,7 @@ abstract mixin class $MatrixClaimCopyWith<$Res>  {
   factory $MatrixClaimCopyWith(MatrixClaim value, $Res Function(MatrixClaim) _then) = _$MatrixClaimCopyWithImpl;
 @useResult
 $Res call({
- I18nText label, String aiDescription
+ I18nText label, String aiDescription, List<String>? microAtoms
 });
 
 
@@ -310,11 +310,12 @@ class _$MatrixClaimCopyWithImpl<$Res>
 
 /// Create a copy of MatrixClaim
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? label = null,Object? aiDescription = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? label = null,Object? aiDescription = null,Object? microAtoms = freezed,}) {
   return _then(_self.copyWith(
 label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as I18nText,aiDescription: null == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
-as String,
+as String,microAtoms: freezed == microAtoms ? _self.microAtoms : microAtoms // ignore: cast_nullable_to_non_nullable
+as List<String>?,
   ));
 }
 /// Create a copy of MatrixClaim
@@ -408,10 +409,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText label,  String aiDescription)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText label,  String aiDescription,  List<String>? microAtoms)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MatrixClaim() when $default != null:
-return $default(_that.label,_that.aiDescription);case _:
+return $default(_that.label,_that.aiDescription,_that.microAtoms);case _:
   return orElse();
 
 }
@@ -429,10 +430,10 @@ return $default(_that.label,_that.aiDescription);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText label,  String aiDescription)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText label,  String aiDescription,  List<String>? microAtoms)  $default,) {final _that = this;
 switch (_that) {
 case _MatrixClaim():
-return $default(_that.label,_that.aiDescription);case _:
+return $default(_that.label,_that.aiDescription,_that.microAtoms);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -449,10 +450,10 @@ return $default(_that.label,_that.aiDescription);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText label,  String aiDescription)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText label,  String aiDescription,  List<String>? microAtoms)?  $default,) {final _that = this;
 switch (_that) {
 case _MatrixClaim() when $default != null:
-return $default(_that.label,_that.aiDescription);case _:
+return $default(_that.label,_that.aiDescription,_that.microAtoms);case _:
   return null;
 
 }
@@ -464,11 +465,20 @@ return $default(_that.label,_that.aiDescription);case _:
 @JsonSerializable()
 
 class _MatrixClaim extends MatrixClaim {
-  const _MatrixClaim({required this.label, required this.aiDescription}): super._();
+  const _MatrixClaim({required this.label, required this.aiDescription, final  List<String>? microAtoms}): _microAtoms = microAtoms,super._();
   factory _MatrixClaim.fromJson(Map<String, dynamic> json) => _$MatrixClaimFromJson(json);
 
 @override final  I18nText label;
 @override final  String aiDescription;
+ final  List<String>? _microAtoms;
+@override List<String>? get microAtoms {
+  final value = _microAtoms;
+  if (value == null) return null;
+  if (_microAtoms is EqualUnmodifiableListView) return _microAtoms;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
 
 /// Create a copy of MatrixClaim
 /// with the given fields replaced by the non-null parameter values.
@@ -485,7 +495,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'MatrixClaim(label: $label, aiDescription: $aiDescription)';
+  return 'MatrixClaim(label: $label, aiDescription: $aiDescription, microAtoms: $microAtoms)';
 }
 
 
@@ -496,7 +506,7 @@ abstract mixin class _$MatrixClaimCopyWith<$Res> implements $MatrixClaimCopyWith
   factory _$MatrixClaimCopyWith(_MatrixClaim value, $Res Function(_MatrixClaim) _then) = __$MatrixClaimCopyWithImpl;
 @override @useResult
 $Res call({
- I18nText label, String aiDescription
+ I18nText label, String aiDescription, List<String>? microAtoms
 });
 
 
@@ -513,11 +523,12 @@ class __$MatrixClaimCopyWithImpl<$Res>
 
 /// Create a copy of MatrixClaim
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? label = null,Object? aiDescription = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? label = null,Object? aiDescription = null,Object? microAtoms = freezed,}) {
   return _then(_MatrixClaim(
 label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as I18nText,aiDescription: null == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
-as String,
+as String,microAtoms: freezed == microAtoms ? _self._microAtoms : microAtoms // ignore: cast_nullable_to_non_nullable
+as List<String>?,
   ));
 }
 
@@ -1095,7 +1106,7 @@ $I18nTextCopyWith<$Res>? get name {
 /// @nodoc
 mixin _$PromptBlock {
 
-@StrictOpaqueIdConverter() String get id; String get slug; I18nText get label; I18nText get description; String? get aiDescription; String get categoryId; bool get isEvaluative; BlockDataType get type; bool get allowDecimals; List<String> get outputExtensions; TheoryGrounding? get theoryGrounding; int? get scaleMin; int? get scaleMax; List<MatrixScale>? get scales; List<MatrixRow>? get rows; List<I18nText>? get columns;
+@StrictOpaqueIdConverter() String get id; String get slug; I18nText get label; I18nText get description; String? get aiDescription; String get categoryId; bool get isEvaluative; BlockDataType get type; bool get allowDecimals; List<String> get outputExtensions; TheoryGrounding? get theoryGrounding; int? get scaleMin; int? get scaleMax; double? get computedMin; double? get computedMax; List<MatrixScale>? get scales; List<MatrixRow>? get rows; List<I18nText>? get columns;
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1110,7 +1121,7 @@ $PromptBlockCopyWith<PromptBlock> get copyWith => _$PromptBlockCopyWithImpl<Prom
 
 @override
 String toString() {
-  return 'PromptBlock(id: $id, slug: $slug, label: $label, description: $description, aiDescription: $aiDescription, categoryId: $categoryId, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, scaleMin: $scaleMin, scaleMax: $scaleMax, scales: $scales, rows: $rows, columns: $columns)';
+  return 'PromptBlock(id: $id, slug: $slug, label: $label, description: $description, aiDescription: $aiDescription, categoryId: $categoryId, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, scaleMin: $scaleMin, scaleMax: $scaleMax, computedMin: $computedMin, computedMax: $computedMax, scales: $scales, rows: $rows, columns: $columns)';
 }
 
 
@@ -1121,7 +1132,7 @@ abstract mixin class $PromptBlockCopyWith<$Res>  {
   factory $PromptBlockCopyWith(PromptBlock value, $Res Function(PromptBlock) _then) = _$PromptBlockCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText label, I18nText description, String? aiDescription, String categoryId, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding, int? scaleMin, int? scaleMax, List<MatrixScale>? scales, List<MatrixRow>? rows, List<I18nText>? columns
+@StrictOpaqueIdConverter() String id, String slug, I18nText label, I18nText description, String? aiDescription, String categoryId, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding, int? scaleMin, int? scaleMax, double? computedMin, double? computedMax, List<MatrixScale>? scales, List<MatrixRow>? rows, List<I18nText>? columns
 });
 
 
@@ -1138,7 +1149,7 @@ class _$PromptBlockCopyWithImpl<$Res>
 
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? categoryId = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? scales = freezed,Object? rows = freezed,Object? columns = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? categoryId = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? computedMin = freezed,Object? computedMax = freezed,Object? scales = freezed,Object? rows = freezed,Object? columns = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1153,7 +1164,9 @@ as bool,outputExtensions: null == outputExtensions ? _self.outputExtensions : ou
 as List<String>,theoryGrounding: freezed == theoryGrounding ? _self.theoryGrounding : theoryGrounding // ignore: cast_nullable_to_non_nullable
 as TheoryGrounding?,scaleMin: freezed == scaleMin ? _self.scaleMin : scaleMin // ignore: cast_nullable_to_non_nullable
 as int?,scaleMax: freezed == scaleMax ? _self.scaleMax : scaleMax // ignore: cast_nullable_to_non_nullable
-as int?,scales: freezed == scales ? _self.scales : scales // ignore: cast_nullable_to_non_nullable
+as int?,computedMin: freezed == computedMin ? _self.computedMin : computedMin // ignore: cast_nullable_to_non_nullable
+as double?,computedMax: freezed == computedMax ? _self.computedMax : computedMax // ignore: cast_nullable_to_non_nullable
+as double?,scales: freezed == scales ? _self.scales : scales // ignore: cast_nullable_to_non_nullable
 as List<MatrixScale>?,rows: freezed == rows ? _self.rows : rows // ignore: cast_nullable_to_non_nullable
 as List<MatrixRow>?,columns: freezed == columns ? _self.columns : columns // ignore: cast_nullable_to_non_nullable
 as List<I18nText>?,
@@ -1271,10 +1284,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding,  int? scaleMin,  int? scaleMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding,  int? scaleMin,  int? scaleMax,  double? computedMin,  double? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PromptBlock() when $default != null:
-return $default(_that.id,_that.slug,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.scaleMin,_that.scaleMax,_that.scales,_that.rows,_that.columns);case _:
+return $default(_that.id,_that.slug,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
   return orElse();
 
 }
@@ -1292,10 +1305,10 @@ return $default(_that.id,_that.slug,_that.label,_that.description,_that.aiDescri
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding,  int? scaleMin,  int? scaleMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding,  int? scaleMin,  int? scaleMax,  double? computedMin,  double? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)  $default,) {final _that = this;
 switch (_that) {
 case _PromptBlock():
-return $default(_that.id,_that.slug,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.scaleMin,_that.scaleMax,_that.scales,_that.rows,_that.columns);case _:
+return $default(_that.id,_that.slug,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1312,10 +1325,10 @@ return $default(_that.id,_that.slug,_that.label,_that.description,_that.aiDescri
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding,  int? scaleMin,  int? scaleMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding,  int? scaleMin,  int? scaleMax,  double? computedMin,  double? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)?  $default,) {final _that = this;
 switch (_that) {
 case _PromptBlock() when $default != null:
-return $default(_that.id,_that.slug,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.scaleMin,_that.scaleMax,_that.scales,_that.rows,_that.columns);case _:
+return $default(_that.id,_that.slug,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
   return null;
 
 }
@@ -1327,7 +1340,7 @@ return $default(_that.id,_that.slug,_that.label,_that.description,_that.aiDescri
 @JsonSerializable()
 
 class _PromptBlock extends PromptBlock {
-  const _PromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.label, required this.description, this.aiDescription, this.categoryId = 'system', this.isEvaluative = true, this.type = BlockDataType.stringType, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, this.scaleMin, this.scaleMax, final  List<MatrixScale>? scales, final  List<MatrixRow>? rows, final  List<I18nText>? columns}): _outputExtensions = outputExtensions,_scales = scales,_rows = rows,_columns = columns,super._();
+  const _PromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.label, required this.description, this.aiDescription, this.categoryId = 'system', this.isEvaluative = true, this.type = BlockDataType.stringType, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, this.scaleMin, this.scaleMax, this.computedMin, this.computedMax, final  List<MatrixScale>? scales, final  List<MatrixRow>? rows, final  List<I18nText>? columns}): _outputExtensions = outputExtensions,_scales = scales,_rows = rows,_columns = columns,super._();
   factory _PromptBlock.fromJson(Map<String, dynamic> json) => _$PromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1349,6 +1362,8 @@ class _PromptBlock extends PromptBlock {
 @override final  TheoryGrounding? theoryGrounding;
 @override final  int? scaleMin;
 @override final  int? scaleMax;
+@override final  double? computedMin;
+@override final  double? computedMax;
  final  List<MatrixScale>? _scales;
 @override List<MatrixScale>? get scales {
   final value = _scales;
@@ -1392,7 +1407,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'PromptBlock(id: $id, slug: $slug, label: $label, description: $description, aiDescription: $aiDescription, categoryId: $categoryId, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, scaleMin: $scaleMin, scaleMax: $scaleMax, scales: $scales, rows: $rows, columns: $columns)';
+  return 'PromptBlock(id: $id, slug: $slug, label: $label, description: $description, aiDescription: $aiDescription, categoryId: $categoryId, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, scaleMin: $scaleMin, scaleMax: $scaleMax, computedMin: $computedMin, computedMax: $computedMax, scales: $scales, rows: $rows, columns: $columns)';
 }
 
 
@@ -1403,7 +1418,7 @@ abstract mixin class _$PromptBlockCopyWith<$Res> implements $PromptBlockCopyWith
   factory _$PromptBlockCopyWith(_PromptBlock value, $Res Function(_PromptBlock) _then) = __$PromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText label, I18nText description, String? aiDescription, String categoryId, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding, int? scaleMin, int? scaleMax, List<MatrixScale>? scales, List<MatrixRow>? rows, List<I18nText>? columns
+@StrictOpaqueIdConverter() String id, String slug, I18nText label, I18nText description, String? aiDescription, String categoryId, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding, int? scaleMin, int? scaleMax, double? computedMin, double? computedMax, List<MatrixScale>? scales, List<MatrixRow>? rows, List<I18nText>? columns
 });
 
 
@@ -1420,7 +1435,7 @@ class __$PromptBlockCopyWithImpl<$Res>
 
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? categoryId = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? scales = freezed,Object? rows = freezed,Object? columns = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? categoryId = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? computedMin = freezed,Object? computedMax = freezed,Object? scales = freezed,Object? rows = freezed,Object? columns = freezed,}) {
   return _then(_PromptBlock(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1435,7 +1450,9 @@ as bool,outputExtensions: null == outputExtensions ? _self._outputExtensions : o
 as List<String>,theoryGrounding: freezed == theoryGrounding ? _self.theoryGrounding : theoryGrounding // ignore: cast_nullable_to_non_nullable
 as TheoryGrounding?,scaleMin: freezed == scaleMin ? _self.scaleMin : scaleMin // ignore: cast_nullable_to_non_nullable
 as int?,scaleMax: freezed == scaleMax ? _self.scaleMax : scaleMax // ignore: cast_nullable_to_non_nullable
-as int?,scales: freezed == scales ? _self._scales : scales // ignore: cast_nullable_to_non_nullable
+as int?,computedMin: freezed == computedMin ? _self.computedMin : computedMin // ignore: cast_nullable_to_non_nullable
+as double?,computedMax: freezed == computedMax ? _self.computedMax : computedMax // ignore: cast_nullable_to_non_nullable
+as double?,scales: freezed == scales ? _self._scales : scales // ignore: cast_nullable_to_non_nullable
 as List<MatrixScale>?,rows: freezed == rows ? _self._rows : rows // ignore: cast_nullable_to_non_nullable
 as List<MatrixRow>?,columns: freezed == columns ? _self._columns : columns // ignore: cast_nullable_to_non_nullable
 as List<I18nText>?,

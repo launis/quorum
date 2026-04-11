@@ -42,6 +42,7 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
     @Default(false) bool enablePiiMasking,
     @Default(['pdf', 'raw_json']) List<String> allowedExports,
     @Default(true) bool omitEmptySections,
+    @Default([]) List<String> allowedMcpTools,
   }) = _SynthesisConfigDTO;
 
   factory SynthesisConfigDTO.fromJson(Map<String, dynamic> json) =>

@@ -349,7 +349,7 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
     validated_context = context.copy()
 
     # EPIC 6: Console Koostaja (XAI Extensions logging)
-    all_grouped_ext = {}
+    all_grouped_ext: dict[str, list[str]] = {}
     for step_key, step_data in state.global_context_vars.items():
         if not step_key.startswith("step_") or not isinstance(step_data, dict):
             continue

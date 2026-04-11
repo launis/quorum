@@ -74,6 +74,17 @@ class SystemConcurrency(int, Enum):
     LLM_DEFAULT_TIMEOUT_SECONDS = 120
 
 
+class MatrixSamplingStrategy(int, Enum):
+    """Dynamic sampling limits for Matrix Flattening Hook.
+    0 means no sampling (flatten all atoms). N means select N atoms per specific BARS scale point.
+    """
+
+    ALL = 0
+    STRATIFIED_1 = 1
+    STRATIFIED_3 = 3
+    STRATIFIED_5 = 5
+
+
 # --- Restored V1 Enums ---
 
 

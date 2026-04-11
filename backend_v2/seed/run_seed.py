@@ -49,7 +49,75 @@ def _fail_fast(msg: str, error: Exception) -> None:
     sys.exit(1)
 
 
-def _seed_tinydb(db_path: str, seed_data: dict[str, Any]) -> None:
+async def _atomize_with_cache(
+    validated: Any, repo: Any, current_matrix: int, total_matrices: int, is_test: bool
+) -> Any:
+    import hashlib
+
+    from backend_v2.services.orchestrator.atomizer import PromptAtomizer
+
+    val_label = getattr(validated, "label", None)
+    if val_label and hasattr(val_label, "translations") and isinstance(val_label.translations, dict):
+        label_en = val_label.translations.get("en", getattr(validated, "slug", "unknown"))
+    else:
+        label_en = getattr(validated, "slug", "unknown")
+
+    b_id = getattr(validated, "id", "unknown_id")
+    content = getattr(validated, "content", "")
+    raw_text = f"{b_id}_{label_en}_{content}"
+    cache_key = hashlib.md5(raw_text.encode("utf-8")).hexdigest()
+    cache_path = os.path.join(PROJECT_ROOT, "backend_v2", "seed", "atomization_cache.json")
+
+    try:
+        with open(cache_path, encoding="utf-8") as cache_f:
+            cache_data = json.load(cache_f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        cache_data = {}
+
+    if cache_key in cache_data and cache_data[cache_key]:
+        print(f"[Seeder V2] CACHE HIT for matrix ({current_matrix}/{total_matrices}): '{label_en}'...")
+        from backend_v2.models.v2_core import MatrixScale
+
+        validated.scales = [MatrixScale.model_validate(s) for s in cache_data[cache_key]]
+    else:
+        print(f"[Seeder V2] Atomizing matrix ({current_matrix}/{total_matrices}): '{label_en}'...")
+
+        # Mute LiteLLM logger spam during seeding
+        llm_logger = logging.getLogger("LiteLLM")
+        router_logger = logging.getLogger("LiteLLM Router")
+        provider_logger = logging.getLogger("backend_v2.llm.provider")
+
+        old_lvl = llm_logger.level
+        llm_logger.setLevel(logging.WARNING)
+        router_logger.setLevel(logging.WARNING)
+        provider_logger.setLevel(logging.WARNING)
+
+        try:
+            validated = await PromptAtomizer.atomize_prompt_block(validated, repository=repo, is_test=is_test)
+        finally:
+            llm_logger.setLevel(old_lvl)
+            router_logger.setLevel(old_lvl)
+            provider_logger.setLevel(old_lvl)
+
+        # Auto-accumulate cache
+        try:
+            dumped_scales = []
+            for s in getattr(validated, "scales", []) or []:
+                if hasattr(s, "model_dump"):
+                    dumped_scales.append(s.model_dump(mode="json"))
+                else:
+                    dumped_scales.append(s)
+
+            cache_data[cache_key] = dumped_scales
+            with open(cache_path, "w", encoding="utf-8") as cache_f:
+                json.dump(cache_data, cache_f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logger.warning("[Seeder V2] Failed to auto-accumulate cache: %s", e)
+
+    return validated
+
+
+async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str) -> None:
     try:
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
@@ -59,7 +127,7 @@ def _seed_tinydb(db_path: str, seed_data: dict[str, Any]) -> None:
             from datetime import datetime
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_dir = os.path.join(os.path.dirname(db_path), "backups")
+            backup_dir = os.path.join(PROJECT_ROOT, "backend_v2", "seed", "backups")
             os.makedirs(backup_dir, exist_ok=True)
             filename = os.path.basename(db_path)
             backup_path = os.path.join(backup_dir, f"{filename}.{timestamp}.bak")
@@ -82,6 +150,12 @@ def _seed_tinydb(db_path: str, seed_data: dict[str, Any]) -> None:
     except Exception as e:
         _fail_fast("Error initializing TinyDB", e)
 
+    from backend_v2.database.repository import UnifiedWorkflowRepository
+    from backend_v2.database.tinydb_driver import TinyDBDriver
+    from backend_v2.database.wrapper import TinyDBClient
+
+    repo = UnifiedWorkflowRepository(TinyDBDriver(TinyDBClient(db_path)))
+
     # Seed Standard Strict Collections
     for col_key, config in STANDARD_REGISTRY.items():
         table_name = str(config["table"])
@@ -89,6 +163,11 @@ def _seed_tinydb(db_path: str, seed_data: dict[str, Any]) -> None:
         id_field = str(config["id_field"])
         pyd_adapter: Any = config["model"]
         count = 0
+
+        total_matrices = 0
+        current_matrix = 0
+        if col_key == "prompt_blocks":
+            total_matrices = sum(1 for i in seed_data.get(col_key, []) if i.get("category_id") == "matrix")
 
         for item in seed_data.get(col_key, []):
             try:
@@ -99,6 +178,14 @@ def _seed_tinydb(db_path: str, seed_data: dict[str, Any]) -> None:
                     from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
                     DAGCompilerService.validate_workflow(validated)
+
+                if col_key == "prompt_blocks":
+                    if getattr(validated, "category_id", "") == "matrix":
+                        current_matrix += 1
+                        is_mock_target = target_env == "mock"
+                        validated = await _atomize_with_cache(
+                            validated, repo, current_matrix, total_matrices, is_mock_target
+                        )
 
                 if hasattr(validated, "model_dump"):
                     dumped = validated.model_dump(mode="json")
@@ -122,7 +209,7 @@ def _seed_tinydb(db_path: str, seed_data: dict[str, Any]) -> None:
     print(f"[Seeder V2] Closed DB. Final size: {os.path.getsize(db_path)} bytes.")
 
 
-def _seed_firestore(seed_data: dict[str, Any]) -> None:
+async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
     try:
         import firebase_admin
         from firebase_admin import credentials, firestore
@@ -141,6 +228,13 @@ def _seed_firestore(seed_data: dict[str, Any]) -> None:
 
     for col in collections_to_clear:
         _delete_collection(db.collection(col))
+
+    from google.cloud import firestore as async_firestore  # type: ignore[attr-defined]
+
+    from backend_v2.database.firestore_driver import FirestoreDriver
+    from backend_v2.database.repository import UnifiedWorkflowRepository
+
+    repo = UnifiedWorkflowRepository(FirestoreDriver(async_firestore.AsyncClient()))
 
     def batch_upsert(collection_name: str, items: list[dict[str, Any]], id_field: str = "id") -> None:
         batch = db.batch()
@@ -168,6 +262,11 @@ def _seed_firestore(seed_data: dict[str, Any]) -> None:
         id_field = str(config["id_field"])
         pyd_adapter: Any = config["model"]
 
+        total_matrices = 0
+        current_matrix = 0
+        if col_key == "prompt_blocks":
+            total_matrices = sum(1 for i in seed_data.get(col_key, []) if i.get("category_id") == "matrix")
+
         valid_items = []
         for item in seed_data.get(col_key, []):
             try:
@@ -176,6 +275,12 @@ def _seed_firestore(seed_data: dict[str, Any]) -> None:
                     from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
                     DAGCompilerService.validate_workflow(validated)
+
+                if col_key == "prompt_blocks":
+                    if getattr(validated, "category_id", "") == "matrix":
+                        current_matrix += 1
+                        validated = await _atomize_with_cache(validated, repo, current_matrix, total_matrices, False)
+
                 valid_items.append(validated.model_dump(mode="json"))
             except ValidationError as ve:
                 _fail_fast(f"Validation Error for {col_key} item {item.get(id_field, 'unknown')}", ve)
@@ -195,7 +300,7 @@ def _delete_collection(coll_ref: Any, batch_size: int = 50) -> None:
         _delete_collection(coll_ref, batch_size)
 
 
-def seed_database(target: str) -> None:
+async def seed_database(target: str) -> None:
     print(f"--- V2 SEEDING TARGET: {target.upper()} ---")
 
     if not os.path.exists(SEED_PATH):
@@ -207,16 +312,16 @@ def seed_database(target: str) -> None:
         data = json.load(f)
 
     if target == "local":
-        _seed_tinydb(LOCAL_DB_PATH, data)
+        await _seed_tinydb(LOCAL_DB_PATH, data, target)
         print(f"[SUCCESS] V2 Seeded Local DB at {LOCAL_DB_PATH}")
 
     elif target == "mock":
-        _seed_tinydb(MOCK_DB_PATH, data)
+        await _seed_tinydb(MOCK_DB_PATH, data, target)
         print(f"[SUCCESS] V2 Seeded Mock DB at {MOCK_DB_PATH}")
 
     elif target == "firestore":
         print("[Seeder V2] Connecting to Firestore...")
-        _seed_firestore(data)
+        await _seed_firestore(data, target)
         print("[SUCCESS] V2 Seeded Cloud Firestore.")
 
 
@@ -235,9 +340,11 @@ def main() -> None:
     if "all" in targets:
         targets = {"local", "mock", "firestore"}
 
+    import asyncio
+
     for t in targets:
         try:
-            seed_database(t)
+            asyncio.run(seed_database(t))
         except Exception as e:
             logger.critical(
                 "[Seeder] %s: Failed to seed %s: %s",

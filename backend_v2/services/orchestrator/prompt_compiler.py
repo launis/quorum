@@ -764,3 +764,42 @@ class PromptCompiler:
             "Stop data collection as soon as you have sufficient context. "
             "Embed your discovered sources into the corresponding extension fields."
         )
+
+    def build_blind_evaluation_schema(self, schema_name: str) -> type[BaseModel]:
+        """Add a dedicated schema builder for the blind extraction."""
+        from pydantic import BaseModel, ConfigDict, Field, create_model
+
+        class AtomResponse(BaseModel):
+            model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+            atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")
+            quote: str | None = Field(
+                default=None,
+                description="Pakotettu lainaus alkuperäisestä tekstistä Micro-CoT säännöllä. Null if no evidence.",
+            )
+            reasoning: str = Field(..., description="Kognitiivinen kitka ja arvioinnin perustelu.")
+            boolean: bool = Field(..., description="Puhdas True/False -osumapäätös.")
+
+        DynamicModel = create_model(
+            schema_name,
+            __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
+            evaluations=(list[AtomResponse], Field(..., description="Array of blinded evaluations.")),
+        )
+
+        return DynamicModel
+
+    def compile_blind_system_instruction(self, target_locale: str = "en") -> str:
+        """Create a Micro-CoT Prompt-block for the system role forcing full blindness."""
+        instruction = (
+            "<system_directive>\n"
+            "<objective>Tekoäly toimii mekaanisena, empatiattomana data-erottelijana.</objective>\n"
+            "<rules>\n"
+            "  <rule>Täysi sokeus on pakotettu. Matrix-sarakkeiden ryhmittely on ehdottomasti kielletty.</rule>\n"
+            "  <rule>Sovella 'Duck-Typing Token Shield' -konseptia. Käsittele atomit irrallisina.</rule>\n"
+            "</rules>\n"
+            "</system_directive>"
+        )
+        instruction += (
+            f"\n\nCRITICAL MANDATE: You must generate all your output text and reasoning "
+            f"exclusively in the '{target_locale}' language."
+        )
+        return instruction

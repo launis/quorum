@@ -36,23 +36,38 @@ Map<String, dynamic> _$TheoryGroundingToJson(_TheoryGrounding instance) =>
       'citation_reference': instance.citationReference,
     };
 
-_MatrixClaim _$MatrixClaimFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('_MatrixClaim', json, ($checkedConvert) {
-      $checkKeys(json, allowedKeys: const ['label', 'ai_description']);
-      final val = _MatrixClaim(
-        label: $checkedConvert(
-          'label',
-          (v) => I18nText.fromJson(v as Map<String, dynamic>),
-        ),
-        aiDescription: $checkedConvert('ai_description', (v) => v as String),
-      );
-      return val;
-    }, fieldKeyMap: const {'aiDescription': 'ai_description'});
+_MatrixClaim _$MatrixClaimFromJson(Map<String, dynamic> json) => $checkedCreate(
+  '_MatrixClaim',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const ['label', 'ai_description', 'micro_atoms'],
+    );
+    final val = _MatrixClaim(
+      label: $checkedConvert(
+        'label',
+        (v) => I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      aiDescription: $checkedConvert('ai_description', (v) => v as String),
+      microAtoms: $checkedConvert(
+        'micro_atoms',
+        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+      ),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'aiDescription': 'ai_description',
+    'microAtoms': 'micro_atoms',
+  },
+);
 
 Map<String, dynamic> _$MatrixClaimToJson(_MatrixClaim instance) =>
     <String, dynamic>{
       'label': instance.label.toJson(),
       'ai_description': instance.aiDescription,
+      'micro_atoms': instance.microAtoms,
     };
 
 _MatrixRow _$MatrixRowFromJson(Map<String, dynamic> json) =>
@@ -126,6 +141,8 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
         'theory_grounding',
         'scale_min',
         'scale_max',
+        'computed_min',
+        'computed_max',
         'scales',
         'rows',
         'columns',
@@ -174,6 +191,14 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
       ),
       scaleMin: $checkedConvert('scale_min', (v) => (v as num?)?.toInt()),
       scaleMax: $checkedConvert('scale_max', (v) => (v as num?)?.toInt()),
+      computedMin: $checkedConvert(
+        'computed_min',
+        (v) => (v as num?)?.toDouble(),
+      ),
+      computedMax: $checkedConvert(
+        'computed_max',
+        (v) => (v as num?)?.toDouble(),
+      ),
       scales: $checkedConvert(
         'scales',
         (v) => (v as List<dynamic>?)
@@ -204,6 +229,8 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
     'theoryGrounding': 'theory_grounding',
     'scaleMin': 'scale_min',
     'scaleMax': 'scale_max',
+    'computedMin': 'computed_min',
+    'computedMax': 'computed_max',
   },
 );
 
@@ -222,6 +249,8 @@ Map<String, dynamic> _$PromptBlockToJson(_PromptBlock instance) =>
       'theory_grounding': instance.theoryGrounding?.toJson(),
       'scale_min': instance.scaleMin,
       'scale_max': instance.scaleMax,
+      'computed_min': instance.computedMin,
+      'computed_max': instance.computedMax,
       'scales': instance.scales?.map((e) => e.toJson()).toList(),
       'rows': instance.rows?.map((e) => e.toJson()).toList(),
       'columns': instance.columns?.map((e) => e.toJson()).toList(),

@@ -58,34 +58,37 @@ async def test_text_consolidation_hook_success(mock_state: HookState, mock_deps:
     
     # Mock missing execution and workflow queries
     mock_deps.repository.get_workflow_by_id = AsyncMock(return_value={"default_profile_id": "prf_456"})  # type: ignore
-    mock_deps.repository.get_execution = AsyncMock(return_value={})  # type: ignore
+    mock_deps.repository.get_execution = AsyncMock(return_value={"output_profile_id": "prf_456"})  # type: ignore
 
     # Provide mocked prompt blocks
     mock_deps.repository.get_all_prompt_blocks = AsyncMock(return_value=[])  # type: ignore
 
-    # Mock the LLM Client
-    with patch("backend_v2.hooks.synthesis.LLMClient") as MockClient:
-        mock_instance = AsyncMock()
-        MockClient.from_strategy = AsyncMock(return_value=mock_instance)
-        
-        # Mock structured response
-        mock_instance.run_structured_task.return_value = (
-            SynthesisOutputDTO(
-                synthesized_markdown="Global markdown.",
-                cited_sources=["[1] Source A"],
-                section_syntheses=[
-                    SynthesisSectionDTO(
-                        layout_id="layout_0_1d_metrics",
-                        synthesized_markdown="Section markdown."
-                    )
-                ]
-            ),
-            {"prompt_tokens": 100, "completion_tokens": 50}
+    # Mock the LLM Client & Tool Loop
+    from backend_v2.services.mcp.mcp_tool_loop import MCPToolLoopResult
+    with patch("backend_v2.hooks.synthesis.execute_tool_loop") as mock_execute:
+        mock_execute.return_value = MCPToolLoopResult(
+            result_data={
+                "synthesized_markdown": "Global markdown.",
+                "cited_sources": ["[1] Source A"],
+                "section_syntheses": [
+                    {
+                        "layout_id": "layout_0_1d_metrics",
+                        "synthesized_markdown": "Section markdown."
+                    }
+                ],
+                "xai_highlights": []
+            },
+            audit_traces=[],
+            usage={"prompt_tokens": 100, "completion_tokens": 50}
         )
+        
+        with patch("backend_v2.hooks.synthesis.LLMClient") as MockClient:
+            mock_instance = AsyncMock()
+            MockClient.from_strategy = AsyncMock(return_value=mock_instance)
 
-        result = await text_consolidation_hook(mock_state, mock_deps)
+            result = await text_consolidation_hook(mock_state, mock_deps)
 
-        assert result.success is True
-        assert result.state_delta is not None
-        assert result.state_delta["synthesized_markdown"] == "Global markdown.\n\n### References\n[1] [1] Source A"
-        assert result.state_delta["section_syntheses"] == {"layout_0_1d_metrics": "Section markdown."}
+            assert result.success is True
+            assert result.state_delta is not None
+            assert result.state_delta["synthesized_markdown"] == "Global markdown.\n\n### References\n[1] [1] Source A"
+            assert result.state_delta["section_syntheses"] == {"layout_0_1d_metrics": "Section markdown."}

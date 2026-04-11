@@ -15,7 +15,7 @@ class ContextMapper:
     """Builder for translating Target Data IDs into Universal Ordinal Mapping limits."""
 
     @staticmethod
-    def build_ordinal_mapping(target_blocks: list[str], all_blocks: list[Any] = None) -> str:
+    def build_ordinal_mapping(target_blocks: list[str], all_blocks: list[Any] | None = None) -> str:
         """Builds a section-level ordinal dictionary for evaluating specific targets."""
         if not target_blocks or "*" in target_blocks:
             return ""
@@ -60,7 +60,7 @@ class ContextMapper:
         return instruction
 
     @staticmethod
-    def build_global_mapping(workflow_data: dict, selected_layouts: list[dict] = None) -> str:
+    def build_global_mapping(workflow_data: dict[str, Any], selected_layouts: list[dict[str, Any]] | None = None) -> str:
         """Builds a global mapping cheatsheet across the entire workflow if needed.
         Scans all step IDs to ensure the LLM knows how step variable contexts map.
         """

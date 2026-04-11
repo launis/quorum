@@ -112,6 +112,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
             'enable_pii_masking',
             'allowed_exports',
             'omit_empty_sections',
+            'allowed_mcp_tools',
           ],
         );
         final val = _SynthesisConfigDTO(
@@ -143,6 +144,12 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
             'omit_empty_sections',
             (v) => v as bool? ?? true,
           ),
+          allowedMcpTools: $checkedConvert(
+            'allowed_mcp_tools',
+            (v) =>
+                (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+                const [],
+          ),
         );
         return val;
       },
@@ -154,6 +161,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
         'enablePiiMasking': 'enable_pii_masking',
         'allowedExports': 'allowed_exports',
         'omitEmptySections': 'omit_empty_sections',
+        'allowedMcpTools': 'allowed_mcp_tools',
       },
     );
 
@@ -166,6 +174,7 @@ Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
       'enable_pii_masking': instance.enablePiiMasking,
       'allowed_exports': instance.allowedExports,
       'omit_empty_sections': instance.omitEmptySections,
+      'allowed_mcp_tools': instance.allowedMcpTools,
     };
 
 _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>

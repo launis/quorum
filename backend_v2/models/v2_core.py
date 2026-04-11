@@ -109,6 +109,10 @@ class MatrixClaim(V2CoreBase):
 
     label: I18nText = Field(description="User-facing empirical claim.")
     ai_description: str = Field(description="Specific AI enforcement rule for this claim.")
+    micro_atoms: list[str] | None = Field(
+        default=None,
+        description="Scaffolded atoms generated from the claim during design time for deeper evaluation.",
+    )
 
 
 class MatrixRow(V2CoreBase):
@@ -185,7 +189,8 @@ class PromptBlock(V2CoreBase):
     @classmethod
     def _strip_computed_fields(cls, data: dict[str, Any]) -> dict[str, Any]:
         if isinstance(data, dict):
-            # Strip computed properties that are serialized to the DB to prevent 'extra_forbidden' Pydantic crashes during load
+            # Strip computed properties that are serialized to the DB to prevent
+            # 'extra_forbidden' Pydantic crashes during load
             data.pop("computed_min", None)
             data.pop("computed_max", None)
         return data
@@ -573,6 +578,9 @@ class SynthesisConfigDTO(V2CoreBase):
         description="Supported export file formats.",
     )
     omit_empty_sections: bool = Field(default=True, description="Flag to drop logically empty evaluation sections.")
+    allowed_mcp_tools: list[str] = Field(
+        default_factory=list, description="Enabled MCP tool identifiers for pre-fetch synthesis phase."
+    )
 
 
 class ReportLayoutDTO(V2CoreBase):
