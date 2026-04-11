@@ -365,8 +365,8 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
 
         import hashlib
 
-        from backend_v2.models.enums import WaterfallThreshold
-        from backend_v2.utils.math_utils import calculate_waterfall_floor, calculate_weighted_score
+        from backend_v2.models.enums import WaterfallThreshold, CognitiveFlowThreshold, CognitiveFlowStatus
+        from backend_v2.utils.math_utils import calculate_waterfall_floor, calculate_weighted_score, calculate_progressive_dampening_score
 
         atom_mapping = {}
         blocks_meta: dict[str, dict[str, Any]] = {}
@@ -459,54 +459,56 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
             scale_min = float(meta["scale_min"])
             scale_max = float(meta["scale_max"])
 
+            # Shadow calculations for XAI logging
             floor_score = calculate_waterfall_floor(stats, scale_min, threshold=WaterfallThreshold.STANDARD.value)
             weighted_score = calculate_weighted_score(stats, scale_min, scale_max)
 
-            # Hybrid cap limit formula: min(weighted, floor + 1.0)
-            capped_score = min(weighted_score, floor_score + 1.0)
+            # --- DINA Progressive Dampening Calculation ---
+            dampening_score = calculate_progressive_dampening_score(stats, scale_min, scale_max)
 
-            # Formatting the calculation log
-            log_lines = ["### Hybridilaskennan erittely:"]
+            # Formatting the calculation log (Cognitive Diagnostic Model)
+            log_lines = ["### Cognitive Diagnostic Model (CDM) Breakdown:"]
             sorted_levels = sorted(stats.keys())
 
-            waterfall_broken = False
+            modifier = 1.0
+
             for s_level in sorted_levels:
                 level_data = stats[s_level]
                 t_hits = level_data["hits"]
                 t_total = level_data["total"]
-                pct = int((t_hits / t_total) * 100) if t_total > 0 else 0
-
-                if pct >= int(WaterfallThreshold.STANDARD.value * 100) and not waterfall_broken:
-                    status = "OK"
+                
+                hit_rate = (t_hits / t_total) if t_total > 0 else 0.0
+                pct = int(hit_rate * 100)
+                
+                if s_level == scale_min:
+                    modifier = hit_rate
+                    log_lines.append(f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - Cognitive Flow: {modifier:.2f})")
                 else:
-                    if not waterfall_broken:
-                        status = "HYLÄTTY: Vesiputous pysähtyi"
-                        waterfall_broken = True
+                    if hit_rate >= CognitiveFlowThreshold.OPTIMAL.value:
+                        status = CognitiveFlowStatus.OPTIMAL.value
+                    elif hit_rate >= CognitiveFlowThreshold.ACCEPTABLE.value:
+                        status = f"{CognitiveFlowStatus.ACCEPTABLE.value} ({hit_rate:.2f})"
                     else:
-                        status = "Huomioitiin painotuksessa"
-
-                log_lines.append(f"- **Taso {s_level}:** {t_hits}/{t_total} ({pct}% - {status})")
+                        status = f"{CognitiveFlowStatus.WEAK.value} ({hit_rate:.2f})"
+                    
+                    log_lines.append(f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - {status})")
+                    modifier = modifier * hit_rate
 
             log_lines.append("")
-            log_lines.append(f"1. **Vesiputous-lattia:** {floor_score:.1f} (Todistettu perusta)")
-            log_lines.append(f"2. **Painotettu numeerinen arvosana:** {weighted_score:.2f} (Koko matriisin kattavuus)")
-
-            if weighted_score > floor_score + 1.0:
-                log_lines.append(
-                    f"3. **Kattosääntö (Lattia + 1.0 maksimi):** {weighted_score:.2f} "
-                    f"ylittää kynnyksen {floor_score + 1.0:.1f}, leikataan kattoon."
-                )
-            else:
-                log_lines.append(
-                    f"3. **Kattosääntö (Lattia + 1.0 maksimi):** {weighted_score:.2f} on sallitun rajan sisällä."
-                )
-
-            log_lines.append(f"**Lopullinen arvosana:** {capped_score:.1f}")
+            log_lines.append(f"**Shadow Calculation Data:**")
+            log_lines.append(f"1. *Raw Weighted Average:* {weighted_score:.2f} (Linear hits)")
+            log_lines.append(f"2. *Legacy Waterfall Floor:* {floor_score:.1f} (Cutoff point)")
+            
+            diff = weighted_score - dampening_score
+            if diff > CognitiveFlowThreshold.SIGNIFICANT_DROP_DIFF.value:
+                log_lines.append(f"-> Deficiencies in foundation credibility dampen the final score significantly (-{diff:.2f}).")
+            
+            log_lines.append(f"**Final CDM Score:** {dampening_score:.2f}")
 
             calculation_log = "\n".join(log_lines)
 
             # Inject to new payload so normalize_matrix_scores_hook can scale it further
-            new_payload[pb_id] = float(capped_score)
+            new_payload[pb_id] = float(dampening_score)
             new_payload[f"{pb_id}_justification"] = calculation_log
 
             # Use extending logic to append without overwriting previous UI texts

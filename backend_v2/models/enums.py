@@ -65,6 +65,20 @@ class WaterfallThreshold(float, Enum):
     STANDARD = 0.90
     LENIENT = 0.75
 
+class CognitiveFlowThreshold(float, Enum):
+    """Progressive Dampening thresholds for cognitive flow degradation."""
+    
+    OPTIMAL = 1.00
+    ACCEPTABLE = 0.70
+    SIGNIFICANT_DROP_DIFF = 0.50
+
+class CognitiveFlowStatus(str, Enum):
+    """Logging texts for XAI justification of cognitive dampening."""
+    
+    OPTIMAL = "Hits flowed completely through"
+    ACCEPTABLE = "Hits were dampened according to the flow"
+    WEAK = "Cognitive flow degrades significantly"
+
 
 class ExecutionStatus(str, Enum):
     """Execution lifecycle status."""

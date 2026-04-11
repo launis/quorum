@@ -169,3 +169,58 @@ def calculate_weighted_score(level_stats: dict[float, dict[str, int]], scale_min
     scaled_val = scale_min + (proportional_fraction * (scale_max - scale_min))
 
     return max(scale_min, min(scale_max, scaled_val))
+
+
+def calculate_progressive_dampening_score(level_stats: dict[float, dict[str, int]], scale_min: float, scale_max: float) -> float:
+    """Calculate the CDM (Cognitive Diagnostic Model) / DINA score using Progressive Dampening.
+
+    Instead of a hard threshold floor, each level acts as a modifier (amplifier/dampener)
+    for the subsequent levels. A low hit rate on foundational levels structurally
+    limits the achievable score from higher levels.
+
+    Args:
+        level_stats: Dictionary mapping scale_level -> {"hits": X, "total": Y}
+        scale_min: The minimum value of the scale.
+        scale_max: The maximum value of the scale.
+
+    Returns:
+        float: The progressive dampening score clamped to scale bounds.
+    """
+    if scale_min >= scale_max:
+        msg = f"Invalid scale definition: scale_min ({scale_min}) >= scale_max ({scale_max})."
+        logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+        )
+
+    achieved_score = float(scale_min)
+    modifier = 1.0
+    prev_level = float(scale_min)
+
+    sorted_levels = sorted(level_stats.keys())
+
+    for level in sorted_levels:
+        stats = level_stats[level]
+        total = stats.get("total", 0)
+        hits = stats.get("hits", 0)
+
+        hit_rate = (hits / total) if total > 0 else 0.0
+
+        if level == scale_min:
+            # Foundation level sets the initial current flow (modifier)
+            modifier = hit_rate
+        else:
+            # How much points this level represents
+            step_value = level - prev_level
+            
+            # The achieved points are dampened by the upstream modifier
+            achieved_score += step_value * hit_rate * modifier
+            
+            # The modifier is progressively dampened for the *next* iterations
+            modifier = modifier * hit_rate
+            
+        prev_level = level
+
+    return float(max(scale_min, min(scale_max, achieved_score)))
