@@ -356,13 +356,16 @@ class BlueprintTransformer:
                     synthesis_md = step_res.get("synthesized_markdown")
 
         profile_cache = execution.profile_syntheses.get(resolved_pid)
-        section_syntheses = {}
-        synthesis_md = None
+        original_synthesis_md = synthesis_md
+        section_syntheses: dict[str, str] = {}
         xai_highlights_cache: list[Any] = []
         if profile_cache:
-            section_syntheses = profile_cache.section_syntheses
-            synthesis_md = profile_cache.synthesized_markdown
+            section_syntheses = getattr(profile_cache, "section_syntheses", {})
+            val = getattr(profile_cache, "synthesized_markdown", original_synthesis_md)
+            synthesis_md = val or original_synthesis_md
             xai_highlights_cache = getattr(profile_cache, "xai_highlights", [])
+        else:
+            synthesis_md = original_synthesis_md
 
         # Merge XAI Highlights from cache into grouped_extensions
         for highlight in xai_highlights_cache:
@@ -401,8 +404,11 @@ class BlueprintTransformer:
                     if isinstance(step_data, dict):
                         for k, v in step_data.items():
                             # Determine if this key should be included in this layout
-                            if target_blocks and "*" not in target_blocks and k not in target_blocks:
-                                continue
+                            if target_blocks and "*" not in target_blocks:
+                                # target_blocks may contain raw block IDs (blk_123)
+                                # OR fully qualified DAG IDs (step_xyz_blk_123)
+                                if k not in target_blocks and f"{step_id}_{k}" not in target_blocks:
+                                    continue
 
                             is_legacy_score = k == "score"
                             suffix_list = [
@@ -629,7 +635,7 @@ class BlueprintTransformer:
                 if target_blocks and "*" not in target_blocks:
                     for target_k in target_blocks:
                         for unique_k, axis_dto in unsorted_axes.items():
-                            if unique_k.endswith(f"_{target_k}"):
+                            if unique_k == target_k or unique_k.endswith(f"_{target_k}"):
                                 axes.append(axis_dto)
                 else:
                     axes = list(unsorted_axes.values())
