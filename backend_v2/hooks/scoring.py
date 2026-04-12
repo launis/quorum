@@ -420,7 +420,7 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
                 )
 
             # Laillinen ohitus 2026-mandaatin mukaisesti: Vain matriiseilla on skaalat.
-            if pb_dict.get("type", "") != "matrix":
+            if pb_dict.get("category_id", "") != "matrix":
                 continue
 
             scales = pb_dict.get("scales", [])

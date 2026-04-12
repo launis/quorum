@@ -11,6 +11,7 @@ from backend_v2.hooks.scoring import (
     apply_scoring_logic_hook,
     enforce_passivity_penalty_hook,
     normalize_matrix_scores_hook,
+    waterfall_scoring_hook,
 )
 
 
@@ -202,3 +203,44 @@ async def test_normalize_matrix_scores_invalid_prompt_block() -> None:
     with pytest.raises(AppException) as exc:
         await normalize_matrix_scores_hook(state, deps)
     assert "CONFIGURATION_ERROR" in exc.value.error_code
+
+
+@pytest.mark.asyncio
+async def test_waterfall_scoring_hook_matrix_category() -> None:
+    """TDD Repro: Matrix is correctly identified by category_id='matrix'."""
+    mock_repo = AsyncMock()
+    mock_repo.get_step_by_id.return_value = {"prompt_blocks": ["blk_1"]}
+    # BUG: It used to skip if type != "matrix". Now type="float", category_id="matrix" should pass.
+    mock_repo.get_prompt_block_by_id.return_value = {
+        "category_id": "matrix",
+        "type": "float",
+        "scales": [
+            {"score": 1, "claims": [{"micro_atoms": ["test_atom"]}]},
+            {"score": 5, "claims": [{"micro_atoms": ["test_atom_b"]}]}
+        ],
+    }
+
+    import hashlib
+    atom_hash = hashlib.md5("test_atom".encode("utf-8")).hexdigest()
+
+    deps = HookDependencies(repository=mock_repo)
+    state = _make_state(
+        step_id="step_1",
+        inputs={
+            "evaluations": [
+                {
+                    "atom_id": atom_hash,
+                    "boolean": True,
+                    "reasoning": "Valid"
+                }
+            ]
+        }
+    )
+    state = state.model_copy(update={"task_blueprint": "step_1"})
+
+    res = await waterfall_scoring_hook(state, deps)
+    
+    assert res.success is True
+    # The payload update MUST contain the calculated score mapped to blk_1
+    assert "blk_1" in res.state_delta
+    assert "blk_1_justification" in res.state_delta
