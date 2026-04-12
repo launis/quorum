@@ -332,9 +332,6 @@ def get_fallback_data(key: str) -> dict[str, Any]:
     elif key == "xai_agent":
         return MOCK_XAI_OUTPUT.model_dump()
     elif key == "atomize_mock":
-        return {
-            "micro_atoms": ["atom"+str(i) for i in range(1, 16)],
-            "rubric_cot": "Mocked CoT for testing"
-        }
+        return {"micro_atoms": ["atom" + str(i) for i in range(1, 16)], "rubric_cot": "Mocked CoT for testing"}
 
     return {"message": "Mock data not found for key", "key": key}

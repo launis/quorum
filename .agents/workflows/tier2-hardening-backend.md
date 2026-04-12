@@ -20,21 +20,12 @@ Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus
     <phase id="2" name="Auditing (Systemaattinen Auditointi, One Subdirectory At A Time)">
 Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
 1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto.
-2. Vastaa aina ensin tällä tarkistuslistalla ennen analyysin tulostamista tai koodin lukemista. Konkreettiset ohjeet, kiellot ja soveltamistavat jokaiselle teemalle löytyvät sähkeestä `01-python-backend.md`. Etsi ja auditoi koodista nämä teemat:
-
-<audit_mandates>
-  <rule>Fail-Fast & Dual-Reporting (Bisnesvirheet vs Järjestelmävirheet): Tarkenna virheen taso:
-    1. BISNESVIRHEET (Status 400, 401, 404): Käytä ainoastaan `raise AppException(...)`. Ylimääräinen `logger.error` koodin sisällä on kielletty, koska backendin `global_exception_handler` loggaa 4xx-tason API-virheet automaattisesti.
-    2. JÄRJESTELMÄVIRHEET (Status 500, kaatumiset, datakorruptio): EHDOTON DUAL-REPORTING. Koska kyseessä on odottamaton vika (esim. ValueError), tee VÄLITTÖMÄSTI `logger.error("Syy", exc_info=True)` säilyttääksesi pinojalanjäljen lokissa, JA heitä sen perään turvallinen `raise AppException(RFC 7807)`, joka palauttaa asiakkaalle geneerisen "Internal Server Error" (ilman `str(exc)` vuotoja).</rule>
-  <rule>AppException (RFC 7807): Kaikki clientille menevät virheet kääritään `AppException`-muotoon. EHDOTON KIELTO (Data Leak): Älä koskaan laita raakoja Pydantic-stacktraceja tai `str(exc)`-tietoja `AppException`in `details` tai `extensions` -kenttiin.</rule>
-  <rule>Strict Pydantic V2 & No Naked Dicts (chain .model_validate().model_dump() for DB sync if needed)</rule>
-  <rule>Native Pydantic Field() Priority over @field_validator</rule>
-  <rule>Data Leak Prevention & SRP: Eristä asiakkaalle näkyvä datamalli levylle tallentuvasta tai lokaalista logituksesta.</rule>
-  <rule>Modern Typing & No-Strings Mandate</rule>
-</audit_mandates>
-
-3. Lue KAIKKI kyseisen alihakemiston `.py`-tiedostot (huomioiden sivuutettavat kansiot). Työskentele yllä olevan tarkistuslistan avulla peilaten löydöksiä `01-python-backend.md` mukaisiksi. Raportoi löydökset kansion sisältä. Jos alihakemisto on puhdas, kerro se. Pysähdy odottamaan komentoa "FIX" (jos virheitä löytyi) tai "NEXT" (jos kansio oli puhdas).
-4. **STATE PERSISTENCE (TALLENNUS):** Kun kansio on valmis (eli se oli puhdas TAI sait komennon korjata ja korjasit onnistuneesti), päivitä VÄLITTÖMÄSTI (lue, lisää, tallenna) `c:\src\quorum\tmp\hardening_state.json` ja merkkaa tämä alihakemisto tilaan "DONE".
+2. Lue ensin tiukasti KAIKKI kyseisen alihakemiston `.py`-tiedostot (huomioiden sivuutettavat kansiot).
+3. **MANDATOITU TRACEABILITY MATRIX**: Sinun on **EHDOTTOMASTI** raportoitava havaintosi tulostamalla chattiin tarkka Markdown-taulukko ("Audit Matrix"). Sinun on kirjoitettava tähän taulukkoon rivi *jokaiselle* `00-antigravity-core.md` ja `01-python-backend.md` -tiedostoissa mainitulle säännölle (esim. `opaque_stripe_id_mandate`, `silent_failures`, `anemic_routers`, `strict_pydantic_v2_rust`, jne).
+   - Käytä sarakkeita: `| Rule Block ID / Sääntö | Tila (Pass / Fail) | Löydökset & Perustelu |`.
+   - Varmista, että todella käyt läpi koodista säännösten <banned_pattern> ja <mandatory_pattern> asiat kohta kohdalta. Tämä poistaa hallusinaatiot ja ohitukset.
+4. Pysähdy taulukon tulostamisen jälkeen. Odotan sen näkemistä. Jää odottamaan komentoa "FIX" (jos asioita on korjattavana / Fail) tai komentoa "NEXT" (jos kaikki säännöt olivat puhtaasti Pass).
+5. **STATE PERSISTENCE (TALLENNUS):** Kun kansio on valmis (eli sait komennon korjata ja korjasit, TAI se oli heti puhdas), päivitä VÄLITTÖMÄSTI `c:\src\quorum\tmp\hardening_state.json` ja merkkaa tämä alihakemisto tilaan "DONE".
 5. **SESSION LIMIT**: Jos olet käsitellyt 5 kansiota TÄSSÄ sessiossa, LOPETA välittömästi. Älä siirry seuraavaan. Tulosta käyttäjälle: *"Sessioraja (5 kansiota) saavutettu. Avaa uusi chat-ikkuna ja anna komento `/tier2-hardening-backend --resume` jatkaaksesi laatuporttia turvallisesti."* 
     </phase>
     <critical_remediation_protocol name="STEP 3 - FIX (Korjausvaihe)">

@@ -5,13 +5,10 @@ It safely merges and transforms structured `guided_reflection` questionnaires
 and unstructured `reflection_text` strings into a unified text format for downstream AI nodes.
 """
 
-import base64
 import logging
 from typing import Any
 
-import fitz
 from fastapi import status
-from fastapi.concurrency import run_in_threadpool
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -19,53 +16,8 @@ from backend_v2.exceptions import AppException, ErrorCodes
 logger = logging.getLogger(__name__)
 
 
-def _extract_pdf(file_bytes: bytes) -> str:
-    """CPU-bound hook helper to extract text strictly from PDF bytes via PyMuPDF."""
-    import pymupdf4llm  # Epic 12 Requirement
-
-    doc = fitz.open(stream=file_bytes, filetype="pdf")
-    md_text = str(pymupdf4llm.to_markdown(doc))
-    doc.close()
-    return md_text.strip()
-
-
 async def resolve_input(val: Any) -> str:
-    """Helper to detect Base64 V1-style payloads and route them strictly to extraction."""
-    if isinstance(val, dict) and "content_base64" in val:
-        file_bytes = base64.b64decode(val["content_base64"])
-        filename = val.get("filename", "unknown.txt").lower()
-
-        # V2 AMNESIA (Claim Check -tason optimointi):
-        # Tuhoamme massiivisen binääridatan viittauksen heti, kun se on luettu lokaaliin muistiin.
-        # Tämä estää StateProjectoria tallentamasta ja kopioimasta megatavujen kokoista
-        # Base64-roskaa ajon tietokantaan ja muihin työnkulun loppupään asiantuntijasolmuihin.
-        # Hylkäämme koodin The Wayn mukaisesti kokonaan ilman turhia placeholdereita.
-        del val["content_base64"]
-
-        logger.info("[InputProcessingHook] Detected binary input payload: %s", filename)
-
-        if filename.endswith(".pdf"):
-            logger.info("[InputProcessingHook] Running PyMuPDF extraction for %s", filename)
-            try:
-                extracted = await run_in_threadpool(_extract_pdf, file_bytes)
-                logger.debug("[InputProcessingHook] Extracted %s chars from %s", len(extracted), filename)
-                return extracted
-            except Exception as e:
-                # V2 STRICT FAIL-FAST
-                logger.error(
-                    "Failed to extract text from PDF.",
-                    extra={"error_code": "FILE_EXTRACTION_FAILED", "filename": filename, "detail": str(e)},
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Failed to extract text from PDF {filename}",
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    details={"error_code": "FILE_EXTRACTION_FAILED"},
-                ) from e
-        else:
-            return file_bytes.decode("utf-8", errors="ignore")
-    elif isinstance(val, str):
-        return val
+    """Helper to detect string outputs from API layer Extractor or resolve natively."""
     return str(val) if val else ""
 
 

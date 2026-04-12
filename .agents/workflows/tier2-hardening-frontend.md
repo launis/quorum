@@ -20,26 +20,12 @@ Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus
     <phase id="2" name="Auditing (Systemaattinen Auditointi, One Subdirectory At A Time)">
 Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
 1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto.
-2. Vastaa aina ensin tällä tarkistuslistalla ennen analyysin tulostamista tai koodin lukemista. Konkreettiset ohjeet, kiellot ja soveltamistavat jokaiselle teemalle löytyvät sähkeestä `02_flutter_desktop.md`. Etsi ja auditoi koodista nämä teemat:
-
-<audit_mandates>
-  <rule>Vain YKSI alin alihakemisto valittu analyysiin.</rule>
-  <rule>Generoidut tiedostot (`.g.dart`, `.freezed.dart`) ohitettu onnistuneesti.</rule>
-  <rule>Fail-Fast Client Firewall (Strict JSON, ei oletusarvoja/fallbackeja).</rule>
-  <rule>Riverpod Code Gen Mandate (Vain `@riverpod` sallittu, ei manuaalisia providereita).</rule>
-  <rule>State Management & Loading Flags (Optimistic updates, ei raskaiden latausten vilkuttamista UI:ssa).</rule>
-  <rule>The Three Riverpod Boundaries (Säännöt Widgettien, Notifierien ja Repo-rajapintojen välillä, ei "Jumala-widgettejä").</rule>
-  <rule>Frontend Zero Leaks (Riverpod tilojen invalidointi suojauksena. Puhdista herkkä data aina kun Widget hävitetään).</rule>
-  <rule>Error Handling & Unwrapping (RFC 7807, AppErrorBoundary): ÄLÄ tuplageneroi virheviestejä UI:ssa. Pura `DioException` `AppException`-luokaksi ja tulosta ErrorView:ssä vain `detail` asiakkaalle, tekniset jäljet laitetaan haitariin. Ei tyhjiä `catch`-lohkoja.</rule>
-  <rule>Concurrency & Isolate Mandate (Raskaat JSON-purut turvakaranteeniin `Isolate.run`in taakse).</rule>
-  <rule>Strict Freezed & Dart 3 Pattern Matching (Natiivi switch, map/when kiellot, O(1) listat).</rule>
-  <rule>Native Freezed/JSON parsing Priority over custom fromJson logic (Sama periaate kuin Pydantic Field() vs @field_validator).</rule>
-  <rule>Strongly Typed Routing & $extra Ban (Vain URL-pohjainen Opaque ID-reititys, ei objektien siirtoa reitittimen avulla).</rule>
-  <rule>Zero-Hardcoding & 5-Layer I18N (Backend Enums, ei UI-merkkijonoja liiketoimintalogiikassa ehtolauseina).</rule>
-</audit_mandates>
-
-3. Lue KAIKKI kyseisen alihakemiston `.dart`-tiedostot (pl. sivuutettavat). Työskentele yllä olevan tarkistuslistan avulla peilaten löydöksiä `02_flutter_desktop.md` mukaisiksi. Raportoi löydökset kansion sisältä. Jos alihakemisto on puhdas, kerro se. Pysähdy odottamaan komentoa "FIX" (jos virheitä löytyi) tai "NEXT" (jos kansio oli puhdas).
-4. **STATE PERSISTENCE (TALLENNUS):** Kun kansio on valmis (eli se oli puhdas TAI sait komennon korjata ja korjasit onnistuneesti), päivitä VÄLITTÖMÄSTI (lue, lisää, tallenna) `c:\src\quorum\tmp\hardening_state.json` ja merkkaa tämä alihakemisto tilaan "DONE".
+2. Lue ensin tiukasti KAIKKI kyseisen alihakemiston `.dart`-tiedostot (pl. sivuutettavat kansiot/tiedostot).
+3. **MANDATOITU TRACEABILITY MATRIX**: Sinun on **EHDOTTOMASTI** raportoitava havaintosi tulostamalla chattiin tarkka Markdown-taulukko ("Audit Matrix"). Sinun on kirjoitettava tähän taulukkoon rivi *jokaiselle* `00-antigravity-core.md` ja `02_flutter_desktop.md` -tiedostoissa mainitulle säännölle (esim. `riverpod_code_gen_mandate`, `opaque_stripe_id_mandate`, `frontend_zero_leaks`, `strongly_typed_routing` jne).
+   - Käytä sarakkeita: `| Rule Block ID / Sääntö | Tila (Pass / Fail) | Löydökset & Perustelu |`.
+   - Varmista, että todella käyt läpi koodista säännösten <banned_pattern> ja <mandatory_pattern> asiat kohta kohdalta. Tämä poistaa hallusinaatiot ja ohitukset.
+4. Pysähdy taulukon tulostamisen jälkeen. Odotan sen näkemistä. Jää odottamaan komentoa "FIX" (jos asioita on korjattavana / Fail) tai komentoa "NEXT" (jos kaikki säännöt olivat puhtaasti Pass).
+5. **STATE PERSISTENCE (TALLENNUS):** Kun kansio on valmis (eli sait komennon korjata ja korjasit, TAI se oli heti puhdas), päivitä VÄLITTÖMÄSTI `c:\src\quorum\tmp\hardening_state.json` ja merkkaa tämä alihakemisto tilaan "DONE".
 5. **SESSION LIMIT**: Jos olet käsitellyt 5 kansiota TÄSSÄ sessiossa, LOPETA välittömästi. Älä siirry seuraavaan. Tulosta käyttäjälle: *"Sessioraja (5 kansiota) saavutettu. Avaa uusi chat-ikkuna ja anna komento `/tier2-hardening-frontend --resume` jatkaaksesi laatuporttia turvallisesti."* 
     </phase>
     <critical_remediation_protocol name="STEP 3 - FIX (Korjausvaihe)">

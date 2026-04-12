@@ -40,8 +40,7 @@ def normalize_score_to_100(score: float, math_min: float, math_max: float) -> fl
 
 
 def calculate_scaled_score(score: float, number_of_options: int, scale_min: float, scale_max: float) -> float:
-    """Calculate the absolute scaled position mathematically from raw output to configured scale.
-    """
+    """Calculate the absolute scaled position mathematically from raw output to configured scale."""
     if scale_min >= scale_max:
         msg = f"Invalid scale definition: scale_min ({scale_min}) >= scale_max ({scale_max})."
         logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
@@ -171,7 +170,9 @@ def calculate_weighted_score(level_stats: dict[float, dict[str, int]], scale_min
     return max(scale_min, min(scale_max, scaled_val))
 
 
-def calculate_progressive_dampening_score(level_stats: dict[float, dict[str, int]], scale_min: float, scale_max: float) -> float:
+def calculate_progressive_dampening_score(
+    level_stats: dict[float, dict[str, int]], scale_min: float, scale_max: float
+) -> float:
     """Calculate the CDM (Cognitive Diagnostic Model) / DINA score using Progressive Dampening.
 
     Instead of a hard threshold floor, each level acts as a modifier (amplifier/dampener)
@@ -214,13 +215,13 @@ def calculate_progressive_dampening_score(level_stats: dict[float, dict[str, int
         else:
             # How much points this level represents
             step_value = level - prev_level
-            
+
             # The achieved points are dampened by the upstream modifier
             achieved_score += step_value * hit_rate * modifier
-            
+
             # The modifier is progressively dampened for the *next* iterations
             modifier = modifier * hit_rate
-            
+
         prev_level = level
 
     return float(max(scale_min, min(scale_max, achieved_score)))

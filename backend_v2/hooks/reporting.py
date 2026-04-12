@@ -392,16 +392,16 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
                 all_grouped_ext.setdefault("confidence", []).append(f"[{k}] {confidence}")
 
     if all_grouped_ext:
-        logger.info("\n" + "="*60)
+        logger.info("\n" + "=" * 60)
         logger.info("  XAI OUTPUT EXTENSIONS (CONSOLE RENDER)")
-        logger.info("="*60)
+        logger.info("=" * 60)
         for ext_key, items in all_grouped_ext.items():
             logger.info(f"[{ext_key.upper()}] ({len(items)} items)")
-            for i, itm in enumerate(items[:3]):
+            for _i, itm in enumerate(items[:3]):
                 logger.info(f"  - {itm}")
             if len(items) > 3:
-                logger.info(f"  ... (+ {len(items)-3} more)")
-        logger.info("="*60 + "\n")
+                logger.info(f"  ... (+ {len(items) - 3} more)")
+        logger.info("=" * 60 + "\n")
 
     # If this hook is just preparing data for separate generation step:
     logger.info("[ReportingHook] Report context prepared and validated successfully.")

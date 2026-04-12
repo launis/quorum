@@ -1,6 +1,7 @@
 """Blueprint Transformer Service for V3 Extreme MVC."""
 
 import logging
+from typing import Any
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -254,7 +255,8 @@ class BlueprintTransformer:
                             emotional_sentiment = v.get("extension_emotional_sentiment")
                             score_val = v.get("step_4_final_score", 999)
                         else:
-                            eval_notes = step_data_res.get("evaluation_notes", "")
+                            legacy_dina_notes = step_data_res.get(f"{k}_justification", "")
+                            eval_notes = step_data_res.get("evaluation_notes", legacy_dina_notes)
                             raw_justification = str(step_data_res.get("step_3_logical_friction", eval_notes) or "")
                             raw_cited_source_id = str(step_data_res.get("step_1b_cited_source_id", ""))
                             raw_cited_text_quote = str(step_data_res.get("step_1_evidence_quote", ""))
@@ -264,7 +266,9 @@ class BlueprintTransformer:
                             raw_risk_flag = step_data_res.get("extension_risk_flag")
                             coaching = step_data_res.get("extension_coaching")
                             confidence = step_data_res.get("extension_confidence")
-                            missing_context = step_data_res.get("extension_missing_context")
+                            missing_context = step_data_res.get(
+                                f"{k}_missing_context", step_data_res.get("extension_missing_context")
+                            )
                             remediation_steps = step_data_res.get("extension_remediation_steps")
                             emotional_sentiment = step_data_res.get("extension_emotional_sentiment")
                             score_val = (
@@ -319,9 +323,9 @@ class BlueprintTransformer:
             if max_extension_items is not None and len(items) > max_extension_items:
                 # Sort by score ascending (lowest score is most critical)
                 items.sort(
-                    key=lambda x: getattr(x, "_score", x.get("_score", 999))
+                    key=lambda x: float(x.get("_score", 999.0) if x.get("_score") is not None else 999.0)
                     if isinstance(x, dict)
-                    else getattr(x, "_score", 999)
+                    else float(getattr(x, "_score", 999.0) or 999.0)
                 )
                 grouped_extensions[ext_group] = items[:max_extension_items]
 
@@ -354,7 +358,7 @@ class BlueprintTransformer:
         profile_cache = execution.profile_syntheses.get(resolved_pid)
         section_syntheses = {}
         synthesis_md = None
-        xai_highlights_cache = []
+        xai_highlights_cache: list[Any] = []
         if profile_cache:
             section_syntheses = profile_cache.section_syntheses
             synthesis_md = profile_cache.synthesized_markdown
@@ -511,8 +515,10 @@ class BlueprintTransformer:
                                     and block.get("scale_min") is not None
                                     and block.get("scale_max") is not None
                                 ):
-                                    scale_min = float(block.get("scale_min"))
-                                    scale_max = float(block.get("scale_max"))
+                                    scale_min_val = block.get("scale_min")
+                                    scale_max_val = block.get("scale_max")
+                                    scale_min = float(scale_min_val) if scale_min_val is not None else 0.0
+                                    scale_max = float(scale_max_val) if scale_max_val is not None else 0.0
 
                                 # SDUI Logic calculation for Mathless Flutter
                                 ui_plot_ratio = None
@@ -572,7 +578,8 @@ class BlueprintTransformer:
                                             remediation_steps = v.get("extension_remediation_steps")
                                             emotional_sentiment = v.get("extension_emotional_sentiment")
                                         else:
-                                            eval_notes = step_data.get("evaluation_notes", "")
+                                            legacy_dina_notes = step_data.get(f"{k}_justification", "")
+                                            eval_notes = step_data.get("evaluation_notes", legacy_dina_notes)
                                             justification = str(
                                                 step_data.get("step_3_logical_friction", eval_notes) or ""
                                             )
@@ -584,7 +591,9 @@ class BlueprintTransformer:
                                             risk_flag = step_data.get("extension_risk_flag")
                                             coaching = step_data.get("extension_coaching")
                                             confidence = step_data.get("extension_confidence")
-                                            missing_context = step_data.get("extension_missing_context")
+                                            missing_context = step_data.get(
+                                                f"{k}_missing_context", step_data.get("extension_missing_context")
+                                            )
                                             remediation_steps = step_data.get("extension_remediation_steps")
                                             emotional_sentiment = step_data.get("extension_emotional_sentiment")
 
@@ -614,7 +623,7 @@ class BlueprintTransformer:
                                 )
 
                 # Epic 13: Enforce strict 3D Tuple Ordinality (X, Y, Z)
-                # Dictionary iteration is non-deterministic. We MUST sort the extracted axes 
+                # Dictionary iteration is non-deterministic. We MUST sort the extracted axes
                 # according to the explicitly provided `target_blocks` array order.
                 axes = []
                 if target_blocks and "*" not in target_blocks:

@@ -32,11 +32,13 @@ def mock_repository():
         return_value={
             "models": {
                 "fast": {
-                    "provider": "openai",
+                    "provider": "lite_llm",
                     "model_name": "gpt-4o-mini",
                     "temperature": 0.2,
                     "max_tokens": 1000,
                     "is_active": True,
+                    "tpm_limit": 10000,
+                    "rpm_limit": 1000,
                 }
             }
         }
@@ -59,7 +61,7 @@ async def test_run_structured_task_self_healing_success(mock_repository):
     mock_provider = AsyncMock()
     mock_provider.generate.side_effect = [bad_response, good_response]
 
-    with patch("backend_v2.llm.client.LLMFactory.create_provider", return_value=mock_provider):
+    with patch("backend_v2.llm.provider.LLMFactory.create_provider", return_value=mock_provider):
         messages = [{"role": "user", "content": "Hello"}]
 
         result, usage = await client.run_structured_task(
@@ -92,7 +94,7 @@ async def test_run_structured_task_self_healing_exhaustion(mock_repository):
     mock_provider = AsyncMock()
     mock_provider.generate.side_effect = bad_responses  # Exactly 2 fail responses
 
-    with patch("backend_v2.llm.client.LLMFactory.create_provider", return_value=mock_provider):
+    with patch("backend_v2.llm.provider.LLMFactory.create_provider", return_value=mock_provider):
         with pytest.raises(AgentExecutionError) as exc_info:
             # Limit retries to 2 for exhaust test
             await client.run_structured_task(

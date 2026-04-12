@@ -50,29 +50,19 @@ class ExecutionService:
             msg = f"Failed to list executions: {str(e)}"
             logger.error("[ExecutionService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
             raise AppException(
-                message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
             ) from e
 
     async def get_execution(self, initiator: TokenData, execution_id: str) -> ExecutionRecord:
         """Fetch single execution securely."""
         data = await self.repo.get_execution(execution_id)
         if not data:
-            logger.error(
-                "[ExecutionService] %s: %s",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                f"Execution {execution_id} not found or corrupted.",
-            )
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
         # SSOT MANDATE: Tenant Isolation Check
         org_id = getattr(initiator, "organization_id", None)
         if initiator.role != "ROOT" and data.organization_id != org_id and data.created_by != initiator.id:
             msg = "You do not have permission to view this execution."
-            logger.error(
-                "[ExecutionService] %s: %s",
-                ErrorCodes.PERMISSION_DENIED.name,
-                f"User {initiator.id} attempted to access foreign execution {execution_id}.",
-            )
             raise PermissionDeniedError(msg)
 
         return data
@@ -84,9 +74,6 @@ class ExecutionService:
         repo_driver = getattr(self.repo, "driver", None)
         raw_data = await repo_driver.get("executions", execution_id) if repo_driver else None
         if not raw_data:
-            logger.error(
-                "[ExecutionService] %s: Execution %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, execution_id
-            )
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
         # SSOT MANDATE: Tenant Isolation Check
@@ -97,11 +84,6 @@ class ExecutionService:
             and raw_data.get("created_by") != initiator.id
         ):
             msg = "You do not have permission to delete this execution."
-            logger.error(
-                "[ExecutionService] %s: %s",
-                ErrorCodes.PERMISSION_DENIED.name,
-                f"User {initiator.id} attempted to delete foreign execution {execution_id}.",
-            )
             raise PermissionDeniedError(msg)
 
         try:
@@ -126,7 +108,7 @@ class ExecutionService:
             msg = f"Failed to delete execution {execution_id}: {str(e)}"
             logger.error("[ExecutionService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
             raise AppException(
-                message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
             ) from e
 
     async def start_execution(
@@ -135,9 +117,6 @@ class ExecutionService:
         """Initialize and trigger workflow securely."""
         workflow_dict = await self.repo.get_workflow_by_id(payload.workflow_id)
         if not workflow_dict:
-            logger.error(
-                "[ExecutionService] %s: Workflow %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, payload.workflow_id
-            )
             raise ResourceNotFoundError(resource_type="workflow", resource_id=payload.workflow_id)
 
         workflow = Workflow.model_validate(workflow_dict)
@@ -146,11 +125,6 @@ class ExecutionService:
         org_id = getattr(initiator, "organization_id", None)
         if initiator.role != "ROOT" and workflow.organization_id not in [org_id, "org_system000000", None]:
             msg = "You do not have permission to execute this workflow."
-            logger.error(
-                "[ExecutionService] %s: %s",
-                ErrorCodes.PERMISSION_DENIED.name,
-                f"{initiator.id} tried to start foreign workflow '{workflow.id}'.",
-            )
             raise PermissionDeniedError(msg)
 
         # Circuit Breaker: Denial of Wallet Protection
@@ -185,7 +159,6 @@ class ExecutionService:
 
         if missing_fields:
             msg = f"Missing required inputs from payload: {', '.join(missing_fields)}"
-            logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(
                 message=msg,
                 status_code=400,
@@ -275,8 +248,7 @@ class ExecutionService:
         resolved_profile_id = payload.profile_id or workflow.default_profile_id
         if not workflow.output_profiles or resolved_profile_id not in workflow.output_profiles:
             msg = f"Profile ID '{resolved_profile_id}' not found in workflow '{workflow.id}'."
-            logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         execution_id = f"exe_{uuid4().hex}"
         initial_record = ExecutionRecord(
@@ -287,7 +259,11 @@ class ExecutionService:
             output_profile_id=resolved_profile_id,
             frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
             step_states=step_states,
-            metadata={"target_locale": target_locale, "profile_id": resolved_profile_id},
+            metadata={
+                "target_locale": target_locale,
+                "profile_id": resolved_profile_id,
+                "matrix_sampling_strategy": payload.matrix_sampling_strategy,
+            },
             created_by=initiator.id,
             organization_id=getattr(initiator, "organization_id", None),
         )
@@ -316,7 +292,6 @@ class ExecutionService:
                 f"Cannot resume execution in state {record.status.value}. "
                 "Only FAILED or PENDING executions can be resumed."
             )
-            logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         # Circuit Breaker: Denial of Wallet Protection
@@ -423,10 +398,6 @@ class ExecutionService:
 
         if execution.status != ExecutionStatus.COMPLETED:
             msg = f"Execution is not in COMPLETED state. Current status: {execution.status.value}"
-            logger.error(
-                "[ExecutionService] Execution not COMPLETED",
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "execution_status": execution.status.value},
-            )
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         fmt = format_type.lower()
@@ -533,8 +504,4 @@ class ExecutionService:
 
         else:
             msg = f"Unsupported format: {format_type}"
-            logger.error(
-                "[ExecutionService] Unsupported format",
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "format": format_type},
-            )
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})

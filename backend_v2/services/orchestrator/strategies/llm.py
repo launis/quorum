@@ -79,6 +79,7 @@ class LLMNodeStrategy(NodeStrategy):
         target_profile = context.metadata.get("profile_id")
         if not target_profile:
             from backend_v2.exceptions import ConfigurationError
+
             msg = f"Execution metadata missing mandatory 'profile_id' for workflow {context.workflow_id}."
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
@@ -104,6 +105,9 @@ class LLMNodeStrategy(NodeStrategy):
         # Epic 12: Generate Thick XML/Markdown rubrics for System Prompt
         xml_rubrics = self.compiler.compile_xml_rubrics(criteria_blocks, target_locale)
 
+        # Epic 20 Phase 7: Strict Blind System Instruction
+        blind_instruction = self.compiler.compile_blind_system_instruction(target_locale)
+
         # Epic 13 M2: Resolve tools and build dynamic instruction
         effective_mcp_tools = step_obj.allowed_mcp_tools
         mcp_instruction = self.compiler.generate_mcp_instruction(effective_mcp_tools)
@@ -111,6 +115,8 @@ class LLMNodeStrategy(NodeStrategy):
         system_prompt = "Complete the evaluation according to the provided schema."
         if static_instructions:
             system_prompt += f"\n\n{static_instructions}"
+        if blind_instruction:
+            system_prompt += f"\n\n{blind_instruction}"
         if xml_rubrics:
             system_prompt += f"\n\n{xml_rubrics}"
         if mcp_instruction:
@@ -134,13 +140,25 @@ class LLMNodeStrategy(NodeStrategy):
         if dynamic_instructions:
             user_payload += f"\n\n--- RUNTIME AWARENESS ---\n{dynamic_instructions}"
 
-        has_search = any("search_result" in v for v in state_data.values() if isinstance(v, dict))
-        dynamic_schema = self.compiler.build_dynamic_schema(
-            schema_name=f"Step_{step.id}_Response",
-            criteria=criteria_blocks,
-            has_search_result=has_search,
-            target_locale=target_locale,
-        )
+        # Epic 20 Phase 7: Inject Shuffled Atoms for Blind Evaluation
+        if "shuffled_atoms" in state_data:
+            shuffled_atoms = state_data["shuffled_atoms"]
+
+            if not isinstance(shuffled_atoms, list) or len(shuffled_atoms) == 0:
+                msg = f"Strict Fail-Fast Enforced: 'shuffled_atoms' is empty or not a list for step '{step.id}'."
+                logger.error("[LLMStrategy] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+
+            import json
+
+            atoms_json = json.dumps(shuffled_atoms, ensure_ascii=False, indent=2)
+            user_payload += f"\n\n<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>\n"
+
+        dynamic_schema = self.compiler.build_blind_evaluation_schema(schema_name=f"Step_{step.id}_Response")
 
         if frozen_ctx:
             frozen_ctx.generated_schemas[step.id] = dynamic_schema.model_json_schema()
@@ -187,13 +205,11 @@ class LLMNodeStrategy(NodeStrategy):
 
                 if frozen_ctx and loop_result.audit_traces:
                     # Deduplicate at the orchestrator root to prevent DB bloat across DAG retries or LLM loop confusions
-                    existing_hashes = {
-                        f"{a.tool_id}::{a.query}" for a in frozen_ctx.mcp_tool_audit
-                    }
-                    for trace in loop_result.audit_traces:
-                        thash = f"{trace.tool_id}::{trace.query}"
+                    existing_hashes = {f"{a.tool_id}::{a.query}" for a in frozen_ctx.mcp_tool_audit}
+                    for t_trace in loop_result.audit_traces:
+                        thash = f"{t_trace.tool_id}::{t_trace.query}"
                         if thash not in existing_hashes:
-                            frozen_ctx.mcp_tool_audit.append(trace)
+                            frozen_ctx.mcp_tool_audit.append(t_trace)
                             existing_hashes.add(thash)
             except Exception as e:
                 logger.error(

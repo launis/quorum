@@ -6,13 +6,18 @@ from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-def get_tinydb_records(table_data):
+
+from typing import Any
+
+
+def get_tinydb_records(table_data: dict[str, Any] | None) -> list[Any]:
     # TinyDB stores records as dict values inside the table dict
     if not table_data:
         return []
     return list(table_data.values())
 
-def main():
+
+def main() -> None:
     root_dir = Path("c:/src/quorum")
     db_path = root_dir / "data" / "db_v2.json"
     seed_path = root_dir / "backend_v2" / "seed" / "seed_data.json"
@@ -30,14 +35,14 @@ def main():
     # --- 2. LOAD FILES ---
     logging.info("Reading source files...")
     try:
-        with open(db_path, encoding='utf-8') as f:
+        with open(db_path, encoding="utf-8") as f:
             live_db = json.load(f)
     except Exception as e:
         logging.error(f"Failed to read {db_path}: {e}")
         sys.exit(1)
 
     try:
-        with open(seed_path, encoding='utf-8') as f:
+        with open(seed_path, encoding="utf-8") as f:
             seed_data = json.load(f)
     except Exception as e:
         logging.error(f"Failed to read {seed_path}: {e}")
@@ -45,7 +50,7 @@ def main():
 
     # --- 3. SURGICAL EXTRACTION ---
     logging.info("Extracting `output_profiles` ONLY from live database...")
-    live_profiles_data = live_db.get('output_profiles', {})
+    live_profiles_data = live_db.get("output_profiles", {})
     live_profiles_list = get_tinydb_records(live_profiles_data)
 
     if not live_profiles_list:
@@ -55,34 +60,36 @@ def main():
     logging.info(f"Found {len(live_profiles_list)} output profiles in live database.")
 
     # Check old profile count for reporting
-    old_profiles_list = seed_data.get('output_profiles', [])
+    old_profiles_list = seed_data.get("output_profiles", [])
     logging.info(f"Current seed config has {len(old_profiles_list)} output profiles.")
 
     # --- 4. SYNERGY CORRECTION (3d_matrix) ---
     updated_layout_count = 0
     for profile in live_profiles_list:
-        if 'layouts' in profile:
-            for layout in profile['layouts']:
-                if layout.get('preset_view') == '3d_complex':
-                    layout['preset_view'] = '3d_matrix'
+        if "layouts" in profile:
+            for layout in profile["layouts"]:
+                if layout.get("preset_view") == "3d_complex":
+                    layout["preset_view"] = "3d_matrix"
                     updated_layout_count += 1
 
-    logging.info(f"Synergy correction complete: Converted {updated_layout_count} instances of '3d_complex' to '3d_matrix'.")
+    logging.info(
+        f"Synergy correction complete: Converted {updated_layout_count} instances of '3d_complex' to '3d_matrix'."
+    )
 
     # Replace ONLY the output_profiles in the seed dictionary
-    seed_data['output_profiles'] = live_profiles_list
+    seed_data["output_profiles"] = live_profiles_list
 
     # --- 5. WRITE AND VALIDATE ---
     logging.info("Writing updated seed file...")
-    with open(seed_path, 'w', encoding='utf-8') as f:
+    with open(seed_path, "w", encoding="utf-8") as f:
         json.dump(seed_data, f, indent=2, ensure_ascii=False)
 
     # Python Audit (Runtime): Read immediately to verify
     logging.info("Running Python Audit (Runtime)...")
-    with open(seed_path, encoding='utf-8') as f:
+    with open(seed_path, encoding="utf-8") as f:
         audit_data = json.load(f)
 
-    audit_profiles = audit_data.get('output_profiles', [])
+    audit_profiles = audit_data.get("output_profiles", [])
     if len(audit_profiles) != len(live_profiles_list):
         logging.error("FATAL AUDIT MISMATCH: Written profiles length does not match extracted length.")
         sys.exit(1)
@@ -90,12 +97,12 @@ def main():
     complex_count = 0
     matrix_count = 0
     for profile in audit_profiles:
-        if 'layouts' in profile:
-            for layout in profile['layouts']:
-                pv = layout.get('preset_view')
-                if pv == '3d_complex':
+        if "layouts" in profile:
+            for layout in profile["layouts"]:
+                pv = layout.get("preset_view")
+                if pv == "3d_complex":
                     complex_count += 1
-                elif pv == '3d_matrix':
+                elif pv == "3d_matrix":
                     matrix_count += 1
 
     if complex_count > 0:
@@ -105,5 +112,6 @@ def main():
     logging.info(f"Python Audit PASS. Verified {matrix_count} '3d_matrix' layouts inside seed file.")
     print("SUCCESS_FLAG")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

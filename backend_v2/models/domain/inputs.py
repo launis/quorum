@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 logger = logging.getLogger(__name__)
 
@@ -29,3 +29,23 @@ class WorkflowInputs(BaseModel):
     # Config: Allow new fields so dynamic inputs are retained.
     # frozen=True ensures immutability once created.
     model_config = ConfigDict(extra="allow", frozen=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def prevent_base64_pollution(cls, data: Any) -> Any:
+        """Fail-Fast filter: BANS content_base64 to protect against massive DB memory blobs."""
+        if not isinstance(data, dict):
+            return data
+
+        for k, v in data.items():
+            if isinstance(v, dict) and "content_base64" in v:
+                from backend_v2.exceptions import ConfigurationError, ErrorCodes
+
+                msg = (
+                    f"V2 Strict Mandate: Binary 'content_base64' payload detected in input '{k}'. "
+                    "All Base64 extraction MUST occur synchronously at the API Router level "
+                    "before reaching the Domain models. Do not serialize PDFs into the DB!"
+                )
+                logger.error("[WorkflowInputs] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        return data

@@ -24,12 +24,77 @@ async def list_executions(
 
 @router.post("/", response_model=ExecutionRecord, status_code=status.HTTP_202_ACCEPTED)
 async def start_execution(
-    payload: ExecutionCreate,
+    request: Request,
     arq_pool: ArqPoolDep,
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
 ) -> ExecutionRecord:
-    """Start an asynchronous workflow execution securely via SSOT."""
+    """Start an asynchronous workflow execution securely via SSOT.
+
+    EAGER EXTRACTION PATTERN: Intercepts PDF Base64 strings, resolves them
+    via PyMuPDF, and replaces them with Raw Text before Pydantic validation.
+    """
+    import base64
+
+    import fitz
+    from fastapi.concurrency import run_in_threadpool
+
+    from backend_v2.exceptions import AppException
+
+    def _extract_pdf(file_bytes: bytes) -> str:
+        """Isolated CPU-bound PyMuPDF extraction."""
+        import pymupdf4llm
+
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        md_text = str(pymupdf4llm.to_markdown(doc))
+        doc.close()
+        return md_text.strip()
+
+    try:
+        data = await request.json()
+    except Exception as e:
+        raise AppException(
+            message="Invalid JSON payload",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": "VALIDATION_FAILED"},
+        ) from e
+
+    raw_inputs = data.get("raw_inputs", {})
+    if isinstance(raw_inputs, dict):
+        for key, val in raw_inputs.items():
+            if isinstance(val, dict) and "content_base64" in val:
+                filename = val.get("filename", "unknown.pdf").lower()
+                try:
+                    file_bytes = base64.b64decode(val["content_base64"])
+                    if filename.endswith(".pdf"):
+                        logger.info(
+                            "[EagerExtraction] Found binary PDF %s. Extracting synchronously at Router.", filename
+                        )
+                        extracted = await run_in_threadpool(_extract_pdf, file_bytes)
+                        # Destroy base64 blob, replace with string
+                        raw_inputs[key] = extracted
+                    else:
+                        logger.info("[EagerExtraction] Found text file %s. Decoding.", filename)
+                        raw_inputs[key] = file_bytes.decode("utf-8", errors="ignore")
+                except Exception as e:
+                    logger.error("[EagerExtraction] Failed to extract %s", filename, exc_info=True)
+                    raise AppException(
+                        message=f"Failed to extract text from {filename}",
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        details={"error_code": "FILE_EXTRACTION_FAILED"},
+                    ) from e
+
+    from pydantic import ValidationError
+
+    try:
+        payload = ExecutionCreate(**data)
+    except ValidationError as e:
+        raise AppException(
+            message=f"Payload validation failed: {str(e)}",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            details={"error_code": "VALIDATION_FAILED", "errors": e.errors()},
+        ) from e
+
     return await execution_service.start_execution(initiator=current_user, payload=payload, arq_pool=arq_pool)
 
 

@@ -1,0 +1,166 @@
+from typing import Any
+
+import pytest
+
+from backend_v2.core.hook_registry import HookDependencies, HookState
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.hooks.atom_flattening import process_matrix_flattening
+from backend_v2.models.enums import BlockDataType, MatrixSamplingStrategy
+from backend_v2.models.v2_core import (
+    I18nText,
+    MatrixClaim,
+    MatrixScale,
+    PromptBlock,
+    Step,
+)
+
+
+class MockRepository:
+    """A minimal repository mock for testing atomization hooks."""
+
+    def __init__(self, step: Step, blocks: list[PromptBlock]):
+        self._step = step
+        self._blocks = blocks
+
+    async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
+        if step_id == self._step.id:
+            return self._step.model_dump()
+        return {}
+
+    async def get_all_prompt_blocks(self) -> list[dict[str, Any]]:
+        return [b.model_dump() for b in self._blocks]
+
+
+def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> PromptBlock:
+    """Creates a mock matrix PromptBlock with specific scales for testing."""
+    scales = []
+    for score in [1, 5]:
+        claims = [
+            MatrixClaim(
+                label=I18nText(default_locale="en", translations={"en": f"Claim {score}"}),
+                ai_description=f"Desc {score}",
+                micro_atoms=[f"Atom {score}-{i}" for i in range(num_atoms_per_scale)],
+            )
+        ]
+        scales.append(
+            MatrixScale(
+                score=score,
+                ai_label=f"Label {score}",
+                claims=claims,
+            )
+        )
+
+    return PromptBlock(
+        id=block_id,
+        slug=f"slug-{block_id}",
+        label=I18nText(default_locale="en", translations={"en": f"Label {block_id}"}),
+        description=I18nText(default_locale="en", translations={"en": f"Desc {block_id}"}),
+        category_id="matrix",
+        type=BlockDataType.FLOAT,
+        scale_min=1,
+        scale_max=5,
+        scales=scales,
+    )
+
+
+@pytest.fixture
+def base_hook_state() -> HookState:
+    return HookState(
+        step_id="step_1",
+        execution_id="exec_123",
+        workflow_id="wf_123",
+        task_blueprint="bp_step_1",
+        inputs={},
+        global_context_vars={},
+        metadata={"matrix_sampling_strategy": MatrixSamplingStrategy.MINIMAL.value},
+    )
+
+
+@pytest.fixture
+def mock_step() -> Step:
+    return Step(
+        id="bp_step_1",
+        name=I18nText(default_locale="en", translations={"en": "Test Step"}),
+        slug="test-step",
+        description=I18nText(default_locale="en", translations={"en": "Test Desc"}),
+        prompt_blocks=["block_1", "block_2"],
+    )
+
+
+@pytest.mark.asyncio
+async def test_atom_flattening_missing_strategy_fails_fast(base_hook_state: HookState, mock_step: Step) -> None:
+    """Test that missing matrix_sampling_strategy triggers fail-fast."""
+    base_hook_state.metadata = {}  # Empty metadata
+
+    repo = MockRepository(step=mock_step, blocks=[])
+    deps = HookDependencies(repository=repo)  # type: ignore[arg-type]
+
+    with pytest.raises(AppException) as exc_info:
+        await process_matrix_flattening(base_hook_state, deps)  # type: ignore[misc]
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR.value
+    assert "requires 'matrix_sampling_strategy'" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_atom_flattening_invalid_strategy_fails_fast(base_hook_state: HookState, mock_step: Step) -> None:
+    """Test that invalid matrix_sampling_strategy triggers fail-fast."""
+    base_hook_state.metadata = {"matrix_sampling_strategy": 999}  # Invalid enum value
+
+    repo = MockRepository(step=mock_step, blocks=[])
+    deps = HookDependencies(repository=repo)  # type: ignore[arg-type]
+
+    with pytest.raises(AppException) as exc_info:
+        await process_matrix_flattening(base_hook_state, deps)  # type: ignore[misc]
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR.value
+    assert "Invalid matrix_sampling_strategy" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_atom_flattening_stratified_sampling(base_hook_state: HookState, mock_step: Step) -> None:
+    """Test Stratified sampling selects exactly N elements per scale."""
+    block = create_mock_matrix_block("block_1", num_atoms_per_scale=10)
+    repo = MockRepository(step=mock_step, blocks=[block])
+    deps = HookDependencies(repository=repo)  # type: ignore[arg-type]
+
+    # Use STRATIFIED_3
+    base_hook_state.metadata = {"matrix_sampling_strategy": MatrixSamplingStrategy.BALANCED.value}
+
+    result = await process_matrix_flattening(base_hook_state, deps)  # type: ignore[misc]
+
+    assert result.success is True
+    assert "shuffled_atoms" in result.state_delta
+
+    shuffled_atoms = result.state_delta["shuffled_atoms"]
+    assert isinstance(shuffled_atoms, list)
+    # 2 scales (1 and 5), 3 samples each = 6 total atoms
+    assert len(shuffled_atoms) == 6
+
+    # Verify keys
+    for item in shuffled_atoms:
+        assert "atom_id" in item
+        assert "question" in item
+
+
+@pytest.mark.asyncio
+async def test_atom_flattening_all_strategy_no_sampling(base_hook_state: HookState, mock_step: Step) -> None:
+    """Test ALL sampling strategy flattens everything without dropping."""
+    block = create_mock_matrix_block("block_1", num_atoms_per_scale=5)
+    repo = MockRepository(step=mock_step, blocks=[block])
+    deps = HookDependencies(repository=repo)  # type: ignore[arg-type]
+
+    # Use ALL
+    base_hook_state.metadata = {"matrix_sampling_strategy": MatrixSamplingStrategy.ALL.value}
+
+    result = await process_matrix_flattening(base_hook_state, deps)  # type: ignore[misc]
+
+    assert result.success is True
+    assert "shuffled_atoms" in result.state_delta
+
+    shuffled_atoms = result.state_delta["shuffled_atoms"]
+    assert isinstance(shuffled_atoms, list)
+    # 2 scales (1 and 5), 5 samples each = 10 total atoms
+    assert len(shuffled_atoms) == 10

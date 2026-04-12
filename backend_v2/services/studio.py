@@ -220,7 +220,7 @@ class StudioService:
             if p.get("workflow_id") == id:
                 new_profile_id = f"prof_{uuid.uuid4().hex[:30]}"
                 profile_mapping[p.get("id")] = new_profile_id
-                
+
                 cloned_profile = p.copy()
                 cloned_profile["id"] = new_profile_id
                 cloned_profile["workflow_id"] = new_id
@@ -363,11 +363,17 @@ class StudioService:
         # -- EPIC 20: Design-Time Syvä-atomisointi
         try:
             from backend_v2.services.orchestrator.atomizer import PromptAtomizer
+
             data = await PromptAtomizer.atomize_prompt_block(data, repository=self.repo)
         except Exception as e:
             logger.error("[StudioService] Atomization failed prior to save: %s", e)
             from backend_v2.exceptions import AppException, ErrorCodes
-            raise AppException(message=f"Atomization failed: {e}", status_code=500, details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL})
+
+            raise AppException(
+                message=f"Atomization failed: {e}",
+                status_code=500,
+                details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
+            ) from e
 
         dump = data.model_dump(mode="json")
         if "id" not in dump:

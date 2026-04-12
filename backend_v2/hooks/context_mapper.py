@@ -22,30 +22,32 @@ class ContextMapper:
 
         instruction = "=== TARGET DATA MAPPING & ANTI-SYCOPHANCY MANDATE ===\n"
         instruction += (
-            "The raw JSON context uses non-semantic unique IDs. Below is their ordinal mapping (1, 2, 3...) and ABSOLUTE mathematical bounds:\n"
+            "The raw JSON context uses non-semantic unique IDs. "
+            "Below is their ordinal mapping (1, 2, 3...) and ABSOLUTE mathematical bounds:\n"
         )
 
         all_blocks = all_blocks or []
-        
+
         for b_idx, block_id in enumerate(target_blocks):
             extrema_str = ""
             for b in all_blocks:
                 from backend_v2.models.v2_core import PromptBlock
+
                 if not isinstance(b, PromptBlock):
                     from backend_v2.exceptions import AppException
-                    msg = "Fail-Fast violation: ContextMapper MUST receive strictly typed PromptBlock models, not raw dictionaries."
-                    logger.error("[ContextMapper] DATA_CORRUPTION: %s", msg, exc_info=True)
-                    raise AppException(
-                        message="Internal compilation error.",
-                        status_code=500,
-                        details={}
+
+                    msg = (
+                        "Fail-Fast violation: ContextMapper MUST receive strictly typed "
+                        "PromptBlock models, not raw dictionaries."
                     )
-                
+                    logger.error("[ContextMapper] DATA_CORRUPTION: %s", msg, exc_info=True)
+                    raise AppException(message="Internal compilation error.", status_code=500, details={})
+
                 if str(b.id) == str(block_id):
                     if b.computed_min is not None and b.computed_max is not None:
                         extrema_str = f" (Absolute Scale Limits: {b.computed_min} to {b.computed_max})"
                     break
-                    
+
             instruction += f"  {b_idx + 1}. Target Data Element -> ID: {block_id}{extrema_str}\n"
 
         instruction += (
@@ -60,11 +62,12 @@ class ContextMapper:
         return instruction
 
     @staticmethod
-    def build_global_mapping(workflow_data: dict[str, Any], selected_layouts: list[dict[str, Any]] | None = None) -> str:
+    def build_global_mapping(
+        workflow_data: dict[str, Any], selected_layouts: list[dict[str, Any]] | None = None
+    ) -> str:
         """Builds a global mapping cheatsheet across the entire workflow if needed.
         Scans all step IDs to ensure the LLM knows how step variable contexts map.
         """
         # MVP: currently step-level IDs are injected at JSON assembly in synthesis.py
         # This will be extended when global cross-matrix blocks are added.
         return ""
-

@@ -10,7 +10,7 @@ import hashlib
 import logging
 import random
 
-from pydantic import TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -18,6 +18,23 @@ from backend_v2.models.enums import MatrixSamplingStrategy
 from backend_v2.models.v2_core import PromptBlock, Step
 
 logger = logging.getLogger(__name__)
+
+
+class FlattenedAtom(BaseModel):
+    """Strict Pydantic schema for individual shuffled items (No Naked Dicts rule)."""
+
+    atom_id: str = Field(description="Opaque hashed ID for the extracted atom.")
+    question: str = Field(description="The text content evaluated blindly.")
+
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+
+
+class FlatteningHookOutput(BaseModel):
+    """Strict Pydantic schema for the entire hook state delta payload."""
+
+    shuffled_atoms: list[FlattenedAtom]
+
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
 
 @hook_registry.register(name="atom_flattening_hook")
@@ -55,16 +72,24 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
         return HookResult(success=True, state_delta={})
 
     # 2. Extract Matrix Sampler Metadata limit
-    sampling_limit_val = state.metadata.get("matrix_sampling_strategy", MatrixSamplingStrategy.ALL.value)
+    if "matrix_sampling_strategy" not in state.metadata:
+        raise AppException(
+            message="AtomFlatteningHook requires 'matrix_sampling_strategy' in execution metadata.",
+            status_code=400,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+
+    sampling_limit_val = state.metadata["matrix_sampling_strategy"]
 
     # Cast safely to our Enum to prevent naked integers causing confusion
     try:
         sampling_strategy = MatrixSamplingStrategy(sampling_limit_val)
-    except ValueError:
-        logger.warning(
-            "[AtomFlatteningHook] Invalid matrix_sampling_strategy '%s'. Falling back to ALL (0).", sampling_limit_val
-        )
-        sampling_strategy = MatrixSamplingStrategy.ALL
+    except ValueError as e:
+        raise AppException(
+            message=f"Invalid matrix_sampling_strategy '{sampling_limit_val}'. Exiting via Fail-Fast.",
+            status_code=400,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        ) from e
 
     # 3. Retrieve and filter blocks
     all_blocks = await repo.get_all_prompt_blocks()
@@ -121,13 +146,16 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
 
     # 4. Global Randomization (Blindness Requirement)
     if unique_atoms:
-        flat_list = [{"atom_id": key, "question": val} for key, val in unique_atoms.items()]
+        model_list = [FlattenedAtom(atom_id=key, question=val) for key, val in unique_atoms.items()]
 
         # Shuffle the aggregated pool so LLM cannot infer patterns (e.g. all 1s first, then 2s)
         rng_global = random.Random(state.execution_id)
-        rng_global.shuffle(flat_list)
+        rng_global.shuffle(model_list)
 
-        logger.info("[AtomFlatteningHook] Flattened %d total atoms. Executing global blind shuffle.", len(flat_list))
-        return HookResult(success=True, state_delta={"shuffled_atoms": flat_list})
+        logger.info("[AtomFlatteningHook] Flattened %d total atoms. Executing global blind shuffle.", len(model_list))
+
+        # Enforce Rule 'No Naked Dicts': explicitly dump the structured model
+        output_payload = FlatteningHookOutput(shuffled_atoms=model_list)
+        return HookResult(success=True, state_delta=output_payload.model_dump(mode="json"))
 
     return HookResult(success=True, state_delta={})

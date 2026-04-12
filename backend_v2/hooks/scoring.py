@@ -345,19 +345,52 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
         return HookResult(success=True, state_delta={})
 
     content_payload = state.inputs
-    evaluations = content_payload.get("evaluations", [])
+    if "evaluations" not in content_payload:
+        from backend_v2.exceptions import AppException, ErrorCodes
 
-    if not evaluations or not isinstance(evaluations, list):
-        return HookResult(success=True, state_delta={})
+        msg = (
+            f"Strict Fail-Fast Enforced: 'evaluations' array is completely missing from state.inputs "
+            f"for step '{state.task_blueprint or state.step_id}'. Upstream atomization payload failed."
+        )
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+
+    evaluations = content_payload["evaluations"]
+
+    if not isinstance(evaluations, list) or len(evaluations) == 0:
+        from backend_v2.exceptions import AppException, ErrorCodes
+
+        msg = (
+            f"Strict Fail-Fast Enforced: 'evaluations' array is empty or not a list "
+            f"for step '{state.task_blueprint or state.step_id}'."
+        )
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     blueprint_id = state.task_blueprint or state.step_id
     if not blueprint_id:
-        return HookResult(success=True, state_delta={})
+        from backend_v2.exceptions import AppException, ErrorCodes
+
+        msg = "Strict Fail-Fast Enforced: No blueprint_id or step_id provided to waterfall_scoring_hook."
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     try:
         step_obj = await repository.get_step_by_id(blueprint_id)
         if not step_obj:
-            return HookResult(success=True, state_delta={})
+            from backend_v2.exceptions import AppException, ErrorCodes
+
+            msg = f"Strict Fail-Fast Enforced: Step blueprint '{blueprint_id}' not found in database."
+            raise AppException(
+                message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+            )
 
         prompt_block_ids = (
             step_obj.get("prompt_blocks", []) if isinstance(step_obj, dict) else getattr(step_obj, "prompt_blocks", [])
@@ -365,8 +398,12 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
 
         import hashlib
 
-        from backend_v2.models.enums import WaterfallThreshold, CognitiveFlowThreshold, CognitiveFlowStatus
-        from backend_v2.utils.math_utils import calculate_waterfall_floor, calculate_weighted_score, calculate_progressive_dampening_score
+        from backend_v2.models.enums import CognitiveFlowStatus, CognitiveFlowThreshold, WaterfallThreshold
+        from backend_v2.utils.math_utils import (
+            calculate_progressive_dampening_score,
+            calculate_waterfall_floor,
+            calculate_weighted_score,
+        )
 
         atom_mapping = {}
         blocks_meta: dict[str, dict[str, Any]] = {}
@@ -375,11 +412,25 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
         for pb_id in prompt_block_ids:
             pb_dict = await repository.get_prompt_block_by_id(pb_id)
             if not pb_dict:
+                from backend_v2.exceptions import AppException, ErrorCodes
+
+                msg = f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' missing for waterfall_scoring_hook."
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+                )
+
+            # Laillinen ohitus 2026-mandaatin mukaisesti: Vain matriiseilla on skaalat.
+            if pb_dict.get("type", "") != "matrix":
                 continue
 
             scales = pb_dict.get("scales", [])
             if not scales:
-                continue
+                from backend_v2.exceptions import AppException, ErrorCodes
+
+                msg = f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' has no scales."
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                )
 
             blocks_meta[pb_id] = {"scales": []}
 
@@ -476,13 +527,15 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
                 level_data = stats[s_level]
                 t_hits = level_data["hits"]
                 t_total = level_data["total"]
-                
+
                 hit_rate = (t_hits / t_total) if t_total > 0 else 0.0
                 pct = int(hit_rate * 100)
-                
+
                 if s_level == scale_min:
                     modifier = hit_rate
-                    log_lines.append(f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - Cognitive Flow: {modifier:.2f})")
+                    log_lines.append(
+                        f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - Cognitive Flow: {modifier:.2f})"
+                    )
                 else:
                     if hit_rate >= CognitiveFlowThreshold.OPTIMAL.value:
                         status = CognitiveFlowStatus.OPTIMAL.value
@@ -490,19 +543,21 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
                         status = f"{CognitiveFlowStatus.ACCEPTABLE.value} ({hit_rate:.2f})"
                     else:
                         status = f"{CognitiveFlowStatus.WEAK.value} ({hit_rate:.2f})"
-                    
+
                     log_lines.append(f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - {status})")
                     modifier = modifier * hit_rate
 
             log_lines.append("")
-            log_lines.append(f"**Shadow Calculation Data:**")
+            log_lines.append("**Shadow Calculation Data:**")
             log_lines.append(f"1. *Raw Weighted Average:* {weighted_score:.2f} (Linear hits)")
             log_lines.append(f"2. *Legacy Waterfall Floor:* {floor_score:.1f} (Cutoff point)")
-            
+
             diff = weighted_score - dampening_score
             if diff > CognitiveFlowThreshold.SIGNIFICANT_DROP_DIFF.value:
-                log_lines.append(f"-> Deficiencies in foundation credibility dampen the final score significantly (-{diff:.2f}).")
-            
+                log_lines.append(
+                    f"-> Deficiencies in foundation credibility dampen the final score significantly (-{diff:.2f})."
+                )
+
             log_lines.append(f"**Final CDM Score:** {dampening_score:.2f}")
 
             calculation_log = "\n".join(log_lines)
@@ -568,14 +623,22 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
     content_payload = state.inputs
 
     if not blueprint_id:
-        logger.debug("[ScoringHook] No blueprint_id or step_id found in execution context. Skipping.")
-        return HookResult(success=True, state_delta={})
+        from backend_v2.exceptions import AppException, ErrorCodes
+
+        msg = "Strict Fail-Fast Enforced: No blueprint_id or step_id found in execution context for normalization."
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     try:
         step_obj = await repository.get_step_by_id(blueprint_id)
         if not step_obj:
-            logger.warning("[ScoringHook] Step blueprint '%s' not found in registry.", blueprint_id)
-            return HookResult(success=True, state_delta={})
+            from backend_v2.exceptions import AppException, ErrorCodes
+
+            msg = f"Strict Fail-Fast Enforced: Step blueprint '{blueprint_id}' not found in registry."
+            logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+            raise AppException(
+                message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+            )
 
         prompt_block_ids = (
             step_obj.get("prompt_blocks", []) if isinstance(step_obj, dict) else getattr(step_obj, "prompt_blocks", [])
@@ -653,8 +716,13 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
             pb = await repository.get_prompt_block_by_id(pb_id)
             if not pb:
-                logger.warning("[ScoringHook] Missing PromptBlock '%s'.", pb_id)
-                continue
+                from backend_v2.exceptions import AppException, ErrorCodes
+
+                msg = f"Strict Fail-Fast Enforced: Missing PromptBlock '{pb_id}' during score normalization."
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+                )
 
             pb_dict = pb if isinstance(pb, dict) else pb.model_dump()
             logger.debug(

@@ -13,6 +13,7 @@ from backend_v2.models.enums import (
     BlockDataType,
     ComponentType,
     ExecutionStatus,
+    MatrixSamplingStrategy,
     XaiExtensionType,
 )
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
@@ -77,8 +78,7 @@ class I18nText(V2CoreBase):
                 "I18nText must contain a valid English ('en') translation due to the "
                 f"English-Only Mandate. Payload: {self.translations}"
             )
-            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400)
 
         if self.default_locale not in self.translations or not self.translations.get(self.default_locale):
             logger.warning(
@@ -147,7 +147,7 @@ class PromptBlock(V2CoreBase):
             "to guarantee dynamic schema compilation."
         ),
     )
-    slug: str = Field(description="Fallback slug identifier if id changes or for URL routing")
+    slug: str = Field(description="URL routing helper field. Strictly no data relation role.")
     label: I18nText = Field(description="Localizable label for the UI.")
     description: I18nText = Field(description="Localizable description or help text for the UI.")
     ai_description: str | None = Field(
@@ -219,8 +219,7 @@ class PromptBlock(V2CoreBase):
         valid_numeric = [BlockDataType.FLOAT, BlockDataType.INT, BlockDataType.STRING]
         if self.allow_decimals and self.type not in valid_numeric:
             msg = f"PromptBlock '{self.id}': allow_decimals is only valid for numeric logic."
-            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400)
 
         # Strict Business Logic Constraints from user rules
         if self.scales is not None:
@@ -229,22 +228,25 @@ class PromptBlock(V2CoreBase):
                     f"PromptBlock '{self.id}': Jos scales on valittu käyttöön, "
                     "scale_min ja scale_max on oltava määriteltynä."
                 )
-                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+                raise AppException(
+                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
+                )
             if self.scale_max <= self.scale_min:
                 msg = (
                     f"PromptBlock '{self.id}': scale_max ({self.scale_max}) "
                     f"on oltava suurempi kuin scale_min ({self.scale_min})."
                 )
-                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+                raise AppException(
+                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
+                )
             if len(self.scales) == 0:
                 msg = (
                     f"PromptBlock '{self.id}': Jos scales on valittu käyttöön, "
                     "siellä on pakko olla vähintään yksi MatrixScale (len > 0)."
                 )
-                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+                raise AppException(
+                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
+                )
             for scale in self.scales:
                 if not scale.claims or len(scale.claims) == 0:
                     msg = (
@@ -253,7 +255,7 @@ class PromptBlock(V2CoreBase):
                     )
                     logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise AppException(
-                        message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400
+                        message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
                     )
         return self
 
@@ -376,7 +378,6 @@ class Step(V2CoreBase):
     description: I18nText | str | None = Field(default=None, description="Detailed step context")
     type: Literal["llm", "logic"] = Field(default="llm", description="Step execution type (llm or native logic)")
     hook: str | None = Field(default=None, description="Native Python hook to execute if type is 'logic'")
-    task_key: str | None = Field(default=None, description="Legacy or internal key reference")
     prompt_blocks: list[str] = Field(
         default_factory=list, description="List of PromptBlock IDs containing directives and matrices for this step."
     )
@@ -416,16 +417,13 @@ class Step(V2CoreBase):
 
         if self.type == "llm" and not self.model_strategy:
             msg = f"LLM Step '{self.slug}' must declare an explicit model_strategy (Zero-Fallback Rule)."
-            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400)
         if self.type == "llm" and not self.prompt_blocks:
             msg = f"LLM Step '{self.slug}' must define at least one prompt_block."
-            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400)
         if self.type == "logic" and not self.hook:
             msg = f"Logic Step '{self.slug}' must define a native 'hook' execution target."
-            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400)
         return self
 
 
@@ -500,30 +498,33 @@ class ExpectedInput(V2CoreBase):
 
         if not self.input_modes:
             msg = f"ExpectedInput '{self.input_key}' must have at least one input_mode."
-            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400)
 
         if "questionnaire" in self.input_modes:
             if self.is_chat_history:
                 msg = f"ExpectedInput '{self.input_key}' cannot use 'questionnaire' mode when flagged as chat history."
-                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+                raise AppException(
+                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
+                )
             if len(self.input_modes) > 1:
                 msg = f"ExpectedInput '{self.input_key}' cannot mix 'questionnaire' with other input modes."
-                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+                raise AppException(
+                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
+                )
             if not self.questionnaire_definition:
                 msg = f"ExpectedInput '{self.input_key}' uses 'questionnaire' mode but lacks definitions."
-                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+                raise AppException(
+                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
+                )
         else:
             if self.questionnaire_definition:
                 msg = (
                     f"ExpectedInput '{self.input_key}' cannot have questionnaire_definition "
                     "when 'questionnaire' mode is not active."
                 )
-                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+                raise AppException(
+                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
+                )
 
         return self
 
@@ -825,7 +826,7 @@ class Workflow(V2CoreBase):
                     msg = f"Step '{step.id}' depends on '{dep}', which does not exist in this workflow."
                     logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                     raise AppException(
-                        message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=422
+                        message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=422
                     )
                 graph[step.id].append(dep)
 
@@ -856,7 +857,7 @@ class Workflow(V2CoreBase):
                     )
                     logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                     raise AppException(
-                        message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=422
+                        message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=422
                     )
 
         return self
@@ -888,6 +889,13 @@ class ExecutionCreate(V2CoreBase):
         default=None,
         description=(
             "Epic 13 M1: Optional Opaque ID of the Output Profile to apply. If omitted, fallback to workflow default."
+        ),
+    )
+    matrix_sampling_strategy: int = Field(
+        default=MatrixSamplingStrategy.BALANCED.value,
+        description=(
+            "Explicit dynamic strategy for Matrix Flattening. Defaulted from ALL to "
+            "BALANCED locally to mitigate LLM JSON schema context limits."
         ),
     )
     raw_inputs: WorkflowInputs = Field(default_factory=WorkflowInputs, description="User provided raw inputs")

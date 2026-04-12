@@ -91,7 +91,13 @@ class TaskRegistry:
 
             from backend_v2.exceptions import AppException, ErrorCodes
 
-            logger.error("[TaskRegistry] %s: Agent %s instantiation failed: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, agent_cls.__name__, str(e), exc_info=True)
+            logger.error(
+                "[TaskRegistry] %s: Agent %s instantiation failed: %s",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                agent_cls.__name__,
+                str(e),
+                exc_info=True,
+            )
 
             raise AppException(
                 message="An unexpected system error occurred during AI agent initialization.",
@@ -135,7 +141,12 @@ class TaskRegistry:
                         config=model_config,
                     )
             except Exception as e:
-                logger.error("[TaskRegistry] %s: Agent configuration failed: %s", ErrorCodes.AGENT_NOT_CONFIGURED.name, str(e), exc_info=True)
+                logger.error(
+                    "[TaskRegistry] %s: Agent configuration failed: %s",
+                    ErrorCodes.AGENT_NOT_CONFIGURED.name,
+                    str(e),
+                    exc_info=True,
+                )
                 from fastapi import status
 
                 from backend_v2.exceptions import AppException, ErrorCodes

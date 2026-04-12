@@ -31,7 +31,7 @@ def mock_repo() -> AsyncMock:
                     "text_delivery_mode": "full",
                 }
             ],
-            "visible_extensions": ["remediation_steps"]
+            "visible_extensions": ["remediation_steps"],
         }
     ]
     repo.get_all_prompt_blocks.return_value = [
@@ -49,9 +49,10 @@ def mock_repo() -> AsyncMock:
             "id": "metric_category_3",
             "category_id": "matrix",
             "label": {"default_locale": "en", "translations": {"en": "Metric Category 3"}},
-        }
+        },
     ]
     return repo
+
 
 @pytest.mark.asyncio
 async def test_xai_remediation_serialization_bug(mock_repo: AsyncMock) -> None:
@@ -82,6 +83,7 @@ async def test_xai_remediation_serialization_bug(mock_repo: AsyncMock) -> None:
     dto = await transformer.build_report_dto("exe_1111111122222222")
 
     # Assert remediation_steps was grouped properly
+    assert dto.grouped_extensions is not None
     assert "remediation_steps" in dto.grouped_extensions
     items = dto.grouped_extensions["remediation_steps"]
     assert len(items) > 0

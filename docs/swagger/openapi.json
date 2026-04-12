@@ -5853,6 +5853,14 @@
             "title": "Omit Empty Sections",
             "description": "Flag to drop logically empty evaluation sections.",
             "default": true
+          },
+          "allowed_mcp_tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Mcp Tools",
+            "description": "Enabled MCP tool identifiers for pre-fetch synthesis phase."
           }
         },
         "additionalProperties": false,

@@ -86,22 +86,18 @@ async def test_fail_fast_missing_input() -> None:
 
 @pytest.mark.asyncio
 @patch("backend_v2.services.storage.get_storage_driver")
-@patch("backend_v2.hooks.input_processing._extract_pdf")
 async def test_pdf_extraction_and_questionnaire_blockquote(
-    mock_extract_pdf: AsyncMock, mock_get_storage: AsyncMock
+    mock_get_storage: AsyncMock
 ) -> None:
-    """Test PDF is passed to extraction and Questionnaire creates blockquotes (> **A:**)."""
-    mock_extract_pdf.return_value = "# Extracted PDF Markdown\n\nData."
+    """Test PDF (as eager extracted string) is passed and Questionnaire creates blockquotes (> **A:**)."""
     mock_get_storage.return_value = MockStorage()
-
-    fake_pdf_b64 = base64.b64encode(b"fake_pdf_bytes").decode("utf-8")
 
     state = HookState(
         execution_id="exe_1",
         workflow_id="wf_1234567890abcdef",
         step_id="step_1",
         inputs={
-            "my_pdf": {"filename": "test.pdf", "content_base64": fake_pdf_b64},
+            "my_pdf": "# Extracted PDF Markdown\n\nData.",
             "my_questionnaire": {"q1": "Miten menee?", "a1": "Koneellisesti"},
         },
     )
@@ -116,9 +112,6 @@ async def test_pdf_extraction_and_questionnaire_blockquote(
     assert "--- AI INSTRUCTION FOR THIS SOURCE (my_pdf) ---" in pdf_res
     assert "Analyze this document." in pdf_res
     assert "# Extracted PDF Markdown" in pdf_res
-
-    # V2 AMNESIA VERIFICATION: Ensure the massive payload was destroyed in memory
-    assert "content_base64" not in state.inputs["my_pdf"], "Base64 payload must be destroyed to prevent Token Explosions"
 
     # Check Questionnaire Blockquote isolation (Epic 12 requirement)
     q_res = res_inputs.get("my_questionnaire", "")
@@ -143,12 +136,10 @@ class DummyChatDTO:
 @pytest.mark.asyncio
 @patch("backend_v2.services.storage.get_storage_driver")
 @patch("backend_v2.services.chat_parser.ChatParserService.parse_pasted_chat", new_callable=AsyncMock)
-@patch("backend_v2.hooks.input_processing._extract_pdf")
 async def test_chat_parser_structuring(
-    mock_extract_pdf: AsyncMock, mock_parse_chat: AsyncMock, mock_get_storage: AsyncMock
+    mock_parse_chat: AsyncMock, mock_get_storage: AsyncMock
 ) -> None:
     """Test Chat History is routed to ChatParserService and converts to pure Markdown."""
-    mock_extract_pdf.return_value = "A PDF with chat in it"
     mock_parse_chat.return_value = DummyChatDTO()
     mock_get_storage.return_value = MockStorage()
 

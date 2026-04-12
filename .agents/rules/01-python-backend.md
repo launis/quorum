@@ -46,6 +46,12 @@
         <mandatory_pattern>Force the Fail-Fast pipeline by using `.model_validate()`, Rust-based `.model_validate_json()`, `.model_dump()`, and `@field_validator`. Use `model_config = ConfigDict(extra='forbid', strict=True)` to reject unstructured AI outputs.</mandatory_pattern>
     </rule_block>
 
+    <rule_block id="zero_legacy_fallback_hacks">
+        <banned_pattern>Adding `@model_validator(mode="before")` or optional union types (`| None`) to Pydantic models purely to silently scrub or appease old V1 legacy payload fields (e.g., `task_key`) from crashing `extra='forbid'`.</banned_pattern>
+        <mandatory_pattern>NEVER bypass Pydantic `extra='forbid'` strictness to accommodate dirty databases. If historical data causes validation crashes, the root cause MUST be fixed at the source by instructing the user to wipe and re-seed the database (`run_seed.py`). Pydantic models must remain mathematically pure to the V2 spec.</mandatory_pattern>
+        <catastrophic_reason>Writing fallback parsing logic pollutes the domain layer with historical technical debt, destroying the Fail-Fast architecture and silently allowing legacy structures to persist and mutate inside V2 pipelines.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="no_naked_dicts_in_state">
         <banned_pattern>Pushing parsed LLM outputs directly into `state_delta` or intermediate caches as naked dictionaries simply to appease TinyDB/JSON serialization constraints.</banned_pattern>
         <mandatory_pattern>ALWAYS intercept raw datastreams with `.model_validate()` immediately at the boundary. If the storage engine requires raw dicts, chain it explicitly: `MyModel.model_validate(data).model_dump(mode='json')`.</mandatory_pattern>

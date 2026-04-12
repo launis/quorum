@@ -74,6 +74,7 @@ def test_compile_xml_rubrics_structure() -> None:
     assert '| 1 | Poor | Student failed. |' in xml
 
 
+@pytest.mark.skip(reason="Legacy dynamic schema removed in Epic 20 Phase 7 blind evaluation")
 def test_micro_cot_validation_healing() -> None:
     """Epic 12 Phase 3: Assert Semantic Self-Healing triggers Pydantic ValidationError."""
     compiler = PromptCompiler()

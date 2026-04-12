@@ -69,7 +69,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
     }
 
     # Act
-    DynamicSchema = compiler.build_dynamic_schema(schema_name="TestSchema", criteria=[mock_matrix_block])
+    DynamicSchema = compiler.build_dynamic_schema(schema_name="TestSchema", criteria=[mock_matrix_block])  # type: ignore[attr-defined]
 
     # Assert
     assert issubclass(DynamicSchema, BaseModel)
@@ -102,7 +102,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
         "scales": [{"score": 1, "ai_label": "ONE", "claims": [{"label": "Claim 1", "ai_description": "Directive 1"}]}],
     }
 
-    DynamicSchema = compiler.build_dynamic_schema("TestExtract", [mock_matrix])
+    DynamicSchema = compiler.build_dynamic_schema("TestExtract", [mock_matrix])  # type: ignore[attr-defined]
 
     # Simulate LLM Response parsing
     llm_payload = {
@@ -117,11 +117,11 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     }
 
     parsed = DynamicSchema.model_validate(llm_payload)
-    assert parsed.blk_extract_test.step_4_final_score == 1.0  # type: ignore[attr-defined]
-    assert parsed.blk_extract_test.extension_remediation_steps == ["Step 1", "Step 2"]  # type: ignore[attr-defined]
-    assert parsed.blk_extract_test.extension_confidence == 95.5  # type: ignore[attr-defined]
-    assert parsed.reasoning_trace == "Let's think..."  # type: ignore[attr-defined]
-    assert parsed.blk_extract_test.step_3_logical_friction == "I gave a 1 because..."  # type: ignore[attr-defined]
+    assert parsed.blk_extract_test.step_4_final_score == 1.0
+    assert parsed.blk_extract_test.extension_remediation_steps == ["Step 1", "Step 2"]
+    assert parsed.blk_extract_test.extension_confidence == 95.5
+    assert parsed.reasoning_trace == "Let's think..."
+    assert parsed.blk_extract_test.step_3_logical_friction == "I gave a 1 because..."
 
 
 def test_generate_mcp_instruction() -> None:
@@ -141,19 +141,15 @@ def test_generate_mcp_instruction() -> None:
     assert "proactively to search" in instruction
     assert "Stop data collection as soon as you have sufficient context." in instruction
 
+
 def test_build_blind_evaluation_schema() -> None:
     compiler = PromptCompiler()
     DynamicSchema = compiler.build_blind_evaluation_schema("BlindTest")
     assert issubclass(DynamicSchema, BaseModel)
-    
+
     llm_payload = {
         "evaluations": [
-            {
-                "atom_id": "test_hash_123",
-                "quote": "This is a test.",
-                "reasoning": "Simple logic.",
-                "boolean": True
-            }
+            {"atom_id": "test_hash_123", "quote": "This is a test.", "reasoning": "Simple logic.", "boolean": True}
         ]
     }
     parsed = DynamicSchema.model_validate(llm_payload)
@@ -161,11 +157,12 @@ def test_build_blind_evaluation_schema() -> None:
     assert parsed.evaluations[0].atom_id == "test_hash_123"  # type: ignore[attr-defined]
     assert parsed.evaluations[0].boolean is True  # type: ignore[attr-defined]
 
+
 def test_compile_blind_system_instruction() -> None:
     compiler = PromptCompiler()
     instruction_en = compiler.compile_blind_system_instruction("en")
     assert "Duck-Typing Token Shield" in instruction_en
     assert "exclusively in the 'en' language" in instruction_en
-    
+
     instruction_fi = compiler.compile_blind_system_instruction("fi")
     assert "exclusively in the 'fi' language" in instruction_fi

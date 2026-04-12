@@ -10,7 +10,13 @@ from backend_v2.llm.client import LLMClient
 
 class DummyConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
+    provider: str = "lite_llm"
     model_name: str = "pytest-model-1"
+    temperature: float = 0.0
+    default_max_tokens: int = 1000
+    is_active: bool = True
+    tpm_limit: int = 10000
+    rpm_limit: int = 1000
     temperature: float = 0.0
     default_max_tokens: int = 1000
     caching_strategy: str = "none"
@@ -35,7 +41,7 @@ class DummyStrictModel(BaseModel):
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.llm.client.LLMFactory.create_provider")
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
 async def test_finops_circuit_breaker_missing_usage(mock_create_provider: MagicMock) -> None:
     """Epic 12 Phase 3: Assert missing token usage crashes the Node securely."""
     mock_provider = AsyncMock()
@@ -62,7 +68,7 @@ async def test_finops_circuit_breaker_missing_usage(mock_create_provider: MagicM
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.llm.client.LLMFactory.create_provider")
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
 async def test_semantic_self_healing_retry(mock_create_provider: MagicMock) -> None:
     """Epic 12 Phase 3: Assert Socratic prompt injection on logical validation errors."""
     mock_provider = AsyncMock()

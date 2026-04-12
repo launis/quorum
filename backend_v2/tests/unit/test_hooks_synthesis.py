@@ -7,7 +7,7 @@ import pytest
 
 from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.exceptions import AppException
-from backend_v2.hooks.synthesis import SynthesisOutputDTO, text_consolidation_hook
+from backend_v2.hooks.synthesis import text_consolidation_hook
 from backend_v2.services.mcp.mcp_tool_loop import MCPToolLoopResult
 
 
@@ -65,11 +65,14 @@ async def test_synthesis_hook_success(
     mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
 
     # Return MCPToolLoopResult
-    mock_dto_dict = {"synthesized_markdown": "Synthesized [1]", "cited_sources": ["source1"], "section_syntheses": [], "xai_highlights": []}
+    mock_dto_dict = {
+        "synthesized_markdown": "Synthesized [1]",
+        "cited_sources": ["source1"],
+        "section_syntheses": [],
+        "xai_highlights": [],
+    }
     mock_execute_tool_loop.return_value = MCPToolLoopResult(
-        result_data=mock_dto_dict,
-        audit_traces=[],
-        usage={"total_tokens": 100}
+        result_data=mock_dto_dict, audit_traces=[], usage={"total_tokens": 100}
     )
 
     result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
@@ -140,9 +143,14 @@ async def test_synthesis_hook_multi_profile_routing(
     mock_client_instance = AsyncMock()
     mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
     mock_execute_tool_loop.return_value = MCPToolLoopResult(
-        result_data={"synthesized_markdown": "Beta result", "cited_sources": [], "section_syntheses": [], "xai_highlights": []},
+        result_data={
+            "synthesized_markdown": "Beta result",
+            "cited_sources": [],
+            "section_syntheses": [],
+            "xai_highlights": [],
+        },
         audit_traces=[],
-        usage={"total_tokens": 50}
+        usage={"total_tokens": 50},
     )
 
     result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
@@ -195,9 +203,14 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
     mock_client_instance = AsyncMock()
     mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
     mock_execute_tool_loop.return_value = MCPToolLoopResult(
-        result_data={"synthesized_markdown": "Summary", "cited_sources": [], "section_syntheses": [], "xai_highlights": []},
+        result_data={
+            "synthesized_markdown": "Summary",
+            "cited_sources": [],
+            "section_syntheses": [],
+            "xai_highlights": [],
+        },
         audit_traces=[],
-        usage={"total_tokens": 10}
+        usage={"total_tokens": 10},
     )
 
     result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]

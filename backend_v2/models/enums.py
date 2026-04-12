@@ -45,7 +45,6 @@ class XaiExtensionType(str, Enum):
     CONFIDENCE = "confidence"
 
 
-
 class SelfHealingThresholdRatio(float, Enum):
     """Semantic Self-Healing strictness ratios for LLM Evaluation.
     Defines what top percentage of a numerical scale triggers mandatory evidence constraints.
@@ -65,16 +64,18 @@ class WaterfallThreshold(float, Enum):
     STANDARD = 0.90
     LENIENT = 0.75
 
+
 class CognitiveFlowThreshold(float, Enum):
     """Progressive Dampening thresholds for cognitive flow degradation."""
-    
+
     OPTIMAL = 1.00
     ACCEPTABLE = 0.70
     SIGNIFICANT_DROP_DIFF = 0.50
 
+
 class CognitiveFlowStatus(str, Enum):
     """Logging texts for XAI justification of cognitive dampening."""
-    
+
     OPTIMAL = "Hits flowed completely through"
     ACCEPTABLE = "Hits were dampened according to the flow"
     WEAK = "Cognitive flow degrades significantly"
@@ -95,7 +96,7 @@ class SystemConcurrency(int, Enum):
     MAX_CONCURRENT_WORKFLOWS = 1
     MAX_CONCURRENT_LLM_STEPS = 2
     LLM_MAX_RETRIES = 10
-    LLM_DEFAULT_TIMEOUT_SECONDS = 120
+    LLM_DEFAULT_TIMEOUT_SECONDS = 300
 
 
 class MatrixSamplingStrategy(int, Enum):
@@ -104,9 +105,9 @@ class MatrixSamplingStrategy(int, Enum):
     """
 
     ALL = 0
-    STRATIFIED_1 = 1
-    STRATIFIED_3 = 3
-    STRATIFIED_5 = 5
+    MINIMAL = 1
+    BALANCED = 3
+    INTENSIVE = 5
 
 
 # --- Restored V1 Enums ---

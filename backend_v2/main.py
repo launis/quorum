@@ -190,7 +190,13 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
 
     if exc.status_code >= 500:
         # Dual-Reporting: Log full traceback for system errors
-        logger.error("[FastAPI] %s (Status: %s)", exc.message, exc.status_code, exc_info=exc, extra={"error_code": err_name})
+        logger.error(
+            "[FastAPI] %s (Status: %s)",
+            exc.message,
+            exc.status_code,
+            exc_info=exc,
+            extra={"error_code": err_name},
+        )
     else:
         # 4xx Business Errors don't need tracebacks
         logger.warning("[FastAPI] %s (Status: %s)", exc.message, exc.status_code, extra={"error_code": err_name})
