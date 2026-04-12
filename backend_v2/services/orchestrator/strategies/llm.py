@@ -141,7 +141,9 @@ class LLMNodeStrategy(NodeStrategy):
             user_payload += f"\n\n--- RUNTIME AWARENESS ---\n{dynamic_instructions}"
 
         # Epic 20 Phase 7: Inject Shuffled Atoms for Blind Evaluation
+        has_shuffled_atoms = False
         if "shuffled_atoms" in state_data:
+            has_shuffled_atoms = True
             shuffled_atoms = state_data["shuffled_atoms"]
 
             if not isinstance(shuffled_atoms, list) or len(shuffled_atoms) == 0:
@@ -158,7 +160,15 @@ class LLMNodeStrategy(NodeStrategy):
             atoms_json = json.dumps(shuffled_atoms, ensure_ascii=False, indent=2)
             user_payload += f"\n\n<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>\n"
 
-        dynamic_schema = self.compiler.build_blind_evaluation_schema(schema_name=f"Step_{step.id}_Response")
+        has_search = any("search_result" in v for v in state_data.values() if isinstance(v, dict))
+
+        dynamic_schema = self.compiler.build_dynamic_schema(
+            schema_name=f"Step_{step.id}_Response",
+            criteria=criteria_blocks,
+            has_search_result=has_search,
+            has_shuffled_atoms=has_shuffled_atoms,
+            target_locale=target_locale,
+        )
 
         if frozen_ctx:
             frozen_ctx.generated_schemas[step.id] = dynamic_schema.model_json_schema()

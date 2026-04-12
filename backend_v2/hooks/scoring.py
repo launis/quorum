@@ -344,37 +344,6 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
         logger.debug("[ScoringHook] State inputs is not a dictionary. Skipping.")
         return HookResult(success=True, state_delta={})
 
-    content_payload = state.inputs
-    if "evaluations" not in content_payload:
-        from backend_v2.exceptions import AppException, ErrorCodes
-
-        msg = (
-            f"Strict Fail-Fast Enforced: 'evaluations' array is completely missing from state.inputs "
-            f"for step '{state.task_blueprint or state.step_id}'. Upstream atomization payload failed."
-        )
-        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-        raise AppException(
-            message=msg,
-            status_code=500,
-            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-        )
-
-    evaluations = content_payload["evaluations"]
-
-    if not isinstance(evaluations, list) or len(evaluations) == 0:
-        from backend_v2.exceptions import AppException, ErrorCodes
-
-        msg = (
-            f"Strict Fail-Fast Enforced: 'evaluations' array is empty or not a list "
-            f"for step '{state.task_blueprint or state.step_id}'."
-        )
-        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-        raise AppException(
-            message=msg,
-            status_code=500,
-            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-        )
-
     blueprint_id = state.task_blueprint or state.step_id
     if not blueprint_id:
         from backend_v2.exceptions import AppException, ErrorCodes
@@ -396,6 +365,46 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
             step_obj.get("prompt_blocks", []) if isinstance(step_obj, dict) else getattr(step_obj, "prompt_blocks", [])
         )
 
+        # Determine if this step actually contains matrix blocks
+        matrix_blocks = []
+        for pb_id in prompt_block_ids:
+            pb_dict = await repository.get_prompt_block_by_id(pb_id)
+            if pb_dict and pb_dict.get("category_id", "") == "matrix":
+                matrix_blocks.append((pb_id, pb_dict))
+
+        # If no matrix blocks exist, then waterfall scoring natively skips without demanding evaluations
+        if not matrix_blocks:
+            logger.debug("[ScoringHook] Step '%s' contains no matrix blocks. Skipping waterfall scoring.", blueprint_id)
+            return HookResult(success=True, state_delta={})
+
+        content_payload = state.inputs
+        if "evaluations" not in content_payload:
+            from backend_v2.exceptions import AppException, ErrorCodes
+
+            msg = (
+                f"Strict Fail-Fast Enforced: 'evaluations' array is completely missing from state.inputs "
+                f"for step '{blueprint_id}'. Upstream atomization payload failed."
+            )
+            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
+        evaluations = content_payload["evaluations"]
+
+        if not isinstance(evaluations, list) or len(evaluations) == 0:
+            from backend_v2.exceptions import AppException, ErrorCodes
+
+            msg = f"Strict Fail-Fast Enforced: 'evaluations' array is empty or not a list for step '{blueprint_id}'."
+            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
         import hashlib
 
         from backend_v2.models.enums import CognitiveFlowStatus, CognitiveFlowThreshold, WaterfallThreshold
@@ -409,20 +418,7 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
         blocks_meta: dict[str, dict[str, Any]] = {}
 
         # 1. Reverse extraction of Atom Hashes
-        for pb_id in prompt_block_ids:
-            pb_dict = await repository.get_prompt_block_by_id(pb_id)
-            if not pb_dict:
-                from backend_v2.exceptions import AppException, ErrorCodes
-
-                msg = f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' missing for waterfall_scoring_hook."
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
-                )
-
-            # Laillinen ohitus 2026-mandaatin mukaisesti: Vain matriiseilla on skaalat.
-            if pb_dict.get("category_id", "") != "matrix":
-                continue
-
+        for pb_id, pb_dict in matrix_blocks:
             scales = pb_dict.get("scales", [])
             if not scales:
                 from backend_v2.exceptions import AppException, ErrorCodes
@@ -440,9 +436,22 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
                 claims = scale.get("claims", [])
                 for claim in claims:
                     micro_atoms = claim.get("micro_atoms", [])
-                    for text in micro_atoms:
-                        atom_hash = hashlib.md5(text.encode("utf-8")).hexdigest()
-                        atom_mapping[atom_hash] = {"block_id": pb_id, "score": s_val, "text": text}
+                    if micro_atoms:
+                        for text in micro_atoms:
+                            atom_hash = hashlib.md5(text.encode("utf-8")).hexdigest()
+                            atom_mapping[atom_hash] = {"block_id": pb_id, "score": s_val, "text": text}
+                    else:
+                        label = claim.get("label", {})
+                        translations = label.get("translations", {})
+                        text = translations.get("en") or translations.get(label.get("default_locale", "fi"))
+                        if not text and translations:
+                            text = list(translations.values())[0]
+                        if not text:
+                            text = claim.get("ai_description", "")
+
+                        if text:
+                            atom_hash = hashlib.md5(text.encode("utf-8")).hexdigest()
+                            atom_mapping[atom_hash] = {"block_id": pb_id, "score": s_val, "text": text}
 
             # Fail-fast: Ei fallbackeja. Korjattu normaalin virhehallinnan tyyliin.
             if not blocks_meta[pb_id]["scales"]:
@@ -563,8 +572,15 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
             calculation_log = "\n".join(log_lines)
 
             # Inject to new payload so normalize_matrix_scores_hook can scale it further
-            new_payload[pb_id] = float(dampening_score)
-            new_payload[f"{pb_id}_justification"] = calculation_log
+            existing_val = new_payload.get(pb_id)
+            if isinstance(existing_val, dict):
+                # Enforce hybrid scoring update inside the existing Micro-CoT dictionary
+                new_payload[pb_id] = existing_val.copy()
+                new_payload[pb_id]["step_4_final_score"] = float(dampening_score)
+                new_payload[pb_id]["waterfall_calculation_log"] = calculation_log
+            else:
+                new_payload[pb_id] = float(dampening_score)
+                new_payload[f"{pb_id}_justification"] = calculation_log
 
             # Use extending logic to append without overwriting previous UI texts
             if missing_atoms_by_block[pb_id]:

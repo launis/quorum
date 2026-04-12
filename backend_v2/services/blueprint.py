@@ -238,6 +238,7 @@ class BlueprintTransformer:
                         missing_context = None
                         remediation_steps = None
                         emotional_sentiment = None
+                        score_val = 999.0
                     else:
                         if isinstance(v, dict):
                             eval_notes = v.get("evaluation_notes", "")
@@ -321,11 +322,18 @@ class BlueprintTransformer:
         # Process limit/truncation based on max_extension_items
         for ext_group, items in list(grouped_extensions.items()):
             if max_extension_items is not None and len(items) > max_extension_items:
+
+                def _safe_float(val: typing.Any) -> float:
+                    try:
+                        return float(val) if val is not None else 999.0
+                    except (ValueError, TypeError):
+                        return 999.0
+
                 # Sort by score ascending (lowest score is most critical)
                 items.sort(
-                    key=lambda x: float(x.get("_score", 999.0) if x.get("_score") is not None else 999.0)
+                    key=lambda x: _safe_float(x.get("_score", 999.0))
                     if isinstance(x, dict)
-                    else float(getattr(x, "_score", 999.0) or 999.0)
+                    else _safe_float(getattr(x, "_score", 999.0))
                 )
                 grouped_extensions[ext_group] = items[:max_extension_items]
 

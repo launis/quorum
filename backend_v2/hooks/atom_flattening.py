@@ -120,6 +120,22 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                     for claim in scale.claims:
                         if claim.micro_atoms:
                             scale_atoms.extend(claim.micro_atoms)
+                        else:
+                            lbl = None
+                            if claim.label:
+                                translations_dict = getattr(claim.label, "translations", {})
+                                if translations_dict:
+                                    lbl = translations_dict.get("en")
+                                    if not lbl:
+                                        default_loc = getattr(claim.label, "default_locale", "fi")
+                                        lbl = translations_dict.get(default_loc)
+                                    if not lbl:
+                                        lbl = next(iter(translations_dict.values()), None)
+
+                            if lbl:
+                                scale_atoms.append(str(lbl))
+                            elif claim.ai_description:
+                                scale_atoms.append(claim.ai_description)
 
                     # Apply constraint securely using deterministic execution ID locking
                     if sampling_strategy != MatrixSamplingStrategy.ALL and len(scale_atoms) > sampling_strategy.value:

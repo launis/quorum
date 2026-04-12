@@ -7,6 +7,7 @@ LLM payloads with system context, strictness calibration, and format enforcement
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
 from typing import Any
 
 from pydantic import BaseModel, Field, create_model
@@ -288,6 +289,363 @@ class PromptCompiler:
                 "MUST be heavily penalized. "
                 "Assign minimum scores unless the input is mathematically and theoretically flawless."
             )
+
+    def build_dynamic_schema(
+        self,
+        schema_name: str,
+        criteria: list[dict[str, Any]],
+        has_search_result: bool = False,
+        has_shuffled_atoms: bool = False,
+        target_locale: str = "en",
+    ) -> type[BaseModel]:
+        import json
+
+        # P4: Prevent Pydantic compilation explosion on 200+ step DAGs by hashing criteria
+        # and delegating to an LRU cached private method.
+        criteria_json = json.dumps(criteria, sort_keys=True)
+        return self._cached_build_dynamic_schema(
+            schema_name, criteria_json, has_search_result, has_shuffled_atoms, target_locale
+        )
+
+    @lru_cache(maxsize=128)  # noqa: B019
+    def _cached_build_dynamic_schema(
+        self,
+        schema_name: str,
+        criteria_json: str,
+        has_search_result: bool,
+        has_shuffled_atoms: bool,
+        target_locale: str,
+    ) -> type[BaseModel]:
+        """Build a dynamic Pydantic V2 model for LLM Structured Outputs."""
+        import json
+
+        from pydantic import BaseModel, model_validator
+
+        def make_micro_cot_base(_t: float, _cid: str) -> type[BaseModel]:
+            class MicroCotBase(BaseModel):
+                @model_validator(mode="after")
+                def validate_micro_cot(self: Any) -> Any:
+                    if hasattr(self, "step_4_final_score") and hasattr(self, "step_1_evidence_quote"):
+                        score = self.step_4_final_score
+                        quote = self.step_1_evidence_quote
+                        if isinstance(score, (int, float)) and score >= _t:
+                            if not quote or str(quote).strip() == "":
+                                msg = (
+                                    f"CRITICAL LOGICAL ERROR: You assigned a high score ({score}) "
+                                    f"but failed to provide a 'step_1_evidence_quote'. "
+                                    "Semantic self-healing triggered."
+                                )
+                                logger.warning(
+                                    "Semantic Self-Healing Triggered: High score logic error.",
+                                    extra={"score": score, "block_id": f"{_cid}_Evaluation"},
+                                )
+                                raise ValueError(msg)
+                    return self
+
+            return MicroCotBase
+
+        criteria = json.loads(criteria_json)
+
+        # Dictionary of fields to define for create_model
+        fields: dict[str, Any] = {
+            "reasoning_trace": (
+                str,
+                Field(
+                    ...,
+                    description=(
+                        "Mandatory Chain-of-Thought. Analyze the user's logic, guidance, and "
+                        "strategic intent step-by-step BEFORE assigning any final values."
+                    ),
+                ),
+            ),
+            "evaluation_notes": (
+                str,
+                Field(
+                    ...,
+                    description=(
+                        "Comprehensive qualitative synthesis. CRITICAL: You MUST write this strictly "
+                        "from the unique perspective of your assigned Role and Matrices. Do not write a "
+                        "through your specific analytical lens. "
+                        "STRICT MANDATE: You MUST write this specific field exclusively "
+                        f"in the '{target_locale}' language."
+                    ),
+                ),
+            ),
+        }
+
+        # Epic 20 Phase 7 Hybrid Fix: Inject AtomResponse mapping directly into dynamic schema!
+        if has_shuffled_atoms:
+            from pydantic import ConfigDict
+
+            class AtomResponse(BaseModel):
+                model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+                atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")
+                quote: str | None = Field(
+                    default=None,
+                    description="Pakotettu lainaus alkuperäisestä tekstistä Micro-CoT säännöllä. Null if no evidence.",
+                )
+                reasoning: str = Field(..., description="Kognitiivinen kitka ja arvioinnin perustelu.")
+                boolean: bool = Field(..., description="Puhdas True/False -osumapäätös.")
+
+            fields["evaluations"] = (list[AtomResponse], Field(..., description="Array of blinded evaluations."))
+
+        for crit in criteria:
+            if crit.get("type") == "instruction":
+                continue
+
+            crit_id_raw = crit.get("id")
+            if not crit_id_raw or not isinstance(crit_id_raw, str):
+                logger.warning("[PromptCompiler] Found criterion without a valid string 'id': %s. Skipping.", crit)
+                continue
+
+            crit_id = crit_id_raw
+
+            try:
+                label_obj = crit["label"]
+                block_type = crit.get("type", "float")
+                extensions = crit.get("output_extensions", [])
+            except KeyError as e:
+                from backend_v2.exceptions import ConfigurationError, ErrorCodes
+
+                msg = f"PromptBlock '{crit_id}' is missing strict evaluation parameter: {str(e)}."
+                logger.error(
+                    "PromptBlock structurally invalid.",
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": crit_id},
+                )
+                raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}) from e
+
+            label = self.resolve_i18n(label_obj, target_locale)
+            sub_fields: dict[str, tuple[Any, Any]] = {}
+
+            if "citation" in extensions:
+                sub_fields["step_1_evidence_quote"] = (
+                    str | None,
+                    Field(
+                        default=None,
+                        description=(
+                            "Provide an exact verbatim quote or a strong semantic justification "
+                            "from the user's RAW INPUT TEXT that serves as empirical evidence. "
+                            "AI-generated pure hallucinations are strictly forbidden. "
+                            "If no evidence or connection exists, return null."
+                        ),
+                    ),
+                )
+
+                theory_grounding = crit.get("theory_grounding", {})
+                citation_ref = (
+                    theory_grounding.get("citation_reference") if isinstance(theory_grounding, dict) else None
+                )
+                if citation_ref:
+                    from typing import Literal
+
+                    sub_fields["step_1b_cited_source_id"] = (
+                        Literal[citation_ref] | None,
+                        Field(
+                            default=None,
+                            description=(
+                                "If your justification relies on authorized theory, you MUST RETURN EXACTLY: "
+                                f"'{citation_ref}'. Otherwise return null."
+                            ),
+                        ),
+                    )
+
+                if has_search_result:
+                    sub_fields["step_1c_google_citation"] = (
+                        str | None,
+                        Field(
+                            default=None,
+                            description=(
+                                "CRITICAL FACT CHECK: Mirror your output against the 'search_result' XML element. "
+                                "Does the Google data support or refute the claim? If unrelated, return null."
+                            ),
+                        ),
+                    )
+
+            if "falsification" in extensions:
+                sub_fields["step_2_falsification"] = (
+                    str,
+                    Field(
+                        ...,
+                        description=(
+                            "Devil's advocate formulation argument. Why might your initial assumption be wrong? "
+                            f"MANDATORY LANGUAGE: '{target_locale}'."
+                        ),
+                    ),
+                )
+
+            if "justification" in extensions:
+                sub_fields["step_3_logical_friction"] = (
+                    str,
+                    Field(
+                        ...,
+                        description=(
+                            f"Detailed reasoning bridging the evidence to <MATRIX id='{crit_id}'>. "
+                            f"MANDATORY LANGUAGE: '{target_locale}'."
+                        ),
+                    ),
+                )
+
+            if "coaching" in extensions:
+                sub_fields["extension_coaching"] = (
+                    str,
+                    Field(
+                        ...,
+                        description=(
+                            "Concrete coaching tip/remediation advice to the subject. "
+                            f"MANDATORY LANGUAGE: '{target_locale}'."
+                        ),
+                    ),
+                )
+            if "confidence" in extensions:
+                sub_fields["extension_confidence"] = (
+                    float,
+                    Field(
+                        ..., ge=0.0, le=100.0, description="Numerical confidence from 0.0 to 100.0 based on evidence."
+                    ),
+                )
+            if "missing_context" in extensions:
+                sub_fields["extension_missing_context"] = (
+                    str,
+                    Field(
+                        ...,
+                        description=f"Missing context from the provided text. MANDATORY LANGUAGE: '{target_locale}'.",
+                    ),
+                )
+            if "risk_flag" in extensions:
+                sub_fields["extension_risk_flag"] = (
+                    bool,
+                    Field(..., description="True if there is a severe risk present; False otherwise."),
+                )
+            if "remediation_steps" in extensions:
+                sub_fields["extension_remediation_steps"] = (
+                    list[str],
+                    Field(
+                        ...,
+                        description=(
+                            "Actionable array of all necessary textual remediation steps. "
+                            f"MANDATORY LANGUAGE: '{target_locale}'."
+                        ),
+                    ),
+                )
+            if "emotional_sentiment" in extensions:
+                sub_fields["extension_emotional_sentiment"] = (
+                    str,
+                    Field(
+                        ...,
+                        description=(
+                            f"Analysis of author's emotional state or tone. MANDATORY LANGUAGE: '{target_locale}'."
+                        ),
+                    ),
+                )
+            if "theory_link" in extensions:
+                sub_fields["extension_theory_link"] = (
+                    str,
+                    Field(
+                        ...,
+                        description=(
+                            "Direct logical connection to the governing theory framework. "
+                            f"MANDATORY LANGUAGE: '{target_locale}'."
+                        ),
+                    ),
+                )
+
+            if block_type not in ("float", "int"):
+                sub_fields["step_4_final_score"] = (
+                    str,
+                    Field(..., description=f"Textual evaluation strictly mapped to <MATRIX id='{crit_id}'>."),
+                )
+                threshold = 0.0
+            else:
+                try:
+                    scales_data = crit["scales"]
+                    allow_decimals = bool(crit["allow_decimals"])
+                except KeyError as e:
+                    from backend_v2.exceptions import ConfigurationError, ErrorCodes
+
+                    msg = f"PromptBlock '{crit_id}' is missing strict evaluation parameter: {str(e)}."
+                    logger.error(
+                        "PromptBlock structurally invalid.",
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": crit_id},
+                    )
+                    raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}) from e
+
+                if not scales_data:
+                    from backend_v2.exceptions import ConfigurationError, ErrorCodes
+
+                    msg = f"PromptBlock '{crit_id}' has empty 'scales' array."
+                    raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+
+                llm_min = float(min(s["score"] for s in scales_data))
+                llm_max = float(max(s["score"] for s in scales_data))
+
+                if allow_decimals:
+                    decimal_instruction = "Select a precise score with exactly one decimal place"
+                else:
+                    decimal_instruction = "Select a whole integer score"
+
+                sub_fields["step_4_final_score"] = (
+                    float,
+                    Field(
+                        ...,
+                        ge=llm_min,
+                        le=llm_max,
+                        description=(
+                            f"Numeric score strictly evaluated using the <MATRIX id='{crit_id}'>. "
+                            f"{decimal_instruction} reflecting the exact nuance and weight of the evidence."
+                        ),
+                    ),
+                )
+                from backend_v2.models.enums import SelfHealingThresholdRatio
+
+                raw_ratio = crit.get("self_healing_evidence_threshold_ratio", SelfHealingThresholdRatio.STRICT.value)
+                ratio_val = float(raw_ratio)
+
+                threshold = llm_min + (llm_max - llm_min) * ratio_val
+
+            from pydantic import ConfigDict
+
+            MicroCotBase = make_micro_cot_base(threshold, crit_id)
+
+            NestedModel = create_model(  # type: ignore[call-overload]
+                f"{crit_id}_Evaluation",
+                __base__=MicroCotBase,
+                __config__=ConfigDict(extra="forbid", strict=True),
+                **sub_fields,
+            )
+
+            fields[crit_id] = (NestedModel, Field(..., description=f"Evaluation object for {label}"))
+
+        if not fields:
+            fields["acknowledged_instruction"] = (
+                str,
+                Field(default="yes", description="Acknowledge completion of the instruction."),
+            )
+
+        try:
+            from typing import cast
+
+            from pydantic import ConfigDict
+
+            DynamicModel = create_model(
+                schema_name, __config__=ConfigDict(extra="forbid", strict=True, frozen=True), **fields
+            )
+            return cast(type[BaseModel], DynamicModel)
+        except Exception as e:
+            msg = f"Critical failure while dynamically compiling LLM execution schema '{schema_name}'."
+            logger.error(
+                "Dynamic schema compilation failed.",
+                extra={
+                    "error_code": ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                    "schema_name": schema_name,
+                    "detail": str(e),
+                },
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
+            ) from e
 
     def compile_xml_rubrics(self, criteria: list[dict[str, Any]], target_locale: str) -> str:
         """Epic 12: Generates Thick XML/Markdown rubrics for the System Prompt."""

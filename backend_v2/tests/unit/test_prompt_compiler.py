@@ -69,7 +69,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
     }
 
     # Act
-    DynamicSchema = compiler.build_dynamic_schema(schema_name="TestSchema", criteria=[mock_matrix_block])  # type: ignore[attr-defined]
+    DynamicSchema = compiler.build_dynamic_schema(schema_name="TestSchema", criteria=[mock_matrix_block])
 
     # Assert
     assert issubclass(DynamicSchema, BaseModel)
@@ -102,7 +102,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
         "scales": [{"score": 1, "ai_label": "ONE", "claims": [{"label": "Claim 1", "ai_description": "Directive 1"}]}],
     }
 
-    DynamicSchema = compiler.build_dynamic_schema("TestExtract", [mock_matrix])  # type: ignore[attr-defined]
+    DynamicSchema = compiler.build_dynamic_schema("TestExtract", [mock_matrix])
 
     # Simulate LLM Response parsing
     llm_payload = {
@@ -117,11 +117,11 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     }
 
     parsed = DynamicSchema.model_validate(llm_payload)
-    assert parsed.blk_extract_test.step_4_final_score == 1.0
-    assert parsed.blk_extract_test.extension_remediation_steps == ["Step 1", "Step 2"]
-    assert parsed.blk_extract_test.extension_confidence == 95.5
-    assert parsed.reasoning_trace == "Let's think..."
-    assert parsed.blk_extract_test.step_3_logical_friction == "I gave a 1 because..."
+    assert parsed.blk_extract_test.step_4_final_score == 1.0  # type: ignore[attr-defined]
+    assert parsed.blk_extract_test.extension_remediation_steps == ["Step 1", "Step 2"]  # type: ignore[attr-defined]
+    assert parsed.blk_extract_test.extension_confidence == 95.5  # type: ignore[attr-defined]
+    assert parsed.reasoning_trace == "Let's think..."  # type: ignore[attr-defined]
+    assert parsed.blk_extract_test.step_3_logical_friction == "I gave a 1 because..."  # type: ignore[attr-defined]
 
 
 def test_generate_mcp_instruction() -> None:
@@ -166,3 +166,19 @@ def test_compile_blind_system_instruction() -> None:
 
     instruction_fi = compiler.compile_blind_system_instruction("fi")
     assert "exclusively in the 'fi' language" in instruction_fi
+
+
+def test_prompt_compiler_architectural_integrity() -> None:
+    """Suojelee arkkitehtuuria vahinkopoistoilta ja "salaa poistamisilta".
+    Varmistaa, että molemmat evaluointistrategiat pysyvät olemassa.
+    """
+    from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+
+    msg1 = "CRITICAL: build_dynamic_schema on SALAA POISTETTU! Tämä rikkoo XAI-laajennukset ja 3D-matriisit."
+    assert hasattr(PromptCompiler, "build_dynamic_schema"), msg1
+
+    msg2 = (
+        "CRITICAL: build_blind_evaluation_schema on SALAA POISTETTU! "
+        "Tämä rikkoo Epic 20 Phase 7 sokeiden kokeilujen arkkitehtuurin."
+    )
+    assert hasattr(PromptCompiler, "build_blind_evaluation_schema"), msg2
