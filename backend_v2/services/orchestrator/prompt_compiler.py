@@ -799,6 +799,8 @@ class PromptCompiler:
             "<rules>\n"
             "  <rule>Täysi sokeus on pakotettu. Matrix-sarakkeiden ryhmittely on ehdottomasti kielletty.</rule>\n"
             "  <rule>Sovella 'Duck-Typing Token Shield' -konseptia. Käsittele atomit irrallisina.</rule>\n"
+            "  <rule>CONSTRUCTIVE LENIENCY: Anna vastaajalle 'Benefit of the Doubt'. "
+            "Jos ratkaisu on teknisesti mahdollinen vaikkakin epätäydellinen, hyväksy se.</rule>\n"
             "</rules>\n"
             "</system_directive>"
         )
@@ -807,3 +809,35 @@ class PromptCompiler:
             f"exclusively in the '{target_locale}' language."
         )
         return instruction
+
+    def build_chunk_response_schema(self, schema_name: str, item_schema: type[BaseModel]) -> type[BaseModel]:
+        """Build dynamic Pydantic V2 schema for chunked Map-Reduce execution.
+
+        Nests a target Payload schema inside a structurally strict chunk-array list.
+        """
+        from pydantic import ConfigDict, Field, create_model
+
+        ChunkRecordModel = create_model(
+            f"{schema_name}Record",
+            __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
+            original_id=(str, Field(..., description="The unique ID of the mapped item.")),
+            payload=(item_schema, Field(..., description="The generated/evaluated payload for this specific item.")),
+        )
+
+        DynamicModel = create_model(
+            schema_name,
+            __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
+            chunk_id=(str, Field(..., description="The Opaque Stripe ID of the current chunk.")),
+            # dynamically generated type aliases aren't parsed statically by mypy
+            records=(list[ChunkRecordModel], Field(..., description="Array of processed map-reduce records.")),  # type: ignore[valid-type]
+        )
+
+        return DynamicModel
+
+    def compile_chunk_payload_instruction(self, chunk_id: str, payload_text: str) -> str:
+        """Generates an isolated context block fenced explicitly into `<user_payload>`."""
+        return (
+            f"You are processing map-reduce chunk '{chunk_id}'.\n"
+            "Evaluate ONLY the following payload mapping to the strict chunk_id structure:\n"
+            f"<user_payload>\n{payload_text}\n</user_payload>"
+        )

@@ -5,7 +5,7 @@ import pytest
 from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.atom_flattening import process_matrix_flattening
-from backend_v2.models.enums import BlockDataType, MatrixSamplingStrategy
+from backend_v2.models.enums import BlockDataType
 from backend_v2.models.v2_core import (
     I18nText,
     MatrixClaim,
@@ -69,34 +69,35 @@ def base_hook_state() -> HookState:
         step_id="step_1",
         execution_id="exec_123",
         workflow_id="wf_123",
-        task_blueprint="bp_step_1",
+        task_blueprint="step_0123456789abcdef0123456789abcdef",
         inputs={},
         global_context_vars={},
-        metadata={"matrix_sampling_strategy": MatrixSamplingStrategy.MINIMAL.value},
+        metadata={"matrix_sampling_strategy": 1},
     )
 
 
 @pytest.fixture
 def mock_step() -> Step:
     return Step(
-        id="bp_step_1",
+        id="step_0123456789abcdef0123456789abcdef",
         name=I18nText(default_locale="en", translations={"en": "Test Step"}),
         slug="test-step",
         description=I18nText(default_locale="en", translations={"en": "Test Desc"}),
-        prompt_blocks=["block_1", "block_2"],
+        prompt_blocks=["blk_0123456789abcdef0123456789abcdef", "blk_1123456789abcdef0123456789abcdef"],
+        model_strategy="fast",
     )
 
 
 @pytest.mark.asyncio
 async def test_atom_flattening_missing_strategy_fails_fast(base_hook_state: HookState, mock_step: Step) -> None:
     """Test that missing matrix_sampling_strategy triggers fail-fast."""
-    base_hook_state.metadata = {}  # Empty metadata
+    state = base_hook_state.model_copy(update={"metadata": {}})  # Empty metadata
 
     repo = MockRepository(step=mock_step, blocks=[])
     deps = HookDependencies(repository=repo)  # type: ignore[arg-type]
 
     with pytest.raises(AppException) as exc_info:
-        await process_matrix_flattening(base_hook_state, deps)  # type: ignore[misc]
+        await process_matrix_flattening(state, deps)  # type: ignore[misc]
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR.value
@@ -106,13 +107,13 @@ async def test_atom_flattening_missing_strategy_fails_fast(base_hook_state: Hook
 @pytest.mark.asyncio
 async def test_atom_flattening_invalid_strategy_fails_fast(base_hook_state: HookState, mock_step: Step) -> None:
     """Test that invalid matrix_sampling_strategy triggers fail-fast."""
-    base_hook_state.metadata = {"matrix_sampling_strategy": 999}  # Invalid enum value
+    state = base_hook_state.model_copy(update={"metadata": {"matrix_sampling_strategy": -1}})  # Invalid negative limit
 
     repo = MockRepository(step=mock_step, blocks=[])
     deps = HookDependencies(repository=repo)  # type: ignore[arg-type]
 
     with pytest.raises(AppException) as exc_info:
-        await process_matrix_flattening(base_hook_state, deps)  # type: ignore[misc]
+        await process_matrix_flattening(state, deps)  # type: ignore[misc]
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR.value
@@ -122,14 +123,14 @@ async def test_atom_flattening_invalid_strategy_fails_fast(base_hook_state: Hook
 @pytest.mark.asyncio
 async def test_atom_flattening_stratified_sampling(base_hook_state: HookState, mock_step: Step) -> None:
     """Test Stratified sampling selects exactly N elements per scale."""
-    block = create_mock_matrix_block("block_1", num_atoms_per_scale=10)
+    block = create_mock_matrix_block("blk_0123456789abcdef0123456789abcdef", num_atoms_per_scale=10)
     repo = MockRepository(step=mock_step, blocks=[block])
     deps = HookDependencies(repository=repo)  # type: ignore[arg-type]
 
     # Use STRATIFIED_3
-    base_hook_state.metadata = {"matrix_sampling_strategy": MatrixSamplingStrategy.BALANCED.value}
+    state = base_hook_state.model_copy(update={"metadata": {"matrix_sampling_strategy": 3}})
 
-    result = await process_matrix_flattening(base_hook_state, deps)  # type: ignore[misc]
+    result = await process_matrix_flattening(state, deps)  # type: ignore[misc]
 
     assert result.success is True
     assert "shuffled_atoms" in result.state_delta
@@ -148,14 +149,14 @@ async def test_atom_flattening_stratified_sampling(base_hook_state: HookState, m
 @pytest.mark.asyncio
 async def test_atom_flattening_all_strategy_no_sampling(base_hook_state: HookState, mock_step: Step) -> None:
     """Test ALL sampling strategy flattens everything without dropping."""
-    block = create_mock_matrix_block("block_1", num_atoms_per_scale=5)
+    block = create_mock_matrix_block("blk_0123456789abcdef0123456789abcdef", num_atoms_per_scale=5)
     repo = MockRepository(step=mock_step, blocks=[block])
     deps = HookDependencies(repository=repo)  # type: ignore[arg-type]
 
     # Use ALL
-    base_hook_state.metadata = {"matrix_sampling_strategy": MatrixSamplingStrategy.ALL.value}
+    state = base_hook_state.model_copy(update={"metadata": {"matrix_sampling_strategy": 0}})
 
-    result = await process_matrix_flattening(base_hook_state, deps)  # type: ignore[misc]
+    result = await process_matrix_flattening(state, deps)  # type: ignore[misc]
 
     assert result.success is True
     assert "shuffled_atoms" in result.state_delta

@@ -14,7 +14,6 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.enums import MatrixSamplingStrategy
 from backend_v2.models.v2_core import PromptBlock, Step
 
 logger = logging.getLogger(__name__)
@@ -81,15 +80,12 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
 
     sampling_limit_val = state.metadata["matrix_sampling_strategy"]
 
-    # Cast safely to our Enum to prevent naked integers causing confusion
-    try:
-        sampling_strategy = MatrixSamplingStrategy(sampling_limit_val)
-    except ValueError as e:
+    if not isinstance(sampling_limit_val, int) or sampling_limit_val < 0:
         raise AppException(
             message=f"Invalid matrix_sampling_strategy '{sampling_limit_val}'. Exiting via Fail-Fast.",
             status_code=400,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-        ) from e
+        )
 
     # 3. Retrieve and filter blocks
     all_blocks = await repo.get_all_prompt_blocks()
@@ -106,9 +102,9 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                     continue
 
                 logger.info(
-                    "[AtomFlatteningHook] Flattening Matrix: '%s'. Sampling strategy: %s",
+                    "[AtomFlatteningHook] Flattening Matrix: '%s'. Sampling limit: %s",
                     block.id,
-                    sampling_strategy.name,
+                    sampling_limit_val,
                 )
 
                 matrix_collected_atoms: list[str] = []
@@ -138,11 +134,11 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                                 scale_atoms.append(claim.ai_description)
 
                     # Apply constraint securely using deterministic execution ID locking
-                    if sampling_strategy != MatrixSamplingStrategy.ALL and len(scale_atoms) > sampling_strategy.value:
+                    if sampling_limit_val > 0 and len(scale_atoms) > sampling_limit_val:
                         # Append the specific scale score to the random seed to avoid identical slicing across scales!
                         secure_seed = f"{state.execution_id}_{block.id}_scale_{scale.score}"
                         rng = random.Random(secure_seed)
-                        selected_atoms = rng.sample(scale_atoms, sampling_strategy.value)
+                        selected_atoms = rng.sample(scale_atoms, sampling_limit_val)
                         logger.debug(
                             "[AtomFlatteningHook] Scale %s: Sampled %d out of %d atoms.",
                             scale.score,

@@ -142,3 +142,61 @@ def test_micro_cot_validation_healing() -> None:
     crit_block_2: Any = valid_low_obj.crit_validation  # type: ignore[attr-defined]
     assert crit_block_2.step_4_final_score == 3
     assert crit_block_2.step_1_evidence_quote is None
+
+
+def test_chunk_response_schema_generation() -> None:
+    """Epic 23 Phase 3: Assert chunk schema generates correctly nested strictly typed items."""
+    compiler = PromptCompiler()
+
+    from pydantic import BaseModel, ConfigDict, Field
+
+    class DummyPayload(BaseModel):
+        score: int = Field(..., ge=1, le=5)
+        text: str
+
+        model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    DynamicSchema = compiler.build_chunk_response_schema("TestChunkSchema", DummyPayload)
+
+    obj = DynamicSchema.model_validate(
+        {
+            "chunk_id": "chk_xyz",
+            "records": [
+                {
+                    "original_id": "atom_1",
+                    "payload": {"score": 5, "text": "Valid"},
+                }
+            ],
+        }
+    )
+
+    assert obj.chunk_id == "chk_xyz" # type: ignore[attr-defined]
+    assert len(obj.records) == 1 # type: ignore[attr-defined]
+    assert obj.records[0].original_id == "atom_1" # type: ignore[attr-defined]
+    assert obj.records[0].payload.score == 5 # type: ignore[attr-defined]
+
+    # Test Validation failure parity
+    with pytest.raises(ValidationError):
+        DynamicSchema.model_validate(
+            {
+                "chunk_id": "chk_xyz",
+                "records": [
+                    {
+                        "original_id": "atom_2",
+                        "payload": {"score": 10, "text": "Score Too High"},  # Must fail ge/le
+                    }
+                ],
+            }
+        )
+
+
+def test_compile_chunk_payload_instruction() -> None:
+    """Epic 23 Phase 3: Assert chunk instruction adheres to Phase 9 fence rules."""
+    compiler = PromptCompiler()
+
+    res = compiler.compile_chunk_payload_instruction("chk_123", "Some dangerous input")
+    
+    assert "map-reduce chunk 'chk_123'" in res
+    assert "<user_payload>" in res
+    assert "</user_payload>" in res
+    assert "Some dangerous input" in res

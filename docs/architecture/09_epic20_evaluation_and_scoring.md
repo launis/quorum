@@ -44,15 +44,17 @@ Atomisoidut väitteet ja ohjeistukset luodaan järjestelmään dynaamisesti `Pro
 
 Perinteinen LLM-pohjainen lausuntojen arviointi kykenee harvoin tuottamaan tiukkoja, luotettavia arvosanoja. Järjestelmä ratkaisee tämän pilkkomalla arvioinnin suoritusvaiheessa:
 
-1. **Sokkoarviointi ja Stratifioitu Otoksen Sekoitus (Runtime Flattening):**
-   Välttääksemme LLM:n rakenteellisen ennakkoasenteen (Hierarchy Bias), kaikki atomit viedään `atom_flattening.py` -hookkiin. Hakua ohjaa `MatrixSamplingStrategy`, jolla stratifioitu satunnaistus tehdään deterministisesti prosessin toistettavuuden takaamiseksi:
-   - **Skaalan sisäinen satunnaistus:** Yksittäisen skaalan sisällä otanta suoritetaan satunnaistettuna käyttämällä dynaamista, kryptografista siemenlukua muodossa `secure_seed = f"{state.execution_id}_{block.id}_scale_{scale.score}"`.
-   - **Globaali sokkosekoitus:** Lopullinen atomilistan globaali sokkosekoitus sokeuttaa tuomarin yhdistämällä otokset ja purkamalla ne täysin epäloogiseen järjestykseen. Tämä sekoitus sidotaan suorituksen globaaliin siemenlukuun `state.execution_id`.
+1. **Rajoittamaton Otanta ja Globaali Sokkosekoitus (Runtime Flattening):**
+   Välttääksemme LLM:n rakenteellisen ennakkoasenteen (Hierarchy Bias), kaikki atomit viedään `atom_flattening.py` -hookkiin. Epic 23:n myötä olemme poistaneet keinotekoiset otantarajoittimet (kuten `STRATIFIED_3`), asettamalla globaaliksi vakioksi `SystemConcurrency.MATRIX_SAMPLING_LIMIT = 0` (ALL). Tämä mahdollistaa teoriassa rajattoman kysymysmassan sisäänluvun. Jos satunnaisotantaa poikkeuksellisesti vaaditaan (arvo > 0), haku ohjautuu deterministisesti:
+   - **Skaalan sisäinen satunnaistus:** Otanta käyttää kryptografista siemenlukua muodossa `secure_seed = f"{state.execution_id}_{block.id}_scale_{scale.score}"`.
+   - **Globaali sokkosekoitus:** Lopullinen atomilistan globaali sokkosekoitus purkaa data-alkiot täysin epäjärjestykseen sokeuttaen tekoälyn. Sekoitus sidotaan suorituksen globaaliin siemenlukuun `state.execution_id`.
    (Lähde: backend_v2/hooks/atom_flattening.py, funktio: process_matrix_flattening)
-2. **Eristetty Runtime AI (T=0.0):**
-   LLM suorittaa arvioinnin tiukassa "Strict Mode" -tilassa, missä `LiteLLMProvider` vaatii koodilta absoluuttisesti TPM/RPM-rajoitusten määrittämistä. Jos Pydantic-validaatio epäonnistuu, arkkitehtuuri ei yritä "arvailla" fallback-arvoja (Zero-Fallback), vaan nostaa välittömästi RFC 7807 `AppException` -virheen.
-3. **Paluu Rakennetilaan:**
-   Kun LLM on palauttanut True/False-binääritulokset perusteluineen, arviointimoottori tekee käänteisen hajautuksen (Reverse Hash Mapping) liittääkseen tulokset takaisin oikeisiin `ReportDataDTO`-mallin mukaisille skaalatasoille. Tasot mukailevat aina käytettyä BARS-matriisia (esim. 1–5, 0–3 tai muu dynaaminen kynnysarvo).
+2. **Asynkroninen Map-Reduce Orchestration (ChunkingService):**
+   Jotta satojen kysymysten yhtäaikainen sokea arviointi ei johtaisi Timeout/429 Rate Limit -kaatumisiin tai json-skeeman rikkoutumiseen LLM:n muistin loppuessa (Token Explosion), `LLMNodeStrategy` suorittaa Map-Reduce -operaation. Massiivinen kysymyslista luovutetaan `ChunkingService`-komponentille, joka pilkkoo sen turvallisiin Opaque Stripe ID -suojattuihin osiin (`SystemConcurrency.LLM_MAX_CHUNK_SIZE`-sääntöjen mukaisesti). Palikat ajetaan vahvasti rinnakkain `asyncio.TaskGroup` ja `Semaphore` -varmistuksin. Lopulta erilliset rakenteelliset vastaukset parsitaan takaisin yhtenäiseksi `List[FlattenedAtomResult]` -paketiksi täydellisellä 1:1 osumatarkkuudella.
+3. **Eristetty Runtime AI (T=0.0):**
+   LLM suorittaa kunkin Map-Reduce -lohkon arvioinnin tiukassa "Strict Mode" -tilassa, missä `LiteLLMProvider` vaatii koodilta absoluuttisesti TPM/RPM-rajoitusten määrittämistä. Jos Pydantic-validaatio epäonnistuu yksittäisessä chunkissa, arkkitehtuuri ei yritä "arvailla" fallback-arvoja (Zero-Fallback), vaan nostaa välittömästi RFC 7807 `AppException` -virheen (Fail-Fast).
+4. **Paluu Rakennetilaan:**
+   Kun kaikki asynkroniset LLM-palat on suoritettu ja vastaukset (True/False & Micro-CoT -perustelut) on sulatettu yhteen, arviointimoottori tekee käänteisen hajautuksen (Reverse Hash Mapping) liittääkseen tulokset takaisin oikeisiin `ReportDataDTO`-mallin mukaisiin dynaamisiin matriisiskaalatasoihin.
 
 ## 3. Pisteytyslogiikka: Progressive Dampening (DINA-malli)
 

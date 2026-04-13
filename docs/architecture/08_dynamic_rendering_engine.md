@@ -20,8 +20,8 @@ Nykyaikainen tulostusarkkitehtuuri nojaa seuraaviin kerroksiin:
 4. **Arq Worker (`generate_pdf_job`):**
    Uusi ketjutettu PDF-Background Worker, joka vastaanottaa valmiit synteesit. **Syy:** Tämä hajauttaa kielellisen generoinnin ja visuaalisen asettelun (Zero-Math PDF) eri asynkronisiin työprosesseihin suorituskyvyn takaamiseksi.
 
-5. **`BlueprintTransformer` (BFF DTO Mapper):**
-   Kun synteesi ja data on koossa, Blueprint ottaa haltuun raakadatan (`FrozenContext`) sekä raporttipohjan (`OutputProfile`). Se pakkaa "Zero-Math" säännöillä akseli-tiedot ja soveltaa `visible_metadata` filttereitä pakaten tiedot valmiiseen `ReportDataDTO` muotoon Frontendia (tai PDF-enginea) varten.
+5. **`BlueprintTransformer` (BFF DTO Mapper & 3D Matrix Projection):**
+   Kun synteesi ja data on koossa, Blueprint ottaa haltuun raakadatan (`FrozenContext`) sekä raporttipohjan (`OutputProfile`). Se pakkaa "Zero-Math" säännöillä paitsi perinteiset akselitiedot, myös täydellisen tuen 3D-matriisivisualisoinnille (kuten Illusion Detector ja hajontakuviot). Transformer mappaa saumattomasti edistyneet XAI-laajennukset (falsifikaatio, coaching, remediation, sentiment) ja matriisikohtaiset PromptBlock-arvosanat suoraan valmiiseen `ReportDataDTO` muotoon. Tämä mahdollistaa moniulotteisten 3D-näkymien renderöinnin Frontendissa (tai PDF-moottorissa) täysin ilman asiakaspuolen laskentaa (Zero-Math UI).
 
 ## 2. Tulostusprosessi (Mermaid Visualisointi)
 

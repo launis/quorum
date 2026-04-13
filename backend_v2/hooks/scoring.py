@@ -142,27 +142,39 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     final_score = average_score
     penalties = []
 
+    from backend_v2.models.enums import ScoringCalibrationThresholds
+
+    total_penalty_factor = 0.0
+
     if security_threat:
         p_val = settings.scoring_security_penalty
         if p_val > 0:
-            final_score *= 1.0 - p_val
+            total_penalty_factor += p_val
             pct_val = p_val * 100
             penalties.append(f"Security Threat Detected (-{pct_val:.0f}%)")
-            logger.warning("[ScoringHook] Security Threat penalty applied: -%.0f%% to final score.", pct_val)
         else:
             logger.warning("[ScoringHook] Security Threat Detected (Logged Only - Penalty Disabled in Settings)")
 
     if is_post_hoc:
         p_val = settings.scoring_post_hoc_penalty
         if p_val > 0:
-            final_score *= 1.0 - p_val
+            total_penalty_factor += p_val
             pct_val = p_val * 100
             penalties.append(f"Post-Hoc Rationalization Detected (-{pct_val:.0f}%)")
-            logger.warning("[ScoringHook] Post-Hoc Rationalization penalty applied: -%.0f%% to final score.", pct_val)
         else:
             logger.warning(
                 "[ScoringHook] Post-Hoc Rationalization Detected (Logged Only - Penalty Disabled in Settings)"
             )
+
+    effective_penalty = min(total_penalty_factor, ScoringCalibrationThresholds.PENALTY_CAP.value)
+
+    if effective_penalty > 0:
+        final_score *= 1.0 - effective_penalty
+        logger.warning(
+            "[ScoringHook] Combined penalties applied: -%.0f%% (capped at %.0f%%).",
+            effective_penalty * 100,
+            ScoringCalibrationThresholds.PENALTY_CAP.value * 100,
+        )
 
     # Safety Clamp (0.0 - 100.0)
     final_score = max(0.0, final_score)
@@ -407,7 +419,12 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
 
         import hashlib
 
-        from backend_v2.models.enums import CognitiveFlowStatus, CognitiveFlowThreshold, WaterfallThreshold
+        from backend_v2.models.enums import (
+            CognitiveFlowStatus,
+            CognitiveFlowThreshold,
+            ScoringCalibrationThresholds,
+            WaterfallThreshold,
+        )
         from backend_v2.utils.math_utils import (
             calculate_progressive_dampening_score,
             calculate_waterfall_floor,
@@ -524,7 +541,11 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
             weighted_score = calculate_weighted_score(stats, scale_min, scale_max)
 
             # --- DINA Progressive Dampening Calculation ---
-            dampening_score = calculate_progressive_dampening_score(stats, scale_min, scale_max)
+            raw_dampening_score = calculate_progressive_dampening_score(stats, scale_min, scale_max)
+
+            # Benefit of the Doubt Leniency (Epic 23)
+            dina_absolute_floor = scale_min + (scale_max - scale_min) * ScoringCalibrationThresholds.DINA_FLOOR.value
+            dampening_score = max(raw_dampening_score, dina_absolute_floor)
 
             # Formatting the calculation log (Cognitive Diagnostic Model)
             log_lines = ["### Cognitive Diagnostic Model (CDM) Breakdown:"]

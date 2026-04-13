@@ -2,7 +2,6 @@ import pytest
 from unittest.mock import AsyncMock
 
 from backend_v2.core.hook_registry import HookDependencies, HookState
-from backend_v2.models.enums import MatrixSamplingStrategy
 from backend_v2.hooks.atom_flattening import process_matrix_flattening
 
 
@@ -72,7 +71,7 @@ async def test_atom_flattening_all(mock_dependencies):
         step_id=step_id,
         task_blueprint=step_id,
         inputs={},
-        metadata={"matrix_sampling_strategy": MatrixSamplingStrategy.ALL.value}
+        metadata={"matrix_sampling_strategy": 0}
     )
     
     result = await process_matrix_flattening(state, mock_dependencies)
@@ -108,7 +107,7 @@ async def test_atom_flattening_stratified(mock_dependencies):
         step_id=step_id,
         task_blueprint=step_id,
         inputs={},
-        metadata={"matrix_sampling_strategy": MatrixSamplingStrategy.BALANCED.value}
+        metadata={"matrix_sampling_strategy": 3}
     )
     
     result = await process_matrix_flattening(state, mock_dependencies)
@@ -136,7 +135,7 @@ async def test_atom_flattening_deterministic_shuffle(mock_dependencies):
         step_id=step_id,
         task_blueprint=step_id,
         inputs={},
-        metadata={"matrix_sampling_strategy": MatrixSamplingStrategy.INTENSIVE.value}
+        metadata={"matrix_sampling_strategy": 5}
     )
     
     state2 = HookState(
@@ -145,7 +144,7 @@ async def test_atom_flattening_deterministic_shuffle(mock_dependencies):
         step_id=step_id,
         task_blueprint=step_id,
         inputs={},
-        metadata={"matrix_sampling_strategy": MatrixSamplingStrategy.INTENSIVE.value}
+        metadata={"matrix_sampling_strategy": 5}
     )
     
     res1 = await process_matrix_flattening(state1, mock_dependencies)

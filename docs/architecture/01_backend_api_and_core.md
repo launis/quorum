@@ -29,7 +29,8 @@ sequenceDiagram
     Redis-->>Worker: Dequeue Task
     activate Worker
     Worker->>DB: Status -> RUNNING
-    Worker->>Worker: Asynchronous LLM Network Execution...
+    Worker->>Worker: Asynchronous Map-Reduce Orchestration (ChunkingService)
+    Worker->>Worker: Rinnakkaiset LLM-kutsut (TaskGroup & Sempahore)
     Worker->>DB: TraceEvents & OutputProfile DTO
     Worker->>DB: Status -> COMPLETED
     deactivate Worker
@@ -41,8 +42,8 @@ sequenceDiagram
 ```
 
 1. **Optimistinen vastaanotto (FastAPI):** Kun asiakas lähettää suorituspyynnön, FastAPI delegoi raskaan työn Arq-taustajonolle (Redis) ja palauttaa välittömästi HTTP 202 -vastauksen.
-2. **Taustaprosessointi (Arq Worker):** Itsenäinen Worker-prosessi purkaa jonon, suorittaa LLM-kutsut ja suorittaa atomisen tallennuksen (COMPLETED/FAILED) tietokantaan.
-3. **Reaktiivinen UI-päivitys:** Käyttöliittymä kuuntelee tietokannan tapahtumia ja päivittää näkymät (esim. XAI-raportit) heti kun taustaprosessi on valmis.
+2. **Taustaprosessointi ja Map-Reduce (Arq Worker):** Itsenäinen Worker-prosessi purkaa jonon. Mikäli käsiteltävänä on massiivinen määrä atomeja (kysymyksiä), se välitetään ohjaustasolla `ChunkingService`-komponentille. Järjestelmä orkestroi tiukat `SystemConcurrency.LLM_MAX_CHUNK_SIZE` -rajat (oletus 40) ja ajaa klusterin rinnakkain `asyncio.TaskGroup`- ja `Semaphore`-työkalujen avulla ilman pelkoa API-rajoihin osumisesta (Token Explosion). Kaikki kootaan deterministisesti yhteen tulokseen.
+3. **Reaktiivinen UI-päivitys:** Käyttöliittymä kuuntelee tietokannan tapahtumia ja päivittää näkymät (esim. XAI-raportit) heti kun taustaprosessi on valmis ja tietokannan tila päivittyy arvoon `COMPLETED`.
 
 ## Hakemistorakenne: Kognition ja rajapintojen erotus
 

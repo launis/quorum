@@ -13,7 +13,7 @@ from backend_v2.models.enums import (
     BlockDataType,
     ComponentType,
     ExecutionStatus,
-    MatrixSamplingStrategy,
+    SystemConcurrency,
     XaiExtensionType,
 )
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
@@ -892,10 +892,10 @@ class ExecutionCreate(V2CoreBase):
         ),
     )
     matrix_sampling_strategy: int = Field(
-        default=MatrixSamplingStrategy.BALANCED.value,
+        default=SystemConcurrency.MATRIX_SAMPLING_LIMIT.value,
         description=(
             "Explicit dynamic strategy for Matrix Flattening. Defaulted from ALL to "
-            "BALANCED locally to mitigate LLM JSON schema context limits."
+            "10 locally to mitigate LLM JSON schema context limits."
         ),
     )
     raw_inputs: WorkflowInputs = Field(default_factory=WorkflowInputs, description="User provided raw inputs")

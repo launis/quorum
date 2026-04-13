@@ -1,0 +1,62 @@
+import logging
+import uuid
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
+
+
+class Chunk[T](BaseModel):
+    """Represents a chunk of a larger array, tracked by an Opaque Stripe ID."""
+
+    id: str = Field(
+        default_factory=lambda: f"chk_{uuid.uuid4().hex[:12]}",
+        pattern=r"^chk_[a-zA-Z0-9]+$",
+        description="Opaque Stripe ID for the chunk",
+    )
+    parent_id: str | None = Field(
+        default=None,
+        description="Optional Opaque Stripe ID of the parent sequence",
+    )
+    index: int = Field(
+        ...,
+        ge=0,
+        description="The sequence order index of this chunk.",
+    )
+    items: list[T] = Field(
+        ...,
+        description="The actual chunked payload elements.",
+    )
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+
+class ChunkingRequest[T](BaseModel):
+    """Payload to request chunking operation."""
+
+    parent_id: str | None = Field(
+        default=None,
+        description="Optional Opaque Stripe ID of the parent sequence",
+    )
+    items: list[T] = Field(
+        ...,
+        description="The payload elements to chunk.",
+    )
+    max_chunk_size: int = Field(
+        ...,
+        gt=0,
+        description="Maximum number of items per chunk.",
+    )
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    @field_validator("items")
+    @classmethod
+    def validate_items_not_empty(cls, v: list[T]) -> list[T]:
+        if not v:
+            msg = "Cannot chunk an empty list. Items must contain at least one element."
+            logger.error("[Chunking] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+        return v

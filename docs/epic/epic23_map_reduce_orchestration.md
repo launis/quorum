@@ -1,27 +1,39 @@
-# EPIC 23: Map-Reduce LLM Orchestration & Bounded Contexts
+# MEGA EPIC 23: Map-Reduce Orchestration & DINA Scoring Calibration
 
 ## Tausta (Background)
-Gemini 2.5 Pro ja muut modernit mallit pystyvät käsittelemään miljoonia tokeneita syötetietoa (Context Window), mutta niiden infrastruktuuri (ja Pydantic-kirjastojen validointinopeus) kohtaa kriittisen pullonkaulan **Strukturoidun ulostulon (Structured Output) koossa**. 
+Järjestelmämme kohtaa parhaillaan kaksi rinnakkaista ydinongelmaa, jotka jarruttavat arviointien tuotantokehitystä:
 
-Tällä hetkellä järjestelmämme pakottaa DAG Executorin tunkemaan koko stepin (sisältäen pahimmillaan jopa 10 arvioitavaa konseptia/matriisia ja satoja `atom_id` kysymyksiä) yhteen ainoaan Pydantic JSON Schemaan. Kun pyydämme LLM:ää generoimaan 300 arviointiobjektia kerralla yhtenä giganttisena taulukkona, malli usein "tukehtuu" JSONin generoimisen raskauteen, katkaisee yhteyden kesken siirron tai ylittää tuotantoinfrastruktuurin oletus-aikakatkaisun (Timeout).
-
-Tämän takia olemme joutuneet laastaroimaan ongelmaa kytkemällä "Matrix Sampling Strategian" rajoittamaan tarkastelua (esim. `STRATIFIED_3` ohittaa satoja atomeja ja tekee valituilla otoksilla arvioita, jotta tulosten määrä pysyy rajallisena).
+1. **Infrastruktuurin Suorituskyky (Token Explosion):** Kun DAG Executor joutuu puskemaan jopa satoja kysymyksiä yhden Step-lohkon sisällä Vertex AI -malleille, koko massiivinen vastaus vaaditaan yhtenä strukturoituna JSON-taulukkona. Pydantic-validoinnin ja LLM-generoinnin raskaus johtaa usein tuotantoinfrastruktuurin aikakatkaisuihin (Timeout). Olemme joutuneet laastaroimaan tätä hylkäämällä osan kysymyksistä (esim. `STRATIFIED_3` sämpläys).
+2. **Kognitiivinen Ylikriittisyys (Scoring Harshness):** Arviointi on toisinaan pikkutarkkaa eksakteista avainsanoista. Lisäksi nykyinen DINA-putouslaskenta rankaisee liian kovaa kertolaskuillaan, jolloin jopa perustellut ja taitavat analyysit valuvat kohti täyttä nollaa pienten puutteiden takia (Double Jeopardy & Cascading Doom).
 
 ## Tavoite (Objective)
-Rakentaa Backendin DAG (Directed Acyclic Graph) -suorittimeen kyvykkyys dynaamiseen Map-Reduce pirstalointiin. 
+Rakentaa täydellinen **Mega Epic**, joka yksinkertaistaa laskentamatematiikan takaisin täyteen O(1)-determinismiin ja ottaa käyttöön Map-Reduce arkkitehtuurin, jolla järjestelmä pystyy pureskelemaan rajattoman määrän tietoa tukehtumatta. 
 
-Kun `dag_executor.py` tai `llm.py (strategy)` havaitsee askelen (Step) sisältävän valtavan tiheyden datamassoja tai useita rinnakkaisia arviointilohkoja (PromptBlocks), sen tulee atomaarisesti lohkoa nämä itsenäisiksi alatason Pydantic-korikyselyiksi ("Map"). LLM-pyynnöt ammutaan asyncio:lla Vertex AI:hin rinnakkain useana pienenä, nopeasti valmistuvana purskeena. Kun kaikki rinnakkaiset langat valmistuvat, tulokset summataan takaisin yhteen alkuperäisen Step-objektin state-payloadiksi ("Reduce") ja pisteytetään normaalisti `waterfall_scoring_hook`illa.
+Suorituskyvyn (Map-Reduce) ja Tarkkuuden (DINA Calibration) yhdistäminen luo arkkitehtuurin, jota ei tarvitse erikseen "suojella" raskaalta tiheydeltä.
 
-## Arkkitehtuurivaatimukset
-1. **Pirstalointimekanismi (Map)**: DAG-Executorin tai Evaluate-strategian tulee kyetä päättelemään "Painoarvo" (esim. PromptBlockien määrä kerrottuna atomien määrällä). Jos painoarvo ylittää rajan (esim. max 50 atomia per kutsu), syöte leikataan rinnakkaisiksi osapyynnöiksi.
-2. **Kokoamismekanismi (Reduce)**: Strict Pydantic -arkkitehtuurin asettamat validointisäännöt on säilytettävä saumattomina lopputuloksen kootessa palasia yhteen. Kokoajafunktion (Aggregator) pitää palauttaa virheettömästi täysi `state_delta` JSON, aivan kuten vanhassa toteutuksessa.
-3. **Konkurrenssin suojaelu**: Kun ammutaan 10 rinnakkaista LLM-pyyntöä yhdeltä käyttäjältä, järjestelmän tulee noudattaa uutta `SystemConcurrency` Pydantic Enumia (jotta emme riko Cloud Quotoja ja saa Rate Limit -virheitä 429). Asyncio TaskGroup pitää rajoittaa puristeputkellä (esim. max 3 rinnakkaista requestia).
-4. **Resilienssi ja Retry-logiikka**: Jos yksi Map-osa kaatuu, vain se osa yritetään uudelleen pelkän Partial Retry -logiikan kautta (koko 10 minuutin Steppiä ei enää tarvitse nollata ja aloittaa alusta).
-5. **No-Limit Seeding**: Kun Epic on valmis, oletuksena oleva `MatrixSamplingStrategy` voidaan asettaa takaisin arvoon `0 (ALL)`, jolloin laatuportti on vapaa auditoimaan absoluuttisesti kaiken saatavilla olevan tiedon.
+## Arkkitehtuurivaatimukset ja Säännöt (`05_llm_architecture.md` Mukaisesti)
 
-## Implementointivaiheet (Phases)
-- **Phase 1**: Luodaan `ChunkingService` Pydantic-skeema, joka testataan erillisenä irrallisena moduulina.
-- **Phase 2**: Laajennetaan `backend_v2/services/orchestrator/strategies/llm.py` hyväksymään modulaarisesti paloitellun prompt-arrayn.
-- **Phase 3**: Rinnakkaisuus-Limiter (Semaphore) infrastruktuuri Vertex-kutsun (`litellm`) ympärille estämään tukehtumisen.
-- **Phase 4**: Map-Reduce End-to-End yksikkötestaus.
-- **Phase 5**: `STRATIFIED_3` poistaminen tuotannosta ja siirtyminen globaaliin `ALL (0)` prosessointiin.
+### A. DINA Scoring Calibration & Math Simplicity
+1. **"Benefit of the Doubt" -mandaatti (Shift-Left)**: Arviointiin lisätään puhdas ohjeellinen rentous, joka pakottaa LLM:n tunnistamaan myös johdetun ja epäsuoran loogisen argumentoinnin ilman täydellisiä täsmäsanoja. Tämä parantaa `hit_rate`-osumia suoraan lähteellä ilman koodimuutoksia.
+2. **DINA-virtakertoimen lattia (Floor)**: Puhdas matemaattinen turvaverkko natiivilla `max()` -toiminnolla. Kertovat rangaistukset eivät saa pudottaa suoritusta kohti nollaa ilman rajoja. Käytetään täysin uutta Enum-rakennetta (esim. `ScoringCalibrationThresholds.DINA_FLOOR = 0.30`).
+3. **Double Jeopardy -Katto (Ceiling)**: Rangaistusten yhteisvaikutus lasketaan yhteen (esim. Post-Hoc + Passivity) ja niille asetetaan maksimikatto absoluuttisesti `min()` -funktiolla. Ohjataan uudella Enum-rakenteella (esim. `ScoringCalibrationThresholds.PENALTY_CAP = 0.25`). Ei ehtolausekkeitä, pelkkää suoraviivaista O(1)-matematiikkaa.
+
+### B. Map-Reduce Orchestration
+4. **Pirstalointi ja Kokoaminen (Map & Reduce)**: Kun kuorma ylittää rajan, arviointipuu halkaistaan osiin. Jokainen osa tuottaa EHDOTTOMASTI jähmetetyn Pydantic-mallin (ei ikinä raaka-dictejä / `no_naked_dicts_in_state`). Jokainen osanen tunnustaa yksilöllistä Opaque Stripe ID:tä (`chk_abc1a2...`). Valtoimenaan generoituva ChunkResponseSchema yhdistetään turvallisesti takaisin `state_delta` muotoon.
+5. **SSOT Konkurrenssin ja Arkkitehtuurin Suojelu**: Mielivaltaisia erillisrajoittimia ei keksitä. Asyncio TaskGroup joutuu rajoittamaan rinnakkaiskutsunsa EHDOTTOMASTI ENUM-arvoon **`SystemConcurrency.MAX_CONCURRENT_LLM_STEPS`** API Rate Limitien (429) ehkäisyksi. Vertex SDK:ta (`litellm`) ei koskaan suorakääritä omilla semaphoreilla (Sääntö `direct_sdk_calls` ban).
+6. **Fail-Fast Resilienssi**: Map-palasten osittaisyrityksiin (Partial Retry) sidotaan YKSINOMAAN tiukka **`SystemConcurrency.LLM_MAX_RETRIES`** Enum (joka on säädetty kakkoseen). Emme toteuta loputtomia itsensäparannussilmukoita ("Anti-Infinite Loop").
+
+## Implementointivaiheet (Phases) Puhtaalta Pöydältä
+
+- **Phase 1: Scoring Calibration & The Lenient Shift** 
+  - Päivitetään uudet kynnysarvot (`DINA_FLOOR`, `PENALTY_CAP`) Enums-tiedostoon.
+  - Viedään O(1) `min/max` -matematiikka rangaistuksiin `scoring.py` -tiedostossa. 
+  - Lisätään `PromptCompilerin` System Injunctioniin "Constructive Leniency" ja Benefit of the Doubt -määräys.
+- **Phase 2: The Eristetty Chunking Service (TDD)** 
+  - Luodaan `ChunkingService` Pydantic-skeema ja yksikkötestit laboratoriomallissa. Se tuottaa palasta kohden puhtaita Map-paloja Opaque-tunnistein ilman kosketusta LLM:ään.
+- **Phase 3: PromptCompilerin Dynaaminen Modulaarisuus** 
+  - Päivitetään `PromptCompiler` rakentamaan täysin irrallinen V2 `ChunkResponseSchema` jokaiselle satunnaiselle Map-palaselle, säilyttäen `llm_structured_execution_mandate` -vaatimuksen, jottei LLM "vain renderöi epämääräistä JSONia". (Surgical Precision Exception Rule).
+- **Phase 4: Async Orchestration ja Map-Reduce (Execution)** 
+  - Laajennetaan `backend_v2/services/orchestrator/strategies/llm.py` hyväksymään modulaariseltä ChunkingServiceltä saatu taulukko. Ajo viedään turvallisen `TaskGroupin` läpi hyödyntäen ainoastaan `SystemConcurrency.MAX_CONCURRENT_LLM_STEPS` Enumia.
+- **Phase 5: Release the Gates (Seeding & Validation)** 
+  - `STRATIFIED` rajoittimen poistaminen järjestelmästä globaalisti ja vaihtaminen `ALL (0)` prosessointiin. Koko koodikannan validointi todistaaksemme Mega Epicin saavuttaneen kognitiivisen oikeellisuuden ja infrastruktuurin sietokyvyn rajattomille atomeille.

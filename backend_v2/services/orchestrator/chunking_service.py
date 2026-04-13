@@ -1,0 +1,43 @@
+import logging
+
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.chunking import Chunk, ChunkingRequest
+
+logger = logging.getLogger(__name__)
+
+
+class ChunkingService:
+    """Isolated Chunking Service.
+
+    Provides deterministic chunking of large arrays (Prompt Blocks/Atoms)
+    into manageable sub-arrays tracked by Opaque Stripe IDs.
+    Zero external dependencies, zero DB, zero LLM integration. T=0.0 pure deterministic logic.
+    """
+
+    @classmethod
+    def chunk_payload[T](cls, request: ChunkingRequest[T]) -> list[Chunk[T]]:
+        """Splits an array of items into N deterministic chunks."""
+        try:
+            chunks: list[Chunk[T]] = []
+            items = request.items
+            n = request.max_chunk_size
+
+            for index, i in enumerate(range(0, len(items), n)):
+                chunk_items = items[i : i + n]
+
+                chunk = Chunk[T](
+                    parent_id=request.parent_id,
+                    index=index,
+                    items=chunk_items,
+                )
+                chunks.append(chunk)
+
+            return chunks
+        except Exception as e:
+            msg = f"Deterministic chunking failed: {e!s}"
+            logger.error("[ChunkingService] %s: %s", ErrorCodes.CRITICAL_SYSTEM_ERROR.name, msg)
+            raise AppException(
+                message=msg,
+                details={"error_code": ErrorCodes.CRITICAL_SYSTEM_ERROR, "error": str(e)},
+                status_code=500,
+            ) from e

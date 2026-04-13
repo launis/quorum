@@ -39,6 +39,12 @@ def wipe_dynamic_data() -> None:
     with open(DB_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
+    # 5. Wipe orphaned physical files
+    executions_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "files", "executions")
+    if os.path.exists(executions_dir):
+        shutil.rmtree(executions_dir, ignore_errors=True)
+        os.makedirs(executions_dir, exist_ok=True)
+
     print("[Scrubber] Clean slate achieved!")
     print(f" - Wiped {workflows_count} Workflows.")
     print(f" - Wiped {executions_count} Executions.")

@@ -93,8 +93,10 @@ def test_apply_scoring_logic_hook_applies_penalties(monkeypatch: pytest.MonkeyPa
     res = apply_scoring_logic_hook(state, None)
     assert res.success is True
     delta = res.state_delta["scoring_result"]  # type: ignore
-    # Initial average: 100.0, Guard penalty (-50%): 50.0, Post hoc penalty (-50%): 25.0
-    assert abs(delta["total_score"] - 25.0) < 0.01
+    # Initial average: 100.0. Guard (+50%) and Post-Hoc (+50%) penalties sum to 1.0 (100%).
+    # This is capped at PENALTY_CAP (0.25). 
+    # Final score = 100.0 * (1.0 - 0.25) = 75.0
+    assert abs(delta["total_score"] - 75.0) < 0.01
     assert len(delta["penalties_applied"]) == 2
 
 
@@ -244,3 +246,52 @@ async def test_waterfall_scoring_hook_matrix_category() -> None:
     # The payload update MUST contain the calculated score mapped to blk_1
     assert "blk_1" in res.state_delta
     assert "blk_1_justification" in res.state_delta
+
+
+@pytest.mark.asyncio
+async def test_waterfall_scoring_hook_dina_floor() -> None:
+    """Epic 23: Assert that DINA calculations never fall below DINA_FLOOR (0.30)"""
+    mock_repo = AsyncMock()
+    mock_repo.get_step_by_id.return_value = {"prompt_blocks": ["blk_dina"]}
+    mock_repo.get_prompt_block_by_id.return_value = {
+        "category_id": "matrix",
+        "type": "float",
+        "scales": [
+            {"score": 1, "claims": [{"micro_atoms": ["test_atom_1"]}]},
+            {"score": 5, "claims": [{"micro_atoms": ["test_atom_5"]}]}
+        ],
+    }
+
+    import hashlib
+    atom_hash_1 = hashlib.md5("test_atom_1".encode("utf-8")).hexdigest()
+    atom_hash_5 = hashlib.md5("test_atom_5".encode("utf-8")).hexdigest()
+
+    deps = HookDependencies(repository=mock_repo)
+    # Give all False answers to trigger the lowest possible native DINA score (modifier = 0 -> score = 1)
+    state = _make_state(
+        step_id="step_1",
+        inputs={
+            "evaluations": [
+                {
+                    "atom_id": atom_hash_1,
+                    "boolean": False,
+                    "reasoning": "Failed"
+                },
+                {
+                    "atom_id": atom_hash_5,
+                    "boolean": False,
+                    "reasoning": "Failed"
+                }
+            ]
+        }
+    )
+    state = state.model_copy(update={"task_blueprint": "step_1"})
+
+    res = await waterfall_scoring_hook(state, deps)
+    
+    assert res.success is True
+    # If scale_min=1, scale_max=5 and DINA_FLOOR=0.30:
+    # dina_absolute_floor = 1 + (5 - 1) * 0.30 = 2.2
+    assert "blk_dina" in res.state_delta
+    score = res.state_delta["blk_dina"]
+    assert abs(score - 2.2) < 0.01

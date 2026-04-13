@@ -147,6 +147,17 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
         db = TinyDB(db_path, encoding="utf-8")
         db.drop_tables()  # CLEAN SLATE
         print(f"[Seeder V2] CLEARED persistence. Dropped all tables from {db_path}.")
+
+        # 2. Cleanup orphaned execution files physically
+        if "db_v2.json" in db_path:
+            executions_dir = os.path.join(PROJECT_ROOT, "data", "files", "executions")
+            if os.path.exists(executions_dir):
+                import shutil
+
+                shutil.rmtree(executions_dir, ignore_errors=True)
+                os.makedirs(executions_dir, exist_ok=True)
+                print(f"[Seeder V2] WIPED physical orphaned files from {executions_dir}.")
+
     except Exception as e:
         _fail_fast("Error initializing TinyDB", e)
 

@@ -27,7 +27,7 @@ flowchart TD
         NodeExec --> Breaker{"FinOps Circuit Breaker"}
         Breaker -- "Estetty/Raja ylittyi" --> AbortTask((TaskGroup Abort / 422))
         Breaker -- "Sallittu" --> StrategySelect{"Valittu Strategia"}
-        StrategySelect --> LLMStrategy["LLMNodeStrategy (Tekoälykutsu)"]
+        StrategySelect --> LLMStrategy["LLMNodeStrategy (Map-Reduce & ChunkingService)"]
         StrategySelect --> LogicStrategy["LogicNodeStrategy (Puhdas koodi)"]
         LLMStrategy --> StrategyMerged((Strategia Suoritettu))
         LogicStrategy --> StrategyMerged
@@ -51,7 +51,7 @@ flowchart TD
    * Suorittaa solmut (StepRule) natiiveina `asyncio.TaskGroup` -kapselointeina. Jos yksikin solmu sadoista kaatuu asynkronisen ajon aikana palamattomasti, `TaskGroup` perutaan ja ajon resurssit (esim. tekeillä olevat roikkuvat HTTP-pyynnöt LLM:lle) tapetaan automaattisesti taaten täydellisen "Fail-Fast" nollavuototilan.
    * Hallinnoi ajonaikaista rinnakkaiskattoa vahvan semaforin (`SystemConcurrency.MAX_CONCURRENT_LLM_STEPS`) avulla suojellakseen ulkoisia API-rajoitteita (Rate Limiting).
 3. **NodeExecutor (Yksittäisen tason äly - Strategy Pattern):** 
-   * Kapseloi tasan yhden askeleen ajolääkityksen (esim. `LLMNodeStrategy` tai puhdas koodipohjainen `LogicNodeStrategy`) täyteen eristykseen. Tämä sallii monimutkaisempien if/else -työnkulkujen (esim. raportoinnin reititykset) ketjuttamisen solmuiksi ilman kallista kielimallikutsua.
+   * Kapseloi askeleen ajologiikan (`LLMNodeStrategy` tai `LogicNodeStrategy`) täyteen eristykseen. `LLMNodeStrategy` ei ole vain putki, vaan itsessään laaja Map-Reduce -orkestraattori, joka ottaa vastaan rajattoman atomisen matriisin (`MATRIX_SAMPLING_LIMIT = 0`), pilkkoo sen `ChunkingService`:n avulla turvallisiin massapaloihin välttyäkseen Token-ylikuormalta, ajaa palat rinnakkain, ja yhdistää tulokset deterministisesti (`FlattenedAtomResult`).
    * Suorittaa ns. "FinOps Circuit Breaker" -tarkistuksen ennen kutsua taatakseen, ettei asiakas ylitä budjettia sadoilla käskyillä.
    * Ei itse tallenna tietoa tietokantaan, vaan palauttaa `TraceEvent` tai virtuaalisesti siepatun `ErrorTraceEvent` -lokituksen deterministisestä lopputulemasta.
 4. **ExecutionCommitter (Event Sourcing -tallennin):** 

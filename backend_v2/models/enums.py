@@ -81,6 +81,13 @@ class CognitiveFlowStatus(str, Enum):
     WEAK = "Cognitive flow degrades significantly"
 
 
+class ScoringCalibrationThresholds(float, Enum):
+    """Thresholds for Benefit of the Doubt leniency and Double Jeopardy caps."""
+
+    DINA_FLOOR = 0.30
+    PENALTY_CAP = 0.25
+
+
 class ExecutionStatus(str, Enum):
     """Execution lifecycle status."""
 
@@ -95,19 +102,10 @@ class SystemConcurrency(int, Enum):
 
     MAX_CONCURRENT_WORKFLOWS = 1
     MAX_CONCURRENT_LLM_STEPS = 2
-    LLM_MAX_RETRIES = 10
+    LLM_MAX_RETRIES = 2
+    LLM_MAX_CHUNK_SIZE = 40
+    MATRIX_SAMPLING_LIMIT = 0
     LLM_DEFAULT_TIMEOUT_SECONDS = 300
-
-
-class MatrixSamplingStrategy(int, Enum):
-    """Dynamic sampling limits for Matrix Flattening Hook.
-    0 means no sampling (flatten all atoms). N means select N atoms per specific BARS scale point.
-    """
-
-    ALL = 0
-    MINIMAL = 1
-    BALANCED = 3
-    INTENSIVE = 5
 
 
 # --- Restored V1 Enums ---

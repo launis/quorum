@@ -140,8 +140,15 @@ class LLMNodeStrategy(NodeStrategy):
         if dynamic_instructions:
             user_payload += f"\n\n--- RUNTIME AWARENESS ---\n{dynamic_instructions}"
 
+        from backend_v2.models.enums import SystemConcurrency
+        from backend_v2.services.orchestrator.chunking_service import ChunkingService
+        from backend_v2.models.chunking import ChunkingRequest
+        import asyncio
+        import json
+
         # Epic 20 Phase 7: Inject Shuffled Atoms for Blind Evaluation
         has_shuffled_atoms = False
+        chunks_list = []
         if "shuffled_atoms" in state_data:
             has_shuffled_atoms = True
             shuffled_atoms = state_data["shuffled_atoms"]
@@ -155,10 +162,14 @@ class LLMNodeStrategy(NodeStrategy):
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
-            import json
-
-            atoms_json = json.dumps(shuffled_atoms, ensure_ascii=False, indent=2)
-            user_payload += f"\n\n<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>\n"
+            req = ChunkingRequest[dict](
+                parent_id=context.workflow_id,
+                items=shuffled_atoms,
+                max_chunk_size=SystemConcurrency.LLM_MAX_CHUNK_SIZE.value,
+            )
+            chunks_list = ChunkingService.chunk_payload(req)
+        else:
+            chunks_list = [None]  # Dummy to execute single non-chunk payload
 
         has_search = any("search_result" in v for v in state_data.values() if isinstance(v, dict))
 
@@ -172,11 +183,6 @@ class LLMNodeStrategy(NodeStrategy):
 
         if frozen_ctx:
             frozen_ctx.generated_schemas[step.id] = dynamic_schema.model_json_schema()
-
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_payload},
-        ]
 
         # 4. Invoke LLM Model (Tool Loop vs Direct Output)
         strategy_name = context.model_strategy
@@ -192,78 +198,119 @@ class LLMNodeStrategy(NodeStrategy):
             )
         bound_client = await LLMClient.from_strategy(strategy_name, self.repository)
 
+        from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
+
+        sem = asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS.value)
+
+        async def process_chunk(chunk: Any) -> tuple[dict[str, Any], dict[str, Any], list[Any]]:
+            async with sem:
+                local_payload = user_payload
+                if chunk is not None:
+                    atoms_json = json.dumps(chunk.items, ensure_ascii=False, indent=2)
+                    local_payload += f"\n\n<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>\n"
+
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": local_payload},
+                ]
+
+                chunk_final: dict[str, Any] = {}
+                chunk_usage: dict[str, Any] = {}
+                chunk_traces: list[Any] = []
+
+                if effective_mcp_tools:
+                    try:
+                        loop_res = await execute_tool_loop(
+                            llm_client=bound_client,
+                            messages=messages,
+                            response_model=dynamic_schema,
+                            allowed_tools=effective_mcp_tools,
+                            step_name=step.id,
+                            mock_identity=step.id,
+                            target_language=target_locale,
+                            synthesis_instructions=state_data.get("synthesis_instructions"),
+                        )
+                        chunk_final = dict(loop_res.result_data)
+                        chunk_usage = dict(loop_res.usage) if loop_res.usage else {}
+                        if loop_res.audit_traces:
+                            chunk_traces.extend(loop_res.audit_traces)
+                    except Exception as e:
+                        logger.error(
+                            "Execution of MCP tool loop failed.",
+                            extra={
+                                "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
+                                "step_id": step.id,
+                                "detail": str(e),
+                            },
+                            exc_info=True,
+                        )
+                        if isinstance(e, AppException):
+                            raise
+                        raise AppException(
+                            message=f"MCP Tool Loop Execution failed: {str(e)}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
+                        ) from e
+                else:
+                    try:
+                        result, usage = await bound_client.run_structured_task(
+                            messages=messages,
+                            response_model=dynamic_schema,
+                            mock_identity=step.id,
+                        )
+                        chunk_final = dict(result.model_dump(mode="json"))
+                        chunk_usage = dict(usage) if usage else {}
+                    except Exception as e:
+                        logger.error(
+                            "Execution of structured LLM task failed.",
+                            extra={
+                                "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
+                                "step_id": step.id,
+                                "detail": str(e),
+                            },
+                            exc_info=True,
+                        )
+                        if isinstance(e, AppException):
+                            raise
+                        raise AppException(
+                            message=f"Structured LLM execution failed: {str(e)}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
+                        ) from e
+                
+                return chunk_final, chunk_usage, chunk_traces
+
+        tasks = []
+        async with asyncio.TaskGroup() as tg:
+            for c in chunks_list:
+                tasks.append(tg.create_task(process_chunk(c)))
+
         final_dict: dict[str, Any] = {}
         usage_dict: dict[str, Any] = {}
 
-        if effective_mcp_tools:
-            # Inline import for MCP to avoid module load overhead unless explicitly utilized.
-            from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
+        for t in tasks:
+            c_final, c_usage, c_traces = t.result()
 
-            try:
-                loop_result = await execute_tool_loop(
-                    llm_client=bound_client,
-                    messages=messages,
-                    response_model=dynamic_schema,
-                    allowed_tools=effective_mcp_tools,
-                    step_name=step.id,
-                    mock_identity=step.id,
-                    target_language=target_locale,
-                    synthesis_instructions=state_data.get("synthesis_instructions"),
-                )
-                final_dict = dict(loop_result.result_data)
-                usage_dict = dict(loop_result.usage) if loop_result.usage else {}
+            if not final_dict:
+                final_dict = c_final
+            else:
+                if "evaluations" in c_final and "evaluations" in final_dict:
+                    final_dict["evaluations"].extend(c_final["evaluations"])
+                if "reasoning_trace" in c_final and "reasoning_trace" in final_dict:
+                    final_dict["reasoning_trace"] += f"\n\n[Chunk]: {c_final['reasoning_trace']}"
+                if "evaluation_notes" in c_final and "evaluation_notes" in final_dict:
+                    final_dict["evaluation_notes"] += f"\n\n[Chunk]: {c_final['evaluation_notes']}"
 
-                if frozen_ctx and loop_result.audit_traces:
-                    # Deduplicate at the orchestrator root to prevent DB bloat across DAG retries or LLM loop confusions
-                    existing_hashes = {f"{a.tool_id}::{a.query}" for a in frozen_ctx.mcp_tool_audit}
-                    for t_trace in loop_result.audit_traces:
-                        thash = f"{t_trace.tool_id}::{t_trace.query}"
-                        if thash not in existing_hashes:
-                            frozen_ctx.mcp_tool_audit.append(t_trace)
-                            existing_hashes.add(thash)
-            except Exception as e:
-                logger.error(
-                    "Execution of MCP tool loop failed.",
-                    extra={
-                        "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
-                        "step_id": step.id,
-                        "detail": str(e),
-                    },
-                    exc_info=True,
-                )
-                if isinstance(e, AppException):
-                    raise
-                raise AppException(
-                    message=f"MCP Tool Loop Execution failed: {str(e)}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
-                ) from e
-        else:
-            try:
-                result, usage = await bound_client.run_structured_task(
-                    messages=messages,
-                    response_model=dynamic_schema,
-                    mock_identity=step.id,
-                )
-                final_dict = dict(result.model_dump(mode="json"))
-                usage_dict = dict(usage) if usage else {}
-            except Exception as e:
-                logger.error(
-                    "Execution of structured LLM task failed.",
-                    extra={
-                        "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
-                        "step_id": step.id,
-                        "detail": str(e),
-                    },
-                    exc_info=True,
-                )
-                if isinstance(e, AppException):
-                    raise
-                raise AppException(
-                    message=f"Structured LLM execution failed: {str(e)}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
-                ) from e
+            for k, v in c_usage.items():
+                usage_dict[k] = usage_dict.get(k, 0) + v
+
+            if frozen_ctx and c_traces:
+                existing_hashes = {f"{a.tool_id}::{a.query}" for a in frozen_ctx.mcp_tool_audit}
+                for t_trace in c_traces:
+                    thash = f"{t_trace.tool_id}::{t_trace.query}"
+                    if thash not in existing_hashes:
+                        frozen_ctx.mcp_tool_audit.append(t_trace)
+                        existing_hashes.add(thash)
 
         # 5. Post-Hooks
         safe_context = {
