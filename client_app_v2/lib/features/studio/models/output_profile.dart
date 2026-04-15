@@ -63,6 +63,9 @@ abstract class OutputProfile with _$OutputProfile {
     required List<XaiExtensionType> visibleExtensions,
     @JsonKey(name: 'max_extension_items') int? maxExtensionItems,
     @Default('original') String displayScale,
+    @Default(false)
+    @JsonKey(name: 'include_diagnostic_scorecard')
+    bool includeDiagnosticScorecard,
     SynthesisConfigDTO? synthesis,
     @Default([]) List<OutputLayoutBlock> layouts,
   }) = _OutputProfile;
@@ -82,6 +85,9 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
     required List<XaiExtensionType> visibleExtensions,
     @JsonKey(name: 'max_extension_items') int? maxExtensionItems,
     @Default('original') String displayScale,
+    @Default(false)
+    @JsonKey(name: 'include_diagnostic_scorecard')
+    bool includeDiagnosticScorecard,
     SynthesisConfigDTO? synthesis,
     @Default([]) List<OutputLayoutBlock> layouts,
   }) = _EmbeddedOutputProfile;

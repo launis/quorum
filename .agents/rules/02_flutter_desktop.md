@@ -106,6 +106,15 @@
         <mandatory_pattern>UI strings must be evaluated exclusively via `AppLocalizations` (`.arb` locale runtime logic). Dynamic UI elements map API Backend Enums directly. Utilize App Theme Tokens for layout padding.</mandatory_pattern>
     </rule_block>
 
+    <rule_block id="strict_translation_fallback_mandate">
+        <banned_pattern>Using generic fallbacks like IDs or empty strings if a translation is missing, or hardcoding `fi` as a fallback when `en` is missing.</banned_pattern>
+        <mandatory_pattern>All dynamic translations (e.g. `m.label.translations`) MUST follow the strict Fail-Fast resolution chain:
+        1. Attempt `Localizations.localeOf(context).languageCode`.
+        2. Attempt `en` (Lingua Franca fallback).
+        3. If BOTH are empty/null, `throw AppException.validation('Fail-Fast: Missing required translation.');`. NEVER fallback to `fi` or model IDs.</mandatory_pattern>
+        <catastrophic_reason>Masking translation failures with generic IDs or forcing Finnish fallbacks violates internationalization integrity and prevents the Fail-Fast mechanism from catching data corruption at the UI Boundary.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="centralized_frontend_enums">
         <banned_pattern>Scattering systemic frontend Enum definitions (like API polling timeouts, maximum attempts, or concurrency limits) randomly across individual feature controllers or files.</banned_pattern>
         <mandatory_pattern>All systemic or global Client constraints MUST be centralized in `client_app_v2/lib/core/models/enums.dart` (e.g., `SystemConcurrency`). This ensures 1-to-1 architectural parity with the backend's strict enum definitions.</mandatory_pattern>

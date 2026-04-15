@@ -4,6 +4,7 @@ import 'package:client_app/features/execution/models/report_data_dto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/sse_client.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/execution/views/dashboard_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -227,7 +228,15 @@ class ExecutionController extends _$ExecutionController {
                   e,
                   stack,
                 );
-            state = AsyncValue.error(e, stack);
+            
+            // V2 UX: Translate raw socket/stream errors into a human-readable graceful degradation message
+            // Uses No-String Mandate by passing error_code to the localization pipeline.
+            final explicitError = AppException.network(
+              'Connection dropped unexpectedly.',
+            ).copyWith(
+              extensions: const {'error_code': 'SSE_CONNECTION_ABORTED'},
+            );
+            state = AsyncValue.error(explicitError, stack);
           },
           onDone: () {
             // Stream closed naturally

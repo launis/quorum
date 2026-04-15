@@ -31,11 +31,7 @@ class ExecutionRecord {
       status: (json['status'] as String).toUpperCase(),
       traceVersion: json['trace_version']?.toString(),
       reportData: json['report_data'] != null
-          ? ReportDataDTO.fromJson(
-              json['report_data'] is Map
-                  ? json['report_data'] as Map<String, dynamic>
-                  : <String, dynamic>{},
-            )
+          ? ReportDataDTO.fromJson(json['report_data'] as Map<String, dynamic>)
           : null,
     );
   }

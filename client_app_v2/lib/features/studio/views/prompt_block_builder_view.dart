@@ -608,10 +608,13 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                         label: Text(entry.value),
                                         selected: isSelected,
                                         onSelected: (bool selected) {
+                                          final newList = List<String>.from(
+                                            payload.outputExtensions,
+                                          );
                                           if (selected) {
-                                            extList.add(entry.key);
+                                            newList.add(entry.key);
                                           } else {
-                                            extList.remove(entry.key);
+                                            newList.remove(entry.key);
                                           }
                                           ref
                                               .read(
@@ -621,7 +624,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                               )
                                               .forceRebuild(
                                                 payload.copyWith(
-                                                  outputExtensions: extList,
+                                                  outputExtensions: newList,
                                                 ),
                                               );
                                         },
@@ -1123,6 +1126,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
             if (payload.scales != null) ...[
               const SizedBox(height: 16),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: TextFormField(

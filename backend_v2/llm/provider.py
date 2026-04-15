@@ -528,6 +528,14 @@ class LiteLLMProvider(LLMProvider):
 
             # 1. RATE LIMITS & QUOTA (Critical Infra)
             if "RateLimitError" in error_type or "429" in error_msg or "Resource exhausted" in error_msg:
+                # NEW FIX: Cooldown to let quota reset without blowing up Tenacity limit.
+                import asyncio
+                logger.warning(
+                    "[LiteLLMProvider] Vertex AI Quota Exhausted. Initiating %ss cooldown...",
+                    SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value
+                )
+                await asyncio.sleep(SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value)
+                
                 logger.error(
                     "[LiteLLM] %s: RESOURCE EXHAUSTED (Rate Limit): %s", ErrorCodes.RATE_LIMIT_EXCEEDED.name, error_msg
                 )

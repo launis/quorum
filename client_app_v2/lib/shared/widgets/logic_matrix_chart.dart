@@ -41,6 +41,7 @@ class LogicMatrixChart extends StatelessWidget {
     }
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
           height: 250,

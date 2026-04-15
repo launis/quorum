@@ -106,6 +106,7 @@ class SystemConcurrency(int, Enum):
     LLM_MAX_CHUNK_SIZE = 40
     MATRIX_SAMPLING_LIMIT = 0
     LLM_DEFAULT_TIMEOUT_SECONDS = 300
+    RATE_LIMIT_COOLDOWN_SECONDS = 65
 
 
 # --- Restored V1 Enums ---

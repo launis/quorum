@@ -122,12 +122,23 @@ class LLMNodeStrategy(NodeStrategy):
         if mcp_instruction:
             system_prompt += f"\n\n{mcp_instruction}"
 
-        # 3. Prevent Token Explosion with fold_trace pruning
-        llm_context_data = state_data
-        if trace:
-            pruner = StateProjector()
-            pruned_history = pruner.fold_trace(trace, max_tokens=20000)
-            llm_context_data = {**pruned_history, **state_data}
+        # 3. Prevent Token Explosion with recursive trace pruning
+        import copy
+        llm_context_data = copy.deepcopy(state_data)
+
+        # Epic 23 FinOps: Strip heavy LLM traces recursively from context
+        # to prevent Vertex AI 429 RateLimit/Resource Exhausted errors on massive payloads
+        def _strip_heavy_keys(obj: Any) -> None:
+            if isinstance(obj, dict):
+                obj.pop("reasoning", None)
+                obj.pop("quote", None)
+                for _, val in obj.items():
+                    _strip_heavy_keys(val)
+            elif isinstance(obj, list):
+                for item in obj:
+                    _strip_heavy_keys(item)
+                    
+        _strip_heavy_keys(llm_context_data)
 
         xml_ctx = self.compiler.build_xml_context(
             input_mappings=step.input_mappings if hasattr(step, "input_mappings") else {},

@@ -18,6 +18,10 @@ class AppLocalizationsFi extends AppLocalizations {
   String get errorUnknown => 'Tuntematon virhe';
 
   @override
+  String get errorSseConnectionAborted =>
+      'Yhteys palvelimeen katkesi yllättäen (Palvelin kaatui tai sammutettiin). Voit jatkaa ajoa myöhemmin \'Yritä uudelleen\' -painikkeella.';
+
+  @override
   String get errorNetwork => 'Verkkovirhe. Tarkista yhteytesi.';
 
   @override
@@ -186,6 +190,15 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get report => 'Raportti';
+
+  @override
+  String get scorecard_evaluative_matrices_title => 'Arvioivat matriisit';
+
+  @override
+  String get scorecard_informational_matrices_title => 'Informaatiomatriisit';
+
+  @override
+  String get scorecard_global_average => 'Kokonaiskeskiarvo';
 
   @override
   String get reportPenaltiesApplied => 'Rangaistukset (Sovelletut vääristymät)';

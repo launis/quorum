@@ -38,31 +38,27 @@ class XAIExtensionsBox extends ConsumerWidget {
     }
 
     final l10n = AppLocalizations.of(context)!;
-    final isFi = Localizations.localeOf(context).languageCode == 'fi';
 
     String translateKey(String key) {
       switch (key) {
         case 'citation':
-          return l10n
-              .reportQuoteTitle('Viitteet')
-              .replaceAll(': Viitteet', '')
-              .replaceAll(': "Viitteet"', '');
+          return l10n.xaiSourceCitation;
         case 'justification':
-          return isFi ? 'Perustelut' : 'Justification';
+          return l10n.xaiJustification;
         case 'falsification':
-          return l10n.reportFalsificationTitle;
+          return l10n.xaiDevilsAdvocate;
         case 'theory_link':
-          return l10n.reportTheoryLinkTitle;
+          return l10n.xaiTheoryLink;
         case 'risk_flag':
-          return l10n.reportRiskFlagTitle;
+          return l10n.xaiRiskFlag;
         case 'coaching':
-          return l10n.reportCoachingTitle;
+          return l10n.xaiCoachingTip;
         case 'missing_context':
-          return l10n.reportMissingContextTitle;
+          return l10n.xaiMissingContext;
         case 'remediation_steps':
-          return l10n.reportRemediationStepsTitle;
+          return l10n.xaiRemediation;
         case 'emotional_sentiment':
-          return l10n.reportEmotionalSentimentTitle;
+          return l10n.xaiSentiment;
         case 'confidence':
           return l10n.xaiConfidence;
         default:
@@ -74,6 +70,7 @@ class XAIExtensionsBox extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: activeExtensions.entries.map((entry) {
           final extKey = entry.key;
           final extItems = entry.value;
@@ -93,6 +90,7 @@ class XAIExtensionsBox extends ConsumerWidget {
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     children: [

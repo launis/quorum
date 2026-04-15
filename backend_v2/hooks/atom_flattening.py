@@ -70,6 +70,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
     if not prompt_block_ids:
         return HookResult(success=True, state_delta={})
 
+
     # 2. Extract Matrix Sampler Metadata limit
     if "matrix_sampling_strategy" not in state.metadata:
         raise AppException(

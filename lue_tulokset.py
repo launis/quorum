@@ -49,12 +49,37 @@ def print_latest_execution_results():
         if isinstance(data, dict):
             for k, v in data.items():
                 if isinstance(k, str) and "blk_" in k and isinstance(v, (int, float)):
-                    # Osuma!
-                    justification = data.get(f"{k}_justification", "Ei perusteluja saatavilla.")
-                    missing = data.get(f"{k}_missing_context", "")
-                    if missing:
-                         justification += f"\n[Puuttuva konteksti]:\n{missing}"
-                    results[k] = {"score": v, "just": justification}
+                    # Tarkistetaan onko tämä aito matriisi Pydantic-määrittelyistä
+                    is_matrix = False
+                    
+                    # Ohitetaan suoraan kaikki metadatakentät (.endswith)
+                    if any(k.endswith(suffix) for suffix in ["_is_evaluative", "_scaled", "_normalized", "_atoms"]):
+                        continue
+
+                    # Varmistetaan category_id db_v2.json määritelmistä (joka tuotiin aikaisemmin ulommassa scopessa)
+                    for pb_key, pb_meta in prompt_blocks.items():
+                        if pb_meta.get("id") == k or pb_key == k:
+                            if pb_meta.get("category_id") == "matrix":
+                                is_matrix = True
+                            break
+                    
+                    if is_matrix:
+                        # Osuma! Oikea arvioitava matriisi
+                        justification = data.get(f"{k}_justification", "Ei perusteluja saatavilla.")
+                        missing = data.get(f"{k}_missing_context", "")
+                        if missing:
+                             justification += f"\n[Puuttuva konteksti]:\n{missing}"
+                        
+                        # Lisätään atomi-laskentalogiikka tulosteeseen, jos ne löytyvät mapista!
+                        t_atoms = data.get(f"{k}_total_atoms")
+                        t_true = data.get(f"{k}_true_atoms")
+                        t_false = data.get(f"{k}_false_atoms")
+                        
+                        extra_info = ""
+                        if t_atoms is not None:
+                             extra_info = f" (Hits: {t_true}/{t_atoms}, Missing: {t_false})"
+                             
+                        results[k] = {"score": v, "just": justification, "extra_info": extra_info, "normalized_score": data.get(f"{k}_normalized")}
                 else:
                     find_matrices(v, results)
         elif isinstance(data, list):
@@ -64,6 +89,10 @@ def print_latest_execution_results():
     found_matrices = {}
     find_matrices(trace_data, found_matrices)
 
+    eval_lines = []
+    other_lines = []
+    global_eval_scores = []
+
     for block_id, data in found_matrices.items():
         found_any = True
         score = data["score"]
@@ -71,20 +100,74 @@ def print_latest_execution_results():
         
         # Etsi suomenkielinen nimi prompt_blocks kokoelmasta
         fi_name = block_id
+        scale_max = None
+        scale_min = 1.0
+        is_evaluative = True # Oletuksena true, jos ei muuta sanota
+        
         for pb_key, pb_meta in prompt_blocks.items():
             if pb_meta.get("id") == block_id or pb_key == block_id:
                 label_data = pb_meta.get("label", {})
                 translations = label_data.get("translations", {})
                 fi_name = translations.get("fi", translations.get("en", pb_meta.get("id_human_readable", block_id)))
+                is_evaluative = pb_meta.get("is_evaluative", True)
+                
+                scales = pb_meta.get("scales", [])
+                if scales:
+                    try:
+                        scale_max = max(float(s.get("score", 0)) for s in scales)
+                        scale_min = min(float(s.get("score", 0)) for s in scales)
+                    except Exception:
+                        pass
                 break
         
-        print(f"\n🟢 MATRIISI: {fi_name} (ID: {block_id})")
-        print(f"   ► PISTEET: {score:.1f}")
-        print(f"   ► TEKSTIPLÄJÄYS (XAI Log):")
-        for line in justification.split('\n'):
-            if line.strip():
-                 print(f"       {line}")
-        print("-" * 80)
+        norm_val = data.get("normalized_score")
+        score_str = f"{score:.1f}"
+        
+        if scale_max is not None:
+             if norm_val is not None:
+                 score_str = f"{score:.1f}/{float(scale_max):.1f} ({norm_val:.1f}%)"
+             else:
+                 score_str = f"{score:.1f}/{float(scale_max):.1f}"
+
+        # Atomi-osumat
+        hits_str = data.get('extra_info', '').replace(' (Hits: ', '').split(',')[0]
+        if not hits_str:
+            hits_str = "-"
+            
+        # Tiivistetään syy ensimmäiseen virkkeeseen
+        short_reason = justification.split('\n')[0].strip()
+        if '.' in short_reason:
+            short_reason = short_reason.split('.')[0] + "."
+        if len(short_reason) > 80:
+            short_reason = short_reason[:77] + "..."
+            
+        line_str = f"{fi_name[:40]:<40} | {score_str:<18} | {hits_str:<10} | {short_reason}"
+        
+        if is_evaluative:
+            eval_lines.append(line_str)
+            if norm_val is not None:
+                global_eval_scores.append(norm_val)
+        else:
+            other_lines.append(line_str)
+            
+    # --- TULOSTUS ---
+    print(f"\n{'MATRIISI':<40} | {'PIST.':<18} | {'OSUMAT':<10} | {'PERUSTELU'}")
+    print("=" * 140)
+    for line in eval_lines:
+        print(line)
+        
+    print("-" * 140)
+    if global_eval_scores:
+        avg = sum(global_eval_scores) / len(global_eval_scores)
+        print(f"{'► KOKONAISARVOSANA (Keskiarvo)':<40} | {avg:.1f}%")
+
+    if other_lines:
+        print("=" * 140)
+        print(f"[ INFO-MATRIISIT (Ei vaikutusta keskiarvoon) ]")
+        print("-" * 140)
+        for line in other_lines:
+            print(line)
+
 
     if not found_any:
         print("Ei löytynyt 'blk_' arvoja trace-tiedostosta. Dumpataan juuriavaimet tracesta:")

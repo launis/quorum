@@ -325,19 +325,16 @@ class DAGExecutor:
             exec_record.status = ExecutionStatus.FAILED
             exec_record.error = str(primary_err)
 
-            # Safe synchronous fire-and-forget save in loop death
+            # Safe blocking save in loop death to guarantee XAI trace persistence
             try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(
-                    self.committer.commit_trace(
-                        trace=exec_record.execution_trace,
-                        status=exec_record.status,
-                        step_states=exec_record.step_states,
-                        error=exec_record.error,
-                    )
+                await self.committer.commit_trace(
+                    trace=exec_record.execution_trace,
+                    status=exec_record.status,
+                    step_states=exec_record.step_states,
+                    error=exec_record.error,
                 )
             except Exception as e:
-                logger.critical("[DAGExecutor] Failed to launch fallback save task: %s", str(e), exc_info=True)
+                logger.critical("[DAGExecutor] Failed fallback save: %s", str(e), exc_info=True)
 
             if isinstance(primary_err, AppException):
                 raise primary_err from eg
@@ -354,17 +351,14 @@ class DAGExecutor:
             exec_record.error = str(unexpected_err)
 
             try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(
-                    self.committer.commit_trace(
-                        trace=exec_record.execution_trace,
-                        status=exec_record.status,
-                        step_states=exec_record.step_states,
-                        error=exec_record.error,
-                    )
+                await self.committer.commit_trace(
+                    trace=exec_record.execution_trace,
+                    status=exec_record.status,
+                    step_states=exec_record.step_states,
+                    error=exec_record.error,
                 )
             except Exception as e:
-                logger.critical("[DAGExecutor] Failed to launch fallback save task: %s", str(e), exc_info=True)
+                logger.critical("[DAGExecutor] Failed fallback save: %s", str(e), exc_info=True)
 
             if isinstance(unexpected_err, AppException):
                 raise

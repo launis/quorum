@@ -6511,8 +6511,8 @@
       ],
       "post_hooks": [
         "verify_citation_integrity",
-        "enforce_passivity_penalty",
         "waterfall_scoring_hook",
+        "enforce_passivity_penalty",
         "normalize_matrix_scores"
       ],
       "allowed_mcp_tools": [],

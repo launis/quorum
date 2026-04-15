@@ -18,6 +18,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorUnknown => 'Unknown error';
 
   @override
+  String get errorSseConnectionAborted =>
+      'Connection dropped unexpectedly (Server crashed or shut down). You can safely resume the execution using the \'Try again\' button.';
+
+  @override
   String get errorNetwork => 'Network error. Please check your connection.';
 
   @override
@@ -184,6 +188,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get report => 'Report';
+
+  @override
+  String get scorecard_evaluative_matrices_title => 'Evaluative Matrices';
+
+  @override
+  String get scorecard_informational_matrices_title => 'Informational Matrices';
+
+  @override
+  String get scorecard_global_average => 'Global Average';
 
   @override
   String get reportPenaltiesApplied => 'Penalties (Applied Biases)';

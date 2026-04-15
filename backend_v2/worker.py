@@ -261,6 +261,23 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
             exc_info=True,
             extra={"error_code": ErrorCodes.PDF_GENERATION_FAILED.value},
         )
+        try:
+            from backend_v2.database.factory import get_repository
+            repo = await get_repository(get_settings())
+            await repo.update_execution(
+                execution_id,
+                {
+                    "status": "failed",
+                    "error": f"PDF Generation failed: {str(e)}",
+                    "completed_at": datetime.now(UTC).isoformat(),
+                },
+            )
+        except Exception as update_err:
+            logger.error(
+                "[Task] Failed to update execution failure status",
+                exc_info=True,
+                extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+            )
 
 
 async def render_profile_job(
@@ -297,6 +314,10 @@ async def generate_profile_synthesis_and_pdf_task(
 
         projector = StateProjector()
         for evt in execution.execution_trace:
+            # Memory FinOps Protocol: Prevent 200-page RAW inputs from hydrating into RAM
+            # Synthesis only needs the analytical DTOs (event_type="output")
+            if evt.event_type == "input":
+                continue
             projector.apply_delta(evt)
         final_inputs = projector.snapshot
 
@@ -347,6 +368,23 @@ async def generate_profile_synthesis_and_pdf_task(
             exc_info=True,
             extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
         )
+        try:
+            from backend_v2.database.factory import get_repository
+            repo = await get_repository(get_settings())
+            await repo.update_execution(
+                execution_id,
+                {
+                    "status": "failed",
+                    "error": f"Text Synthesis failed: {str(e)}",
+                    "completed_at": datetime.now(UTC).isoformat(),
+                },
+            )
+        except Exception as update_err:
+            logger.error(
+                "[Task] Failed to update execution failure status",
+                exc_info=True,
+                extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+            )
 
 
 # --- Lifecycle ---

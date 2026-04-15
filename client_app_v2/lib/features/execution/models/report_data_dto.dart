@@ -11,8 +11,9 @@ part 'report_data_dto.g.dart';
 
 /// Strictly typed DTO for a single reporting axis (e.g., metric, category).
 /// Enforces Fail-Fast parsing preventing dynamic type errors via json_serializable.
-@freezed
+@Freezed(equal: false)
 abstract class ReportAxisDTO with _$ReportAxisDTO {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory ReportAxisDTO({
     required String name,
     String? description,
@@ -47,8 +48,9 @@ abstract class ReportAxisDTO with _$ReportAxisDTO {
 
 /// Strictly typed DTO representing a single layout block dynamically defining how to render axes.
 /// Note: Added synthesis field to prevent checked JSON parsing errors.
-@freezed
+@Freezed(equal: false)
 abstract class ReportLayoutDTO with _$ReportLayoutDTO {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory ReportLayoutDTO({
     @JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)
     required PresetView presetView,
@@ -67,8 +69,9 @@ abstract class ReportLayoutDTO with _$ReportLayoutDTO {
 
 /// Strictly typed DTO for a single MCP Tool Loop audit trace entry.
 /// Used by XAIEvidenceBox to display AI fact-check sources.
-@freezed
+@Freezed(equal: false)
 abstract class MCPToolAuditDTO with _$MCPToolAuditDTO {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory MCPToolAuditDTO({
     String? id,
     @JsonKey(name: 'tool_id') required String toolId,
@@ -85,10 +88,11 @@ abstract class MCPToolAuditDTO with _$MCPToolAuditDTO {
 }
 
 /// Strictly typed DTO representing the universal V3 Render Payload.
-@freezed
+@Freezed(equal: false)
 abstract class ReportDataDTO with _$ReportDataDTO {
   const ReportDataDTO._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory ReportDataDTO({
     @JsonKey(name: 'workflow_id') required String workflowId,
     @JsonKey(name: 'profile_id') required String profileId,

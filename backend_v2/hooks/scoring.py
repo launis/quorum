@@ -377,6 +377,7 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
             step_obj.get("prompt_blocks", []) if isinstance(step_obj, dict) else getattr(step_obj, "prompt_blocks", [])
         )
 
+
         # Determine if this step actually contains matrix blocks
         matrix_blocks = []
         for pb_id in prompt_block_ids:
@@ -552,11 +553,16 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
             sorted_levels = sorted(stats.keys())
 
             modifier = 1.0
+            global_hits = 0
+            global_total = 0
 
             for s_level in sorted_levels:
                 level_data = stats[s_level]
                 t_hits = level_data["hits"]
                 t_total = level_data["total"]
+
+                global_hits += t_hits
+                global_total += t_total
 
                 hit_rate = (t_hits / t_total) if t_total > 0 else 0.0
                 pct = int(hit_rate * 100)
@@ -592,6 +598,9 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
 
             calculation_log = "\n".join(log_lines)
 
+            # Epic 24: Tasokohtainen erittely scorecardia varten (JSON-yhteensopivat string-avaimet)
+            level_breakdown = {str(k): {"hits": v["hits"], "total": v["total"]} for k, v in stats.items()}
+
             # Inject to new payload so normalize_matrix_scores_hook can scale it further
             existing_val = new_payload.get(pb_id)
             if isinstance(existing_val, dict):
@@ -599,9 +608,17 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
                 new_payload[pb_id] = existing_val.copy()
                 new_payload[pb_id]["step_4_final_score"] = float(dampening_score)
                 new_payload[pb_id]["waterfall_calculation_log"] = calculation_log
+                new_payload[pb_id]["true_atoms"] = global_hits
+                new_payload[pb_id]["false_atoms"] = global_total - global_hits
+                new_payload[pb_id]["total_atoms"] = global_total
+                new_payload[pb_id]["level_breakdown"] = level_breakdown
             else:
                 new_payload[pb_id] = float(dampening_score)
                 new_payload[f"{pb_id}_justification"] = calculation_log
+                new_payload[f"{pb_id}_true_atoms"] = global_hits
+                new_payload[f"{pb_id}_false_atoms"] = global_total - global_hits
+                new_payload[f"{pb_id}_total_atoms"] = global_total
+                new_payload[f"{pb_id}_level_breakdown"] = level_breakdown
 
             # Use extending logic to append without overwriting previous UI texts
             if missing_atoms_by_block[pb_id]:

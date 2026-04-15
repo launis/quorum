@@ -740,6 +740,9 @@ class OutputProfile(V2CoreBase):
     synthesis: SynthesisConfigDTO | None = Field(
         default=None, description="Nested definition for synthesis configurations."
     )
+    include_diagnostic_scorecard: bool = Field(
+        default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
+    )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
 
     @field_validator("visible_extensions", mode="before")
@@ -776,6 +779,9 @@ class EmbeddedOutputProfile(V2CoreBase):
     )
     synthesis: SynthesisConfigDTO | None = Field(
         default=None, description="Nested definition for synthesis configurations."
+    )
+    include_diagnostic_scorecard: bool = Field(
+        default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
     )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
 

@@ -27,14 +27,7 @@ $ReportAxisDTOCopyWith<ReportAxisDTO> get copyWith => _$ReportAxisDTOCopyWithImp
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReportAxisDTO&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.score, score) || other.score == score)&&(identical(other.justification, justification) || other.justification == justification)&&(identical(other.citedSourceId, citedSourceId) || other.citedSourceId == citedSourceId)&&(identical(other.citedTextQuote, citedTextQuote) || other.citedTextQuote == citedTextQuote)&&(identical(other.citedWebCitation, citedWebCitation) || other.citedWebCitation == citedWebCitation)&&(identical(other.coaching, coaching) || other.coaching == coaching)&&(identical(other.confidence, confidence) || other.confidence == confidence)&&(identical(other.falsification, falsification) || other.falsification == falsification)&&(identical(other.missingContext, missingContext) || other.missingContext == missingContext)&&(identical(other.riskFlag, riskFlag) || other.riskFlag == riskFlag)&&const DeepCollectionEquality().equals(other.remediationSteps, remediationSteps)&&(identical(other.emotionalSentiment, emotionalSentiment) || other.emotionalSentiment == emotionalSentiment)&&(identical(other.theoryLink, theoryLink) || other.theoryLink == theoryLink)&&(identical(other.scaleMin, scaleMin) || other.scaleMin == scaleMin)&&(identical(other.scaleMax, scaleMax) || other.scaleMax == scaleMax)&&const DeepCollectionEquality().equals(other.scaleLabels, scaleLabels)&&(identical(other.uiPlotRatio, uiPlotRatio) || other.uiPlotRatio == uiPlotRatio)&&const DeepCollectionEquality().equals(other.uiBoundaryLabels, uiBoundaryLabels));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hashAll([runtimeType,name,description,score,justification,citedSourceId,citedTextQuote,citedWebCitation,coaching,confidence,falsification,missingContext,riskFlag,const DeepCollectionEquality().hash(remediationSteps),emotionalSentiment,theoryLink,scaleMin,scaleMax,const DeepCollectionEquality().hash(scaleLabels),uiPlotRatio,const DeepCollectionEquality().hash(uiBoundaryLabels)]);
 
 @override
 String toString() {
@@ -226,8 +219,8 @@ return $default(_that.name,_that.description,_that.score,_that.justification,_th
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(disallowUnrecognizedKeys: true)
 class _ReportAxisDTO implements ReportAxisDTO {
   const _ReportAxisDTO({required this.name, this.description, this.score, required this.justification, @JsonKey(name: 'cited_source_id') this.citedSourceId, @JsonKey(name: 'cited_text_quote') this.citedTextQuote, @JsonKey(name: 'cited_web_citation') this.citedWebCitation, this.coaching, this.confidence, this.falsification, @JsonKey(name: 'missing_context') this.missingContext, @JsonKey(name: 'risk_flag') this.riskFlag, @JsonKey(name: 'remediation_steps') final  List<String>? remediationSteps, @JsonKey(name: 'emotional_sentiment') this.emotionalSentiment, @JsonKey(name: 'theory_link') this.theoryLink, @JsonKey(name: 'scale_min') this.scaleMin = 0.0, @JsonKey(name: 'scale_max') this.scaleMax = 6.0, @JsonKey(name: 'scale_labels') final  Map<String, String> scaleLabels = const {}, @JsonKey(name: 'ui_plot_ratio') this.uiPlotRatio, @JsonKey(name: 'ui_boundary_labels') final  Map<String, String> uiBoundaryLabels = const {}}): _remediationSteps = remediationSteps,_scaleLabels = scaleLabels,_uiBoundaryLabels = uiBoundaryLabels;
   factory _ReportAxisDTO.fromJson(Map<String, dynamic> json) => _$ReportAxisDTOFromJson(json);
@@ -285,14 +278,7 @@ Map<String, dynamic> toJson() {
   return _$ReportAxisDTOToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReportAxisDTO&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.score, score) || other.score == score)&&(identical(other.justification, justification) || other.justification == justification)&&(identical(other.citedSourceId, citedSourceId) || other.citedSourceId == citedSourceId)&&(identical(other.citedTextQuote, citedTextQuote) || other.citedTextQuote == citedTextQuote)&&(identical(other.citedWebCitation, citedWebCitation) || other.citedWebCitation == citedWebCitation)&&(identical(other.coaching, coaching) || other.coaching == coaching)&&(identical(other.confidence, confidence) || other.confidence == confidence)&&(identical(other.falsification, falsification) || other.falsification == falsification)&&(identical(other.missingContext, missingContext) || other.missingContext == missingContext)&&(identical(other.riskFlag, riskFlag) || other.riskFlag == riskFlag)&&const DeepCollectionEquality().equals(other._remediationSteps, _remediationSteps)&&(identical(other.emotionalSentiment, emotionalSentiment) || other.emotionalSentiment == emotionalSentiment)&&(identical(other.theoryLink, theoryLink) || other.theoryLink == theoryLink)&&(identical(other.scaleMin, scaleMin) || other.scaleMin == scaleMin)&&(identical(other.scaleMax, scaleMax) || other.scaleMax == scaleMax)&&const DeepCollectionEquality().equals(other._scaleLabels, _scaleLabels)&&(identical(other.uiPlotRatio, uiPlotRatio) || other.uiPlotRatio == uiPlotRatio)&&const DeepCollectionEquality().equals(other._uiBoundaryLabels, _uiBoundaryLabels));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hashAll([runtimeType,name,description,score,justification,citedSourceId,citedTextQuote,citedWebCitation,coaching,confidence,falsification,missingContext,riskFlag,const DeepCollectionEquality().hash(_remediationSteps),emotionalSentiment,theoryLink,scaleMin,scaleMax,const DeepCollectionEquality().hash(_scaleLabels),uiPlotRatio,const DeepCollectionEquality().hash(_uiBoundaryLabels)]);
 
 @override
 String toString() {
@@ -368,14 +354,7 @@ $ReportLayoutDTOCopyWith<ReportLayoutDTO> get copyWith => _$ReportLayoutDTOCopyW
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReportLayoutDTO&&(identical(other.presetView, presetView) || other.presetView == presetView)&&(identical(other.matrixType, matrixType) || other.matrixType == matrixType)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.axes, axes)&&(identical(other.textDeliveryMode, textDeliveryMode) || other.textDeliveryMode == textDeliveryMode)&&const DeepCollectionEquality().equals(other.synthesis, synthesis)&&(identical(other.synthesisMd, synthesisMd) || other.synthesisMd == synthesisMd));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,presetView,matrixType,title,description,const DeepCollectionEquality().hash(axes),textDeliveryMode,const DeepCollectionEquality().hash(synthesis),synthesisMd);
 
 @override
 String toString() {
@@ -579,8 +558,8 @@ return $default(_that.presetView,_that.matrixType,_that.title,_that.description,
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(disallowUnrecognizedKeys: true)
 class _ReportLayoutDTO implements ReportLayoutDTO {
   const _ReportLayoutDTO({@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) required this.presetView, @JsonKey(name: 'matrix_type') this.matrixType, this.title, this.description, final  List<ReportAxisDTO> axes = const [], @JsonKey(name: 'text_delivery_mode') required this.textDeliveryMode, final  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md') this.synthesisMd}): _axes = axes,_synthesis = synthesis;
   factory _ReportLayoutDTO.fromJson(Map<String, dynamic> json) => _$ReportLayoutDTOFromJson(json);
@@ -619,14 +598,7 @@ Map<String, dynamic> toJson() {
   return _$ReportLayoutDTOToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReportLayoutDTO&&(identical(other.presetView, presetView) || other.presetView == presetView)&&(identical(other.matrixType, matrixType) || other.matrixType == matrixType)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._axes, _axes)&&(identical(other.textDeliveryMode, textDeliveryMode) || other.textDeliveryMode == textDeliveryMode)&&const DeepCollectionEquality().equals(other._synthesis, _synthesis)&&(identical(other.synthesisMd, synthesisMd) || other.synthesisMd == synthesisMd));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,presetView,matrixType,title,description,const DeepCollectionEquality().hash(_axes),textDeliveryMode,const DeepCollectionEquality().hash(_synthesis),synthesisMd);
 
 @override
 String toString() {
@@ -714,14 +686,7 @@ $MCPToolAuditDTOCopyWith<MCPToolAuditDTO> get copyWith => _$MCPToolAuditDTOCopyW
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MCPToolAuditDTO&&(identical(other.id, id) || other.id == id)&&(identical(other.toolId, toolId) || other.toolId == toolId)&&(identical(other.stepName, stepName) || other.stepName == stepName)&&(identical(other.query, query) || other.query == query)&&(identical(other.responseSummary, responseSummary) || other.responseSummary == responseSummary)&&const DeepCollectionEquality().equals(other.sourceUrls, sourceUrls)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,toolId,stepName,query,responseSummary,const DeepCollectionEquality().hash(sourceUrls),timestamp,durationMs);
 
 @override
 String toString() {
@@ -901,8 +866,8 @@ return $default(_that.id,_that.toolId,_that.stepName,_that.query,_that.responseS
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(disallowUnrecognizedKeys: true)
 class _MCPToolAuditDTO implements MCPToolAuditDTO {
   const _MCPToolAuditDTO({this.id, @JsonKey(name: 'tool_id') required this.toolId, @JsonKey(name: 'step_name') required this.stepName, required this.query, @JsonKey(name: 'response_summary') this.responseSummary = '', @JsonKey(name: 'source_urls') final  List<String> sourceUrls = const [], this.timestamp, @JsonKey(name: 'duration_ms') this.durationMs = 0}): _sourceUrls = sourceUrls;
   factory _MCPToolAuditDTO.fromJson(Map<String, dynamic> json) => _$MCPToolAuditDTOFromJson(json);
@@ -933,14 +898,7 @@ Map<String, dynamic> toJson() {
   return _$MCPToolAuditDTOToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MCPToolAuditDTO&&(identical(other.id, id) || other.id == id)&&(identical(other.toolId, toolId) || other.toolId == toolId)&&(identical(other.stepName, stepName) || other.stepName == stepName)&&(identical(other.query, query) || other.query == query)&&(identical(other.responseSummary, responseSummary) || other.responseSummary == responseSummary)&&const DeepCollectionEquality().equals(other._sourceUrls, _sourceUrls)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,toolId,stepName,query,responseSummary,const DeepCollectionEquality().hash(_sourceUrls),timestamp,durationMs);
 
 @override
 String toString() {
@@ -1004,14 +962,7 @@ $ReportDataDTOCopyWith<ReportDataDTO> get copyWith => _$ReportDataDTOCopyWithImp
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReportDataDTO&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.profileId, profileId) || other.profileId == profileId)&&(identical(other.profileName, profileName) || other.profileName == profileName)&&const DeepCollectionEquality().equals(other.availableProfiles, availableProfiles)&&(identical(other.globalScore, globalScore) || other.globalScore == globalScore)&&const DeepCollectionEquality().equals(other.layouts, layouts)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.orgName, orgName) || other.orgName == orgName)&&(identical(other.costEstimate, costEstimate) || other.costEstimate == costEstimate)&&(identical(other.totalTokens, totalTokens) || other.totalTokens == totalTokens)&&(identical(other.promptTokens, promptTokens) || other.promptTokens == promptTokens)&&(identical(other.completionTokens, completionTokens) || other.completionTokens == completionTokens)&&(identical(other.reasoningTokens, reasoningTokens) || other.reasoningTokens == reasoningTokens)&&const DeepCollectionEquality().equals(other.mcpToolAudit, mcpToolAudit)&&(identical(other.hasWarning, hasWarning) || other.hasWarning == hasWarning)&&(identical(other.synthesizedMarkdown, synthesizedMarkdown) || other.synthesizedMarkdown == synthesizedMarkdown)&&const DeepCollectionEquality().equals(other.visibleMetadata, visibleMetadata)&&const DeepCollectionEquality().equals(other.groupedExtensions, groupedExtensions)&&const DeepCollectionEquality().equals(other.penaltiesApplied, penaltiesApplied));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hashAll([runtimeType,workflowId,profileId,profileName,const DeepCollectionEquality().hash(availableProfiles),globalScore,const DeepCollectionEquality().hash(layouts),createdAt,orgName,costEstimate,totalTokens,promptTokens,completionTokens,reasoningTokens,const DeepCollectionEquality().hash(mcpToolAudit),hasWarning,synthesizedMarkdown,const DeepCollectionEquality().hash(visibleMetadata),const DeepCollectionEquality().hash(groupedExtensions),const DeepCollectionEquality().hash(penaltiesApplied)]);
 
 @override
 String toString() {
@@ -1214,8 +1165,8 @@ return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availab
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(disallowUnrecognizedKeys: true)
 class _ReportDataDTO extends ReportDataDTO {
   const _ReportDataDTO({@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'profile_id') required this.profileId, @JsonKey(name: 'profile_name') this.profileName, @JsonKey(name: 'available_profiles') final  Map<String, I18nText> availableProfiles = const {}, @JsonKey(name: 'global_score') this.globalScore, final  List<ReportLayoutDTO> layouts = const [], @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'org_name') this.orgName, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'total_tokens') this.totalTokens, @JsonKey(name: 'prompt_tokens') this.promptTokens, @JsonKey(name: 'completion_tokens') this.completionTokens, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens, @JsonKey(name: 'mcp_tool_audit') final  List<MCPToolAuditDTO> mcpToolAudit = const [], @JsonKey(name: 'has_warning') this.hasWarning = false, @JsonKey(name: 'synthesized_markdown') this.synthesizedMarkdown, @JsonKey(name: 'visible_metadata') final  List<String> visibleMetadata = const [], @JsonKey(name: 'grouped_extensions') final  Map<String, List<dynamic>> groupedExtensions = const {}, @JsonKey(name: 'penalties_applied') final  List<String> penaltiesApplied = const []}): _availableProfiles = availableProfiles,_layouts = layouts,_mcpToolAudit = mcpToolAudit,_visibleMetadata = visibleMetadata,_groupedExtensions = groupedExtensions,_penaltiesApplied = penaltiesApplied,super._();
   factory _ReportDataDTO.fromJson(Map<String, dynamic> json) => _$ReportDataDTOFromJson(json);
@@ -1287,14 +1238,7 @@ Map<String, dynamic> toJson() {
   return _$ReportDataDTOToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReportDataDTO&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.profileId, profileId) || other.profileId == profileId)&&(identical(other.profileName, profileName) || other.profileName == profileName)&&const DeepCollectionEquality().equals(other._availableProfiles, _availableProfiles)&&(identical(other.globalScore, globalScore) || other.globalScore == globalScore)&&const DeepCollectionEquality().equals(other._layouts, _layouts)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.orgName, orgName) || other.orgName == orgName)&&(identical(other.costEstimate, costEstimate) || other.costEstimate == costEstimate)&&(identical(other.totalTokens, totalTokens) || other.totalTokens == totalTokens)&&(identical(other.promptTokens, promptTokens) || other.promptTokens == promptTokens)&&(identical(other.completionTokens, completionTokens) || other.completionTokens == completionTokens)&&(identical(other.reasoningTokens, reasoningTokens) || other.reasoningTokens == reasoningTokens)&&const DeepCollectionEquality().equals(other._mcpToolAudit, _mcpToolAudit)&&(identical(other.hasWarning, hasWarning) || other.hasWarning == hasWarning)&&(identical(other.synthesizedMarkdown, synthesizedMarkdown) || other.synthesizedMarkdown == synthesizedMarkdown)&&const DeepCollectionEquality().equals(other._visibleMetadata, _visibleMetadata)&&const DeepCollectionEquality().equals(other._groupedExtensions, _groupedExtensions)&&const DeepCollectionEquality().equals(other._penaltiesApplied, _penaltiesApplied));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hashAll([runtimeType,workflowId,profileId,profileName,const DeepCollectionEquality().hash(_availableProfiles),globalScore,const DeepCollectionEquality().hash(_layouts),createdAt,orgName,costEstimate,totalTokens,promptTokens,completionTokens,reasoningTokens,const DeepCollectionEquality().hash(_mcpToolAudit),hasWarning,synthesizedMarkdown,const DeepCollectionEquality().hash(_visibleMetadata),const DeepCollectionEquality().hash(_groupedExtensions),const DeepCollectionEquality().hash(_penaltiesApplied)]);
 
 @override
 String toString() {

@@ -84,6 +84,7 @@ extension AppExceptionX on AppException {
       'INTERNAL_SERVER_ERROR' =>
         '${l10n.errorServer}\n\n${l10n.actionHintTryAgainLater}',
       'UNKNOWN_ERROR' => l10n.errorUnknown,
+      'SSE_CONNECTION_ABORTED' => l10n.errorSseConnectionAborted,
 
       // Workflow errors
       'WORKFLOW_NOT_FOUND' => l10n.errorNotFound,

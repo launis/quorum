@@ -116,6 +116,12 @@ abstract class AppLocalizations {
   /// **'Unknown error'**
   String get errorUnknown;
 
+  /// No description provided for @errorSseConnectionAborted.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection dropped unexpectedly (Server crashed or shut down). You can safely resume the execution using the \'Try again\' button.'**
+  String get errorSseConnectionAborted;
+
   /// No description provided for @errorNetwork.
   ///
   /// In en, this message translates to:
@@ -409,6 +415,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Report'**
   String get report;
+
+  /// No description provided for @scorecard_evaluative_matrices_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Evaluative Matrices'**
+  String get scorecard_evaluative_matrices_title;
+
+  /// No description provided for @scorecard_informational_matrices_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Informational Matrices'**
+  String get scorecard_informational_matrices_title;
+
+  /// No description provided for @scorecard_global_average.
+  ///
+  /// In en, this message translates to:
+  /// **'Global Average'**
+  String get scorecard_global_average;
 
   /// No description provided for @reportPenaltiesApplied.
   ///

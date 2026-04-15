@@ -9,6 +9,7 @@ import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/views/widgets/xai_evidence_box.dart';
 import 'package:client_app/features/execution/views/widgets/xai_extensions_box.dart';
 import 'package:client_app/shared/widgets/output_renderer.dart';
+import 'package:client_app/core/ui/error_view.dart';
 
 /// Static MVC View Renderer mapping exactly to the workflow preset views.
 /// Adheres to the De-Generator Zero-Math rule natively traversing the array.
@@ -120,6 +121,7 @@ class ReportRendererWidget extends ConsumerWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               AppLocalizations.of(context)!.reportPenaltiesApplied,
@@ -192,6 +194,7 @@ class ReportRendererWidget extends ConsumerWidget {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             // AIHE & PROFIILI
             Text(
@@ -223,6 +226,7 @@ class ReportRendererWidget extends ConsumerWidget {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             l10n.reportCosts,
@@ -242,6 +246,7 @@ class ReportRendererWidget extends ConsumerWidget {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             l10n.reportCognitiveWork,
@@ -387,7 +392,7 @@ class ReportRendererWidget extends ConsumerWidget {
             e,
             st,
           );
-      rethrow;
+      return ErrorView(error: e, stackTrace: st, compact: true);
     }
 
     if (hasTitle || hasDesc || hasSynthesis) {
@@ -501,6 +506,7 @@ class ReportRendererWidget extends ConsumerWidget {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             axis.name,
@@ -587,6 +593,7 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
                                     l10n.reportCoachingTitle,
@@ -627,6 +634,7 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
                                     l10n.reportFalsificationTitle,
@@ -666,6 +674,7 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
                                     l10n.reportMissingContextTitle,
@@ -704,6 +713,7 @@ class ReportRendererWidget extends ConsumerWidget {
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
                                     l10n.reportRemediationStepsTitle,
@@ -882,6 +892,7 @@ class ReportRendererWidget extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Card(
           elevation: 2,
@@ -889,6 +900,7 @@ class ReportRendererWidget extends ConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   l10n.reportInteractionMatrix2D,
@@ -923,6 +935,7 @@ class ReportRendererWidget extends ConsumerWidget {
         : l10n.reportAnalyticalFramework2D;
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Card(
           elevation: 2,
@@ -930,6 +943,7 @@ class ReportRendererWidget extends ConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   title,
@@ -962,6 +976,7 @@ class ReportRendererWidget extends ConsumerWidget {
     final String title = l10n.reportAnalyticalFramework3D;
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Card(
           elevation: 2,
@@ -969,6 +984,7 @@ class ReportRendererWidget extends ConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   title,

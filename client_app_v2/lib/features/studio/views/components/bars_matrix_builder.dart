@@ -46,7 +46,7 @@ class BarsMatrixBuilder extends StatelessWidget {
             scaleEnabled: false,
             child: isDesktop
                 ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: sortedScales
                         .map(
                           (s) => Expanded(
@@ -147,52 +147,52 @@ class BarsMatrixBuilder extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
               ],
-              Expanded(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: scale.claims.length,
-                  separatorBuilder: (context, _) => const SizedBox(height: 8),
-                  itemBuilder: (context, idx) {
-                    final claim = scale.claims[idx];
-                    final labelTrans =
-                        claim.label.translations[claim.label.defaultLocale] ??
-                        claim.label.defaultLocale;
-                    return Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            labelTrans,
-                            style: const TextStyle(fontSize: 13),
-                            maxLines: 4,
-                            overflow: TextOverflow.ellipsis,
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: scale.claims.length,
+                separatorBuilder: (context, _) => const SizedBox(height: 8),
+                itemBuilder: (context, idx) {
+                  final claim = scale.claims[idx];
+                  final labelTrans =
+                      claim.label.translations[claim.label.defaultLocale] ??
+                      claim.label.defaultLocale;
+                  return Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          labelTrans,
+                          style: const TextStyle(fontSize: 13),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          claim.aiDescription,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                            fontStyle: FontStyle.italic,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (claim.microAtoms != null &&
+                            claim.microAtoms!.isNotEmpty) ...[
                           const SizedBox(height: 4),
-                          Text(
-                            claim.aiDescription,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                              fontStyle: FontStyle.italic,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (claim.microAtoms != null &&
-                              claim.microAtoms!.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Wrap(
-                              spacing: 4,
-                              runSpacing: 4,
-                              children: claim.microAtoms!
+                          Wrap(
+                            spacing: 4,
+                            runSpacing: 4,
+                            children: [
+                              ...claim.microAtoms!
                                   .take(3)
                                   .map(
                                     (atom) => Container(
@@ -206,25 +206,56 @@ class BarsMatrixBuilder extends StatelessWidget {
                                         ).colorScheme.tertiaryContainer,
                                         borderRadius: BorderRadius.circular(4),
                                       ),
-                                      child: Text(
-                                        "Atom",
-                                        style: TextStyle(
-                                          fontSize: 9,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onTertiaryContainer,
+                                      child: Tooltip(
+                                        message: atom,
+                                        child: ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 150,
+                                          ),
+                                          child: Text(
+                                            atom,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 9,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onTertiaryContainer,
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  )
-                                  .toList(),
-                            ),
-                          ],
+                                  ),
+                              if (claim.microAtoms!.length > 3)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    "+ ${claim.microAtoms!.length - 3} lisää",
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ],
-                      ),
-                    );
-                  },
-                ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ),

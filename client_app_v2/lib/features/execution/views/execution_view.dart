@@ -9,6 +9,7 @@ import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/shared/widgets/global_error_view.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/execution/views/widgets/report_renderer_widget.dart';
+import 'package:client_app/features/execution/views/widgets/diagnostic_scorecard_widget.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
 
 import 'package:client_app/router/router.dart';
@@ -261,19 +262,25 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
 
               // V3 Flat MVC Report Rendering
               if (record.containsKey('report_data') &&
-                  record['report_data'] != null)
+                  record['report_data'] != null) ...[
+                SliverToBoxAdapter(
+                  child: DiagnosticScorecardWidget(
+                    executionId: widget.executionId,
+                  ),
+                ),
                 SliverToBoxAdapter(
                   child: ReportRendererWidget(
                     payload: record['report_data'] as ReportDataDTO,
                   ),
-                )
-              else if (status == 'completed' && results.isNotEmpty)
+                ),
+              ] else if (status == 'completed' && results.isNotEmpty)
                 // ALWAYS show Raw Data JSON on completion if Heavy Fetch failed
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           AppLocalizations.of(context)!.rawOutputFallbackTitle,

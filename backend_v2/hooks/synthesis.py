@@ -284,7 +284,23 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                     break
 
         if isinstance(v, (dict, list)):
-            v_str = json.dumps(v, ensure_ascii=False, indent=2)
+            import copy
+
+            clean_v = copy.deepcopy(v)
+
+            def _strip_heavy_keys(obj: Any) -> None:
+                if isinstance(obj, dict):
+                    # FinOps: Remove reasoning trace as it bloats context size significantly
+                    # and is not needed for final synthesis output.
+                    obj.pop("reasoning_trace", None)
+                    for _, val in obj.items():
+                        _strip_heavy_keys(val)
+                elif isinstance(obj, list):
+                    for item in obj:
+                        _strip_heavy_keys(item)
+
+            _strip_heavy_keys(clean_v)
+            v_str = json.dumps(clean_v, ensure_ascii=False, indent=2)
         else:
             v_str = str(v)
         combined_text_parts.append(f"### Source: {step_title} (ID: {k})\n{v_str}")

@@ -449,6 +449,7 @@ class StepBuilderView extends HookConsumerWidget {
 
                               return DropdownButtonFormField<String>(
                                 key: ValueKey(modelKeys.length),
+                                isExpanded: true,
                                 initialValue: safeValue,
                                 decoration: const InputDecoration(
                                   labelText:
@@ -639,6 +640,7 @@ class StepBuilderView extends HookConsumerWidget {
                     itemBuilder: (context, index) {
                       final blocks = payload.promptBlocks;
                       return _buildPromptBlockCard(
+                        context,
                         ref,
                         l10n,
                         payload,
@@ -689,6 +691,7 @@ class StepBuilderView extends HookConsumerWidget {
             ),
             Expanded(
               child: DropdownButtonFormField<String>(
+                isExpanded: true,
                 decoration: InputDecoration(labelText: l10n.preHookEngineLabel),
                 initialValue: hookDef.isEmpty ? null : hookDef,
                 items: [
@@ -742,6 +745,7 @@ class StepBuilderView extends HookConsumerWidget {
   }
 
   Widget _buildPromptBlockCard(
+    BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
     NodeStrategyLlm payload,
@@ -764,12 +768,31 @@ class StepBuilderView extends HookConsumerWidget {
             ),
             Expanded(
               child: DropdownButtonFormField<String>(
+                isExpanded: true,
                 decoration: InputDecoration(labelText: l10n.promptBlockLabel),
                 initialValue: promptBlocks.any((m) => m.id == blockDef)
                     ? blockDef
                     : null,
                 items: promptBlocks.map((m) {
-                  return DropdownMenuItem(value: m.id, child: Text(m.id));
+                  final currentLocale = Localizations.localeOf(context).languageCode;
+                  final rawLabel = m.label.translations[currentLocale] ?? 
+                                   m.label.translations['en'];
+                                   
+                  if (rawLabel == null || rawLabel.trim().isEmpty) {
+                    throw AppException.validation(
+                      'Fail-Fast: PromptBlock ${m.id} lacks required FI/EN translation.',
+                    );
+                  }
+                  
+                  final displayText = '$rawLabel (${m.id})';
+                  return DropdownMenuItem(
+                    value: m.id,
+                    child: Text(
+                      displayText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
                 }).toList(),
                 onChanged: (val) {
                   if (val != null) {
