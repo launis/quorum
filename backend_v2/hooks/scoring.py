@@ -483,8 +483,8 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
-            blocks_meta[pb_id]["scale_min"] = min(blocks_meta[pb_id]["scales"])
-            blocks_meta[pb_id]["scale_max"] = max(blocks_meta[pb_id]["scales"])
+            blocks_meta[pb_id]["math_min"] = min(blocks_meta[pb_id]["scales"])
+            blocks_meta[pb_id]["math_max"] = max(blocks_meta[pb_id]["scales"])
 
         block_scale_stats: dict[str, dict[float, dict[str, int]]] = {}
         missing_atoms_by_block: dict[str, list[str]] = {}
@@ -534,18 +534,18 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
 
         for pb_id, stats in block_scale_stats.items():
             meta = blocks_meta[pb_id]
-            scale_min = float(meta["scale_min"])
-            scale_max = float(meta["scale_max"])
+            math_min = float(meta["math_min"])
+            math_max = float(meta["math_max"])
 
             # Shadow calculations for XAI logging
-            floor_score = calculate_waterfall_floor(stats, scale_min, threshold=WaterfallThreshold.STANDARD.value)
-            weighted_score = calculate_weighted_score(stats, scale_min, scale_max)
+            floor_score = calculate_waterfall_floor(stats, math_min, threshold=WaterfallThreshold.STANDARD.value)
+            weighted_score = calculate_weighted_score(stats, math_min, math_max)
 
             # --- DINA Progressive Dampening Calculation ---
-            raw_dampening_score = calculate_progressive_dampening_score(stats, scale_min, scale_max)
+            raw_dampening_score = calculate_progressive_dampening_score(stats, math_min, math_max)
 
             # Benefit of the Doubt Leniency (Epic 23)
-            dina_absolute_floor = scale_min + (scale_max - scale_min) * ScoringCalibrationThresholds.DINA_FLOOR.value
+            dina_absolute_floor = math_min + (math_max - math_min) * ScoringCalibrationThresholds.DINA_FLOOR.value
             dampening_score = max(raw_dampening_score, dina_absolute_floor)
 
             # Formatting the calculation log (Cognitive Diagnostic Model)
@@ -567,7 +567,7 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
                 hit_rate = (t_hits / t_total) if t_total > 0 else 0.0
                 pct = int(hit_rate * 100)
 
-                if s_level == scale_min:
+                if s_level == math_min:
                     modifier = hit_rate
                     log_lines.append(
                         f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - Cognitive Flow: {modifier:.2f})"
@@ -725,6 +725,13 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 if "extension_theory_link" in raw_input_val:
                     new_payload[f"{pb_id}_theory_link"] = raw_input_val["extension_theory_link"]
                     updates_made = True
+                
+                # Epic 24: Atomi-osumat ja tasokohtaiset erittelyt joudutaan myäs m\u00e4pp\u00e4\u00e4m\u00e4\u00e4n,
+                # jotta ne eiv\u00e4t katoa kun alkuper\u00e4inen sanakirja korvataan fl\u00e4till\u00e4 liukuluvulla!
+                for metric in ["true_atoms", "false_atoms", "total_atoms", "level_breakdown"]:
+                    if metric in raw_input_val:
+                        new_payload[f"{pb_id}_{metric}"] = raw_input_val[metric]
+                        updates_made = True
 
                 # The core reasoning and notes replace the global fallback, avoiding hardcoded markdown
                 just_parts = []
@@ -786,98 +793,100 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             )
 
             scales = pb_dict.get("scales")
-            target_min = pb_dict.get("scale_min")
-            target_max = pb_dict.get("scale_max")
 
-            # Fallback: Infer min/max from the actual scales array if missing
-            if scales and (target_min is None or target_max is None):
-                scores_in_scales = []
-                for s in scales:
-                    val = s.get("score") if isinstance(s, dict) else getattr(s, "score", None)
-                    if val is not None:
-                        try:
-                            scores_in_scales.append(float(val))
-                        except (TypeError, ValueError) as e:
-                            from backend_v2.exceptions import AppException, ErrorCodes
+            # FAIL-FAST: The scales array MUST dictate the internal math boundaries.
+            if not scales:
+                from backend_v2.exceptions import AppException, ErrorCodes
+                msg = f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' missing 'scales' array."
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
-                            msg = f"Corrupted scale value '{val}' in PromptBlock '{pb_id}'. Expected float."
-                            logger.error(
-                                "[ScoringHook] %s: %s",
-                                ErrorCodes.CONFIGURATION_ERROR.name,
-                                msg,
-                                exc_info=True,
-                            )
-                            raise AppException(
-                                message=msg,
-                                status_code=500,
-                                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                            ) from e
-                if scores_in_scales:
-                    target_min = min(scores_in_scales)
-                    target_max = max(scores_in_scales)
+            # DISPLAY BOUNDARIES: UI projection targets
+            display_min = pb_dict.get("scale_min")
+            display_max = pb_dict.get("scale_max")
 
-            if scales and target_min is not None and target_max is not None:
-                from backend_v2.utils.math_utils import normalize_score_to_100, scale_to_custom_range
+            if display_min is None or display_max is None:
+                from backend_v2.exceptions import AppException, ErrorCodes
+                msg = f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' missing explicit display 'scale_min' or 'scale_max' in database. Fallback estimates are forbidden."
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
-                # 1. The original AI output, calculated on the internal Math bounds
-                raw_float = float(raw_val)
-
-                scores_in_scales = []
-                for s in scales:
-                    val = s.get("score") if isinstance(s, dict) else getattr(s, "score", None)
-                    if val is not None:
+            scores_in_scales = []
+            for s in scales:
+                val = s.get("score") if isinstance(s, dict) else getattr(s, "score", None)
+                if val is not None:
+                    try:
                         scores_in_scales.append(float(val))
+                    except (TypeError, ValueError) as e:
+                        from backend_v2.exceptions import AppException, ErrorCodes
+                        msg = f"Corrupted scale value '{val}' in PromptBlock '{pb_id}'. Expected float."
+                        logger.error(
+                            "[ScoringHook] %s: %s",
+                            ErrorCodes.CONFIGURATION_ERROR.name,
+                            msg,
+                            exc_info=True,
+                        )
+                        raise AppException(
+                            message=msg,
+                            status_code=500,
+                            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                        ) from e
 
-                if not scores_in_scales:
-                    continue
+            if not scores_in_scales:
+                continue
 
-                math_min = min(scores_in_scales)
-                math_max = max(scores_in_scales)
+            from backend_v2.utils.math_utils import normalize_score_to_100, scale_to_custom_range
 
-                # 2. Scale from internal math mathematically to custom Output Target Range (DB scale_min/scale_max)
-                scaled_val = scale_to_custom_range(
-                    score=raw_float,
-                    raw_min=math_min,
-                    raw_max=math_max,
-                    target_min=float(target_min),
-                    target_max=float(target_max),
-                )
+            # 1. The original AI output, calculated on the internal Math bounds
+            raw_float = float(raw_val)
 
-                # 3. The 1-100 normalized value for commensurable aggregation (V2 Logic)
-                normalized_val = normalize_score_to_100(
-                    score=raw_float,
-                    math_min=math_min,
-                    math_max=math_max,
-                )
+            math_min = min(scores_in_scales)
+            math_max = max(scores_in_scales)
 
-                # Epic 12: Flatten the Micro-CoT dict so the Flutter UI can plot the float on the XY graphs!
-                new_payload[pb_id] = raw_val
+            # 2. Scale mathematically to custom Output Target Range (DB scale_min/scale_max explicitly for DISPLAY)
+            scaled_val = scale_to_custom_range(
+                score=raw_float,
+                raw_min=math_min,
+                raw_max=math_max,
+                target_min=float(display_min),
+                target_max=float(display_max),
+            )
 
-                new_payload[f"{pb_id}_scaled"] = scaled_val
-                new_payload[f"{pb_id}_normalized"] = normalized_val
+            # 3. The 1-100 normalized value for commensurable aggregation (V2 Logic)
+            normalized_val = normalize_score_to_100(
+                score=raw_float,
+                math_min=math_min,
+                math_max=math_max,
+            )
 
-                # Epic 10: Check the DB truth for Evaluative Matrix status and inject it
-                if pb_dict.get("is_evaluative", True):
-                    new_payload[f"{pb_id}_is_evaluative"] = True
+            # Epic 12: Flatten the Micro-CoT dict so the Flutter UI can plot the float on the XY graphs!
+            new_payload[pb_id] = raw_val
 
-                just_key = f"{pb_id}_justification"
+            new_payload[f"{pb_id}_scaled"] = scaled_val
+            new_payload[f"{pb_id}_normalized"] = normalized_val
 
-                # Strip out the ||DECIMAL: X.Y|| Chain-of-Thought tag from justification
-                # before saving (Legacy V1 Support)
-                if just_key in new_payload and isinstance(new_payload[just_key], str):
-                    import re
+            # Epic 10: Check the DB truth for Evaluative Matrix status and inject it
+            if pb_dict.get("is_evaluative", True):
+                new_payload[f"{pb_id}_is_evaluative"] = True
 
-                    cleaned = re.sub(r"\|\|DECIMAL:\s*[0-9.]+\|\|", "", new_payload[just_key])
-                    new_payload[just_key] = cleaned.strip()
+            just_key = f"{pb_id}_justification"
 
-                updates_made = True
-                logger.info(
-                    "[ScoringHook] 3-Tier Score '%s': Raw=%s, Scaled=%s, Normalized=%s",
-                    pb_id,
-                    raw_val,
-                    scaled_val,
-                    normalized_val,
-                )
+            # Strip out the ||DECIMAL: X.Y|| Chain-of-Thought tag from justification
+            # before saving (Legacy V1 Support)
+            if just_key in new_payload and isinstance(new_payload[just_key], str):
+                import re
+
+                cleaned = re.sub(r"\|\|DECIMAL:\s*[0-9.]+\|\|", "", new_payload[just_key])
+                new_payload[just_key] = cleaned.strip()
+
+            updates_made = True
+            logger.info(
+                "[ScoringHook] 3-Tier Score '%s': Raw=%s, Scaled=%s, Normalized=%s",
+                pb_id,
+                raw_val,
+                scaled_val,
+                normalized_val,
+            )
 
         if updates_made:
             # V2 Dict direct mutation avoided, send back state_delta

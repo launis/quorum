@@ -164,6 +164,8 @@ async def test_normalize_matrix_scores_micro_cot() -> None:
     mock_repo.get_step_by_id.return_value = {"prompt_blocks": ["blk_1"]}
     mock_repo.get_prompt_block_by_id.return_value = {
         "scales": [{"score": 1}, {"score": 5}],
+        "scale_min": 1,
+        "scale_max": 5,
     }
 
     deps = HookDependencies(repository=mock_repo)
@@ -192,6 +194,8 @@ async def test_normalize_matrix_scores_invalid_prompt_block() -> None:
     mock_repo.get_step_by_id.return_value = {"prompt_blocks": ["blk_1"]}
     mock_repo.get_prompt_block_by_id.return_value = {
         "scales": [{"score": "not_a_number"}],
+        "scale_min": 1,
+        "scale_max": 5,
     }
     deps = HookDependencies(repository=mock_repo)
     state = _make_state(

@@ -321,8 +321,19 @@ class PromptCompiler:
 
         from pydantic import BaseModel, model_validator
 
-        def make_micro_cot_base(_t: float, _cid: str) -> type[BaseModel]:
+        def make_micro_cot_base(_t: float, _cid: str, _citation_ref: str | None = None) -> type[BaseModel]:
             class MicroCotBase(BaseModel):
+                @model_validator(mode="before")
+                @classmethod
+                def heal_citations(cls, data: Any) -> Any:
+                    if isinstance(data, dict) and _citation_ref:
+                        # Pydantic fails if the LLM arbitrarily truncates or splits the long citation string.
+                        # Self-healing: if the returned string is a valid substring of the full citation, auto-fix it.
+                        val = data.get("step_1b_cited_source_id")
+                        if val and isinstance(val, str) and len(val) > 10 and val in _citation_ref:
+                            data["step_1b_cited_source_id"] = _citation_ref
+                    return data
+
                 @model_validator(mode="after")
                 def validate_micro_cot(self: Any) -> Any:
                     if hasattr(self, "step_4_final_score") and hasattr(self, "step_1_evidence_quote"):
@@ -415,6 +426,10 @@ class PromptCompiler:
                 raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}) from e
 
             label = self.resolve_i18n(label_obj, target_locale)
+            
+            theory_grounding = crit.get("theory_grounding", {})
+            citation_ref = theory_grounding.get("citation_reference") if isinstance(theory_grounding, dict) else None
+            
             sub_fields: dict[str, tuple[Any, Any]] = {}
 
             if "citation" in extensions:
@@ -431,10 +446,6 @@ class PromptCompiler:
                     ),
                 )
 
-                theory_grounding = crit.get("theory_grounding", {})
-                citation_ref = (
-                    theory_grounding.get("citation_reference") if isinstance(theory_grounding, dict) else None
-                )
                 if citation_ref:
                     from typing import Literal
 
@@ -443,7 +454,7 @@ class PromptCompiler:
                         Field(
                             default=None,
                             description=(
-                                "If your justification relies on authorized theory, you MUST RETURN EXACTLY: "
+                                "If your justification relies on authorized theory, you MUST RETURN THIS EXACT ENTIRE STRING (do not split or truncate it): "
                                 f"'{citation_ref}'. Otherwise return null."
                             ),
                         ),
@@ -580,21 +591,17 @@ class PromptCompiler:
 
                 if allow_decimals:
                     decimal_instruction = "Select a precise score with exactly one decimal place"
+                    sub_fields["step_4_final_score"] = (
+                        float,
+                        Field(..., ge=llm_min, le=llm_max, description=f"{decimal_instruction} logically matching the provided <MATRIX id='{crit_id}'>.")
+                    )
                 else:
                     decimal_instruction = "Select a whole integer score"
+                    sub_fields["step_4_final_score"] = (
+                        int,
+                        Field(..., ge=int(llm_min), le=int(llm_max), description=f"{decimal_instruction} logically matching the provided <MATRIX id='{crit_id}'>.")
+                    )
 
-                sub_fields["step_4_final_score"] = (
-                    float,
-                    Field(
-                        ...,
-                        ge=llm_min,
-                        le=llm_max,
-                        description=(
-                            f"Numeric score strictly evaluated using the <MATRIX id='{crit_id}'>. "
-                            f"{decimal_instruction} reflecting the exact nuance and weight of the evidence."
-                        ),
-                    ),
-                )
                 from backend_v2.models.enums import SelfHealingThresholdRatio
 
                 raw_ratio = crit.get("self_healing_evidence_threshold_ratio", SelfHealingThresholdRatio.STRICT.value)
@@ -604,7 +611,7 @@ class PromptCompiler:
 
             from pydantic import ConfigDict
 
-            MicroCotBase = make_micro_cot_base(threshold, crit_id)
+            MicroCotBase = make_micro_cot_base(threshold, crit_id, citation_ref)
 
             NestedModel = create_model(  # type: ignore[call-overload]
                 f"{crit_id}_Evaluation",

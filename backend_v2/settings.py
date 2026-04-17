@@ -125,7 +125,7 @@ class Settings(BaseSettings):
     # --- Redis & Arq ---
     redis_host: Annotated[str, Field(description="Redis Host")] = "localhost"
     redis_port: Annotated[int, Field(description="Redis Port")] = 6379
-    worker_job_timeout: Annotated[int, Field(description="Max seconds Arq worker processes a job")] = 3600
+    worker_job_timeout: Annotated[int, Field(description="Max seconds Arq worker processes a job")] = 14400
 
     @computed_field
     def default_safety_settings(self) -> list[dict[str, str]]:

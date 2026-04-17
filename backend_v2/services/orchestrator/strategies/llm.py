@@ -126,12 +126,26 @@ class LLMNodeStrategy(NodeStrategy):
         import copy
         llm_context_data = copy.deepcopy(state_data)
 
-        # Epic 23 FinOps: Strip heavy LLM traces recursively from context
-        # to prevent Vertex AI 429 RateLimit/Resource Exhausted errors on massive payloads
+        # Epic 23 FinOps: Modify state_data for LLM Context:
+        # User Mandate: "atomisoiduista kentistä ei pidä tulla kuin true/false. Matriiseista ja prompteista pitää tulla tekstikentät."
         def _strip_heavy_keys(obj: Any) -> None:
             if isinstance(obj, dict):
-                obj.pop("reasoning", None)
-                obj.pop("quote", None)
+                # 1. Remove raw context blocks that the LLM cannot effectively map and just consume tokens
+                obj.pop("shuffled_atoms", None)
+
+                # 2. Compress Atomized evaluated fields to strictly true/false booleans!
+                if "evaluations" in obj and isinstance(obj["evaluations"], list):
+                    bool_only = []
+                    for atom in obj["evaluations"]:
+                        if isinstance(atom, dict) and "boolean" in atom:
+                            bool_only.append(atom["boolean"])
+                    if bool_only:
+                        obj["evaluations"] = bool_only
+                else:
+                    # Fallback cleanup for legacy atom items just in case
+                    obj.pop("quote", None)
+                    obj.pop("reasoning", None)
+
                 for _, val in obj.items():
                     _strip_heavy_keys(val)
             elif isinstance(obj, list):

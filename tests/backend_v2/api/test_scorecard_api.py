@@ -79,6 +79,20 @@ async def test_scorecard_api_parses_dina_breakdown(monkeypatch, mock_trace_data)
             if pb_id == "blk_test1":
                 return {"id": "blk_test1", "category_id": "matrix", "is_evaluative": True, "label": {"translations": {"fi": "Testi Matriisi"}}, "scales": [{"score": 5.0}]}
             return {"id": "blk_info99", "category_id": "matrix", "is_evaluative": False, "label": {"translations": {"fi": "Info Matriisi"}}}
+            
+        async def get_user(self, id: str):
+            from backend_v2.models.auth import UserRole
+            import datetime
+            return {
+                "id": "usr_testadmin123",
+                "email": "test@example.com",
+                "role": UserRole.ADMIN,
+                "organization_id": "org_test",
+                "is_active": True,
+                "language": "fi",
+                "theme_mode": "system",
+                "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            }
 
     from backend_v2.api.dependencies import get_repo
     app.dependency_overrides[get_repo] = lambda: MockRepo()

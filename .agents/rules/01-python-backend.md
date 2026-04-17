@@ -102,6 +102,12 @@
         <mandatory_pattern>Backend reporting and synthesis hooks MUST strictly filter data based on the UI-defined `target_blocks` (Output Profile Layouts). The raw `inputs` dictionary must be unpacked and evaluated strictly against this UI configuration to prevent massive token explosions (1.04M limits) from background data dumps.</mandatory_pattern>
         <catastrophic_reason>Backend coupling to dynamic UI nomenclature breaks workflow relations. Pushing unfiltered execution state into an LLM context invariably causes `Resource Exhausted` limit triggers due to heavy Eager Extraction blobs intentionally stored in the execution state.</catastrophic_reason>
     </rule_block>
+    <rule_block id="strict_math_display_isolation">
+        <banned_pattern>Using database configuration keys `scale_min` and `scale_max` to calculate backend mathematical scores, or using them as fallback bounds for the internal execution engine.</banned_pattern>
+        <mandatory_pattern>The scoring math engine MUST derive internal mathematical boundaries exclusively from the strictly typed Pydantic `scales` array (`min(scales)` and `max(scales)` assigned to strictly named `math_min` and `math_max` variables). The Database config fields `scale_min` and `scale_max` MUST ONLY be used as UI projection boundary targets (`display_min` and `display_max`) for cosmetic school-grade scaling (e.g. 4-10) before sending to the frontend. If the Display bounds are missing in the DB, trigger a 500 Fail-Fast ConfigurationError rather than attempting to guess them.</mandatory_pattern>
+        <catastrophic_reason>Conflating calculation bounds with UI display projections corrupts the empirical accuracy of the cognitive diagnostic model and fundamentally violates Single Source of Truth architecture. The LLM or the Backend must NEVER calculate "hunches" via cross-contamination.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="zero_orm_bleed">
         <banned_pattern>Returning raw DB dictionaries directly from Repository to API routers.</banned_pattern>
         <mandatory_pattern>The Repository layer is an absolute firewall. Raw records MUST be mapped into strict Pydantic Domain Models (`ConfigDict(frozen=True)`).</mandatory_pattern>

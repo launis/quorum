@@ -29,20 +29,7 @@ from backend_v2.settings import get_settings
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Define retry strategy
 _settings = get_settings()
-
-from tenacity import wait_random_exponential
-
-retry_strategy = retry(
-    stop=stop_after_attempt(SystemConcurrency.LLM_MAX_RETRIES.value),
-    wait=wait_random_exponential(multiplier=_settings.llm_retry_delay, max=120),  # Jitter to prevent thundering herd
-    reraise=True,
-    before_sleep=lambda retry_state: logger.warning(
-        "Retrying LLM call... (Attempt %d/%d)", retry_state.attempt_number, SystemConcurrency.LLM_MAX_RETRIES.value
-    ),
-)
-
 
 class LLMProvider(ABC):
     """Abstract base class for LLM providers.
@@ -176,7 +163,6 @@ class LiteLLMProvider(LLMProvider):
             # Save to class cache
             self.__class__._router_cache[cache_key] = self.router
 
-    @retry_strategy
     async def generate(  # type: ignore
         self,
         prompt: str | None = None,
@@ -344,7 +330,54 @@ class LiteLLMProvider(LLMProvider):
             # Remove keys that shouldn't be passed directly
             call_kwargs["model"] = self.model_name
 
-            response = await self.router.acompletion(**call_kwargs)
+            max_rate_limit_retries = SystemConcurrency.LLM_MAX_RETRIES.value
+            response = None
+            
+            for attempt in range(max_rate_limit_retries):
+                try:
+                    response = await self.router.acompletion(**call_kwargs)
+                    break  # Success, exit the retry loop
+                except Exception as e:
+                    error_msg = str(e)
+                    error_type = type(e).__name__
+                    
+                    is_transient_error = (
+                        (hasattr(e, "status_code") and getattr(e, "status_code") in (429, 502, 503, 504))
+                        or "RateLimitError" in error_type
+                        or "429" in error_msg
+                        or "Resource exhausted" in error_msg
+                        or "APIConnectionError" in error_type
+                        or "TimeoutError" in error_type
+                        or "Timeout" in error_type
+                        or "Server disconnected" in error_msg
+                        or "ReadError" in error_type
+                    )
+
+                    if is_transient_error:
+                        if attempt < max_rate_limit_retries - 1:
+                            logger.warning(
+                                "[LiteLLMProvider] Vertex AI Transient Error or Quota Exhausted (Attempt %s/%s). "
+                                "Initiating %ss cooldown before automatic retry... | Error: %s",
+                                attempt + 1,
+                                max_rate_limit_retries,
+                                SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value,
+                                error_type
+                            )
+                            import asyncio
+                            await asyncio.sleep(SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value)
+                            continue  # Retry the exact same request
+                        else:
+                            logger.error(
+                                "[LiteLLM] %s: RESOURCE EXHAUSTED OR CONNECTION FAILED (Maximum retries reached): %s", 
+                                ErrorCodes.RATE_LIMIT_EXCEEDED.name, error_msg
+                            )
+                            raise ServiceUnavailableError(
+                                message="Model provider rate limit or connection limit exceeded after maximum retries.",
+                                details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED, "original_error": error_msg},
+                            ) from e
+                    else:
+                        raise e # Not a transient issue, bubble up immediately
+
             latency_ms = int((time.perf_counter() - start_time) * 1000)
 
             # Extract basic content
@@ -510,7 +543,7 @@ class LiteLLMProvider(LLMProvider):
             )
 
         except Exception as e:
-            if isinstance(e, AppException) or hasattr(e, "status_code"):
+            if isinstance(e, AppException):
                 raise e
 
             # Jan 2026: Reduce Error Verbosity & Improve Classification
@@ -527,20 +560,13 @@ class LiteLLMProvider(LLMProvider):
                 raise e
 
             # 1. RATE LIMITS & QUOTA (Critical Infra)
-            if "RateLimitError" in error_type or "429" in error_msg or "Resource exhausted" in error_msg:
-                # NEW FIX: Cooldown to let quota reset without blowing up Tenacity limit.
-                import asyncio
-                logger.warning(
-                    "[LiteLLMProvider] Vertex AI Quota Exhausted. Initiating %ss cooldown...",
-                    SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value
-                )
-                await asyncio.sleep(SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value)
-                
+            # 429s are natively handled in the inner retry loop! If they bubble here, retries were exhausted.
+            if hasattr(e, "status_code") and getattr(e, "status_code") == 429 or "RateLimitError" in error_type or "429" in error_msg or "Resource exhausted" in error_msg:
                 logger.error(
-                    "[LiteLLM] %s: RESOURCE EXHAUSTED (Rate Limit): %s", ErrorCodes.RATE_LIMIT_EXCEEDED.name, error_msg
+                    "[LiteLLM] %s: RESOURCE EXHAUSTED (Retries depleted): %s", ErrorCodes.RATE_LIMIT_EXCEEDED.name, error_msg
                 )
                 raise ServiceUnavailableError(
-                    message="Model provider rate limit exceeded.",
+                    message="Model provider rate limit exceeded and all automatic retries failed.",
                     details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED, "original_error": error_msg},
                 ) from e
 

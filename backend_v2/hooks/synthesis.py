@@ -290,9 +290,21 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
             def _strip_heavy_keys(obj: Any) -> None:
                 if isinstance(obj, dict):
-                    # FinOps: Remove reasoning trace as it bloats context size significantly
-                    # and is not needed for final synthesis output.
-                    obj.pop("reasoning_trace", None)
+                    # 1. Remove raw context blocks that the LLM cannot effectively map
+                    obj.pop("shuffled_atoms", None)
+
+                    # 2. Compress Atomized evaluated fields to strictly true/false booleans!
+                    if "evaluations" in obj and isinstance(obj["evaluations"], list):
+                        bool_only = []
+                        for atom in obj["evaluations"]:
+                            if isinstance(atom, dict) and "boolean" in atom:
+                                bool_only.append(atom["boolean"])
+                        if bool_only:
+                            obj["evaluations"] = bool_only
+                    else:
+                        obj.pop("quote", None)
+                        obj.pop("reasoning", None)
+
                     for _, val in obj.items():
                         _strip_heavy_keys(val)
                 elif isinstance(obj, list):

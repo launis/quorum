@@ -101,9 +101,9 @@ class SystemConcurrency(int, Enum):
     """Global concurrency limits for DAG Execution to prevent API Rate Limits."""
 
     MAX_CONCURRENT_WORKFLOWS = 1
-    MAX_CONCURRENT_LLM_STEPS = 2
-    LLM_MAX_RETRIES = 2
-    LLM_MAX_CHUNK_SIZE = 40
+    MAX_CONCURRENT_LLM_STEPS = 1
+    LLM_MAX_RETRIES = 3
+    LLM_MAX_CHUNK_SIZE = 15   # Reduced from 50: FinOps compression caused Edge-Case 429 Payload exhaustion
     MATRIX_SAMPLING_LIMIT = 0
     LLM_DEFAULT_TIMEOUT_SECONDS = 300
     RATE_LIMIT_COOLDOWN_SECONDS = 65

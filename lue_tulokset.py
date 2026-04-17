@@ -74,12 +74,19 @@ def print_latest_execution_results():
                         t_atoms = data.get(f"{k}_total_atoms")
                         t_true = data.get(f"{k}_true_atoms")
                         t_false = data.get(f"{k}_false_atoms")
+                        t_levels = data.get(f"{k}_level_breakdown")
                         
                         extra_info = ""
-                        if t_atoms is not None:
-                             extra_info = f" (Hits: {t_true}/{t_atoms}, Missing: {t_false})"
+                        level_dict = {}
+                        if t_levels:
+                            for lvl_key in sorted(t_levels.keys(), key=lambda x: float(x)):
+                                lvl_data = t_levels[lvl_key]
+                                clean_key = str(int(float(lvl_key))) if float(lvl_key).is_integer() else str(lvl_key)
+                                level_dict[clean_key] = f"{lvl_data['hits']}/{lvl_data['total']}"
+                        elif t_atoms is not None:
+                             extra_info = f"{t_true}/{t_atoms}"
                              
-                        results[k] = {"score": v, "just": justification, "extra_info": extra_info, "normalized_score": data.get(f"{k}_normalized")}
+                        results[k] = {"score": v, "just": justification, "extra_info": extra_info, "level_dict": level_dict, "normalized_score": data.get(f"{k}_normalized")}
                 else:
                     find_matrices(v, results)
         elif isinstance(data, list):
@@ -129,19 +136,24 @@ def print_latest_execution_results():
              else:
                  score_str = f"{score:.1f}/{float(scale_max):.1f}"
 
-        # Atomi-osumat
-        hits_str = data.get('extra_info', '').replace(' (Hits: ', '').split(',')[0]
-        if not hits_str:
-            hits_str = "-"
+        l1 = data.get('level_dict', {}).get("1", "-")
+        l2 = data.get('level_dict', {}).get("2", "-")
+        l3 = data.get('level_dict', {}).get("3", "-")
+        l4 = data.get('level_dict', {}).get("4", "-")
+        l5 = data.get('level_dict', {}).get("5", "-")
+        
+        # JOS extra_info on olemassa (non-level matrix), laitetaan se T1 sarakkeeseen
+        if not data.get('level_dict') and data.get('extra_info'):
+            l1 = data.get('extra_info')
             
         # Tiivistetään syy ensimmäiseen virkkeeseen
         short_reason = justification.split('\n')[0].strip()
         if '.' in short_reason:
             short_reason = short_reason.split('.')[0] + "."
-        if len(short_reason) > 80:
-            short_reason = short_reason[:77] + "..."
+        if len(short_reason) > 55:
+            short_reason = short_reason[:52] + "..."
             
-        line_str = f"{fi_name[:40]:<40} | {score_str:<18} | {hits_str:<10} | {short_reason}"
+        line_str = f"{fi_name[:32]:<32} | {score_str:<18} | {l1:<10} | {l2:<10} | {l3:<10} | {l4:<10} | {l5:<10} | {short_reason}"
         
         if is_evaluative:
             eval_lines.append(line_str)
@@ -151,15 +163,15 @@ def print_latest_execution_results():
             other_lines.append(line_str)
             
     # --- TULOSTUS ---
-    print(f"\n{'MATRIISI':<40} | {'PIST.':<18} | {'OSUMAT':<10} | {'PERUSTELU'}")
-    print("=" * 140)
+    print(f"\n{'MATRIISI':<32} | {'PIST.':<18} | {'T1':<10} | {'T2':<10} | {'T3':<10} | {'T4':<10} | {'T5':<10} | {'PERUSTELU'}")
+    print("=" * 160)
     for line in eval_lines:
         print(line)
         
-    print("-" * 140)
+    print("-" * 160)
     if global_eval_scores:
         avg = sum(global_eval_scores) / len(global_eval_scores)
-        print(f"{'► KOKONAISARVOSANA (Keskiarvo)':<40} | {avg:.1f}%")
+        print(f"{'► KOKONAISARVOSANA (Keskiarvo)':<36} | {avg:.1f}%")
 
     if other_lines:
         print("=" * 140)
