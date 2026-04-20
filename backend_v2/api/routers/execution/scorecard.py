@@ -7,7 +7,6 @@ from fastapi import APIRouter, status
 from backend_v2.api.dependencies import CurrentUserDep, ExecutionServiceDep, RepositoryDep
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.scorecard import MatrixScorecardRowDTO, ScorecardResponseDTO
-from backend_v2.models.v2_core import ExecutionStatus
 
 logger = logging.getLogger(__name__)
 
@@ -17,43 +16,78 @@ router = APIRouter(prefix="/scorecard", tags=["Scorecard"])
 def _find_matrices(data: dict[str, Any] | list[Any], results: dict[str, Any], prompt_blocks: dict[str, Any]) -> None:
     if isinstance(data, dict):
         for k, v in data.items():
-            if isinstance(k, str) and isinstance(v, (int, float)):
-                # Ignore metadata keys
-                if any(k.endswith(suffix) for suffix in ["_is_evaluative", "_scaled", "_normalized", "_atoms"]):
+            if isinstance(k, str) and "blk_" in k:
+                # 1. Enforce STRICT Micro-CoT schema (Zero-Fallback)
+                if not isinstance(v, dict):
                     continue
 
-                # Must exist in prompt_blocks to resolve names and max targets safely
-                pb_meta = prompt_blocks.get(k)
-                if pb_meta and pb_meta.get("category_id") == "matrix":
-                    justification = data.get(f"{k}_justification", "Ei perusteluja saatavilla.")
-                    missing = data.get(f"{k}_missing_context", "")
-                    
-                    t_atoms = data.get(f"{k}_total_atoms")
-                    t_true = data.get(f"{k}_true_atoms")
-                    t_false = data.get(f"{k}_false_atoms")
-                    norm_val = data.get(f"{k}_normalized")
-                    is_eval = data.get(f"{k}_is_evaluative", pb_meta.get("is_evaluative", True))
-                    breakdown = data.get(f"{k}_level_breakdown")
-                    
-                    # One-sentence justification
-                    short_reason = justification.split('\n')[0].strip()
-                    if '.' in short_reason:
-                        short_reason = short_reason.split('.')[0] + "."
+                score = v.get("step_4_final_score")
 
-                    results[k] = {
-                        "score": v,
-                        "just": short_reason,
-                        "missing": missing,
-                        "normalized": norm_val,
-                        "total_atoms": t_atoms,
-                        "true_atoms": t_true,
-                        "false_atoms": t_false,
-                        "level_breakdown": breakdown,
-                        "is_eval": is_eval,
-                        "pb_meta": pb_meta
-                    }
-            elif isinstance(v, (dict, list)):
+                # 2. Enforce Micro-CoT Integrity Lock (Zero-Fallback Rule)
+                # If it looks like an execution result but lacks a score, CRASH explicitly.
+                is_eval_result = "waterfall_calculation_log" in v or "true_atoms" in v or "level_breakdown" in v
+                if is_eval_result and score is None:
+                    raise RuntimeError(
+                        f"[CRITICAL FAIL FAST] Corrupted Micro-CoT matrix for '{k}'. "
+                        f"Evaluation signature detected, but 'step_4_final_score' is missing. "
+                        f"Data: {json.dumps(v, ensure_ascii=False)[:300]}"
+                    )
+
+                if score is not None:
+                    pb_meta = prompt_blocks.get(k)
+                    if pb_meta and pb_meta.get("category_id") == "matrix":
+                        justification = v.get("waterfall_calculation_log")
+
+                        # If the log is completely missing, the Micro-CoT is architecturally invalid
+                        if not justification:
+                            raise RuntimeError(
+                                f"[CRITICAL FAIL FAST] 'waterfall_calculation_log' puuttuu (ID: {k}). "
+                                "Oletusarvot ja fallbackit on kielletty."
+                            )
+
+                        missing = v.get("missing_context")
+
+                        t_atoms = v.get("total_atoms")
+                        t_true = v.get("true_atoms")
+                        t_false = v.get("false_atoms")
+                        norm_val = v.get("normalized_score")
+                        is_eval = v.get("is_evaluative")
+
+                        # Resolve true boolean state without implicit True default
+                        if is_eval is None:
+                            is_eval = pb_meta.get("is_evaluative")
+                        if is_eval is None:
+                            raise RuntimeError(
+                                f"[CRITICAL FAIL FAST] 'is_evaluative' metatieto puuttuu (ID: {k}). "
+                                "Oletusarvot ovat kiellettyjä."
+                            )
+
+                        breakdown = v.get("level_breakdown")
+
+                        # One-sentence justification
+                        short_reason = justification.split("\n")[0].strip()
+                        if "." in short_reason:
+                            short_reason = short_reason.split(".")[0] + "."
+
+                        results[k] = {
+                            "score": score,
+                            "just": short_reason,
+                            "missing": missing,
+                            "normalized": norm_val,
+                            "total_atoms": t_atoms,
+                            "true_atoms": t_true,
+                            "false_atoms": t_false,
+                            "level_breakdown": breakdown,
+                            "is_eval": is_eval,
+                            "pb_meta": pb_meta,
+                        }
+
+            # Jatka syväetsintää
+            if isinstance(v, dict):
                 _find_matrices(v, results, prompt_blocks)
+            elif isinstance(v, list):
+                for item in v:
+                    _find_matrices(item, results, prompt_blocks)
     elif isinstance(data, list):
         for item in data:
             _find_matrices(item, results, prompt_blocks)
@@ -71,13 +105,16 @@ async def get_diagnostic_scorecard(
 
     if not execution.execution_trace_storage_path:
         raise AppException(
-            message="Execution trace not available. The execution may not have completed successfully or trace is lost.",
+            message=(
+                "Execution trace not available. The execution may not have completed successfully or trace is lost."
+            ),
             status_code=404,
-            details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+            details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
         )
-        
+
     try:
         from backend_v2.services.storage import get_storage_driver
+
         storage = get_storage_driver()
         raw_bytes = await storage.read(execution.execution_trace_storage_path)
         trace_data = json.loads(raw_bytes)
@@ -86,7 +123,7 @@ async def get_diagnostic_scorecard(
         raise AppException(
             message="Failed to load execution trace.",
             status_code=500,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
         ) from e
 
     # Harvest PromptBlocks for resolution safely
@@ -95,7 +132,7 @@ async def get_diagnostic_scorecard(
         raise AppException(
             message="Workflow metadata missing. Cannot hydrate scorecard.",
             status_code=500,
-            details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+            details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
         )
 
     all_blocks = {}
@@ -122,12 +159,12 @@ async def get_diagnostic_scorecard(
 
     for block_id, data in found_matrices.items():
         pb_meta = data["pb_meta"]
-        
+
         label_obj = pb_meta.get("label", {})
         translations = label_obj.get("translations", {})
         fi_name = translations.get("fi", block_id)
         en_name = translations.get("en", block_id)
-        
+
         scale_max = None
         scales = pb_meta.get("scales", [])
         if scales:
@@ -147,7 +184,7 @@ async def get_diagnostic_scorecard(
             justification=data["just"],
             missing_context=data["missing"],
             level_breakdown=data["level_breakdown"],
-            is_evaluative=data["is_eval"]
+            is_evaluative=data["is_eval"],
         )
 
         if data["is_eval"]:
@@ -166,5 +203,5 @@ async def get_diagnostic_scorecard(
         workflow_id=execution.workflow_id,
         global_average=global_avg,
         evaluative_matrices=eval_matrices,
-        informational_matrices=info_matrices
+        informational_matrices=info_matrices,
     )

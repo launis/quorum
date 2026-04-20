@@ -199,6 +199,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scorecard_global_average => 'Global Average';
 
   @override
+  String get atomicBreakdownTitle => 'Atomic Matrix Breakdown';
+
+  @override
   String get reportPenaltiesApplied => 'Penalties (Applied Biases)';
 
   @override
@@ -2923,10 +2926,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get preHooksTitle => 'Pre Hooks';
 
   @override
+  String get postHooksTitle => 'Post Hooks';
+
+  @override
   String get addHookBtn => 'Add Hook';
 
   @override
   String get preHookEngineLabel => 'Pre-Execution Hook Engine';
+
+  @override
+  String get postHookEngineLabel => 'Post-Execution Hook Engine';
+
+  @override
+  String get hookWaterfall => 'Waterfall Scoring (waterfall_scoring_hook)';
+
+  @override
+  String get hookNormalize =>
+      'Normalize Matrix Scores (normalize_matrix_scores)';
+
+  @override
+  String get hookVerifyCitation =>
+      'Verify Citation Integrity (verify_citation_integrity)';
+
+  @override
+  String get hookHypothesis =>
+      'Enforce Hypothesis Linking (enforce_hypothesis_linking)';
 
   @override
   String get hookTavily => 'Tavily Web Search (search_hook)';

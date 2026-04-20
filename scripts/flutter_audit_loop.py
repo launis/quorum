@@ -63,7 +63,12 @@ def main():
     cmd_dir = "." if target_dir.strip("\\/") == "client_app_v2" else target_dir
 
     if run_build:
-        print("\n⏳ 1/3: Ajetaan koodigeneraattori (build_runner)...")
+        print("\n⏳ 1/3: Ajetaan koodigeneraattori (flutter gen-l10n & build_runner)...")
+        res_l10n = subprocess.run(["flutter", "gen-l10n"], shell=True)
+        if res_l10n.returncode != 0:
+            print("❌ L10N Generointi kaatui! Keskeytetään.")
+            sys.exit(res_l10n.returncode)
+        
         res = subprocess.run(["dart", "run", "build_runner", "build", "-d"], shell=True)
         if res.returncode != 0:
             print("❌ Generaattori kaatui! Keskeytetään.")

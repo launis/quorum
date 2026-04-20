@@ -12,7 +12,13 @@ def test_verify_output_language_detects_english_leakage() -> None:
     inputs = {"evaluation_notes": "The user was very good and the system is fine."}
 
     deps = HookDependencies(repository=mock_repo)
-    state = HookState(execution_id="exec-123", workflow_id="wf-123", metadata={"target_locale": "fi"}, inputs=inputs)
+    state = HookState(
+        execution_id="exec-123",
+        workflow_id="wf-123",
+        metadata={"target_locale": "fi"},
+        global_context_vars={},
+        inputs=inputs,
+    )
 
     # Act
     result = cast(HookResult, verify_output_language(state, deps))
@@ -32,7 +38,13 @@ def test_verify_output_language_ignores_finnish_text() -> None:
     inputs = {"evaluation_notes": "Käyttäjä vaikutti erittäin fiksulta ja ymmärsi asian täydellisesti."}
 
     deps = HookDependencies(repository=mock_repo)
-    state = HookState(execution_id="exec-123", workflow_id="wf-123", metadata={"target_locale": "fi"}, inputs=inputs)
+    state = HookState(
+        execution_id="exec-123",
+        workflow_id="wf-123",
+        metadata={"target_locale": "fi"},
+        global_context_vars={},
+        inputs=inputs,
+    )
 
     result = cast(HookResult, verify_output_language(state, deps))
 
@@ -47,7 +59,13 @@ def test_verify_output_language_allows_english_when_target_en() -> None:
     inputs = {"evaluation_notes": "The user was very good and the system is fine."}
 
     deps = HookDependencies(repository=mock_repo)
-    state = HookState(execution_id="exec-123", workflow_id="wf-123", metadata={"target_locale": "en"}, inputs=inputs)
+    state = HookState(
+        execution_id="exec-123",
+        workflow_id="wf-123",
+        metadata={"target_locale": "en"},
+        global_context_vars={},
+        inputs=inputs,
+    )
 
     result = cast(HookResult, verify_output_language(state, deps))
 

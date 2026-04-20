@@ -5,6 +5,14 @@ Strict definition of allowed types to enforce the No-String Mandate.
 from enum import Enum
 
 
+class EvaluationMandate(str, Enum):
+    """Architectural Nollahypoteesi mandate attached to all strict evaluations."""
+
+    FAIL_FAST_NO_EVIDENCE = (
+        " ENFORCEMENT: Evaluate as FALSE immediately unless explicit, documented evidence is provided."
+    )
+
+
 class BlockDataType(str, Enum):
     """Data types allowed for PromptBlock extracted values.
     Accepts core extraction types, plus valid legacy structural types.
@@ -101,9 +109,9 @@ class SystemConcurrency(int, Enum):
     """Global concurrency limits for DAG Execution to prevent API Rate Limits."""
 
     MAX_CONCURRENT_WORKFLOWS = 1
-    MAX_CONCURRENT_LLM_STEPS = 1
+    MAX_CONCURRENT_LLM_STEPS = 3  # Epic 27 Phase 3: Validated mathematically based on Vertex AI TPM
     LLM_MAX_RETRIES = 3
-    LLM_MAX_CHUNK_SIZE = 15   # Reduced from 50: FinOps compression caused Edge-Case 429 Payload exhaustion
+    LLM_MAX_CHUNK_SIZE = 40  # Epic 27 Phase 3: Provides optimal token density post-context pruning
     MATRIX_SAMPLING_LIMIT = 0
     LLM_DEFAULT_TIMEOUT_SECONDS = 300
     RATE_LIMIT_COOLDOWN_SECONDS = 65

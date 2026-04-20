@@ -27,6 +27,17 @@ class RetrievalInput(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="allow")
 
+    @field_validator("chat_log", "product_text")
+    @classmethod
+    def validate_non_empty(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        if not str(v).strip():
+            msg = "Input fields cannot be empty strings."
+            logger.error("[RetrievalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
+
 
 class RetrievedFact(BaseModel):
     """A single fact extracted from the material."""
@@ -50,14 +61,12 @@ class RetrievedFact(BaseModel):
 
     @field_validator("id", "fact_statement", "source_quote")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[RetrievalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
 
 class RetrievalDTO(ReasoningTraceDTO):
@@ -82,8 +91,17 @@ class RetrievalDTO(ReasoningTraceDTO):
         if not v:
             msg = "Retrieval output must contain at least one fact."
             logger.error("[RetrievalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
+
+    @field_validator("key_takeaways")
+    @classmethod
+    def validate_non_empty_takeaways(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
+            msg = "key_takeaways cannot be empty."
+            logger.error("[RetrievalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
 
 class RetrievalOutput(RetrievalDTO, ReasoningTrace):

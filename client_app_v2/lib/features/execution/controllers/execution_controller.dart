@@ -228,14 +228,15 @@ class ExecutionController extends _$ExecutionController {
                   e,
                   stack,
                 );
-            
+
             // V2 UX: Translate raw socket/stream errors into a human-readable graceful degradation message
             // Uses No-String Mandate by passing error_code to the localization pipeline.
-            final explicitError = AppException.network(
-              'Connection dropped unexpectedly.',
-            ).copyWith(
-              extensions: const {'error_code': 'SSE_CONNECTION_ABORTED'},
-            );
+            final explicitError =
+                AppException.network(
+                  'Connection dropped unexpectedly.',
+                ).copyWith(
+                  extensions: const {'error_code': 'SSE_CONNECTION_ABORTED'},
+                );
             state = AsyncValue.error(explicitError, stack);
           },
           onDone: () {

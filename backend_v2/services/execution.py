@@ -10,7 +10,7 @@ from arq.connections import ArqRedis
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
-from backend_v2.models.auth import TokenData
+from backend_v2.models.auth import SystemOrganizations, TokenData
 from backend_v2.models.v2_core import (
     ComponentType,
     DataDictionaryField,
@@ -123,7 +123,7 @@ class ExecutionService:
 
         # Auth Check
         org_id = getattr(initiator, "organization_id", None)
-        if initiator.role != "ROOT" and workflow.organization_id not in [org_id, "org_system000000", None]:
+        if initiator.role != "ROOT" and workflow.organization_id not in [org_id, SystemOrganizations.ROOT_SYSTEM, None]:
             msg = "You do not have permission to execute this workflow."
             raise PermissionDeniedError(msg)
 
@@ -216,29 +216,42 @@ class ExecutionService:
                 elif dt == "panel":
                     comp_type = ComponentType.DROPDOWN
 
-                max_val = 6.0
-                if "scales" in pb_dict and pb_dict["scales"]:
+                max_val = None
+                if pb_dict.get("scales"):
                     try:
-                        # Attempt to find actual scaling max dynamically
-                        max_val = float(max([s.get("score", 0) for s in pb_dict["scales"]]))
-                    except Exception as _err:
-                        # Tier 3B Graceful Degradation: Log telemetry but do not crash the UI hint generator
-                        logger.warning(
-                            "[ExecutionService] SDUI Hint Generator Failed: Could not calculate max_val "
-                            f"for PromptBlock '{pb_id}'. Safely falling back to default max_val={max_val}.",
-                            exc_info=True,
-                            extra={"prompt_block_id": pb_id},
-                        )
+                        scores = [float(s["score"]) for s in pb_dict["scales"] if "score" in s]
+                        if scores:
+                            max_val = float(max(scores))
+                    except (ValueError, TypeError, KeyError) as e:
+                        from backend_v2.exceptions import ConfigurationError
+
+                        msg = f"Fail-Fast SDUI Generator: Corrupted scale scores in PromptBlock '{pb_id}'."
+                        logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        raise ConfigurationError(msg) from e
+
+                if comp_type == ComponentType.SLIDER and max_val is None:
+                    from backend_v2.exceptions import ConfigurationError
+
+                    msg = (
+                        f"Fail-Fast SDUI Generator: PromptBlock '{pb_id}' uses a SDUI Slider "
+                        "but has no valid scales defined to calculate max_val."
+                    )
+                    logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise ConfigurationError(msg)
 
                 # Extract translation map for UI label
                 label_obj = pb_dict.get("label", {})
+
+                val_rules = {}
+                if max_val is not None:
+                    val_rules["max"] = max_val
 
                 # Lock the hint
                 ui_hints[pb_id] = DataDictionaryField(
                     field_id=pb_id,
                     component_type=comp_type,
                     options=[{"label": label_obj}] if label_obj else None,
-                    validation_rules={"max": max_val},
+                    validation_rules=val_rules if val_rules else None,
                 )
 
         # Strict Target Locale from Payload (Fail-Fast)
@@ -360,7 +373,13 @@ class ExecutionService:
             del execution.profile_syntheses[profile_id]
 
         workflow_data = await self.repo.get_workflow_by_id(execution.workflow_id)
-        default_pid = workflow_data.get("default_profile_id", "default") if workflow_data else "default"
+        if not workflow_data:
+            raise ResourceNotFoundError(resource_type="workflow", resource_id=execution.workflow_id)
+
+        from backend_v2.models.v2_core import Workflow
+
+        workflow_obj = Workflow.model_validate(workflow_data)
+        default_pid = workflow_obj.default_profile_id
 
         update_payload: dict[str, Any] = {"profile_syntheses": execution.profile_syntheses}
 
@@ -416,11 +435,15 @@ class ExecutionService:
             )
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        default_pid = workflow_data.get("default_profile_id", "default")
-        output_profiles = workflow_data.get("output_profiles", {})
+        from backend_v2.models.v2_core import Workflow
+
+        workflow_obj = Workflow.model_validate(workflow_data)
+
+        default_pid = workflow_obj.default_profile_id
 
         resolved_pid = profile_id
-        if not resolved_pid or (resolved_pid == "default" and "default" not in output_profiles):
+        # Strict parsing: Do not map "default" to an undefined legacy slug if missing.
+        if not resolved_pid or resolved_pid == "default":
             resolved_pid = default_pid
 
         # NEW ON-DEMAND RENDERING LOGIC (Epic 14 M4)

@@ -59,14 +59,12 @@ class PerformativityHeuristic(BaseModel):
 
     @field_validator("heuristic_name", "description")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[PerformativityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return v.strip()
+        return str(v).strip()
 
 
 class PreMortemAnalysis(BaseModel):
@@ -87,7 +85,18 @@ class PreMortemAnalysis(BaseModel):
     @field_validator("weak_signals")
     @classmethod
     def validate_list_items(cls, v: list[str]) -> list[str]:
-        return [item.strip() for item in v if item and item.strip()]
+        if not v:
+            msg = "weak_signals cannot be empty. Zero-Compromise Fail-Fast enforced."
+            logger.error("[PerformativityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        for item in v:
+            if not item or not item.strip():
+                msg = "weak_signals items cannot be empty."
+                logger.error("[PerformativityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
+        return v
 
 
 class PerformativityAnalysis(BaseModel):
@@ -126,6 +135,15 @@ class PerformativityAnalysis(BaseModel):
         default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"}
     )
 
+    @field_validator("performativity_heuristics")
+    @classmethod
+    def validate_heuristics_not_empty(cls, v: list[PerformativityHeuristic]) -> list[PerformativityHeuristic]:
+        if not v:
+            msg = "performativity_heuristics cannot be empty. Zero-Compromise Fail-Fast enforced."
+            logger.error("[PerformativityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return v
+
     @model_validator(mode="before")
     @classmethod
     def calc_authenticity(cls, data: Any) -> Any:
@@ -158,10 +176,14 @@ class PerformativityAnalysis(BaseModel):
 
     @field_validator("description")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        return v.strip() if v else v
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
+            msg = "Field cannot be empty or whitespace only."
+            logger.error("[PerformativityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            from backend_v2.exceptions import AppException
+
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
     @field_validator("authenticity_score")
     @classmethod
@@ -203,14 +225,12 @@ class PerformativePattern(BaseModel):
 
     @field_validator("pattern_id", "detected_phrase", "category")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[PerformativityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return v.strip()
+        return str(v).strip()
 
 
 class LinguisticsResult(BaseModel):

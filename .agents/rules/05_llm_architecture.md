@@ -97,4 +97,10 @@
         <mandatory_pattern>Enforce Native English Strategy: High-cognitive tasks MUST be generated natively in English to preserve reasoning depth and "cognitive friction". The robust output MUST then be intercepted (e.g., via `backend_v2.hooks.translation_hook`) and translated into the user's target language in a subsequent low-latency pass.</mandatory_pattern>
         <catastrophic_reason>Generating complex logic natively in non-English languages severely reduces the LLM's analytical capacity, forcing it to split token computation between linguistic grammar and structural reasoning, causing "intelligence dropping".</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="cognitive_dampening_square_root_model">
+        <banned_pattern>Using hardcoded artificial floors (like `DINA_FLOOR`) or brutal linear multiplication to calculate cascading Cognitive Diagnostic Model (CDM) scores.</banned_pattern>
+        <mandatory_pattern>Enforce Square Root Dampening. The hierarchical energy flow modifier MUST be softened natively using `modifier = modifier * math.sqrt(hit_rate)`. This mathematics guarantees natural Gaussian curves and ensures Absolute Zero (Fail-Fast) bypasses are perfectly organic.</mandatory_pattern>
+        <catastrophic_reason>Pure linear multiplication decays probabilities exponentially, artificially crushing all real-world variance into absolute 0. This forces bad architectural practices like arbitrary UX 'leniency floors', corrupting the integrity of the math.</catastrophic_reason>
+    </rule_block>
 </architectural_invariants>

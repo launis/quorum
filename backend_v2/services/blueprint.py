@@ -18,6 +18,17 @@ class BlueprintTransformer:
     def __init__(self, repo: AbstractWorkflowRepository):
         self.repo = repo
 
+    @staticmethod
+    def _extract_numeric_score(val: Any, fallback: Any = None) -> Any:
+        """Centralized extraction for flat scalars and nested Micro-CoT dictionaries."""
+        if isinstance(val, dict):
+            if "step_4_final_score" in val:
+                return val["step_4_final_score"]
+            if "score" in val:
+                return val["score"]
+            return fallback if fallback is not None else val
+        return val if val is not None else fallback
+
     async def build_report_dto(
         self, execution_id: str, profile_id: str | None = None, accept_language: str | None = None
     ) -> ReportDataDTO:
@@ -51,8 +62,12 @@ class BlueprintTransformer:
                     return str(translations.get(lang, translations.get("en", fallback)))
             return fallback
 
+        from backend_v2.models.v2_core import Workflow
+
+        workflow_obj = Workflow.model_validate(workflow_data)
+
         # Fetch the selected output profile from repository
-        default_profile_ref = workflow_data.get("default_profile_id", "default")
+        default_profile_ref = workflow_obj.default_profile_id
 
         # If API requested "default" explicitly, we should treat it as seeking the workflow's default
         resolved_pid_request = profile_id if profile_id and profile_id != "default" else default_profile_ref
@@ -67,16 +82,6 @@ class BlueprintTransformer:
             if p_dict.get("id") == resolved_pid_request:
                 profile_data = p_dict
                 break
-
-        # 2. Hardcoded fallback for missing 'default' specification in older executions
-        if not profile_data and resolved_pid_request == "default":
-            logger.warning("Profile ID 'default' requested but not an Opaque ID. Resolving fallback.")
-            for p_dict in all_profiles_data:
-                # Opaque fallback convention: If 'default' is requested, attempt to resolve the actual ID
-                # assigned to the system's "default" named or historically slugged profile.
-                if p_dict.get("slug") in ("default", "executive_summary"):
-                    profile_data = p_dict
-                    break
 
         if not profile_data:
             msg = f"Output profile '{resolved_pid_request}' not found in the database. Failing fast."
@@ -254,7 +259,7 @@ class BlueprintTransformer:
                             missing_context = v.get("extension_missing_context")
                             remediation_steps = v.get("extension_remediation_steps")
                             emotional_sentiment = v.get("extension_emotional_sentiment")
-                            score_val = v.get("step_4_final_score", 999)
+                            score_val = BlueprintTransformer._extract_numeric_score(v, fallback=999.0)
                         else:
                             legacy_dina_notes = step_data_res.get(f"{k}_justification", "")
                             eval_notes = step_data_res.get("evaluation_notes", legacy_dina_notes)
@@ -272,9 +277,7 @@ class BlueprintTransformer:
                             )
                             remediation_steps = step_data_res.get("extension_remediation_steps")
                             emotional_sentiment = step_data_res.get("extension_emotional_sentiment")
-                            score_val = (
-                                step_data_res.get("step_4_final_score", 999) if isinstance(step_data_res, dict) else 999
-                            )
+                            score_val = BlueprintTransformer._extract_numeric_score(step_data_res, fallback=999.0)
 
                     _add_ext("justification", "justification", raw_justification, axis_name, score_val)
                     _add_ext("falsification", "falsification", raw_falsification, axis_name, score_val)
@@ -323,17 +326,27 @@ class BlueprintTransformer:
         for ext_group, items in list(grouped_extensions.items()):
             if max_extension_items is not None and len(items) > max_extension_items:
 
-                def _safe_float(val: typing.Any) -> float:
+                def _strict_float(val: typing.Any) -> float:
+                    if val is None:
+                        raise AppException(
+                            message="Fail-Fast: Extension item missing required '_score' for sorting.",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                        )
                     try:
-                        return float(val) if val is not None else 999.0
-                    except (ValueError, TypeError):
-                        return 999.0
+                        return float(val)
+                    except (ValueError, TypeError) as e:
+                        raise AppException(
+                            message=f"Fail-Fast: Cannot parse score to float: {val}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                        ) from e
 
                 # Sort by score ascending (lowest score is most critical)
                 items.sort(
-                    key=lambda x: _safe_float(x.get("_score", 999.0))
+                    key=lambda x: _strict_float(x.get("_score"))
                     if isinstance(x, dict)
-                    else _safe_float(getattr(x, "_score", 999.0))
+                    else _strict_float(getattr(x, "_score", None))
                 )
                 grouped_extensions[ext_group] = items[:max_extension_items]
 
@@ -377,8 +390,15 @@ class BlueprintTransformer:
 
         # Merge XAI Highlights from cache into grouped_extensions
         for highlight in xai_highlights_cache:
-            # Type name should act as the group key, mapping it to SDUI's new box dictionary.
-            group_key = highlight.get("type_name", "insight").lower().replace(" ", "_")
+            # Strict Extraction
+            t_name = highlight.get("type_name")
+            if not t_name:
+                raise AppException(
+                    message="Fail-Fast: Cached highlight missing 'type_name'.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                )
+            group_key = t_name.lower().replace(" ", "_")
             if group_key not in grouped_extensions:
                 grouped_extensions[group_key] = []
 
@@ -456,6 +476,7 @@ class BlueprintTransformer:
                                     active_score_key = f"{k}_normalized"
 
                             target_val = step_data.get(active_score_key, v)
+                            target_val = BlueprintTransformer._extract_numeric_score(target_val, fallback=target_val)
 
                             is_matrix_category = block and block.get("category_id") == "matrix"
                             is_num_type = isinstance(target_val, (int, float)) and not isinstance(target_val, bool)
@@ -782,14 +803,6 @@ class BlueprintTransformer:
                             r_tokens += usage.get("reasoning_tokens", 0)
                             t_tokens += usage.get("total_tokens", 0)
                             cost += float(usage.get("cost_usd", 0.0))
-
-            # Backward compatibility / fallback for tests
-            if t_tokens == 0:
-                cost = getattr(execution, "cost_estimate", 0.0)
-                p_tokens = getattr(execution, "prompt_tokens", 0)
-                c_tokens = getattr(execution, "completion_tokens", 0)
-                r_tokens = getattr(execution, "reasoning_tokens", 0)
-                t_tokens = getattr(execution, "total_tokens", 0)
 
             # --- V3 SANITY CHECK / HEALTH ALERTS ---
             if t_tokens == 0 and execution.execution_trace:

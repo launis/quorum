@@ -64,6 +64,7 @@ class LLMNodeStrategy(NodeStrategy):
             step_id=step.id,
             task_blueprint=blueprint_id,
             metadata=context.metadata,
+            global_context_vars={},
             inputs=state_data,
         )
 
@@ -102,9 +103,6 @@ class LLMNodeStrategy(NodeStrategy):
         static_instructions = self.compiler.compile_static_instructions(criteria_blocks, target_locale)
         dynamic_instructions = self.compiler.compile_dynamic_instructions(criteria_blocks, target_locale)
 
-        # Epic 12: Generate Thick XML/Markdown rubrics for System Prompt
-        xml_rubrics = self.compiler.compile_xml_rubrics(criteria_blocks, target_locale)
-
         # Epic 20 Phase 7: Strict Blind System Instruction
         blind_instruction = self.compiler.compile_blind_system_instruction(target_locale)
 
@@ -112,22 +110,60 @@ class LLMNodeStrategy(NodeStrategy):
         effective_mcp_tools = step_obj.allowed_mcp_tools
         mcp_instruction = self.compiler.generate_mcp_instruction(effective_mcp_tools)
 
-        system_prompt = "Complete the evaluation according to the provided schema."
+        base_system_prompt = "Complete the evaluation according to the provided schema."
         if static_instructions:
-            system_prompt += f"\n\n{static_instructions}"
+            base_system_prompt += f"\n\n{static_instructions}"
         if blind_instruction:
-            system_prompt += f"\n\n{blind_instruction}"
-        if xml_rubrics:
-            system_prompt += f"\n\n{xml_rubrics}"
+            base_system_prompt += f"\n\n{blind_instruction}"
         if mcp_instruction:
-            system_prompt += f"\n\n{mcp_instruction}"
+            base_system_prompt += f"\n\n{mcp_instruction}"
 
         # 3. Prevent Token Explosion with recursive trace pruning
         import copy
-        llm_context_data = copy.deepcopy(state_data)
+
+        # Epic 27 Phase 1: Input Pruning - Restrict context to explicitly mapped data keys
+        llm_context_data: dict[str, Any] = {}
+        input_mappings = step.input_mappings if hasattr(step, "input_mappings") and step.input_mappings else {}
+        input_mappings = dict(input_mappings)  # Ensure mutability
+
+        # User Mandate (Dynamic Context): ALWAYS ensure all UI-defined documents
+        # (lopputuote, keskusteluhistoria, reflektiodokumentti) are passed to the AI.
+        if "inputs" in state_data and isinstance(state_data["inputs"], dict):
+            llm_context_data["inputs"] = copy.deepcopy(state_data["inputs"])
+            if context.expected_inputs:
+                for ei in context.expected_inputs:
+                    inp_key = getattr(ei, "input_key", None)
+                    if inp_key and inp_key in state_data["inputs"]:
+                        # Dynamically map the file so PromptCompiler renders it into XML tags!
+                        if inp_key not in input_mappings:
+                            input_mappings[inp_key] = f"$inputs.{inp_key}"
+
+        for _logical_name, path in input_mappings.items():
+            if not isinstance(path, str) or path in ("steps", "$steps"):
+                continue
+
+            clean_path = path[1:] if path.startswith("$") else path
+            if clean_path.startswith("steps."):
+                clean_path = clean_path[len("steps.") :]
+
+            parts = clean_path.split(".")
+            root_key = parts[0]
+
+            if root_key == "inputs":
+                # Ensure the specific path exists safely without replacing the whole dict
+                if len(parts) > 1:
+                    input_key = parts[1]
+                    if input_key in state_data.get("inputs", {}):
+                        if "inputs" not in llm_context_data:
+                            llm_context_data["inputs"] = {}
+                        llm_context_data["inputs"][input_key] = copy.deepcopy(state_data["inputs"][input_key])
+            else:
+                if root_key in state_data and root_key not in llm_context_data:
+                    llm_context_data[root_key] = copy.deepcopy(state_data[root_key])
 
         # Epic 23 FinOps: Modify state_data for LLM Context:
-        # User Mandate: "atomisoiduista kentistä ei pidä tulla kuin true/false. Matriiseista ja prompteista pitää tulla tekstikentät."
+        # User Mandate: "atomisoiduista kentistä ei pidä tulla kuin true/false.
+        # Matriiseista ja prompteista pitää tulla tekstikentät."
         def _strip_heavy_keys(obj: Any) -> None:
             if isinstance(obj, dict):
                 # 1. Remove raw context blocks that the LLM cannot effectively map and just consume tokens
@@ -151,11 +187,11 @@ class LLMNodeStrategy(NodeStrategy):
             elif isinstance(obj, list):
                 for item in obj:
                     _strip_heavy_keys(item)
-                    
+
         _strip_heavy_keys(llm_context_data)
 
         xml_ctx = self.compiler.build_xml_context(
-            input_mappings=step.input_mappings if hasattr(step, "input_mappings") else {},
+            input_mappings=input_mappings,
             state_data=llm_context_data,
             target_locale=target_locale,
             expected_inputs=context.expected_inputs,
@@ -165,15 +201,16 @@ class LLMNodeStrategy(NodeStrategy):
         if dynamic_instructions:
             user_payload += f"\n\n--- RUNTIME AWARENESS ---\n{dynamic_instructions}"
 
-        from backend_v2.models.enums import SystemConcurrency
-        from backend_v2.services.orchestrator.chunking_service import ChunkingService
-        from backend_v2.models.chunking import ChunkingRequest
         import asyncio
         import json
 
+        from backend_v2.models.chunking import ChunkingRequest
+        from backend_v2.models.enums import SystemConcurrency
+        from backend_v2.services.orchestrator.chunking_service import ChunkingService
+
         # Epic 20 Phase 7: Inject Shuffled Atoms for Blind Evaluation
         has_shuffled_atoms = False
-        chunks_list = []
+        chunks_list: list[Any] = []
         if "shuffled_atoms" in state_data:
             has_shuffled_atoms = True
             shuffled_atoms = state_data["shuffled_atoms"]
@@ -187,7 +224,7 @@ class LLMNodeStrategy(NodeStrategy):
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
-            req = ChunkingRequest[dict](
+            req = ChunkingRequest[dict[str, Any]](
                 parent_id=context.workflow_id,
                 items=shuffled_atoms,
                 max_chunk_size=SystemConcurrency.LLM_MAX_CHUNK_SIZE.value,
@@ -198,16 +235,49 @@ class LLMNodeStrategy(NodeStrategy):
 
         has_search = any("search_result" in v for v in state_data.values() if isinstance(v, dict))
 
-        dynamic_schema = self.compiler.build_dynamic_schema(
-            schema_name=f"Step_{step.id}_Response",
-            criteria=criteria_blocks,
-            has_search_result=has_search,
-            has_shuffled_atoms=has_shuffled_atoms,
-            target_locale=target_locale,
-        )
+        # Epic 27 Phase 2: Dynamic Chunk Rubrics
+        atom_to_block_ids: dict[str, set[str]] = {}
+        for block in criteria_blocks:
+            if block.get("category_id") == "matrix" and block.get("scales"):
+                b_id = block.get("id")
+                if not b_id:
+                    continue
+                for scale in block.get("scales", []):
+                    scale_atoms: list[str] = []
+                    for claim in scale.get("claims", []):
+                        from backend_v2.models.enums import EvaluationMandate
 
+                        mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+                        micro_atoms = claim.get("micro_atoms")
+                        if micro_atoms and len(micro_atoms) > 0:
+                            scale_atoms.extend([f"{ma.strip()}{mandate}" for ma in micro_atoms])
+                        else:
+                            msg = f"PromptBlock '{b_id}' claim is missing mandatory 'micro_atoms' during runtime."
+                            logger.error("[%s] %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                            raise AppException(
+                                message=msg,
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            )
+
+                        for text in scale_atoms:
+                            import hashlib
+
+                            aid = hashlib.md5(text.encode("utf-8")).hexdigest()
+                            if aid not in atom_to_block_ids:
+                                atom_to_block_ids[aid] = set()
+                            atom_to_block_ids[aid].add(b_id)
+
+        # Save standard global schema trace if frozen_ctx is provided
         if frozen_ctx:
-            frozen_ctx.generated_schemas[step.id] = dynamic_schema.model_json_schema()
+            global_schema = self.compiler.build_dynamic_schema(
+                schema_name=f"Step_{step.id}_Response",
+                criteria=criteria_blocks,
+                has_search_result=has_search,
+                has_shuffled_atoms=has_shuffled_atoms,
+                target_locale=target_locale,
+            )
+            frozen_ctx.generated_schemas[step.id] = global_schema.model_json_schema()
 
         # 4. Invoke LLM Model (Tool Loop vs Direct Output)
         strategy_name = context.model_strategy
@@ -230,13 +300,47 @@ class LLMNodeStrategy(NodeStrategy):
         async def process_chunk(chunk: Any) -> tuple[dict[str, Any], dict[str, Any], list[Any]]:
             async with sem:
                 local_payload = user_payload
+                chunk_criteria = list(criteria_blocks)
+
                 if chunk is not None:
                     atoms_json = json.dumps(chunk.items, ensure_ascii=False, indent=2)
                     local_payload += f"\n\n<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>\n"
 
+                    # Apply Chunk context subsetting
+                    if has_shuffled_atoms:
+                        chunk_matrix_ids = set()
+                        for item in chunk.items:
+                            aid = item.get("atom_id") if isinstance(item, dict) else getattr(item, "atom_id", None)
+                            if aid and aid in atom_to_block_ids:
+                                chunk_matrix_ids.update(atom_to_block_ids[aid])
+
+                        chunk_criteria = [
+                            b
+                            for b in criteria_blocks
+                            if b.get("category_id") != "matrix" or b.get("id") in chunk_matrix_ids
+                        ]
+
+                # Dynamically build system prompt and schema for this chunk
+                local_xml_rubrics = self.compiler.compile_xml_rubrics(chunk_criteria, target_locale)
+
+                local_system_prompt = base_system_prompt
+                if local_xml_rubrics:
+                    local_system_prompt += f"\n\n{local_xml_rubrics}"
+
+                local_dynamic_schema = self.compiler.build_dynamic_schema(
+                    schema_name=f"Step_{step.id}_Response",
+                    criteria=chunk_criteria,
+                    has_search_result=has_search,
+                    has_shuffled_atoms=has_shuffled_atoms,
+                    target_locale=target_locale,
+                )
+
+                # Epic 27 Context Segregation: Provider-Agnostic Prompt Caching
+                # To activate native Prompt Caching on Vertex(Gemini)/OpenAI/Anthropic,
+                # the identical massive context MUST come first.
                 messages = [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": local_payload},
+                    {"role": "system", "content": f"System Context & Reference Data:\n\n{local_payload}"},
+                    {"role": "user", "content": local_system_prompt},
                 ]
 
                 chunk_final: dict[str, Any] = {}
@@ -248,7 +352,7 @@ class LLMNodeStrategy(NodeStrategy):
                         loop_res = await execute_tool_loop(
                             llm_client=bound_client,
                             messages=messages,
-                            response_model=dynamic_schema,
+                            response_model=local_dynamic_schema,
                             allowed_tools=effective_mcp_tools,
                             step_name=step.id,
                             mock_identity=step.id,
@@ -280,7 +384,7 @@ class LLMNodeStrategy(NodeStrategy):
                     try:
                         result, usage = await bound_client.run_structured_task(
                             messages=messages,
-                            response_model=dynamic_schema,
+                            response_model=local_dynamic_schema,
                             mock_identity=step.id,
                         )
                         chunk_final = dict(result.model_dump(mode="json"))
@@ -302,13 +406,27 @@ class LLMNodeStrategy(NodeStrategy):
                             status_code=500,
                             details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
                         ) from e
-                
+
                 return chunk_final, chunk_usage, chunk_traces
+
+        # Epic 27 Phase 5: Map-Reduce Telemetry Tracking
+        import time
+
+        telemetry_start_time = time.time()
+        context_char_length = len(user_payload)
+        logger.info(
+            "Epic 27 Telemetry: Compiling map-reduce for step '%s'. Context Bounds: %d chars, Chunk count: %d.",
+            step.id,
+            context_char_length,
+            len(chunks_list),
+        )
 
         tasks = []
         async with asyncio.TaskGroup() as tg:
             for c in chunks_list:
                 tasks.append(tg.create_task(process_chunk(c)))
+
+        latency_ms = int((time.time() - telemetry_start_time) * 1000)
 
         final_dict: dict[str, Any] = {}
         usage_dict: dict[str, Any] = {}
@@ -366,5 +484,10 @@ class LLMNodeStrategy(NodeStrategy):
                 step_name=step.id,
                 event_type="output",
                 content=final_dict,
+                metadata={
+                    "latency_ms": latency_ms,
+                    "chunk_size": len(chunks_list),
+                    "context_char_length": context_char_length,
+                },
             )
         ]

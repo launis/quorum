@@ -37,8 +37,17 @@ graph TD
 
 Järjestelmän arviointi luottaa atomisaatioon, missä matriisin kriteerit on valmiiksi pureskeltu pienimpiin mahdollisiin logiikkayksiköihin.
 
-**Dynaaminen Pydantic-mallinnus:**
-Atomisoidut väitteet ja ohjeistukset luodaan järjestelmään dynaamisesti `PromptCompiler` ja `BlueprintTransformer` -moduulien avulla. Työkalu analysoi laajat asiantuntijakriteerit (`PromptBlock`) ja purkaa ne tiukasti tyypitettyihin Pydantic-rakenteisiin, estäen hallusinaatiot. `atomization_cache.json` huolehtii lokaalista välimuistista "Deep Atomization" -vaiheessa, eliminoiden tarpeettomat LLM-kutsut ja taaten deterministisen ajon konfiguraatiovaiheessa (Seeding).
+**Dynaaminen Pydantic-mallinnus ja LLM-Seeding:**
+Atomisoidut väitteet ja ohjeistukset luodaan järjestelmään dynaamisesti `PromptCompiler` ja `BlueprintTransformer` -moduulien avulla. Erityisen kriittistä on **Dynaaminen Seeding-Atomisaatio**: Kun järjestelmän paikallinen tietokanta alustetaan (`run_seed.py`), `PromptAtomizer` -tekoälymoduuli tarttuu väliin ja purkaa asiantuntijoiden määrittämät raskaat arviointikriteerit (`ai_description`) automaattisesti lennosta 15 erilliseksi mikro-väitteeksi (`micro_atoms`). Tämä luo kantaan massiivisen tiheän, syvästi atomisoidun rakenteen. `atomization_cache.json` huolehtii lokaalista välimuistista tässä "Deep Atomization" -vaiheessa, eliminoiden tarpeettomat LLM-kutsut myöhemmissä seed-käynnistyksissä.
+
+### Tasokohtainen Atomien Kertolasku (Dynamic Atom Aggregation)
+Järjestelmän litteiden osumien kokonaismäärä (Denominator / Total Atoms) vaihtelee dynaamisesti arvosteluskaalojen (esim. T1 vs. T5) välillä. On arkkitehtuurinen välttämättömyys, että "läpikäytyjen atomisoitujen väitteiden määrä" ei ole kaikilla tasoilla sama.
+
+Tämä vaihtelu on täysin deterministinen ja syntyy suoraan tietokantakonfiguraation ja Map-Reduce -lohkomisen tulosta:
+1. **Vaatimustason kasvava ankaruus:** Kohdetta arvioitaessa, ylemmille huipputasoille (T4, T5 - Erinomainen) on matriisiin tyypillisesti konfiguroitu huomattavasti enemmän mikroväitteitä (`claims`) kuin perustasoille (T1, T2 - Heikko). Korkean laaduntason todistaminen vaatii kognitiivisessa mittauksessa laajemman joukon ehtojen samanaikaista täyttymistä.
+2. **Kertautuminen Map-Reduce-palasissa:** Lopullinen sokeiden osumien maksimimäärä, jonka tekoäly tuottaa yhdelle Matrix-tasolle asynkronisen ajon aikana, on kaavalla: `Tasolle määritettyjen väitteiden lukumäärä x Map-Reduce -chunkkien lukumäärä`.
+
+Jos esimerkiksi T1-tasolle on tietokannassa määritetty 3 ehtoa ja T5-tasolle 6 ehtoa, ja teksti aggregoituna pilkotaan 15 analyysipalaan, T1:stä syntyy lennosta 45 atomia (3x15) ja T5:stä 90 atomia (6x15) tekoälyn pureskeltavaksi. Luku heijastaa suoraan kyseisen tason kognitiivista vaativuustasoa arviointihetkellä.
 
 ## 2. Deep Atomization (Syvä Atomisaatio asynkronisessa ajossa)
 
@@ -53,8 +62,21 @@ Perinteinen LLM-pohjainen lausuntojen arviointi kykenee harvoin tuottamaan tiukk
    Jotta satojen kysymysten yhtäaikainen sokea arviointi ei johtaisi Timeout/429 Rate Limit -kaatumisiin tai json-skeeman rikkoutumiseen LLM:n muistin loppuessa (Token Explosion), `LLMNodeStrategy` suorittaa Map-Reduce -operaation. Massiivinen kysymyslista luovutetaan `ChunkingService`-komponentille, joka pilkkoo sen turvallisiin Opaque Stripe ID -suojattuihin osiin (`SystemConcurrency.LLM_MAX_CHUNK_SIZE`-sääntöjen mukaisesti). Palikat ajetaan vahvasti rinnakkain `asyncio.TaskGroup` ja `Semaphore` -varmistuksin. Lopulta erilliset rakenteelliset vastaukset parsitaan takaisin yhtenäiseksi `List[FlattenedAtomResult]` -paketiksi täydellisellä 1:1 osumatarkkuudella.
 3. **Eristetty Runtime AI (T=0.0):**
    LLM suorittaa kunkin Map-Reduce -lohkon arvioinnin tiukassa "Strict Mode" -tilassa, missä `LiteLLMProvider` vaatii koodilta absoluuttisesti TPM/RPM-rajoitusten määrittämistä. Jos Pydantic-validaatio epäonnistuu yksittäisessä chunkissa, arkkitehtuuri ei yritä "arvailla" fallback-arvoja (Zero-Fallback), vaan nostaa välittömästi RFC 7807 `AppException` -virheen (Fail-Fast).
-4. **Paluu Rakennetilaan:**
-   Kun kaikki asynkroniset LLM-palat on suoritettu ja vastaukset (True/False & Micro-CoT -perustelut) on sulatettu yhteen, arviointimoottori tekee käänteisen hajautuksen (Reverse Hash Mapping) liittääkseen tulokset takaisin oikeisiin `ReportDataDTO`-mallin mukaisiin dynaamisiin matriisiskaalatasoihin.
+4. **Paluu Rakennetilaan ja Käänteinen Hajautus (Reverse Hash Mapping):**
+   Kun kaikki asynkroniset LLM-palat on suoritettu ja vastaukset (True/False & Micro-CoT -perustelut) on sulatettu massiiviseksi yhteiseksi Boolean-listaksi, asynkronisen moottorin on osattava palauttaa sokeat osumat takaisin alkuperäisiin matriiseihinsa ja vaatimustasoilleen. 
+   Tämä ratkaistaan täysin valtio-vapaalla Zero-State arkkitehtuurilla hyödyntäen **Sisältöosoitteisia Tunnisteita (Content-Addressable ID)**:
+   - Yksittäisillä `micro_atoms` väitteillä ei ole tietokannassa lainkaan staattisia ohjelmallisia tunnisteita (ID-kenttiä), sillä satojen alatasojen UUID-koodien hallinta olisi datapaisumus.
+   - Sen sijaan koodi muodostaa kysymyksille lennosta syntyvän ID:n kryptisellä MD5-tiivisteellä, laskemalla tekstin kirjaimille numeerisen vastineen `d3b07384...` (Väitteen teksti + Nollahypoteesi-mandaatti).
+   - Koska tekoäly palauttaa vain ja ainoastaan kyseisen sokean MD5-koodin yhdessä TRUEn tai FALSEn kanssa, taustajärjestelmä simuloi kaikki säännöt ajon päätteeksi koodissa uudelleen. Käyttämällä tismalleen samaa sanastoa ja Nollahypoteesia, väitteistä lasketaan lennosta sama MD5-tiiviste, ja osumat natsataan absoluuttisella tarkkuudella oikeaan skaalatasoon `ReportDataDTO`-mallissa. Järjestelmän ei siis tarvitse pitää muistissa lainkaan väliaikaisia hakutaulukoita arviointiajon aikana.
+
+### Nollahypoteesi ja Antagonistinen Syyttäjä (Epic 27 Pydantic-puhdistus)
+Jotta arviointi olisi matemaattisesti stabiili eikä altis tekoälyn mielistelylle (Sycophancy) tai ympäripyöreälle "Pydantic-skitsofrenialle" (tekoäly yrittää antaa pisteitä aiempien rakenteiden perusteella), kaikki arviointi nojaa **Nollahypoteesi-mandaattiin**. LLM toimi puhtaasti "Antagonistisena syyttäjänä":
+* Jokaisen väittämän oletusarvo on aluksi `FALSE` ("Evaluate as FALSE").
+* LLM kääntää atomin arvoksi `TRUE` ainoastaan, jos se kykenee poimimaan aineistosta eksplisiittisen, kiistattoman todisteen. 
+* LLM:ltä on täysin riistetty kyky palauttaa itse valmiita numeerisia lukuja kuten jatkuvia kokonaisarvosanoja. Tämä logiikka (Zero-Math Payload) pienentää Map-Reduce -töiden palauttamia JSON-rakenteita kriittisesti, pysäyttäen raskaisiin Token-määriin liittyvät "Arq Worker Timeout" -ylikuormittumiset.
+
+**DRY-Abstrahoitu Lainsäädäntö (`atom_flattening.py`):**
+Koska arvioidut lauseet voivat nykymallissa olla täysin dynaamisesti luotuja `micro_atoms`-kysymyksiä (joita tekoäly luo tietokantaa seedatessa), itse asiantuntijatietokanta (`seed_data.json`) on puhdistettu toistuvista ja raskaista säännöistä. Nollahypoteesi on kovakoodattu puhtaasti taustajärjestelmän arviointiputkeen. Map-reduce -vaiheessa `atom_flattening.py` -hookki ohjelmallisesti "liimaa" absoluuttisen säännön (*ENFORCEMENT: Evaluate as FALSE immediately unless explicit, documented evidence is provided.*) jokaisen sokean mikro-atomin perään lennosta. Tämä arkkitehtuuri takaa, ettei LLM pääse "irti hihnasta" edes satojen uusien, lennosta generoitujen lyhyiden kysymysten keskellä.
 
 ## 3. Pisteytyslogiikka: Progressive Dampening (DINA-malli)
 
@@ -62,14 +84,20 @@ Pelkkä osumien aritmeettinen painotettu keskiarvo johtaisi "Sycophancy"-ongelma
 
 Järjestelmä hyödyntää ratkaisuna **Kognitiivista Diagnostiikkamallia (Cognitive Diagnostic Dampening - DINA)**.
 
-### Matemaattinen Malli (Kognitiivinen Virta)
+### Matemaattinen Malli (Kognitiivinen Virta & Pehmennetty Hierarkia)
 Pisteytysmalli rakentuu jatkumoon, jossa alimmat tasot portinvartijoina määrittävät kognitiivisen virtauksen (*Cognitive Flow*) vahvuuden kerroin kerrokselta ylöspäin.
 
-* Arvosana lähtee rakentumaan perusarvosta `scale_min` (yleensä 1.0) jolloin virtakerroin `modifier` vastaa suoraan ensimmäisen tason onnistumisprosenttia.
-* Ylemmillä tasoilla jokainen saavutettu atomi tuo pisteitä ohjelmistolle **vain sen verran, minkä alapuolelta tuleva virta sallii** (`achieved_score += step_value * hit_rate * modifier`).
-* Itse virtakerroin vaimentuu edelleen kuluvan tason onnistumisprosentilla (`modifier *= hit_rate`).
+**Dynaaminen rajoitusten haku (Scale-Agnostic Boundaries):**
+Koko matemaattinen malli on täysin riippumaton kovakoodatuista numeroista (kuten 1–5). `waterfall_scoring_hook` lataa arvioinnin aluksi matriisikohtaisesti täsmälliset minimi- ja maksimirajat (`math_min`, `math_max`) suoraan alkuperäisestä PromptBlock-määrittelystä (`pb_dict["scales"]`). Näin algoritmi sietää virheettömästi mitä tahansa mielivaltaisia skaaloja (esim. 1–3, 1–6 tai 0–100) kunkin mitattavan komponentin yksilöllisten sääntöjen mukaisesti.
 
-**Lopputulos:** DINA-laskennan tulokset normalisoidaan täsmällisesti `scales.score` -rajoissa backend-kerroksessa. Kokonaislaskenta ei vuoda ulos abstrakteja liukulukuja, vaan noudattaa tarkkaa mypy/Pydantic "Zero-Math" säännöstöä, mikä pakottaa tiukan tyyppiturvallisuuden matemaattisiin operaatioihin.
+**V2 Optimal Math Model (Square Root Dampening):**
+Aiemmin järjestelmässä käytetty puhdas lineaarinen osumaprosentin kertoja (linear hit_rate multiplication) rankaisi tekstejä liian eksponentiaalisesti romahduttaen peruslaskennan lähelle nollaa, mikä pakotti ohjelmiston turvautumaan keinotekoisiin 30 % turvaverkkoihin (Epic 23 `DINA_FLOOR`). Arkkitehtuuri siirtyi Square Root (Neliöjuuri) -vaimennukseen, jolloin lineaarinen tuho eliminoituu automaattisesti:
+* Arvosana lähtee luodusta `math_min` -perusarvosta. Tason kognitiivinen virta (modifier) on tason osumaprosentin neliöjuuri (`math.sqrt(hit_rate)`), joka on huomattavasti pehmeämpi.
+* Ylemmillä tasoilla saavutettu atomi tuo pisteitä vain sen verran, minkä alapuolelta tuleva pehmennetty virta sallii (`achieved_score += step_value * hit_rate * modifier`).
+* Vaimennus itsessään kertautuu iteratiivisesti neliöjuurella (`modifier = modifier * math.sqrt(hit_rate)`).
+* Puhtaat Nollahypoteesin epäonnistumiset (esim. 0/45 atomia), joissa olemassaolevaa tietoa tai lähdedokumenttia ei löytynyt, putoavat neliöjuuren mukana takaisin absoluuttiseen todelliseen lukuunsa (`math_min` eli 1.0) ilman minkäänlaisia pakotettuja "Fail-Fast bypass"-haaroituksia.
+
+**Lopputulos:** Järjestelmä tuottaa elävän, todellisuutta vastaavan (luonnollisen Gaussin käyrän kaltaisen) matriisikohtaisen pistevarianssin, säilyttäen silti ankaran rakenteellisen vaatimuksen: on matemaattisesti mahdotonta saavuttaa huippupisteitä, mikäli perusargumentin T1- ja T2-tasot ontuvat. DINA-laskennan tulokset normalisoidaan täsmällisesti `scales.score` -rajoissa backend-kerroksessa.
 
 ### Rangaistusmekanismit (Penalty Logic)
 

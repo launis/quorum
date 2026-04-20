@@ -161,3 +161,22 @@ def test_missing_required_input_in_model() -> None:
 
     assert "at least one input must be 'required=True'" in str(exc_info.value.message)
     assert exc_info.value.status_code == 400
+
+def test_generic_steps_reference_permitted() -> None:
+    # step_2 depends on step_1, and references the entire generic "$steps" namespace
+    steps = [
+        StepRule(
+            id="stp_1111222233334444",
+            task_blueprint="a",
+            depends_on=[],
+        ),
+        StepRule(
+            id="stp_2222333344445555",
+            task_blueprint="b",
+            depends_on=["stp_1111222233334444"],
+            input_mappings={"val": "$steps"}
+        ),
+    ]
+    wf = _create_base_workflow(steps)
+    # This currently raises WorkflowCompilationError due to strict namespace check
+    DAGCompilerService.validate_workflow(wf)

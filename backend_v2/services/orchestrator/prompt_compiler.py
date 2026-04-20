@@ -41,11 +41,15 @@ class PromptCompiler:
         if not text_obj:
             return ""
 
-        if isinstance(text_obj, str):
-            return text_obj
+        from backend_v2.exceptions import ConfigurationError, ErrorCodes
 
-        if not isinstance(text_obj, dict):
-            return str(text_obj)
+        if isinstance(text_obj, str) or not isinstance(text_obj, dict):
+            msg = (
+                f"Legacy string fallback detected or invalid type: '{text_obj}'. "
+                "All text MUST be valid I18nText dictionaries."
+            )
+            logger.error("[PromptCompiler] %s", msg)
+            raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         translations = text_obj.get("translations", {})
         if not isinstance(translations, dict):
@@ -85,20 +89,53 @@ class PromptCompiler:
         """
         xml_blocks = []
 
-        # Build a lookup for expected inputs by input_key for ai_description injection
-        input_desc_map = {}
+        # Build a lookup for expected inputs by input_key for full semantic context injection
+        input_meta_map = {}
         if expected_inputs:
             for ei in expected_inputs:
                 key = getattr(ei, "input_key", None)
-                desc = getattr(ei, "ai_description", None)
-                if key and desc:
-                    input_desc_map[f"$inputs.{key}"] = desc
+                if not key:
+                    continue
+
+                # Safely extract translations using standard locale fallbacks
+                label_obj = getattr(ei, "label", None)
+                label_str = ""
+                if label_obj and hasattr(label_obj, "translations"):
+                    label_str = label_obj.translations.get(
+                        target_locale, label_obj.translations.get("en", label_obj.translations.get("fi", ""))
+                    )
+
+                desc_obj = getattr(ei, "description", None)
+                desc_str = ""
+                if desc_obj and hasattr(desc_obj, "translations"):
+                    desc_str = desc_obj.translations.get(
+                        target_locale, desc_obj.translations.get("en", desc_obj.translations.get("fi", ""))
+                    )
+
+                ai_desc = getattr(ei, "ai_description", None) or ""
+
+                input_meta_map[f"$inputs.{key}"] = {
+                    "label": label_str,
+                    "desc": desc_str,
+                    "ai_desc": ai_desc,
+                }
 
         for logical_name, source_path in input_mappings.items():
             value = self._extract_value_from_state(source_path, state_data)
             if value:
-                ai_desc = input_desc_map.get(source_path)
-                desc_text = f"CONTEXT DESCRIPTION FOR <{logical_name}>: {ai_desc}\n" if ai_desc else ""
+                meta = input_meta_map.get(source_path)
+                desc_text = ""
+                if meta:
+                    desc_text += "--- DOCUMENT METADATA ---\n"
+                    desc_text += f"DOCUMENT ID: {logical_name}\n"
+                    if meta["label"]:
+                        desc_text += f"DOCUMENT NAME: {meta['label']}\n"
+                    if meta["desc"]:
+                        desc_text += f"DOCUMENT DESCRIPTION: {meta['desc']}\n"
+                    if meta["ai_desc"]:
+                        desc_text += f"AI CONTEXT MANDATE: {meta['ai_desc']}\n"
+                    desc_text += "-------------------------\n"
+
                 # E.g. <target_conversation> value </target_conversation>
                 xml_blocks.append(f"{desc_text}<{logical_name}>\n{value}\n</{logical_name}>")
 
@@ -115,39 +152,39 @@ class PromptCompiler:
 
     def _extract_value_from_state(self, path: str, state_data: dict[str, Any]) -> str:
         """Extract a value from workflow state using a path like '$inputs.history_text'."""
+        from backend_v2.exceptions import AppException, ErrorCodes
+
         if not isinstance(path, str):
-            return ""
+            msg = f"Variable reference path must be a string, got {type(path)}"
+            logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         # Removing '$' prefix if present
         if path.startswith("$"):
             path = path[1:]
 
-        if path == "steps":
-            return self._extract_value_from_state(
-                "",
-                {
-                    "": {
-                        k: v
-                        for k, v in state_data.items()
-                        if not str(k).startswith("_") and k not in ("inputs", "raw_inputs", "reasoning_context")
-                    }
-                },
-            )
-
         # Support the standard V2 $steps namespace for explicit node targeting (e.g. $steps.sr_xyz.outputs)
         if path.startswith("steps."):
             path = path[len("steps.") :]
 
-        parts = path.split(".")
-        current: Any = state_data
+        if path == "steps":
+            # Epic 27: Explicitly allow the global $steps namespace to dump the entire context
+            current: Any = state_data
+        else:
+            parts = path.split(".")
+            current = state_data
 
-        for part in parts:
-            if isinstance(current, dict) and part in current:
-                current = current[part]
-            elif hasattr(current, part):
-                current = getattr(current, part)
-            else:
-                return ""
+            for part in parts:
+                if isinstance(current, dict) and part in current:
+                    current = current[part]
+                elif hasattr(current, part):
+                    current = getattr(current, part)
+                else:
+                    msg = f"Path resolution failed: '{path}'. Component '{part}' is missing from state context."
+                    logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    )
 
         if isinstance(current, str):
             # Already a string, return directly
@@ -321,7 +358,7 @@ class PromptCompiler:
 
         from pydantic import BaseModel, model_validator
 
-        def make_micro_cot_base(_t: float, _cid: str, _citation_ref: str | None = None) -> type[BaseModel]:
+        def make_micro_cot_base(_cid: str, _citation_ref: str | None = None) -> type[BaseModel]:
             class MicroCotBase(BaseModel):
                 @model_validator(mode="before")
                 @classmethod
@@ -333,25 +370,6 @@ class PromptCompiler:
                         if val and isinstance(val, str) and len(val) > 10 and val in _citation_ref:
                             data["step_1b_cited_source_id"] = _citation_ref
                     return data
-
-                @model_validator(mode="after")
-                def validate_micro_cot(self: Any) -> Any:
-                    if hasattr(self, "step_4_final_score") and hasattr(self, "step_1_evidence_quote"):
-                        score = self.step_4_final_score
-                        quote = self.step_1_evidence_quote
-                        if isinstance(score, (int, float)) and score >= _t:
-                            if not quote or str(quote).strip() == "":
-                                msg = (
-                                    f"CRITICAL LOGICAL ERROR: You assigned a high score ({score}) "
-                                    f"but failed to provide a 'step_1_evidence_quote'. "
-                                    "Semantic self-healing triggered."
-                                )
-                                logger.warning(
-                                    "Semantic Self-Healing Triggered: High score logic error.",
-                                    extra={"score": score, "block_id": f"{_cid}_Evaluation"},
-                                )
-                                raise ValueError(msg)
-                    return self
 
             return MicroCotBase
 
@@ -412,8 +430,7 @@ class PromptCompiler:
             crit_id = crit_id_raw
 
             try:
-                label_obj = crit["label"]
-                block_type = crit.get("type", "float")
+                _label_obj = crit["label"]
                 extensions = crit.get("output_extensions", [])
             except KeyError as e:
                 from backend_v2.exceptions import ConfigurationError, ErrorCodes
@@ -425,11 +442,9 @@ class PromptCompiler:
                 )
                 raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}) from e
 
-            label = self.resolve_i18n(label_obj, target_locale)
-            
             theory_grounding = crit.get("theory_grounding", {})
             citation_ref = theory_grounding.get("citation_reference") if isinstance(theory_grounding, dict) else None
-            
+
             sub_fields: dict[str, tuple[Any, Any]] = {}
 
             if "citation" in extensions:
@@ -454,7 +469,9 @@ class PromptCompiler:
                         Field(
                             default=None,
                             description=(
-                                "If your justification relies on authorized theory, you MUST RETURN THIS EXACT ENTIRE STRING (do not split or truncate it): "
+                                "If your justification relies on authorized theory, "
+                                "you MUST RETURN THIS EXACT ENTIRE STRING "
+                                "(do not split or truncate it): "
                                 f"'{citation_ref}'. Otherwise return null."
                             ),
                         ),
@@ -560,58 +577,9 @@ class PromptCompiler:
                     ),
                 )
 
-            if block_type not in ("float", "int"):
-                sub_fields["step_4_final_score"] = (
-                    str,
-                    Field(..., description=f"Textual evaluation strictly mapped to <MATRIX id='{crit_id}'>."),
-                )
-                threshold = 0.0
-            else:
-                try:
-                    scales_data = crit["scales"]
-                    allow_decimals = bool(crit["allow_decimals"])
-                except KeyError as e:
-                    from backend_v2.exceptions import ConfigurationError, ErrorCodes
-
-                    msg = f"PromptBlock '{crit_id}' is missing strict evaluation parameter: {str(e)}."
-                    logger.error(
-                        "PromptBlock structurally invalid.",
-                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": crit_id},
-                    )
-                    raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}) from e
-
-                if not scales_data:
-                    from backend_v2.exceptions import ConfigurationError, ErrorCodes
-
-                    msg = f"PromptBlock '{crit_id}' has empty 'scales' array."
-                    raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-
-                llm_min = float(min(s["score"] for s in scales_data))
-                llm_max = float(max(s["score"] for s in scales_data))
-
-                if allow_decimals:
-                    decimal_instruction = "Select a precise score with exactly one decimal place"
-                    sub_fields["step_4_final_score"] = (
-                        float,
-                        Field(..., ge=llm_min, le=llm_max, description=f"{decimal_instruction} logically matching the provided <MATRIX id='{crit_id}'>.")
-                    )
-                else:
-                    decimal_instruction = "Select a whole integer score"
-                    sub_fields["step_4_final_score"] = (
-                        int,
-                        Field(..., ge=int(llm_min), le=int(llm_max), description=f"{decimal_instruction} logically matching the provided <MATRIX id='{crit_id}'>.")
-                    )
-
-                from backend_v2.models.enums import SelfHealingThresholdRatio
-
-                raw_ratio = crit.get("self_healing_evidence_threshold_ratio", SelfHealingThresholdRatio.STRICT.value)
-                ratio_val = float(raw_ratio)
-
-                threshold = llm_min + (llm_max - llm_min) * ratio_val
-
             from pydantic import ConfigDict
 
-            MicroCotBase = make_micro_cot_base(threshold, crit_id, citation_ref)
+            MicroCotBase = make_micro_cot_base(crit_id, citation_ref)
 
             NestedModel = create_model(  # type: ignore[call-overload]
                 f"{crit_id}_Evaluation",
@@ -619,8 +587,8 @@ class PromptCompiler:
                 __config__=ConfigDict(extra="forbid", strict=True),
                 **sub_fields,
             )
-
-            fields[crit_id] = (NestedModel, Field(..., description=f"Evaluation object for {label}"))
+            desc_val = f"Evaluation object for {crit_id}"
+            fields[crit_id] = (NestedModel, Field(..., description=desc_val))
 
         if not fields:
             fields["acknowledged_instruction"] = (
@@ -673,10 +641,20 @@ class PromptCompiler:
             if scales:
                 xml_blocks.append("    | Score | Label | Critical Directive |")
                 xml_blocks.append("    |---|---|---|")
+                from backend_v2.models.enums import EvaluationMandate
+
+                mandate_str = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
                 for s in scales:
                     s_val = s.get("score")
                     s_lbl = self.resolve_i18n(s.get("name"), target_locale) if s.get("name") else s.get("ai_label", "")
-                    claims = " ".join([c.get("ai_description", "") for c in s.get("claims", [])])
+
+                    claims_texts = []
+                    for c in s.get("claims", []):
+                        substance = c.get("ai_description", "").strip()
+                        if substance:
+                            claims_texts.append(f"{substance}{mandate_str}")
+
+                    claims = " ".join(claims_texts)
                     xml_blocks.append(f"    | {s_val} | {s_lbl} | {claims} |")
 
             xml_blocks.append("  </MATRIX>")

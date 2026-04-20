@@ -80,14 +80,12 @@ class DimensionResultItem(BaseModel):
 
     @field_validator("dimension_id", "dimension_label", "reasoning")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
     @field_validator("score")
     @classmethod
@@ -95,7 +93,7 @@ class DimensionResultItem(BaseModel):
         if v < 0:
             msg = "Score cannot be negative."
             logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
 
@@ -123,7 +121,7 @@ class JudgeScoreCard(BaseModel):
         json_schema_extra={"x-ui-label": "Verdict"},
     )
     dimensions: list[DimensionResultItem] = Field(
-        default_factory=list,
+        ...,
         description="Radar chart data.",
         json_schema_extra={"x-ui-label": "Dimensions"},
     )
@@ -140,27 +138,34 @@ class JudgeScoreCard(BaseModel):
 
     @field_validator("agent_name", "verdict")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
+
+    @field_validator("dimensions")
+    @classmethod
+    def validate_dimensions_not_empty(cls, v: list[DimensionResultItem]) -> list[DimensionResultItem]:
+        if not v:
+            msg = "JudgeScoreCard dimensions cannot be empty. Zero-Compromise Fail-Fast enforced."
+            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return v
 
     @model_validator(mode="after")
     def validate_scores(self) -> JudgeScoreCard:
         if self.scale_min >= self.scale_max:
             msg = "scale_min must be less than scale_max."
             logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         if not (self.scale_min <= self.total_score <= self.scale_max):
             # Allow small floating point epsilon if needed, but strict is better for now.
             msg = f"total_score {self.total_score} is out of range [{self.scale_min}, {self.scale_max}]."
             logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return self
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -221,11 +226,9 @@ class ScoringResult(BaseModel):
 
     @field_validator("score_summary")
     @classmethod
-    def validate_summary(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_summary(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Score summary cannot be empty."
             logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()

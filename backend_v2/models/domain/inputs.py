@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,19 @@ class WorkflowInputs(BaseModel):
     # frozen=True ensures immutability once created.
     model_config = ConfigDict(extra="allow", frozen=True)
 
+    @field_validator("chat_log", "organization_id", "user_id", "language", mode="before")
+    @classmethod
+    def validate_non_empty_strings(cls, v: Any) -> Any:
+        if v is None:
+            return v
+        if isinstance(v, str) and not v.strip():
+            from backend_v2.exceptions import AppException, ErrorCodes
+
+            msg = "Workflow input field cannot be an empty string. Zero-Compromise Fail-Fast enforced."
+            logger.error("[WorkflowInputs] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return v
+
     @model_validator(mode="before")
     @classmethod
     def prevent_base64_pollution(cls, data: Any) -> Any:
@@ -39,7 +52,7 @@ class WorkflowInputs(BaseModel):
 
         for k, v in data.items():
             if isinstance(v, dict) and "content_base64" in v:
-                from backend_v2.exceptions import ConfigurationError, ErrorCodes
+                from backend_v2.exceptions import AppException, ErrorCodes
 
                 msg = (
                     f"V2 Strict Mandate: Binary 'content_base64' payload detected in input '{k}'. "
@@ -47,5 +60,7 @@ class WorkflowInputs(BaseModel):
                     "before reaching the Domain models. Do not serialize PDFs into the DB!"
                 )
                 logger.error("[WorkflowInputs] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+                raise AppException(
+                    message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
         return data

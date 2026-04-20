@@ -11,20 +11,24 @@ def test_nested_state_flattening_logic() -> None:
     """Epic 12 Phase 2: Assert state flattening logic cleans cognitive prefixes."""
     compiler = PromptCompiler()
 
-    nested_state = {
-        "step_xyz": {
-            "outputs": {
-                "matrix_evaluation": {
-                    "step_1_evidence_quote": "The quoted text",
-                    "step_4_final_score": 5,
-                    "something_else": "Random"
+    state = {
+        "inputs": {
+            "history": {
+                "step_xyz": {
+                    "outputs": {
+                        "matrix_evaluation": {
+                            "step_1_evidence_quote": "The quoted text",
+                            "step_4_final_score": 5,
+                            "something_else": "Random"
+                        }
+                    }
                 }
             }
         }
     }
 
-    # Path='steps' triggers the Attention Dilution recursive formatting logic
-    result = compiler._extract_value_from_state("steps", nested_state)
+    # Path='$inputs.history' triggers the Attention Dilution recursive formatting logic
+    result = compiler._extract_value_from_state("$inputs.history", state)
 
     assert "<prior_step_context source=\"STEP_XYZ\">" in result
     assert "### MATRIX_EVALUATION" in result
@@ -32,6 +36,29 @@ def test_nested_state_flattening_logic() -> None:
     assert "- **Evidence Quote:** The quoted text" in result
     assert "- **Final Score:** 5" in result
     assert "- **Something Else:** Random" in result
+
+
+def test_prevent_implicit_steps_extraction() -> None:
+    """Epic 27 Phase 1: Assert implicit full 'steps' extraction is prevented."""
+    compiler = PromptCompiler()
+    
+    result = compiler._extract_value_from_state("steps", {"step_1": "data"})
+    assert result == ""
+
+
+def test_global_steps_extraction() -> None:
+    """Tier 4 Bug Hunting: Test that '$steps' properly extracts the entire state."""
+    compiler = PromptCompiler()
+    state = {
+        "sr_aaa": {"outputs": {"val": 1}},
+        "sr_bbb": {"outputs": {"val": 2}},
+    }
+    
+    result = compiler._extract_value_from_state("$steps", state)
+    
+    # Needs to extract the whole state via formatting logic
+    assert "SR_AAA" in result
+    assert "SR_BBB" in result
 
 
 def test_compile_xml_rubrics_structure() -> None:
@@ -74,74 +101,89 @@ def test_compile_xml_rubrics_structure() -> None:
     assert '| 1 | Poor | Student failed. |' in xml
 
 
-@pytest.mark.skip(reason="Legacy dynamic schema removed in Epic 20 Phase 7 blind evaluation")
-def test_micro_cot_validation_healing() -> None:
-    """Epic 12 Phase 3: Assert Semantic Self-Healing triggers Pydantic ValidationError."""
+def test_build_dynamic_schema_removes_scores() -> None:
+    """Epic 26 Phase 1: Assert dynamic schema compilation completely strips soft score fields."""
     compiler = PromptCompiler()
 
-    criteria_json = json.dumps([
+    criteria = [
         {
             "id": "crit_validation",
             "type": "int",
             "label": {"translations": {"en": "Strict Logic Test"}},
             "ai_description": "Evaluate securely.",
-            "output_extensions": ["citation"],  # This triggers step_1_evidence_quote
+            "output_extensions": ["citation", "missing_context"],
             "allow_decimals": False,
-            "scales": [{"score": 1}, {"score": 5}]
+            "scales": [{"score": 1}, {"score": 5}],
+            "theory_grounding": {"citation_reference": "Test Source Long String"}
         }
-    ])
+    ]
 
-    DynamicModel = compiler._cached_build_dynamic_schema(
+    DynamicModel = compiler.build_dynamic_schema(
         schema_name="TestSchema",
-        criteria_json=criteria_json,
+        criteria=criteria,
         target_locale="en",
-        has_search_result=False
+        has_search_result=True,
+        has_shuffled_atoms=True
     )
 
-    # 1. Negative Test: Semantic Logic Error (Score >= 4 without quote)
-    with pytest.raises(ValidationError) as exc:
-        DynamicModel.model_validate({
-            "reasoning_trace": "I think it is a 5.",
-            "evaluation_notes": "Very good.",
-            "crit_validation": {
-                "step_1_evidence_quote": None,
-                "step_4_final_score": 5
-            }
-        })
+    # Assert top-level fields
+    assert "reasoning_trace" in DynamicModel.model_fields
+    assert "evaluation_notes" in DynamicModel.model_fields
+    
+    # Assert Map-Reduce atom response integration
+    assert "evaluations" in DynamicModel.model_fields
+    evaluations_field = DynamicModel.model_fields["evaluations"]
+    
+    # Assert nested matrix block
+    assert "crit_validation" in DynamicModel.model_fields
+    NestedModel = DynamicModel.model_fields["crit_validation"].annotation
 
-    # Verify the exact custom logic error message we defined in PromptCompiler
-    assert "CRITICAL LOGICAL ERROR" in str(exc.value)
-    assert "high score (5.0)" in str(exc.value)
-    assert "step_1_evidence_quote" in str(exc.value)
+    # Verify standard text fields from extensions are present
+    assert "step_1_evidence_quote" in NestedModel.model_fields
+    assert "step_1b_cited_source_id" in NestedModel.model_fields
+    assert "step_1c_google_citation" in NestedModel.model_fields
+    assert "extension_missing_context" in NestedModel.model_fields
 
-    # 2. Positive Test: Score >= 4 WITH quote
+    # CRITICAL: Assert Epic 26 soft-schema removal
+    assert "step_4_final_score" not in NestedModel.model_fields
+
+    # Validate output validation parses correctly
     valid_obj = DynamicModel.model_validate({
-        "reasoning_trace": "I think it is a 5.",
-        "evaluation_notes": "Very good because text says 'Yes'.",
+        "reasoning_trace": "Analysis...",
+        "evaluation_notes": "Synthesis...",
+        "evaluations": [
+            {
+                "atom_id": "atom_1",
+                "quote": "Sample",
+                "reasoning": "Reason",
+                "boolean": True
+            }
+        ],
         "crit_validation": {
             "step_1_evidence_quote": "Yes",
-            "step_4_final_score": 5
+            "step_1b_cited_source_id": "Test Source",
+            "step_1c_google_citation": "Verified",
+            "extension_missing_context": "None"
         }
     })
 
-    # Mypy cannot know about dynamically created fields, so we use type ignore
-    crit_block_1: Any = valid_obj.crit_validation  # type: ignore[attr-defined]
-    assert crit_block_1.step_4_final_score == 5
-    assert crit_block_1.step_1_evidence_quote == "Yes"
-
-    # 3. Positive Test: Score < 4 without quote (Should be allowed by logic)
-    valid_low_obj = DynamicModel.model_validate({
-        "reasoning_trace": "It's bad.",
-        "evaluation_notes": "Nothing found.",
+    crit_block: Any = getattr(valid_obj, "crit_validation")
+    assert crit_block.step_1_evidence_quote == "Yes"
+    
+    # Assert citations heal properly (LLM truncates string)
+    heal_obj = DynamicModel.model_validate({
+        "reasoning_trace": "Analysis...",
+        "evaluation_notes": "Synthesis...",
+        "evaluations": [],
         "crit_validation": {
-            "step_1_evidence_quote": None,
-            "step_4_final_score": 3
+            "step_1b_cited_source_id": "Test Source L",  # Truncated but >10 chars
+            "extension_missing_context": "None"          # Required field
         }
     })
+    crit_block_healed: Any = getattr(heal_obj, "crit_validation")
+    assert crit_block_healed.step_1b_cited_source_id == "Test Source Long String"
 
-    crit_block_2: Any = valid_low_obj.crit_validation  # type: ignore[attr-defined]
-    assert crit_block_2.step_4_final_score == 3
-    assert crit_block_2.step_1_evidence_quote is None
+
 
 
 def test_chunk_response_schema_generation() -> None:

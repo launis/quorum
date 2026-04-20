@@ -32,14 +32,12 @@ class GuardInput(BaseModel):
 
     @field_validator("chat_log", "product_text")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[GuardModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
     @field_validator("reflection_text")
     @classmethod
@@ -47,8 +45,8 @@ class GuardInput(BaseModel):
         if v is not None and not v.strip():
             msg = "Reflection text cannot be empty if provided."
             logger.error("[GuardModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip() if v else None
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip() if v else None
 
     @model_validator(mode="after")
     def validate_banned_phrases(self, info: ValidationInfo) -> GuardInput:
@@ -90,6 +88,14 @@ class TaintedDataContent(BaseModel):
     @field_validator("chat_history", "product_text", "reflection_text", "safe_data", mode="before")
     @classmethod
     def validate_non_empty(cls, v: Any) -> Any:
+        if v is None:
+            return v
+        if isinstance(v, str) and not v.strip():
+            msg = "Field cannot be empty or whitespace only."
+            logger.error("[GuardModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            from backend_v2.exceptions import AppException
+
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
 
@@ -224,11 +230,6 @@ class SanitizationResult(BaseModel):
         default_factory=list,
         description="List of detected banned phrases.",
         json_schema_extra={"x-ui-label": "Banned Phrases"},
-    )
-    banned_phrases_error: str | None = Field(
-        default=None,
-        description="Error message if banned phrases fetch failed.",
-        json_schema_extra={"x-ui-label": "Banned Phrases Error"},
     )
 
     model_config = ConfigDict(frozen=True, extra="ignore")

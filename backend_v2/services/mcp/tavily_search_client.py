@@ -57,6 +57,11 @@ async def tavily_search(query: str) -> TavilySearchResult:
         ConfigurationError: If the Tavily API key is not configured.
         AppException: On network failures or malformed API responses.
     """
+    if not query or not str(query).strip():
+        msg = "Tavily search query cannot be empty. Zero-Compromise Fail-Fast enforced."
+        logger.error("[TavilyClient] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
     settings = get_settings()
     api_key = settings.tavily_api_key
 
@@ -108,9 +113,18 @@ async def tavily_search(query: str) -> TavilySearchResult:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED, "query": query},
             ) from e
 
-        # Parse response — Graceful Degradation for empty results (§6.3)
+        # Parse response — Zero-Compromise Fail-Fast, no empty result fallbacks
         answer = str(data.get("answer", "") or "")
         results_list: list[dict[str, Any]] = data.get("results", [])
+
+        if not results_list and not answer.strip():
+            msg = f"Tavily search returned zero results for query: '{query}'. Zero-Compromise Fail-Fast enforced."
+            logger.error("[TavilyClient] %s: %s", ErrorCodes.FETCH_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=404,
+                details={"error_code": ErrorCodes.FETCH_FAILED.value, "query": query},
+            )
 
         source_urls: list[str] = []
         content_parts: list[str] = []

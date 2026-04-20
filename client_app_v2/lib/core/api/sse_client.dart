@@ -36,7 +36,8 @@ class SseClient {
       options: Options(
         responseType: ResponseType.stream,
         headers: {'Accept': 'text/event-stream', 'Cache-Control': 'no-cache'},
-        receiveTimeout: Duration.zero, // Disable Dio 5-min timeout for long-running AI tasks
+        receiveTimeout: Duration
+            .zero, // Disable Dio 5-min timeout for long-running AI tasks
       ),
     );
 

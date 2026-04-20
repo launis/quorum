@@ -3,6 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.v2_core import PromptBlock
 
@@ -82,10 +83,12 @@ class PromptAtomizer:
                             messages=messages, response_model=AtomizationSchema, mock_identity=mock_identity
                         )
                         atoms = res.micro_atoms
-                        if len(atoms) < 15:
-                            atoms.extend(["[MISSING ATOM]"] * (15 - len(atoms)))
-                        elif len(atoms) > 15:
-                            atoms = atoms[:15]
+                        if len(atoms) != 15:
+                            msg = f"Atomization failed: LLM generated {len(atoms)} micro-atoms, strictly 15 required."
+                            logger.error("[PromptAtomizer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                            raise AppException(
+                                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                            )
 
                         claim.micro_atoms = atoms
 

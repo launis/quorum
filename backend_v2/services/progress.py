@@ -90,6 +90,10 @@ class DatabaseProgressTracker(ProgressTracker):
         try:
             payload = {"status": STATUS_STARTED, "start_time": datetime.now(timezone.utc).isoformat()}
             if details:
+                # Fail-Fast: Prevent un-audited state mutation bypasses
+                for k in payload:
+                    if k in details:
+                        raise ValueError(f"Progress property bypass attempt: '{k}'")
                 payload.update(details)
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
@@ -112,6 +116,9 @@ class DatabaseProgressTracker(ProgressTracker):
                 "last_updated": datetime.now(timezone.utc).isoformat(),
             }
             if details:
+                for k in payload:
+                    if k in details:
+                        raise ValueError(f"Progress property bypass attempt for managed key: '{k}'")
                 payload.update(details)
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
@@ -186,6 +193,9 @@ class InMemoryProgressTracker(ProgressTracker):
             payload (dict): Data payload.
         """
         base = {"status": status, "timestamp": datetime.now(timezone.utc).isoformat()}
+        for k in base:
+            if k in payload:
+                raise ValueError(f"InMemory Tracker property bypass attempt: '{k}'")
         base.update(payload)
         self.current_state = base
         # Pass the simplified view expected by API consumers
@@ -199,6 +209,9 @@ class InMemoryProgressTracker(ProgressTracker):
         """Signals update."""
         data = {"stage": stage, "percent": percent}
         if details:
+            for k in data:
+                if k in details:
+                    raise ValueError(f"InMemory Tracker property bypass attempt: '{k}'")
             data.update(details)
         self._emit(STATUS_RUNNING, data)
 
@@ -213,6 +226,9 @@ class InMemoryProgressTracker(ProgressTracker):
         """Signals failure."""
         data = {"error": error}
         if details:
+            for k in data:
+                if k in details:
+                    raise ValueError(f"InMemory Tracker property bypass attempt: '{k}'")
             data.update(details)
         self._emit(STATUS_FAILED, data)
 

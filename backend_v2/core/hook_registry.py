@@ -53,8 +53,8 @@ class HookState(BaseModel):
     workflow_id: str
     step_id: str | None = None
     task_blueprint: str | None = None
-    metadata: dict[str, Any] = Field(default_factory=dict)
-    global_context_vars: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(...)
+    global_context_vars: dict[str, Any] = Field(...)
     inputs: dict[str, Any]
 
 
@@ -64,7 +64,7 @@ class HookResult(BaseModel):
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     success: bool
-    state_delta: dict[str, Any] | None = None
+    state_delta: dict[str, Any] | None = Field(...)
 
 
 # Strict type definition for a hook function

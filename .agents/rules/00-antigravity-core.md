@@ -48,6 +48,11 @@
 </ide_orchestration_protocol>
 
 <catastrophic_system_bans>
+    <rule_block id="the_zero_compromise_pledge">
+        <banned_pattern>Taaksepäinyhteensopivuus, fallback-ketjut ("jos A puuttuu, kokeile B"), oikotiet, ohjelmointikielen oletusarvot (esim. v.get('kenttä', '')) ja kovakoodatut paikkaajat ovat kaikki ankarasti kiellettyjä.</banned_pattern>
+        <mandatory_pattern>If an expected key or data point is missing in a strict architecture (like a Micro-CoT footprint or execution trace), you MUST raise an explicit `RuntimeError` or `AppException` and CRASH. Zero Tolerance for silent bypasses.</mandatory_pattern>
+        <catastrophic_reason>Masking data corruption or LLM hallucinations with chained fallbacks or language-level default values destroys the deterministic nature of the Quorum engine and completely invalidates the forensic audit trail.</catastrophic_reason>
+    </rule_block>
     <rule_block id="the_duct_tape_ban">
         <banned_pattern>Writing "duct-tape" code (purkkakoodi), returning empty arrays `[]`, default dicts `{}`, or hiding UI elements `SizedBox.shrink()` when real data goes missing.</banned_pattern>
         <mandatory_pattern>Fix the root cause instead of patching symptoms.</mandatory_pattern>

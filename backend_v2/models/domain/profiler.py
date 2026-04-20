@@ -59,7 +59,7 @@ class TextMetrics(BaseModel):
         if v < 0:
             msg = "Count cannot be negative."
             logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
     @field_validator("avg_sentence_length", "lexical_diversity", "capitalization_ratio", "control_ratio")
@@ -68,7 +68,7 @@ class TextMetrics(BaseModel):
         if v < 0:
             msg = "Metric cannot be negative."
             logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
 
@@ -99,7 +99,7 @@ class BehavioralMetrics(BaseModel):
         if v < 0:
             msg = "Count cannot be negative."
             logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
     model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
@@ -138,19 +138,28 @@ class ProfilerDTO(ReasoningTraceDTO):
 
     @field_validator("author_intent", "emotional_tone")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
     @field_validator("cognitive_biases")
     @classmethod
     def validate_list_items(cls, v: list[str]) -> list[str]:
-        return [item.strip() for item in v if item and item.strip()]
+        if not v:
+            msg = "cognitive_biases cannot be empty. Zero-Compromise Fail-Fast enforced."
+            logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        for item in v:
+            if not item or not item.strip():
+                msg = "cognitive_biases items cannot be empty strings."
+                logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
+        return v
 
 
 class ProfilerOutput(ProfilerDTO, ReasoningTrace):

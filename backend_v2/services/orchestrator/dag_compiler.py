@@ -39,10 +39,6 @@ class DAGCompilerService:
 
         # 2. Topological Analysis & Reference Resolution
         available_keys = {f"$inputs.{inp.input_key}" for inp in workflow.expected_inputs}
-        # Add a universal $inputs fallback since some scripts might just refer to $inputs (the entire dict)
-        available_keys.add("$inputs")
-        # Ensure the global aggregator $steps is universally accepted
-        available_keys.add("$steps")
 
         # We also have access to $global configurations if needed, but per Epic, Focus on $inputs and $steps.
         ordered_steps = DAGCompilerService._get_topological_order(workflow.steps)
@@ -57,6 +53,9 @@ class DAGCompilerService:
                 if root_namespace.startswith("$inputs"):
                     # For $inputs, we check if the exact key "$inputs.doc_id" is declared,
                     # or if it's the generic "$inputs" namespace which is always allowed.
+                    if root_namespace == "$inputs":
+                        continue
+
                     if root_namespace not in available_keys:
                         raise WorkflowCompilationError(
                             step_id=step.id,
@@ -65,6 +64,9 @@ class DAGCompilerService:
                         )
                 # Check $steps
                 elif root_namespace.startswith("$steps"):
+                    if root_namespace == "$steps":
+                        continue
+
                     if root_namespace not in available_keys:
                         raise WorkflowCompilationError(
                             step_id=step.id,

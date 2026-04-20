@@ -13,7 +13,7 @@ from backend_v2.services.orchestrator.strategies.base import StrategyContext
 @pytest.mark.asyncio
 async def test_llm_strategy_concurrent_chunks_semaphore() -> None:
     """Epic 23/27: Test that LLM execution limits concurrency via Semaphore."""
-    strategy = LLMNodeStrategy(repository=AsyncMock(), compiler=MagicMock())
+    strategy = LLMNodeStrategy(repository=AsyncMock(), prompt_compiler=MagicMock())
     
     # 1. Setup minimal inputs
     step_rule = MagicMock(spec=StepRule)
@@ -30,10 +30,11 @@ async def test_llm_strategy_concurrent_chunks_semaphore() -> None:
     context.workflow_id = "wf_1"
     context.model_strategy = "test_mock_strategy"
     context.metadata = {"profile_id": "prof_1", "target_locale": "en"}
+    context.expected_inputs = None
     
-    mock_step_def = {"id": "bp_123", "type": "llm", "prompt_blocks": [], "input_mappings": {}}
+    mock_step_def = {"id": "step_1111222233334444", "slug": "test", "name": "test", "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["block_123"]}
     strategy.repository.get_step_by_id = AsyncMock(return_value=mock_step_def)
-    strategy.repository.get_all_prompt_blocks = AsyncMock(return_value=[])
+    strategy.repository.get_all_prompt_blocks = AsyncMock(return_value=[{"id": "block_123"}])
     
     strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=projector.snapshot))
     strategy.run_post_hooks = AsyncMock(return_value={"final": "output"})
@@ -52,15 +53,16 @@ async def test_llm_strategy_concurrent_chunks_semaphore() -> None:
         mock_result.model_dump.return_value = {"evaluations": []}
         return mock_result, {"total_tokens": 10}
 
-    mock_client = AsyncMock()
+    mock_client = MagicMock()
     mock_client.run_structured_task = AsyncMock(side_effect=fake_run_structured_task)
     
     # We must patch ChunkingService.chunk_payload to return more chunks than the semaphore limit.
     # MAX_CONCURRENT_LLM_STEPS is 3. We return 5 chunks so 5 parallel tasks are created.
     fake_chunks = [MagicMock(items=[{"atom_id": f"atom{i}"}]) for i in range(5)]
     
-    with patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", return_value=mock_client), \
-         patch("backend_v2.services.orchestrator.strategies.llm.ChunkingService.chunk_payload", return_value=fake_chunks):
+    mock_from_strategy = AsyncMock(return_value=mock_client)
+    with patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new=mock_from_strategy), \
+         patch("backend_v2.services.orchestrator.chunking_service.ChunkingService.chunk_payload", return_value=fake_chunks):
         
         await strategy.execute(step_rule, projector, context, None, None)
         
@@ -73,7 +75,7 @@ async def test_llm_strategy_concurrent_chunks_semaphore() -> None:
 @pytest.mark.asyncio
 async def test_llm_strategy_context_pruning() -> None:
     """Epic 27 Phase 1: Test that input context mapping pruning successfully strips heavy keys."""
-    strategy = LLMNodeStrategy(repository=AsyncMock(), compiler=MagicMock())
+    strategy = LLMNodeStrategy(repository=AsyncMock(), prompt_compiler=MagicMock())
     
     step_rule = MagicMock(spec=StepRule)
     step_rule.id = "step_prune_test"
@@ -92,21 +94,23 @@ async def test_llm_strategy_context_pruning() -> None:
     context.workflow_id = "wf_1"
     context.model_strategy = "test_strategy"
     context.metadata = {"profile_id": "prof_1", "target_locale": "en"}
+    context.expected_inputs = None
     
-    mock_step_def = {"id": "bp_123", "type": "llm", "prompt_blocks": [], "input_mappings": {"test_ctx": "$inputs.good_data"}}
+    mock_step_def = {"id": "step_1111222233334444", "slug": "test", "name": "test", "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["block_123"]}
     strategy.repository.get_step_by_id = AsyncMock(return_value=mock_step_def)
-    strategy.repository.get_all_prompt_blocks = AsyncMock(return_value=[])
+    strategy.repository.get_all_prompt_blocks = AsyncMock(return_value=[{"id": "block_123"}])
     
     strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=projector.snapshot))
     strategy.run_post_hooks = AsyncMock(return_value={"final": "output"})
     
-    mock_client = AsyncMock()
+    mock_client = MagicMock()
     mock_result = MagicMock()
     mock_result.model_dump.return_value = {"evaluations": []}
     mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {}))
     
-    with patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", return_value=mock_client), \
-         patch("backend_v2.services.orchestrator.strategies.llm.ChunkingService.chunk_payload", return_value=[MagicMock()]):
+    mock_from_strategy = AsyncMock(return_value=mock_client)
+    with patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new=mock_from_strategy), \
+         patch("backend_v2.services.orchestrator.chunking_service.ChunkingService.chunk_payload", return_value=[MagicMock(items=[{"atom_id": "1"}])]):
         
         await strategy.execute(step_rule, projector, context, None, None)
         

@@ -143,13 +143,18 @@ class GCSFileDriver(FileDriver):
         def _sync_delete() -> bool:
             bucket = self._get_bucket()
             blob = bucket.blob(path)
-            if blob.exists():
-                blob.delete()
-                return True
-            return False
+            if not blob.exists():
+                raise FileNotFoundError(f"Cannot delete non-existent GCS blob: {path}")
+            blob.delete()
+            return True
 
         try:
             return await asyncio.to_thread(_sync_delete)
+        except FileNotFoundError as e:
+            logger.error("[GCSFileDriver] %s: %s", ErrorCodes.FILE_NOT_FOUND.name, str(e))
+            raise AppException(
+                message=str(e), status_code=404, details={"error_code": ErrorCodes.FILE_NOT_FOUND.value}
+            ) from e
         except AppException:
             raise
         except Exception as e:
@@ -202,5 +207,9 @@ class GCSFileDriver(FileDriver):
         """Returns signed URL if credentials allow, or public link."""
         # Check bucket config if possible
         if not self.bucket_name:
-            return None
+            msg = "GCS bucket name is missing. Zero-Compromise Fail-Fast enforced."
+            logger.error("[GCSFileDriver] %s: %s", ErrorCodes.STORAGE_BUCKET_NOT_FOUND.name, msg)
+            raise AppException(
+                message=msg, status_code=500, details={"error_code": ErrorCodes.STORAGE_BUCKET_NOT_FOUND.value}
+            )
         return f"https://storage.googleapis.com/{self.bucket_name}/{path}"

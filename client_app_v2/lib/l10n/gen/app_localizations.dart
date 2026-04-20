@@ -434,6 +434,12 @@ abstract class AppLocalizations {
   /// **'Global Average'**
   String get scorecard_global_average;
 
+  /// No description provided for @atomicBreakdownTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Atomic Matrix Breakdown'**
+  String get atomicBreakdownTitle;
+
   /// No description provided for @reportPenaltiesApplied.
   ///
   /// In en, this message translates to:
@@ -5378,6 +5384,12 @@ abstract class AppLocalizations {
   /// **'Pre Hooks'**
   String get preHooksTitle;
 
+  /// No description provided for @postHooksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Post Hooks'**
+  String get postHooksTitle;
+
   /// No description provided for @addHookBtn.
   ///
   /// In en, this message translates to:
@@ -5389,6 +5401,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pre-Execution Hook Engine'**
   String get preHookEngineLabel;
+
+  /// No description provided for @postHookEngineLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Post-Execution Hook Engine'**
+  String get postHookEngineLabel;
+
+  /// No description provided for @hookWaterfall.
+  ///
+  /// In en, this message translates to:
+  /// **'Waterfall Scoring (waterfall_scoring_hook)'**
+  String get hookWaterfall;
+
+  /// No description provided for @hookNormalize.
+  ///
+  /// In en, this message translates to:
+  /// **'Normalize Matrix Scores (normalize_matrix_scores)'**
+  String get hookNormalize;
+
+  /// No description provided for @hookVerifyCitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Citation Integrity (verify_citation_integrity)'**
+  String get hookVerifyCitation;
+
+  /// No description provided for @hookHypothesis.
+  ///
+  /// In en, this message translates to:
+  /// **'Enforce Hypothesis Linking (enforce_hypothesis_linking)'**
+  String get hookHypothesis;
 
   /// No description provided for @hookTavily.
   ///

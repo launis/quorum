@@ -62,9 +62,8 @@ async def _atomize_with_cache(
     else:
         label_en = getattr(validated, "slug", "unknown")
 
-    b_id = getattr(validated, "id", "unknown_id")
-    content = getattr(validated, "content", "")
-    raw_text = f"{b_id}_{label_en}_{content}"
+    # V2 PromptBlock does not have 'content', so we hash the ENTIRE model payload to detect ANY rule changes.
+    raw_text = validated.model_dump_json(exclude_none=True)
     cache_key = hashlib.md5(raw_text.encode("utf-8")).hexdigest()
     cache_path = os.path.join(PROJECT_ROOT, "backend_v2", "seed", "atomization_cache.json")
 
@@ -175,6 +174,8 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
         pyd_adapter: Any = config["model"]
         count = 0
 
+        dumped_buffer = []
+
         total_matrices = 0
         current_matrix = 0
         if col_key == "prompt_blocks":
@@ -203,18 +204,38 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
                 else:
                     dumped = pyd_adapter.dump_python(validated, mode="json")
 
+                dumped_buffer.append(dumped)
+
+            except ValidationError as ve:
+                _fail_fast(f"Validation Error for {col_key} item {item.get(id_field, 'unknown')}", ve)
+            except Exception as e:
+                _fail_fast(f"Processing Error for {col_key} item", e)
+
+        # Synchronous UPSERT loop to prevent TinyDB concurrent async corruption
+        for dumped in dumped_buffer:
+            try:
                 if id_field in dumped:
                     target_table.upsert(dumped, Query().id == dumped[id_field])
                     count += 1
                 else:
                     print(f"Item lacking {id_field}")
-
-            except ValidationError as ve:
-                _fail_fast(f"Validation Error for {col_key} item {item.get(id_field, 'unknown')}", ve)
             except Exception as e:
                 _fail_fast(f"Database Error upserting {col_key} item", e)
 
-        print(f"[Seeder V2] Upserted {count} items to '{col_key}' registry.")
+        # ---------------------------------------------------------------------
+        # INTEGRITY PARITY CHECK: Fail-Fast if TinyDB silent drops occur
+        # ---------------------------------------------------------------------
+        actual_db_count = len(target_table)
+        expected_count = len(dumped_buffer)
+        if actual_db_count != expected_count:
+            _fail_fast(
+                f"Data Loss Detected in '{col_key}' table!",
+                RuntimeError(
+                    f"Expected to save {expected_count} unique items, but TinyDB only holds {actual_db_count}."
+                ),
+            )
+
+        print(f"[Seeder V2] Upserted and verified {count} items to '{col_key}' registry.")
 
     db.close()
     print(f"[Seeder V2] Closed DB. Final size: {os.path.getsize(db_path)} bytes.")

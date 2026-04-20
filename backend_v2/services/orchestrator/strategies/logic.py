@@ -59,6 +59,7 @@ class LogicNodeStrategy(NodeStrategy):
             step_id=step.id,
             task_blueprint=blueprint_id,
             metadata=context.metadata,
+            global_context_vars={},
             inputs=state_data,
         )
 

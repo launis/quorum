@@ -472,6 +472,8 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 trans_state = HookState(
                     execution_id=state.execution_id,
                     workflow_id=state.workflow_id,
+                    metadata=state.metadata,
+                    global_context_vars=state.global_context_vars,
                     inputs={"language": language, "synthesized_markdown": result.synthesized_markdown, **section_dict},
                 )
                 trans_res = await translation_hook(trans_state, deps)  # type: ignore[misc]

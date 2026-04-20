@@ -46,6 +46,12 @@ class SubscriptionStatus(str, Enum):
     TRIAL = "trial"
 
 
+class SystemOrganizations(str, Enum):
+    """Special predefined system organizations."""
+
+    ROOT_SYSTEM = "org_system000000"
+
+
 # --- Base Models ---
 
 

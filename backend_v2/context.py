@@ -26,7 +26,7 @@ def set_execution_context(execution_id: str) -> None:
         raise AppException(
             message=msg,
             status_code=500,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
         )
     execution_id_var.set(execution_id)
 
@@ -53,7 +53,7 @@ def set_request_context(request_id: str) -> None:
         raise AppException(
             message=msg,
             status_code=500,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
         )
     request_id_var.set(request_id)
 

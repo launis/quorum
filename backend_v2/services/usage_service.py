@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.auth import SystemOrganizations
 from backend_v2.models.domain import UsageRecord
 from backend_v2.models.domain.usage import TokenUsage, UsageReport
 
@@ -96,8 +97,8 @@ class UsageService:
                 }
 
                 # System Level (All traffic)
-                await self.repo.upsert_usage_aggregate("org_system000000", None, period, update_data)
-                await self.repo.upsert_usage_aggregate("org_system000000", None, "all-time", update_data)
+                await self.repo.upsert_usage_aggregate(SystemOrganizations.ROOT_SYSTEM, None, period, update_data)
+                await self.repo.upsert_usage_aggregate(SystemOrganizations.ROOT_SYSTEM, None, "all-time", update_data)
 
                 # Organization Level
                 if org_id:
@@ -127,17 +128,19 @@ class UsageService:
         try:
             # 1. Get Org Limits
             if not org_id:
-                logger.warning("Quota Check: No Organization ID (Orphan User). Allowing execution (Default Policy).")
-                return True
+                msg = "Quota Check: Missing Organization ID (Orphan User). Execution denied."
+                logger.error("[UsageService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+
+            if org_id == SystemOrganizations.ROOT_SYSTEM:
+                return True  # System internal tasks are exempt from hard quota ceilings
 
             org = await self.repo.get_organization(org_id)
             if not org:
-                # If org doesn't exist, we probably shouldn't run executions, but maybe it's system?
-                # System org usually has no limit or high limit.
-                logger.warning(
-                    "Quota Check: Organization '%s' not found. Allowing execution (Fail Open for Pilot).", org_id
-                )
-                return True
+                # Fail-Fast: Unknown orgs cannot consume LLM traffic
+                msg = f"Quota Check: Organization '{org_id}' not found. Execution denied."
+                logger.error("[UsageService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+                raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND})
 
             limit = float(org.get("quota_limit", 10.0))  # Default $10.00 conservative
 
@@ -154,6 +157,9 @@ class UsageService:
 
             return True
 
+        except AppException:
+            # Re-raise explicit AppExceptions without double-wrapping
+            raise
         except Exception as e:
             error_code = ErrorCodes.QUOTA_CHECK_FAILED
             logger.error("[Usage] %s check failed for %s: %s", error_code.value, org_id, e, exc_info=True)

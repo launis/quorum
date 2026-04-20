@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from backend_v2.exceptions import AppException
 from backend_v2.services.pii_analyzer import PIIAnalyzerService
 
 
@@ -44,7 +45,7 @@ def test_mask_pii_initialization(
     mock_anonymized_result.text = "Hello <PERSON>"
     mock_anonymizer.anonymize.return_value = mock_anonymized_result
 
-    res = pii_service.mask_pii("Hello John Doe")
+    res = pii_service.mask_pii("Hello John Doe", language="en")
 
     # Verify the initialization triggered
     mock_analyzer_class.assert_called_once()
@@ -59,7 +60,7 @@ def test_mask_pii_initialization(
 @patch("presidio_analyzer.AnalyzerEngine", side_effect=OSError("Model missing"))
 def test_mask_pii_spacy_model_missing(mock_analyzer_class: MagicMock, pii_service: PIIAnalyzerService) -> None:
     """Test Fail-Fast doctrine if Spacy en_core_web_lg model is missing."""
-    with pytest.raises(RuntimeError) as exc_info:
-        pii_service.mask_pii("Some text")
+    with pytest.raises(AppException) as exc_info:
+        pii_service.mask_pii("Some text", language="en")
 
     assert "Presidio model 'en_core_web_lg' not found" in str(exc_info.value)

@@ -23,6 +23,7 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
         workflow_id="test_wf",
         step_id="test_step",
         task_blueprint="test_blueprint",
+        metadata={},
         inputs={"test_block": 5.0},
         global_context_vars={},
     )
@@ -51,6 +52,7 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
         workflow_id="test_wf",
         step_id="test_step",
         task_blueprint="test_blueprint",
+        metadata={},
         inputs={
             "toulmin_text_block": {
                 "evaluation_notes": "Tämä on perustelu",
@@ -147,6 +149,7 @@ async def test_waterfall_scoring_hook_ignores_instructions() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
+        metadata={},
         inputs={"evaluations": [{"atom_id": atom_hash, "boolean": True}]},
         global_context_vars={},
     )
@@ -170,6 +173,7 @@ async def test_waterfall_scoring_hook_pass_all() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
+        metadata={},
         inputs={"evaluations": evaluations},
         global_context_vars={},
     )
@@ -196,6 +200,7 @@ async def test_waterfall_scoring_hook_ceiling_cap() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
+        metadata={},
         inputs={"evaluations": evaluations},
         global_context_vars={},
     )
@@ -228,6 +233,7 @@ async def test_waterfall_scoring_hook_graceful_missing() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
+        metadata={},
         inputs={"evaluations": evaluations},
         global_context_vars={},
     )
@@ -298,6 +304,7 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
+        metadata={},
         inputs={"evaluations": evaluations},
         global_context_vars={},
     )

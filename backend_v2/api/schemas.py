@@ -11,21 +11,21 @@ class ExecutionResponse(BaseModel):
     """
 
     execution_id: str = Field(..., validation_alias=AliasChoices("id", "execution_id"))
-    start_time: datetime | None = Field(None, validation_alias=AliasChoices("started_at", "timestamp", "start_time"))
-    status: str = Field(default="unknown")
+    start_time: datetime = Field(..., validation_alias=AliasChoices("started_at", "timestamp", "start_time"))
+    status: str = Field(...)
 
     # Workflow Context
-    workflow_id: str | None = None
+    workflow_id: str = Field(...)
     workflow_name: str | None = None
 
     # Data
-    inputs: dict[str, Any] = Field(default_factory=dict)
-    result: dict[str, Any] = Field(default_factory=dict, validation_alias=AliasChoices("results", "result"))
+    inputs: dict[str, Any] = Field(...)
+    result: dict[str, Any] = Field(..., validation_alias=AliasChoices("results", "result"))
 
     # Expanded Visibility
-    audit_results: dict[str, Any] = Field(default_factory=dict)
-    usage: dict[str, Any] = Field(default_factory=dict)
-    execution_trace: list[dict[str, Any]] = Field(default_factory=list)
+    audit_results: dict[str, Any] = Field(...)
+    usage: dict[str, Any] = Field(...)
+    execution_trace: list[dict[str, Any]] = Field(...)
 
     # Metadata
     user_id: str | None = None

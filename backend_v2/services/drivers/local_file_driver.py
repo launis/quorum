@@ -153,22 +153,25 @@ class LocalFileDriver(FileDriver):
     async def delete(self, path: str) -> bool:
         """Deletes file from local file system."""
         full_path = self._validate_path(path)
-        if full_path.exists():
-            try:
-                # Standard os.remove is sync but fast for local FS.
-                os.remove(full_path)
-                return True
-            except Exception as e:
-                logger.error(
-                    f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to delete file {path}: {e}",
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Local Delete Failed: {str(e)}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
-                ) from e
-        return False
+        if not full_path.exists():
+            msg = f"Cannot delete non-existent local file: {path}"
+            logger.error("[LocalFileDriver] %s: %s", ErrorCodes.FILE_NOT_FOUND.name, msg)
+            raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.FILE_NOT_FOUND.value})
+
+        try:
+            # Standard os.remove is sync but fast for local FS.
+            os.remove(full_path)
+            return True
+        except Exception as e:
+            logger.error(
+                f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to delete file {path}: {e}",
+                exc_info=True,
+            )
+            raise AppException(
+                message=f"Local Delete Failed: {str(e)}",
+                status_code=500,
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+            ) from e
 
     async def exists(self, path: str) -> bool:
         """Checks if file exists."""
@@ -177,6 +180,10 @@ class LocalFileDriver(FileDriver):
 
     async def get_url(self, path: str) -> str | None:
         """Returns public URL if configured."""
-        if self.base_url:
-            return f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"
-        return None
+        if not self.base_url:
+            msg = "Local base_url is missing. Zero-Compromise Fail-Fast enforced."
+            logger.error("[LocalFileDriver] %s: %s", ErrorCodes.STORAGE_CONFIG_ERROR.name, msg)
+            raise AppException(
+                message=msg, status_code=500, details={"error_code": ErrorCodes.STORAGE_CONFIG_ERROR.value}
+            )
+        return f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"

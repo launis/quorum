@@ -200,6 +200,7 @@ class DAGExecutor:
                     execution_id=execution_id,
                     workflow_id=workflow.id,
                     metadata=exec_record.metadata,
+                    global_context_vars={},
                     inputs=inputs_dict,
                 )
                 processed_result = await hook_registry.execute("input_processing", global_hook_state, global_hook_deps)
@@ -325,16 +326,13 @@ class DAGExecutor:
             exec_record.status = ExecutionStatus.FAILED
             exec_record.error = str(primary_err)
 
-            # Safe blocking save in loop death to guarantee XAI trace persistence
-            try:
-                await self.committer.commit_trace(
-                    trace=exec_record.execution_trace,
-                    status=exec_record.status,
-                    step_states=exec_record.step_states,
-                    error=exec_record.error,
-                )
-            except Exception as e:
-                logger.critical("[DAGExecutor] Failed fallback save: %s", str(e), exc_info=True)
+            # Strict save in loop death to guarantee XAI trace persistence
+            await self.committer.commit_trace(
+                trace=exec_record.execution_trace,
+                status=exec_record.status,
+                step_states=exec_record.step_states,
+                error=exec_record.error,
+            )
 
             if isinstance(primary_err, AppException):
                 raise primary_err from eg
@@ -350,15 +348,12 @@ class DAGExecutor:
             exec_record.status = ExecutionStatus.FAILED
             exec_record.error = str(unexpected_err)
 
-            try:
-                await self.committer.commit_trace(
-                    trace=exec_record.execution_trace,
-                    status=exec_record.status,
-                    step_states=exec_record.step_states,
-                    error=exec_record.error,
-                )
-            except Exception as e:
-                logger.critical("[DAGExecutor] Failed fallback save: %s", str(e), exc_info=True)
+            await self.committer.commit_trace(
+                trace=exec_record.execution_trace,
+                status=exec_record.status,
+                step_states=exec_record.step_states,
+                error=exec_record.error,
+            )
 
             if isinstance(unexpected_err, AppException):
                 raise

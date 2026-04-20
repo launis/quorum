@@ -7,32 +7,37 @@ print(f"Reading {seed_path}...")
 with open(seed_path, "r", encoding="utf-8") as f:
     data = json.load(f)
 
-all_extensions = [
-    "citation",
-    "falsification",
-    "missing_context",
-    "risk_flag",
-    "coaching",
-    "justification",
-    "theory_link",
-    "remediation_steps",
-    "emotional_sentiment",
-    "confidence"
-]
+# Mapping of matrix IDs to their specific output_extensions
+matrix_extensions = {
+    "matrix_kahneman": ["justification", "falsification", "confidence"],
+    "matrix_goodhart": ["justification", "risk_flag", "theory_link"],
+    "matrix_archivist": ["justification", "citation", "missing_context"],
+    "matrix_causal_analyst": ["justification", "falsification", "remediation_steps"],
+    "matrix_falsifier": ["justification", "falsification", "theory_link"],
+    "matrix_judge": ["justification", "risk_flag", "confidence"],
+    "matrix_xai_reporter": ["justification", "missing_context", "confidence"]
+}
+
+# Default minimal extensions for any other evaluative block that might need them
+default_minimal = ["justification", "confidence"]
 
 updated_count = 0
 for block in data.get("prompt_blocks", []):
-    # Only update evaluative blocks or blocks that make sense
-    if block.get("is_evaluative", True):
-        block["output_extensions"] = all_extensions
+    block_id = block.get("id", "")
+    if block_id in matrix_extensions:
+        block["output_extensions"] = matrix_extensions[block_id]
         updated_count += 1
+        print(f"Updated {block_id} with {block['output_extensions']}")
+    elif "matrix" in block.get("category_id", "") or block_id.startswith("matrix_"):
+        # Fallback for any matrix not explicitly mapped
+        block["output_extensions"] = default_minimal
+        updated_count += 1
+        print(f"Updated FALLBACK {block_id} with {block['output_extensions']}")
 
-print(f"Updating {updated_count} PromptBlocks with full XAI output_extensions...")
+print(f"\nUpdating {updated_count} PromptBlocks with refined matrix-specific output_extensions...")
 
 with open(seed_path, "w", encoding="utf-8") as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
 
-print("Running seed to flush changes into db_v2.json...")
-os.system(r"uv run python backend_v2\seed\run_seed.py")
-
-print("All done! Try running the execution again in the UI.")
+print("\nSeeding required. Please run the seed command manually:")
+print("uv run python backend_v2\\seed\\run_seed.py")

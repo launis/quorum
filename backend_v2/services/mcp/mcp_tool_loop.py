@@ -99,15 +99,21 @@ async def _execute_tavily_search(
                 if trans_resp and isinstance(trans_resp, str):
                     response_summary = trans_resp.strip()
             except Exception as tr_err:
+                msg = f"Evidence translation to '{target_language}' failed."
                 logger.error(
-                    "Evidence translation failed",
-                    extra={
-                        "error_code": ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                        "target_language": target_language,
-                        "detail": str(tr_err),
-                    },
+                    "[MCPToolLoop] %s: %s",
+                    ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                    msg,
+                    extra={"detail": str(tr_err)},
                     exc_info=True,
                 )
+                if isinstance(tr_err, AppException):
+                    raise
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                ) from tr_err
 
         elapsed_ms = int(time.monotonic() * 1000) - start_ms
 
@@ -121,26 +127,22 @@ async def _execute_tavily_search(
             duration_ms=elapsed_ms,
         )
     except Exception as e:
-        # Graceful Degradation: log but don't crash the step
-        elapsed_ms = int(time.monotonic() * 1000) - start_ms
+        # Zero-Compromise Fail-Fast: Crash the step if external search fails
+        msg = f"Tavily search failed for query: '{query}'"
         logger.error(
-            "Tavily search failed",
-            extra={
-                "error_code": ErrorCodes.FETCH_FAILED.name,
-                "query": query,
-                "detail": str(e),
-            },
+            "[MCPToolLoop] %s: %s",
+            ErrorCodes.FETCH_FAILED.name,
+            msg,
+            extra={"detail": str(e)},
             exc_info=True,
         )
-        return MCPAuditTrace(
-            tool_id=TAVILY_TOOL_ID,
-            step_name=step_name,
-            query=query,
-            response_summary="",
-            source_urls=[],
-            timestamp=datetime.now(timezone.utc),
-            duration_ms=elapsed_ms,
-        )
+        if isinstance(e, AppException):
+            raise
+        raise AppException(
+            message=msg,
+            status_code=502,
+            details={"error_code": ErrorCodes.FETCH_FAILED.value, "detail": str(e)},
+        ) from e
 
 
 def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dict[str, str]:
@@ -234,17 +236,13 @@ async def execute_tool_loop[T: BaseModel](
                 tool_choice=current_tool_choice,
             )
         except Exception as e:
-            # If Phase 1 probe fails, fall through to Phase 2 with no evidence
-            logger.error(
-                "Phase 1 probe failed for step",
-                extra={
-                    "error_code": ErrorCodes.FETCH_FAILED.name,
-                    "step_name": step_name,
-                    "detail": str(e),
-                },
-                exc_info=True,
-            )
-            break
+            msg = f"Phase 1 LLM probing failed for step '{step_name}'."
+            logger.error("[MCPToolLoop] %s: %s", ErrorCodes.FETCH_FAILED.name, msg, exc_info=True)
+            if isinstance(e, AppException):
+                raise
+            raise AppException(
+                message=msg, status_code=502, details={"error_code": ErrorCodes.FETCH_FAILED.value}
+            ) from e
 
         # Check if LLM returned tool calls
         if not isinstance(probe_response, dict) or "tool_calls" not in probe_response:

@@ -268,14 +268,21 @@ class LLMHandler:
                             details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING},
                         )
             except Exception as e:
-                # STRICT TYPE SAFETY: Do not assign string error messages to a Dict[str, List[str]]
-                logger.error("Error fetching OpenAI models: %s", e)
-                # We return empty list for OpenAI if it fails, or we could raise.
-                # Given 'Fail Fast' for keys, if we are here it might be a network error or other.
-                # But we must satisfy the return type.
-                models["openai"] = []
-                # If we want to communicate error, we can't do it via this typed dict field.
-                # The caller should handle emptiness or we relies on logs.
+                from backend_v2.exceptions import AppException, ErrorCodes, ServiceUnavailableError
+
+                if isinstance(e, AppException):
+                    raise e
+
+                logger.error(
+                    "[LLMHandler] %s: Error fetching/validating OpenAI models: %s",
+                    ErrorCodes.MODEL_LIST_FAILED.name,
+                    e,
+                    exc_info=True,
+                )
+                raise ServiceUnavailableError(
+                    message=f"OpenAI Model Discovery Failed: {e}",
+                    details={"error_code": ErrorCodes.MODEL_LIST_FAILED, "original_error": str(e)},
+                ) from e
 
         return models
 
@@ -349,39 +356,12 @@ class LLMHandler:
         if not config:
             raise ValueError(f"STRICT CONFIG ERROR: No configuration found for strategy '{provider}/{mode}' ")
 
-        # Handle if config is Pydantic model or dict
-        cd: dict[str, Any]
-        if hasattr(config, "model_dump"):
-            # Cast Any to something with model_dump? Mypy hates ambiguous "hasattr".
-            # Assume it's a dict unless proven otherwise, but get_model_config returns dict.
-            # If it returns BaseModel, annotation should say so.
-            # For now, coerce.
-            cd = config.model_dump()
-        elif isinstance(config, dict):
-            cd = config
-        else:
-            # Fallback
-            cd = dict(config)
+        cd = config
 
-        model_name = cd.get("model_name")
-        if not model_name:
-            raise ValueError(f"STRICT CONFIG ERROR: Strategy '{provider}/{mode}' exists but describes no 'model_name'.")
-
-        temperature = cd.get("temperature")
-        if temperature is None:
-            raise ConfigurationError(
-                message=f"STRICT CONFIG ERROR: Strategy '{provider}/{mode}' is missing required 'temperature'.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-            )
-
-        max_tokens = cd.get("max_tokens")
-        if max_tokens is None:
-            raise ConfigurationError(
-                message=f"STRICT CONFIG ERROR: Strategy '{provider}/{mode}' is missing required 'max_tokens'.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-            )
-
-        # Extract API Key from DB Config
+        # Pydantic has already validated these via SystemConfigModelRegistry in get_active_model_registry
+        model_name = cd["model_name"]
+        temperature = cd["temperature"]
+        max_tokens = cd["max_tokens"]
         api_key = cd.get("api_key")
 
         # STRICT VALIDATION (Jan 2026 Decree):
@@ -418,27 +398,6 @@ class LLMHandler:
             )
 
             # Construct strict config object
-            # We map dict fields to LLMProviderConfig
-            # Note: 'cd' is the raw dict from DB
-            tpm = cd.get("tpm_limit")
-            rpm = cd.get("rpm_limit")
-            if not tpm or not rpm:
-                raise ConfigurationError(
-                    message=(
-                        f"Strict Mode: Strategy '{provider}/{mode}' is missing required 'tpm_limit' or 'rpm_limit'."
-                    ),
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-                )
-            if "supports_grounding" not in cd:
-                raise ConfigurationError(
-                    message=f"Strict Mode: Strategy '{provider}/{mode}' is missing required 'supports_grounding'.",
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-                )
-            if "is_active" not in cd:
-                raise ConfigurationError(
-                    message=f"Strict Mode: Strategy '{provider}/{mode}' is missing required 'is_active'.",
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-                )
             provider_config = LLMProviderConfig(
                 id=f"{provider}/{mode}",
                 provider=provider,
@@ -446,8 +405,8 @@ class LLMHandler:
                 api_key=api_key,
                 base_url=cd.get("base_url"),
                 temperature=temperature,
-                tpm_limit=tpm,
-                rpm_limit=rpm,
+                tpm_limit=cd["tpm_limit"],
+                rpm_limit=cd["rpm_limit"],
                 default_max_tokens=max_tokens,
                 vertex_location=cd.get("vertex_location"),
                 supports_grounding=cd["supports_grounding"],

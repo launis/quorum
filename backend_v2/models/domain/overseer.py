@@ -60,14 +60,12 @@ class FactCheckRFI(BaseModel):
 
     @field_validator("claim", "source_or_reasoning")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
     @model_validator(mode="before")
     @classmethod
@@ -106,14 +104,12 @@ class EthicalObservation(BaseModel):
 
     @field_validator("issue_type", "description")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
     @model_validator(mode="before")
     @classmethod
@@ -141,6 +137,15 @@ class OverseerData(BaseModel):
         json_schema_extra={"x-ui-label": "Ethical Issues"},
     )
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    @field_validator("ethical_issues")
+    @classmethod
+    def validate_ethics_not_empty(cls, v: list[EthicalObservation]) -> list[EthicalObservation]:
+        if not v:
+            msg = "Ethical issues list cannot be empty. Zero-Compromise Fail-Fast enforced."
+            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return v
 
 
 class OverseerDTO(ReasoningTraceDTO):

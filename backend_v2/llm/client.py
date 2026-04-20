@@ -20,7 +20,13 @@ class LLMClient:
     """
 
     def __init__(self, config: dict[str, Any] | LLMProviderConfig | None = None) -> None:
-        self._config = config
+        self._config: LLMProviderConfig | None
+        if isinstance(config, dict):
+            from backend_v2.models.llm import LLMProviderConfig
+
+            self._config = LLMProviderConfig.model_validate(config)
+        else:
+            self._config = config
         self.model_config: dict[str, Any] | None = None
         self._initialize()
 
@@ -156,18 +162,19 @@ class LLMClient:
         """
         # 1. Evaluate Context Caching Requirements (Epic 5 Context Segregation)
         # We process the raw messages array dynamically before handing it to the provider.
-        has_anthropic_ephemeral = False
-        if self._config and getattr(self._config, "caching_strategy", None) == "anthropic_ephemeral":
-            logger.info("[LLMClient] Enabling Anthropic Ephemeral Context Caching strategy.")
-            has_anthropic_ephemeral = True
+        has_ephemeral_caching = False
+        if self._config and self._config.caching_strategy in ("prompt_caching", "ephemeral"):
+            logger.info("[LLMClient] Enabling Universal Ephemeral Context Caching strategy.")
+            has_ephemeral_caching = True
 
         final_messages = []
         for msg in messages:
             # Create a shallow copy to prevent mutating the original Orchestrator payload
             final_messages.append(dict(msg))
 
-        if has_anthropic_ephemeral:
-            # Anthropic requires "cache_control": {"type": "ephemeral"} on the last static block.
+        if has_ephemeral_caching:
+            # For providers supporting explicit ephemeral tagging (e.g. Anthropic/LiteLLM standard),
+            # we inject "cache_control": {"type": "ephemeral"} on the static system block.
             # In our architecture, the System Head contains all static matrices and instructions.
             for msg in reversed(final_messages):
                 if msg.get("role") == "system":
@@ -209,26 +216,16 @@ class LLMClient:
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
             # Use Strategy Config
-            target_model_name = (
-                self._config.model_name if hasattr(self._config, "model_name") else self._config.get("model_name")
-            )
+            target_model_name = self._config.model_name
             target_provider_type = "litellm"  # Base Default
 
             # Apply Strategy defaults only if caller didn't override
             if temperature is None:
-                temperature = (
-                    self._config.temperature
-                    if hasattr(self._config, "temperature")
-                    else self._config.get("temperature")
-                )
+                temperature = self._config.temperature
             if max_tokens is None:
-                max_tokens = (
-                    self._config.default_max_tokens
-                    if hasattr(self._config, "default_max_tokens")
-                    else self._config.get("default_max_tokens")
-                )
-            top_p = self._config.top_p if hasattr(self._config, "top_p") else self._config.get("top_p")
-            top_k = self._config.top_k if hasattr(self._config, "top_k") else self._config.get("top_k")
+                max_tokens = self._config.default_max_tokens
+            top_p = self._config.top_p
+            top_k = self._config.top_k
         else:
             # Legacy pass-through
             target_model_name = model
@@ -240,7 +237,7 @@ class LLMClient:
         provider = LLMFactory.create_provider(
             provider_type=target_provider_type,
             model_name=str(target_model_name),
-            config=self._config,  # type: ignore
+            config=self._config,
         )
 
         # STRICT TIMEOUT PROTOCOL: Apply global Enum constraint to structured tasks as well
@@ -277,7 +274,7 @@ class LLMClient:
                     )
 
                     # Extract usage securely into a simple dictionary from LLMResponse model
-                    usage_obj = getattr(response, "token_usage", None)
+                    usage_obj = response.token_usage if response else None
                     if usage_obj is None:
                         logger.error(
                             "Strict FinOps Mode: LLM Provider failed to return token_usage.",
@@ -366,7 +363,7 @@ class LLMClient:
                         )
 
                     # Append the hallucinated response and the correction instruction to guide the next iteration
-                    failed_content = getattr(response, "content", "EMPTY_CONTENT") if response else "EMPTY_CONTENT"
+                    failed_content = response.content if response else "EMPTY_CONTENT"
                     current_prompt += f"\n\n{failed_content}{correction_prompt}"
 
                     # Update messages array for Retry Pipeline
@@ -386,7 +383,7 @@ class LLMClient:
                 exc_info=True,
             )
             err_response = locals().get("response")
-            err_content = getattr(err_response, "content", None) if err_response else None
+            err_content = err_response.content if err_response else None
             if err_content:
                 logger.error(
                     "Raw content causing structural error.",
@@ -432,26 +429,16 @@ class LLMClient:
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
             # Use Strategy Config
-            target_model_name = (
-                self._config.model_name if hasattr(self._config, "model_name") else self._config.get("model_name")
-            )
+            target_model_name = self._config.model_name
             target_provider_type = "litellm"
 
             # Apply Strategy defaults only if caller didn't override
             if temperature is None:
-                temperature = (
-                    self._config.temperature
-                    if hasattr(self._config, "temperature")
-                    else self._config.get("temperature")
-                )
+                temperature = self._config.temperature
             if max_tokens is None:
-                max_tokens = (
-                    self._config.default_max_tokens
-                    if hasattr(self._config, "default_max_tokens")
-                    else self._config.get("default_max_tokens")
-                )
-            top_p = self._config.top_p if hasattr(self._config, "top_p") else self._config.get("top_p")
-            top_k = self._config.top_k if hasattr(self._config, "top_k") else self._config.get("top_k")
+                max_tokens = self._config.default_max_tokens
+            top_p = self._config.top_p
+            top_k = self._config.top_k
         else:
             # Legacy pass-through
             target_model_name = model
@@ -491,7 +478,7 @@ class LLMClient:
         provider = LLMFactory.create_provider(
             provider_type=target_provider_type,
             model_name=str(target_model_name),
-            config=self._config,  # type: ignore
+            config=self._config,
         )
 
         # Generate

@@ -11,7 +11,6 @@ from typing import Any
 import litellm
 from litellm import Router  # type: ignore
 from pydantic import BaseModel
-from tenacity import retry, stop_after_attempt
 
 from backend_v2.exceptions import (
     AgentExecutionError,
@@ -30,6 +29,7 @@ from backend_v2.settings import get_settings
 logger = logging.getLogger(__name__)
 
 _settings = get_settings()
+
 
 class LLMProvider(ABC):
     """Abstract base class for LLM providers.
@@ -332,7 +332,7 @@ class LiteLLMProvider(LLMProvider):
 
             max_rate_limit_retries = SystemConcurrency.LLM_MAX_RETRIES.value
             response = None
-            
+
             for attempt in range(max_rate_limit_retries):
                 try:
                     response = await self.router.acompletion(**call_kwargs)
@@ -340,9 +340,9 @@ class LiteLLMProvider(LLMProvider):
                 except Exception as e:
                     error_msg = str(e)
                     error_type = type(e).__name__
-                    
+
                     is_transient_error = (
-                        (hasattr(e, "status_code") and getattr(e, "status_code") in (429, 502, 503, 504))
+                        (hasattr(e, "status_code") and e.status_code in (429, 502, 503, 504))
                         or "RateLimitError" in error_type
                         or "429" in error_msg
                         or "Resource exhausted" in error_msg
@@ -361,22 +361,27 @@ class LiteLLMProvider(LLMProvider):
                                 attempt + 1,
                                 max_rate_limit_retries,
                                 SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value,
-                                error_type
+                                error_type,
                             )
                             import asyncio
+
                             await asyncio.sleep(SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value)
                             continue  # Retry the exact same request
                         else:
                             logger.error(
-                                "[LiteLLM] %s: RESOURCE EXHAUSTED OR CONNECTION FAILED (Maximum retries reached): %s", 
-                                ErrorCodes.RATE_LIMIT_EXCEEDED.name, error_msg
+                                "[LiteLLM] %s: RESOURCE EXHAUSTED OR CONNECTION FAILED (Maximum retries reached): %s",
+                                ErrorCodes.RATE_LIMIT_EXCEEDED.name,
+                                error_msg,
                             )
                             raise ServiceUnavailableError(
                                 message="Model provider rate limit or connection limit exceeded after maximum retries.",
                                 details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED, "original_error": error_msg},
                             ) from e
                     else:
-                        raise e # Not a transient issue, bubble up immediately
+                        raise e  # Not a transient issue, bubble up immediately
+
+            if response is None:
+                raise ServiceUnavailableError("Failed to get a response from the model provider.")
 
             latency_ms = int((time.perf_counter() - start_time) * 1000)
 
@@ -561,9 +566,16 @@ class LiteLLMProvider(LLMProvider):
 
             # 1. RATE LIMITS & QUOTA (Critical Infra)
             # 429s are natively handled in the inner retry loop! If they bubble here, retries were exhausted.
-            if hasattr(e, "status_code") and getattr(e, "status_code") == 429 or "RateLimitError" in error_type or "429" in error_msg or "Resource exhausted" in error_msg:
+            if (
+                (hasattr(e, "status_code") and e.status_code == 429)
+                or "RateLimitError" in error_type
+                or "429" in error_msg
+                or "Resource exhausted" in error_msg
+            ):
                 logger.error(
-                    "[LiteLLM] %s: RESOURCE EXHAUSTED (Retries depleted): %s", ErrorCodes.RATE_LIMIT_EXCEEDED.name, error_msg
+                    "[LiteLLM] %s: RESOURCE EXHAUSTED (Retries depleted): %s",
+                    ErrorCodes.RATE_LIMIT_EXCEEDED.name,
+                    error_msg,
                 )
                 raise ServiceUnavailableError(
                     message="Model provider rate limit exceeded and all automatic retries failed.",
@@ -744,26 +756,13 @@ class MockProvider(LLMProvider):
         parsed_result = None
 
         if isinstance(result, dict) and "message" in result and result.get("message") == "Mock data not found for key":
-            # If standard mock failed, and we have a dynamic schema, we just hydrate it!
-            if isinstance(response_schema, type) and issubclass(response_schema, BaseModel):
-                mock_dynamic = {}
-                schema_props = response_schema.model_json_schema().get("properties", {})
-                for prop_name, prop_details in schema_props.items():
-                    p_type = prop_details.get("type", "string")
-                    if "integer" in p_type or "number" in p_type:
-                        mock_dynamic[prop_name] = 4
-                    elif "array" in p_type:
-                        mock_dynamic[prop_name] = ["[MOCK] Simulated array item"]
-                    elif "boolean" in p_type:
-                        mock_dynamic[prop_name] = True
-                    else:
-                        mock_dynamic[prop_name] = f"[MOCK] Simulated text for {prop_name}"
-
-                content_str = json.dumps(mock_dynamic, ensure_ascii=False)
-                parsed_result = mock_dynamic
-            else:
-                content_str = json.dumps(result, ensure_ascii=False)
-                parsed_result = result
+            # STRICT MANDATE: No mock hydration fallbacks. If seed missing, crash properly.
+            raise ConfigurationError(
+                message=(
+                    f"Fail-Fast: Mock data not found in Seed Vault. Prompt missing mock definition: {prompt[:100]}..."
+                ),
+                details={"error_code": "CONFIGURATION_ERROR"},
+            )
         else:
             if isinstance(result, dict):
                 content_str = json.dumps(result, ensure_ascii=False)

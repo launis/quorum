@@ -51,14 +51,12 @@ class CausalAnalysisData(BaseModel):
 
     @field_validator("observation")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[CausalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
 
 class CounterfactualTest(BaseModel):
@@ -88,14 +86,12 @@ class CounterfactualTest(BaseModel):
 
     @field_validator("actual_scenario", "simulation_result")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[CausalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
     @model_validator(mode="before")
     @classmethod
@@ -112,11 +108,17 @@ class CounterfactualTest(BaseModel):
                         data["plausibility_numeric"] = mapping[enum_val]
                 except ValueError as e:
                     msg = f"Invalid Plausibility Score: {val}. Allowed: IMPOSSIBLE, PLAUSIBLE, HIGH."
-                    logger.error(f"[CausalModel] VALIDATION_FAILED: {msg} - {str(e)}", exc_info=True)
+                    logger.error(
+                        "[CausalModel] %s: %s - %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        msg,
+                        str(e),
+                        exc_info=True,
+                    )
                     raise AppException(
                         message=msg,
-                        status_code=400,
-                        details={"error_code": "INVALID_ENUM_VALUE", "original_error": str(e)},
+                        status_code=422,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "original_error": str(e)},
                     ) from e
         return data
 
@@ -151,14 +153,12 @@ class CausalAnalysis(BaseModel):
 
     @field_validator("observation", "hypothesis")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[CausalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
     @model_validator(mode="before")
     @classmethod
@@ -179,11 +179,17 @@ class CausalAnalysis(BaseModel):
                         data["abductive_score"] = mapping[enum_val]
                 except ValueError as e:
                     msg = f"Invalid Abductive Conclusion: {val}. Allowed: POST_HOC, UNCERTAIN, GENUINE."
-                    logger.error(f"[CausalModel] VALIDATION_FAILED: {msg} - {str(e)}", exc_info=True)
+                    logger.error(
+                        "[CausalModel] %s: %s - %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        msg,
+                        str(e),
+                        exc_info=True,
+                    )
                     raise AppException(
                         message=msg,
-                        status_code=400,
-                        details={"error_code": "INVALID_ENUM_VALUE", "original_error": str(e)},
+                        status_code=422,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "original_error": str(e)},
                     ) from e
         return data
 

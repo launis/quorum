@@ -1,4 +1,10 @@
-from pydantic import BaseModel, ConfigDict, Field
+import logging
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
 
 
 class TokenUsage(BaseModel):
@@ -18,6 +24,24 @@ class TokenUsage(BaseModel):
     cost_usd: float = Field(default=0.0, description="Estimated cost in USD.")
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    @field_validator("prompt_tokens", "completion_tokens", "total_tokens", "cached_tokens", "reasoning_tokens")
+    @classmethod
+    def validate_non_negative_int(cls, v: int) -> int:
+        if v < 0:
+            msg = "Token count cannot be negative."
+            logger.error("[UsageModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return v
+
+    @field_validator("cost_usd")
+    @classmethod
+    def validate_non_negative_float(cls, v: float) -> float:
+        if v < 0:
+            msg = "Cost cannot be negative."
+            logger.error("[UsageModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return v
 
     def __add__(self, other: TokenUsage) -> TokenUsage:
         """Allows adding two TokenUsage objects together."""
@@ -43,6 +67,24 @@ class UsageAggregate(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
+    @field_validator("scope", "period")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not str(v).strip():
+            msg = "Scope and period cannot be empty strings."
+            logger.error("[UsageModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
+
+    @field_validator("total_executions")
+    @classmethod
+    def validate_non_negative(cls, v: int) -> int:
+        if v < 0:
+            msg = "Executions cannot be negative."
+            logger.error("[UsageModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return v
+
 
 class UsageReport(BaseModel):
     """Report for aggregated usage statistics across different scopes."""
@@ -57,3 +99,21 @@ class UsageReport(BaseModel):
     percentage_used: float | None = Field(default=None, description="Percentage of quota used, if applicable.")
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    @field_validator("scope", "period")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not str(v).strip():
+            msg = "Scope and period cannot be empty strings."
+            logger.error("[UsageModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
+
+    @field_validator("quota_limit_usd", "percentage_used")
+    @classmethod
+    def validate_non_negative(cls, v: float | None) -> float | None:
+        if v is not None and v < 0:
+            msg = "Usage metrics cannot be negative."
+            logger.error("[UsageModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return v

@@ -57,6 +57,14 @@ class WaltonStressTest(BaseModel):
     @field_validator("question", "observation", mode="before")
     @classmethod
     def validate_non_empty(cls, v: Any) -> Any:
+        if v is None:
+            return v
+        if isinstance(v, str) and not v.strip():
+            msg = "Field cannot be empty or whitespace only."
+            logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            from backend_v2.exceptions import AppException
+
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
 
@@ -113,6 +121,14 @@ class ReasoningFidelity(BaseModel):
     @field_validator("justification", mode="before")
     @classmethod
     def validate_non_empty(cls, v: Any) -> Any:
+        if v is None:
+            return v
+        if isinstance(v, str) and not v.strip():
+            msg = "Field cannot be empty or whitespace only."
+            logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            from backend_v2.exceptions import AppException
+
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
     @field_validator("fidelity_numeric", "abductive_score", "plausibility_score")
@@ -127,6 +143,14 @@ class ReasoningFidelity(BaseModel):
     @field_validator("quote", mode="before")
     @classmethod
     def validate_quote(cls, v: Any) -> Any:
+        if v is None:
+            return v
+        if isinstance(v, str) and not v.strip():
+            msg = "Quote cannot be empty string if provided."
+            logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            from backend_v2.exceptions import AppException
+
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
     @model_validator(mode="before")
@@ -187,6 +211,14 @@ class FalsifierData(BaseModel):
     @field_validator("stress_test_findings", mode="before")
     @classmethod
     def validate_list_not_empty(cls, v: Any) -> Any:
+        if v is None:
+            return v
+        if isinstance(v, list) and not v:
+            msg = "Stress test findings list cannot be empty. Zero-Compromise Fail-Fast enforced."
+            logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            from backend_v2.exceptions import AppException
+
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
 

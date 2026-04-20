@@ -196,6 +196,7 @@ def calculate_progressive_dampening_score(
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
 
+    import math
     achieved_score = float(scale_min)
     modifier = 1.0
     prev_level = float(scale_min)
@@ -210,8 +211,8 @@ def calculate_progressive_dampening_score(
         hit_rate = (hits / total) if total > 0 else 0.0
 
         if level == scale_min:
-            # Foundation level sets the initial current flow (modifier)
-            modifier = hit_rate
+            # Foundation level sets the initial current flow (modifier) with Square Root softness
+            modifier = math.sqrt(hit_rate)
         else:
             # How much points this level represents
             step_value = level - prev_level
@@ -219,8 +220,8 @@ def calculate_progressive_dampening_score(
             # The achieved points are dampened by the upstream modifier
             achieved_score += step_value * hit_rate * modifier
 
-            # The modifier is progressively dampened for the *next* iterations
-            modifier = modifier * hit_rate
+            # The modifier is progressively dampened using Square Root to prevent absolute cliff-drop
+            modifier = modifier * math.sqrt(hit_rate)
 
         prev_level = level
 

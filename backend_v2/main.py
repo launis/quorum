@@ -74,7 +74,9 @@ async def lifespan(app: FastAPI) -> Any:
         yield
 
     except Exception as e:
-        logger.critical("Startup failed: %s", str(e), exc_info=True, extra={"error_code": "CRITICAL_STARTUP_FAILURE"})
+        logger.critical(
+            "Startup failed: %s", str(e), exc_info=True, extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+        )
         raise
 
     finally:
@@ -88,7 +90,11 @@ async def lifespan(app: FastAPI) -> Any:
                 elif hasattr(app.state.arq_pool, "close"):
                     await app.state.arq_pool.close()
             except Exception as close_err:
-                logger.error("Error closing Arq pool: %s", str(close_err), extra={"error_code": "ARQ_CLOSE_ERROR"})
+                logger.error(
+                    "Error closing Arq pool: %s",
+                    str(close_err),
+                    extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                )
 
 
 # --- 2. Application Setup ---

@@ -186,7 +186,6 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'name',
         'description',
         'hook',
-        'task_key',
         'prompt_blocks',
         'pre_hooks',
         'post_hooks',
@@ -213,7 +212,6 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
       hook: $checkedConvert('hook', (v) => v as String?),
-      taskKey: $checkedConvert('task_key', (v) => v as String?),
       promptBlocks: $checkedConvert(
         'prompt_blocks',
         (v) =>
@@ -250,7 +248,6 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
     return val;
   },
   fieldKeyMap: const {
-    'taskKey': 'task_key',
     'promptBlocks': 'prompt_blocks',
     'preHooks': 'pre_hooks',
     'postHooks': 'post_hooks',
@@ -269,7 +266,6 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       'name': instance.name.toJson(),
       'description': instance.description?.toJson(),
       'hook': instance.hook,
-      'task_key': instance.taskKey,
       'prompt_blocks': instance.promptBlocks,
       'pre_hooks': instance.preHooks,
       'post_hooks': instance.postHooks,
@@ -295,7 +291,6 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'name',
         'description',
         'hook',
-        'task_key',
         'prompt_blocks',
         'pre_hooks',
         'post_hooks',
@@ -322,7 +317,6 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
       hook: $checkedConvert('hook', (v) => v as String),
-      taskKey: $checkedConvert('task_key', (v) => v as String?),
       promptBlocks: $checkedConvert(
         'prompt_blocks',
         (v) =>
@@ -359,7 +353,6 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
     return val;
   },
   fieldKeyMap: const {
-    'taskKey': 'task_key',
     'promptBlocks': 'prompt_blocks',
     'preHooks': 'pre_hooks',
     'postHooks': 'post_hooks',
@@ -378,7 +371,6 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       'name': instance.name.toJson(),
       'description': instance.description?.toJson(),
       'hook': instance.hook,
-      'task_key': instance.taskKey,
       'prompt_blocks': instance.promptBlocks,
       'pre_hooks': instance.preHooks,
       'post_hooks': instance.postHooks,

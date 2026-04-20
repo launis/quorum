@@ -61,12 +61,12 @@ class XAIScoreItem(BaseModel):
 
     @field_validator("label")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
+            msg = "Field cannot be empty or whitespace only."
+            logger.error("[XAIModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
 
 class XAIOutputDTO(ReasoningTraceDTO):
@@ -140,6 +140,9 @@ class XAIOutputDTO(ReasoningTraceDTO):
 
     @field_validator(
         "executive_summary",
+        "verified_facts",
+        "cognitive_behavior",
+        "causal_chain",
         "analysis_strengths",
         "analysis_weaknesses",
         "analysis_opportunities",
@@ -147,12 +150,12 @@ class XAIOutputDTO(ReasoningTraceDTO):
         "final_verdict",
     )
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
+            msg = "Field cannot be empty or whitespace only."
+            logger.error("[XAIModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
     @field_validator("confidence_score")
     @classmethod
@@ -160,7 +163,7 @@ class XAIOutputDTO(ReasoningTraceDTO):
         if not (0.0 <= v <= 1.0):
             msg = "Confidence score must be between 0.0 and 1.0."
             logger.error("[XAIModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
 
@@ -196,11 +199,9 @@ class ReportResult(BaseModel):
 
     @field_validator("report_content")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Report content cannot be empty."
             logger.error("[XAIModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v

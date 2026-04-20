@@ -82,17 +82,6 @@ async def execute_workflow_job(
             workflow_dict = await repository.get_workflow(workflow_id)
 
             if not workflow_dict:
-                # Fallback for file-based testing if DB is empty
-                import json
-                import os
-
-                file_path = f"data/workflows/{workflow_id}.json"
-                if os.path.exists(file_path):
-                    logger.info(f"Loading workflow {workflow_id} from file system.")
-                    with open(file_path, encoding="utf-8") as f:
-                        workflow_dict = json.load(f)
-
-            if not workflow_dict:
                 from backend_v2.exceptions import WorkflowNotFoundError
 
                 raise WorkflowNotFoundError(workflow_id)
@@ -152,7 +141,9 @@ async def execute_workflow_job(
                 logger.error(
                     "[Worker] %s", msg, exc_info=True, extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
                 )
-                e = AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR})
+                e = AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                )
 
             # Final Status Update (Failed)
             local_exec_id = locals().get("exec_id", execution_id)
@@ -221,21 +212,22 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
             logger.warning(f"[Task] Execution {execution_id} no longer exists (deleted?). Skipping PDF generation.")
             return
 
-        # 0b. Get explicit locale via Execution
-        metadata = getattr(execution_dict, "metadata", None) or (
-            execution_dict.get("metadata", {}) if isinstance(execution_dict, dict) else None
+        # V2 MANDATE: Strict Pydantic parsing at the boundary
+        from backend_v2.models.v2_core import ExecutionRecord
+
+        execution_record = (
+            ExecutionRecord.model_validate(execution_dict) if isinstance(execution_dict, dict) else execution_dict
         )
-        if metadata:
-            loc = metadata.get("target_locale")
+
+        # 0b. Get explicit locale via Execution
+        if execution_record.metadata and "target_locale" in execution_record.metadata:
+            loc = execution_record.metadata["target_locale"]
             if loc and not accept_language:
                 accept_language = loc
 
         # 0c. Override default profile dynamically if present in SSOT ExecutionRecord
-        exec_profile_id = getattr(execution_dict, "output_profile_id", None) or (
-            execution_dict.get("output_profile_id") if isinstance(execution_dict, dict) else None
-        )
-        if exec_profile_id:
-            profile_id = exec_profile_id
+        if execution_record.output_profile_id:
+            profile_id = execution_record.output_profile_id
 
         # 1. Generate Omni-Channel JSON Payload
         dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
@@ -263,6 +255,7 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
         )
         try:
             from backend_v2.database.factory import get_repository
+
             repo = await get_repository(get_settings())
             await repo.update_execution(
                 execution_id,
@@ -272,7 +265,7 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
                     "completed_at": datetime.now(UTC).isoformat(),
                 },
             )
-        except Exception as update_err:
+        except Exception:
             logger.error(
                 "[Task] Failed to update execution failure status",
                 exc_info=True,
@@ -300,12 +293,19 @@ async def generate_profile_synthesis_and_pdf_task(
 
         repo = await get_repository(get_settings())
 
-        execution = await repo.get_execution(execution_id)
-        if not execution:
+        execution_data = await repo.get_execution(execution_id)
+        if not execution_data:
             logger.warning(f"[Task] Execution {execution_id} no longer exists. Skipping render.")
             return
 
-        has_synthesis = profile_id in getattr(execution, "profile_syntheses", {})
+        # V2 MANDATE: Strict Pydantic parsing at the boundary
+        from backend_v2.models.v2_core import ExecutionRecord
+
+        execution = (
+            ExecutionRecord.model_validate(execution_data) if isinstance(execution_data, dict) else execution_data
+        )
+
+        has_synthesis = profile_id in (execution.profile_syntheses or {})
         if has_synthesis:
             logger.info(f"[Task] Synthesis already exists for profile {profile_id}. Proceeding to PDF generation.")
             if redis:
@@ -322,7 +322,7 @@ async def generate_profile_synthesis_and_pdf_task(
         final_inputs = projector.snapshot
 
         # 0b. Get explicit locale via Execution
-        metadata = getattr(execution, "metadata", {}) or {}
+        metadata = execution.metadata or {}
         loc = metadata.get("target_locale")
         if loc and not accept_language:
             accept_language = loc
@@ -332,8 +332,13 @@ async def generate_profile_synthesis_and_pdf_task(
         if accept_language:
             metadata["target_locale"] = accept_language
 
+        global_context_vars = final_inputs
         state = HookState(
-            execution_id=execution_id, workflow_id=execution.workflow_id, inputs=final_inputs, metadata=metadata
+            execution_id=execution_id,
+            workflow_id=execution.workflow_id,
+            inputs=final_inputs,
+            metadata=metadata,
+            global_context_vars=global_context_vars,
         )
         deps = HookDependencies(repository=repo)
 
@@ -348,8 +353,8 @@ async def generate_profile_synthesis_and_pdf_task(
                 section_syntheses=hook_res.state_delta.get("section_syntheses", {}),
                 cited_sources=hook_res.state_delta.get("cited_sources", []),
             )
-            # Resolve existing syntheses to avoid dot-notation issues with TinyDB
-            current_syntheses = getattr(execution, "profile_syntheses", {})
+            # Add new synthesis to record
+            current_syntheses = execution.profile_syntheses or {}
             current_syntheses[profile_id] = cache
             dict_syntheses = {k: v.model_dump(mode="json") for k, v in current_syntheses.items()}
             update_payload = {"profile_syntheses": dict_syntheses}
@@ -370,6 +375,7 @@ async def generate_profile_synthesis_and_pdf_task(
         )
         try:
             from backend_v2.database.factory import get_repository
+
             repo = await get_repository(get_settings())
             await repo.update_execution(
                 execution_id,
@@ -379,7 +385,7 @@ async def generate_profile_synthesis_and_pdf_task(
                     "completed_at": datetime.now(UTC).isoformat(),
                 },
             )
-        except Exception as update_err:
+        except Exception:
             logger.error(
                 "[Task] Failed to update execution failure status",
                 exc_info=True,

@@ -201,6 +201,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get scorecard_global_average => 'Kokonaiskeskiarvo';
 
   @override
+  String get atomicBreakdownTitle => 'Kovan tason atomianalyysi';
+
+  @override
   String get reportPenaltiesApplied => 'Rangaistukset (Sovelletut vääristymät)';
 
   @override
@@ -2938,10 +2941,31 @@ class AppLocalizationsFi extends AppLocalizations {
   String get preHooksTitle => 'Pre Hooks (Ennen suoritusta)';
 
   @override
+  String get postHooksTitle => 'Post Hooks (Suorituksen jälkeen)';
+
+  @override
   String get addHookBtn => 'Lisää Hook';
 
   @override
   String get preHookEngineLabel => 'Pre-Execution Hook Moottori';
+
+  @override
+  String get postHookEngineLabel => 'Post-Execution Hook Moottori';
+
+  @override
+  String get hookWaterfall => 'Waterfall Pisteytys (waterfall_scoring_hook)';
+
+  @override
+  String get hookNormalize =>
+      'Matriisien Normalisointi (normalize_matrix_scores)';
+
+  @override
+  String get hookVerifyCitation =>
+      'Lähdeviittausten Varmistus (verify_citation_integrity)';
+
+  @override
+  String get hookHypothesis =>
+      'Oletusten Linkitys (enforce_hypothesis_linking)';
 
   @override
   String get hookTavily => 'Tavily Web Haku (search_hook)';

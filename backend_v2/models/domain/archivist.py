@@ -41,14 +41,12 @@ class ArchiveCase(BaseModel):
 
     @field_validator("case_id", "verdict", "summary")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[ArchivistModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
 
 class ArchivistOutputDTO(ReasoningTraceDTO):
@@ -91,14 +89,12 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
 
     @field_validator("consistency_analysis", "description_key")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[ArchivistModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
     @model_validator(mode="before")
     @classmethod
@@ -119,7 +115,9 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
                 # STRICT VALIDATION: No fallback allowed.
                 msg = f"Invalid compliance_analysis: {val}. Must be one of {list(mapping.keys())}"
                 logger.error("[ArchivistModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+                raise AppException(
+                    message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
 
             if val and "compliance_score" not in data:
                 data["compliance_score"] = mapping[val]

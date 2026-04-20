@@ -39,10 +39,9 @@ _SYSTEM_INSTRUCTION = (
     "4. Assumption: messages alternate. If the text starts with a human question, the "
     "first 'role' is 'user'.\n"
     "5. Return the data EXACTLY in the requested Pydantic JSON format.\n"
-    "6. WARNING (FAIL-SAFE): If the raw text does not look like a conversation in any way "
-    "(e.g., it is just a messy learning diary or essay without dialogue), NEVER return an "
-    "empty list. In this emergency, place all the text as one single long message under "
-    "the 'user' role."
+    "6. FAIL-FAST MANDATE: If the raw text does not look like a conversation in any way "
+    "(e.g., it is just a messy learning diary or essay without dialogue), you MUST return "
+    "an empty conversation list. Do NOT attempt to duct-tape it into a single message."
 )
 
 
@@ -95,6 +94,17 @@ class ChatParserService:
         try:
             # V2 Strict Output Generation
             parsed_data, _ = await llm_client.run_structured_task(messages=messages, response_model=ChatHistoryDTO)
+
+            if not parsed_data.conversation:
+                error_code = ErrorCodes.VALIDATION_FAILED
+                msg = "Fail-Fast: Raw text did not contain a valid dialogue/conversation."
+                logger.error("[ChatParser] %s: %s", error_code.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": error_code.value},
+                )
+
             logger.info("[ChatParser] Parsing successful. Extracted %s messages.", len(parsed_data.conversation))
             return parsed_data
 

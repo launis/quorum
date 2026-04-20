@@ -6,6 +6,7 @@ Adheres to V2 Architecture:
 - Prevents deep nesting hiding crucial data for data analysts.
 """
 
+import json
 from typing import Any
 
 from backend_v2.models.v2_core import ExecutionRecord
@@ -52,11 +53,14 @@ class FlatFileService:
                     # In a fully analytical view, we might flatten further or stringify.
                     # Stringifying objects for CSV safety:
                     if isinstance(value, (dict, list)):
-                        flat_record[f"{step_id}_{key}"] = str(value)
+                        flat_record[f"{step_id}_{key}"] = json.dumps(value, ensure_ascii=False)
                     else:
                         flat_record[f"{step_id}_{key}"] = value
             else:
                 # If a result is a primitive at the root level of results
-                flat_record[str(step_id)] = step_output
+                if isinstance(step_output, list):
+                    flat_record[str(step_id)] = json.dumps(step_output, ensure_ascii=False)
+                else:
+                    flat_record[str(step_id)] = step_output
 
         return flat_record

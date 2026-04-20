@@ -76,14 +76,12 @@ class ToulminComponent(BaseModel):
 
     @field_validator("id", "claim", "data", "warrant")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
 
 class CognitiveLevel(BaseModel):
@@ -129,7 +127,7 @@ class CognitiveLevel(BaseModel):
         if not (0.0 <= v <= 6.0):
             msg = "Bloom score must be between 0.0 and 6.0."
             logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
     @field_validator("strategic_score")
@@ -138,7 +136,7 @@ class CognitiveLevel(BaseModel):
         if not (1.0 <= v <= 4.0):
             msg = "Strategic score must be between 1.0 and 4.0."
             logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
     @model_validator(mode="before")
@@ -232,23 +230,27 @@ class WaltonScheme(BaseModel):
 
     @field_validator("identified_scheme")
     @classmethod
-    def validate_scheme(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_scheme(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Identified scheme cannot be empty."
             logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
     @field_validator("critical_questions")
     @classmethod
     def validate_questions(cls, v: list[str]) -> list[str]:
+        if not v:
+            msg = "Critical questions list cannot be empty. Zero-Compromise Fail-Fast enforced."
+            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         for q in v:
             if not q or not q.strip():
                 msg = "Critical questions cannot be empty strings."
                 logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+                raise AppException(
+                    message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
         return v
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
@@ -296,7 +298,7 @@ class LogicianData(BaseModel):
         if not v:
             msg = "Toulmin analysis cannot be empty."
             logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
     @model_validator(mode="before")

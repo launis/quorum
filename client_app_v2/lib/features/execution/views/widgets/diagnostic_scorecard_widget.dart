@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/shared/widgets/global_error_view.dart';
 import 'package:client_app/features/execution/controllers/scorecard_controller.dart';
 import 'package:client_app/features/execution/views/widgets/matrix_row_item_widget.dart';
+import 'package:client_app/features/execution/views/widgets/atom_matrix_table_widget.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// The master entrypoint component for the Diagnostic Scorecard UI.
@@ -103,7 +104,14 @@ class DiagnosticScorecardWidget extends ConsumerWidget {
             ...value.informationalMatrices.map(
               (m) => MatrixRowItemWidget(matrix: m),
             ),
+            const SizedBox(height: 32),
           ],
+          AtomMatrixTableWidget(
+            matrices: [
+              ...value.evaluativeMatrices,
+              ...value.informationalMatrices,
+            ],
+          ),
         ],
       ),
     );

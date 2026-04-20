@@ -12,6 +12,7 @@ from typing import Any
 
 from backend_v2.database.driver import Filter, StorageDriver
 from backend_v2.exceptions import ErrorCodes
+from backend_v2.models.auth import SystemOrganizations
 from backend_v2.models.v2_core import ExecutionRecord
 from backend_v2.models.v2_core import Workflow as WorkflowDefinition
 
@@ -685,7 +686,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             if organization_id:
                 # Logic: org_id IN [target, "system"]
                 # Driver support 'in'? Yes.
-                filters.append(Filter("organization_id", "in", [organization_id, "org_system000000"]))
+                filters.append(Filter("organization_id", "in", [organization_id, SystemOrganizations.ROOT_SYSTEM]))
 
         return await self.driver.query("workflows", filters)
 

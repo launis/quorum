@@ -34,7 +34,7 @@ def get_auth_service(
     repo: Annotated[AbstractWorkflowRepository, Depends(get_repo)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> AuthService:
-    return AuthService(repo=repo, use_firebase=getattr(settings, "USE_FIREBASE_AUTH", False))
+    return AuthService(repo=repo, use_firebase=settings.use_firebase_auth)
 
 
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]

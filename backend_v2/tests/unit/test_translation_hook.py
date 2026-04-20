@@ -20,6 +20,7 @@ async def test_translation_hook_skips_when_target_en_or_missing(mock_repository:
         step_id="step-123",
         task_blueprint="bp-123",
         metadata={},
+        global_context_vars={},
         inputs={"language": "en", "data": "value"},
     )
     deps = HookDependencies(repository=mock_repository)
@@ -30,7 +31,13 @@ async def test_translation_hook_skips_when_target_en_or_missing(mock_repository:
     assert res.state_delta == {}
 
     # Missing language
-    state2 = HookState(execution_id="sub-123", workflow_id="wf-123", inputs={"data": "value"})
+    state2 = HookState(
+        execution_id="sub-123",
+        workflow_id="wf-123",
+        metadata={},
+        global_context_vars={},
+        inputs={"data": "value"},
+    )
     res2 = await translation_hook(state2, deps)  # type: ignore[misc]
     assert res2.success is True
     assert res2.state_delta == {}
@@ -48,6 +55,7 @@ async def test_translation_hook_role_segregation_and_success(
         step_id="step-123",
         task_blueprint="bp-123",
         metadata={},
+        global_context_vars={},
         inputs={"language": "fi", "title": "Example Title", "_private": "hidden"},
     )
     deps = HookDependencies(repository=mock_repository)

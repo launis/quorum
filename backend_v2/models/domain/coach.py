@@ -11,7 +11,7 @@ including coaching plans and bibliography.
 import logging
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 
@@ -53,14 +53,12 @@ class CoachInput(BaseModel):
 
     @field_validator("chat_log")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "chat_log cannot be empty or whitespace only."
             logger.error("[CoachModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
 
 class BibliographyItem(BaseModel):
@@ -77,24 +75,30 @@ class BibliographyItem(BaseModel):
 
     @field_validator("source_id", "title")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[CoachModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
 
 class BibliographyResult(BaseModel):
     """Result of the bibliography generation (Hook)."""
 
     references: list[BibliographyItem] = Field(
-        default_factory=list, description="List of references.", json_schema_extra={"x-ui-label": "References"}
+        ..., description="List of references.", json_schema_extra={"x-ui-label": "References"}
     )
 
     model_config = ConfigDict(frozen=True, extra="forbid")
+
+    @model_validator(mode="after")
+    def validate_references_exist(self) -> BibliographyResult:
+        if not self.references:
+            msg = "Bibliography references cannot be empty. Zero-Compromise Fail-Fast enforced."
+            logger.error("[CoachModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return self
 
 
 class CoachingPlanDTO(ReasoningTraceDTO):
@@ -123,14 +127,23 @@ class CoachingPlanDTO(ReasoningTraceDTO):
         if not v:
             msg = "List cannot be empty."
             logger.error("[CoachModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         # Validate individual items
         cleaned = [item.strip() for item in v if item and item.strip()]
         if not cleaned:
             msg = "List cannot contain only empty strings."
             logger.error("[CoachModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return cleaned
+
+    @field_validator("bibliography")
+    @classmethod
+    def validate_biblio_not_empty(cls, v: list[BibliographyItem]) -> list[BibliographyItem]:
+        if not v:
+            msg = "Bibliography cannot be empty. Zero-Compromise Fail-Fast enforced."
+            logger.error("[CoachModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return v
 
 
 class CoachingPlan(CoachingPlanDTO, ReasoningTrace):

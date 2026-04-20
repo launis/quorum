@@ -377,7 +377,6 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
             step_obj.get("prompt_blocks", []) if isinstance(step_obj, dict) else getattr(step_obj, "prompt_blocks", [])
         )
 
-
         # Determine if this step actually contains matrix blocks
         matrix_blocks = []
         for pb_id in prompt_block_ids:
@@ -423,6 +422,7 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
         from backend_v2.models.enums import (
             CognitiveFlowStatus,
             CognitiveFlowThreshold,
+            EvaluationMandate,
             ScoringCalibrationThresholds,
             WaterfallThreshold,
         )
@@ -455,8 +455,10 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
                 for claim in claims:
                     micro_atoms = claim.get("micro_atoms", [])
                     if micro_atoms:
+                        mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
                         for text in micro_atoms:
-                            atom_hash = hashlib.md5(text.encode("utf-8")).hexdigest()
+                            full_text = f"{text.strip()}{mandate}"
+                            atom_hash = hashlib.md5(full_text.encode("utf-8")).hexdigest()
                             atom_mapping[atom_hash] = {"block_id": pb_id, "score": s_val, "text": text}
                     else:
                         label = claim.get("label", {})
@@ -468,7 +470,9 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
                             text = claim.get("ai_description", "")
 
                         if text:
-                            atom_hash = hashlib.md5(text.encode("utf-8")).hexdigest()
+                            mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+                            full_text = f"{text.strip()}{mandate}"
+                            atom_hash = hashlib.md5(full_text.encode("utf-8")).hexdigest()
                             atom_mapping[atom_hash] = {"block_id": pb_id, "score": s_val, "text": text}
 
             # Fail-fast: Ei fallbackeja. Korjattu normaalin virhehallinnan tyyliin.
@@ -542,11 +546,9 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
             weighted_score = calculate_weighted_score(stats, math_min, math_max)
 
             # --- DINA Progressive Dampening Calculation ---
-            raw_dampening_score = calculate_progressive_dampening_score(stats, math_min, math_max)
-
-            # Benefit of the Doubt Leniency (Epic 23)
-            dina_absolute_floor = math_min + (math_max - math_min) * ScoringCalibrationThresholds.DINA_FLOOR.value
-            dampening_score = max(raw_dampening_score, dina_absolute_floor)
+            # V2 Optimal Math Model: Square Root Dampening natively creates natural Gaussian variance
+            # without requiring an artificial safety net floor. DINA_FLOOR is completely removed.
+            dampening_score = calculate_progressive_dampening_score(stats, math_min, math_max)
 
             # Formatting the calculation log (Cognitive Diagnostic Model)
             log_lines = ["### Cognitive Diagnostic Model (CDM) Breakdown:"]
@@ -725,7 +727,13 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 if "extension_theory_link" in raw_input_val:
                     new_payload[f"{pb_id}_theory_link"] = raw_input_val["extension_theory_link"]
                     updates_made = True
-                
+                if "extension_emotional_sentiment" in raw_input_val:
+                    new_payload[f"{pb_id}_emotional_sentiment"] = raw_input_val["extension_emotional_sentiment"]
+                    updates_made = True
+                if "extension_remediation_steps" in raw_input_val:
+                    new_payload[f"{pb_id}_remediation_steps"] = raw_input_val["extension_remediation_steps"]
+                    updates_made = True
+
                 # Epic 24: Atomi-osumat ja tasokohtaiset erittelyt joudutaan myäs m\u00e4pp\u00e4\u00e4m\u00e4\u00e4n,
                 # jotta ne eiv\u00e4t katoa kun alkuper\u00e4inen sanakirja korvataan fl\u00e4till\u00e4 liukuluvulla!
                 for metric in ["true_atoms", "false_atoms", "total_atoms", "level_breakdown"]:
@@ -797,9 +805,12 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             # FAIL-FAST: The scales array MUST dictate the internal math boundaries.
             if not scales:
                 from backend_v2.exceptions import AppException, ErrorCodes
+
                 msg = f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' missing 'scales' array."
                 logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                )
 
             # DISPLAY BOUNDARIES: UI projection targets
             display_min = pb_dict.get("scale_min")
@@ -807,9 +818,15 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
             if display_min is None or display_max is None:
                 from backend_v2.exceptions import AppException, ErrorCodes
-                msg = f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' missing explicit display 'scale_min' or 'scale_max' in database. Fallback estimates are forbidden."
+
+                msg = (
+                    f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' missing explicit display "
+                    "'scale_min' or 'scale_max' in database. Fallback estimates are forbidden."
+                )
                 logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                )
 
             scores_in_scales = []
             for s in scales:
@@ -819,6 +836,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                         scores_in_scales.append(float(val))
                     except (TypeError, ValueError) as e:
                         from backend_v2.exceptions import AppException, ErrorCodes
+
                         msg = f"Corrupted scale value '{val}' in PromptBlock '{pb_id}'. Expected float."
                         logger.error(
                             "[ScoringHook] %s: %s",

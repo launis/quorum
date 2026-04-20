@@ -21,7 +21,7 @@ Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus
 Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
 1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto.
 2. Lue ensin tiukasti KAIKKI kyseisen alihakemiston `.py`-tiedostot (huomioiden sivuutettavat kansiot).
-3. **MANDATOITU TRACEABILITY MATRIX**: Sinun on **EHDOTTOMASTI** raportoitava havaintosi tulostamalla chattiin tarkka Markdown-taulukko ("Audit Matrix"). Sinun on kirjoitettava tähän taulukkoon rivi *jokaiselle* `00-antigravity-core.md` ja `01-python-backend.md` -tiedostoissa mainitulle säännölle (esim. `opaque_stripe_id_mandate`, `silent_failures`, `anemic_routers`, `strict_pydantic_v2_rust`, jne).
+3. **MANDATOITU TRACEABILITY MATRIX**: Sinun on **EHDOTTOMASTI** raportoitava havaintosi tulostamalla chattiin tarkka Markdown-taulukko ("Audit Matrix"). Sinun on kirjoitettava tähän taulukkoon rivi *jokaiselle* `00-antigravity-core.md` ja `01-python-backend.md` -tiedostoissa mainitulle säännölle (esim. `the_zero_compromise_pledge`, `opaque_stripe_id_mandate`, `silent_failures`, `strict_pydantic_v2_rust`, jne). **Erityishuomio:** Varmista ettet päästä "the_zero_compromise_pledge"-tarkistuksesta läpi yhtäkään `.get(..., "default")` fallbackia tai kovakoodattua litteää arvoa palvelukerroksessa.
    - Käytä sarakkeita: `| Rule Block ID / Sääntö | Tila (Pass / Fail) | Löydökset & Perustelu |`.
    - Varmista, että todella käyt läpi koodista säännösten <banned_pattern> ja <mandatory_pattern> asiat kohta kohdalta. Tämä poistaa hallusinaatiot ja ohitukset.
 4. Pysähdy taulukon tulostamisen jälkeen. Odotan sen näkemistä. Jää odottamaan komentoa "FIX" (jos asioita on korjattavana / Fail) tai komentoa "NEXT" (jos kaikki säännöt olivat puhtaasti Pass).

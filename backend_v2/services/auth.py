@@ -25,6 +25,7 @@ from backend_v2.models.auth import (
     Organization,
     OrganizationCreate,
     SubscriptionStatus,
+    SystemOrganizations,
     TokenData,
     User,
     UserCreate,
@@ -55,29 +56,18 @@ class OrganizationRepository:
 
     async def get_by_id(self, org_id: str) -> Organization | None:
         data = await self.repo.get_organization(org_id)
-
         if data:
-            if "tier" not in data:
-                data["tier"] = "standard"
-
-            return Organization(**data)
-
+            return Organization.model_validate(data)
         return None
 
     async def create(self, org: Organization) -> Organization:
         await self.repo.create_organization(org.model_dump(mode="json"))
-
         return org
 
     async def list_all(self) -> list[Organization]:
         results = []
-
         for o in await self.repo.list_organizations():
-            if "tier" not in o:
-                o["tier"] = "standard"
-
-            results.append(Organization(**o))
-
+            results.append(Organization.model_validate(o))
         return results
 
 
@@ -212,19 +202,19 @@ class AuthService:
             # We enforce the secret check here.
 
             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-
             id = payload.get("sub")
+            if not id:
+                raise AuthenticationError(
+                    message="Invalid internal token: missing 'sub'.", details={"error_code": "INVALID_TOKEN"}
+                )
 
-            if id:
-                user = await self.repo.get_by_id(id)
-
-                if not user:
-                    raise AuthenticationError(
-                        message=f"Impersonated User not found: {id}",
-                        details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED},  # Reusing token code or general
-                    )
-
-                return TokenData(id=user.id, role=user.role, email=user.email, organization_id=user.organization_id)
+            user = await self.repo.get_by_id(id)
+            if not user:
+                raise AuthenticationError(
+                    message=f"Impersonated User not found: {id}",
+                    details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED},
+                )
+            return TokenData(id=user.id, role=user.role, email=user.email, organization_id=user.organization_id)
 
         except jwt.ExpiredSignatureError:
             raise AuthenticationError(
@@ -274,12 +264,17 @@ class AuthService:
 
             if not user:
                 # Auto-registration for missing users found in Firebase
+                if not email:
+                    raise AuthenticationError(
+                        message="Cannot auto-register user: Firebase token is missing email claim.",
+                        details={"error_code": "AUTH_TOKEN_MISSING_EMAIL"},
+                    )
 
                 logger.info("User %s not found in local DB. Auto-registering as MEMBER (No Org).", id)
 
                 new_user = User(
                     id=id,
-                    email=email if email else "unknown@example.com",
+                    email=email,
                     role=UserRole.MEMBER,
                     organization_id=None,  # Orphan user
                     created_at=datetime.now(timezone.utc),
@@ -392,22 +387,22 @@ class AuthService:
             target_org_id = creator.organization_id
 
         if user_data.role == UserRole.ROOT:
-            if target_org_id != "org_system000000":
+            if target_org_id != SystemOrganizations.ROOT_SYSTEM:
                 raise PermissionDeniedError("Root users can only be created within the System Organization.")
 
-            target_org_id = "org_system000000"  # Redundant safety, but ensures it matches
+            target_org_id = SystemOrganizations.ROOT_SYSTEM  # Redundant safety, but ensures it matches
 
         # RULE: Organization MUST exist
 
         if target_org_id:
-            if target_org_id == "org_system000000":
+            if target_org_id == SystemOrganizations.ROOT_SYSTEM:
                 # System org acts as a special bootstrap case, but usually should exist.
 
                 pass
 
             org_exists = await self.org_repo.get_by_id(target_org_id)
 
-            if not org_exists and target_org_id != "org_system000000":
+            if not org_exists and target_org_id != SystemOrganizations.ROOT_SYSTEM:
                 raise AppException(
                     message=f"Target Organization '{target_org_id}' does not exist.",
                     status_code=404,
@@ -611,7 +606,7 @@ class AuthService:
         if initiator.role != UserRole.ROOT:
             raise PermissionDeniedError("Only ROOT can delete organizations.")
 
-        if target_org_id == "org_system000000":
+        if target_org_id == SystemOrganizations.ROOT_SYSTEM:
             raise PermissionDeniedError("CRITICAL: The 'system' organization is protected and CANNOT be deleted.")
 
         # 2. Check Users
@@ -947,7 +942,7 @@ class AuthService:
             )
 
         if root.organization_id not in [
-            "org_system000000",
+            SystemOrganizations.ROOT_SYSTEM,
             "436d84de-c526-43b7-93ef-634912be0d2f",
         ]:
             # Fix casing or drift if it was "SYSTEM" or None

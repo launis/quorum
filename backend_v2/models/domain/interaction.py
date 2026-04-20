@@ -31,14 +31,12 @@ class InteractionInput(BaseModel):
 
     @field_validator("chat_log")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "chat_log cannot be empty or whitespace only."
             logger.error("[InteractionModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
 
 class InteractionAnalysisDTO(ReasoningTraceDTO):
@@ -64,6 +62,16 @@ class InteractionAnalysisDTO(ReasoningTraceDTO):
         description="Identified prompting strategy.",
         json_schema_extra={"x-ui-label": "Strategy"},
     )
+
+    @field_validator("imperative_command_count")
+    @classmethod
+    def validate_positive_count(cls, v: int) -> int:
+        if v < 0:
+            msg = "imperative_command_count cannot be negative."
+            logger.error("[InteractionModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return v
+
     model_config = ConfigDict(frozen=True, extra="forbid")
 
 

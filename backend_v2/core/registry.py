@@ -3,7 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -105,16 +105,14 @@ class TaskRegistry:
                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
             ) from e
 
-        # Resolve Input Schema from Agent Class (Refactored Feb 2026: Strict Type Propagation)
         input_model = getattr(agent_cls, "INPUT_SCHEMA", None)
         if not input_model:
-            # Fallback to Generic if not defined (Legacy support only)
-            logger.warning("Agent %s has no INPUT_SCHEMA. Using GenericInput (Dict fallback).", agent_cls.__name__)
+            from backend_v2.exceptions import ConfigurationError
 
-            class GenericInput(BaseModel):
-                model_config = ConfigDict(extra="allow")
-
-            input_model = GenericInput
+            raise ConfigurationError(
+                message=f"Strict Mode: Agent {agent_cls.__name__} has no INPUT_SCHEMA defined.",
+                details={"error_code": "CONFIGURATION_ERROR"},
+            )
 
         async def agent_wrapper(input_data: BaseModel, execution_config: dict[str, Any] | None = None) -> BaseModel:
             logger.debug("agent_wrapper CALLED. Config: %s", execution_config)
@@ -186,9 +184,7 @@ class TaskRegistry:
 
                     # --- VARIABLE SUBSTITUTION ---
                     # Use model_dump to get dict for substitution logic
-                    vars_to_inject = input_data.model_dump() if hasattr(input_data, "model_dump") else {}
-                    if isinstance(input_data, dict):  # Should not happen if strictly typed
-                        vars_to_inject = input_data
+                    vars_to_inject = input_data.model_dump()
 
                     # Dynamic Input Handling for V2 (Courtroom SDUI)
                     if "inputs" in vars_to_inject and "expected_inputs" in execution_config:
@@ -259,11 +255,7 @@ class TaskRegistry:
                                 )
 
             # 4. Execute using New Signature (Strict Model Pass-Through)
-            # Do NOT downcast to dict unless it's GenericInput
             final_input: Any = input_data
-            if input_model.__name__ == "GenericInput":
-                # Legacy: Convert to dict for agents expecting dict
-                final_input = input_data.model_dump()
 
             # Prepare kwargs from Registry Config
             registry_kwargs = {}
@@ -313,9 +305,10 @@ class TaskRegistry:
                 return result_dict
 
             if isinstance(result_dict, dict):
-                return output_model(**result_dict)
+                return output_model.model_validate(result_dict)
 
-            return output_model(**result_dict) if isinstance(result_dict, dict) else result_dict
+            # STRICT MODE: If it's not a dict or expected model, fail immediately.
+            raise ValueError(f"Agent {agent_cls.__name__} returned an invalid response type: {type(result_dict)}")
 
         # Register for each key
         for key in task_keys:

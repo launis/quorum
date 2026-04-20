@@ -96,6 +96,14 @@ class StepBuilderView extends HookConsumerWidget {
         .forceRebuild(payload.copyWith(preHooks: hooks));
   }
 
+  void _addPostHook(WidgetRef ref, NodeStrategy payload, String blockId) {
+    final hooks = List<String>.from(payload.postHooks);
+    hooks.add('');
+    ref
+        .read(stepFormProvider(blockId).notifier)
+        .forceRebuild(payload.copyWith(postHooks: hooks));
+  }
+
   void _deleteStep(
     BuildContext context,
     WidgetRef ref,
@@ -601,6 +609,53 @@ class StepBuilderView extends HookConsumerWidget {
                     );
                   },
                 ),
+                const SizedBox(height: 24),
+
+                // post_hooks
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      l10n.postHooksTitle,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => _addPostHook(ref, payload, stepId),
+                      icon: const Icon(Icons.add),
+                      label: Text(l10n.addHookBtn),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ReorderableListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: payload.postHooks.length,
+                  onReorder: (oldIndex, newIndex) {
+                    if (oldIndex < newIndex) newIndex -= 1;
+                    final hooks = List<String>.from(payload.postHooks);
+                    final item = hooks.removeAt(oldIndex);
+                    hooks.insert(newIndex, item);
+                    ref
+                        .read(stepFormProvider(stepId).notifier)
+                        .forceRebuild(payload.copyWith(postHooks: hooks));
+                  },
+                  itemBuilder: (context, index) {
+                    final hooks = payload.postHooks;
+                    return _buildPostHookCard(
+                      ref,
+                      l10n,
+                      payload,
+                      stepId,
+                      ValueKey('post_hook_$index\_${hooks[index]}'),
+                      index,
+                      hooks[index],
+                    );
+                  },
+                ),
 
                 const SizedBox(height: 24),
 
@@ -744,6 +799,109 @@ class StepBuilderView extends HookConsumerWidget {
     );
   }
 
+  Widget _buildPostHookCard(
+    WidgetRef ref,
+    AppLocalizations l10n,
+    NodeStrategy payload,
+    String stepId,
+    Key key,
+    int index,
+    String hookDef,
+  ) {
+    final knownHooks = [
+      'search_hook',
+      'memory_hook',
+      'validation_hook',
+      'score_hook',
+      'waterfall_scoring_hook',
+      'normalize_matrix_scores',
+      'verify_citation_integrity',
+      'enforce_hypothesis_linking',
+    ];
+    final bool isCustom = hookDef.isNotEmpty && !knownHooks.contains(hookDef);
+
+    return Card(
+      key: key,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(right: 8.0),
+              child: Icon(Icons.drag_indicator, color: Color(0xFF9E9E9E)),
+            ),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                isExpanded: true,
+                decoration: InputDecoration(labelText: l10n.postHookEngineLabel),
+                initialValue: hookDef.isEmpty ? null : hookDef,
+                items: [
+                  DropdownMenuItem(
+                    value: 'waterfall_scoring_hook',
+                    child: Text(l10n.hookWaterfall),
+                  ),
+                  DropdownMenuItem(
+                    value: 'normalize_matrix_scores',
+                    child: Text(l10n.hookNormalize),
+                  ),
+                  DropdownMenuItem(
+                    value: 'search_hook',
+                    child: Text(l10n.hookTavily),
+                  ),
+                  DropdownMenuItem(
+                    value: 'memory_hook',
+                    child: Text(l10n.hookMemory),
+                  ),
+                  DropdownMenuItem(
+                    value: 'validation_hook',
+                    child: Text(l10n.hookValidation),
+                  ),
+                  DropdownMenuItem(
+                    value: 'score_hook',
+                    child: Text(l10n.hookScore),
+                  ),
+                  DropdownMenuItem(
+                    value: 'verify_citation_integrity',
+                    child: Text(l10n.hookVerifyCitation),
+                  ),
+                  DropdownMenuItem(
+                    value: 'enforce_hypothesis_linking',
+                    child: Text(l10n.hookHypothesis),
+                  ),
+                  if (isCustom)
+                    DropdownMenuItem(
+                      value: hookDef,
+                      child: Text(l10n.hookLegacy(hookDef)),
+                    ),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    final hooks = List<String>.from(payload.postHooks);
+                    hooks[index] = val;
+                    ref
+                        .read(stepFormProvider(stepId).notifier)
+                        .forceRebuild(payload.copyWith(postHooks: hooks));
+                  }
+                },
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Color(0xFFD32F2F)),
+              onPressed: () {
+                final hooks = List<String>.from(payload.postHooks);
+                hooks.removeAt(index);
+                ref
+                    .read(stepFormProvider(stepId).notifier)
+                    .forceRebuild(payload.copyWith(postHooks: hooks));
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildPromptBlockCard(
     BuildContext context,
     WidgetRef ref,
@@ -774,16 +932,19 @@ class StepBuilderView extends HookConsumerWidget {
                     ? blockDef
                     : null,
                 items: promptBlocks.map((m) {
-                  final currentLocale = Localizations.localeOf(context).languageCode;
-                  final rawLabel = m.label.translations[currentLocale] ?? 
-                                   m.label.translations['en'];
-                                   
+                  final currentLocale = Localizations.localeOf(
+                    context,
+                  ).languageCode;
+                  final rawLabel =
+                      m.label.translations[currentLocale] ??
+                      m.label.translations['en'];
+
                   if (rawLabel == null || rawLabel.trim().isEmpty) {
                     throw AppException.validation(
                       'Fail-Fast: PromptBlock ${m.id} lacks required FI/EN translation.',
                     );
                   }
-                  
+
                   final displayText = '$rawLabel (${m.id})';
                   return DropdownMenuItem(
                     value: m.id,

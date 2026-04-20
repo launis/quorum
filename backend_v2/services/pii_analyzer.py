@@ -33,17 +33,16 @@ class PIIAnalyzerService:
                 self._anonymizer = AnonymizerEngine()  # type: ignore[no-untyped-call]
                 logger.info("Presidio initialized successfully.")
             except OSError as e:
-                # Generally happens if en_core_web_lg is missing.
-                logger.error(
-                    "Failed to initialize Presidio. Ensure 'python -m spacy download en_core_web_lg' "
-                    f"is run. Error: {e}"
-                )
-                raise RuntimeError(
-                    "Presidio model 'en_core_web_lg' not found. Please install the model via spacy download."
+                from backend_v2.exceptions import AppException, ErrorCodes
+
+                msg = "Presidio model 'en_core_web_lg' not found. Please install the model via spacy download."
+                logger.error("[PIIAnalyzerService] %s: %s - Error: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, e)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                 ) from e
 
-    def mask_pii(self, text: str, language: str = "en") -> str:
-        """Analyzes and anonymizes PII in the given text."""
+    def mask_pii(self, text: str, language: str) -> str:
+        """Analyzes and anonymizes PII in the given text (enforces explicit target language)."""
         if not text or not text.strip():
             return text
 

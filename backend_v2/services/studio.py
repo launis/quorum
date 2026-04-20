@@ -7,7 +7,7 @@ from typing import Any
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
-from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.v2_core import PromptBlock, Step, SystemConfigMCPGateways, SystemConfigModelRegistry, Workflow
 
@@ -27,9 +27,7 @@ class StudioService:
         org_id = getattr(initiator, "organization_id", None)
         allowed_orgs = [org_id]
         if allow_system:
-            allowed_orgs.append("org_system000000")
-        # Legacy support
-        allowed_orgs.append(None)
+            allowed_orgs.append(SystemOrganizations.ROOT_SYSTEM)
 
         if initiator.role != "ROOT" and data.get("organization_id") not in allowed_orgs:
             logger.error(
@@ -51,12 +49,12 @@ class StudioService:
 
         org_id = getattr(initiator, "organization_id", None)
         if initiator.role not in ["ROOT", UserRole.ROOT]:
-            if data_org_id == "org_system000000" and not allow_system:
+            if data_org_id == SystemOrganizations.ROOT_SYSTEM and not allow_system:
                 logger.error(
                     "[StudioService] %s: Only ROOT can modify system resources.", ErrorCodes.PERMISSION_DENIED.name
                 )
                 raise PermissionDeniedError("Only ROOT can modify system resources.")
-            if data_org_id not in [org_id, None]:
+            if data_org_id != org_id:
                 logger.error(
                     "[StudioService] %s: ",
                     ErrorCodes.PERMISSION_DENIED.name,
@@ -102,7 +100,7 @@ class StudioService:
             return [Workflow.model_validate(x) for x in all_data]
 
         org_id = getattr(initiator, "organization_id", None)
-        data = [x for x in all_data if x.get("organization_id") in [org_id, "org_system000000", None]]
+        data = [x for x in all_data if x.get("organization_id") in [org_id, SystemOrganizations.ROOT_SYSTEM]]
         return [Workflow.model_validate(x) for x in data]
 
     async def get_workflow(self, initiator: TokenData, id: str) -> Workflow:
@@ -156,7 +154,11 @@ class StudioService:
             "description": {"default_locale": "en", "translations": {"en": "Draft workflow", "fi": "Luonnos"}},
             "status": "draft",
             "version": 1,
-            "organization_id": getattr(initiator, "organization_id", None) if initiator.role not in ["ROOT"] else None,
+            "organization_id": (
+                SystemOrganizations.ROOT_SYSTEM
+                if initiator.role in ["ROOT", UserRole.ROOT]
+                else getattr(initiator, "organization_id", None)
+            ),
             "expected_inputs": [],
             "steps": [],
         }
@@ -179,7 +181,7 @@ class StudioService:
         cloned_data = Workflow.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id
 
-        if initiator.role not in ["ROOT", "ADMIN", "ROOT_MASTER"]:
+        if initiator.role not in ["ROOT", UserRole.ROOT]:
             cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
 
         if "name" in cloned_data and isinstance(cloned_data["name"], dict):
@@ -224,7 +226,7 @@ class StudioService:
                 cloned_profile = p.copy()
                 cloned_profile["id"] = new_profile_id
                 cloned_profile["workflow_id"] = new_id
-                if initiator.role not in ["ROOT", "ADMIN", "ROOT_MASTER"]:
+                if initiator.role not in ["ROOT", UserRole.ROOT]:
                     cloned_profile["organization_id"] = getattr(initiator, "organization_id", None)
 
                 # Remap the step IDs inside layout
@@ -251,7 +253,7 @@ class StudioService:
             return [Step.model_validate(x) for x in all_data]
 
         org_id = getattr(initiator, "organization_id", None)
-        data = [x for x in all_data if x.get("organization_id") in [org_id, "org_system000000", None]]
+        data = [x for x in all_data if x.get("organization_id") in [org_id, SystemOrganizations.ROOT_SYSTEM]]
         return [Step.model_validate(x) for x in data]
 
     async def get_step(self, initiator: TokenData, id: str) -> Step:
@@ -304,6 +306,11 @@ class StudioService:
             "safety": "safe",
             "allowed_mcp_tools": [],
             "model_strategy": "fast",
+            "organization_id": (
+                SystemOrganizations.ROOT_SYSTEM
+                if initiator.role in ["ROOT", UserRole.ROOT]
+                else getattr(initiator, "organization_id", None)
+            ),
         }
         draft = Step.model_validate(draft_dict)
         return await self.save_step(initiator, new_id, draft)
@@ -324,7 +331,7 @@ class StudioService:
         cloned_data = Step.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id
 
-        if initiator.role not in ["ROOT", "ADMIN", "ROOT_MASTER"]:
+        if initiator.role not in ["ROOT", UserRole.ROOT]:
             cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
 
         if "name" in cloned_data and isinstance(cloned_data["name"], dict):
@@ -344,7 +351,7 @@ class StudioService:
             return [PromptBlock.model_validate(x) for x in all_data]
 
         org_id = getattr(initiator, "organization_id", None)
-        data = [x for x in all_data if x.get("organization_id") in [org_id, "org_system000000", None]]
+        data = [x for x in all_data if x.get("organization_id") in [org_id, SystemOrganizations.ROOT_SYSTEM]]
         return [PromptBlock.model_validate(x) for x in data]
 
     async def get_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:
@@ -414,6 +421,11 @@ class StudioService:
             "scales": None,
             "rows": None,
             "columns": None,
+            "organization_id": (
+                SystemOrganizations.ROOT_SYSTEM
+                if initiator.role in ["ROOT", UserRole.ROOT]
+                else getattr(initiator, "organization_id", None)
+            ),
         }
         draft = PromptBlock.model_validate(draft_dict)
         return await self.save_prompt_block(initiator, new_id, draft)
@@ -434,7 +446,7 @@ class StudioService:
         cloned_data = PromptBlock.model_validate(data).model_dump(mode="json")
         cloned_data["id"] = new_id
 
-        if initiator.role not in ["ROOT", "ADMIN", "ROOT_MASTER"]:
+        if initiator.role not in ["ROOT", UserRole.ROOT]:
             cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
 
         if "label" in cloned_data and isinstance(cloned_data["label"], dict):
@@ -495,7 +507,7 @@ class StudioService:
 
     async def create_model_registry_draft(self, initiator: TokenData) -> SystemConfigModelRegistry:
         """System-level creation of an initial ModelConfig Draft."""
-        self._enforce_modification_rights(initiator, "org_system000000", allow_system=True)
+        self._enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
         import uuid
 
         new_id = f"sys_{uuid.uuid4().hex[:16]}"
@@ -567,7 +579,7 @@ class StudioService:
 
     async def create_mcp_gateway_draft(self, initiator: TokenData) -> SystemConfigMCPGateways:
         """System-level creation of an initial MCP Gateway Config Draft."""
-        self._enforce_modification_rights(initiator, "org_system000000", allow_system=True)
+        self._enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
         import uuid
 
         new_id = f"mcp_{uuid.uuid4().hex[:16]}"
@@ -609,7 +621,7 @@ class StudioService:
             return [OutputProfile.model_validate(x) for x in all_data]
 
         org_id = getattr(initiator, "organization_id", None)
-        data = [x for x in all_data if x.get("organization_id") in [org_id, "org_system000000", None]]
+        data = [x for x in all_data if x.get("organization_id") in [org_id, SystemOrganizations.ROOT_SYSTEM]]
         return [OutputProfile.model_validate(x) for x in data]
 
     async def get_output_profile(self, initiator: TokenData, id: str) -> OutputProfile:
@@ -690,7 +702,11 @@ class StudioService:
             "layouts": [
                 {"layout_type": "default_pdf", "layout_config": {"columns": 1, "theme": "light"}, "blocks": []}
             ],
-            "organization_id": getattr(initiator, "organization_id", None) if initiator.role not in ["ROOT"] else None,
+            "organization_id": (
+                SystemOrganizations.ROOT_SYSTEM
+                if initiator.role in ["ROOT", UserRole.ROOT]
+                else getattr(initiator, "organization_id", None)
+            ),
         }
         draft = OutputProfile.model_validate(draft_dict)
         return await self.save_output_profile(initiator, new_id, draft)

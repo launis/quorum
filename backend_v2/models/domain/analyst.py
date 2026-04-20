@@ -54,14 +54,12 @@ class Hypothesis(BaseModel):
 
     @field_validator("id", "claim_text", "search_query")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AnalystModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
     @model_validator(mode="after")
     def validate_consistency(self) -> Hypothesis:
@@ -70,7 +68,7 @@ class Hypothesis(BaseModel):
             # This prevents "hallucinated" evidence flags without backing data.
             msg = "Hypothesis claims evidence_found=True but provides no quotes."
             logger.error("[AnalystModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return self
 
 
@@ -100,7 +98,7 @@ class AnalystDTO(ReasoningTraceDTO):
         if not v:
             msg = "Analyst output must contain at least one hypothesis."
             logger.error("[AnalystModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
 
@@ -121,24 +119,27 @@ class SearchResultItem(BaseModel):
 
     @field_validator("title", "link", "snippet")
     @classmethod
-    def validate_non_empty(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        if not v or not v.strip():
+    def validate_non_empty(cls, v: str | None) -> str:
+        if not v or not str(v).strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AnalystModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return str(v).strip()
 
 
 class SearchResult(BaseModel):
     """Result of the Google Search (Hook)."""
 
     results: list[SearchResultItem] = Field(
-        default_factory=list, description="Search results.", json_schema_extra={"x-ui-label": "Search Results"}
-    )
-    error: str | None = Field(
-        default=None, description="Error message if search failed.", json_schema_extra={"x-ui-label": "Error"}
+        ..., description="Search results.", json_schema_extra={"x-ui-label": "Search Results"}
     )
 
     model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+
+    @model_validator(mode="after")
+    def validate_results_exist(self) -> SearchResult:
+        if not self.results:
+            msg = "Search results cannot be empty. Zero-Compromise Fail-Fast enforced."
+            logger.error("[AnalystModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        return self

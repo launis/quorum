@@ -122,10 +122,13 @@ class LocalizationService:
                     "BFF Translation Fallback: Key '%s' missing in '%s', falling back to English.", key, lang_simple
                 )
 
-        # 3. Fallback to Key
+        # 3. Strict Missing Key Exception
         if val is None:
-            logger.error("BFF Translation Error: Missing key '%s' entirely. Initiating bypass.", key)
-            val = key
+            msg = f"Translation key '{key}' is missing from both '{lang_simple}' and 'en' dictionaries."
+            logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+            raise AppException(
+                message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+            )
 
         # 4. Interpolation
         if kwargs:
@@ -153,13 +156,9 @@ class LocalizationService:
         return val
 
     @classmethod
-    def get(cls, key: str, lang: str | None = None, default: str | None = None, **kwargs: Any) -> str:
-        """Class method alias for translate with custom default fallback."""
-        val = cls.translate(key, lang, **kwargs)
-        if val == key and default:
-            logger.warning("BFF Bypass: Using hardcoded default '%s' for missing key '%s'", default, key)
-            return default
-        return val
+    def get(cls, key: str, lang: str | None = None, **kwargs: Any) -> str:
+        """Class method alias for translate. (Hardcoded defaults purged)."""
+        return cls.translate(key, lang, **kwargs)
 
 
 def localize_schema(schema: dict[str, Any], lang: str | None = None) -> dict[str, Any]:

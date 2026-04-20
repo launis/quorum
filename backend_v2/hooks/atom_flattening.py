@@ -70,7 +70,6 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
     if not prompt_block_ids:
         return HookResult(success=True, state_delta={})
 
-
     # 2. Extract Matrix Sampler Metadata limit
     if "matrix_sampling_strategy" not in state.metadata:
         raise AppException(
@@ -108,31 +107,26 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                     sampling_limit_val,
                 )
 
+                from backend_v2.models.enums import EvaluationMandate
+
                 matrix_collected_atoms: list[str] = []
+                mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
 
                 # Stratification happens strictly per-scale
                 for scale in block.scales:
                     scale_atoms: list[str] = []
 
                     for claim in scale.claims:
-                        if claim.micro_atoms:
-                            scale_atoms.extend(claim.micro_atoms)
+                        if claim.micro_atoms and len(claim.micro_atoms) > 0:
+                            scale_atoms.extend([f"{ma.strip()}{mandate}" for ma in claim.micro_atoms])
                         else:
-                            lbl = None
-                            if claim.label:
-                                translations_dict = getattr(claim.label, "translations", {})
-                                if translations_dict:
-                                    lbl = translations_dict.get("en")
-                                    if not lbl:
-                                        default_loc = getattr(claim.label, "default_locale", "fi")
-                                        lbl = translations_dict.get(default_loc)
-                                    if not lbl:
-                                        lbl = next(iter(translations_dict.values()), None)
-
-                            if lbl:
-                                scale_atoms.append(str(lbl))
-                            elif claim.ai_description:
-                                scale_atoms.append(claim.ai_description)
+                            msg = f"PromptBlock '{block.id}' claim is missing mandatory 'micro_atoms' during runtime."
+                            logger.error("[%s] %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                            raise AppException(
+                                message=msg,
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            )
 
                     # Apply constraint securely using deterministic execution ID locking
                     if sampling_limit_val > 0 and len(scale_atoms) > sampling_limit_val:

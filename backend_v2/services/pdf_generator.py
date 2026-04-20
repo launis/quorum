@@ -47,17 +47,12 @@ class PdfReportService:
                 import markdown  # type: ignore[import-untyped, unused-ignore]
 
                 return str(markdown.markdown(text, extensions=["extra", "nl2br"]))
-            except ImportError:
-                import re
+            except ImportError as e:
+                from backend_v2.exceptions import ConfigurationError
 
-                t = str(text)
-                t = re.sub(r"^### (.*?)$", r"<h3>\1</h3>", t, flags=re.MULTILINE)
-                t = re.sub(r"^## (.*?)$", r"<h2>\1</h2>", t, flags=re.MULTILINE)
-                t = re.sub(r"^# (.*?)$", r"<h1>\1</h1>", t, flags=re.MULTILINE)
-                t = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", t)
-                t = re.sub(r"\*(.*?)\*", r"<em>\1</em>", t)
-                t = t.replace("\n", "<br>")
-                return t
+                msg = "Fail-Fast: 'markdown' package is required for PDF Markdown rendering but is not installed."
+                logger.error("[PdfReportService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise ConfigurationError(msg) from e
 
         self.env.filters["md"] = md_filter
 
@@ -83,12 +78,14 @@ class PdfReportService:
                     details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
                 )
 
+            target_locale = execution.metadata.get("target_locale", "en") if execution.metadata else "en"
+
             # Fetch Workflow Name for Header
             workflow_id = execution.workflow_id
             workflow_name = "Dynamic Workflow Execution"
             if report_dto and report_dto.profile_name:
                 title_obj = report_dto.profile_name
-                workflow_name = title_obj.get("fi", title_obj.get("en", workflow_name))
+                workflow_name = title_obj.get(target_locale, title_obj.get("en", workflow_name))
             elif workflow_id:
                 workflow_dict = await self.repository.get_workflow_by_id(workflow_id)
                 if workflow_dict and "name" in workflow_dict:
@@ -117,10 +114,20 @@ class PdfReportService:
                             b64_data = generate_radar_chart(layout.axes)
                             if b64_data:
                                 charts[idx] = b64_data
+                            else:
+                                from backend_v2.exceptions import ConfigurationError
+
+                                msg = f"generate_radar_chart returned empty data for layout {idx}"
+                                raise ConfigurationError(msg)
                         elif layout.preset_view in ("matrix_2d", "2d_compare", "matrix_3d", "3d_matrix"):
                             b64_data = generate_scatter_chart(layout.axes)
                             if b64_data:
                                 charts[idx] = b64_data
+                            else:
+                                from backend_v2.exceptions import ConfigurationError
+
+                                msg = f"generate_scatter_chart returned empty data for layout {idx}"
+                                raise ConfigurationError(msg)
                     except Exception as e:
                         msg = f"Failed to render PDF charts for layout {idx}: {e}"
                         logger.error(
