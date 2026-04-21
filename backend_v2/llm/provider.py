@@ -335,14 +335,21 @@ class LiteLLMProvider(LLMProvider):
 
             for attempt in range(max_rate_limit_retries):
                 try:
-                    response = await self.router.acompletion(**call_kwargs)
+                    import asyncio
+                    _timeout = call_kwargs.get("timeout", 300)
+                    response = await asyncio.wait_for(
+                        self.router.acompletion(**call_kwargs),
+                        timeout=float(_timeout)
+                    )
                     break  # Success, exit the retry loop
                 except Exception as e:
+                    import asyncio
                     error_msg = str(e)
                     error_type = type(e).__name__
 
                     is_transient_error = (
-                        (hasattr(e, "status_code") and e.status_code in (429, 502, 503, 504))
+                        isinstance(e, asyncio.TimeoutError)
+                        or (hasattr(e, "status_code") and e.status_code in (429, 502, 503, 504))
                         or "RateLimitError" in error_type
                         or "429" in error_msg
                         or "Resource exhausted" in error_msg

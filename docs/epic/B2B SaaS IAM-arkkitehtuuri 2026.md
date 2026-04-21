@@ -17,6 +17,8 @@ Rakentaa täysin eristetty ja O(1)-nopeudella skaalautuva B2B SaaS IAM \-järjes
 2. **Pydantic Strict Protocol:** Tietomalleissa ei sallita implisiittisiä oletusarvoja eikä joustavia tyyppejä. Käytössä ConfigDict(strict=True, extra="forbid").  
 3. **Anemic Routers:** FastAPI-reitittimet tekevät vain Pydantic-validoinnin. RBAC (Role-Based Access Control) ja tietokantakutsut delegoidaan aina Service-kerrokseen.  
 4. **Fail-Fast Error Handling:** Oikeuksien puute nostaa välittömästi AppException(error\_code=ErrorCodes.FORBIDDEN) RFC 7807 \-standardin mukaisesti (Dual-Reporting: Lokiin tekninen syy, API:in turvallinen enum).
+5. **The Zero Legacy Mandate (Clean Slate 2026):** Vanhaa IAM-koodia ei säästetä, eikä taaksepäinyhteensopivuutta (fallbacks/oikopolut) tueta. Kaikki rakennetaan täysin puhtaalta pöydältä alan tuoreimpien best practice 2026 -ohjeiden mukaisesti. Vanhaan IAM-infrastruktuuriin poltetaan sillat säälimättä.
+6. **Immutable Audit Trail Mandate (SOC2/ISO27001):** Jokainen identiteetin ja luvituksen tilaa muuttava toimenpide (mutaatio) on käärittävä Saga-patterniin (Event Sourcing). Jokaisella mutaatiolla muodostetaan ja tallennetaan asynkronisesti erillinen muuttumaton `TraceEvent` (Action, Actor, Target). Tällä varmistetaan Enterprise B2B -vaatimusten mukainen 100% jäljitettävyys ilman hiljaisia tietokantaylikirjoituksia.
 
 ## **🌉 1. Testimaailman silta: The Emulator Protocol**
 Lokaalin kehitysympäristön on kyettävä kryptografiseen JWT-purkuun aivan kuten tuotannonkin. Pakotamme järjestelmän käyttämään **Firebase Local Emulator Suitea**.
@@ -169,7 +171,7 @@ Järjestelmän juuriorganisaatio ("System") ja asiakkaat toimivat 1:1 samalla li
 
 **Kuvaus:** Rakennetaan tiukasti tyypitetyt Pydantic-mallit, jotka kuvaavat järjestelmän SSOT-tilan (Single Source of Truth). Relaatiot hoidetaan litteänä (Flat Referencing).
 
-> **Graceful Migration Strategy:** Uudet tiukat mallit nimetään päätteellä `*DTO` (esim. `OrganizationDTO`, `UserDTO`, `TokenDataDTO`), ja ne luodaan olemassa olevien legacy-mallien viereen. Tämä estää välittömän "Big Bang" -rikkoutumisen niissä kymmenissä FastAPI-reitittimissä, jotka vielä nojaavat vanhaan `TokenData`-luokkaan (jossa rooli ja org_id olivat suoraan juuressa). `seed_registry.py` päivitetään välittömästi käyttämään uusia DTO-malleja, ja reitittimet siirretään näihin iteratiivisesti.
+> **The Big Bang Protocol:** Kaikki vanhaan IAM/Token-malliin liittyvät legacy-luokat (esim. vanha `TokenData`, vanhat `auth.py` funktiot) on tuhottava säälimättä. Uudet `*DTO`-mallit ylikirjoittavat vanhat suoraan. Hyväksymme sen, että koodikanta (FastAPI-reitittimet) "hajoaa" hetkellisesti pirstaleiksi. Tuki vanhalle koodille ja siirtymän fallbackit on ehdottomasti kielletty. Korjaukset tehdään systemaattisesti ajamalla `uv run mypy .` ja korjaamalla rikkinäiset reitititmet ankarasti yksi kerrallaan uuteen DTO-standardiin, kunnes koko linter on puhdas nollalla virheellä.
 
 * **Task 1.1: Opaque ID \-tyypit ja Enumit (PEP 695\) (models/auth.py)**  
   * Määritä tyyppialiakset: type StripeUserId \= str ja type StripeOrgId \= str.  
@@ -191,12 +193,13 @@ Järjestelmän juuriorganisaatio ("System") ja asiakkaat toimivat 1:1 samalla li
 
 * **Task 2.1: Jäsenyyksien hallinta (services/iam\_service.py)**  
   * Toteuta assign\_user\_to\_org(user\_id: StripeUserId, org\_id: StripeOrgId, role: TenantRole).  
-  * **Logiikka:**  
+  * **Saga-logiikka (Event Sourced):**  
     1. Kirjoita uusi/päivitetty MembershipDTO tietokantaan (Unified Workflow Repository).  
     2. Hae käyttäjän nykyiset Custom Claimsit Firebase Admin SDK:lla.  
     3. Päivitä sanakirjaa: claims\[org\_id\] \= role.value.  
     4. Puske päivitetyt leimat takaisin Firebaseen: auth.set\_custom\_user\_claims(user\_id, claims).  
-  * *Sääntö:* Kääri asynkroniset tietokanta- ja verkkopyynnöt Python 3.11+ asyncio.TaskGroup() \-kontekstiin.  
+    5. Kirjoita `TraceEvent` (Action: ROLE_ELEVATED, Actor: "kutsujan_id", Target: user_id) erilliseen audit-tauluun samassa transaktiossa vahvistamaan mutaation valmistuminen.
+  * *Sääntö:* Kääri asynkroniset tietokanta- ja verkkopyynnöt Python 3.11+ asyncio.TaskGroup() \-kontekstiin turvalliseksi Sagaksi (jos Firebase kaatuu, mutaatio rollbackataan).
 * **Task 2.2: Tokenin vahvistus (services/auth\_service.py)**  
   * Toteuta rutiini, joka käyttää Firebase Adminia vahvistamaan Frontendiltä saapuvan tokenin ja palauttaa puhtaan TokenDataDTO:n.
 * **Task 2.4: Magic Link Invitation Engine**
@@ -250,8 +253,10 @@ Järjestelmän juuriorganisaatio ("System") ja asiakkaat toimivat 1:1 samalla li
 
 **Kuvaus:** Tietokantaa ei saa käsin muokata lennosta (ID:t korruptoituvat). Luomme Seed-skriptin ensimmäisen Root-käyttäjän (sinun) luomiseksi.
 
-* **Task 5.1: Seed Data JSON (backend_v2/seed/seed_data.json)**  
-  * Määritä JSONiin "System Administration" -organisaatio (esim. org_system000001).
+* **Task 5.0: Tier 3 Database Reset (The IAM Clean Slate)**
+  * **Mandaatti:** Ennen IAM-koodauksen tai testaamisen aloittamista koko vanha varsinainen tietokanta `db_v2.json` (tai testikannan tila) pyyhitään `tier3-database-reset` -työnkululla **täysin tyhjäksi, mukaan lukien vanhat ajohistoriat**. Tämä on turvallista, sillä itse siementiedosto (`backend_v2/seed/seed_data.json`) on suojattu ja säästetään täysimääräisenä. Kun siemennysskripti ajetaan uudelleen, se palauttaa kaikki kognitiiviset matriisit ja työnkulut puhtaalle pöydälle.
+* **Task 5.1: Seed Data JSON & System Root -säilytys**  
+  * Tiedostoa `seed_data.json` saa (ja pitää) muokata, jotta se vastaa uusia tiukkoja Pydantic DTO -rakenteita (esim. poistetaan tuettomuudet tai validointivirheet). Ainoa ehdoton sääntö on, että valmiiksi määritelty siemenorganisaatio `"id": "org_system000000"` ja `"display_name": "System Root"` säilytetään tismalleen näillä arvoilla. Muutoin tiedosto on täysin päivitettävissä.
 * **Task 5.2: Siemennysskripti (run_seed.py local)**  
   * Skripti luo organisaation kantaan.
   * Skripti etsii antamasi sähköpostiosoitteen perusteella Firebase UID:si, luo MembershipDTO:n kantaan, ja käyttää Firebase Admin SDK:ta ampumaan profiiliisi leiman: `{"system_role": "ROOT"}`.

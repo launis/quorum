@@ -415,14 +415,20 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         "dumps. If you mention internal findings, state them directly without using it."
     )
 
+    active_exts = active_profile.get("visible_extensions", [])
+    exts_str = ", ".join([str(x) for x in active_exts]) if isinstance(active_exts, list) else str(active_exts)
+
     sys_prompt += (
-        "\n\nCRITICAL XAI DEDUPLICATION RULE:\n"
-        "Scan all raw inputs for specific outcome extensions (like 'falsification', 'coaching', "
-        "'risk_flag', 'remediation_steps'). "
-        "Because these may be generated repeatedly across multiple steps, you MUST deduplicate them globally. "
-        "Group them logically, rank them descending by absolute criticality (impact/risk), and output ONLY "
-        "the TOP 3 items per category into the `xai_highlights` array. Provide ONLY the core text, omitting "
-        "any internal titles like 'Vasta-argumentti 1:'."
+        "\n\nCRITICAL XAI EXTENSION SYNTHESIS MANDATE:\n"
+        "Your task is to act as the Chief Editor. Scan the flattened JSON outputs of the matrices for any localized "
+        "extensions they produced. In the V2 schema, these extensions are always appended as suffixes to the matrix Stripe IDs "
+        "(e.g., 'blk_22e3598e06414409_coaching', 'blk_80732a33fe1947ee_falsification').\n"
+        f"TARGET EXTENSIONS TO HARVEST: {exts_str}\n"
+        "You must HARVEST these fragmented, atomized insights and SYNTHESIZE them into the TOP 3 most critical, "
+        "high-impact global highlights per target extension category. Do not simply copy-paste them blindly; elevate "
+        "and merge overlapping insights to create a coherent executive summary. "
+        "Output these items strictly into the `xai_highlights` array, using the EXACT target extension name in `extension_type`. (e.g. \"coaching\")\n"
+        "Provide ONLY the core text, omitting any internal titles like 'Vasta-argumentti 1:'."
     )
 
     messages = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": raw_input_text}]

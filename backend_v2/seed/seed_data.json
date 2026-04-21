@@ -6328,7 +6328,9 @@
           "synthesis_md": null
         }
       ],
-      "max_extension_items": 2
+      "max_extension_items": 2,
+      "system_prompt": "",
+      "report_layouts": []
     }
   ],
   "executions": []

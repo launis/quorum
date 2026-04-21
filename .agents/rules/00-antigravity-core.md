@@ -48,6 +48,11 @@
 </ide_orchestration_protocol>
 
 <catastrophic_system_bans>
+    <rule_block id="feature_sovereignty_mandate">
+        <banned_pattern>Autonomously deleting, bypassing, or deprecating existing cognitive features (e.g., specific XAI output extensions, metrics, or matrix metadata) simply to optimize latency, resolve token explosion errors, or to "clean up" the schema without explicit USER consent.</banned_pattern>
+        <mandatory_pattern>Performance optimizations MUST be structural (e.g., prompt refinement, architectural pipelining, synthesis delegation). If a performance issue requires dropping a functional feature or data field that the User expects in the UI or Database, you MUST STOP and explicitly ask for "PERMISSION GRANTED to deprecate feature X to solve Y".</mandatory_pattern>
+        <catastrophic_reason>Agentic Drift. The AI risks prioritizing pure system stability over business value, silently amputating core platform capabilities under the guise of technical optimization.</catastrophic_reason>
+    </rule_block>
     <rule_block id="the_zero_compromise_pledge">
         <banned_pattern>Taaksepäinyhteensopivuus, fallback-ketjut ("jos A puuttuu, kokeile B"), oikotiet, ohjelmointikielen oletusarvot (esim. v.get('kenttä', '')) ja kovakoodatut paikkaajat ovat kaikki ankarasti kiellettyjä.</banned_pattern>
         <mandatory_pattern>If an expected key or data point is missing in a strict architecture (like a Micro-CoT footprint or execution trace), you MUST raise an explicit `RuntimeError` or `AppException` and CRASH. Zero Tolerance for silent bypasses.</mandatory_pattern>

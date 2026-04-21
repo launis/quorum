@@ -5,9 +5,7 @@ from typing import Any
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.enums import XaiExtensionType
 from backend_v2.models.v2_core import ReportAxisDTO, ReportDataDTO, ReportLayoutDTO
-from backend_v2.models.view.sdui import HighlightBoxDisplay
 
 logger = logging.getLogger(__name__)
 
@@ -50,16 +48,16 @@ class BlueprintTransformer:
         projector = StateProjector()
         results = projector.fold_trace(execution.execution_trace)
 
-        locale = accept_language or execution.metadata.get("target_locale", "en")
+        locale = accept_language or execution.metadata.get("target_locale") or "en"
 
         import typing
 
         def _resolve_i18n_str(val: dict[str, typing.Any] | None, lang: str, fallback: str) -> str:
             """Ensure payload extracts the localized string for axis titles."""
             if val and isinstance(val, dict):
-                translations = val.get("translations", val)
+                translations = val.get("translations") or val
                 if isinstance(translations, dict):
-                    return str(translations.get(lang, translations.get("en", fallback)))
+                    return str(translations.get(lang) or translations.get("en") or fallback)
             return fallback
 
         from backend_v2.models.v2_core import Workflow
@@ -121,246 +119,17 @@ class BlueprintTransformer:
 
         # Epic: XAI Output Extensions
         visible_extensions = [v.value for v in getattr(profile, "visible_extensions", [])]
-        grouped_extensions: dict[str, list[typing.Any]] = {ext: [] for ext in visible_extensions}
-        max_extension_items = getattr(profile, "max_extension_items", None)
-
-        # -- GLOBAL XAI EXTENSION AGGREGATION --
-        # Aggregate XAI extensions globally across all execution steps before processing layout constraints.
-        # This ensures extensions are collected even if a block is excluded from visual charts or show_text is false.
-        def _add_ext(
-            group: str, val_key: str, content: typing.Any, axis: str, score: float | int | None = None
-        ) -> None:
-            camel_group = "".join(word.capitalize() if i > 0 else word for i, word in enumerate(group.split("_")))
-            if (group not in visible_extensions and camel_group not in visible_extensions) or not content:
-                return
-            if group not in grouped_extensions:
-                grouped_extensions[group] = []
-
-            # Deduplicate by exact content match
-            for existing in grouped_extensions[group]:
-                exist_content = (
-                    existing.content if isinstance(existing, HighlightBoxDisplay) else existing.get("content")
-                )
-                if exist_content == content or (isinstance(existing, dict) and existing.get(val_key) == content):
-                    # We skip axis merging for HighlightBoxDisplay objects right now for simplicity
-                    # since they are structurally complete, but we could extend it if necessary.
-                    if isinstance(existing, dict):
-                        if axis not in existing.get("axis_name", ""):
-                            existing["axis_name"] = existing.get("axis_name", "") + f" & {axis}"
-                        if score is not None and score < existing.get("_score", 999):
-                            existing["_score"] = score
-                    # For HighlightBoxDisplay, deduplication drops the duplicate completely.
-                    return
-
-            color_theme: typing.Literal["danger", "info", "warning", "success", "primary"] = "info"
-            icon_name = "info"
-
-            if group in [XaiExtensionType.FALSIFICATION.value, XaiExtensionType.RISK_FLAG.value]:
-                color_theme = "danger"
-                icon_name = "warning"
-            elif group in [
-                XaiExtensionType.COACHING.value,
-                XaiExtensionType.REMEDIATION_STEPS.value,
-                XaiExtensionType.MISSING_CONTEXT.value,
-            ]:
-                color_theme = "warning"
-                icon_name = "lightbulb"
-            elif group in [XaiExtensionType.THEORY_LINK.value]:
-                color_theme = "info"
-                icon_name = "psychology"
-            elif group in [XaiExtensionType.EMOTIONAL_SENTIMENT.value, XaiExtensionType.CONFIDENCE.value]:
-                color_theme = "success"
-                icon_name = "check"
-
-            if isinstance(content, list):
-                content_str = "\n".join(f"- {str(item)}" for item in content)
-            else:
-                content_str = str(content)
-
-            # Render as strictly typed UI Box instead of Naked Dict
-            box = HighlightBoxDisplay(
-                content=content_str,
-                color_theme=color_theme,
-                icon_name=icon_name,
-            )
-            # Dump to dict to avoid naive __repr__ stringification by FastAPI fallback for List[Any]
-            box_dict = box.model_dump()
-
-            # Monkey-patch internal fields needed for algorithmic processing before final serialization
-            box_dict["_score"] = score if score is not None else 999
-
-            grouped_extensions[group].append(box_dict)
+        grouped_extensions: dict[str, list[Any]] = {ext: [] for ext in visible_extensions}
 
         # We must pre-fetch blocks early for resolving axis_label
         all_blocks = await self.repo.get_all_prompt_blocks()
         blocks_by_id = {b["id"]: b for b in all_blocks if "id" in b}
-
-        for step_id, step_data_res in results.items():
-            if isinstance(step_data_res, dict):
-                for k, v in step_data_res.items():
-                    is_legacy_score = k == "score"
-
-                    suffix_list = [
-                        "_justification",
-                        "_scaled",
-                        "_normalized",
-                        "_raw",
-                        "_cited_source_id",
-                        "_cited_text_quote",
-                        "_google_citation",
-                        "_coaching",
-                        "_confidence",
-                        "_falsification",
-                        "_missing_context",
-                        "_risk_flag",
-                        "_remediation_steps",
-                        "_emotional_sentiment",
-                        "_theory_link",
-                    ]
-                    if any(k.endswith(sfx) for sfx in suffix_list):
-                        continue
-
-                    block = blocks_by_id.get(k)
-                    if not block and not is_legacy_score:
-                        continue
-
-                    axis_name = step_id if is_legacy_score else k
-                    if block:
-                        label_obj = block.get("label", {})
-                        axis_name = _resolve_i18n_str(label_obj, locale, k) or k
-
-                    # Build Ext Vars
-                    if is_legacy_score:
-                        raw_justification = str(step_data_res.get("justification", ""))
-                        raw_cited_source_id = ""
-                        raw_cited_text_quote = ""
-                        raw_cited_web_citation = ""
-                        raw_falsification = None
-                        raw_theory_link = None
-                        raw_risk_flag = None
-                        coaching = None
-                        confidence = None
-                        missing_context = None
-                        remediation_steps = None
-                        emotional_sentiment = None
-                        score_val = 999.0
-                    else:
-                        if isinstance(v, dict):
-                            eval_notes = v.get("evaluation_notes", "")
-                            raw_justification = str(v.get("step_3_logical_friction", eval_notes) or "")
-                            raw_cited_source_id = str(v.get("step_1b_cited_source_id", ""))
-                            raw_cited_text_quote = str(v.get("step_1_evidence_quote", ""))
-                            raw_cited_web_citation = str(v.get("step_1c_google_citation", ""))
-                            raw_falsification = v.get("extension_falsification", v.get("step_2_falsification"))
-                            raw_theory_link = v.get("extension_theory_link")
-                            raw_risk_flag = v.get("extension_risk_flag")
-                            coaching = v.get("extension_coaching")
-                            confidence = v.get("extension_confidence")
-                            missing_context = v.get("extension_missing_context")
-                            remediation_steps = v.get("extension_remediation_steps")
-                            emotional_sentiment = v.get("extension_emotional_sentiment")
-                            score_val = BlueprintTransformer._extract_numeric_score(v, fallback=999.0)
-                        else:
-                            legacy_dina_notes = step_data_res.get(f"{k}_justification", "")
-                            eval_notes = step_data_res.get("evaluation_notes", legacy_dina_notes)
-                            raw_justification = str(step_data_res.get("step_3_logical_friction", eval_notes) or "")
-                            raw_cited_source_id = str(step_data_res.get("step_1b_cited_source_id", ""))
-                            raw_cited_text_quote = str(step_data_res.get("step_1_evidence_quote", ""))
-                            raw_cited_web_citation = str(step_data_res.get("step_1c_google_citation", ""))
-                            raw_falsification = step_data_res.get("step_2_falsification")
-                            raw_theory_link = step_data_res.get("extension_theory_link")
-                            raw_risk_flag = step_data_res.get("extension_risk_flag")
-                            coaching = step_data_res.get("extension_coaching")
-                            confidence = step_data_res.get("extension_confidence")
-                            missing_context = step_data_res.get(
-                                f"{k}_missing_context", step_data_res.get("extension_missing_context")
-                            )
-                            remediation_steps = step_data_res.get("extension_remediation_steps")
-                            emotional_sentiment = step_data_res.get("extension_emotional_sentiment")
-                            score_val = BlueprintTransformer._extract_numeric_score(step_data_res, fallback=999.0)
-
-                    _add_ext("justification", "justification", raw_justification, axis_name, score_val)
-                    _add_ext("falsification", "falsification", raw_falsification, axis_name, score_val)
-                    _add_ext("theory_link", "theory_link", raw_theory_link, axis_name, score_val)
-                    _add_ext("risk_flag", "risk_flag", raw_risk_flag, axis_name, score_val)
-                    _add_ext("coaching", "coaching", coaching, axis_name, score_val)
-                    _add_ext("missing_context", "missing_context", missing_context, axis_name, score_val)
-                    _add_ext("remediation_steps", "remediation_steps", remediation_steps, axis_name, score_val)
-                    _add_ext("emotional_sentiment", "emotional_sentiment", emotional_sentiment, axis_name, score_val)
-                    _add_ext("confidence", "confidence", confidence, axis_name, score_val)
-
-                    # We perform algorithmic extraction of Citations here!
-
-                    if "citation" in visible_extensions and (
-                        raw_cited_source_id or raw_cited_text_quote or raw_cited_web_citation
-                    ):
-                        if "citation" not in grouped_extensions:
-                            grouped_extensions["citation"] = []
-
-                        citation_hash = (
-                            str(raw_cited_source_id) + str(raw_cited_text_quote) + str(raw_cited_web_citation)
-                        )
-                        cite_exists = False
-                        for existing in grouped_extensions["citation"]:
-                            existing_hash = (
-                                str(existing.get("cited_source_id", ""))
-                                + str(existing.get("cited_text_quote", ""))
-                                + str(existing.get("cited_web_citation", ""))
-                            )
-                            if existing_hash == citation_hash:
-                                if axis_name not in existing["axis_name"]:
-                                    existing["axis_name"] += f" & {axis_name}"
-                                cite_exists = True
-                                break
-                        if not cite_exists:
-                            grouped_extensions["citation"].append(
-                                {
-                                    "axis_name": axis_name,
-                                    "cited_source_id": raw_cited_source_id,
-                                    "cited_text_quote": raw_cited_text_quote,
-                                    "cited_web_citation": raw_cited_web_citation,
-                                }
-                            )
-
-        # Process limit/truncation based on max_extension_items
-        for ext_group, items in list(grouped_extensions.items()):
-            if max_extension_items is not None and len(items) > max_extension_items:
-
-                def _strict_float(val: typing.Any) -> float:
-                    if val is None:
-                        raise AppException(
-                            message="Fail-Fast: Extension item missing required '_score' for sorting.",
-                            status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                        )
-                    try:
-                        return float(val)
-                    except (ValueError, TypeError) as e:
-                        raise AppException(
-                            message=f"Fail-Fast: Cannot parse score to float: {val}",
-                            status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                        ) from e
-
-                # Sort by score ascending (lowest score is most critical)
-                items.sort(
-                    key=lambda x: _strict_float(x.get("_score"))
-                    if isinstance(x, dict)
-                    else _strict_float(getattr(x, "_score", None))
-                )
-                grouped_extensions[ext_group] = items[:max_extension_items]
-
-            # Clean up the internal _score key (dicts only; Pydantic ignores private attributes)
-            for item in grouped_extensions[ext_group]:
-                if isinstance(item, dict):
-                    item.pop("_score", None)
-
         layouts_list = []
         # Pre-fetch prompt blocks to enrich axis labels
         # (Blocks already fetched above for global aggregation)
 
         # Pre-fetch DAG workflow steps for collision avoidance renaming
-        workflow_steps = {s["id"]: s for s in workflow_data.get("steps", [])}
+        workflow_steps = {s["id"]: s for s in workflow_data.get("steps") or []}
 
         global_score = None
 
@@ -391,10 +160,10 @@ class BlueprintTransformer:
         # Merge XAI Highlights from cache into grouped_extensions
         for highlight in xai_highlights_cache:
             # Strict Extraction
-            t_name = highlight.get("type_name")
+            t_name = highlight.get("extension_type")
             if not t_name:
                 raise AppException(
-                    message="Fail-Fast: Cached highlight missing 'type_name'.",
+                    message="Fail-Fast: Cached highlight missing 'extension_type'.",
                     status_code=500,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED},
                 )
@@ -409,11 +178,13 @@ class BlueprintTransformer:
             has_warning = True
 
         global_score = None
-        penalties_applied = []
+        penalties_applied: list[str] = []
         if isinstance(scoring_out, dict):
             t_score = scoring_out.get("total_score")
             global_score = float(round(float(t_score), 1)) if t_score is not None else None
-            penalties_applied = scoring_out.get("penalties_applied", [])
+            raw_penalties = scoring_out.get("penalties_applied")
+            if isinstance(raw_penalties, list):
+                penalties_applied = [str(p) for p in raw_penalties]
 
         try:
             for idx, layout_def in enumerate(layout_defs):
@@ -475,7 +246,9 @@ class BlueprintTransformer:
                                 elif display_scale == "normalized_100":
                                     active_score_key = f"{k}_normalized"
 
-                            target_val = step_data.get(active_score_key, v)
+                            target_val = step_data.get(active_score_key)
+                            if target_val is None:
+                                target_val = v
                             target_val = BlueprintTransformer._extract_numeric_score(target_val, fallback=target_val)
 
                             is_matrix_category = block and block.get("category_id") == "matrix"
@@ -509,51 +282,82 @@ class BlueprintTransformer:
                             scale_labels: dict[str, str] = {}
 
                             if block:
-                                label_obj = block.get("label", {})
+                                label_obj = block.get("label")
                                 axis_name = _resolve_i18n_str(label_obj, locale, k) or k
 
-                                desc_obj = block.get("description", {})
+                                desc_obj = block.get("description")
                                 axis_description = _resolve_i18n_str(desc_obj, locale, "")
 
-                                scales_def = block.get("scales", [])
-
-                                # Epic 12: Handle UI Visual Scale Boundaries
+                                # Epic: Strict Math Extrema Anchoring (Zero-Compromise)
                                 semantic_min_str = ""
                                 semantic_max_str = ""
 
-                                if scales_def:
-                                    scores = [float(s.get("score", 0)) for s in scales_def if "score" in s]
-                                    if scores:
-                                        scale_max = max(scores)
-                                        scale_min = min(scores)
+                                if is_matrix_category:
+                                    if block.get("computed_min") is None or block.get("computed_max") is None:
+                                        raise AppException(
+                                            message=f"PromptBlock '{k}' missing Pydantic computed_min/max.",
+                                            status_code=500,
+                                            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                                        )
+                                    scale_min = float(block["computed_min"])
+                                    scale_max = float(block["computed_max"])
+
+                                    scales_def = block.get("scales")
+                                    if not scales_def:
+                                        raise AppException(
+                                            message=f"PromptBlock '{k}' initialized as matrix but has no scales.",
+                                            status_code=500,
+                                            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                                        )
 
                                     for s in scales_def:
-                                        s_score = float(s.get("score", 0))
-                                        s_label_obj = s.get("name", {})
+                                        if "score" not in s:
+                                            raise AppException(
+                                                message=f"Fail-Fast: MatrixScale in block '{k}' missing 'score'.",
+                                                status_code=500,
+                                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                            )
+                                        s_score = float(s["score"])
+                                        s_label_obj = s.get("name")
+                                        if not s_label_obj:
+                                            raise AppException(
+                                                message=f"Fail-Fast: MatrixScale in block '{k}' missing 'name'.",
+                                                status_code=500,
+                                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                            )
                                         s_label = _resolve_i18n_str(s_label_obj, locale, "")
                                         cleaned_score = int(s_score) if s_score.is_integer() else s_score
                                         scale_labels[str(cleaned_score)] = s_label
 
-                                    if scores:
-                                        clean_orig_min = str(int(scale_min) if scale_min.is_integer() else scale_min)
-                                        clean_orig_max = str(int(scale_max) if scale_max.is_integer() else scale_max)
-                                        semantic_min_str = scale_labels.get(clean_orig_min, "")
-                                        semantic_max_str = scale_labels.get(clean_orig_max, "")
+                                    clean_orig_min = str(int(scale_min) if scale_min.is_integer() else scale_min)
+                                    clean_orig_max = str(int(scale_max) if scale_max.is_integer() else scale_max)
 
-                                # Override boundaries if visual display requires mapping
-                                if display_scale == "normalized_100" and is_matrix_category:
-                                    scale_min = 0.0
-                                    scale_max = 100.0
-                                    scale_labels = {}  # Purge mapping to prevent disproportionate labeling
-                                elif (
-                                    display_scale == "custom"
-                                    and block.get("scale_min") is not None
-                                    and block.get("scale_max") is not None
-                                ):
-                                    scale_min_val = block.get("scale_min")
-                                    scale_max_val = block.get("scale_max")
-                                    scale_min = float(scale_min_val) if scale_min_val is not None else 0.0
-                                    scale_max = float(scale_max_val) if scale_max_val is not None else 0.0
+                                    try:
+                                        semantic_min_str = scale_labels[clean_orig_min]
+                                        semantic_max_str = scale_labels[clean_orig_max]
+                                    except KeyError as k_err:
+                                        raise AppException(
+                                            message=f"Matrix extrema '{k_err}' missing scale label.",
+                                            status_code=500,
+                                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                        ) from k_err
+
+                                    # Override boundaries if visual display requires mapping
+                                    if display_scale == "normalized_100":
+                                        scale_min = 0.0
+                                        scale_max = 100.0
+                                        scale_labels = {}  # Purge mapping to prevent disproportionate labeling
+                                    elif display_scale == "custom":
+                                        scale_min_val = block.get("scale_min")
+                                        scale_max_val = block.get("scale_max")
+                                        if scale_min_val is None or scale_max_val is None:
+                                            raise AppException(
+                                                message=f"UI bounds missing for PromptBlock '{k}' under custom scale.",
+                                                status_code=500,
+                                                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                                            )
+                                        scale_min = float(scale_min_val)
+                                        scale_max = float(scale_max_val)
 
                                 # SDUI Logic calculation for Mathless Flutter
                                 ui_plot_ratio = None
@@ -571,39 +375,39 @@ class BlueprintTransformer:
                                 collision_counter = 1
                                 # Check if name is already present in axes from another block
                                 while any(ext.name == axis_name for ext in unsorted_axes.values()):
-                                    step_node = workflow_steps.get(step_id, {})
-                                    step_title_obj = step_node.get("name", {}) or step_node.get("title", {})
+                                    step_node = workflow_steps.get(step_id) or {}
+                                    step_title_obj = step_node.get("name") or step_node.get("title")
                                     step_title = _resolve_i18n_str(step_title_obj, locale, step_id)
                                     axis_name = f"{original_axis_name} ({step_title})"
                                     if any(ext.name == axis_name for ext in unsorted_axes.values()):
                                         axis_name = f"{original_axis_name} ({step_title} {collision_counter})"
                                         collision_counter += 1
 
-                                justification = ""
-                                cited_source_id = ""
-                                cited_text_quote = ""
-                                cited_web_citation = ""
-                                coaching = None
-                                confidence = None
-                                falsification = None
-                                missing_context = None
-                                risk_flag = None
-                                remediation_steps = None
-                                emotional_sentiment = None
-                                theory_link = None
+                                justification: str | None = None
+                                cited_source_id: str | None = None
+                                cited_text_quote: str | None = None
+                                cited_web_citation: str | None = None
+                                coaching: str | None = None
+                                confidence: Any | None = None
+                                falsification: str | None = None
+                                missing_context: str | None = None
+                                risk_flag: Any | None = None
+                                remediation_steps: Any | None = None
+                                emotional_sentiment: str | None = None
+                                theory_link: str | None = None
 
                                 if text_delivery_mode != "none":
                                     if is_legacy_score:
-                                        justification = str(step_data.get("justification", ""))
+                                        justification = step_data.get("justification")
                                     else:
                                         if isinstance(v, dict):
-                                            eval_notes = v.get("evaluation_notes", "")
-                                            justification = str(v.get("step_3_logical_friction", eval_notes) or "")
-                                            cited_source_id = str(v.get("step_1b_cited_source_id", ""))
-                                            cited_text_quote = str(v.get("step_1_evidence_quote", ""))
-                                            cited_web_citation = str(v.get("step_1c_google_citation", ""))
-                                            falsification = v.get(
-                                                "extension_falsification", v.get("step_2_falsification")
+                                            eval_notes = v.get("evaluation_notes")
+                                            justification = v.get("step_3_logical_friction") or eval_notes
+                                            cited_source_id = v.get("step_1b_cited_source_id")
+                                            cited_text_quote = v.get("step_1_evidence_quote")
+                                            cited_web_citation = v.get("step_1c_google_citation")
+                                            falsification = v.get("extension_falsification") or v.get(
+                                                "step_2_falsification"
                                             )
                                             theory_link = v.get("extension_theory_link")
                                             risk_flag = v.get("extension_risk_flag")
@@ -613,24 +417,20 @@ class BlueprintTransformer:
                                             remediation_steps = v.get("extension_remediation_steps")
                                             emotional_sentiment = v.get("extension_emotional_sentiment")
                                         else:
-                                            legacy_dina_notes = step_data.get(f"{k}_justification", "")
-                                            eval_notes = step_data.get("evaluation_notes", legacy_dina_notes)
-                                            justification = str(
-                                                step_data.get("step_3_logical_friction", eval_notes) or ""
-                                            )
-                                            cited_source_id = str(step_data.get("step_1b_cited_source_id", ""))
-                                            cited_text_quote = str(step_data.get("step_1_evidence_quote", ""))
-                                            cited_web_citation = str(step_data.get("step_1c_google_citation", ""))
-                                            falsification = step_data.get("step_2_falsification")
-                                            theory_link = step_data.get("extension_theory_link")
-                                            risk_flag = step_data.get("extension_risk_flag")
-                                            coaching = step_data.get("extension_coaching")
-                                            confidence = step_data.get("extension_confidence")
-                                            missing_context = step_data.get(
-                                                f"{k}_missing_context", step_data.get("extension_missing_context")
-                                            )
-                                            remediation_steps = step_data.get("extension_remediation_steps")
-                                            emotional_sentiment = step_data.get("extension_emotional_sentiment")
+                                            legacy_dina_notes = step_data.get(f"{k}_justification")
+                                            eval_notes = step_data.get(f"{k}_evaluation_notes") or legacy_dina_notes
+                                            justification = step_data.get(f"{k}_justification") or eval_notes
+                                            cited_source_id = step_data.get(f"{k}_cited_source_id")
+                                            cited_text_quote = step_data.get(f"{k}_cited_text_quote")
+                                            cited_web_citation = step_data.get(f"{k}_google_citation")
+                                            falsification = step_data.get(f"{k}_falsification")
+                                            theory_link = step_data.get(f"{k}_theory_link")
+                                            risk_flag = step_data.get(f"{k}_risk_flag")
+                                            coaching = step_data.get(f"{k}_coaching")
+                                            confidence = step_data.get(f"{k}_confidence")
+                                            missing_context = step_data.get(f"{k}_missing_context")
+                                            remediation_steps = step_data.get(f"{k}_remediation_steps")
+                                            emotional_sentiment = step_data.get(f"{k}_emotional_sentiment")
 
                                 # Use a combined key for uniqueness
                                 unique_k = f"{step_id}_{k}"
@@ -796,13 +596,13 @@ class BlueprintTransformer:
             if execution.execution_trace:
                 for _step_key, step_data in results.items():
                     if isinstance(step_data, dict) and "_step_metadata" in step_data:
-                        usage = step_data["_step_metadata"].get("token_usage", {})
+                        usage = step_data["_step_metadata"].get("token_usage")
                         if isinstance(usage, dict):
-                            p_tokens += usage.get("prompt_tokens", 0)
-                            c_tokens += usage.get("completion_tokens", 0)
-                            r_tokens += usage.get("reasoning_tokens", 0)
-                            t_tokens += usage.get("total_tokens", 0)
-                            cost += float(usage.get("cost_usd", 0.0))
+                            p_tokens += int(usage["prompt_tokens"]) if "prompt_tokens" in usage else 0
+                            c_tokens += int(usage["completion_tokens"]) if "completion_tokens" in usage else 0
+                            r_tokens += int(usage["reasoning_tokens"]) if "reasoning_tokens" in usage else 0
+                            t_tokens += int(usage["total_tokens"]) if "total_tokens" in usage else 0
+                            cost += float(usage["cost_usd"]) if "cost_usd" in usage else 0.0
 
             # --- V3 SANITY CHECK / HEALTH ALERTS ---
             if t_tokens == 0 and execution.execution_trace:
@@ -824,7 +624,7 @@ class BlueprintTransformer:
             f_context = getattr(execution, "frozen_context", None)
             if f_context:
                 raw_audits = (
-                    f_context.get("mcp_tool_audit", [])
+                    f_context.get("mcp_tool_audit")
                     if isinstance(f_context, dict)
                     else getattr(f_context, "mcp_tool_audit", [])
                 )

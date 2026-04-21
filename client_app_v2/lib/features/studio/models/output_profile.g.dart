@@ -195,6 +195,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
             'max_extension_items',
             'display_scale',
             'synthesis',
+            'include_diagnostic_scorecard',
             'layouts',
           ],
         );
@@ -243,6 +244,10 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
                 ? null
                 : SynthesisConfigDTO.fromJson(v as Map<String, dynamic>),
           ),
+          includeDiagnosticScorecard: $checkedConvert(
+            'include_diagnostic_scorecard',
+            (v) => v as bool? ?? false,
+          ),
           layouts: $checkedConvert(
             'layouts',
             (v) =>
@@ -263,6 +268,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
         'visibleExtensions': 'visible_extensions',
         'maxExtensionItems': 'max_extension_items',
         'displayScale': 'display_scale',
+        'includeDiagnosticScorecard': 'include_diagnostic_scorecard',
       },
     );
 
@@ -281,6 +287,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'max_extension_items': instance.maxExtensionItems,
   'display_scale': instance.displayScale,
   'synthesis': instance.synthesis?.toJson(),
+  'include_diagnostic_scorecard': instance.includeDiagnosticScorecard,
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
 };
 
@@ -313,6 +320,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         'max_extension_items',
         'display_scale',
         'synthesis',
+        'include_diagnostic_scorecard',
         'layouts',
       ],
     );
@@ -351,6 +359,10 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
             ? null
             : SynthesisConfigDTO.fromJson(v as Map<String, dynamic>),
       ),
+      includeDiagnosticScorecard: $checkedConvert(
+        'include_diagnostic_scorecard',
+        (v) => v as bool? ?? false,
+      ),
       layouts: $checkedConvert(
         'layouts',
         (v) =>
@@ -369,6 +381,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
     'visibleExtensions': 'visible_extensions',
     'maxExtensionItems': 'max_extension_items',
     'displayScale': 'display_scale',
+    'includeDiagnosticScorecard': 'include_diagnostic_scorecard',
   },
 );
 
@@ -384,5 +397,6 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
   'max_extension_items': instance.maxExtensionItems,
   'display_scale': instance.displayScale,
   'synthesis': instance.synthesis?.toJson(),
+  'include_diagnostic_scorecard': instance.includeDiagnosticScorecard,
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
 };
