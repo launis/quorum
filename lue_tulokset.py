@@ -34,7 +34,7 @@ def print_latest_execution_results(target_locale: str = "fi"):
         try:
             # We enforce Pydantic V2 model validation at the perimeter
             pb_model = PromptBlock.model_validate(pb_dict)
-            prompt_blocks[pb_id] = pb_model
+            prompt_blocks[pb_model.id] = pb_model
         except Exception as e:
             # Päästetään läpi, mutta lokitetaan - testauksen vuoksi
             pass
@@ -51,9 +51,9 @@ def print_latest_execution_results(target_locale: str = "fi"):
         ts = exe_dict.get("created_at") or exe_dict.get("completed_at") or 0
         return str(ts)
 
-    valid_executions = [exe for exe in executions.values() if isinstance(exe, dict) and "id" in exe]
+    valid_executions = [exe for exe in executions.values() if isinstance(exe, dict) and "id" in exe and exe.get("status") == "completed"]
     if not valid_executions:
-        raise ValueError("[FAIL-FAST] Ei löytynyt yhtään validia ajoa (id puuttuu).")
+        raise ValueError("[FAIL-FAST] Ei löytynyt yhtään validia (completed) ajoa.")
 
     latest_exe = max(valid_executions, key=get_sort_key)
     exe_id = latest_exe["id"]
@@ -78,63 +78,57 @@ def print_latest_execution_results(target_locale: str = "fi"):
     found_any = False
     found_matrices = {}
 
-    def find_matrices(data):
-        if isinstance(data, dict):
-            for k, v in data.items():
-                if isinstance(k, str) and k.startswith("blk_"):
-                    # Tarkistetaan onko tämä aito matriisi Pydantic-määrittelyistä
-                    pb_model = prompt_blocks.get(k)
-                    is_matrix = pb_model is not None and pb_model.category_id == "matrix"
+    def extract_flat_matrices(trace):
+        for event in trace:
+            content = event.get("content", {})
+            if not isinstance(content, dict):
+                continue
+            
+            # Find all unique block IDs in this content
+            block_ids = set()
+            for k in content.keys():
+                if k.startswith("blk_"):
+                    # Extract the base block ID (e.g. blk_109dab5b6b3f403a)
+                    base_id = k.split("_")[0] + "_" + k.split("_")[1]
+                    block_ids.add(base_id)
+            
+            for b_id in block_ids:
+                pb_model = prompt_blocks.get(b_id)
+                if pb_model and getattr(pb_model, "is_evaluative", False):
+                    # It's an evaluative matrix
+                    norm_score = content.get(f"{b_id}_normalized")
+                    if norm_score is None:
+                        # Sometimes the base value is the DINA score, but we want normalized
+                        norm_score = content.get(f"{b_id}_scaled")
+                    
+                    if norm_score is None:
+                        continue
+                        
+                    justification = content.get(f"{b_id}_justification", "")
+                    missing = content.get(f"{b_id}_missing_context")
+                    just_str = str(justification)
+                    if missing:
+                        just_str += f"\n[Puuttuva konteksti]:\n{missing}"
+                        
+                    level_dict = content.get(f"{b_id}_level_breakdown")
+                    extra_info = ""
+                    if level_dict and isinstance(level_dict, dict):
+                        clean_level_dict = {}
+                        for lvl_key in sorted(level_dict.keys(), key=lambda x: float(x) if str(x).replace(".", "").isdigit() else 0):
+                            lvl_data = level_dict[lvl_key]
+                            c_key = str(int(float(lvl_key))) if float(lvl_key).is_integer() else str(lvl_key)
+                            clean_level_dict[c_key] = f"{lvl_data.get('hits', 0)}/{lvl_data.get('total', 0)}"
+                        level_dict = clean_level_dict
+                    elif f"{b_id}_total_atoms" in content:
+                        extra_info = f"{content.get(f'{b_id}_true_atoms')}/{content.get(f'{b_id}_total_atoms')}"
+                        
+                    found_matrices[b_id] = {
+                        "score": content.get(b_id, norm_score), "just": just_str, "extra_info": extra_info,
+                        "level_dict": level_dict, "normalized_score": norm_score,
+                        "pb_model": pb_model
+                    }
 
-                    if is_matrix:
-                        if isinstance(v, dict):
-                            # V2 Flat-Schema Mandatory Check (Zero-Fallback Rule)
-                            score = v.get("step_4_final_score")
-                            if score is None:
-                                # Ei anneta arvata step_4_final_score puuttumista
-                                continue
-                                
-                            justification = v.get("waterfall_calculation_log")
-                            if justification is None:
-                                raise RuntimeError(f"[CRITICAL FAIL FAST] V2 flat-schema metadata missing for '{k}'. No 'waterfall_calculation_log' found.")
-                            
-                            missing = v.get("missing_context")
-                            just_str = str(justification)
-                            if missing:
-                                just_str += f"\n[Puuttuva konteksti]:\n{missing}"
-
-                            level_dict = v.get("level_breakdown")
-                            norm_score = v.get("normalized_score")
-                            
-                            extra_info = ""
-                            if level_dict and isinstance(level_dict, dict):
-                                clean_level_dict = {}
-                                for lvl_key in sorted(level_dict.keys(), key=lambda x: float(x) if str(x).replace(".", "").isdigit() else 0):
-                                    lvl_data = level_dict[lvl_key]
-                                    c_key = str(int(float(lvl_key))) if float(lvl_key).is_integer() else str(lvl_key)
-                                    clean_level_dict[c_key] = f"{lvl_data.get('hits', 0)}/{lvl_data.get('total', 0)}"
-                                level_dict = clean_level_dict
-                            elif "total_atoms" in v:
-                                extra_info = f"{v.get('true_atoms')}/{v.get('total_atoms')}"
-
-                            final_norm = norm_score if norm_score is not None else v.get(f"{k}_normalized")
-                            found_matrices[k] = {
-                                "score": score, "just": just_str, "extra_info": extra_info,
-                                "level_dict": level_dict, "normalized_score": final_norm,
-                                "pb_model": pb_model
-                            }
-                            continue
-
-                if isinstance(v, dict):
-                    find_matrices(v)
-                elif isinstance(v, list):
-                    for item in v:
-                        find_matrices(item)
-        elif isinstance(data, list):
-            for item in data:
-                find_matrices(item)
-
-    find_matrices(trace_data)
+    extract_flat_matrices(trace_data)
 
     # --- PENALTY SEARCH ---
     found_penalties = {
