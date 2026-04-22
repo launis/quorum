@@ -1,16 +1,26 @@
 import json
 import logging
-from pathlib import Path
 import sys
+from pathlib import Path
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict
 
 # Import V2 DTOs to enforce strict validation
 from backend_v2.models.v2_core import PromptBlock
-from backend_v2.exceptions import AppException
+
+
+class MinimalExecution(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    status: str
+    created_at: str | None = None
+    completed_at: str | None = None
 
 # Set up logging for error traces
 logger = logging.getLogger(__name__)
 
-def print_latest_execution_results(target_locale: str = "fi"):
+def print_latest_execution_results(target_locale: str = "fi") -> None:
     db_path = Path(r"C:\src\quorum\data\db_v2.json")
 
     if not db_path.exists():
@@ -30,33 +40,37 @@ def print_latest_execution_results(target_locale: str = "fi"):
     if db_blocks is None:
         raise RuntimeError("[CRITICAL FAIL FAST] 'prompt_blocks' taulu puuttuu kokonaan tietokannasta.")
 
-    for pb_id, pb_dict in db_blocks.items():
-        try:
-            # We enforce Pydantic V2 model validation at the perimeter
-            pb_model = PromptBlock.model_validate(pb_dict)
-            prompt_blocks[pb_model.id] = pb_model
-        except Exception as e:
-            # Päästetään läpi, mutta lokitetaan - testauksen vuoksi
-            pass
+    for _pb_id, pb_dict in db_blocks.items():
+        # We enforce Pydantic V2 model validation at the perimeter (Fail-Fast: no except masking)
+        pb_model = PromptBlock.model_validate(pb_dict)
+        prompt_blocks[pb_model.id] = pb_model
 
     if not executions:
         print("No executions found in db_v2.json")
         return
 
-    # V2 Arkkitehtuuri käyttää Opaque Stripe ID:tä (esim. exe_813...). 
+    # V2 Arkkitehtuuri käyttää Opaque Stripe ID:tä (esim. exe_813...).
     # Lambda int(k) palauttaa aina 0 näillä avaimilla, jolloin arvotaan täysin satunnainen vanha ajo!
     # Haetaan uusin ajo aikaleiman perusteella tai jätetään luomisjärjestykseen.
-    
-    def get_sort_key(exe_dict):
-        ts = exe_dict.get("created_at") or exe_dict.get("completed_at") or 0
-        return str(ts)
 
-    valid_executions = [exe for exe in executions.values() if isinstance(exe, dict) and "id" in exe and exe.get("status") == "completed"]
+    valid_executions: list[MinimalExecution] = []
+    for exe in executions.values():
+        try:
+            exe_model = MinimalExecution.model_validate(exe)
+            if exe_model.status == "completed":
+                valid_executions.append(exe_model)
+        except Exception:
+            # Ignore invalid/corrupted ones but don't crash the whole script if one is bad
+            pass
+
     if not valid_executions:
         raise ValueError("[FAIL-FAST] Ei löytynyt yhtään validia (completed) ajoa.")
 
+    def get_sort_key(exe_model: MinimalExecution) -> str:
+        return str(exe_model.created_at or exe_model.completed_at or "")
+
     latest_exe = max(valid_executions, key=get_sort_key)
-    exe_id = latest_exe["id"]
+    exe_id = latest_exe.id
 
     print("=" * 80)
     print(f" LATEST EXECUTION: {exe_id}")
@@ -78,12 +92,12 @@ def print_latest_execution_results(target_locale: str = "fi"):
     found_any = False
     found_matrices = {}
 
-    def extract_flat_matrices(trace):
+    def extract_flat_matrices(trace: list[dict[str, Any]]) -> None:
         for event in trace:
             content = event.get("content", {})
             if not isinstance(content, dict):
                 continue
-            
+
             # Find all unique block IDs in this content
             block_ids = set()
             for k in content.keys():
@@ -91,7 +105,7 @@ def print_latest_execution_results(target_locale: str = "fi"):
                     # Extract the base block ID (e.g. blk_109dab5b6b3f403a)
                     base_id = k.split("_")[0] + "_" + k.split("_")[1]
                     block_ids.add(base_id)
-            
+
             for b_id in block_ids:
                 pb_model = prompt_blocks.get(b_id)
                 if pb_model and getattr(pb_model, "is_evaluative", False):
@@ -100,28 +114,32 @@ def print_latest_execution_results(target_locale: str = "fi"):
                     if norm_score is None:
                         # Sometimes the base value is the DINA score, but we want normalized
                         norm_score = content.get(f"{b_id}_scaled")
-                    
+
                     if norm_score is None:
                         continue
-                        
+
                     justification = content.get(f"{b_id}_justification", "")
                     missing = content.get(f"{b_id}_missing_context")
                     just_str = str(justification)
                     if missing:
                         just_str += f"\n[Puuttuva konteksti]:\n{missing}"
-                        
+
                     level_dict = content.get(f"{b_id}_level_breakdown")
                     extra_info = ""
                     if level_dict and isinstance(level_dict, dict):
                         clean_level_dict = {}
-                        for lvl_key in sorted(level_dict.keys(), key=lambda x: float(x) if str(x).replace(".", "").isdigit() else 0):
+
+                        def parse_float(x: str) -> float:
+                            return float(x) if str(x).replace(".", "").isdigit() else 0.0
+
+                        for lvl_key in sorted(level_dict.keys(), key=parse_float):
                             lvl_data = level_dict[lvl_key]
                             c_key = str(int(float(lvl_key))) if float(lvl_key).is_integer() else str(lvl_key)
                             clean_level_dict[c_key] = f"{lvl_data.get('hits', 0)}/{lvl_data.get('total', 0)}"
                         level_dict = clean_level_dict
                     elif f"{b_id}_total_atoms" in content:
                         extra_info = f"{content.get(f'{b_id}_true_atoms')}/{content.get(f'{b_id}_total_atoms')}"
-                        
+
                     found_matrices[b_id] = {
                         "score": content.get(b_id, norm_score), "just": just_str, "extra_info": extra_info,
                         "level_dict": level_dict, "normalized_score": norm_score,
@@ -136,7 +154,7 @@ def print_latest_execution_results(target_locale: str = "fi"):
         "post_hoc_rationalization": False
     }
 
-    def find_penalties(data):
+    def find_penalties(data: Any) -> None:
         if isinstance(data, dict):
             if "threat_detected" in data and str(data["threat_detected"]).lower() == "true":
                 found_penalties["threat_detected"] = True
@@ -167,7 +185,7 @@ def print_latest_execution_results(target_locale: str = "fi"):
 
         # Hae 'computed_' arvot UI tulostetta varten (PIST.)
         calc_max = pb_model.computed_max
-        
+
         norm_val = data.get("normalized_score")
         scaled_score = float(norm_val) if norm_val is not None else None
 
