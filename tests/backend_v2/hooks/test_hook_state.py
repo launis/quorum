@@ -11,6 +11,8 @@ def test_hook_state_immutability():
         "workflow_id": "test_flow",
         "step_id": "test_step",
         "inputs": {"key": "value"},
+        "metadata": {},
+        "global_context_vars": {},
     }
     state = HookState(**state_dict)
 
@@ -32,6 +34,9 @@ def test_hook_state_forbids_extra_fields():
             execution_id="test",
             workflow_id="test",
             step_id="test",
+            inputs={},
+            metadata={},
+            global_context_vars={},
             unknown_magic_field="should fail"
         )
 

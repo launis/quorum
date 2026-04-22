@@ -18,7 +18,7 @@ abstract class ReportAxisDTO with _$ReportAxisDTO {
     required String name,
     String? description,
     double? score,
-    required String justification,
+    String? justification,
     @JsonKey(name: 'cited_source_id') String? citedSourceId,
     @JsonKey(name: 'cited_text_quote') String? citedTextQuote,
     @JsonKey(name: 'cited_web_citation') String? citedWebCitation,

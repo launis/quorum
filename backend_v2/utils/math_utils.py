@@ -197,6 +197,7 @@ def calculate_progressive_dampening_score(
         )
 
     import math
+
     achieved_score = float(scale_min)
     modifier = 1.0
     prev_level = float(scale_min)

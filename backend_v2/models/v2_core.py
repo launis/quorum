@@ -9,10 +9,12 @@ from typing import Any, Literal, cast
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
 from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import (
     BlockDataType,
     ComponentType,
     ExecutionStatus,
+    HistoricalContextMode,
     SystemConcurrency,
     XaiExtensionType,
 )
@@ -87,6 +89,21 @@ class I18nText(V2CoreBase):
             )
 
         return self
+
+    def resolve(self, target_locale: str | None = None) -> str:
+        """Strictly typed method to resolve the best localization, avoiding 'naked dict' fallback logic."""
+        if not self.translations:
+            return ""
+
+        if target_locale:
+            target_lang = target_locale.split("-")[0].lower()
+            if target_lang in self.translations:
+                return self.translations[target_lang]
+
+        if self.default_locale in self.translations:
+            return self.translations[self.default_locale]
+
+        return self.translations.get("en", "")
 
     def get(self, lang_code: str, fallback: str = "") -> str:
         """Extracts the localized string safely for templates (Jinja2) and programmatic access."""
@@ -374,8 +391,8 @@ class Step(V2CoreBase):
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique UUID for storage optionally")
     slug: str = Field(description="Human-readable identifier (e.g., 'step_guard')")
-    name: I18nText | str = Field(description="Localized step name or string name")
-    description: I18nText | str | None = Field(default=None, description="Detailed step context")
+    name: I18nText = Field(description="Localized step name")
+    description: I18nText | None = Field(default=None, description="Detailed step context")
     type: Literal["llm", "logic"] = Field(default="llm", description="Step execution type (llm or native logic)")
     hook: str | None = Field(default=None, description="Native Python hook to execute if type is 'logic'")
     prompt_blocks: list[str] = Field(
@@ -570,8 +587,8 @@ class SynthesisConfigDTO(V2CoreBase):
     preamble_text: I18nText | None = Field(
         default=None, description="Multilingual preamble text added before synthesis."
     )
-    include_historical_summary: bool = Field(
-        default=False, description="Flag for fetching sliding window history summary."
+    historical_context_mode: HistoricalContextMode = Field(
+        default=HistoricalContextMode.DISABLED, description="Mode for fetching historical context.", strict=False
     )
     enable_pii_masking: bool = Field(default=False, description="Flag to enable algorithmic PII redaction.")
     allowed_exports: list[Literal["pdf", "docx", "raw_json"]] = Field(
@@ -924,7 +941,7 @@ class RenderedSynthesisCache(V2CoreBase):
         default_factory=dict, description="Mapping of layout ID to LLM generated Section-Level synthesis"
     )
     cited_sources: list[str] = Field(default_factory=list, description="Citations used in this profile's synthesis")
-    xai_highlights: list[dict[str, Any]] = Field(default_factory=list, description="Generated XAI highlight boxes")
+    xai_highlights: list[XaiHighlightItem] = Field(default_factory=list, description="Generated XAI highlight boxes")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @model_validator(mode="before")

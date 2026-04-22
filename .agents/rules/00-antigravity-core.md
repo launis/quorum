@@ -54,23 +54,28 @@
         <catastrophic_reason>Agentic Drift. The AI risks prioritizing pure system stability over business value, silently amputating core platform capabilities under the guise of technical optimization.</catastrophic_reason>
     </rule_block>
     <rule_block id="the_zero_compromise_pledge">
-        <banned_pattern>Taaksepäinyhteensopivuus, fallback-ketjut ("jos A puuttuu, kokeile B"), oikotiet, ohjelmointikielen oletusarvot (esim. v.get('kenttä', '')) ja kovakoodatut paikkaajat ovat kaikki ankarasti kiellettyjä.</banned_pattern>
-        <mandatory_pattern>If an expected key or data point is missing in a strict architecture (like a Micro-CoT footprint or execution trace), you MUST raise an explicit `RuntimeError` or `AppException` and CRASH. Zero Tolerance for silent bypasses.</mandatory_pattern>
+        <banned_pattern>Taaksepäinyhteensopivuus, fallback-ketjut ("jos A puuttuu, kokeile B"), oikotiet, ohjelmointikielen oletusarvot (esim. v.get('kenttä', '')) ja kovakoodatut paikkaajat ovat kaikki ankarasti kiellettyjä. ANY use of `hasattr()`, `isinstance(dict)`, or recursive dictionary loops to "guess" or "find" missing data.</banned_pattern>
+        <mandatory_pattern>You MUST enforce strict Pydantic V2 schemas. If an expected key or data point is missing in a strict architecture (like a Micro-CoT footprint or execution trace), you MUST raise an explicit `RuntimeError` or `AppException` and CRASH. Zero Tolerance for silent bypasses or guessing.</mandatory_pattern>
         <catastrophic_reason>Masking data corruption or LLM hallucinations with chained fallbacks or language-level default values destroys the deterministic nature of the Quorum engine and completely invalidates the forensic audit trail.</catastrophic_reason>
     </rule_block>
     <rule_block id="the_duct_tape_ban">
-        <banned_pattern>Writing "duct-tape" code (purkkakoodi), returning empty arrays `[]`, default dicts `{}`, or hiding UI elements `SizedBox.shrink()` when real data goes missing.</banned_pattern>
-        <mandatory_pattern>Fix the root cause instead of patching symptoms.</mandatory_pattern>
+        <banned_pattern>Writing "duct-tape" code (purkkakoodi), returning empty arrays `[]`, default dicts `{}`, or hiding UI elements `SizedBox.shrink()` when real data goes missing. Catching all errors with giant `try...except Exception:` blocks to prevent crashes.</banned_pattern>
+        <mandatory_pattern>Fix the root cause instead of patching symptoms. If data is malformed, let the system CRASH loudly. Extract deep mutation loops into pure, isolated, testable functions.</mandatory_pattern>
         <catastrophic_reason>Silent fallbacks mask deeper architectural failures and corrupt state management.</catastrophic_reason>
     </rule_block>
     <rule_block id="zero_service_layer_fallbacks">
         <banned_pattern>Using Python `.get(key, default)`, `getattr(obj, key, default)`, or `if value is None: value = default` inside the Service or Controller layers to patch missing configuration.</banned_pattern>
-        <mandatory_pattern>Domain definitions MUST be strictly typed utilizing Enum overrides and Pydantic `@model_validator`s. Services MUST crash Fail-Fast if the Domain Model does not provide a guaranteed value natively.</mandatory_pattern>
+        <mandatory_pattern>Domain definitions MUST be strictly typed utilizing Enum overrides and Pydantic `@model_validator`s. Services MUST crash Fail-Fast if the Domain Model does not provide a guaranteed value natively. NEVER use raw dictionaries for state transit (`no_naked_dicts_in_state`).</mandatory_pattern>
         <catastrophic_reason>Injecting "magic defaults" deeply in the controller/service logic bypasses the Pydantic/Dart structural audits, leading to untraceable shadow-states when the database or LLM behaves anomalously.</catastrophic_reason>
     </rule_block>
     <rule_block id="the_no_legacy_mandate">
         <banned_pattern>Writing code that maintains "backwards compatibility" with old V1 structures, deprecated APIs, or legacy databases.</banned_pattern>
         <mandatory_pattern>Obsolete code must be ruthlessly deleted and replaced with modern V2 Architecture.</mandatory_pattern>
+    </rule_block>
+    <rule_block id="database_schema_hallucination">
+        <banned_pattern>Autonomously migrating relational SSOT arrays (like `output_profiles`) into embedded nested structures inside other objects (like `workflows`) within `seed_data.json` based on assumptions about Pydantic attributes.</banned_pattern>
+        <mandatory_pattern>The SSOT structure in `seed_data.json` is immutable architectural law. Backend Pydantic models may define nested types (e.g., `EmbeddedOutputProfile`) for API responses or dynamic stitching (e.g., in `studio.py`), but you MUST NEVER physically alter the root persistence arrays in the `seed_data.json` SSOT to match these API shapes without an explicit roadmap mandate.</mandatory_pattern>
+        <catastrophic_reason>Forcing dynamic API structures into static persistence layers breaks Single Source of Truth integrity, crashes Frontend UIs relying on global collections, and causes cascading data corruption across the system.</catastrophic_reason>
     </rule_block>
     <rule_block id="dependency_hallucination_firewall">
         <banned_pattern>Autonomously proposing new third-party packages to `pubspec.yaml` or `uv.lock`.</banned_pattern>

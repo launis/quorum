@@ -32,7 +32,14 @@ async def test_chat_parser_role_segregation_and_success(
     mock_client = AsyncMock()
 
     # Setup a valid DTO response
-    mock_dto = ChatHistoryDTO(conversation=[])
+    from backend_v2.models.v2_core import ChatMessageDTO
+
+    mock_dto = ChatHistoryDTO(
+        conversation=[
+            ChatMessageDTO(role="User", content="Hello"),
+            ChatMessageDTO(role="AI", content="Hi"),
+        ]
+    )
     mock_client.run_structured_task.return_value = (mock_dto, {"prompt_tokens": 10})
 
     mock_from_strategy.return_value = mock_client

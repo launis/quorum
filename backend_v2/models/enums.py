@@ -105,6 +105,13 @@ class ExecutionStatus(str, Enum):
     FAILED = "failed"
 
 
+class HistoricalContextMode(str, Enum):
+    """Modes for fetching historical execution data during synthesis."""
+
+    DISABLED = "DISABLED"
+    SLIDING_WINDOW_3 = "SLIDING_WINDOW_3"
+
+
 class SystemConcurrency(int, Enum):
     """Global concurrency limits for DAG Execution to prevent API Rate Limits."""
 

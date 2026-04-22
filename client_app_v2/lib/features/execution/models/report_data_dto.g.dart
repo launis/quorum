@@ -41,7 +41,7 @@ _ReportAxisDTO _$ReportAxisDTOFromJson(
       name: $checkedConvert('name', (v) => v as String),
       description: $checkedConvert('description', (v) => v as String?),
       score: $checkedConvert('score', (v) => (v as num?)?.toDouble()),
-      justification: $checkedConvert('justification', (v) => v as String),
+      justification: $checkedConvert('justification', (v) => v as String?),
       citedSourceId: $checkedConvert('cited_source_id', (v) => v as String?),
       citedTextQuote: $checkedConvert('cited_text_quote', (v) => v as String?),
       citedWebCitation: $checkedConvert(

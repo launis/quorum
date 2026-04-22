@@ -1278,6 +1278,54 @@
         }
       }
     },
+    "/api/v2/execution/scorecard/{execution_id}": {
+      "get": {
+        "tags": [
+          "Scorecard"
+        ],
+        "summary": "Get Diagnostic Scorecard",
+        "description": "Epic 24: Fetch an independent Diagnostic Scorecard directly from frozen evaluation trace.",
+        "operationId": "get_diagnostic_scorecard_api_v2_execution_scorecard__execution_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "execution_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Execution Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScorecardResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v2/studio/workflows/": {
       "get": {
         "tags": [
@@ -3253,6 +3301,12 @@
             ],
             "description": "Nested definition for synthesis configurations."
           },
+          "include_diagnostic_scorecard": {
+            "type": "boolean",
+            "title": "Include Diagnostic Scorecard",
+            "description": "Epic 24: Enable appending the independent diagnostic scorecard.",
+            "default": false
+          },
           "layouts": {
             "items": {
               "$ref": "#/components/schemas/OutputLayoutBlock-Input"
@@ -3337,6 +3391,12 @@
               }
             ],
             "description": "Nested definition for synthesis configurations."
+          },
+          "include_diagnostic_scorecard": {
+            "type": "boolean",
+            "title": "Include Diagnostic Scorecard",
+            "description": "Epic 24: Enable appending the independent diagnostic scorecard.",
+            "default": false
           },
           "layouts": {
             "items": {
@@ -3886,6 +3946,15 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HistoricalContextMode": {
+        "type": "string",
+        "enum": [
+          "DISABLED",
+          "SLIDING_WINDOW_3"
+        ],
+        "title": "HistoricalContextMode",
+        "description": "Modes for fetching historical execution data during synthesis."
+      },
       "HookListResponse": {
         "properties": {
           "hooks": {
@@ -4235,6 +4304,123 @@
         ],
         "title": "MatrixScale",
         "description": "Represents a single score point in a BARS matrix scale."
+      },
+      "MatrixScorecardRowDTO": {
+        "properties": {
+          "block_id": {
+            "type": "string",
+            "title": "Block Id",
+            "description": "The opaque Stripe ID of the prompt block."
+          },
+          "label_fi": {
+            "type": "string",
+            "title": "Label Fi",
+            "description": "Finnish human-readable label."
+          },
+          "label_en": {
+            "type": "string",
+            "title": "Label En",
+            "description": "English human-readable label."
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "description": "Raw scaled score."
+          },
+          "scale_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scale Max",
+            "description": "Maximum possible score."
+          },
+          "normalized_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Score",
+            "description": "Normalized score (0-100) if evaluative."
+          },
+          "true_atoms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "True Atoms",
+            "description": "Global hits found."
+          },
+          "total_atoms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Atoms",
+            "description": "Total atoms available to evaluate."
+          },
+          "justification": {
+            "type": "string",
+            "title": "Justification",
+            "description": "The one-sentence justification."
+          },
+          "missing_context": {
+            "type": "string",
+            "title": "Missing Context",
+            "description": "Any missing context from evaluation."
+          },
+          "level_breakdown": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "type": "object"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level Breakdown",
+            "description": "Epic 24 Breakdowns: DINA hits vs total per scale floor e.g. {'1.0': {'hits': 5, 'total': 5}}"
+          },
+          "is_evaluative": {
+            "type": "boolean",
+            "title": "Is Evaluative",
+            "description": "Whether this block contributes to global average."
+          }
+        },
+        "type": "object",
+        "required": [
+          "block_id",
+          "label_fi",
+          "label_en",
+          "score",
+          "justification",
+          "missing_context",
+          "is_evaluative"
+        ],
+        "title": "MatrixScorecardRowDTO",
+        "description": "Represents a single evaluated matrix row in the scorecard."
       },
       "ModelProfile": {
         "properties": {
@@ -4848,6 +5034,12 @@
             ],
             "description": "Nested definition for synthesis configurations."
           },
+          "include_diagnostic_scorecard": {
+            "type": "boolean",
+            "title": "Include Diagnostic Scorecard",
+            "description": "Epic 24: Enable appending the independent diagnostic scorecard.",
+            "default": false
+          },
           "layouts": {
             "items": {
               "$ref": "#/components/schemas/OutputLayoutBlock-Input"
@@ -4931,14 +5123,13 @@
             "default": "original"
           },
           "synthesis": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SynthesisConfigDTO"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/SynthesisConfigDTO"
+          },
+          "include_diagnostic_scorecard": {
+            "type": "boolean",
+            "title": "Include Diagnostic Scorecard",
+            "description": "Epic 24: Enable appending the independent diagnostic scorecard.",
+            "default": false
           },
           "layouts": {
             "items": {
@@ -5443,8 +5634,7 @@
           },
           "xai_highlights": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/XaiHighlightItem"
             },
             "type": "array",
             "title": "Xai Highlights",
@@ -5464,6 +5654,57 @@
         "title": "RenderedSynthesisCache",
         "description": "Cached synthesis results tied to a specific OutputProfile ID."
       },
+      "ScorecardResponseDTO": {
+        "properties": {
+          "execution_id": {
+            "type": "string",
+            "title": "Execution Id",
+            "description": "The ID of the execution."
+          },
+          "workflow_id": {
+            "type": "string",
+            "title": "Workflow Id",
+            "description": "The ID of the workflow."
+          },
+          "global_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Global Average",
+            "description": "The mathematical average extracted from normalized evaluative matrices."
+          },
+          "evaluative_matrices": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixScorecardRowDTO"
+            },
+            "type": "array",
+            "title": "Evaluative Matrices",
+            "description": "Matrices that impact the final grade."
+          },
+          "informational_matrices": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixScorecardRowDTO"
+            },
+            "type": "array",
+            "title": "Informational Matrices",
+            "description": "Matrices strictly for informational/tracking purposes."
+          }
+        },
+        "type": "object",
+        "required": [
+          "execution_id",
+          "workflow_id",
+          "evaluative_matrices",
+          "informational_matrices"
+        ],
+        "title": "ScorecardResponseDTO",
+        "description": "Epic 24: Independent Scorecard API response structure."
+      },
       "Step": {
         "properties": {
           "id": {
@@ -5478,16 +5719,8 @@
             "description": "Human-readable identifier (e.g., 'step_guard')"
           },
           "name": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "string"
-              }
-            ],
-            "title": "Name",
-            "description": "Localized step name or string name"
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized step name"
           },
           "description": {
             "anyOf": [
@@ -5495,13 +5728,9 @@
                 "$ref": "#/components/schemas/I18nText"
               },
               {
-                "type": "string"
-              },
-              {
                 "type": "null"
               }
             ],
-            "title": "Description",
             "description": "Detailed step context"
           },
           "type": {
@@ -5753,11 +5982,10 @@
             ],
             "description": "Multilingual preamble text added before synthesis."
           },
-          "include_historical_summary": {
-            "type": "boolean",
-            "title": "Include Historical Summary",
-            "description": "Flag for fetching sliding window history summary.",
-            "default": false
+          "historical_context_mode": {
+            "$ref": "#/components/schemas/HistoricalContextMode",
+            "description": "Mode for fetching historical context.",
+            "default": "DISABLED"
           },
           "enable_pii_masking": {
             "type": "boolean",
@@ -6762,6 +6990,26 @@
         ],
         "title": "XaiExtensionType",
         "description": "Supported XAI Output Extensions for global visibility."
+      },
+      "XaiHighlightItem": {
+        "properties": {
+          "extension_type": {
+            "type": "string",
+            "title": "Extension Type",
+            "description": "Category of the insight (e.g. 'falsification', 'coaching', 'remediation', 'risk_flag')"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "The synthesized, deduplicated insight or tip. Max 2 sentences."
+          }
+        },
+        "type": "object",
+        "required": [
+          "extension_type",
+          "content"
+        ],
+        "title": "XaiHighlightItem"
       }
     },
     "securitySchemes": {

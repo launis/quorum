@@ -444,6 +444,24 @@ class LLMNodeStrategy(NodeStrategy):
                 if "evaluation_notes" in c_final and "evaluation_notes" in final_dict:
                     final_dict["evaluation_notes"] += f"\n\n[Chunk]: {c_final['evaluation_notes']}"
 
+                # Epic 27: Zero-Compromise XAI Aggregation
+                # Preserve matrix XAI extensions generated in subsequent map-reduce chunks.
+                for k in c_final.keys():
+                    if k in ["evaluations", "reasoning_trace", "evaluation_notes"]:
+                        continue
+
+                    if k.startswith("matrix_") or k.startswith("blk_"):
+                        if k not in final_dict:
+                            final_dict[k] = c_final[k]
+                        else:
+                            if isinstance(c_final[k], dict) and isinstance(final_dict[k], dict):
+                                for s_key, s_val in c_final[k].items():
+                                    if s_key not in final_dict[k]:
+                                        final_dict[k][s_key] = s_val
+                                    else:
+                                        if isinstance(s_val, str) and isinstance(final_dict[k][s_key], str):
+                                            final_dict[k][s_key] += f" {s_val}"
+
             for k, v in c_usage.items():
                 usage_dict[k] = usage_dict.get(k, 0) + v
 

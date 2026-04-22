@@ -2,13 +2,14 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.domain.output_profile import OutputProfile, SynthesisConfigDTO
+from backend_v2.models.enums import HistoricalContextMode
 from backend_v2.models.v2_core import I18nText
 
 def test_synthesis_config_dto_valid():
     config = SynthesisConfigDTO(
         length_constraint=500,
         preamble_text=I18nText(default_locale="en", translations={"en": "Hello"}),
-        include_historical_summary=True,
+        historical_context_mode=HistoricalContextMode.DISABLED,
         enable_pii_masking=True,
         allowed_exports=["pdf", "raw_json"],
         omit_empty_sections=True

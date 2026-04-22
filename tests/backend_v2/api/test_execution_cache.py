@@ -50,8 +50,18 @@ def mock_repo_with_cache() -> Any:
     # Needs a workflow
     repo.get_workflow_by_id.return_value = {
         "id": "wf_1234567812345678",
+        "slug": "test_wf",
+        "version": 1,
+        "status": "published",
+        "description": "Test WF Desc",
+        "default_profile_id": "prf_2233445566778899",
         "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
-        "output_profiles": {"prf_2233445566778899": "Executive Report"},
+        "output_profiles": {
+            "prf_2233445566778899": {
+                "name": {"default_locale": "en", "translations": {"en": "desc"}},
+                "layouts": []
+            }
+        },
         "steps": [],
     }
     

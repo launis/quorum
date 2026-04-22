@@ -59,10 +59,15 @@ def mock_repository() -> Any:
     repo.get_workflow_by_id.return_value = {
         "id": "wf_1234567812345678",
         "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
-        "output_profiles": {"prf_2233445566778899": "Executive Report"},
+        "slug": "test_wf",
+        "version": 1,
+        "status": "published",
+        "description": "Test WF Desc",
+        "default_profile_id": "prf_2233445566778899",
+        "output_profiles": {"prf_2233445566778899": mock_profile.model_dump(mode="json", exclude={"id", "slug", "workflow_id"})},
         "steps": [
             {
-                "id": "step_1",
+                "id": "stp_1234567890abcdef123456",
                 "task_blueprint": "step_rule_1",
             }
         ],
@@ -91,7 +96,7 @@ def mock_repository() -> Any:
         status=ExecutionStatus.COMPLETED,
         execution_trace=[
             TraceEvent(
-                step_name="step_1",
+                step_name="stp_1234567890abcdef123456",
                 event_type="output",
                 content={
                     "blk_1111111111111111": 88.0,

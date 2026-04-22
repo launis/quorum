@@ -45,7 +45,7 @@ def _build_mock_step(step_id: str, prompt_blocks: list[str]):
     return {
         "id": step_id,
         "slug": f"slug_{step_id}",
-        "name": "Test Step",
+        "name": {"default_locale": "en", "translations": {"en": "Test Step"}},
         "type": "llm",
         "prompt_blocks": prompt_blocks,
         "model_strategy": "fast"
@@ -71,7 +71,8 @@ async def test_atom_flattening_all(mock_dependencies):
         step_id=step_id,
         task_blueprint=step_id,
         inputs={},
-        metadata={"matrix_sampling_strategy": 0}
+        metadata={"matrix_sampling_strategy": 0},
+        global_context_vars={}
     )
     
     result = await process_matrix_flattening(state, mock_dependencies)
@@ -107,7 +108,8 @@ async def test_atom_flattening_stratified(mock_dependencies):
         step_id=step_id,
         task_blueprint=step_id,
         inputs={},
-        metadata={"matrix_sampling_strategy": 3}
+        metadata={"matrix_sampling_strategy": 3},
+        global_context_vars={}
     )
     
     result = await process_matrix_flattening(state, mock_dependencies)
@@ -135,7 +137,8 @@ async def test_atom_flattening_deterministic_shuffle(mock_dependencies):
         step_id=step_id,
         task_blueprint=step_id,
         inputs={},
-        metadata={"matrix_sampling_strategy": 5}
+        metadata={"matrix_sampling_strategy": 5},
+        global_context_vars={}
     )
     
     state2 = HookState(
@@ -144,7 +147,8 @@ async def test_atom_flattening_deterministic_shuffle(mock_dependencies):
         step_id=step_id,
         task_blueprint=step_id,
         inputs={},
-        metadata={"matrix_sampling_strategy": 5}
+        metadata={"matrix_sampling_strategy": 5},
+        global_context_vars={}
     )
     
     res1 = await process_matrix_flattening(state1, mock_dependencies)

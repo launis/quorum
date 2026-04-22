@@ -21,7 +21,17 @@ Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus
 Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
 1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto.
 2. Lue ensin tiukasti KAIKKI kyseisen alihakemiston `.py`-tiedostot (huomioiden sivuutettavat kansiot).
-3. **MANDATOITU TRACEABILITY MATRIX**: Sinun on **EHDOTTOMASTI** raportoitava havaintosi tulostamalla chattiin tarkka Markdown-taulukko ("Audit Matrix"). Sinun on kirjoitettava tähän taulukkoon rivi *jokaiselle* `00-antigravity-core.md` ja `01-python-backend.md` -tiedostoissa mainitulle säännölle (esim. `the_zero_compromise_pledge`, `opaque_stripe_id_mandate`, `silent_failures`, `strict_pydantic_v2_rust`, jne). **Erityishuomio:** Varmista ettet päästä "the_zero_compromise_pledge"-tarkistuksesta läpi yhtäkään `.get(..., "default")` fallbackia tai kovakoodattua litteää arvoa palvelukerroksessa.
+3. **MANDATOITU TRACEABILITY MATRIX**: Sinun on **EHDOTTOMASTI** raportoitava havaintosi tulostamalla chattiin tarkka Markdown-taulukko ("Audit Matrix"). Taulukon on **PAKKO** sisältää oma erillinen rivinsä (Rule Block ID) ainakin seuraaville kriittisille säännöille, ja jokainen on arvioitava (Pass/Fail):
+   - **`the_zero_compromise_pledge`**: Etsitään ja merkitään hylätyksi KAIKKI `.get(..., "default")` fallbackit, `hasattr()` tai `isinstance(dict)` "arvailut". Koodin on pakko käyttää Pydantic `.model_validate()`.
+   - **`the_duct_tape_ban`**: Etsitään ja merkitään hylätyksi kaikki "God Blockit" eli valtavat `try...except Exception:` -lohkot, jotka piilottavat virheet, sekä tyhjien listojen `[]` tai `None` arvojen palauttelut, jos data puuttuu. Ohjelman kuuluu räjähtää `AppException` tai `ValidationError` -virheisiin.
+   - **`no_naked_dicts_in_state`**: Koodissa ei saa siirtää raakoja sanakirjoja (dict) tilanhallinnassa. Etsi kaikki kohdat, joissa mutatoitaisiin sanakirjoja ja merkitse ne hylätyksi. Kaiken on mentävä Pydantic-domain-mallien kautta.
+   - **`strict_pydantic_v2_rust`**: Onko `extra='forbid'` käytössä? Käytetäänkö `.model_validate()` eikä `json.loads()`?
+   - **`opaque_stripe_id_mandate`**: Käytetäänkö oikeita opaalitunnisteita (`usr_123`) eikä kokonaislukuja (`id=1`) tai slugeja relaatioissa?
+   - **`anemic_routers` & `data_leak_prevention_firewall`**: Ovatko reitittimet tyhmiä (vain HTTP)? Onko `response_model` pakotettu jokaiseen reittiin tietovuotojen estämiseksi?
+   - **`zero_orm_bleed`**: Palauttaako tietokantakerros varmasti puhtaita Pydantic-malleja eikä raakoja TinyDB/Firestore-sanakirjoja API:lle?
+   - **`frozen_state_mutability`**: Ovatko domain-mallit (ConfigDict(frozen=True)) muuttumattomia?
+   - **`python_314_modern_syntax`**: Onko PEP 695 generics (`type T = ...`) ja modernit unionit (`| None`) käytössä vanhojen tyypitysten sijaan?
+   - **`Synthesis.py Standard`**: Ovatko funktiot hajotettu "Pure Functions" -muotoon? Onko sisäkkäisten looppien tilalla O(1) sanakirjahaut?
    - Käytä sarakkeita: `| Rule Block ID / Sääntö | Tila (Pass / Fail) | Löydökset & Perustelu |`.
    - Varmista, että todella käyt läpi koodista säännösten <banned_pattern> ja <mandatory_pattern> asiat kohta kohdalta. Tämä poistaa hallusinaatiot ja ohitukset.
 4. Pysähdy taulukon tulostamisen jälkeen. Odotan sen näkemistä. Jää odottamaan komentoa "FIX" (jos asioita on korjattavana / Fail) tai komentoa "NEXT" (jos kaikki säännöt olivat puhtaasti Pass).

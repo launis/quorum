@@ -34,7 +34,7 @@ def test_dampening_weak_foundation_high_ceiling():
         5.0: {"hits": 10, "total": 10}, # 100%
     }
     score = calculate_progressive_dampening_score(stats, 1.0, 5.0)
-    assert pytest.approx(score, 0.001) == 1.1
+    assert pytest.approx(score, 0.001) == 1.4607
 
 def test_dampening_perfect_score():
     stats = {

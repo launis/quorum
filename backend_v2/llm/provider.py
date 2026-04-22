@@ -336,14 +336,13 @@ class LiteLLMProvider(LLMProvider):
             for attempt in range(max_rate_limit_retries):
                 try:
                     import asyncio
+
                     _timeout = call_kwargs.get("timeout", 300)
-                    response = await asyncio.wait_for(
-                        self.router.acompletion(**call_kwargs),
-                        timeout=float(_timeout)
-                    )
+                    response = await asyncio.wait_for(self.router.acompletion(**call_kwargs), timeout=float(_timeout))
                     break  # Success, exit the retry loop
                 except Exception as e:
                     import asyncio
+
                     error_msg = str(e)
                     error_type = type(e).__name__
 

@@ -32,7 +32,7 @@ async def test_llm_strategy_concurrent_chunks_semaphore() -> None:
     context.metadata = {"profile_id": "prof_1", "target_locale": "en"}
     context.expected_inputs = None
     
-    mock_step_def = {"id": "step_1111222233334444", "slug": "test", "name": "test", "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["block_123"]}
+    mock_step_def = {"id": "step_1111222233334444", "slug": "test", "name": {"default_locale": "en", "translations": {"en": "test"}}, "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["block_123"]}
     strategy.repository.get_step_by_id = AsyncMock(return_value=mock_step_def)
     strategy.repository.get_all_prompt_blocks = AsyncMock(return_value=[{"id": "block_123"}])
     
@@ -86,7 +86,8 @@ async def test_llm_strategy_context_pruning() -> None:
     projector = MagicMock(spec=StateProjector)
     projector.snapshot = {
         "shuffled_atoms": [{"atom_id": "1", "quote": "heavy", "reasoning": "heavy", "boolean": True}],
-        "inputs": {"good_data": "keep", "heavy_data": "should_be_ignored"}
+        "heavy_root_field": "should_be_pruned",
+        "inputs": {"good_data": "keep"}
     }
     
     context = MagicMock(spec=StrategyContext)
@@ -96,7 +97,7 @@ async def test_llm_strategy_context_pruning() -> None:
     context.metadata = {"profile_id": "prof_1", "target_locale": "en"}
     context.expected_inputs = None
     
-    mock_step_def = {"id": "step_1111222233334444", "slug": "test", "name": "test", "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["block_123"]}
+    mock_step_def = {"id": "step_1111222233334444", "slug": "test", "name": {"default_locale": "en", "translations": {"en": "test"}}, "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["block_123"]}
     strategy.repository.get_step_by_id = AsyncMock(return_value=mock_step_def)
     strategy.repository.get_all_prompt_blocks = AsyncMock(return_value=[{"id": "block_123"}])
     
@@ -121,5 +122,5 @@ async def test_llm_strategy_context_pruning() -> None:
     
     # Verify strict stripping occurred
     assert "shuffled_atoms" not in state_data
-    assert "heavy_data" not in state_data.get("inputs", {})
+    assert "heavy_root_field" not in state_data
     assert state_data.get("inputs", {}).get("good_data") == "keep"

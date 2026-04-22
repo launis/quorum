@@ -8,11 +8,12 @@ from backend_v2.api.dependencies import get_current_user_from_header, get_studio
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.enums import BlockDataType
+from backend_v2.models.enums import BlockDataType, HistoricalContextMode
 from backend_v2.models.v2_core import (
     I18nText,
     PromptBlock,
     Step,
+    SynthesisConfigDTO,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
     Workflow,
@@ -85,6 +86,10 @@ def mock_studio_service() -> AsyncMock:
         workflow_id="wf_3333333333333333",
         name=I18nText(default_locale="en", translations={"en": "Profile (Copy)"}),
         layouts=[],
+        synthesis=SynthesisConfigDTO(
+            system_prompt="Global test prompt",
+            historical_context_mode=HistoricalContextMode.DISABLED,
+        ),
     )
     return service
 

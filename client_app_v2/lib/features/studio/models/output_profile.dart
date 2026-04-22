@@ -38,7 +38,9 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
     String? systemPrompt,
     int? lengthConstraint,
     I18nText? preambleText,
-    @Default(false) bool includeHistoricalSummary,
+    @Default('DISABLED')
+    @JsonKey(name: 'historical_context_mode')
+    String historicalContextMode,
     @Default(false) bool enablePiiMasking,
     @Default(['pdf', 'raw_json']) List<String> allowedExports,
     @Default(true) bool omitEmptySections,

@@ -74,6 +74,8 @@ async def test_fail_fast_missing_input() -> None:
         workflow_id="wf_1234567890abcdef",
         step_id="step_1",
         inputs={},  # Empty inputs
+        metadata={},
+        global_context_vars={},
     )
     deps = HookDependencies(repository=cast(Any, MockRepository()))
 
@@ -100,6 +102,8 @@ async def test_pdf_extraction_and_questionnaire_blockquote(
             "my_pdf": "# Extracted PDF Markdown\n\nData.",
             "my_questionnaire": {"q1": "Miten menee?", "a1": "Koneellisesti"},
         },
+        metadata={},
+        global_context_vars={},
     )
     deps = HookDependencies(repository=cast(Any, MockRepository()))
 
@@ -151,6 +155,8 @@ async def test_chat_parser_structuring(
             "my_pdf": "Valid String to pass required check",
             "my_chat": "I pasted some raw chat history here.",
         },
+        metadata={},
+        global_context_vars={},
     )
     deps = HookDependencies(repository=cast(Any, MockRepository()))
 

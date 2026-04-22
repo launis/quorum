@@ -159,20 +159,21 @@ class BlueprintTransformer:
 
         # Merge XAI Highlights from cache into grouped_extensions
         for highlight in xai_highlights_cache:
-            # Strict Extraction
-            t_name = highlight.get("extension_type")
+            # Pydantic Mandate: Kaikki tulee tietokannasta validaation läpi luokkana
+            t_name = highlight.extension_type
+
             if not t_name:
                 raise AppException(
-                    message="Fail-Fast: Cached highlight missing 'extension_type'.",
+                    message="Fail-Fast: Cached XaiHighlightItem missing 'extension_type'.",
                     status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
             group_key = t_name.lower().replace(" ", "_")
             if group_key not in grouped_extensions:
                 grouped_extensions[group_key] = []
 
-            # Use XAI evidence box definition which XAIExtensionsBox will gracefully parse!
-            grouped_extensions[group_key].append(highlight)
+            highlight_dict = highlight.model_dump()
+            grouped_extensions[group_key].append(highlight_dict)
 
         if results.get("has_warning"):
             has_warning = True

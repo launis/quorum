@@ -12,7 +12,7 @@ class MockRepository:
         return {"prompt_blocks": ["test_block"]}
 
     async def get_prompt_block_by_id(self, slug: str) -> dict[str, Any]:
-        return {"scales": [{"score": "not_a_number"}]}
+        return {"scale_min": 1.0, "scale_max": 5.0, "scales": [{"score": "not_a_number"}]}
 
 
 @pytest.mark.asyncio
@@ -142,7 +142,10 @@ async def test_waterfall_scoring_hook_ignores_instructions() -> None:
     """Test that waterfall scoring gracefully skips instructional PromptBlocks without crashing."""
     import hashlib
 
-    atom_hash = hashlib.md5(b"atom_1").hexdigest()
+    from backend_v2.models.enums import EvaluationMandate
+
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+    atom_hash = hashlib.md5(f"atom_1{mandate}".encode()).hexdigest()
 
     state = HookState(
         execution_id="t3",
@@ -163,9 +166,12 @@ async def test_waterfall_scoring_hook_ignores_instructions() -> None:
 @pytest.mark.asyncio
 async def test_waterfall_scoring_hook_pass_all() -> None:
     """Test standard hybrid model when everything passes."""
+    from backend_v2.models.enums import EvaluationMandate
+
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     evaluations = []
     for i in range(1, 6):
-        atom_hash = hashlib.md5(f"atom_{i}".encode()).hexdigest()
+        atom_hash = hashlib.md5(f"atom_{i}{mandate}".encode()).hexdigest()
         evaluations.append({"atom_id": atom_hash, "boolean": True, "reasoning": "Hyväksytty"})
 
     state = HookState(
@@ -188,10 +194,13 @@ async def test_waterfall_scoring_hook_pass_all() -> None:
 @pytest.mark.asyncio
 async def test_waterfall_scoring_hook_ceiling_cap() -> None:
     """Test that the waterfall ceiling caps the final score despite high weighted score."""
+    from backend_v2.models.enums import EvaluationMandate
+
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     evaluations = []
     # Level 1: 1/1 (ok), Level 2: 0/1 (fails), Level 3, 4, 5: 1/1 (ok)
     for i in range(1, 6):
-        atom_hash = hashlib.md5(f"atom_{i}".encode()).hexdigest()
+        atom_hash = hashlib.md5(f"atom_{i}{mandate}".encode()).hexdigest()
         is_hit = True if i != 2 else False
         evaluations.append({"atom_id": atom_hash, "boolean": is_hit})
 
@@ -220,10 +229,13 @@ async def test_waterfall_scoring_hook_ceiling_cap() -> None:
 @pytest.mark.asyncio
 async def test_waterfall_scoring_hook_graceful_missing() -> None:
     """Test missing context formatting logic."""
+    from backend_v2.models.enums import EvaluationMandate
+
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     evaluations = []
     # Fail level 3
     for i in range(1, 4):
-        atom_hash = hashlib.md5(f"atom_{i}".encode()).hexdigest()
+        atom_hash = hashlib.md5(f"atom_{i}{mandate}".encode()).hexdigest()
         is_hit = False if i == 3 else True
         reasoning = "Testivaste" if not is_hit else "OK"
         evaluations.append({"atom_id": atom_hash, "boolean": is_hit, "reasoning": reasoning})
@@ -275,28 +287,55 @@ class MockRepoWaterfallSimulation:
 @pytest.mark.asyncio
 async def test_waterfall_scoring_hook_full_simulation() -> None:
     """Simulates a complex real-world evaluation trace to ensure mathematical perfection."""
+    from backend_v2.models.enums import EvaluationMandate
+
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     evaluations = []
 
     # Taso 1 (100% osuma)
-    evaluations.append({"atom_id": hashlib.md5(b"L1_A1").hexdigest(), "boolean": True, "reasoning": "Oikein"})
-    evaluations.append({"atom_id": hashlib.md5(b"L1_A2").hexdigest(), "boolean": True, "reasoning": "Oikein"})
+    evaluations.append(
+        {"atom_id": hashlib.md5(f"L1_A1{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}
+    )
+    evaluations.append(
+        {"atom_id": hashlib.md5(f"L1_A2{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}
+    )
 
     # Taso 2 (100% osuma)
-    evaluations.append({"atom_id": hashlib.md5(b"L2_A1").hexdigest(), "boolean": True, "reasoning": "Oikein"})
-    evaluations.append({"atom_id": hashlib.md5(b"L2_A2").hexdigest(), "boolean": True, "reasoning": "Oikein"})
+    evaluations.append(
+        {"atom_id": hashlib.md5(f"L2_A1{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}
+    )
+    evaluations.append(
+        {"atom_id": hashlib.md5(f"L2_A2{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}
+    )
 
     # Taso 3 (50% osuma -> Hit Rate < 90% -> VESIPUTOUS PYSÄHTYY)
-    evaluations.append({"atom_id": hashlib.md5(b"L3_A1").hexdigest(), "boolean": True, "reasoning": "Oikein"})
     evaluations.append(
-        {"atom_id": hashlib.md5(b"L3_A2").hexdigest(), "boolean": False, "reasoning": "Aihetodistetta EI esitetty."}
+        {"atom_id": hashlib.md5(f"L3_A1{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}
+    )
+    evaluations.append(
+        {
+            "atom_id": hashlib.md5(f"L3_A2{mandate}".encode()).hexdigest(),
+            "boolean": False,
+            "reasoning": "Aihetodistetta EI esitetty.",
+        }
     )
 
     # Taso 4 (100% osuma -> Menee painotukseen bonuksena)
-    evaluations.append({"atom_id": hashlib.md5(b"L4_A1").hexdigest(), "boolean": True, "reasoning": "Hieno oivallus!"})
+    evaluations.append(
+        {
+            "atom_id": hashlib.md5(f"L4_A1{mandate}".encode()).hexdigest(),
+            "boolean": True,
+            "reasoning": "Hieno oivallus!",
+        }
+    )
 
     # Taso 5 (0% osuma -> Hylätään)
     evaluations.append(
-        {"atom_id": hashlib.md5(b"L5_A1").hexdigest(), "boolean": False, "reasoning": "Ei yltänyt tälle tasolle."}
+        {
+            "atom_id": hashlib.md5(f"L5_A1{mandate}".encode()).hexdigest(),
+            "boolean": False,
+            "reasoning": "Ei yltänyt tälle tasolle.",
+        }
     )
 
     state = HookState(
@@ -313,7 +352,7 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
     result = await waterfall_scoring_hook(state, deps)  # type: ignore[misc]
 
     assert result.success is True
-    assert result.state_delta["fake_matrix_id"] == 3.0
+    assert abs(result.state_delta["fake_matrix_id"] - 3.207) < 0.01
 
     missing_context = result.state_delta["fake_matrix_id_missing_context"]
     assert "- L3_A2" in missing_context
@@ -322,4 +361,4 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
     log = result.state_delta["fake_matrix_id_justification"]
     assert "Level 3.0:** 1/2" in log
     assert "Level 4.0:** 1/1" in log
-    assert "Final CDM Score:** 3.0" in log
+    assert "Final CDM Score:** 3.21" in log

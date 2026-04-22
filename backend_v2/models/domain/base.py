@@ -139,6 +139,13 @@ class ReasoningTraceDTO(BaseModel):
             msg = "Field cannot be empty or whitespace only."
             logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
+        clean_v = str(v).strip().lower()
+        if clean_v in {"null", "none", "n/a", "ei saatavilla"}:
+            msg = f"LLM returned an invalid empty-equivalent string: '{v}'"
+            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
         return str(v).strip()
 
     @field_validator("confidence_score")

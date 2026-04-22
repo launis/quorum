@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 from backend_v2.database.repository import UnifiedWorkflowRepository
@@ -7,13 +9,20 @@ from backend_v2.services.orchestrator.atomizer import PromptAtomizer
 
 
 @pytest.mark.asyncio
-async def test_compile_atomizer_adds_15_atoms() -> None:
+@patch("backend_v2.services.orchestrator.atomizer.LLMClient.from_strategy")
+async def test_compile_atomizer_adds_15_atoms(mock_from_strategy: AsyncMock) -> None:
     """Tests that Kääntäjä-AI deeply atomizes claims if micro_atoms is missing."""
     repo = UnifiedWorkflowRepository(driver=None)  # type: ignore[arg-type]
 
+    mock_client = AsyncMock()
+    mock_client.run_structured_task = AsyncMock(
+        return_value=(MagicMock(micro_atoms=[f"atom{i}" for i in range(1, 16)], rubric_cot="reasoning"), {})
+    )
+    mock_from_strategy.return_value = mock_client
+
     # Generate a block missing atoms
     block = PromptBlock(
-        id="blk_testabcd12345678",
+        id="blk_1234abcd1234abcd",
         slug="test-block",
         label=I18nText(default_locale="en", translations={"en": "Test Label"}),
         description=I18nText(default_locale="en", translations={"en": "Test Description"}),

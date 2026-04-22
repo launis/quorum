@@ -13,15 +13,19 @@ from backend_v2.services.blueprint import BlueprintTransformer
 def mock_repo() -> Any:
     repo = AsyncMock()
     repo.get_workflow_by_id.return_value = {
+        "id": "wf_1234abcd1234abcd",
+        "slug": "wf_1",
         "name": {"default_locale": "en", "translations": {"en": "Mock Workflow", "fi": "Testi Työnkulku"}},
+        "description": {"default_locale": "en", "translations": {"en": "desc"}},
+        "status": "published",
+        "version": 1,
         "default_profile_id": "prf_dddd1111dddd1111",
         "output_profiles": {
             "prf_dddd1111dddd1111": {
                 "name": {"default_locale": "en", "translations": {"en": "Default"}},
-                "workflow_id": "wf_1",
                 "layouts": [
                     {
-                        "preset_view": "3d_complex",
+                        "preset_view": "1d_metrics",
                         "title": {"default_locale": "en", "translations": {"en": "Title"}},
                         "target_blocks": ["*"],
                         "show_text": True,
@@ -35,10 +39,10 @@ def mock_repo() -> Any:
             "id": "prf_dddd1111dddd1111",
             "slug": "default",
             "name": {"default_locale": "en", "translations": {"en": "Default"}},
-            "workflow_id": "wf_1",
+            "workflow_id": "wf_1234abcd1234abcd",
             "layouts": [
                 {
-                    "preset_view": "3d_complex",
+                    "preset_view": "1d_metrics",
                     "title": {"default_locale": "en", "translations": {"en": "Title"}},
                     "target_blocks": ["*"],
                     "show_text": True,
@@ -48,7 +52,7 @@ def mock_repo() -> Any:
     ]
     repo.get_all_prompt_blocks.return_value = [
         {
-            "id": "matrix_logic1234",
+            "id": "blk_1234abcd1234abcd",
             "slug": "matrix_logic1234",
             "category_id": "matrix",
             "label": {"translations": {"fi": "Logiikka", "en": "Logic"}},
@@ -56,6 +60,8 @@ def mock_repo() -> Any:
                 {"score": 0, "name": {"translations": {"fi": "Nolla", "en": "Zero"}}},
                 {"score": 100, "name": {"translations": {"fi": "Täysi", "en": "Full"}}},
             ],
+            "computed_min": 0.0,
+            "computed_max": 100.0,
         }
     ]
     return repo
@@ -65,15 +71,15 @@ def mock_repo() -> Any:
 async def test_build_report_dto_maps_correctly(mock_repo: Any) -> None:
     mock_repo.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000001",
-        workflow_id="wf_1",
+        workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.COMPLETED,
         execution_trace=[
             TraceEvent(
                 step_name="step_analyst",
                 event_type="output",
                 content={
-                    "matrix_logic1234": 75.0,
-                    "matrix_logic1234_justification": "Very logical",
+                    "blk_1234abcd1234abcd": 75.0,
+                    "blk_1234abcd1234abcd_justification": "Very logical",
                     "synthesis": "Great job",
                 },
             )
@@ -103,7 +109,7 @@ async def test_build_report_dto_maps_correctly(mock_repo: Any) -> None:
 async def test_graceful_degradation_missing_fields(mock_repo: Any) -> None:
     mock_repo.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000002",
-        workflow_id="wf_1",
+        workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.COMPLETED,
         execution_trace=[],
         active_profile_id="prf_dddd1111dddd1111",

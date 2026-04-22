@@ -19,10 +19,11 @@ void main(List<String> args) async {
     final time = DateTime.now().toString().substring(0, 19);
     final logLine = '$time | ERROR | [$context] | client | $message\n';
     logFile.writeAsStringSync(logLine, mode: FileMode.append);
+    print(logLine.trim());
     if (error != null) {
       logFile.writeAsStringSync('ERROR: $error\n', mode: FileMode.append);
+      print('ERROR DETAILS: $error');
     }
-    print(logLine.trim());
   }
 
   logInfo('SYSTEM', 'E2E Simulation Started');
@@ -36,29 +37,28 @@ void main(List<String> args) async {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer mock-token:usr_18a0d5f6151349a5',
+        'Authorization': 'Bearer mock-token:usr_a3fd6b3d77c748f4',
       },
     ),
   );
 
-  // 3. Execution Data (Using the trace from Epic 16)
-  String workflowId = 'wf_d653170e174847559e08af42b938d826';
-  try {
-    final wRes = await dio.get('/studio/workflows/');
-    if (wRes.data is List && wRes.data.isNotEmpty) {
-      workflowId = wRes.data[0]['id'];
-    }
-  } catch (e) {
-    logError(
-      'NETWORK',
-      'Could not fetch workflow dynamically, using fallback.',
-    );
+  // 3. Execution Data (Fetch dynamically)
+  String workflowId = '';
+  String profileId = '';
+  
+  final wRes = await dio.get('/studio/workflows/');
+  if (wRes.data is List && wRes.data.isNotEmpty) {
+    workflowId = wRes.data[0]['id'];
+    profileId = wRes.data[0]['default_profile_id'];
+  } else {
+    print('Failed to fetch workflow dynamically. Response data: ${wRes.data}');
+    throw Exception('Failed to fetch workflow dynamically: data is empty or not a list.');
   }
 
   final rawInputs = {
-    "organization_name": "Test Org",
-    "industry": "Technology",
-    "target_audience": "Developers",
+    "product_text": "Sample product text for E2E",
+    "chat_log": "Sample chat log data",
+    "reflection_text": "Sample reflection",
   };
 
   logInfo('EXECUTION', 'Triggering execution for workflow: $workflowId');
@@ -69,7 +69,7 @@ void main(List<String> args) async {
       '/execution/executions/',
       data: {
         'workflow_id': workflowId,
-        'profile_id': 'prf_1234567812345678',
+        'profile_id': profileId,
         'raw_inputs': rawInputs,
         'target_locale': 'fi',
       },
@@ -92,7 +92,7 @@ void main(List<String> args) async {
   } on DioException catch (e) {
     logError(
       'NETWORK',
-      'DioException during execution: \${e.message}',
+      'DioException during execution: ${e.message}',
       e.response?.data,
     );
     exit(1);

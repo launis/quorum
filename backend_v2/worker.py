@@ -352,6 +352,7 @@ async def generate_profile_synthesis_and_pdf_task(
                 synthesized_markdown=hook_res.state_delta.get("synthesized_markdown", ""),
                 section_syntheses=hook_res.state_delta.get("section_syntheses", {}),
                 cited_sources=hook_res.state_delta.get("cited_sources", []),
+                xai_highlights=hook_res.state_delta.get("xai_highlights", []),
             )
             # Add new synthesis to record
             current_syntheses = execution.profile_syntheses or {}

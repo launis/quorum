@@ -77,8 +77,9 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             "id": "exe_1231231231231231",
             "workflow_id": "wf_5555555555555555",
             "status": ExecutionStatus.RUNNING,
+            "active_profile_id": "prof_dddd1111dddd1111",
             "raw_inputs": {"chat_log": "dGVzdA=="},
-            "metadata": {"target_locale": "fi"},
+            "metadata": {"target_locale": "fi", "profile_id": "prof_dddd1111dddd1111"},
         }
 
         # Also mock the hook registry to prevent "Hook not found" errors in isolated tests

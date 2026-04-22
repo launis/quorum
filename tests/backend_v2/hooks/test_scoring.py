@@ -21,6 +21,7 @@ def _make_state(inputs: dict, step_id: str = "step_judge") -> HookState:
         workflow_id="wf_dummy",
         step_id=step_id,
         inputs=inputs,
+        metadata={},
         global_context_vars={},
     )
 
@@ -227,7 +228,9 @@ async def test_waterfall_scoring_hook_matrix_category() -> None:
     }
 
     import hashlib
-    atom_hash = hashlib.md5("test_atom".encode("utf-8")).hexdigest()
+    from backend_v2.models.enums import EvaluationMandate
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+    atom_hash = hashlib.md5(f"test_atom{mandate}".encode("utf-8")).hexdigest()
 
     deps = HookDependencies(repository=mock_repo)
     state = _make_state(
@@ -267,8 +270,10 @@ async def test_waterfall_scoring_hook_dina_floor() -> None:
     }
 
     import hashlib
-    atom_hash_1 = hashlib.md5("test_atom_1".encode("utf-8")).hexdigest()
-    atom_hash_5 = hashlib.md5("test_atom_5".encode("utf-8")).hexdigest()
+    from backend_v2.models.enums import EvaluationMandate
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+    atom_hash_1 = hashlib.md5(f"test_atom_1{mandate}".encode("utf-8")).hexdigest()
+    atom_hash_5 = hashlib.md5(f"test_atom_5{mandate}".encode("utf-8")).hexdigest()
 
     deps = HookDependencies(repository=mock_repo)
     # Give all False answers to trigger the lowest possible native DINA score (modifier = 0 -> score = 1)
@@ -294,8 +299,7 @@ async def test_waterfall_scoring_hook_dina_floor() -> None:
     res = await waterfall_scoring_hook(state, deps)
     
     assert res.success is True
-    # If scale_min=1, scale_max=5 and DINA_FLOOR=0.30:
-    # dina_absolute_floor = 1 + (5 - 1) * 0.30 = 2.2
+    # With DINA_FLOOR removed, absolute zero failure (no hits) scores a mathematically exact 1.0
     assert "blk_dina" in res.state_delta
     score = res.state_delta["blk_dina"]
-    assert abs(score - 2.2) < 0.01
+    assert abs(score - 1.0) < 0.01

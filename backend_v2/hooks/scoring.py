@@ -19,8 +19,10 @@ def _extract_guard_flag(data: dict[str, Any]) -> Any | None:
         Any | None: True if a security threat is detected, False otherwise, or None if guard data is missing/invalid.
     """
     guard_model = data.get("step_guard")
-    if guard_model:
-        return guard_model.get("security_check", {}).get("threat_detected", False)
+    if guard_model and isinstance(guard_model, dict):
+        sec = guard_model.get("security_check")
+        if isinstance(sec, dict) and "threat_detected" in sec:
+            return sec["threat_detected"]
     logger.debug("[ScoringHook] step_guard missing from context or no threat detected.")
     return False
 
@@ -239,20 +241,40 @@ def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> 
         if not judge_model or not isinstance(judge_model, dict):
             continue
 
-        score_card = judge_model.get("score_card", {})
+        score_card = judge_model.get("score_card")
 
         # Strategy 1: Legacy Dimensions
-        if score_card:
-            scale_min = score_card.get("scale_min", 0.0)
-            dimensions = score_card.get("dimensions", [])
+        if score_card and isinstance(score_card, dict):
+            if "scale_min" not in score_card:
+                from backend_v2.exceptions import AppException, ErrorCodes
+
+                msg = f"Strict Fail-Fast Enforced: Legacy score_card missing 'scale_min' in '{judge_key}'."
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
+
+            scale_min = float(score_card["scale_min"])
+            dimensions = score_card.get("dimensions")
+            if not isinstance(dimensions, list):
+                dimensions = []
 
             penalty_triggered = False
 
             for dim in dimensions:
                 if not isinstance(dim, dict):
                     continue
-                dim_score = dim.get("score", 0.0)
-                dim_id = dim.get("dimension_id", "")
+
+                if "score" not in dim or "dimension_id" not in dim:
+                    from backend_v2.exceptions import AppException, ErrorCodes
+
+                    msg = f"Strict Fail-Fast Enforced: Dimension missing 'score' or 'dimension_id' in '{judge_key}'."
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    )
+
+                dim_score = float(dim["score"])
+                dim_id = str(dim["dimension_id"])
 
                 if dim_score <= scale_min:
                     penalty_triggered = True
@@ -262,7 +284,15 @@ def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> 
             if penalty_triggered:
                 logger.info("[ScoringHook] Applying Passivity Penalty to %s (Factor %s).", judge_key, multiplier)
 
-                current_score = score_card.get("total_score", 0.0)
+                if "total_score" not in score_card:
+                    from backend_v2.exceptions import AppException, ErrorCodes
+
+                    msg = f"Strict Fail-Fast Enforced: 'total_score' missing from score_card in '{judge_key}'."
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    )
+
+                current_score = float(score_card["total_score"])
                 new_score = current_score * multiplier
 
                 if new_score < scale_min:
@@ -423,7 +453,6 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
             CognitiveFlowStatus,
             CognitiveFlowThreshold,
             EvaluationMandate,
-            ScoringCalibrationThresholds,
             WaterfallThreshold,
         )
         from backend_v2.utils.math_utils import (

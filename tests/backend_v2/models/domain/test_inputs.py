@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.exceptions import ConfigurationError, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.inputs import WorkflowInputs
 
 def test_workflow_inputs_accepts_valid_data() -> None:
@@ -19,10 +19,10 @@ def test_workflow_inputs_rejects_content_base64_direct() -> None:
             "content_base64": "SGVsbG8gV29ybGQ=",
         }
     }
-    with pytest.raises(ConfigurationError) as exc_info:
+    with pytest.raises(AppException) as exc_info:
         WorkflowInputs.model_validate(data)
     
-    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert "Binary 'content_base64' payload detected" in exc_info.value.message
 
 def test_workflow_inputs_rejects_content_base64_deep() -> None:
@@ -33,8 +33,8 @@ def test_workflow_inputs_rejects_content_base64_deep() -> None:
             "content_base64": "abc",
         }
     }
-    with pytest.raises(ConfigurationError) as exc_info:
+    with pytest.raises(AppException) as exc_info:
         WorkflowInputs.model_validate(data)
     
-    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 

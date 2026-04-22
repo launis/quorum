@@ -71,13 +71,16 @@ class LLMResponse(BaseModel):
     @field_validator("content")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
-        # Content *can* be empty if only tool_calls are returned?
-        # Provider dependent. But typically we want content.
-        # Let's enforce non-empty string for now, but allow whitespace? No.
-        # Actually, sometimes models return empty content with tool calls.
-        # We should probably allow empty if tool_calls is present but that requires model validation.
-        # For simple field validation, let's just strip.
-        return v if v is None else v  # It is not optional in schema.
+        if v is None:
+            return v
+
+        clean_v = str(v).strip().lower()
+        if clean_v in {"null", "none", "n/a", "ei saatavilla"}:
+            msg = f"LLM returned an invalid empty-equivalent string: '{v}'"
+            logger.error("[LLMModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
+        return v
 
 
 class LLMProviderConfig(BaseModel):

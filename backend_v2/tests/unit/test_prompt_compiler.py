@@ -79,7 +79,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
     compiled_desc = field_info.description
 
     # Target Snapshot format
-    expected_snapshot = "Evaluation object for Critical Distance Score"
+    expected_snapshot = "Evaluation object for blk_test_matrix"
 
     assert compiled_desc == expected_snapshot, (
         f"Snapshot mismatch!\nEXPECTED:\n{expected_snapshot}\n\nACTUAL:\n{compiled_desc}"

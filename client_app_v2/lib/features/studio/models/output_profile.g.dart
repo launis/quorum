@@ -108,7 +108,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
             'system_prompt',
             'length_constraint',
             'preamble_text',
-            'include_historical_summary',
+            'historical_context_mode',
             'enable_pii_masking',
             'allowed_exports',
             'omit_empty_sections',
@@ -126,9 +126,9 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
             (v) =>
                 v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
           ),
-          includeHistoricalSummary: $checkedConvert(
-            'include_historical_summary',
-            (v) => v as bool? ?? false,
+          historicalContextMode: $checkedConvert(
+            'historical_context_mode',
+            (v) => v as String? ?? 'DISABLED',
           ),
           enablePiiMasking: $checkedConvert(
             'enable_pii_masking',
@@ -157,7 +157,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
         'systemPrompt': 'system_prompt',
         'lengthConstraint': 'length_constraint',
         'preambleText': 'preamble_text',
-        'includeHistoricalSummary': 'include_historical_summary',
+        'historicalContextMode': 'historical_context_mode',
         'enablePiiMasking': 'enable_pii_masking',
         'allowedExports': 'allowed_exports',
         'omitEmptySections': 'omit_empty_sections',
@@ -170,7 +170,7 @@ Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
       'system_prompt': instance.systemPrompt,
       'length_constraint': instance.lengthConstraint,
       'preamble_text': instance.preambleText?.toJson(),
-      'include_historical_summary': instance.includeHistoricalSummary,
+      'historical_context_mode': instance.historicalContextMode,
       'enable_pii_masking': instance.enablePiiMasking,
       'allowed_exports': instance.allowedExports,
       'omit_empty_sections': instance.omitEmptySections,

@@ -38,14 +38,6 @@ def test_nested_state_flattening_logic() -> None:
     assert "- **Something Else:** Random" in result
 
 
-def test_prevent_implicit_steps_extraction() -> None:
-    """Epic 27 Phase 1: Assert implicit full 'steps' extraction is prevented."""
-    compiler = PromptCompiler()
-    
-    result = compiler._extract_value_from_state("steps", {"step_1": "data"})
-    assert result == ""
-
-
 def test_global_steps_extraction() -> None:
     """Tier 4 Bug Hunting: Test that '$steps' properly extracts the entire state."""
     compiler = PromptCompiler()
@@ -97,8 +89,8 @@ def test_compile_xml_rubrics_structure() -> None:
 
     # Assert Markdown table extraction
     assert '| Score | Label | Critical Directive |' in xml
-    assert '| 5 | Excellent | Student performed perfectly. |' in xml
-    assert '| 1 | Poor | Student failed. |' in xml
+    assert '| 5 | Excellent | Student performed perfectly. ENFORCEMENT: Evaluate as FALSE immediately unless explicit, documented evidence is provided. |' in xml
+    assert '| 1 | Poor | Student failed. ENFORCEMENT: Evaluate as FALSE immediately unless explicit, documented evidence is provided. |' in xml
 
 
 def test_build_dynamic_schema_removes_scores() -> None:

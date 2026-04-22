@@ -12,7 +12,12 @@ from backend_v2.services.blueprint import BlueprintTransformer
 def mock_repo() -> AsyncMock:
     repo = AsyncMock(spec=AbstractWorkflowRepository)
     repo.get_workflow_by_id.return_value = {
-        "id": "wf_test",
+        "id": "wf_1234abcd1234abcd",
+        "slug": "wf_test",
+        "name": {"default_locale": "en", "translations": {"en": "Mock"}},
+        "description": {"default_locale": "en", "translations": {"en": "desc"}},
+        "status": "published",
+        "version": 1,
         "default_profile_id": "prf_1234abcd1234abcd",
         "steps": [],
     }
@@ -20,7 +25,7 @@ def mock_repo() -> AsyncMock:
         {
             "id": "prf_1234abcd1234abcd",
             "slug": "default",
-            "workflow_id": "wf_test",
+            "workflow_id": "wf_1234abcd1234abcd",
             "name": {"default_locale": "en", "translations": {"fi": "Oletus", "en": "Default"}},
             "layouts": [
                 {
@@ -35,9 +40,16 @@ def mock_repo() -> AsyncMock:
     ]
     repo.get_all_prompt_blocks.return_value = [
         {
-            "id": "metric_category",
+            "id": "blk_1234abcd1234abcd",
+            "slug": "metric",
             "category_id": "matrix",
             "label": {"default_locale": "en", "translations": {"en": "Metric Category"}},
+            "computed_min": 0.0,
+            "computed_max": 5.0,
+            "scales": [
+                {"score": 0, "name": {"translations": {"en": "Zero"}}},
+                {"score": 5, "name": {"translations": {"en": "Full"}}},
+            ],
         }
     ]
     return repo
@@ -50,14 +62,14 @@ async def test_blueprint_zero_math_rounding(mock_repo: AsyncMock) -> None:
 
     mock_execution = ExecutionRecord(
         id="exe_1111111122222222",
-        workflow_id="wf_test",
+        workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.COMPLETED,
         execution_trace=[
             TraceEvent(
                 event_type="output",
                 step_name="step_1",
                 content={
-                    "metric_category": 3.14159,  # Should become 3.1
+                    "blk_1234abcd1234abcd": 3.14159,  # Should become 3.1
                     "scoring_result": {
                         "total_score": 4.567  # Should become 4.6
                     },
@@ -82,7 +94,7 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo: AsyncMock) -> N
 
     mock_execution = ExecutionRecord(
         id="exe_1111111122222222",
-        workflow_id="wf_test",
+        workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.COMPLETED,
         profile_syntheses={
             "prf_1234abcd1234abcd": RenderedSynthesisCache(

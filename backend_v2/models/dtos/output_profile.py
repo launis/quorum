@@ -46,6 +46,9 @@ class OutputProfileCreateDTO(BaseModel):
     synthesis: SynthesisConfigDTO | None = Field(
         default=None, description="Nested definition for synthesis configurations."
     )
+    include_diagnostic_scorecard: bool = Field(
+        default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
+    )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Sequence of layouts.")
 
     @field_validator("visible_extensions", mode="before")
@@ -84,6 +87,9 @@ class OutputProfileUpdateDTO(BaseModel):
     synthesis: SynthesisConfigDTO | None = Field(
         default=None, description="Nested definition for synthesis configurations."
     )
+    include_diagnostic_scorecard: bool | None = Field(
+        default=None, description="Epic 24: Enable appending the independent diagnostic scorecard."
+    )
     layouts: list[OutputLayoutBlock] | None = Field(default=None, description="Sequence of layouts.")
 
     @field_validator("visible_extensions", mode="before")
@@ -108,7 +114,17 @@ class OutputProfileResponseDTO(BaseModel):
     visible_extensions: list[XaiExtensionType] = Field(default_factory=list)
     max_extension_items: int | None = None
     display_scale: Literal["original", "custom", "normalized_100"] = "original"
-    synthesis: SynthesisConfigDTO | None = None
+    synthesis: SynthesisConfigDTO = Field(default_factory=SynthesisConfigDTO)
+    include_diagnostic_scorecard: bool = Field(
+        default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
+    )
     layouts: list[OutputLayoutBlock]
+
+    @field_validator("visible_extensions", mode="before")
+    @classmethod
+    def coerce_xai_extensions(cls, v: Any) -> Any:
+        if isinstance(v, list):
+            return [XaiExtensionType(x) if isinstance(x, str) else x for x in v]
+        return v
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
