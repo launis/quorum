@@ -49,7 +49,12 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(body: ReportRendererWidget(payload: dto, executionId: 'test_exec_id')),
+            home: Scaffold(
+              body: ReportRendererWidget(
+                payload: dto,
+                executionId: 'test_exec_id',
+              ),
+            ),
           ),
         ),
       );
@@ -106,7 +111,12 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(body: ReportRendererWidget(payload: dto, executionId: 'test_exec_id')),
+            home: Scaffold(
+              body: ReportRendererWidget(
+                payload: dto,
+                executionId: 'test_exec_id',
+              ),
+            ),
           ),
         ),
       );

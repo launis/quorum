@@ -21,8 +21,8 @@ class ReportRendererWidget extends ConsumerWidget {
   final String executionId;
 
   const ReportRendererWidget({
-    super.key, 
-    required this.payload, 
+    super.key,
+    required this.payload,
     required this.executionId,
   });
 
@@ -478,7 +478,6 @@ class ReportRendererWidget extends ConsumerWidget {
       );
     }
 
-    final l10n = AppLocalizations.of(context)!;
     final Set<String> seenQuotes = {};
     final List<bool> shouldShowQuote = [];
     for (var axis in layout.axes) {

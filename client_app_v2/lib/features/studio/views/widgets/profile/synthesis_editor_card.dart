@@ -124,9 +124,13 @@ class SynthesisEditorCard extends StatelessWidget {
               title: Text(AppLocalizations.of(context)!.synIncludeHistory),
               value: syn.historicalContextMode == 'SLIDING_WINDOW_3',
               onChanged: (val) {
-                onChanged(syn.copyWith(
-                    historicalContextMode:
-                        val ? 'SLIDING_WINDOW_3' : 'DISABLED'));
+                onChanged(
+                  syn.copyWith(
+                    historicalContextMode: val
+                        ? 'SLIDING_WINDOW_3'
+                        : 'DISABLED',
+                  ),
+                );
               },
             ),
             SwitchListTile(

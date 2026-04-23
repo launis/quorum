@@ -24,11 +24,11 @@ def _find_matrices(data: dict[str, Any] | list[Any], results: dict[str, Any], pr
                     if len(parts) >= 2:
                         base_id = parts[0] + "_" + parts[1]
                         block_ids.add(base_id)
-            
+
             for b_id in block_ids:
                 if b_id in results:
                     continue
-                
+
                 pb_meta = prompt_blocks.get(b_id)
                 if not pb_meta or pb_meta.get("category_id") != "matrix":
                     continue
@@ -36,7 +36,7 @@ def _find_matrices(data: dict[str, Any] | list[Any], results: dict[str, Any], pr
                 norm_score = d.get(f"{b_id}_normalized")
                 if norm_score is None:
                     norm_score = d.get(f"{b_id}_scaled")
-                
+
                 if norm_score is None:
                     continue
 
@@ -45,12 +45,10 @@ def _find_matrices(data: dict[str, Any] | list[Any], results: dict[str, Any], pr
                 t_atoms = d.get(f"{b_id}_total_atoms")
                 t_true = d.get(f"{b_id}_true_atoms")
                 t_false = d.get(f"{b_id}_false_atoms")
-                
+
                 is_eval = pb_meta.get("is_evaluative")
                 if is_eval is None:
-                    raise RuntimeError(
-                        f"[CRITICAL FAIL FAST] 'is_evaluative' metatieto puuttuu (ID: {b_id}). "
-                    )
+                    raise RuntimeError(f"[CRITICAL FAIL FAST] 'is_evaluative' metatieto puuttuu (ID: {b_id}). ")
 
                 # One-sentence justification
                 short_reason = just_str.split("\n")[0].strip()

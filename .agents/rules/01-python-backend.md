@@ -135,6 +135,12 @@
         <catastrophic_reason>Local imports create fragmented mutable references that silently bypass `pytest` monkeypatching, causing unit tests to execute against uncontrollable production configs.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="no_inline_imports">
+        <banned_pattern>Using inline imports (importing modules inside a function, method, or router) to resolve circular dependencies or lazy load modules.</banned_pattern>
+        <mandatory_pattern>ALWAYS declare all imports globally at the top of the file. If you encounter a circular dependency, you MUST refactor the architectural flaw by extracting the shared domain logic into a separate utility or base module. Do NOT hide it with an inline import.</mandatory_pattern>
+        <catastrophic_reason>Inline imports mask circular dependencies, indicating broken domain boundaries. They introduce runtime overhead, obscure module dependencies, and frequently break `pytest` monkeypatching and dependency injection.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="cross_language_enum_parity">
         <banned_pattern>Encoding UI rendering logic in Pydantic `Literal` or `Enum` variables without enforcing parity on the Flutter client, leading to silent 'Contains' parsing failures in Dart UI.</banned_pattern>
         <mandatory_pattern>All cross-boundary Pydantic fields controlling UI lists or presets MUST map to a strict `@JsonEnum()` inside `client_app_v2/lib/core/models/enums.dart`. A corresponding Regex-based `test_enum_parity.py` MUST be enforced to crash Pytest immediately if Flutter fails to mirror a new Backend Literal/Enum.</mandatory_pattern>

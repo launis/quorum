@@ -67,7 +67,7 @@ async def test_seed_database_mock():
 
 def test_main():
     with patch("sys.argv", ["run_seed.py", "local"]), \
-         patch("backend_v2.seed.run_seed.seed_database", new_callable=AsyncMock), \
+         patch("backend_v2.seed.run_seed.seed_database", MagicMock(return_value=None)), \
          patch("asyncio.run") as mock_run:
          
          main()

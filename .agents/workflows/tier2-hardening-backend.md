@@ -45,6 +45,7 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
    - **`zero_orm_bleed`**: Tietokantakerros palauttaa vain puhtaita Pydantic-malleja, ei raakoja sanakirjoja.
    - **`strict_dependency_injection`**: Palvelut ladataan FastAPI:ssa `Depends()` kautta. Ei manuaalisia instansseja.
    - **`global_settings_import`**: `get_settings` tuotava tiedoston alussa.
+   - **`no_inline_imports`**: Ei inline importteja (esim. funktioiden sisällä). Kaikki importit tiedoston alussa.
    - **`cross_language_enum_parity`**: Pydantic Enum/Literal muuttujat täytyy olla pariteetissa Flutterin kanssa.
    - **`prompt_compiler_immutability`**: Älä muokkaa `prompt_compiler.py` -tiedostoa.
    - **`Synthesis.py Standard`**: Funktiot "Pure Functions" muodossa. Sisäkkäisten looppien tilalla O(1) haut.

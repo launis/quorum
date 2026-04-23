@@ -45,14 +45,16 @@ void main(List<String> args) async {
   // 3. Execution Data (Fetch dynamically)
   String workflowId = '';
   String profileId = '';
-  
+
   final wRes = await dio.get('/studio/workflows/');
   if (wRes.data is List && wRes.data.isNotEmpty) {
     workflowId = wRes.data[0]['id'];
     profileId = wRes.data[0]['default_profile_id'];
   } else {
     print('Failed to fetch workflow dynamically. Response data: ${wRes.data}');
-    throw Exception('Failed to fetch workflow dynamically: data is empty or not a list.');
+    throw Exception(
+      'Failed to fetch workflow dynamically: data is empty or not a list.',
+    );
   }
 
   final rawInputs = {

@@ -95,34 +95,38 @@ class MatrixRowItemWidget extends StatelessWidget {
   Widget _buildLevelRow(BuildContext context) {
     final theme = Theme.of(context);
     final levelMap = matrix.levelBreakdown ?? {};
-    
+
     // lue_tulokset.py shows T1..T6 explicitly.
     final keys = ['1', '2', '3', '4', '5', '6'];
-    
+
     return Wrap(
       spacing: 8.0,
       runSpacing: 4.0,
       children: keys.map((k) {
         String display = '-';
-        
+
         // Trace keys can be '1' or '1.0' depending on how they were dumped
         final floatKey = '$k.0';
-        final hasKey = levelMap.containsKey(k) || levelMap.containsKey(floatKey);
-        
+        final hasKey =
+            levelMap.containsKey(k) || levelMap.containsKey(floatKey);
+
         if (hasKey) {
-           final stats = levelMap[k] ?? levelMap[floatKey];
-           if (stats is Map) {
-              final hits = stats?['hits'] ?? stats?['true_atoms'] ?? 0;
-              final total = stats?['total'] ?? stats?['total_atoms'] ?? 0;
-              display = '$hits/$total';
-           } else {
-              display = stats.toString();
-           }
-        } else if (k == '1' && levelMap.isEmpty && matrix.trueAtoms != null && matrix.totalAtoms != null) {
-           // Fallback exactly like lue_tulokset.py: if no level dict, put total atoms in T1
-           display = '${matrix.trueAtoms}/${matrix.totalAtoms}';
+          final stats = levelMap[k] ?? levelMap[floatKey];
+          if (stats is Map) {
+            final hits = stats?['hits'] ?? stats?['true_atoms'] ?? 0;
+            final total = stats?['total'] ?? stats?['total_atoms'] ?? 0;
+            display = '$hits/$total';
+          } else {
+            display = stats.toString();
+          }
+        } else if (k == '1' &&
+            levelMap.isEmpty &&
+            matrix.trueAtoms != null &&
+            matrix.totalAtoms != null) {
+          // Fallback exactly like lue_tulokset.py: if no level dict, put total atoms in T1
+          display = '${matrix.trueAtoms}/${matrix.totalAtoms}';
         }
-        
+
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
           decoration: BoxDecoration(
@@ -134,16 +138,22 @@ class MatrixRowItemWidget extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'T$k', 
-                style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold)
+                'T$k',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(width: 4),
               Text(
-                display, 
+                display,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: display != '-' ? FontWeight.bold : FontWeight.normal,
-                  color: display != '-' ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-                )
+                  fontWeight: display != '-'
+                      ? FontWeight.bold
+                      : FontWeight.normal,
+                  color: display != '-'
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),

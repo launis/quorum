@@ -21,6 +21,9 @@ def mock_repo() -> AsyncMock:
     }
     repo.get_all_output_profiles.return_value = [mock_op]
     
+    mock_org = {"id": "org_system", "name": "System"}
+    repo.get_organization.return_value = mock_org
+    
     mock_wf = {
         "id": "wf_1234567890abcdef",
         "slug": "test_wf",
@@ -48,6 +51,7 @@ def mock_repo() -> AsyncMock:
     mock_execution.organization_id = "org_system"
     mock_execution.execution_trace = []
     mock_execution.metadata = {"target_locale": "en"}
+    mock_execution.profile_syntheses = {}
     repo.get_execution.return_value = mock_execution
     
     mock_syn = MagicMock()
@@ -85,6 +89,7 @@ async def test_build_report_dto_with_legacy_score(blueprint_transformer: Bluepri
     mock_execution.created_at = datetime.datetime.now(datetime.UTC)
     mock_execution.organization_id = "org_system"
     mock_execution.metadata = {}
+    mock_execution.profile_syntheses = {}
     
     event_mock = MagicMock()
     event_mock.timestamp = datetime.datetime.now(datetime.UTC).isoformat()

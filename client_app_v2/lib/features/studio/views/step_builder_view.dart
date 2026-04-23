@@ -834,7 +834,9 @@ class StepBuilderView extends HookConsumerWidget {
             Expanded(
               child: DropdownButtonFormField<String>(
                 isExpanded: true,
-                decoration: InputDecoration(labelText: l10n.postHookEngineLabel),
+                decoration: InputDecoration(
+                  labelText: l10n.postHookEngineLabel,
+                ),
                 initialValue: hookDef.isEmpty ? null : hookDef,
                 items: [
                   DropdownMenuItem(

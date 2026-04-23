@@ -299,9 +299,7 @@ class LayoutEditorCard extends ConsumerWidget {
 
               final targetBlocks = blocks.where((b) {
                 final isAllowed =
-                    allowedBlockIds.isEmpty ||
-                    allowedBlockIds.contains(b.id) ||
-                    allowedBlockIds.contains(b.slug);
+                    allowedBlockIds.isEmpty || allowedBlockIds.contains(b.id);
                 if (!isAllowed) return false;
 
                 final isMatrix = b.categoryId == 'matrix';

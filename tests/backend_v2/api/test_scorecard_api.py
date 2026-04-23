@@ -30,31 +30,25 @@ MOCK_HEADERS = {
 @pytest.fixture
 def mock_trace_data():
     return {
-        "blk_test1": {
-            "step_4_final_score": 5.0,
-            "is_evaluative": True,
-            "normalized_score": 100.0,
-            "true_atoms": 5,
-            "total_atoms": 5,
-            "false_atoms": 0,
-            "waterfall_calculation_log": "Taso 1 vaikuttaa hyvältä.",
-            "missing_context": "",
-            "level_breakdown": {
-                "1.0": {"hits": 5, "total": 5}
-            }
+        "blk_test1_scaled": 5.0,
+        "blk_test1_normalized": 100.0,
+        "blk_test1_true_atoms": 5,
+        "blk_test1_total_atoms": 5,
+        "blk_test1_false_atoms": 0,
+        "blk_test1_justification": "Taso 1 vaikuttaa hyvältä.",
+        "blk_test1_missing_context": "",
+        "blk_test1_level_breakdown": {
+            "1.0": {"hits": 5, "total": 5}
         },
-        "blk_info99": {
-            "step_4_final_score": 2.0,
-            "is_evaluative": False,
-            "normalized_score": None,
-            "true_atoms": 1,
-            "total_atoms": 5,
-            "false_atoms": 4,
-            "waterfall_calculation_log": "Tämä on vain infoa.",
-            "missing_context": "Puutteita.",
-            "level_breakdown": {
-                "1.0": {"hits": 1, "total": 5}
-            }
+        "blk_info99_scaled": 2.0,
+        "blk_info99_normalized": None,
+        "blk_info99_true_atoms": 1,
+        "blk_info99_total_atoms": 5,
+        "blk_info99_false_atoms": 4,
+        "blk_info99_justification": "Tämä on vain infoa.",
+        "blk_info99_missing_context": "Puutteita.",
+        "blk_info99_level_breakdown": {
+            "1.0": {"hits": 1, "total": 5}
         }
     }
 

@@ -101,8 +101,8 @@ class AtomMatrixTableWidget extends StatelessWidget {
               ...sortedLevels.map((lvl) {
                 final stats = levelMap[lvl];
                 if (stats == null) return const DataCell(Text('-'));
-                final hits = stats?['hits'] ?? stats?['true_atoms'] ?? 0;
-                final total = stats?['total'] ?? stats?['total_atoms'] ?? 0;
+                final hits = stats['hits'] ?? stats['true_atoms'] ?? 0;
+                final total = stats['total'] ?? stats['total_atoms'] ?? 0;
                 return DataCell(Text('$hits / $total'));
               }),
             ],
@@ -138,8 +138,8 @@ class AtomMatrixTableWidget extends StatelessWidget {
           ),
           children: sortedLevels.map((lvl) {
             final stats = m.levelBreakdown![lvl]!;
-            final hits = stats?['hits'] ?? stats?['true_atoms'] ?? 0;
-            final total = stats?['total'] ?? stats?['total_atoms'] ?? 0;
+            final hits = stats['hits'] ?? stats['true_atoms'] ?? 0;
+            final total = stats['total'] ?? stats['total_atoms'] ?? 0;
             return ListTile(
               dense: true,
               title: Text(lvl),

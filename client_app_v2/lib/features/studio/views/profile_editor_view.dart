@@ -73,8 +73,7 @@ class ProfileEditorView extends HookConsumerWidget {
           .map((s) => s.taskBlueprint)
           .toSet();
       for (final step in stepsList) {
-        if (taskBlueprintIds.contains(step.id) ||
-            taskBlueprintIds.contains(step.slug)) {
+        if (taskBlueprintIds.contains(step.id)) {
           allowedBlockIds.addAll(step.promptBlocks);
         }
       }

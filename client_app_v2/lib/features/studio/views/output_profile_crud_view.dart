@@ -214,9 +214,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
 
         for (final step in steps) {
           final stepId = step.id;
-          final stepSlug = step.slug;
-          if (taskBlueprintIds.contains(stepId) ||
-              taskBlueprintIds.contains(stepSlug)) {
+          if (taskBlueprintIds.contains(stepId)) {
             allowedBlockIds.addAll(step.promptBlocks);
           }
         }

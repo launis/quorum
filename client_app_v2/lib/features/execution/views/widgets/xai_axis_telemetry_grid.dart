@@ -26,15 +26,9 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                flex: 3,
-                child: _buildMainContent(context),
-              ),
+              Expanded(flex: 3, child: _buildMainContent(context)),
               const SizedBox(width: 24),
-              Expanded(
-                flex: 2,
-                child: _buildTelemetryGrid(context),
-              ),
+              Expanded(flex: 2, child: _buildTelemetryGrid(context)),
             ],
           );
         }
@@ -110,8 +104,10 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
         if (hasWebCitation)
           Container(
             margin: const EdgeInsets.only(top: 8.0),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12.0,
+              vertical: 8.0,
+            ),
             decoration: BoxDecoration(
               color: Colors.green.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(6),
@@ -191,40 +187,49 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
     }
 
     if (axis.coaching != null && axis.coaching!.isNotEmpty) {
-      boxes.add(_buildBox(
-        title: l10n.reportCoachingTitle,
-        content: axis.coaching!,
-        color: Colors.amber,
-      ));
+      boxes.add(
+        _buildBox(
+          title: l10n.reportCoachingTitle,
+          content: axis.coaching!,
+          color: Colors.amber,
+        ),
+      );
     }
 
     if (axis.falsification != null && axis.falsification!.isNotEmpty) {
-      boxes.add(_buildBox(
-        title: l10n.reportFalsificationTitle,
-        content: axis.falsification!,
-        color: Colors.deepPurple,
-        contentFontStyle: FontStyle.italic,
-      ));
+      boxes.add(
+        _buildBox(
+          title: l10n.reportFalsificationTitle,
+          content: axis.falsification!,
+          color: Colors.deepPurple,
+          contentFontStyle: FontStyle.italic,
+        ),
+      );
     }
 
     if (axis.missingContext != null && axis.missingContext!.isNotEmpty) {
-      boxes.add(_buildBox(
-        title: l10n.reportMissingContextTitle,
-        content: axis.missingContext!,
-        color: Colors.grey,
-        titleColor: Colors.black54,
-      ));
+      boxes.add(
+        _buildBox(
+          title: l10n.reportMissingContextTitle,
+          content: axis.missingContext!,
+          color: Colors.grey,
+          titleColor: Colors.black54,
+        ),
+      );
     }
 
     if (axis.remediationSteps != null && axis.remediationSteps!.isNotEmpty) {
-      boxes.add(_buildBox(
-        title: l10n.reportRemediationStepsTitle,
-        content: '- ${axis.remediationSteps!.join('\\n- ')}',
-        color: Colors.teal,
-      ));
+      boxes.add(
+        _buildBox(
+          title: l10n.reportRemediationStepsTitle,
+          content: '- ${axis.remediationSteps!.join('\\n- ')}',
+          color: Colors.teal,
+        ),
+      );
     }
 
-    if (axis.emotionalSentiment != null && axis.emotionalSentiment!.isNotEmpty) {
+    if (axis.emotionalSentiment != null &&
+        axis.emotionalSentiment!.isNotEmpty) {
       boxes.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 12.0),
@@ -246,10 +251,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 8.0),
           child: Text(
             '${l10n.reportTheoryLinkTitle}: ${axis.theoryLink!}',
-            style: const TextStyle(
-              fontSize: 13,
-              color: Colors.blue,
-            ),
+            style: const TextStyle(fontSize: 13, color: Colors.blue),
           ),
         ),
       );
@@ -278,9 +280,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        border: Border(
-          left: BorderSide(color: color.shade700, width: 4),
-        ),
+        border: Border(left: BorderSide(color: color.shade700, width: 4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
