@@ -80,7 +80,7 @@ class MatrixRowItemWidget extends StatelessWidget {
                   matrix.totalAtoms != null &&
                   matrix.totalAtoms! > 0)
                 Text(
-                  '${matrix.trueAtoms} / ${matrix.totalAtoms} Hits',
+                  '${matrix.trueAtoms} / ${matrix.totalAtoms}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

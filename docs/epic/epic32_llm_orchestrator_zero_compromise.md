@@ -32,10 +32,10 @@ Specifically, the system uses recursive duck typing `_strip_heavy_keys` to arbit
 - **Reasoning:** The entire lifecycle guarantees state integrity EXCEPT where `LLMNodeStrategy` dumps a raw dictionary into the post-hooks.
 - **Solution:** Wrap the Map-Reduce total output in a Pydantic record before sending it into the hook lifecycle.
 
-### Phase 4: System Concurrency SSOT Enforcement
+### Phase 4: System Concurrency SSOT Enforcement [✅ COMPLETED]
 - **Target:** `LLMNodeStrategy.execute` map-reduce chunking loop.
-- **Action:** Enforce strict adherence to `<rule_block id="system_concurrency_ssot">` from `05_llm_architecture.md`.
-- **Solution:** While resolving chunking logic, verify that execution loops are strictly wrapped in `asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS)`. Absolutely no arbitrary or hardcoded API concurrency scaling is permitted.
+- **Current Status:** This phase has already been successfully implemented in `llm.py`. The execution chunks are now strictly wrapped in `asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS.value)` in the `process_chunk` coroutine, ensuring no arbitrary or hardcoded API concurrency scaling exists.
+- **Remaining Task:** None for this specific block. It serves as the architectural reference standard for any future map-reduce orchestration.
 
 ## 4. Testing & Verification Mandate (Synthesis.py Standard)
 

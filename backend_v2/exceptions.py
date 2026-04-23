@@ -86,10 +86,14 @@ BANNED PATTERNS
 ================================================================================
 """
 
+import logging
 from enum import Enum
 from typing import Any
 
 from fastapi import status
+from pydantic import ValidationError
+
+logger = logging.getLogger(__name__)
 
 
 class ErrorCodes(str, Enum):
@@ -138,6 +142,7 @@ class ErrorCodes(str, Enum):
     UPSTREAM_TIMEOUT = "UPSTREAM_TIMEOUT"
     SERVICE_DISABLED = "SERVICE_DISABLED"
     CAPABILITY_NOT_SUPPORTED = "CAPABILITY_NOT_SUPPORTED"
+    TOKEN_LIMIT_EXCEEDED = "TOKEN_LIMIT_EXCEEDED"
 
     # Model Config
     INVALID_REGISTRY_STRUCTURE = "INVALID_REGISTRY_STRUCTURE"
@@ -228,6 +233,8 @@ class ErrorCodes(str, Enum):
     TASK_NOT_FOUND = "TASK_NOT_FOUND"
     COMPONENT_NOT_FOUND = "COMPONENT_NOT_FOUND"
     RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED"
+    MISSING_XAI_EXTENSION = "MISSING_XAI_EXTENSION"
+    MISSING_ROUTING_MODE = "MISSING_ROUTING_MODE"
 
     # Knowledge Base
     KNOWLEDGE_INGESTION_FAILED = "KNOWLEDGE_INGESTION_FAILED"
@@ -460,16 +467,9 @@ class AgentExecutionError(AppException):
         return format_validation_error(exc)
 
 
-import logging
-
-logger = logging.getLogger(__name__)
-
-
 def format_validation_error(exc: Exception) -> str:
     """Formats the exception into a human-readable string, specifically handling Pydantic ValidationErrors."""
     try:
-        from pydantic import ValidationError
-
         if isinstance(exc, ValidationError):
             errors = exc.errors()
             missing_fields = []
@@ -495,13 +495,6 @@ def format_validation_error(exc: Exception) -> str:
             # Use title if available (e.g. "ContextData")
             title = getattr(exc, "title", "Schema")
             return f"{title} validation failed. " + "; ".join(parts)
-    except ImportError as e:
-        logger.error("Failed to import pydantic.ValidationError", exc_info=True)
-        raise AppException(
-            message="Required dependency Pydantic missing.",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-        ) from e
     except Exception as e:
         logger.error(f"Failed to format validation error for {type(exc).__name__}", exc_info=True)
         raise AppException(
@@ -641,3 +634,63 @@ class WorkflowCompilationError(AppException):
         details = {"error_code": ErrorCodes.WORKFLOW_COMPILATION_ERROR, "step_id": step_id}
         super().__init__(message=message, status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, details=details)
         self.step_id = step_id
+
+
+class TokenLimitExceededError(AppException):
+    """Raised when token length of the LLM context exceeds the safe threshold."""
+
+    def __init__(self, message: str = "Token limit exceeded", details: dict[str, Any] | None = None):
+        """Initialize the exception."""
+        d = {"error_code": ErrorCodes.TOKEN_LIMIT_EXCEEDED}
+        if details:
+            d.update(details)
+        super().__init__(message, status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, details=d)
+
+
+class MissingInputMappingError(AppException):
+    """Raised when safe dot-notation traversal fails to find a valid key/attribute."""
+
+    def __init__(self, path: str, state_type: str, reason: str):
+        """Initialize the exception.
+
+        Args:
+            path: The dot-notation path that failed.
+            state_type: The type of the object being traversed.
+            reason: Specific technical reason (e.g., KeyError, AttributeError).
+        """
+        msg = f"Failed to resolve path '{path}' in {state_type}: {reason}"
+        details = {
+            "error_code": ErrorCodes.INPUT_RESOLUTION_FAILED.value,
+            "path": path,
+            "state_type": state_type,
+            "reason": reason,
+        }
+        super().__init__(message=msg, status_code=status.HTTP_400_BAD_REQUEST, details=details)
+
+
+class MissingXaiExtensionError(AppException):
+    """Raised when an extension is requested by UI but missing in TraceEvent."""
+
+    def __init__(self, extension_name: str, step_id: str | None = None):
+        """Initialize the exception."""
+        details = {"error_code": ErrorCodes.MISSING_XAI_EXTENSION, "extension": extension_name}
+        if step_id:
+            details["step_id"] = step_id
+        super().__init__(
+            message=f"XAI Extension '{extension_name}' is missing but required by UI Output Profile.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details=details,
+        )
+
+
+class MissingRoutingModeError(AppException):
+    """Raised when step-to-step mapping lacks a routing_mode instruction."""
+
+    def __init__(self, mapping_path: str):
+        """Initialize the exception."""
+        details = {"error_code": ErrorCodes.MISSING_ROUTING_MODE, "mapping_path": mapping_path}
+        super().__init__(
+            message=f"Routing mode is missing for mapping '{mapping_path}'.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details=details,
+        )

@@ -11,39 +11,7 @@ import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_exception.dart';
 
-import 'dart:async'; // Add dart:async for Timer
-
-/// Centralized settings for the Execution Dashboard
-class DashboardSettings {
-  const DashboardSettings._();
-
-  /// Auto-refresh interval for the continuous background polling
-  static const Duration refreshRate = Duration(seconds: 10);
-}
-
-// Provider to fetch executions using native casting (No Freezed API DTOs)
-final executionListProvider =
-    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-      // 1. Riverpod Polling (Auto-Refresh)
-      // Poll backend every 10 seconds to keep the Execution Dashboard alive and fresh,
-      // bypassing the StatefulShellRoute cache stagnation issue.
-      final timer = Timer(DashboardSettings.refreshRate, () {
-        ref.invalidateSelf();
-      });
-      ref.onDispose(timer.cancel);
-
-      final dio = ref.watch(apiClientProvider);
-      final response = await dio.get('/execution/executions');
-
-      final List<dynamic> data = response.data is List
-          ? response.data as List
-          : [];
-      return data
-          .map(
-            (e) => e is Map ? e as Map<String, dynamic> : <String, dynamic>{},
-          )
-          .toList();
-    });
+import 'package:client_app/features/execution/controllers/execution_controller.dart';
 
 class DashboardView extends ConsumerStatefulWidget {
   const DashboardView({super.key});
@@ -119,9 +87,21 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
             itemCount: executions.length,
             itemBuilder: (context, index) {
               final exec = executions[index];
-              final id = exec['id']?.toString() ?? '';
-              final status = exec['status']?.toString() ?? '';
-              final workflowId = exec['workflow_id']?.toString() ?? '';
+              final id =
+                  exec['id']?.toString() ??
+                  (throw AppException.validation(
+                    'CRITICAL FAIL-FAST: Missing execution ID',
+                  ));
+              final status =
+                  exec['status']?.toString() ??
+                  (throw AppException.validation(
+                    'CRITICAL FAIL-FAST: Missing execution status',
+                  ));
+              final workflowId =
+                  exec['workflow_id']?.toString() ??
+                  (throw AppException.validation(
+                    'CRITICAL FAIL-FAST: Missing workflow_id',
+                  ));
               final createdAt = exec['created_at']?.toString() ?? '';
 
               // Formatting date
@@ -173,10 +153,14 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                   final titleStr = nameMap.isNotEmpty
                       ? (nameMap['translations']?[nameMap['default_locale']] ??
                             nameMap['default_locale'] ??
-                            workflowId)
+                            (throw AppException.validation(
+                              'Fail-Fast: Missing required translation.',
+                            )))
                       : ((wf['name']?.toString() ?? '').isNotEmpty
                             ? wf['name']?.toString() ?? ''
-                            : workflowId);
+                            : (throw AppException.validation(
+                                'Fail-Fast: Missing required translation.',
+                              )));
                   workflowDisplay = AppLocalizations.of(
                     context,
                   )!.workflowPrefixLabel(titleStr);
@@ -291,10 +275,8 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     if (variants.isEmpty) {
       // Epic 14: Graceful Degradation for Workflow Builder (No-String Mandate compliant)
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Tällä työnkululla ei ole tulostusprofiileja (Missing Output Profiles)',
-          ),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.errorValidation),
           backgroundColor: Colors.red,
         ),
       );
@@ -408,16 +390,19 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
       if (nameObj is Map) {
         final translations = nameObj['translations'];
         final locale = Localizations.localeOf(context).languageCode;
-        final defLocale = nameObj['default_locale']?.toString() ?? 'en';
+
         if (translations is Map) {
           return translations[locale]?.toString() ??
-              translations[defLocale]?.toString() ??
               translations['en']?.toString() ??
-              key;
+              (throw AppException.validation(
+                'Fail-Fast: Missing required translation for key $key.',
+              ));
         }
       }
     }
-    return key;
+    throw AppException.validation(
+      'Fail-Fast: Missing required translation for key $key.',
+    );
   }
 
   Future<void> _confirmDelete(
@@ -501,7 +486,9 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
       final getResponse = await dio.get('/execution/executions/$id');
       final Map<String, dynamic> oldExec = getResponse.data is Map
           ? getResponse.data as Map<String, dynamic>
-          : throw Exception('Invalid response');
+          : throw AppException.network(
+              'Invalid response from server',
+            ).copyWith(extensions: const {'error_code': 'INVALID_RESPONSE'});
 
       // 2. Prepare payload
       final metadata = oldExec['metadata'] is Map

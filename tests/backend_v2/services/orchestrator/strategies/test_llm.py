@@ -124,3 +124,83 @@ async def test_llm_strategy_context_pruning() -> None:
     assert "shuffled_atoms" not in state_data
     assert "heavy_root_field" not in state_data
     assert state_data.get("inputs", {}).get("good_data") == "keep"
+
+
+from backend_v2.exceptions import TokenLimitExceededError
+
+@pytest.mark.asyncio
+async def test_llm_strategy_token_limit_breach() -> None:
+    """Epic 35 Phase 3: Test that token max breach raises TokenLimitExceededError."""
+    strategy = LLMNodeStrategy(repository=AsyncMock(), prompt_compiler=MagicMock())
+    
+    step_rule = MagicMock(spec=StepRule)
+    step_rule.id = "step_token_limit"
+    step_rule.task_blueprint = "bp_123"
+    step_rule.input_mappings = {"massive_doc": "$inputs.huge_data"}
+    step_rule.allowed_mcp_tools = []
+    
+    projector = MagicMock(spec=StateProjector)
+    projector.snapshot = {
+        "inputs": {"huge_data": "A" * 500000}
+    }
+    
+    context = MagicMock(spec=StrategyContext)
+    context.execution_id = "exec_1"
+    context.workflow_id = "wf_1"
+    context.model_strategy = "test_strategy"
+    context.metadata = {"profile_id": "prof_1", "target_locale": "en"}
+    context.expected_inputs = None
+    
+    strategy.repository.get_step_by_id = AsyncMock(return_value={"id": "step_1111222233334444", "slug": "test", "name": {"default_locale": "en", "translations": {"en": "test"}}, "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["block_123"]})
+    strategy.repository.get_all_prompt_blocks = AsyncMock(return_value=[{"id": "block_123"}])
+    
+    strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=projector.snapshot))
+    
+    with patch("litellm.token_counter", return_value=100001):
+        with pytest.raises(TokenLimitExceededError):
+            await strategy.execute(step_rule, projector, context, None, None)
+
+
+@pytest.mark.asyncio
+async def test_llm_strategy_synthesis_output_profile() -> None:
+    """Epic 35 Phase 3: Test that Synthesis tasks use SduiResponseList schema and map chunks."""
+    strategy = LLMNodeStrategy(repository=AsyncMock(), prompt_compiler=MagicMock())
+    
+    step_rule = MagicMock(spec=StepRule)
+    step_rule.id = "step_synthesis"
+    step_rule.task_blueprint = "bp_123"
+    step_rule.input_mappings = {}
+    step_rule.allowed_mcp_tools = []
+    
+    projector = MagicMock(spec=StateProjector)
+    projector.snapshot = {}
+    
+    context = MagicMock(spec=StrategyContext)
+    context.execution_id = "exec_1"
+    context.workflow_id = "wf_1"
+    context.model_strategy = "test_strategy"
+    context.metadata = {"profile_id": "prof_1", "target_locale": "en"}
+    context.output_profile = MagicMock()
+    context.expected_inputs = None
+    
+    strategy.repository.get_step_by_id = AsyncMock(return_value={"id": "step_1111222233334444", "slug": "test", "name": {"default_locale": "en", "translations": {"en": "test"}}, "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["block_123"]})
+    strategy.repository.get_all_prompt_blocks = AsyncMock(return_value=[{"id": "block_123"}])
+    
+    strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=projector.snapshot))
+    strategy.run_post_hooks = AsyncMock(return_value={"final": "output"})
+    
+    mock_client = MagicMock()
+    mock_result = MagicMock()
+    mock_result.model_dump.return_value = [{"block_type": "hero_insight"}]
+    mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {}))
+    
+    mock_from_strategy = AsyncMock(return_value=mock_client)
+    with patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new=mock_from_strategy):
+        with patch("backend_v2.services.orchestrator.chunking_service.ChunkingService.chunk_payload", return_value=[None]):
+            res = await strategy.execute(step_rule, projector, context, None, None)
+            
+    assert len(res) == 1
+    call_args = mock_client.run_structured_task.call_args
+    assert call_args is not None
+    assert call_args.kwargs["max_retries"] == 3
+    assert call_args.kwargs["response_model"].__name__ == "SduiResponseList"

@@ -47,7 +47,10 @@ def run_tests_with_strict_coverage(target):
     if target.endswith(".py"):
         parts = target.replace("\\", "/").split("/")
         parts[-1] = "test_" + parts[-1]
-        test_path = "tests/" + "/".join(parts)
+        if parts[0] == "backend_v2":
+            test_path = "backend_v2/tests/unit/" + parts[-1]
+        else:
+            test_path = "tests/" + "/".join(parts)
         
         # 1. Ajetaan Pytest ja kerätään kattavuusdata (ei kaatumista fail-underiin vielä)
         cmd = ["uv", "run", "pytest", test_path, "-v", "--tb=short", f"--cov={cov_target}"]

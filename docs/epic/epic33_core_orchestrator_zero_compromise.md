@@ -39,10 +39,10 @@ Significant architectural drift (duck typing and "graceful fallback" behavior) w
 - **Action:** Define an immutable `HookResultDTO` containing `StatefulExecutionDTO` structures instead of `dict[str, Any]` inside `HookState`.
 - **Solution:** Force the pipeline to explicitly declare its output schema, allowing the `PromptCompiler` to render context deterministically without `isinstance()` branching.
 
-### Phase 4: Topology & Injection Firewalling (05_llm_architecture)
+### Phase 4: Topology & Prompt Caching Inversion [✅ COMPLETED / REVISED BY EPIC 27]
 - **Target:** `PromptCompiler` core prompt generation.
-- **Action:** Enforce strict adherence to `<rule_block id="ephemeral_caching_topology">` and `<rule_block id="role_segregation_and_fencing">`.
-- **Solution:** While refactoring the context extraction, verify that the `system` message strictly contains the static configuration (for 100% FinOps cache hits) and that ALL dynamically extracted context (from `state.inputs` and `prior_step_context`) is appended EXCLUSIVELY to the `user` message block mapped inside `<user_payload>` XML firewalls to prevent prompt injection.
+- **Current Status:** This phase's original architectural mandate was explicitly inverted by Epic 27 (Provider-Agnostic Prompt Caching). To achieve optimal FinOps cache hits across Vertex/Anthropic/OpenAI, the massive dynamic reference data (context) MUST now be placed at the very beginning of the `system` message, while the dynamic per-chunk rubrics reside in the `user` message. 
+- **Remaining Task:** None. The orchestration topology in `llm.py` and `prompt_compiler.py` is now successfully aligned with the Epic 27 caching architecture.
 
 ## 4. Testing & Verification Mandate (Synthesis.py Standard)
 

@@ -58,6 +58,7 @@ class AtomMatrixTableWidget extends StatelessWidget {
     List<MatrixScorecardRowDto> tableMatrices,
     ThemeData theme,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     // Extract unique levels across all matrices to build columns
     final allLevels = <String>{};
     for (var m in tableMatrices) {
@@ -72,8 +73,8 @@ class AtomMatrixTableWidget extends StatelessWidget {
           theme.colorScheme.surfaceContainerHighest,
         ),
         columns: [
-          const DataColumn(label: Text('Matrix')),
-          const DataColumn(label: Text('Total Hits')),
+          DataColumn(label: Text(l10n.lblLogicMatrix)),
+          DataColumn(label: Text(l10n.score)),
           ...sortedLevels.map((lvl) => DataColumn(label: Text(lvl))),
         ],
         rows: tableMatrices.map((m) {
@@ -117,6 +118,7 @@ class AtomMatrixTableWidget extends StatelessWidget {
     List<MatrixScorecardRowDto> tableMatrices,
     ThemeData theme,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -133,7 +135,7 @@ class AtomMatrixTableWidget extends StatelessWidget {
           ),
           subtitle: Text(
             (m.trueAtoms != null && m.totalAtoms != null)
-                ? 'Total Hits: ${m.trueAtoms} / ${m.totalAtoms}'
+                ? '${l10n.score}: ${m.trueAtoms} / ${m.totalAtoms}'
                 : '',
           ),
           children: sortedLevels.map((lvl) {

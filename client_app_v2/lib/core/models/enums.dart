@@ -58,3 +58,14 @@ enum PresetView {
   @JsonValue('default')
   defaultView,
 }
+
+/// Execution Routing Modes mapping (Epic 35)
+/// STRICT PARITY MANDATE: Must match backend Pydantic string equivalents.
+enum RoutingMode {
+  @JsonValue('standard')
+  standard,
+  @JsonValue('dynamic_routing')
+  dynamicRouting,
+  @JsonValue('parallel_routing')
+  parallelRouting,
+}

@@ -4,7 +4,7 @@ import logging
 import os
 from pathlib import Path
 
-import aiofiles  # type: ignore[import-untyped]
+import aiofiles
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.services.file_driver import FileDriver
@@ -34,23 +34,19 @@ class LocalFileDriver(FileDriver):
             raise AppException(
                 message=msg,
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_CONFIG_ERROR},
+                details={"error_code": ErrorCodes.STORAGE_CONFIG_ERROR.value},
             )
 
         self.base_path = Path(base_path).resolve()
-        try:
-            self.base_path.mkdir(parents=True, exist_ok=True)
-        except Exception as e:
-            logger.error(
-                f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: "
-                f"Failed to create/access local storage directory '{base_path}': {e}",
-                exc_info=True,
-            )
+        # Enforce explicit os.path validation: no silent directory creation
+        if not self.base_path.exists() or not self.base_path.is_dir():
+            msg = f"Local storage directory '{base_path}' does not exist or is not a directory."
+            logger.error("[LocalFileDriver] %s: %s", ErrorCodes.STORAGE_ACCESS_FAILED.name, msg)
             raise AppException(
-                message=f"Failed to create/access local storage directory '{base_path}': {e}",
+                message=msg,
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
-            ) from e
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+            )
 
         self.base_url = base_url
 
@@ -72,7 +68,7 @@ class LocalFileDriver(FileDriver):
                 msg = "Empty path"
                 logger.error("[LocalFileDriver] %s: %s", ErrorCodes.FILESYSTEM_VIOLATION.name, msg)
                 raise AppException(
-                    message=msg, status_code=400, details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION}
+                    message=msg, status_code=400, details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION.value}
                 )
 
             # Resolve against base
@@ -85,7 +81,7 @@ class LocalFileDriver(FileDriver):
                 raise AppException(
                     message=msg,
                     status_code=400,
-                    details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION},
+                    details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION.value},
                 )
             return full_path
         except AppException:
@@ -96,7 +92,7 @@ class LocalFileDriver(FileDriver):
             raise AppException(
                 message=msg,
                 status_code=400,
-                details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION, "info": str(e)},
+                details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION.value, "info": str(e)},
             ) from e
 
     async def save(self, path: str, data: bytes | str) -> str:
@@ -104,14 +100,22 @@ class LocalFileDriver(FileDriver):
         full_path = self._validate_path(path)
 
         try:
-            # Ensure parent dir exists (Sync operation, but fast on local FS)
-            full_path.parent.mkdir(parents=True, exist_ok=True)
+            # Enforce explicit os.path validation: no silent directory creation
+            if not full_path.parent.exists() or not full_path.parent.is_dir():
+                msg = f"Parent directory for {path} does not exist"
+                logger.error("[LocalFileDriver] %s: %s", ErrorCodes.STORAGE_ACCESS_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+                )
 
-            mode = "wb" if isinstance(data, bytes) else "w"
-            encoding = None if isinstance(data, bytes) else "utf-8"
-
-            async with aiofiles.open(full_path, mode, encoding=encoding) as f:
-                await f.write(data)
+            if isinstance(data, bytes):
+                async with aiofiles.open(full_path, "wb") as f:
+                    await f.write(data)
+            else:
+                async with aiofiles.open(full_path, "w", encoding="utf-8") as f:
+                    await f.write(data)
 
             return str(full_path)
         except Exception as e:
@@ -122,7 +126,7 @@ class LocalFileDriver(FileDriver):
             raise AppException(
                 message=f"Local Save Failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             ) from e
 
     async def read(self, path: str) -> bytes:
@@ -133,7 +137,7 @@ class LocalFileDriver(FileDriver):
         if not full_path.exists():
             msg = f"File not found: {path}"
             logger.error("[LocalFileDriver] %s: %s", ErrorCodes.FILE_NOT_FOUND.name, msg)
-            raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.FILE_NOT_FOUND})
+            raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.FILE_NOT_FOUND.value})
 
         try:
             async with aiofiles.open(full_path, "rb") as f:
@@ -147,7 +151,7 @@ class LocalFileDriver(FileDriver):
             raise AppException(
                 message=f"Local Read Failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             ) from e
 
     async def delete(self, path: str) -> bool:
@@ -170,7 +174,7 @@ class LocalFileDriver(FileDriver):
             raise AppException(
                 message=f"Local Delete Failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             ) from e
 
     async def exists(self, path: str) -> bool:

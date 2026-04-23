@@ -12,6 +12,7 @@ import 'package:client_app/features/execution/views/widgets/xai_axis_telemetry_g
 import 'package:client_app/features/execution/views/widgets/diagnostic_scorecard_widget.dart';
 
 import 'package:client_app/shared/widgets/output_renderer.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/ui/error_view.dart';
 
 /// Static MVC View Renderer mapping exactly to the workflow preset views.
@@ -180,7 +181,11 @@ class ReportRendererWidget extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final defaultOrgName = payload.orgName ?? l10n.reportUnknownOrg;
     final lang = Localizations.localeOf(context).languageCode;
-    final profileNameStr = payload.profileName?.get(lang) ?? payload.profileId;
+    final profileNameStr =
+        payload.profileName?.get(lang) ??
+        (throw AppException.validation(
+          'Fail-Fast: Missing required translation for profileName.',
+        ));
 
     // Formatting cost
     final costStr = payload.costEstimate != null
@@ -297,8 +302,8 @@ class ReportRendererWidget extends ConsumerWidget {
 
   Widget _buildGlobalScoreBadge(BuildContext context) {
     if (payload.globalScore == null) {
-      throw Exception(
-        'payload.globalScore missing! Fail-Fast rule dictates UI crash rather than masking.',
+      throw AppException.validation(
+        'CRITICAL FAIL-FAST: payload.globalScore missing!',
       );
     }
 
@@ -359,8 +364,8 @@ class ReportRendererWidget extends ConsumerWidget {
     ReportLayoutDTO layout,
   ) {
     if (layout.axes.isEmpty) {
-      throw Exception(
-        'layout.axes is empty! Fail-Fast rule dictates UI crash rather than masking.',
+      throw AppException.validation(
+        'CRITICAL FAIL-FAST: layout.axes is empty!',
       );
     }
 
@@ -375,25 +380,14 @@ class ReportRendererWidget extends ConsumerWidget {
 
     Widget content;
     try {
-      switch (layout.presetView) {
-        case PresetView.metrics1d:
-          content = _build1DMetrics(context, layout);
-          break;
-        case PresetView.compare2d:
-          content = _build2DCompare(context, layout);
-          break;
-        case PresetView.matrix3d:
-          content = _build3DComplex(context, layout);
-          break;
-        case PresetView.complex3d:
-          content = _build3DRadar(context, layout);
-          break;
-        case PresetView.textOnly:
-          content = _build1DMetrics(context, layout);
-          break;
-        default:
-          content = _build1DMetrics(context, layout);
-      }
+      content = switch (layout.presetView) {
+        PresetView.metrics1d => _build1DMetrics(context, layout),
+        PresetView.compare2d => _build2DCompare(context, layout),
+        PresetView.matrix3d => _build3DComplex(context, layout),
+        PresetView.complex3d => _build3DRadar(context, layout),
+        PresetView.textOnly => _build1DMetrics(context, layout),
+        _ => _build1DMetrics(context, layout),
+      };
     } catch (e, st) {
       ref
           .read(loggerServiceProvider)
@@ -473,8 +467,8 @@ class ReportRendererWidget extends ConsumerWidget {
 
   Widget _build1DMetrics(BuildContext context, ReportLayoutDTO layout) {
     if (layout.axes.isEmpty) {
-      throw Exception(
-        'layout.axes empty in 1D metrics! Fail-Fast rule dictates UI crash.',
+      throw AppException.validation(
+        'CRITICAL FAIL-FAST: layout.axes empty in 1D metrics!',
       );
     }
 

@@ -23,12 +23,12 @@ def test_format_validation_error_valid_pydantic() -> None:
 
 def test_format_validation_error_internal_error(monkeypatch: Any) -> None:
     """Test the fail-fast behavior when Pydantic internal structure crashes the formatter."""
-    import pydantic
+    import backend_v2.exceptions
 
     class FakeError(Exception):
         pass
 
-    monkeypatch.setattr(pydantic, "ValidationError", FakeError)
+    monkeypatch.setattr(backend_v2.exceptions, "ValidationError", FakeError)
 
     with pytest.raises(AppException) as exc_info:
         format_validation_error(FakeError("Fake error here"))

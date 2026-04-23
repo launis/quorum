@@ -1,13 +1,28 @@
+import asyncio
+import copy
+import hashlib
+import json
 import logging
+import time
 from typing import Any
 
+import litellm
+from pydantic import RootModel
+
 from backend_v2.core.hook_registry import HookDependencies, HookState
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes, TokenLimitExceededError
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.chunking import ChunkingRequest
+from backend_v2.models.enums import EvaluationMandate, SystemConcurrency
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import FrozenContext, StepRule
 from backend_v2.models.v2_core import Step as V2Step
+from backend_v2.models.view.sdui import AnySduiBlock
+from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
+from backend_v2.services.orchestrator.chunking_service import ChunkingService
+from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext
+from backend_v2.utils.dict_utils import resolve_dot_notation
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +54,7 @@ class LLMNodeStrategy(NodeStrategy):
             raise AppException(
                 message=f"Step {step.id} has no task_blueprint configured.",
                 status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
         step_def = await self.repository.get_step_by_id(blueprint_id)
@@ -51,7 +66,7 @@ class LLMNodeStrategy(NodeStrategy):
             raise AppException(
                 message=f"Configuration error: Step '{blueprint_id}' not found.",
                 status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
         step_obj = V2Step.model_validate(step_def)
@@ -79,10 +94,8 @@ class LLMNodeStrategy(NodeStrategy):
         # Enforce Architectual Parity: Fail-Fast if Pipeline Amnesia occurs
         target_profile = context.metadata.get("profile_id")
         if not target_profile:
-            from backend_v2.exceptions import ConfigurationError
-
             msg = f"Execution metadata missing mandatory 'profile_id' for workflow {context.workflow_id}."
-            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
+            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
         for m_id in step_obj.prompt_blocks:
             b = block_map.get(m_id)
@@ -96,7 +109,7 @@ class LLMNodeStrategy(NodeStrategy):
                 raise AppException(
                     message=f"PromptBlock '{m_id}' not found.",
                     status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
         target_locale = str(context.metadata.get("target_locale", "en"))
@@ -119,47 +132,66 @@ class LLMNodeStrategy(NodeStrategy):
             base_system_prompt += f"\n\n{mcp_instruction}"
 
         # 3. Prevent Token Explosion with recursive trace pruning
-        import copy
-
         # Epic 27 Phase 1: Input Pruning - Restrict context to explicitly mapped data keys
         llm_context_data: dict[str, Any] = {}
         input_mappings = step.input_mappings if hasattr(step, "input_mappings") and step.input_mappings else {}
         input_mappings = dict(input_mappings)  # Ensure mutability
 
-        # User Mandate (Dynamic Context): ALWAYS ensure all UI-defined documents
-        # (lopputuote, keskusteluhistoria, reflektiodokumentti) are passed to the AI.
-        if "inputs" in state_data and isinstance(state_data["inputs"], dict):
-            llm_context_data["inputs"] = copy.deepcopy(state_data["inputs"])
-            if context.expected_inputs:
-                for ei in context.expected_inputs:
-                    inp_key = getattr(ei, "input_key", None)
-                    if inp_key and inp_key in state_data["inputs"]:
-                        # Dynamically map the file so PromptCompiler renders it into XML tags!
-                        if inp_key not in input_mappings:
-                            input_mappings[inp_key] = f"$inputs.{inp_key}"
+        MAX_SAFE_TOKENS = 100000
+        new_input_mappings = {}
 
         for _logical_name, path in input_mappings.items():
-            if not isinstance(path, str) or path in ("steps", "$steps"):
+            if not isinstance(path, str):
                 continue
 
             clean_path = path[1:] if path.startswith("$") else path
-            if clean_path.startswith("steps."):
-                clean_path = clean_path[len("steps.") :]
 
-            parts = clean_path.split(".")
-            root_key = parts[0]
+            try:
+                resolved_value = resolve_dot_notation(state_data, clean_path)
 
-            if root_key == "inputs":
-                # Ensure the specific path exists safely without replacing the whole dict
-                if len(parts) > 1:
-                    input_key = parts[1]
-                    if input_key in state_data.get("inputs", {}):
-                        if "inputs" not in llm_context_data:
-                            llm_context_data["inputs"] = {}
-                        llm_context_data["inputs"][input_key] = copy.deepcopy(state_data["inputs"][input_key])
-            else:
-                if root_key in state_data and root_key not in llm_context_data:
-                    llm_context_data[root_key] = copy.deepcopy(state_data[root_key])
+                # Task 3: ContextRouter integration for trace data
+                if clean_path.startswith("steps."):
+                    if isinstance(resolved_value, dict) and "normalized_score" in resolved_value:
+                        try:
+                            output_profile = getattr(context, "output_profile", None)
+                            pruned = ContextRouter.route_and_prune(resolved_value, output_profile)
+                            resolved_value = f"<matrix_data>\n{pruned.model_dump_json()}\n</matrix_data>"
+                        except Exception as e:
+                            logger.warning("ContextRouter trace pruning failed: %s", e)
+
+                val_str = str(resolved_value)
+                # Task 2: Rigorous token checks
+                try:
+                    tokens = litellm.token_counter(model="gpt-4o", text=val_str)
+                    if tokens > MAX_SAFE_TOKENS:
+                        msg = f"Mapping '{_logical_name}' exceeded token limit ({tokens} > {MAX_SAFE_TOKENS})."
+                        raise TokenLimitExceededError(message=msg)
+                except TokenLimitExceededError:
+                    raise
+                except Exception as e:
+                    logger.warning("Token counting failed for %s: %s", _logical_name, e)
+
+                # Map back to llm_context_data in its original path structure so _extract_value_from_state works
+                parts = clean_path.split(".")
+                if clean_path.startswith("steps."):
+                    parts = clean_path[len("steps.") :].split(".")
+
+                curr = llm_context_data
+                for i, part in enumerate(parts):
+                    if i == len(parts) - 1:
+                        curr[part] = copy.deepcopy(resolved_value)
+                    else:
+                        if part not in curr:
+                            curr[part] = {}
+                        curr = curr[part]
+
+                new_input_mappings[_logical_name] = path
+            except Exception as e:
+                if isinstance(e, TokenLimitExceededError):
+                    raise
+                logger.warning("Failed to resolve input mapping %s: %s", path, e)
+
+        input_mappings = new_input_mappings
 
         # Epic 23 FinOps: Modify state_data for LLM Context:
         # User Mandate: "atomisoiduista kentistä ei pidä tulla kuin true/false.
@@ -201,13 +233,6 @@ class LLMNodeStrategy(NodeStrategy):
         if dynamic_instructions:
             user_payload += f"\n\n--- RUNTIME AWARENESS ---\n{dynamic_instructions}"
 
-        import asyncio
-        import json
-
-        from backend_v2.models.chunking import ChunkingRequest
-        from backend_v2.models.enums import SystemConcurrency
-        from backend_v2.services.orchestrator.chunking_service import ChunkingService
-
         # Epic 20 Phase 7: Inject Shuffled Atoms for Blind Evaluation
         has_shuffled_atoms = False
         chunks_list: list[Any] = []
@@ -245,8 +270,6 @@ class LLMNodeStrategy(NodeStrategy):
                 for scale in block.get("scales", []):
                     scale_atoms: list[str] = []
                     for claim in scale.get("claims", []):
-                        from backend_v2.models.enums import EvaluationMandate
-
                         mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
                         micro_atoms = claim.get("micro_atoms")
                         if micro_atoms and len(micro_atoms) > 0:
@@ -261,8 +284,6 @@ class LLMNodeStrategy(NodeStrategy):
                             )
 
                         for text in scale_atoms:
-                            import hashlib
-
                             aid = hashlib.md5(text.encode("utf-8")).hexdigest()
                             if aid not in atom_to_block_ids:
                                 atom_to_block_ids[aid] = set()
@@ -289,11 +310,9 @@ class LLMNodeStrategy(NodeStrategy):
             raise AppException(
                 message=f"Step {step.id} has no model_strategy defined (Fail-Fast: No fallbacks allowed).",
                 status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
         bound_client = await LLMClient.from_strategy(strategy_name, self.repository)
-
-        from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 
         sem = asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS.value)
 
@@ -378,16 +397,30 @@ class LLMNodeStrategy(NodeStrategy):
                         raise AppException(
                             message=f"MCP Tool Loop Execution failed: {str(e)}",
                             status_code=500,
-                            details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
+                            details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
                         ) from e
                 else:
                     try:
-                        result, usage = await bound_client.run_structured_task(
-                            messages=messages,
-                            response_model=local_dynamic_schema,
-                            mock_identity=step.id,
-                        )
-                        chunk_final = dict(result.model_dump(mode="json"))
+                        if getattr(context, "output_profile", None) is not None:
+
+                            class SduiResponseList(RootModel[list[AnySduiBlock]]):
+                                pass
+
+                            result, usage = await bound_client.run_structured_task(
+                                messages=messages,
+                                response_model=SduiResponseList,
+                                mock_identity=step.id,
+                                max_retries=3,
+                            )
+                            chunk_final = {"blocks": result.model_dump(mode="json")}
+                        else:
+                            result, usage = await bound_client.run_structured_task(
+                                messages=messages,
+                                response_model=local_dynamic_schema,
+                                mock_identity=step.id,
+                            )
+                            chunk_final = dict(result.model_dump(mode="json"))
+
                         chunk_usage = dict(usage) if usage else {}
                     except Exception as e:
                         logger.error(
@@ -404,14 +437,12 @@ class LLMNodeStrategy(NodeStrategy):
                         raise AppException(
                             message=f"Structured LLM execution failed: {str(e)}",
                             status_code=500,
-                            details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
+                            details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
                         ) from e
 
                 return chunk_final, chunk_usage, chunk_traces
 
         # Epic 27 Phase 5: Map-Reduce Telemetry Tracking
-        import time
-
         telemetry_start_time = time.time()
         context_char_length = len(user_payload)
         logger.info(

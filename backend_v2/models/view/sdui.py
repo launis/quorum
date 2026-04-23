@@ -1,7 +1,9 @@
 from enum import Enum
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+
+StrictStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 class SectionType(str, Enum):
@@ -51,73 +53,45 @@ class ReferenceIntent(str, Enum):
 class ReferenceItem(BaseModel):
     """Strict View Model for a single Contextual Citation."""
 
-    id: str = Field(..., description="Citation ID, e.g., H-1, F-1")
+    id: StrictStr = Field(..., description="Citation ID, e.g., H-1, F-1")
     intent: ReferenceIntent = Field(..., description="Type of the reference source")
     title: str | None = Field(default=None, description="Title of the source")
-    snippet: str = Field(..., description="Extracted content, relevance, or reasoning")
+    snippet: StrictStr = Field(..., description="Extracted content, relevance, or reasoning")
     url: str | None = Field(default=None, description="Link to the source if available")
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("id", "snippet")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class EvidenceItem(BaseModel):
     """Strict View Model for a single piece of Evidence."""
 
-    id: str
-    source: str
-    content: str
+    id: StrictStr
+    source: StrictStr
+    content: StrictStr
     score: float | None
-    type: str  # "precedent" | "regulation" | "concept"
+    type: StrictStr  # "precedent" | "regulation" | "concept"
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("id", "source", "content", "type")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class MarkdownBlockDisplay(BaseModel):
     """Server-Driven UI Data for Markdown Content."""
 
-    content: str
+    content: StrictStr
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("content")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class HighlightBoxDisplay(BaseModel):
     """Server-Driven UI Data for a highlighted XAI extension box."""
 
-    content: str
+    content: StrictStr
     color_theme: Literal["danger", "info", "warning", "success", "primary"] = Field(
         default="info", description="UI background color class"
     )
     icon_name: str | None = Field(default=None, description="e.g. 'shield', 'warning', 'psychology'")
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("content")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class EvidenceList(BaseModel):
@@ -126,7 +100,7 @@ class EvidenceList(BaseModel):
     items: list[EvidenceItem]
     total_count: int
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class UiSection(BaseModel):
@@ -134,38 +108,24 @@ class UiSection(BaseModel):
     Frontend renders the component based on 'type'.
     """
 
-    id: str = Field(..., description="Unique identifier for the section (e.g. 'verdict-card')")
+    id: StrictStr = Field(..., description="Unique identifier for the section (e.g. 'verdict-card')")
     type: SectionType = Field(..., description="Determines which UI component to render")
-    title: str = Field(..., description="User-facing title of the section")
+    title: StrictStr = Field(..., description="User-facing title of the section")
     data: Any = Field(
         default_factory=dict, description="Flexible payload specific to the section type (dict or Pydantic Model)"
     )
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("id", "title")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class SystemNotification(BaseModel):
     """Server-Driven Notification for the Report Header."""
 
-    title: str
-    message: str
-    level: str = "info"  # info, warning, danger
+    title: StrictStr
+    message: StrictStr
+    level: StrictStr = "info"  # info, warning, danger
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("title", "message", "level")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class ReportView(BaseModel):
@@ -173,39 +133,25 @@ class ReportView(BaseModel):
     This replaces the raw 'Execution' object for frontend consumption.
     """
 
-    view_id: str = Field(..., description="The Execution ID")
-    title: str = Field(default="Auditintiraportti", description="Page title")
-    status_theme: str = Field(default="success", description="Visual theme: 'success' | 'warning' | 'danger'")
+    view_id: StrictStr = Field(..., description="The Execution ID")
+    title: StrictStr = Field(default="Auditintiraportti", description="Page title")
+    status_theme: StrictStr = Field(default="success", description="Visual theme: 'success' | 'warning' | 'danger'")
     sections: list[UiSection] = Field(default_factory=list, description="Ordered list of UI sections")
     metrics: dict[str, Any] | None = Field(default=None, description="Global audit metrics (Word Count, etc.)")
     system_notification: SystemNotification | None = Field(default=None, description="Global notification/warning")
     references: list[ReferenceItem] = Field(default_factory=list, description="Global bibliography and references")
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("view_id", "title", "status_theme")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class StepProgressItem(BaseModel):
     """Progress indicator for a single step (BFF)."""
 
-    id: str = Field(..., description="Step ID (e.g. step_guard)")
-    label: str = Field(..., description="Human-readable label")
-    status: str = Field(..., description="Status: pending, running, completed, failed")
+    id: StrictStr = Field(..., description="Step ID (e.g. step_guard)")
+    label: StrictStr = Field(..., description="Human-readable label")
+    status: StrictStr = Field(..., description="Status: pending, running, completed, failed")
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("id", "label", "status")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class AssessmentView(BaseModel):
@@ -214,44 +160,30 @@ class AssessmentView(BaseModel):
     Strictly typed for Server-Driven UI rendering.
     """
 
-    sessionId: str = Field(..., description="Execution ID")
-    statusLabel: str = Field(..., description="Human-readable status")
+    sessionId: StrictStr = Field(..., description="Execution ID")
+    statusLabel: StrictStr = Field(..., description="Human-readable status")
     uiVariant: Literal["default", "success", "warning", "error", "neutral"] = Field(
         ..., description="UI Theme: default, success, warning, error, neutral"
     )
-    statusMessage: str = Field(..., description="Contextual status message")
+    statusMessage: StrictStr = Field(..., description="Contextual status message")
     showWarningBanner: bool = Field(default=False, description="Whether to show warning banner")
     steps: list[StepProgressItem] = Field(default_factory=list, description="Ordered list of steps with status")
     finalScore: int | None = Field(default=None, description="Final score if available")
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("sessionId", "statusLabel", "statusMessage")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class ToulminDisplay(BaseModel):
     """Strict View Model for Toulmin Arguments."""
 
-    claim: str
-    data: str
-    warrant: str
+    claim: StrictStr
+    data: StrictStr
+    warrant: StrictStr
     backing: str | None = None
     rebuttal: str | None = None
     qualifier: str | None = None
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("claim", "data", "warrant")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class LogicAnalysisDisplay(BaseModel):
@@ -286,24 +218,17 @@ class LogicAnalysisDisplay(BaseModel):
     strategic_depth_raw: str | None
     arguments: list[ToulminDisplay]
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class HeuristicDisplay(BaseModel):
     """Strict View Model for a single Heuristic."""
 
-    name: str
+    name: StrictStr
     flag: bool
-    color: str  # 'red' | 'green'
+    color: StrictStr  # 'red' | 'green'
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("name", "color")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class PerformativityDisplay(BaseModel):
@@ -316,7 +241,7 @@ class PerformativityDisplay(BaseModel):
 
     heuristics: list[HeuristicDisplay]
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class CausalDisplay(BaseModel):
@@ -347,7 +272,7 @@ class CausalDisplay(BaseModel):
     score: float | None = None
     verdict: str | None = None
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class VerifiedFactDisplay(BaseModel):
@@ -361,7 +286,7 @@ class VerifiedFactDisplay(BaseModel):
     verification_result: str | None
     is_verified: bool | None
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class EthicalIssueDisplay(BaseModel):
@@ -375,7 +300,7 @@ class EthicalIssueDisplay(BaseModel):
     is_critical: bool
     severity: str | None
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class FactCheckDisplay(BaseModel):
@@ -384,54 +309,40 @@ class FactCheckDisplay(BaseModel):
     fact_checks: list[VerifiedFactDisplay]
     ethical_issues: list[EthicalIssueDisplay]
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class SecurityDisplay(BaseModel):
     """Server-Driven UI Data for Security Check."""
 
     threat_detected: bool
-    threat_color: str  # 'red' | 'green'
-    threat_label: str  # 'UHKA: KYLLÄ' | 'UHKA: EI'
+    threat_color: StrictStr  # 'red' | 'green'
+    threat_label: StrictStr  # 'UHKA: KYLLÄ' | 'UHKA: EI'
 
-    risk_level: str
-    risk_color: str  # 'red' | 'orange' | 'green'
+    risk_level: StrictStr
+    risk_color: StrictStr  # 'red' | 'orange' | 'green'
     risk_label: str | None = None
 
     anonymized: bool
-    anonymized_color: str  # 'blue' | 'orange'
-    anonymized_label: str
+    anonymized_color: StrictStr  # 'blue' | 'orange'
+    anonymized_label: StrictStr
 
     findings: list[str]
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("threat_color", "threat_label", "risk_level", "risk_color", "anonymized_color", "anonymized_label")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class StressFindingDisplay(BaseModel):
     """Single finding for Stress Test."""
 
-    question: str
-    result_label: str  # "HELD" / "BROKEN" (Localized key or value)
+    question: StrictStr
+    result_label: StrictStr  # "HELD" / "BROKEN" (Localized key or value)
     is_held: bool
-    color_class: str  # "finding-held" / "finding-broken"
-    text_class: str  # "text-held" / "text-broken"
-    observation: str
+    color_class: StrictStr  # "finding-held" / "finding-broken"
+    text_class: StrictStr  # "text-held" / "text-broken"
+    observation: StrictStr
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("question", "result_label", "color_class", "text_class", "observation")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field cannot be empty or whitespace only.")
-        return v.strip()
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class FidelityAudit(BaseModel):
@@ -443,7 +354,7 @@ class FidelityAudit(BaseModel):
     post_hoc_rationalization_suspected: bool
     reasoning: str
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class StressTestDisplay(BaseModel):
@@ -469,7 +380,7 @@ class StressTestDisplay(BaseModel):
     # Findings (Hoisted Logic)
     findings: list[StressFindingDisplay]
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class ProfilerDisplay(BaseModel):
@@ -504,7 +415,7 @@ class ProfilerDisplay(BaseModel):
     psychological_profile: str | None
     intent_analysis: str | None
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class ArchivistDisplay(BaseModel):
@@ -516,7 +427,7 @@ class ArchivistDisplay(BaseModel):
     compliance_help: str | None
     recommendations: list[str]
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class DimensionDisplay(BaseModel):
@@ -529,7 +440,7 @@ class DimensionDisplay(BaseModel):
     weight: float
     reasoning: str
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class ScoreCardDisplay(BaseModel):
@@ -542,7 +453,7 @@ class ScoreCardDisplay(BaseModel):
     verdict: str
     dimensions: list[DimensionDisplay] = Field(default_factory=list)
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class DriverProfileDisplay(BaseModel):
@@ -555,3 +466,22 @@ class DriverProfileDisplay(BaseModel):
     input_control_ratio: float | None = None
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+
+class SduiBlockBase(BaseModel):
+    """Base schema for SDUI Polymorphic Blocks."""
+
+    block_type: str
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+
+class HeroInsightBlock(SduiBlockBase):
+    """Specific block for Hero Insights."""
+
+    block_type: Literal["hero_insight"]
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+
+AnySduiBlock = Annotated[HeroInsightBlock, Field(discriminator="block_type")]

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
@@ -62,8 +63,16 @@ class ExecutionStatusCard extends ConsumerWidget {
           return Text(l10n.waitingToStart);
         }
 
-        final status = record['status'] as String? ?? 'UNKNOWN';
-        final executionId = record['id'] as String? ?? 'N/A';
+        final status =
+            record['status']?.toString() ??
+            (throw AppException.validation(
+              'CRITICAL FAIL-FAST: Missing execution status',
+            ));
+        final executionId =
+            record['id']?.toString() ??
+            (throw AppException.validation(
+              'CRITICAL FAIL-FAST: Missing execution ID',
+            ));
 
         // Assuming results exist if there are any
         final results = record['results'] as Map<String, dynamic>? ?? {};

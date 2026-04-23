@@ -28,11 +28,10 @@ These legacy survivorship mechanisms silently paper over upstream structural fai
 - **Reasoning:** Cross-contamination of V1 legacy data retrieval logic breaks the Fail-Fast mechanism. 
 - **Solution:** `v` MUST explicitly map sequence outputs to a unified Pydantic Model (`AtomFlatteningResult` or similar). If a block fails validation, raise an `AppException(ErrorCodes.VALIDATION_FAILED)`.
 
-### Phase 3: Hardening XAI Cache Extraction
+### Phase 3: Hardening XAI Cache Extraction [✅ COMPLETED]
 - **Target:** `xai_highlights_cache` parsing.
-- **Action:** Remove the `hasattr(highlight, "model_dump")` check. 
-- **Reasoning:** The application relies on `isinstance(highlight, dict)` fallbacks.
-- **Solution:** Cast elements rigorously utilizing `.model_validate()` from the corresponding Output Extension model. Assume objects are 100% Pydantic models. Missing an `extension_type` must fail naturally through Pydantic's underlying rust-validation (i.e. `ValidationError`), not manual python `if not type_name:` checks.
+- **Current Status:** This phase has already been successfully implemented in `blueprint.py`. The legacy duck typing (`hasattr`, `isinstance`) was removed, and elements are now strictly treated as Pydantic models with native attribute access (`highlight.extension_type` and `highlight.model_dump()`).
+- **Remaining Task:** None for this specific block. It now serves as the architectural reference standard for Phase 4.
 
 ### Phase 4: Validating MCP Audit Trail Fail-Fast
 - **Target:** The `f_context.get("mcp_tool_audit")` parsing logic.

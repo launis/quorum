@@ -11,9 +11,13 @@ localized strings for AI-generated content.
 
 import json
 import logging
+from typing import Any
+
+from pydantic import BaseModel
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
-from backend_v2.exceptions import ConfigurationError, ErrorCodes
+from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 
 logger = logging.getLogger(__name__)
@@ -44,11 +48,12 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
     # Check if this is the generic flat data payload or if we have full kwargs context
     # Usually hooks receive the merged dict, so we need to find the target_language
 
-    target_language = state.inputs.get("language")
-    if not target_language:
+    if "language" not in state.inputs or not state.inputs["language"]:
         # If no language is specified, we assume no translation is needed
         logger.debug("[TranslationHook] No 'language' found in payload. Skipping translation.")
         return HookResult(success=True, state_delta={})
+
+    target_language = state.inputs["language"]
 
     if target_language == "en":
         # English is the native output of the AI, no translation needed
@@ -82,8 +87,11 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         logger.error(
             "[TranslationHook] %s: Failed to init LLM for translation: %s", ErrorCodes.CONFIGURATION_ERROR.name, e
         )
-        # Graceful Degradation: return original data
-        return HookResult(success=False, state_delta={})
+        raise AppException(
+            message="Failed to init LLM for translation.",
+            status_code=500,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        ) from e
 
     # 2. Build the exact translation prompt strictly adhering to Role Segregation
     lang_map = {
@@ -126,15 +134,18 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         return HookResult(success=True, state_delta=final_data)
 
     except json.JSONDecodeError as e:
-        # 1. Log with STRUCTURED FORMAT even for non-fatal errors
+        # 1. Log with STRUCTURED FORMAT
         logger.error(
             "[TranslationHook] %s: LLM returned invalid JSON on translation: %s",
-            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+            ErrorCodes.AGENT_RESPONSE_PARSING_FAILED.name,
             e,
             exc_info=True,
         )
-        # 2. Graceful Degradation: Return original untranslated data to prevent UI crash
-        return HookResult(success=False, state_delta={})
+        raise AppException(
+            message="LLM returned invalid JSON on translation.",
+            status_code=500,
+            details={"error_code": ErrorCodes.AGENT_RESPONSE_PARSING_FAILED.value},
+        ) from e
     except Exception as e:
         logger.error(
             "[TranslationHook] %s: LLM generation failed for translation: %s",
@@ -142,4 +153,77 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
             e,
             exc_info=True,
         )
-        return HookResult(success=False, state_delta={})
+        raise AppException(
+            message="LLM generation failed for translation.",
+            status_code=500,
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+        ) from e
+
+
+# A deterministic dictionary for translating English SDUI string fields into Finnish.
+# Used by translate_sdui_payload to avoid the latency of an LLM call for static SDUI elements.
+_SDUI_DICT = {
+    "coaching": "Valmennus",
+    "falsification": "Väärennys",
+    "falsification audit": "Falsifikaatio",
+    "missing_context": "Puuttuva Konteksti",
+    "remediation_steps": "Korjaavat Toimenpiteet",
+    "emotional_sentiment": "Tunnesävy",
+    "theory_link": "Teoreettinen Linkki",
+    "risk_flag": "Riskilippu",
+    "confidence": "Luottamus",
+    "justification": "Perustelu",
+    "score": "Pisteet",
+    "normalized": "Normalisoitu",
+    "scaled": "Skaalattu",
+}
+
+
+async def translate_sdui_payload[TModel: BaseModel](
+    obj: TModel, target_language: str, repo: AbstractWorkflowRepository
+) -> TModel:
+    """Epic 35: API Pipeline Splicing Translation Hook.
+
+    Translates English SDUI string fields into the target UI language adhering to frozen Pydantic models.
+    """
+    if not target_language or target_language.lower() == "en":
+        return obj
+
+    # 1. Parse to dict (model_dump is used per Epic)
+    raw = obj.model_dump(mode="json")
+
+    # 2. Recursively translate string values (utilizing deterministic dictionary)
+    def _recursive_translate(data: Any) -> Any:
+        if isinstance(data, dict):
+            new_dict = {}
+            for k, v in data.items():
+                if isinstance(v, str):
+                    # Translate if we find a match (case-insensitive for keys/values common in SDUI)
+                    lower_v = v.lower().strip()
+                    if lower_v in _SDUI_DICT:
+                        new_dict[k] = _SDUI_DICT[lower_v]
+                    elif k.lower() in _SDUI_DICT and v == k:
+                        new_dict[k] = _SDUI_DICT[k.lower()]
+                    else:
+                        new_dict[k] = v
+                else:
+                    new_dict[k] = _recursive_translate(v)
+            return new_dict
+        elif isinstance(data, list):
+            return [_recursive_translate(item) for item in data]
+        else:
+            return data
+
+    translated_raw = _recursive_translate(raw)
+
+    try:
+        # 3. Rehydrate: model_validate(raw)
+        # Using type(obj) dynamically supports any BaseModel like ReportDataDTO or SduiBlockBase
+        return type(obj).model_validate(translated_raw)
+    except Exception as e:
+        logger.error("[TranslationHook] Failed to rehydrate translated SDUI model: %s", e, exc_info=True)
+        raise AppException(
+            message="Failed to rehydrate translated SDUI model.",
+            status_code=500,
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+        ) from e

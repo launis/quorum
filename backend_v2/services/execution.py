@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
 from arq.connections import ArqRedis
 
 from backend_v2.database.repository import AbstractWorkflowRepository
-from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
+from backend_v2.exceptions import (
+    AppException,
+    ConfigurationError,
+    ErrorCodes,
+    PermissionDeniedError,
+    ResourceNotFoundError,
+)
+from backend_v2.hooks.translation_hook import translate_sdui_payload
 from backend_v2.models.auth import SystemOrganizations, TokenData
 from backend_v2.models.v2_core import (
     ComponentType,
@@ -21,7 +29,12 @@ from backend_v2.models.v2_core import (
     FrozenContext,
     Workflow,
 )
+from backend_v2.services.blueprint import BlueprintTransformer
+from backend_v2.services.flattener import FlatFileService
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
+from backend_v2.services.pdf_generator import PdfReportService
+from backend_v2.services.storage import get_storage_driver
+from backend_v2.services.usage_service import UsageService
 
 logger = logging.getLogger(__name__)
 
@@ -87,21 +100,23 @@ class ExecutionService:
             raise PermissionDeniedError(msg)
 
         try:
-            # Clean up offloaded blobs if they exist (silently ignore if missing)
-            from backend_v2.services.storage import get_storage_driver
-
+            # Clean up offloaded blobs if they exist
             storage = get_storage_driver()
             for key in ["execution_trace_storage_path", "frozen_context_storage_path", "pdf_report_path"]:
                 if raw_data.get(key):
                     try:
                         await storage.delete(raw_data[key])
-                    except Exception:
-                        logger.warning(
-                            "[ExecutionService] Failed to clean up blob %s during execution deletion.",
-                            raw_data[key],
+                    except Exception as e:
+                        msg = f"Failed to clean up blob {raw_data[key]} during execution deletion."
+                        logger.error(
+                            "[ExecutionService] %s",
+                            msg,
                             exc_info=True,
                             extra={"execution_id": execution_id},
                         )
+                        raise AppException(
+                            message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                        ) from e
 
             return await self.repo.delete_execution(execution_id)
         except Exception as e:
@@ -129,8 +144,6 @@ class ExecutionService:
 
         # Circuit Breaker: Denial of Wallet Protection
         if org_id:
-            from backend_v2.services.usage_service import UsageService
-
             usage_service = UsageService(self.repo)
             is_quota_safe = await usage_service.check_quota(org_id)
             if not is_quota_safe:
@@ -172,8 +185,6 @@ class ExecutionService:
             # We fetch the step definition to find its core mapped matrices/blocks
             step_dict = await self.repo.get_step(step_rule.task_blueprint)
             if not step_dict:
-                from backend_v2.exceptions import ConfigurationError
-
                 msg = f"Missing task blueprint {step_rule.task_blueprint} for DAG."
                 logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ConfigurationError(msg)
@@ -181,12 +192,14 @@ class ExecutionService:
             # Populate initial pending step state for timeline
             step_name_raw = step_dict.get("name", step_rule.task_blueprint)
             step_label = step_rule.task_blueprint
-            if isinstance(step_name_raw, dict):
-                # Handle I18nText dict or legacy dict
-                translations = step_name_raw.get("translations", step_name_raw)
-                step_label = translations.get("fi", translations.get("en", step_rule.task_blueprint))
-            elif isinstance(step_name_raw, str):
+            if isinstance(step_name_raw, str):
                 step_label = step_name_raw
+            else:
+                msg = f"Invalid step name format in blueprint {step_rule.task_blueprint}. Expected string."
+                logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
 
             step_states[step_rule.id] = ExecutionStepState(id=step_rule.id, label=step_label, status="pending")
 
@@ -195,8 +208,6 @@ class ExecutionService:
                 pb_dict = await self.repo.get_prompt_block(pb_id)
                 if not pb_dict:
                     # V2 strictly says Fail Fast to guarantee auditability:
-                    from backend_v2.exceptions import ConfigurationError
-
                     msg = (
                         f"SDUI Engine Error: PromptBlock '{pb_id}' is missing "
                         f"but referenced in step '{step_rule.task_blueprint}'."
@@ -223,15 +234,11 @@ class ExecutionService:
                         if scores:
                             max_val = float(max(scores))
                     except (ValueError, TypeError, KeyError) as e:
-                        from backend_v2.exceptions import ConfigurationError
-
                         msg = f"Fail-Fast SDUI Generator: Corrupted scale scores in PromptBlock '{pb_id}'."
                         logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                         raise ConfigurationError(msg) from e
 
                 if comp_type == ComponentType.SLIDER and max_val is None:
-                    from backend_v2.exceptions import ConfigurationError
-
                     msg = (
                         f"Fail-Fast SDUI Generator: PromptBlock '{pb_id}' uses a SDUI Slider "
                         "but has no valid scales defined to calculate max_val."
@@ -310,8 +317,6 @@ class ExecutionService:
         # Circuit Breaker: Denial of Wallet Protection
         org_id = getattr(initiator, "organization_id", None)
         if org_id:
-            from backend_v2.services.usage_service import UsageService
-
             usage_service = UsageService(self.repo)
             is_quota_safe = await usage_service.check_quota(org_id)
             if not is_quota_safe:
@@ -341,13 +346,9 @@ class ExecutionService:
     async def get_frozen_context_bytes(self, initiator: TokenData, execution_id: str) -> tuple[bytes, str]:
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
         if execution.frozen_context_storage_path:
-            from backend_v2.services.storage import get_storage_driver
-
             storage = get_storage_driver()
             try:
                 raw_bytes = await storage.read(execution.frozen_context_storage_path)
-                from backend_v2.models.v2_core import FrozenContext
-
                 parsed_context = FrozenContext.model_validate_json(raw_bytes)
                 pretty_bytes = parsed_context.model_dump_json(indent=2).encode("utf-8")
                 return pretty_bytes, f"frozen_context_{execution_id}.json"
@@ -376,8 +377,6 @@ class ExecutionService:
         if not workflow_data:
             raise ResourceNotFoundError(resource_type="workflow", resource_id=execution.workflow_id)
 
-        from backend_v2.models.v2_core import Workflow
-
         workflow_obj = Workflow.model_validate(workflow_data)
         default_pid = workflow_obj.default_profile_id
 
@@ -385,15 +384,15 @@ class ExecutionService:
 
         if profile_id == default_pid and execution.pdf_report_path:
             try:
-                from backend_v2.services.storage import get_storage_driver
-
                 storage = get_storage_driver()
                 await storage.delete(execution.pdf_report_path)
-            except Exception:
-                logger.warning("[ExecutionService] Failed to delete old PDF blob", exc_info=True)
+            except Exception as e:
+                msg = "Failed to delete old PDF blob"
+                logger.error("[ExecutionService] %s", msg, exc_info=True)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                ) from e
             update_payload["pdf_report_path"] = None
-
-        from datetime import datetime, timezone
 
         # Always update timestamp to invalidate any cached Arq background task locks
         update_payload["updated_at"] = datetime.now(timezone.utc).isoformat()
@@ -422,8 +421,6 @@ class ExecutionService:
         fmt = format_type.lower()
 
         if fmt == "flat":
-            from backend_v2.services.flattener import FlatFileService
-
             flat_data = FlatFileService.flatten_results(execution)
             return flat_data, "application/json", None
 
@@ -434,8 +431,6 @@ class ExecutionService:
                 "[ExecutionService] Workflow not found", extra={"error_code": ErrorCodes.VALIDATION_FAILED.value}
             )
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-
-        from backend_v2.models.v2_core import Workflow
 
         workflow_obj = Workflow.model_validate(workflow_data)
 
@@ -469,30 +464,33 @@ class ExecutionService:
             return {"status": "pending", "message": "Synthesis generating"}, "application/json", None
 
         if fmt == "json":
-            from backend_v2.services.blueprint import BlueprintTransformer
-
             transformer = BlueprintTransformer(self.repo)
             dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
+
+            # API Pipeline Splicing (Epic 35)
+            # Apply immutable translation hook before dumping to dictionary
+            if accept_language and accept_language.lower() != "en":
+                dto = await translate_sdui_payload(dto, accept_language, self.repo)
+
             return dto.model_dump(mode="json"), "application/json", None
 
         elif fmt == "pdf":
             if resolved_pid == default_pid and execution.pdf_report_path:
-                from backend_v2.services.storage import get_storage_driver
-
                 storage = get_storage_driver()
                 try:
                     pdf_bytes = await storage.read(execution.pdf_report_path)
                     return pdf_bytes, "application/pdf", f"execution_{execution_id}.pdf"
                 except Exception as strg_err:
-                    logger.warning(
-                        "[ExecutionService] Failed to fetch pre-generated PDF from storage,"
-                        " falling back to sync generation",
+                    msg = "Failed to fetch pre-generated PDF from storage"
+                    logger.error(
+                        "[ExecutionService] %s",
+                        msg,
                         exc_info=True,
                         extra={"error": str(strg_err), "execution_id": execution_id},
                     )
-
-            from backend_v2.services.blueprint import BlueprintTransformer
-            from backend_v2.services.pdf_generator import PdfReportService
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                    ) from strg_err
 
             if not accept_language and execution.metadata:
                 accept_language = execution.metadata.get("target_locale")
@@ -505,23 +503,26 @@ class ExecutionService:
 
             if resolved_pid == default_pid:
                 try:
-                    from backend_v2.services.storage import get_storage_driver
-
                     storage = get_storage_driver()
                     output_path_rel = f"executions/{execution_id}/report.pdf"
                     saved_path = await storage.save(output_path_rel, pdf_bytes)
                     if not execution.pdf_report_path or execution.pdf_report_path != saved_path:
                         await self.repo.update_execution(execution_id, {"pdf_report_path": saved_path})
                     logger.info(
-                        "[ExecutionService] Self-healed missing PDF",
+                        "[ExecutionService] Generated missing PDF",
                         extra={"execution_id": execution_id, "saved_path": saved_path},
                     )
                 except Exception as heal_err:
-                    logger.warning(
-                        "[ExecutionService] Failed to self-heal PDF storage",
+                    msg = "Failed to save generated PDF to storage"
+                    logger.error(
+                        "[ExecutionService] %s",
+                        msg,
                         exc_info=True,
                         extra={"execution_id": execution_id, "error": str(heal_err)},
                     )
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                    ) from heal_err
 
             return pdf_bytes, "application/pdf", f"execution_{execution_id}.pdf"
 

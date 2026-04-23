@@ -5,8 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/sse_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
-import 'package:client_app/features/execution/views/dashboard_view.dart';
+
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/network/api_client.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'execution_controller.g.dart';
@@ -17,6 +18,34 @@ class ExecutionSettings {
 
   /// The duration to yield before reconnecting to a rehydrated SSE stream.
   static const Duration rehydrationDelay = Duration(milliseconds: 500);
+}
+
+/// Centralized settings for the Execution Dashboard
+class DashboardSettings {
+  const DashboardSettings._();
+
+  /// Auto-refresh interval for the continuous background polling
+  static const Duration refreshRate = Duration(seconds: 10);
+}
+
+/// Provider to fetch executions using native casting (No Freezed API DTOs)
+@riverpod
+Future<List<Map<String, dynamic>>> executionList(Ref ref) async {
+  // 1. Riverpod Polling (Auto-Refresh)
+  // Poll backend every 10 seconds to keep the Execution Dashboard alive and fresh,
+  // bypassing the StatefulShellRoute cache stagnation issue.
+  final timer = Timer(DashboardSettings.refreshRate, () {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(timer.cancel);
+
+  final dio = ref.watch(apiClientProvider);
+  final response = await dio.get('/execution/executions');
+
+  final List<dynamic> data = response.data is List ? response.data as List : [];
+  return data
+      .map((e) => e is Map ? e as Map<String, dynamic> : <String, dynamic>{})
+      .toList();
 }
 
 /// Controller managing the lifecycle of a V2 DAG Execution.
@@ -162,6 +191,7 @@ class ExecutionController extends _$ExecutionController {
             e,
             stack,
           );
+      state = AsyncValue.error(e, stack);
     }
   }
 

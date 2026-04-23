@@ -52,8 +52,7 @@ abstract class ReportAxisDTO with _$ReportAxisDTO {
 abstract class ReportLayoutDTO with _$ReportLayoutDTO {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory ReportLayoutDTO({
-    @JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)
-    required PresetView presetView,
+    @JsonKey(name: 'preset_view') required PresetView presetView,
     @JsonKey(name: 'matrix_type') String? matrixType,
     I18nText? title,
     I18nText? description,

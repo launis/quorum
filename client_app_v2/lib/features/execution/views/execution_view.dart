@@ -64,7 +64,11 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
       next,
     ) {
       if (next is AsyncData && next.value != null) {
-        final status = next.value!['status']?.toString().toLowerCase() ?? '';
+        final status =
+            next.value!['status']?.toString().toLowerCase() ??
+            (throw AppException.validation(
+              'CRITICAL FAIL-FAST: Missing execution status',
+            ));
         if (status == 'completed') {
           ExecutionReportRoute(executionId: widget.executionId).go(context);
         }
@@ -83,7 +87,11 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
             );
           }
 
-          final status = record['status']?.toString().toLowerCase() ?? '';
+          final status =
+              record['status']?.toString().toLowerCase() ??
+              (throw AppException.validation(
+                'CRITICAL FAIL-FAST: Missing execution status',
+              ));
           final fzRaw = record['frozen_context'];
           final frozenContext = fzRaw is Map ? fzRaw : {};
 

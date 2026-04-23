@@ -8,6 +8,52 @@ part of 'execution_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// Provider to fetch executions using native casting (No Freezed API DTOs)
+
+@ProviderFor(executionList)
+final executionListProvider = ExecutionListProvider._();
+
+/// Provider to fetch executions using native casting (No Freezed API DTOs)
+
+final class ExecutionListProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Map<String, dynamic>>>,
+          List<Map<String, dynamic>>,
+          FutureOr<List<Map<String, dynamic>>>
+        >
+    with
+        $FutureModifier<List<Map<String, dynamic>>>,
+        $FutureProvider<List<Map<String, dynamic>>> {
+  /// Provider to fetch executions using native casting (No Freezed API DTOs)
+  ExecutionListProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'executionListProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$executionListHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<Map<String, dynamic>>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<Map<String, dynamic>>> create(Ref ref) {
+    return executionList(ref);
+  }
+}
+
+String _$executionListHash() => r'48613113487c8f8b6e793453e63b0b32b8229ba8';
+
 /// Controller managing the lifecycle of a V2 DAG Execution.
 ///
 /// Implements Riverpod 3.x optimal practices:
@@ -53,7 +99,7 @@ final class ExecutionControllerProvider
 }
 
 String _$executionControllerHash() =>
-    r'9a9ca00bfac91ea93f082a6e6767c4fe33d462be';
+    r'f6cb0394877ab90c89574168930ad74eb30bd8ac';
 
 /// Controller managing the lifecycle of a V2 DAG Execution.
 ///

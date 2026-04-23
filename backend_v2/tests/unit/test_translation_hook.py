@@ -88,3 +88,39 @@ async def test_translation_hook_role_segregation_and_success(
     assert messages[1]["role"] == "user"
     assert "Lähde JSON" in messages[1]["content"]
     assert "Example Title" in messages[1]["content"]
+
+
+from pydantic import BaseModel
+
+from backend_v2.hooks.translation_hook import translate_sdui_payload
+
+
+class DummySduiModel(BaseModel):
+    title: str
+    items: list[dict[str, str]]
+
+
+@pytest.mark.asyncio
+async def test_translate_sdui_payload_success(mock_repository: AsyncMock) -> None:
+    """Ensure it translates SDUI strings using the deterministic dictionary and rehydrates the model."""
+    obj = DummySduiModel(
+        title="Falsification", items=[{"label": "Coaching"}, {"status": "missing_context"}, {"unknown": "Not In Dict"}]
+    )
+
+    # Translate to Finnish
+    res = await translate_sdui_payload(obj, "fi", mock_repository)
+
+    assert isinstance(res, DummySduiModel)
+    assert res.title == "Väärennys"  # Found in _SDUI_DICT case-insensitive
+    assert res.items[0]["label"] == "Valmennus"
+    assert res.items[1]["status"] == "Puuttuva Konteksti"
+    assert res.items[2]["unknown"] == "Not In Dict"  # Unchanged
+
+
+@pytest.mark.asyncio
+async def test_translate_sdui_payload_skips_en(mock_repository: AsyncMock) -> None:
+    """Ensure it skips translation for English."""
+    obj = DummySduiModel(title="Falsification", items=[])
+    res = await translate_sdui_payload(obj, "en", mock_repository)
+    assert res.title == "Falsification"
+    assert res is obj  # Returns same object reference

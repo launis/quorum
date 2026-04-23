@@ -155,11 +155,7 @@ _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
         final val = _ReportLayoutDTO(
           presetView: $checkedConvert(
             'preset_view',
-            (v) => $enumDecode(
-              _$PresetViewEnumMap,
-              v,
-              unknownValue: PresetView.defaultView,
-            ),
+            (v) => $enumDecode(_$PresetViewEnumMap, v),
           ),
           matrixType: $checkedConvert('matrix_type', (v) => v as String?),
           title: $checkedConvert(

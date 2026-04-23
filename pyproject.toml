@@ -60,6 +60,7 @@ dev = [
     "polyfactory>=3.3.0",
     "pytest-archon>=0.0.7",
     "pytest-cov>=7.1.0",
+    "types-aiofiles>=25.1.0.20260409",
 ]
 
 [tool.ruff]
