@@ -14,83 +14,69 @@ router = APIRouter(prefix="/scorecard", tags=["Scorecard"])
 
 
 def _find_matrices(data: dict[str, Any] | list[Any], results: dict[str, Any], prompt_blocks: dict[str, Any]) -> None:
-    if isinstance(data, dict):
-        for k, v in data.items():
-            if isinstance(k, str) and "blk_" in k:
-                # 1. Enforce STRICT Micro-CoT schema (Zero-Fallback)
-                if not isinstance(v, dict):
+    # Epic 27: Implement Flat-Schema parser as proven by lue_tulokset.py
+    def traverse(d: Any) -> None:
+        if isinstance(d, dict):
+            block_ids = set()
+            for k in d.keys():
+                if isinstance(k, str) and k.startswith("blk_"):
+                    parts = k.split("_")
+                    if len(parts) >= 2:
+                        base_id = parts[0] + "_" + parts[1]
+                        block_ids.add(base_id)
+            
+            for b_id in block_ids:
+                if b_id in results:
+                    continue
+                
+                pb_meta = prompt_blocks.get(b_id)
+                if not pb_meta or pb_meta.get("category_id") != "matrix":
                     continue
 
-                score = v.get("step_4_final_score")
+                norm_score = d.get(f"{b_id}_normalized")
+                if norm_score is None:
+                    norm_score = d.get(f"{b_id}_scaled")
+                
+                if norm_score is None:
+                    continue
 
-                # 2. Enforce Micro-CoT Integrity Lock (Zero-Fallback Rule)
-                # If it looks like an execution result but lacks a score, CRASH explicitly.
-                is_eval_result = "waterfall_calculation_log" in v or "true_atoms" in v or "level_breakdown" in v
-                if is_eval_result and score is None:
+                just_str = str(d.get(f"{b_id}_justification", ""))
+                missing = d.get(f"{b_id}_missing_context")
+                t_atoms = d.get(f"{b_id}_total_atoms")
+                t_true = d.get(f"{b_id}_true_atoms")
+                t_false = d.get(f"{b_id}_false_atoms")
+                
+                is_eval = pb_meta.get("is_evaluative")
+                if is_eval is None:
                     raise RuntimeError(
-                        f"[CRITICAL FAIL FAST] Corrupted Micro-CoT matrix for '{k}'. "
-                        f"Evaluation signature detected, but 'step_4_final_score' is missing. "
-                        f"Data: {json.dumps(v, ensure_ascii=False)[:300]}"
+                        f"[CRITICAL FAIL FAST] 'is_evaluative' metatieto puuttuu (ID: {b_id}). "
                     )
 
-                if score is not None:
-                    pb_meta = prompt_blocks.get(k)
-                    if pb_meta and pb_meta.get("category_id") == "matrix":
-                        justification = v.get("waterfall_calculation_log")
+                # One-sentence justification
+                short_reason = just_str.split("\n")[0].strip()
+                if "." in short_reason:
+                    short_reason = short_reason.split(".")[0] + "."
 
-                        # If the log is completely missing, the Micro-CoT is architecturally invalid
-                        if not justification:
-                            raise RuntimeError(
-                                f"[CRITICAL FAIL FAST] 'waterfall_calculation_log' puuttuu (ID: {k}). "
-                                "Oletusarvot ja fallbackit on kielletty."
-                            )
+                results[b_id] = {
+                    "score": norm_score,
+                    "just": short_reason,
+                    "missing": missing,
+                    "normalized": norm_score,
+                    "total_atoms": t_atoms,
+                    "true_atoms": t_true,
+                    "false_atoms": t_false,
+                    "level_breakdown": d.get(f"{b_id}_level_breakdown"),
+                    "is_eval": is_eval,
+                    "pb_meta": pb_meta,
+                }
 
-                        missing = v.get("missing_context")
+            for v in d.values():
+                traverse(v)
+        elif isinstance(d, list):
+            for item in d:
+                traverse(item)
 
-                        t_atoms = v.get("total_atoms")
-                        t_true = v.get("true_atoms")
-                        t_false = v.get("false_atoms")
-                        norm_val = v.get("normalized_score")
-                        is_eval = v.get("is_evaluative")
-
-                        # Resolve true boolean state without implicit True default
-                        if is_eval is None:
-                            is_eval = pb_meta.get("is_evaluative")
-                        if is_eval is None:
-                            raise RuntimeError(
-                                f"[CRITICAL FAIL FAST] 'is_evaluative' metatieto puuttuu (ID: {k}). "
-                                "Oletusarvot ovat kiellettyjä."
-                            )
-
-                        breakdown = v.get("level_breakdown")
-
-                        # One-sentence justification
-                        short_reason = justification.split("\n")[0].strip()
-                        if "." in short_reason:
-                            short_reason = short_reason.split(".")[0] + "."
-
-                        results[k] = {
-                            "score": score,
-                            "just": short_reason,
-                            "missing": missing,
-                            "normalized": norm_val,
-                            "total_atoms": t_atoms,
-                            "true_atoms": t_true,
-                            "false_atoms": t_false,
-                            "level_breakdown": breakdown,
-                            "is_eval": is_eval,
-                            "pb_meta": pb_meta,
-                        }
-
-            # Jatka syväetsintää
-            if isinstance(v, dict):
-                _find_matrices(v, results, prompt_blocks)
-            elif isinstance(v, list):
-                for item in v:
-                    _find_matrices(item, results, prompt_blocks)
-    elif isinstance(data, list):
-        for item in data:
-            _find_matrices(item, results, prompt_blocks)
+    traverse(data)
 
 
 @router.get("/{execution_id}", response_model=ScorecardResponseDTO, status_code=status.HTTP_200_OK)

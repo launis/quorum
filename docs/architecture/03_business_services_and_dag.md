@@ -13,7 +13,7 @@ Cognitive Quorumin `backend_v2/services/` -hakemisto sisältää järjestelmän 
 
 ## DAG-moottori: Arkkitehtuuri ja Asynkronisuus
 
-Työnkulkujen orkesterointi on keskitetty `services/orchestrator/dag_executor.py` -moduuliin. Moottori ei ylläpidä paksua ajonaikaista muistitilaa vaan perustuu puhtaalle Event Sourcing -mallille. Arkkitehtuuri on pilkottu kolmeen eristettyyn komponenttiin:
+Työnkulkujen orkesterointi on keskitetty `services/orchestrator/dag_executor.py` -moduuliin. Moottori ei ylläpidä paksua ajonaikaista muistitilaa vaan perustuu puhtaalle Event Sourcing -mallille. Arkkitehtuuri on pilkottu neljään eristettyyn komponenttiin:
 
 ```mermaid
 flowchart TD
@@ -36,7 +36,7 @@ flowchart TD
     end
     
     CommitTrace --> Check
-    Check -- "Ei (Kaikki ajettu)" --> Blueprint["Blueprint Service (BFF Render)"]
+    Check -- "Ei (Kaikki ajettu)" --> Blueprint["Blueprint Transformer (BFF Render)"]
     Blueprint --> End((Valmis Zero-Math Raportti))
     
     FailBoundary --> ErrorLog["Tallenna RFC 7807 ErrorTraceEvent"]
@@ -75,11 +75,11 @@ DAG-moottorin nojatessa Event Sourcingiin (aiemmin mainittu `execution_trace`), 
 
 `backend_v2/services/blueprint.py` on järjestelmän näkyvin "Backend-For-Frontend" kerroksen muotoilija. Koska Frontendissä vaikuttaa tiukka nollalaskennan "Zero-Math UI" -sääntö, kaikki graafiset pisteytyslokiikat on sidottu yksinomaan tänne.
 
-* Ajossa `BlueprintService` lukee valitun `OutputProfile` -konfiguraation (esim. Executive Summary -näkymä vs. Syvällinen 3D-verkkokuvio). Se analysoi työnkulun lopullisen "FrozenContextin".
+* Ajossa `BlueprintTransformer` lukee valitun `OutputProfile` -konfiguraation (esim. Executive Summary -näkymä vs. Syvällinen 3D-verkkokuvio). Se analysoi työnkulun lopullisen "FrozenContextin".
 * **Zero-Math sääntö:** Blueprint paketoi numeeriset skaalaimet ja värimuunnokset valmiiseen `ReportLayoutDTO` -mallistoon (Akselit, pisteet ja XAI "Missing Context" liputukset). Käyttöliittymä, tai PDF-generaattori ei joudu koskaan miettimään miten x/y korrelaatio ratkaistaan saati mistä teksti pöllittiin (Citation Integrity/Hallucination Flag), sillä ne kaikki ovat puhtaasti palvelimen päättelemässä DTO-putkessa.
 
 **PdfReportService (`pdf_generator.py`)**
-Toimii Blueprintin rinnalla ja hyödyntää samaista Layout DTO -pohjaa tulosten paketoinnissa. Se vastaa samalla asynkronisista dokumenttien tallennusajoista ulkoiselle `Storage_driver`ille varmistaen rinnakkaisuuden työnkulun ajon kanssa.
+Toimii BlueprintTransformer-luokan rinnalla ja hyödyntää samaista Layout DTO -pohjaa dynaamisten PDF-tiedostojen rakentamisessa (Jinja2 & WeasyPrint). Palvelu toimii puhtaana datamuuntimena palauttaen PDF-tavuvirran, kun taas asynkroninen Arq-työntekijä ja `Storage_driver` hoitavat lopullisen tiedostojen tallennuksen ja tietokannan päivityksen rinnakkaisesti työnkulun ajon kanssa.
 
 **Machine Control Protocol (MCP)**
 Järjestelmään sisältyy `mcp/` -hakemisto, joka toimii agenttisten verkkohakujen ja tekoälyn ulkoisten toimintojen rajapintana. Palvelut kuten `mcp_tool_loop.py` ja luokat kuten `tavily_search_client.py` kykenevät tekemään itsenäistä verkkohakua ulkopuolisista viitekehyksistä, laajentaen suppeaa staattista kontekstia merkittävästi. Moottori käyttää näitä LLM:n orkestroimana asynkronisesti tarvittavan tiedon hakemiseen.

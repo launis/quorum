@@ -9,6 +9,7 @@ import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/views/widgets/xai_evidence_box.dart';
 import 'package:client_app/features/execution/views/widgets/xai_extensions_box.dart';
 import 'package:client_app/features/execution/views/widgets/xai_axis_telemetry_grid.dart';
+import 'package:client_app/features/execution/views/widgets/diagnostic_scorecard_widget.dart';
 
 import 'package:client_app/shared/widgets/output_renderer.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -17,8 +18,13 @@ import 'package:client_app/core/ui/error_view.dart';
 /// Adheres to the De-Generator Zero-Math rule natively traversing the array.
 class ReportRendererWidget extends ConsumerWidget {
   final ReportDataDTO payload;
+  final String executionId;
 
-  const ReportRendererWidget({super.key, required this.payload});
+  const ReportRendererWidget({
+    super.key, 
+    required this.payload, 
+    required this.executionId,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,6 +58,9 @@ class ReportRendererWidget extends ConsumerWidget {
         // Milestone 4: Render Grouped XAI Extensions
         if (payload.groupedExtensions.isNotEmpty)
           XAIExtensionsBox(groupedExtensions: payload.groupedExtensions),
+
+        // Epic 27: Render Independent Matrix Scorecard directly below extensions
+        DiagnosticScorecardWidget(executionId: executionId),
 
         // XAI Evidence Box — only renders when MCP tool searches were executed
         if (payload.mcpToolAudit.isNotEmpty)

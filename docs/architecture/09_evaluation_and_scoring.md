@@ -109,10 +109,12 @@ Aiemmin järjestelmässä käytetty puhdas lineaarinen osumaprosentin kertoja (l
 Järjestelmä alentaa kognitiivisen arviointimoottorin määrittämää perusarvosanaa erilaisten rangaistusten (Penalties) avulla. Rangaistukset toteutuvat tiukasti seuraavien sääntöjen ja metodien mukaisesti:
 
 - **Turvallisuusuhat (Security Threat):** Järjestelmä tarkistaa suorituksen Guard-asteelta (Security Check), onko turvallisuusuhka havaittu (`threat_detected`). (Lähde: backend_v2/hooks/scoring.py, funktio: _extract_guard_flag)
-  - Jos uhka on havaittu ja asetuksissa määritetty `scoring_security_penalty` on suurempi kuin nolla, loppuarvosanaa lasketaan kertomalla se vaimennuskertoimella `(1.0 - p_val)`. (Lähde: backend_v2/hooks/scoring.py, funktio: apply_scoring_logic_hook)
+  - Jos uhka on havaittu ja asetuksissa määritetty `scoring_security_penalty` on suurempi kuin nolla, kyseinen rangaistusprosentti (`p_val`) lisätään kokonaisrangaistuskertoimeen (`total_penalty_factor`). (Lähde: backend_v2/hooks/scoring.py, funktio: apply_scoring_logic_hook)
 
 - **Jälkikäteisrationalisointi (Post-Hoc Rationalization):** Järjestelmä tarkastaa Falsifier- tai Panel-moduulin tuottamasta datasta `post_hoc_rationalization` -lipun, jolla testataan argumentoinnin pitävyyttä. (Lähde: backend_v2/hooks/scoring.py, funktio: _calculate_falsifier_penalty)
-  - Mikäli lippu on aktiivinen ja asetuksissa määritetty `scoring_post_hoc_penalty` on suurempi kuin nolla, loppuarvosanaa pienennetään kertomalla se vaimennuskertoimella `(1.0 - p_val)`. (Lähde: backend_v2/hooks/scoring.py, funktio: apply_scoring_logic_hook)
+  - Mikäli lippu on aktiivinen ja asetuksissa määritetty `scoring_post_hoc_penalty` on suurempi kuin nolla, kyseinen rangaistusprosentti (`p_val`) lisätään kokonaisrangaistuskertoimeen (`total_penalty_factor`). (Lähde: backend_v2/hooks/scoring.py, funktio: apply_scoring_logic_hook)
+
+- **Kaksinkertaisen rangaistuksen esto (Double Jeopardy Cap):** Kaikki yllä asetetut rangaistukset (Security, Post-Hoc) summataan yhteen ja rajataan maksimivähennykseen (`ScoringCalibrationThresholds.PENALTY_CAP`, esim. 25%). Vasta tämän jälkeen loppuarvosanaa pienennetään yhdistetyllä vaimennuskertoimella `(1.0 - effective_penalty)`. (Lähde: backend_v2/hooks/scoring.py, funktio: apply_scoring_logic_hook)
 
 - **Passiivisuusrangaistus (Passivity Penalty):** Tuomaristomoduulin ("Judge" tai V2 Matriisi) tuottamia arvosanoja analysoidaan puutteellisten laatutasojen varalta. Jos minkä tahansa ulottuvuuden (dimension) saama arvosana on yhtä suuri tai pienempi kuin määritetty minimiarvo `scale_min` (oletus V2 matriiseille on 1.0), passiivisuusrangaistus aktivoituu. (Lähde: backend_v2/hooks/scoring.py, funktio: enforce_passivity_penalty_hook)
   - Rangaistuksen aktivoituessa, kokonaisarvosanaa (tai kyseisen matriisi-dimension osaarvosanaa) lasketaan kertomalla se asetusarvolla `multiplier` (`scoring_passivity_multiplier`). (Lähde: backend_v2/hooks/scoring.py, funktio: enforce_passivity_penalty_hook)
@@ -126,14 +128,16 @@ Alla oleva vuokaavio konkretisoi edellä kuvatun matemaattisen Rangaistus- ja No
 graph TD
     subgraph SG5["Kognitiivinen Rangaistuspäätös (Scoring Hook)"]
         A["Asiantuntijoiden osumat (Peruskeskiarvo)"] --> B{"1. Guard Check"}
-        B -- "Uhka löytyi!" --> C["Vaimenna kertoimella: 1.0 - p_val"]
+        B -- "Uhka löytyi!" --> C["Lisää rangaistus (p_val)"]
         B -- "Rehellinen" --> D{"2. Falsifier Check"}
         C --> D
-        D -- "Post-Hoc havaittu" --> E["Vaimenna kertoimella: 1.0 - p_val"]
-        D -- "Validia" --> F{"3. Passivity Check"}
+        D -- "Post-Hoc havaittu" --> E["Lisää rangaistus (p_val)"]
+        D -- "Validia" --> F{"Yhdistä ja rajaa (PENALTY_CAP)"}
         E --> F
-        F -- "Valtaosa <= min" --> G["Moninkertaista: multiplier"]
-        F -- "Aktiivinen" --> J["Lopullinen Perusarvo (raw_val)"]
+        F --> F2["Vaimenna kertoimella: 1.0 - effective_penalty"]
+        F2 --> G1{"3. Passivity Check"}
+        G1 -- "Valtaosa <= min" --> G["Moninkertaista: multiplier"]
+        G1 -- "Aktiivinen" --> J["Lopullinen Perusarvo (raw_val)"]
         G --> H{"Alittaako Clamp_min?"}
         H -- "Kyllä" --> I["Lukitse scale_min"]
         H -- "Ei" --> J
@@ -168,6 +172,8 @@ Tekoälyn rakenteistettu XAI-synteesi pakotetaan seuraavaan Pydantic-malliin, jo
 - `analysis_weaknesses`: Tunnistetut heikkoudet (Weaknesses identified).
 - `analysis_opportunities`: Tunnistetut mahdollisuudet (Opportunities identified).
 - `analysis_recommendations`: Suositukset toimenpiteille (Recommendations).
+- `final_verdict`: Lopullinen päätelmä (Final conclusion).
+- `confidence_score`: Luottamusluku (0.0-1.0).
 
 *Pydantic-validointi:* Kenttien oikeellisuus varmistetaan Pydanticin `@field_validator`-metodeilla (esim. `validate_non_empty`), jotka estävät ehdottomasti tyhjien tai puhtaasti välilyöntejä sisältävien merkkijonojen ohittamisen järjestelmään vikatilanteissa.
 (Lähde: backend_v2/models/domain/xai.py, luokka: XAIOutputDTO)

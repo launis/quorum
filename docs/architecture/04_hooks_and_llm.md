@@ -17,6 +17,7 @@ sequenceDiagram
     Dag->>Pre: Aloita solmu (HookState)
     activate Pre
     Pre->>Pre: Eager Extraction & Document Parsinta
+    Pre->>Pre: Matrix Flattening (atom_flattening.py)
     Pre-->>Dag: Puhdistettu Context
     deactivate Pre
     
@@ -35,6 +36,7 @@ sequenceDiagram
     Post->>Post: Micro-CoT Flattening (_quote, _falsification)
     Post->>Post: Math Scaling & Normalization (1-100 / Zero-Math)
     Post->>Post: Algorithmic Tyranny / Passivity Checks
+    Post->>Post: Bibliography Generation (references.py)
     Post-->>Dag: Rankastu & Normalisoitu Lopullinen DTO
     deactivate Post
 ```
@@ -42,7 +44,7 @@ sequenceDiagram
 ### Keskeisimmät Hook-vastuut
 
 1. **Scoring ja Arviointien Normalisointi (`scoring.py`):**
-   * **Micro-CoT (Chain of Thought) Litistäminen:** LLM vastaa tyypillisesti monivaiheisella syy-seuraus -verkolla (esim. Quote -> Falsification -> Score). Hook purkaa (`flatten`) nämä monimutkaiset rakenteet kooditasolla atomaarisiksi `_cited_text_quote` ja `_falsification` Data-avaimiksi XAI (Explainable AI) UI-komponenteille.
+   * **Micro-CoT (Chain of Thought) Vastausten Litistäminen (Post-Execution):** LLM vastaa tyypillisesti monivaiheisella syy-seuraus -verkolla (esim. Quote -> Falsification -> Score). Hook purkaa (`flatten`) nämä monimutkaiset rakenteet kooditasolla atomaarisiksi `_cited_text_quote` ja `_falsification` Data-avaimiksi XAI (Explainable AI) UI-komponenteille.
    * **Nollalaskenta (Zero-Math UI):** Muuntaa karkeat AI:n antamat numeeriset matriisitulokset natiivisti `_scaled` ja `_normalized` (1-100%) arvoiksi, varmistaen ehdottoman yhteneväisen matemaattisen vertailupohjan kaikkien moduulien välille.
    * **Algorithmic Tyranny Kill Switch:** Suojamekanismi, joka tarkkailee generoituja arvoja (esim. `control_ratio` ja sanaston monimuotoisuus). Jos tekoäly tuottaa monotonista huipputulosta ilman variaatiota, hook devalvoi täysin solmun pisteet ja asettaa lokiin "Kill Switch" rangaistuksen.
    * **Passivity Penalty:** Havaitsee tilanteet, joissa LLM valitsee järjestelmällisesti arviointiasteikon pienimmän vaivan tien (minimi score), jolloin tekoälylle annetaan matemaattinen rangaistuskerroin.
@@ -76,6 +78,12 @@ sequenceDiagram
 
 11. **LLM Kontekstihook (`llm.py`):**
     * `configure_llm_context` -hook hakee ja injektoi kulloisenkin strategian (esim. `fast`, `reasoning`) kontekstiin ja reitittää mallin valinnan Model Registryn tietojen perusteella dynaamisesti.
+
+12. **Datan Ennakko-Litistäminen (`atom_flattening.py`):**
+    * Vastaa `MatrixScale`-rakenteiden (kuten 75-atomiset kyselyt) litistämisestä sokeaksi listaksi (Pre-Execution Flattening) ennen LLM-kontekstin luontia. Hyödyntää ositettua satunnaisotantaa (Stratified Random Sampling) vähentämään LLM-kontekstiväsymystä ja estämään JSON-token -räjähdyksen.
+
+13. **Lähdeluettelogeneraatio (`references.py`):**
+    * Vastaa eksplisiittisten ja implisiittisten viittausten haravoinnista tekstistä (Bibliography Generation). V2-versiossa toistaiseksi kehitysvaiheessa (Stub), joka tuottaa Dummy-viitteitä.
 
 ## Tekoälyintegraatiot (`backend_v2/llm/`)
 

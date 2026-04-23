@@ -30,33 +30,43 @@ classDiagram
     }
 
     class I18nText{
-        +String en
-        +String fi
+        +String default_locale
+        +dict translations
     }
 
     class ExpectedInput{
         +String input_key
         +I18nText label
+        +I18nText description
+        +String ai_description
         +bool required
         +bool is_chat_history
         +List~String~ input_modes
+        +List~QuestionnaireItem~ questionnaire_definition
     }
 
     class Workflow{
         +String id (Opaque Stripe ID 'wor_')
+        +String slug
+        +I18nText name
+        +I18nText description
         +String status
         +int version
         +bool is_public
         +String organization_id
+        +dict ui_schema
+        +dict output_profiles
+        +String default_profile_id
         +List~ExpectedInput~ expected_inputs
         +List~StepRule~ steps
         +validate_dag_integrity()
     }
 
     class StepRule{
+        +String id
         +String task_blueprint (Opaque Step ID 'stp_')
-        +int ui_pos_x
-        +int ui_pos_y
+        +float ui_pos_x
+        +float ui_pos_y
         +List~String~ depends_on
         +dict input_mappings
     }
@@ -64,12 +74,17 @@ classDiagram
     class Step{
         +String id
         +String slug
-        +String type
+        +I18nText name
+        +I18nText description
+        +Literal type
         +String hook
+        +Literal safety
         +List~String~ pre_hooks
         +List~String~ post_hooks
         +List~String~ allowed_mcp_tools
         +String model_strategy
+        +List~String~ expected_inputs
+        +dict output_schema
         +List~String~ prompt_blocks
     }
 
@@ -80,64 +95,141 @@ classDiagram
 
     class PromptBlock{
         +String id (Opaque Block ID 'blk_')
+        +String slug
         +I18nText label
         +I18nText description
         +String ai_description
+        +String category_id
         +bool is_evaluative
+        +BlockDataType type
+        +bool allow_decimals
+        +int scale_min
+        +int scale_max
         +List~String~ output_extensions
         +TheoryGrounding theory_grounding
         +List~MatrixScale~ scales
+        +List~MatrixRow~ rows
+        +List~I18nText~ columns
         +validate_block_consistency()
     }
 
     class ExecutionRecord{
         <<Event Sourcing Root>>
         +String id
-        +String status
-        +ConfigDict frozen=True
+        +String workflow_id
+        +ExecutionStatus status
+        +String active_profile_id
+        +WorkflowInputs raw_inputs
         +FrozenContext frozen_context
+        +String frozen_context_storage_path
         +List~TraceEvent~ execution_trace
+        +String execution_trace_storage_path
+        +String pdf_report_path
+        +String output_profile_id
+        +dict step_states
+        +dict profile_syntheses
+        +int duration_ms
+        +dict models_used
+        +dict metadata
+        +String error
+        +datetime created_at
+        +datetime updated_at
+        +datetime completed_at
+        +String created_by
+        +String organization_id
     }
 
     class OutputProfile{
         +String id
+        +String slug
+        +String workflow_id
         +I18nText name
+        +I18nText description
+        +List~String~ visible_metadata
         +List~String~ visible_extensions
+        +int max_extension_items
         +String display_scale
-        +List~OutputLayoutBlock~ layouts
+        +bool include_diagnostic_scorecard
         +SynthesisConfigDTO synthesis
+        +List~OutputLayoutBlock~ layouts
     }
 
     class OutputLayoutBlock{
-        +String preset_view
+        +Literal preset_view
+        +I18nText title
+        +I18nText description
+        +List~String~ steps
         +List~String~ target_blocks
+        +Literal text_delivery_mode
+        +SynthesisConfigDTO synthesis
+        +String synthesis_md
     }
 
     class SynthesisConfigDTO{
+        +String system_prompt
         +int length_constraint
+        +I18nText preamble_text
+        +HistoricalContextMode historical_context_mode
         +bool enable_pii_masking
+        +List allowed_exports
+        +bool omit_empty_sections
+        +List~String~ allowed_mcp_tools
     }
 
     class ReportDataDTO{
         +String workflow_id
+        +String profile_id
+        +I18nText profile_name
+        +dict available_profiles
         +float global_score
+        +bool has_warning
+        +String synthesized_markdown
+        +List~String~ visible_metadata
+        +datetime created_at
+        +String org_name
+        +float cost_estimate
+        +int total_tokens
+        +int prompt_tokens
+        +int completion_tokens
+        +int reasoning_tokens
+        +List~MCPAuditTrace~ mcp_tool_audit
+        +dict grouped_extensions
+        +List~String~ penalties_applied
         +List~ReportLayoutDTO~ layouts
     }
 
     class ReportLayoutDTO{
-        +String preset_view
+        +Literal preset_view
+        +I18nText title
+        +I18nText description
         +List~ReportAxisDTO~ axes
+        +Literal text_delivery_mode
+        +SynthesisConfigDTO synthesis
+        +String synthesis_md
     }
 
     class ModelProfile{
         +String provider
         +String model_name
+        +float temperature
+        +float top_p
+        +int top_k
+        +int tpm_limit
+        +int rpm_limit
+        +int max_tokens
         +List~String~ allowed_tools
+        +bool supports_grounding
+        +String api_key
+        +String parsing_mode
+        +String caching_strategy
+        +bool is_active
     }
 
     class AllowedMCPTool{
         +String tool_id
         +I18nText name
+        +String description
+        +dict input_schema
     }
 
     V2CoreBase <|-- I18nText

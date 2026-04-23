@@ -209,7 +209,10 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
       body: reportAsync.when(
         data: (payload) {
           // Zero-math, logic-free static controller injection.
-          return ReportRendererWidget(payload: payload);
+          return ReportRendererWidget(
+            payload: payload,
+            executionId: widget.executionId,
+          );
         },
         error: (err, stack) {
           final logger = ref.read(loggerServiceProvider);
