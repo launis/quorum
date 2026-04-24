@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from fastapi import status
 
@@ -32,20 +31,22 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
     sanitized_inputs: dict[str, str] = {}
     threats_summary: list[str] = []
 
-    inputs = state.inputs
+    from pydantic import ValidationError
 
-    if not inputs or not isinstance(inputs, dict):
-        error_code = ErrorCodes.EMPTY_INPUT if inputs is None else ErrorCodes.INVALID_OUTPUT_SCHEMA
-        msg = f"Missing or invalid 'inputs' in data. Expected dict. Got type: {type(inputs)}, Value: {inputs}"
-        status_code = status.HTTP_400_BAD_REQUEST if inputs is None else status.HTTP_500_INTERNAL_SERVER_ERROR
-        logger.error("[SecurityHook] %s: %s", error_code.name, msg)
+    from backend_v2.models.domain.security import SanitizationResultDTO, SecurityPayloadDTO
+
+    try:
+        payload = SecurityPayloadDTO.model_validate(state.inputs)
+    except ValidationError as e:
+        msg = f"Strict Fail-Fast Enforced: Security payload failed validation: {e}"
+        logger.error("[SecurityHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(
             message=msg,
-            status_code=status_code,
-            details={"error_code": error_code},
-        )
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        ) from e
 
-    for field, val in inputs.items():
+    for field, val in payload.root.items():
         if not val:
             continue
 
@@ -73,12 +74,12 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
         else:
             sanitized_inputs[field] = original
 
-    # Create pure dict result
     try:
-        result: dict[str, Any] = {
-            "sanitized_inputs": sanitized_inputs,
-            "security_status": "DATA_CHECKED_AND_SECURED",
-        }
+        dto = SanitizationResultDTO(
+            sanitized_inputs=sanitized_inputs,
+            security_status="DATA_CHECKED_AND_SECURED",
+        )
+        result = dto.model_dump(mode="json")
     except Exception as e:
         # Configuration/System Error
         error_code = ErrorCodes.SECURITY_CONFIG_ERROR

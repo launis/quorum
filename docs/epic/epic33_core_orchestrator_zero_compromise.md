@@ -9,40 +9,23 @@ A comprehensive audit of the core orchestrator suite (`atomizer.py`, `chunking_s
 - `atomizer.py` explicitly utilizes strongly typed `.run_structured_task(response_model=AtomizationSchema)`.
 
 **The Violations:**
-Significant architectural drift (duck typing and "graceful fallback" behavior) was found deeply embedded in the variable parsing mechanisms of the `PromptCompiler` and the event propagation mechanisms of the `DAGExecutor`. Both modules frequently bypass the **Strict Pydantic V2** mandates to manually parse naked dictionaries.
+Significant architectural drift (duck typing and "graceful fallback" behavior) is found deeply embedded in the variable parsing mechanisms of the `PromptCompiler`. It bypasses the **Strict Pydantic V2** mandates to manually parse naked dictionaries.
 
 - The `PromptCompiler._extract_value_from_state` logic acts as a "scavenger", manually checking `hasattr`, `callable()`, and heavily branching on `isinstance(current, dict)`. It attempts to duct-tape generic dictionaries into Markdown recursively rather than relying on explicit Pydantic formatters.
-- The `DAGExecutor.execute_workflow` handles pre-hydration and `state_delta` by passing and capturing raw dictionaries (`isinstance(processed_result.state_delta, dict)`) instead of routing through typed models for state evolution.
 
-**Objective:** Cleanse `PromptCompiler` and `DAGExecutor` of runtime type guessing. Enforce a rigorous boundary where only known, typed schemas are parsed into XML context nodes or appended to the Trace execution, strictly satisfying **The Zero-Compromise Pledge**.
+**Objective:** Cleanse `PromptCompiler` of runtime type guessing. Enforce a rigorous boundary where only known, typed schemas are parsed into XML context nodes, strictly satisfying **The Zero-Compromise Pledge**.
 
 ## 2. Architectural Mandates Enforced (Rules Reference)
 - **`the_zero_compromise_pledge` (`00-antigravity-core`):** Eradicate "Try A, then B" chains. `PromptCompiler` currently utilizes: `if hasattr(model_dump), else if isinstance(dict), else str()`. This guessing must be replaced with strict interface contracts (`TracePayload` objects).
-- **`no_naked_dicts_in_state` (`01-python-backend`):** `DAGExecutor` must cease dumping arbitrary nested dictionaries into `TraceEvent.content`. All elements returned by `hook_registry` must be strongly validated against domain specific DTOs.
 - **`the_duct_tape_ban` (`00-antigravity-core`):** The recursive string un-nesting loop inside `PromptCompiler` (line ~197) is raw duct-tape applied to fix the Attention Dilution token crisis (Epic 12). It must be extracted into a formal Pydantic `.to_xml()` context renderer natively attached to the model.
 
-## 3. Implementation Phases
+## 3. Implementation Phase
 
-### Phase 1: Ridding DAGExecutor of Naked Dict Deltas
-- **Target:** `DAGExecutor.execute_workflow` (specifically around hook state integration).
-- **Action:** Convert the extraction of `processed_result.state_delta` from raw dictionary handling to explicitly mapping it into the Pydantic classes expected by the system.
-- **Reasoning:** Raw dicts bypass error propagation and schema updates.
-
-### Phase 2: Eliminating PromptCompiler Semantic Duck Typing
+### Eliminating PromptCompiler Semantic Duck Typing
 - **Target:** `_extract_value_from_state` in `PromptCompiler`.
-- **Action:** Remove the `isinstance(dict)` recursion tree and `hasattr` checks.
-- **Reasoning:** Dynamically generating `<prior_step_context>` tags by stripping prefixes (`step_1_...`) from arbitrary keys is a brittle, untestable hack that couples parsing logic tightly to old V1 nomenclature.
-- **Solution:** Enforce that variables fetched from the state are typed models. Build explicit methods rendering `EvaluationSummaryDTO` instead of magically guessing keys and `replace("_", " ")`.
-
-### Phase 3: Sanitizing Hook Data Transit
-- **Target:** The interaction boundary between executing hooks and the Orchestrator pipeline.
-- **Action:** Define an immutable `HookResultDTO` containing `StatefulExecutionDTO` structures instead of `dict[str, Any]` inside `HookState`.
-- **Solution:** Force the pipeline to explicitly declare its output schema, allowing the `PromptCompiler` to render context deterministically without `isinstance()` branching.
-
-### Phase 4: Topology & Prompt Caching Inversion [✅ COMPLETED / REVISED BY EPIC 27]
-- **Target:** `PromptCompiler` core prompt generation.
-- **Current Status:** This phase's original architectural mandate was explicitly inverted by Epic 27 (Provider-Agnostic Prompt Caching). To achieve optimal FinOps cache hits across Vertex/Anthropic/OpenAI, the massive dynamic reference data (context) MUST now be placed at the very beginning of the `system` message, while the dynamic per-chunk rubrics reside in the `user` message. 
-- **Remaining Task:** None. The orchestration topology in `llm.py` and `prompt_compiler.py` is now successfully aligned with the Epic 27 caching architecture.
+- **Action:** Remove the `isinstance(dict)` recursion tree, `hasattr` checks, and hardcoded string replacements (e.g., `replace("step_1_", "")`).
+- **Reasoning:** Dynamically generating `<prior_step_context>` tags by stripping prefixes from arbitrary keys is a brittle, untestable hack that couples parsing logic tightly to old V1 nomenclature. While Epic 38 mitigated the prompt length token crisis, the parsing logic remains severely flawed and violates the Duct Tape Ban.
+- **Solution:** Enforce that variables fetched from the state are typed models. Build explicit Pydantic `.to_xml()` formatters rendering XML context natively instead of magically guessing keys.
 
 ## 4. Testing & Verification Mandate (Synthesis.py Standard)
 
@@ -60,4 +43,3 @@ Every single code modification inside this Epic MUST strictly adhere to the exac
 
 ### Specific Epic 33 Testing Mandates
 1. Use `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/prompt_compiler.py --test` specifically to verify no loss of XML nesting functionality during schema conversion.
-2. Validate that `DAGExecutor` correctly raises a deterministic `ValidationError` if an inner-loop hook attempts to mutate the state with a structurally deformed dictionary payload instead of silently swallowing the error.

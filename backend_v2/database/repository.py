@@ -462,7 +462,15 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                             # Run synchronously within the event loop iteration. Small documents.
                             await self.driver.upsert(coll_path, item, item_id)
                         except Exception as e:
-                            logger.error("[Repository] Failed to persist audit trace %s: %s", item_id, e)
+                            msg = f"Failed to persist audit trace {item_id}: {e}"
+                            logger.error("[Repository] %s", msg)
+                            from backend_v2.exceptions import AppException, ErrorCodes
+
+                            raise AppException(
+                                message=msg,
+                                status_code=500,
+                                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                            ) from e
 
         # 2. Extract massive payloads to Storage Blobs
         for field in ["execution_trace", "frozen_context", "context_variables"]:
@@ -476,7 +484,15 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                         data[f"{field}_storage_path"] = blob_path
                         del data[field]
                 except Exception as e:
-                    logger.error("[Repository] Failed to offload %s for %s: %s", field, doc_id, e, exc_info=True)
+                    msg = f"Failed to offload {field} for {doc_id}: {e}"
+                    logger.error("[Repository] %s", msg, exc_info=True)
+                    from backend_v2.exceptions import AppException, ErrorCodes
+
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                    ) from e
 
     async def _hydrate_payloads(self, data: dict[str, Any] | None) -> None:
         if not data:
@@ -496,15 +512,9 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 try:
                     blob_data = await driver.read(data[path_key])
                     decoded = blob_data.decode("utf-8").strip()
-                    if decoded:
-                        data[field] = json.loads(decoded)
-                    else:
-                        logger.warning(
-                            "[Repository] Hydration payload is empty for %s at %s. Defaulting to empty struct.",
-                            field,
-                            data[path_key],
-                        )
-                        data[field] = [] if field == "execution_trace" else {}
+                    if not decoded:
+                        raise ValueError(f"Hydration payload is empty (0 bytes) for {field} at {data[path_key]}")
+                    data[field] = json.loads(decoded)
                 except Exception as e:
                     logger.warning("[Repository] Failed to hydrate %s from %s. Error: %s", field, data[path_key], e)
                     from backend_v2.exceptions import AppException, ErrorCodes
@@ -527,7 +537,15 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                         data["frozen_context"] = {}
                     data["frozen_context"]["mcp_tool_audit"] = trails
             except Exception as e:
-                logger.warning("[Repository] Failed to hydrate audit_trails for %s: %s", doc_id, e)
+                msg = f"Failed to hydrate audit_trails for {doc_id}: {e}"
+                logger.error("[Repository] %s", msg)
+                from backend_v2.exceptions import AppException, ErrorCodes
+
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.DATA_CORRUPTION.value},
+                ) from e
 
     # --- Executions ---
 
@@ -756,7 +774,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             for wf in wfs:
                 wf_steps = wf.get("steps", [])
                 for s in wf_steps:
-                    if isinstance(s, dict) and (s.get("id") == step_id or s.get("slug") == step_id):
+                    if isinstance(s, dict) and s.get("id") == step_id:
                         from backend_v2.exceptions import AppException, ErrorCodes
 
                         wf_id = wf.get("id", "unknown")

@@ -1,8 +1,10 @@
+from collections.abc import Awaitable
+from typing import cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from backend_v2.core.hook_registry import HookDependencies, HookState
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
 from backend_v2.hooks.translation_hook import translation_hook
 
 
@@ -12,35 +14,57 @@ def mock_repository() -> AsyncMock:
 
 
 @pytest.mark.asyncio
-async def test_translation_hook_skips_when_target_en_or_missing(mock_repository: AsyncMock) -> None:
-    """Ensure it skips translation cleanly when language is 'en' or missing."""
+async def test_translation_hook_skips_when_target_en(mock_repository: AsyncMock) -> None:
+    """Ensure it skips translation cleanly when language is 'en'."""
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
         step_id="step-123",
         task_blueprint="bp-123",
+        metadata={"target_locale": "en"},
+        global_context_vars={},
+        inputs={"language": "en", "data": "value"},
+    )
+    deps = HookDependencies(repository=mock_repository)
+
+    res = await cast(Awaitable[HookResult], translation_hook(state, deps))
+
+    assert res.success is True
+    assert res.state_delta == {}
+
+
+@pytest.mark.asyncio
+async def test_translation_hook_crashes_when_missing_language_or_locale(mock_repository: AsyncMock) -> None:
+    """Ensure it drops into AppException when language or target_locale is missing."""
+    # Missing target_locale
+    state1 = HookState(
+        execution_id="sub-123",
+        workflow_id="wf-123",
         metadata={},
         global_context_vars={},
         inputs={"language": "en", "data": "value"},
     )
     deps = HookDependencies(repository=mock_repository)
 
-    res = await translation_hook(state, deps)  # type: ignore[misc]
+    from backend_v2.exceptions import AppException
 
-    assert res.success is True
-    assert res.state_delta == {}
+    with pytest.raises(AppException) as exc1:
+        await cast(Awaitable[HookResult], translation_hook(state1, deps))
+    assert exc1.value.status_code == 400
+    assert "target_locale" in exc1.value.message
 
     # Missing language
     state2 = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
-        metadata={},
+        metadata={"target_locale": "fi"},
         global_context_vars={},
         inputs={"data": "value"},
     )
-    res2 = await translation_hook(state2, deps)  # type: ignore[misc]
-    assert res2.success is True
-    assert res2.state_delta == {}
+    with pytest.raises(AppException) as exc2:
+        await cast(Awaitable[HookResult], translation_hook(state2, deps))
+    assert exc2.value.status_code == 400
+    assert "language" in exc2.value.message
 
 
 @pytest.mark.asyncio
@@ -54,7 +78,7 @@ async def test_translation_hook_role_segregation_and_success(
         workflow_id="wf-123",
         step_id="step-123",
         task_blueprint="bp-123",
-        metadata={},
+        metadata={"target_locale": "fi"},
         global_context_vars={},
         inputs={"language": "fi", "title": "Example Title", "_private": "hidden"},
     )
@@ -67,9 +91,10 @@ async def test_translation_hook_role_segregation_and_success(
     mock_client.run_chat.return_value = mock_llm_response
     mock_from_strategy.return_value = mock_client
 
-    res = await translation_hook(state, deps)  # type: ignore[misc]
+    res = await cast(Awaitable[HookResult], translation_hook(state, deps))
 
     assert res.success is True
+    assert res.state_delta is not None
     assert res.state_delta["title"] == "Esimerkki Otsikko"
     assert res.state_delta["_private"] == "hidden"  # Preserved field
 
@@ -82,11 +107,11 @@ async def test_translation_hook_role_segregation_and_success(
 
     assert len(messages) == 2
     assert messages[0]["role"] == "system"
-    assert "SÄÄNTÖ: Toimit automaattisena JSON-kääntäjänä." in messages[0]["content"]
-    assert "fi" in messages[0]["content"]  # Embedded target language
+    assert "ROLE: You are an automatic JSON translator." in messages[0]["content"]
+    assert "suomeksi (Finnish)" in messages[0]["content"]  # Embedded target language
 
     assert messages[1]["role"] == "user"
-    assert "Lähde JSON" in messages[1]["content"]
+    assert "SOURCE_JSON" in messages[1]["content"]
     assert "Example Title" in messages[1]["content"]
 
 

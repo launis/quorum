@@ -3,9 +3,13 @@
 import logging
 from typing import Any
 
+import bleach
+
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.v2_core import ReportAxisDTO, ReportDataDTO, ReportLayoutDTO
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.state import StateProjector
+from backend_v2.models.v2_core import MCPAuditTrace, ReportAxisDTO, ReportDataDTO, ReportLayoutDTO, Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -15,17 +19,6 @@ class BlueprintTransformer:
 
     def __init__(self, repo: AbstractWorkflowRepository):
         self.repo = repo
-
-    @staticmethod
-    def _extract_numeric_score(val: Any, fallback: Any = None) -> Any:
-        """Centralized extraction for flat scalars and nested Micro-CoT dictionaries."""
-        if isinstance(val, dict):
-            if "step_4_final_score" in val:
-                return val["step_4_final_score"]
-            if "score" in val:
-                return val["score"]
-            return fallback if fallback is not None else val
-        return val if val is not None else fallback
 
     async def build_report_dto(
         self, execution_id: str, profile_id: str | None = None, accept_language: str | None = None
@@ -43,24 +36,18 @@ class BlueprintTransformer:
             logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
-        from backend_v2.models.state import StateProjector
-
         projector = StateProjector()
         results = projector.fold_trace(execution.execution_trace)
 
         locale = accept_language or execution.metadata.get("target_locale") or "en"
 
-        import typing
-
-        def _resolve_i18n_str(val: dict[str, typing.Any] | None, lang: str, fallback: str) -> str:
+        def _resolve_i18n_str(val: dict[str, Any] | None, lang: str, fallback: str) -> str:
             """Ensure payload extracts the localized string for axis titles."""
             if val and isinstance(val, dict):
                 translations = val.get("translations") or val
                 if isinstance(translations, dict):
                     return str(translations.get(lang) or translations.get("en") or fallback)
             return fallback
-
-        from backend_v2.models.v2_core import Workflow
 
         workflow_obj = Workflow.model_validate(workflow_data)
 
@@ -87,8 +74,6 @@ class BlueprintTransformer:
             raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND})
 
         resolved_pid = str(profile_data.get("id"))
-
-        from backend_v2.models.domain.output_profile import OutputProfile
 
         profile = OutputProfile.model_validate(profile_data)
 
@@ -250,7 +235,16 @@ class BlueprintTransformer:
                             target_val = step_data.get(active_score_key)
                             if target_val is None:
                                 target_val = v
-                            target_val = BlueprintTransformer._extract_numeric_score(target_val, fallback=target_val)
+
+                            if isinstance(target_val, dict):
+                                logger.error(
+                                    "Fail-Fast: Untyped dictionary payload for block is forbidden.", exc_info=True
+                                )
+                                raise AppException(
+                                    message="Invalid numeric score",
+                                    status_code=400,
+                                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                )
 
                             is_matrix_category = block and block.get("category_id") == "matrix"
                             is_num_type = isinstance(target_val, (int, float)) and not isinstance(target_val, bool)
@@ -401,37 +395,20 @@ class BlueprintTransformer:
                                     if is_legacy_score:
                                         justification = step_data.get("justification")
                                     else:
-                                        if isinstance(v, dict):
-                                            eval_notes = v.get("evaluation_notes")
-                                            justification = v.get("step_3_logical_friction") or eval_notes
-                                            cited_source_id = v.get("step_1b_cited_source_id")
-                                            cited_text_quote = v.get("step_1_evidence_quote")
-                                            cited_web_citation = v.get("step_1c_google_citation")
-                                            falsification = v.get("extension_falsification") or v.get(
-                                                "step_2_falsification"
-                                            )
-                                            theory_link = v.get("extension_theory_link")
-                                            risk_flag = v.get("extension_risk_flag")
-                                            coaching = v.get("extension_coaching")
-                                            confidence = v.get("extension_confidence")
-                                            missing_context = v.get("extension_missing_context")
-                                            remediation_steps = v.get("extension_remediation_steps")
-                                            emotional_sentiment = v.get("extension_emotional_sentiment")
-                                        else:
-                                            legacy_dina_notes = step_data.get(f"{k}_justification")
-                                            eval_notes = step_data.get(f"{k}_evaluation_notes") or legacy_dina_notes
-                                            justification = step_data.get(f"{k}_justification") or eval_notes
-                                            cited_source_id = step_data.get(f"{k}_cited_source_id")
-                                            cited_text_quote = step_data.get(f"{k}_cited_text_quote")
-                                            cited_web_citation = step_data.get(f"{k}_google_citation")
-                                            falsification = step_data.get(f"{k}_falsification")
-                                            theory_link = step_data.get(f"{k}_theory_link")
-                                            risk_flag = step_data.get(f"{k}_risk_flag")
-                                            coaching = step_data.get(f"{k}_coaching")
-                                            confidence = step_data.get(f"{k}_confidence")
-                                            missing_context = step_data.get(f"{k}_missing_context")
-                                            remediation_steps = step_data.get(f"{k}_remediation_steps")
-                                            emotional_sentiment = step_data.get(f"{k}_emotional_sentiment")
+                                        # Suffix-based flat key lookup: V2 strict output format.
+                                        # Nested-dict values were already rejected by Phase 1 Fail-Fast.
+                                        justification = step_data.get(f"{k}_justification")
+                                        cited_source_id = step_data.get(f"{k}_cited_source_id")
+                                        cited_text_quote = step_data.get(f"{k}_cited_text_quote")
+                                        cited_web_citation = step_data.get(f"{k}_google_citation")
+                                        falsification = step_data.get(f"{k}_falsification")
+                                        theory_link = step_data.get(f"{k}_theory_link")
+                                        risk_flag = step_data.get(f"{k}_risk_flag")
+                                        coaching = step_data.get(f"{k}_coaching")
+                                        confidence = step_data.get(f"{k}_confidence")
+                                        missing_context = step_data.get(f"{k}_missing_context")
+                                        remediation_steps = step_data.get(f"{k}_remediation_steps")
+                                        emotional_sentiment = step_data.get(f"{k}_emotional_sentiment")
 
                                 # Use a combined key for uniqueness
                                 unique_k = f"{step_id}_{k}"
@@ -515,7 +492,6 @@ class BlueprintTransformer:
             final_synthesis = None
             if synthesis_md:
                 # M3 Output Management Hardening: Bleach HTML XSS Sanitization
-                import bleach
 
                 allowed_tags = list(bleach.sanitizer.ALLOWED_TAGS) + [
                     "h1",
@@ -619,31 +595,16 @@ class BlueprintTransformer:
                 )
 
             # Extract MCP Tool Loop audit trail from FrozenContext (XAI Evidence for Frontend)
-            from backend_v2.models.v2_core import MCPAuditTrace
-
+            # FrozenContext is always a Pydantic model; access mcp_tool_audit via strict dot notation.
             mcp_audit_data: list[MCPAuditTrace] = []
-            f_context = getattr(execution, "frozen_context", None)
-            if f_context:
-                raw_audits = (
-                    f_context.get("mcp_tool_audit")
-                    if isinstance(f_context, dict)
-                    else getattr(f_context, "mcp_tool_audit", [])
-                )
-                if raw_audits:
-                    seen_audits = set()
-                    for audit in raw_audits:
-                        # Defensive parsing in case elements are Pydantic models vs dicts
-                        t_name = getattr(audit, "tool_id", None) or (
-                            audit.get("tool_id") if isinstance(audit, dict) else ""
-                        )
-                        t_args = getattr(audit, "query", None) or (
-                            audit.get("query") if isinstance(audit, dict) else ""
-                        )
-
-                        audit_hash = f"{t_name}::{t_args}"
-                        if audit_hash not in seen_audits:
-                            seen_audits.add(audit_hash)
-                            mcp_audit_data.append(audit)
+            raw_audits: list[MCPAuditTrace] = execution.frozen_context.mcp_tool_audit
+            if raw_audits:
+                seen_audits: set[str] = set()
+                for audit in raw_audits:
+                    audit_hash = f"{audit.tool_id}::{audit.query}"
+                    if audit_hash not in seen_audits:
+                        seen_audits.add(audit_hash)
+                        mcp_audit_data.append(audit)
 
             visible_metadata = getattr(profile, "visible_metadata", [])
 

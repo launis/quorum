@@ -27,6 +27,7 @@ from backend_v2.models.v2_core import (
     ExecutionStatus,
     ExecutionStepState,
     FrozenContext,
+    Step,
     Workflow,
 )
 from backend_v2.services.blueprint import BlueprintTransformer
@@ -109,13 +110,16 @@ class ExecutionService:
                     except Exception as e:
                         msg = f"Failed to clean up blob {raw_data[key]} during execution deletion."
                         logger.error(
-                            "[ExecutionService] %s",
+                            "[ExecutionService] %s: %s",
+                            ErrorCodes.INTERNAL_SERVER_ERROR.name,
                             msg,
                             exc_info=True,
                             extra={"execution_id": execution_id},
                         )
                         raise AppException(
-                            message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                            message=msg,
+                            status_code=500,
+                            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                         ) from e
 
             return await self.repo.delete_execution(execution_id)
@@ -178,6 +182,9 @@ class ExecutionService:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "fields": missing_fields},
             )
 
+        # Strict Target Locale from Payload (Fail-Fast)
+        target_locale = payload.target_locale
+
         # V2 MANDATE: Dynamically generate SDUI hints synchronously before execution
         ui_hints: dict[str, DataDictionaryField] = {}
         step_states: dict[str, ExecutionStepState] = {}
@@ -189,21 +196,21 @@ class ExecutionService:
                 logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ConfigurationError(msg)
 
-            # Populate initial pending step state for timeline
-            step_name_raw = step_dict.get("name", step_rule.task_blueprint)
-            step_label = step_rule.task_blueprint
-            if isinstance(step_name_raw, str):
-                step_label = step_name_raw
-            else:
-                msg = f"Invalid step name format in blueprint {step_rule.task_blueprint}. Expected string."
+            try:
+                # V2 MANDATE: Enforce Pydantic validation on the Step
+                step_obj = Step.model_validate(step_dict)
+            except Exception as e:
+                msg = f"Invalid step format in blueprint {step_rule.task_blueprint}: {str(e)}"
                 logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                 raise AppException(
                     message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                )
+                ) from e
 
+            # Populate initial pending step state for timeline
+            step_label = step_obj.name.resolve(target_locale)
             step_states[step_rule.id] = ExecutionStepState(id=step_rule.id, label=step_label, status="pending")
 
-            prompt_blocks_refs = step_dict.get("prompt_blocks", [])
+            prompt_blocks_refs = step_obj.prompt_blocks
             for pb_id in prompt_blocks_refs:
                 pb_dict = await self.repo.get_prompt_block(pb_id)
                 if not pb_dict:
@@ -260,9 +267,6 @@ class ExecutionService:
                     options=[{"label": label_obj}] if label_obj else None,
                     validation_rules=val_rules if val_rules else None,
                 )
-
-        # Strict Target Locale from Payload (Fail-Fast)
-        target_locale = payload.target_locale
 
         # Fail-Fast: Resolve and Validate Output Profile immediately at ingress
         resolved_profile_id = payload.profile_id or workflow.default_profile_id

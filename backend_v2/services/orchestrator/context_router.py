@@ -30,10 +30,8 @@ class ContextRouter:
             ConfigurationError: If output_profile is None or required fields are missing.
             MissingXaiExtensionError: If a requested extension is missing in the trace.
         """
-        if not output_profile:
-            raise ConfigurationError(message="Synthesis requests require an explicit output_profile.")
-
         try:
+            raw_score = float(trace_event["raw_score"])
             normalized_score = float(trace_event["normalized_score"])
             level_breakdown = str(trace_event["level_breakdown"])
             justification = str(trace_event["justification"])
@@ -43,18 +41,23 @@ class ContextRouter:
             raise ConfigurationError(message=f"Missing required base field in trace_event: {e}") from e
 
         extensions_extracted = {}
-        for ext in output_profile.visible_extensions:
-            ext_val = ext.value if hasattr(ext, "value") else str(ext)
-            try:
-                if ext in raw_extensions:
-                    val = raw_extensions[ext]
-                else:
-                    val = raw_extensions[ext_val]
-                extensions_extracted[ext] = str(val)
-            except KeyError as e:
-                raise MissingXaiExtensionError(extension_name=str(ext)) from e
+        if output_profile:
+            for ext in output_profile.visible_extensions:
+                ext_val = ext.value if hasattr(ext, "value") else str(ext)
+                try:
+                    if ext in raw_extensions:
+                        val = raw_extensions[ext]
+                    else:
+                        val = raw_extensions[ext_val]
+                    extensions_extracted[ext] = str(val)
+                except KeyError as e:
+                    raise MissingXaiExtensionError(extension_name=str(ext)) from e
+        else:
+            # Fallback to include all extensions if no profile is explicitly provided during execution
+            extensions_extracted = raw_extensions
 
         return LightweightMatrixOutput(
+            raw_score=raw_score,
             normalized_score=normalized_score,
             level_breakdown=level_breakdown,
             justification=justification,

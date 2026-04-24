@@ -204,3 +204,51 @@ async def test_llm_strategy_synthesis_output_profile() -> None:
     assert call_args is not None
     assert call_args.kwargs["max_retries"] == 3
     assert call_args.kwargs["response_model"].__name__ == "SduiResponseList"
+
+
+@pytest.mark.asyncio
+async def test_llm_strategy_state_leakage_prevention() -> None:
+    """Epic 32: Test that State Leakage (Zombie Map-Reduce) is prevented if step has no matrices."""
+    strategy = LLMNodeStrategy(repository=AsyncMock(), prompt_compiler=MagicMock())
+    
+    step_rule = MagicMock(spec=StepRule)
+    step_rule.id = "step_leakage"
+    step_rule.task_blueprint = "bp_123"
+    step_rule.input_mappings = {}
+    step_rule.allowed_mcp_tools = []
+    
+    projector = MagicMock(spec=StateProjector)
+    # Simulate leaked atoms from a previous step
+    projector.snapshot = {
+        "shuffled_atoms": [{"atom_id": "1", "boolean": True}]
+    }
+    
+    context = MagicMock(spec=StrategyContext)
+    context.execution_id = "exec_1"
+    context.workflow_id = "wf_1"
+    context.model_strategy = "test_strategy"
+    context.metadata = {"profile_id": "prof_1", "target_locale": "en"}
+    context.output_profile = None
+    context.expected_inputs = None
+    
+    # Mock block without 'category_id' == 'matrix'
+    mock_step_def = {"id": "step_1", "slug": "t", "name": {"default_locale": "en", "translations": {}}, "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["block_non_matrix"]}
+    strategy.repository.get_step_by_id = AsyncMock(return_value=mock_step_def)
+    strategy.repository.get_all_prompt_blocks = AsyncMock(return_value=[{"id": "block_non_matrix", "category_id": "instruction"}])
+    
+    strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=projector.snapshot))
+    strategy.run_post_hooks = AsyncMock(return_value={"final": "output"})
+    
+    mock_client = MagicMock()
+    mock_result = MagicMock()
+    mock_result.model_dump.return_value = {"evaluations": []}
+    mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {}))
+    
+    mock_from_strategy = AsyncMock(return_value=mock_client)
+    with patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new=mock_from_strategy):
+        with patch("backend_v2.services.orchestrator.chunking_service.ChunkingService.chunk_payload") as mock_chunk:
+            # Should not call chunking service because is_matrix_step is False!
+            await strategy.execute(step_rule, projector, context, None, None)
+            
+    # Verification: Chunking payload should NEVER be called!
+    mock_chunk.assert_not_called()

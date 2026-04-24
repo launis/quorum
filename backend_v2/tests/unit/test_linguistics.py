@@ -1,0 +1,102 @@
+from typing import cast
+from unittest.mock import AsyncMock
+
+import pytest
+
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
+from backend_v2.hooks.linguistics import detect_performative_patterns
+from backend_v2.models.domain.linguistics import LinguisticsPayloadDTO
+
+
+@pytest.fixture
+def mock_deps() -> HookDependencies:
+    return HookDependencies(
+        repository=AsyncMock(),
+        search_client=AsyncMock(),
+    )
+
+
+def test_linguistics_payload_dto() -> None:
+    """Test safe extraction logic inside LinguisticsPayloadDTO."""
+    # Language in global vars
+    dto1 = LinguisticsPayloadDTO.model_validate({})
+    assert dto1.extract_language({"language": "fi"}) == "fi"
+
+    # Language in inputs (root)
+    dto2 = LinguisticsPayloadDTO.model_validate({"language": "es-ES"})
+    assert dto2.extract_language({}) == "es"
+
+    # Language missing entirely defaults to en
+    dto3 = LinguisticsPayloadDTO.model_validate({"foo": "bar"})
+    assert dto3.extract_language({}) == "en"
+
+    # Text concatenates properly
+    assert "bar" in dto3.get_text_to_scan()
+    assert "foo" not in dto3.get_text_to_scan()  # only values are scanned
+
+
+def test_detect_performative_patterns_success_en(mock_deps: HookDependencies) -> None:
+    """Test successful detection of English performative patterns."""
+    state = HookState(
+        execution_id="exe_123",
+        workflow_id="wf_123",
+        step_id="step_1",
+        metadata={},
+        global_context_vars={},
+        inputs={"q1": "It is important to note that this is a game changer.", "q2": "Regular text with no fillers."},
+    )
+
+    result = cast(HookResult, detect_performative_patterns(state, mock_deps))
+
+    assert result.success is True
+    assert result.state_delta is not None
+    assert "linguistics_result" in result.state_delta
+
+    patterns = result.state_delta["linguistics_result"]["performative_patterns"]
+    assert len(patterns) == 2
+    phrases = [p["detected_phrase"] for p in patterns]
+    assert "game changer" in phrases
+    assert "it is important to note" in phrases
+    assert patterns[0]["pattern_id"] == "detected_en_pattern"
+
+
+def test_detect_performative_patterns_success_fi(mock_deps: HookDependencies) -> None:
+    """Test successful detection of Finnish performative patterns when lang is set."""
+    state = HookState(
+        execution_id="exe_123",
+        workflow_id="wf_123",
+        step_id="step_1",
+        metadata={},
+        global_context_vars={"language": "fi-FI"},
+        inputs={"q1": "Tämä on täysin mullistava innovaatio.", "q2": "Syventyä asiaan tarkemmin."},
+    )
+
+    result = cast(HookResult, detect_performative_patterns(state, mock_deps))
+
+    assert result.success is True
+    assert result.state_delta is not None
+    patterns = result.state_delta["linguistics_result"]["performative_patterns"]
+    assert len(patterns) == 2
+    phrases = [p["detected_phrase"] for p in patterns]
+    assert "mullistava" in phrases
+    assert "syventyä" in phrases
+    assert patterns[0]["pattern_id"] == "detected_fi_pattern"
+
+
+def test_detect_performative_patterns_no_matches(mock_deps: HookDependencies) -> None:
+    """Test behavior when no patterns are matched."""
+    state = HookState(
+        execution_id="exe_123",
+        workflow_id="wf_123",
+        step_id="step_1",
+        metadata={},
+        global_context_vars={},
+        inputs={"q1": "Just some plain text that is completely fine.", "q2": "Nothing to see here."},
+    )
+
+    result = cast(HookResult, detect_performative_patterns(state, mock_deps))
+
+    assert result.success is True
+    assert result.state_delta is not None
+    assert "linguistics_result" in result.state_delta
+    assert len(result.state_delta["linguistics_result"]["performative_patterns"]) == 0

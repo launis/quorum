@@ -522,3 +522,39 @@ def test_llm_response_rejects_missing_content() -> None:
             content=None,  # type: ignore
             token_usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
         )
+
+
+@pytest.mark.asyncio
+async def test_tool_loop_malformed_json_fails_fast() -> None:
+    """FAULT INJECTION: Proves that LLM hallucinating a malformed JSON argument
+    raises a Fail-Fast VALIDATION_FAILED AppException instead of duck-typing.
+    """
+    from backend_v2.exceptions import AppException
+
+    tool_call_response = {
+        "tool_calls": [
+            {
+                "function": {
+                    "name": "mcp_tavily_search",
+                    "arguments": "I am not JSON, just a raw string hallucination.",
+                },
+            }
+        ],
+        "content": "",
+    }
+
+    mock_client = _make_mock_llm_client()
+    mock_client.run_chat = AsyncMock(return_value=tool_call_response)
+
+    with pytest.raises(AppException) as exc_info:
+        await execute_tool_loop(
+            llm_client=mock_client,
+            messages=[{"role": "user", "content": "test"}],
+            response_model=MockResponseModel,
+            allowed_tools=["mcp_tavily_search"],
+            step_name="step_duck_typing",
+        )
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    assert "malformed JSON for tool arguments" in exc_info.value.message

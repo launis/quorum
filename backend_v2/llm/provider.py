@@ -361,17 +361,23 @@ class LiteLLMProvider(LLMProvider):
 
                     if is_transient_error:
                         if attempt < max_rate_limit_retries - 1:
+                            import asyncio
+                            import random
+
+                            base_cooldown = SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value
+                            jitter = random.uniform(1, 15)
+                            actual_cooldown = base_cooldown + jitter
+
                             logger.warning(
                                 "[LiteLLMProvider] Vertex AI Transient Error or Quota Exhausted (Attempt %s/%s). "
-                                "Initiating %ss cooldown before automatic retry... | Error: %s",
+                                "Initiating %.1fs cooldown (including jitter) before automatic retry... | Error: %s",
                                 attempt + 1,
                                 max_rate_limit_retries,
-                                SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value,
+                                actual_cooldown,
                                 error_type,
                             )
-                            import asyncio
 
-                            await asyncio.sleep(SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value)
+                            await asyncio.sleep(actual_cooldown)
                             continue  # Retry the exact same request
                         else:
                             logger.error(

@@ -1,7 +1,6 @@
 """Linguistics hooks for analyzing text patterns and language use."""
 
 import logging
-from typing import Any
 
 from fastapi import status
 
@@ -102,56 +101,60 @@ def detect_performative_patterns(state: HookState, deps: HookDependencies) -> Ho
     if not state:
         return HookResult(success=True, state_delta={})
 
-    # Strict Input Validation
-    inputs = state.inputs
+    from backend_v2.models.domain.linguistics import (
+        LinguisticsPayloadDTO,
+        LinguisticsResultDTO,
+        PerformativePatternDTO,
+    )
 
-    if not inputs or not isinstance(inputs, dict):
+    # Strict Validation via DTO inflation
+    try:
+        payload = LinguisticsPayloadDTO.model_validate(state.inputs)
+    except Exception as e:
         error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
-        msg = f"Missing or invalid 'inputs' in data: {type(inputs)}. Expected dict."
+        msg = f"Failed to strictly validate inputs for linguistics: {e}"
         logger.error("[LinguisticsHook] %s: %s", error_code.name, msg)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code},
-        )
+            details={"error_code": error_code.value},
+        ) from e
 
-    # Detect Language
-    lang_code = state.global_context_vars.get("language")
-    if not lang_code:
-        lang_code = inputs.get("language", "en") if isinstance(inputs, dict) else "en"
+    # Extract Language safely without dict.get()
+    lang_simple = payload.extract_language(state.global_context_vars)
 
-    # Normalize "fi-FI" -> "fi"
-    lang_simple = str(lang_code).split("-")[0].lower()
+    # Select patterns securely without .get()
+    patterns_to_check = PERFORMATIVE_PATTERNS["en"]
+    if lang_simple in PERFORMATIVE_PATTERNS:
+        patterns_to_check = PERFORMATIVE_PATTERNS[lang_simple]
 
-    # Select patterns securely
-    patterns_to_check = PERFORMATIVE_PATTERNS.get(lang_simple, PERFORMATIVE_PATTERNS["en"])
     logger.debug("[LinguisticsHook] Using language '%s' with %s patterns.", lang_simple, len(patterns_to_check))
 
     detected: list[str] = []
 
-    # Scan all string inputs dynamically
-    text_to_scan = " ".join(str(v) for v in inputs.values() if v).lower()
+    # Scan all string inputs dynamically using DTO method
+    text_to_scan = payload.get_text_to_scan()
 
     for pattern in patterns_to_check:
         if pattern in text_to_scan:
             detected.append(pattern)
 
-    # Create pure dict result
-    patterns_list: list[dict[str, Any]] = []
+    # Create strictly typed result
+    patterns_list: list[PerformativePatternDTO] = []
 
     if detected:
         for p in detected:
             patterns_list.append(
-                {
-                    "pattern_id": f"detected_{lang_simple}_pattern",
-                    "detected_phrase": p,
-                    "category": "performative_filler",
-                }
+                PerformativePatternDTO(
+                    pattern_id=f"detected_{lang_simple}_pattern",
+                    detected_phrase=p,
+                    category="performative_filler",
+                )
             )
 
-    result = {"performative_patterns": patterns_list}
+    result_dto = LinguisticsResultDTO(performative_patterns=patterns_list)
 
     if detected:
         logger.debug("   [LinguisticsHook] Detected patterns (%s): %s", lang_simple, detected)
 
-    return HookResult(success=True, state_delta={"linguistics_result": result})
+    return HookResult(success=True, state_delta={"linguistics_result": result_dto.model_dump()})

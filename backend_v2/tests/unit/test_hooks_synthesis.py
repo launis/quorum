@@ -26,9 +26,8 @@ def base_state() -> HookState:
         workflow_id="wf_1",
         step_id="step_1",
         inputs={
-            "content": {"reasoning_trace": "test text abc@example.com"},
-            "empty_key": {"reasoning_trace": ""},
-            "language": "en",
+            "step_1": {"reasoning_trace": "test text abc@example.com"},
+            "step_2": {"locale": "en"},
         },
         global_context_vars={"language": "en"},
         metadata={"target_locale": "en"},
@@ -244,7 +243,7 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
             "prof_a": {
                 "name": {"default_locale": "en", "translations": {"en": "A"}},
                 "layouts": [
-                    {"target_blocks": ["my_python_math"], "preset_view": "default"},
+                    {"target_blocks": ["step_2"], "preset_view": "default"},
                     {"target_blocks": ["*"], "preset_view": "default"},
                 ],
                 "synthesis": {
@@ -264,9 +263,9 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
     base_state = base_state.model_copy(
         update={
             "inputs": {
-                "valid_ai_trace": {"reasoning_trace": "AI says hello"},
-                "my_python_math": {"result": 1337},
-                "garbage_metadata": {"value": "this should be blocked by wildcard"},
+                "step_1": {"reasoning_trace": "AI says hello"},
+                "step_2": {"result": 1337},
+                "step_3": {"value": "this should be blocked by wildcard"},
             }
         }
     )
@@ -292,15 +291,15 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
     content = user_msg.get("content", "")
 
     # Assert AI trace is in
-    assert "valid_ai_trace" in content
+    assert "step_1" in content
     assert "AI says hello" in content
 
     # Assert python math bypassed the wildcard shield
-    assert "my_python_math" in content
+    assert "step_2" in content
     assert "1337" in content
 
     # Assert garbage metadata was properly shielded
-    assert "garbage_metadata" not in content
+    assert "step_3" not in content
     assert "this should be blocked" not in content
 
 
@@ -391,7 +390,10 @@ async def test_synthesis_hook_historical_context_mode(
     )
 
     base_state = base_state.model_copy(
-        update={"inputs": {"user_id": "usr_123", "content": {"reasoning_trace": "AI says hello"}}}
+        update={
+            "inputs": {"step_1": {"reasoning_trace": "AI says hello"}},
+            "global_context_vars": {"user_id": "usr_123"},
+        }
     )
 
     result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]

@@ -1,21 +1,20 @@
 """Metrics hooks for calculating text statistics and control ratios."""
 
-from __future__ import annotations
-
 import logging
 import re
-from typing import Any
 
 from fastapi import status
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.metrics import MetricsPayloadDTO
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
 
-def analyze_text(text: str) -> Any:
+def analyze_text(text: str) -> dict[str, int | float]:
     """Calculates objective text metrics from the input text using simple heuristic counting.
 
     Metrics include word count, sentence count, avg sentence length, lexical diversity,
@@ -25,7 +24,7 @@ def analyze_text(text: str) -> Any:
         text (str): The raw input text.
 
     Returns:
-        TextMetrics: Key metrics object.
+        dict[str, int | float]: Key metrics object.
 
     """
     if not text or not text.strip():
@@ -48,16 +47,16 @@ def analyze_text(text: str) -> Any:
     sentence_count = len(sentences)
 
     # 3. Averages
-    avg_sent_len = word_count / sentence_count if sentence_count > 0 else 0
+    avg_sent_len = word_count / sentence_count if sentence_count > 0 else 0.0
 
     # 4. Diversity
     unique_words = set(words)
-    lex_diversity = len(unique_words) / word_count if word_count > 0 else 0
+    lex_diversity = len(unique_words) / word_count if word_count > 0 else 0.0
 
     # 5. Caps
     caps = sum(1 for c in text if c.isupper())
     total_chars = sum(1 for c in text if c.isalpha())
-    cap_ratio = caps / total_chars if total_chars > 0 else 0
+    cap_ratio = caps / total_chars if total_chars > 0 else 0.0
 
     return {
         "word_count": word_count,
@@ -133,7 +132,7 @@ def calculate_control_ratio(text: str) -> float:
     return round(user_chars / total_chars, 4)
 
 
-def calculate_behavioral_metrics(metrics: Any) -> Any:
+def calculate_behavioral_metrics(metrics: dict[str, int | float] | None) -> dict[str, int | float]:
     """Calculates heuristic behavioral metrics (Say-Do Gap, Automation Bias).
 
     NOTE: These are heuristic approximations to serve as a 'Single Source of Truth'
@@ -198,12 +197,22 @@ def calculate_behavioral_metrics(metrics: Any) -> Any:
 @hook_registry.register(name="calculate_control_ratio")
 def calculate_control_ratio_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Standalone hook to provide input control ratio if requested explicitly by a DAG step."""
-    inputs = state.inputs
+    try:
+        payload = MetricsPayloadDTO.model_validate(state.inputs)
+    except ValidationError as e:
+        error_code = ErrorCodes.INVALID_JSON_PAYLOAD
+        msg = f"Invalid metrics inputs schema: {e}"
+        logger.error("[MetricsHook] %s: %s", error_code.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": error_code.value},
+        ) from e
+
+    inputs = payload.root
 
     # Dynamically scan all string inputs
-    all_text = ""
-    if isinstance(inputs, dict):
-        all_text = " ".join(str(v) for v in inputs.values() if v)
+    all_text = " ".join(str(v) for v in inputs.values() if v)
 
     ratio = calculate_control_ratio(all_text)
     return HookResult(success=True, state_delta={"input_control_ratio": ratio})
@@ -218,18 +227,19 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
     """
     logger.debug("[MetricsHook] Running text_metrics hook...")
 
-    # Strict: Inputs MUST exist
-    inputs = state.inputs
-
-    if not inputs or not isinstance(inputs, dict):
+    try:
+        payload = MetricsPayloadDTO.model_validate(state.inputs)
+    except ValidationError as e:
         error_code = ErrorCodes.INVALID_JSON_PAYLOAD
-        msg = f"Missing or invalid 'inputs' in data: {type(inputs)}. Expected dict."
+        msg = f"Invalid metrics inputs schema: {e}"
         logger.error("[MetricsHook] %s: %s", error_code.name, msg)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code},
-        )
+            details={"error_code": error_code.value},
+        ) from e
+
+    inputs = payload.root
 
     # Dynamically combine ALL string input fields for text metric analysis
     all_text = " ".join(str(v) for v in inputs.values() if v)
@@ -243,7 +253,7 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code},
+            details={"error_code": error_code.value},
         )
 
     try:
@@ -284,5 +294,5 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
         raise AppException(
             message=f"Failed to calculate metrics: {e}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code},
+            details={"error_code": error_code.value},
         ) from e

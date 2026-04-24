@@ -9,6 +9,11 @@ from backend_v2.settings import get_settings
 logger = logging.getLogger(__name__)
 
 
+from pydantic import ValidationError
+
+from backend_v2.models.domain.scoring import StepFalsifierDTO, StepGuardDTO, StepPanelDTO
+
+
 def _extract_guard_flag(data: dict[str, Any]) -> Any | None:
     """Extracts the security threat flag from the guard output in the state.
 
@@ -19,10 +24,19 @@ def _extract_guard_flag(data: dict[str, Any]) -> Any | None:
         Any | None: True if a security threat is detected, False otherwise, or None if guard data is missing/invalid.
     """
     guard_model = data.get("step_guard")
-    if guard_model and isinstance(guard_model, dict):
-        sec = guard_model.get("security_check")
-        if isinstance(sec, dict) and "threat_detected" in sec:
-            return sec["threat_detected"]
+    if guard_model is not None:
+        try:
+            dto = StepGuardDTO.model_validate(guard_model)
+            return dto.security_check.threat_detected
+        except ValidationError as e:
+            from backend_v2.exceptions import AppException, ErrorCodes
+
+            msg = f"Strict Fail-Fast Enforced: step_guard validation failed in scoring hook: {e}"
+            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+            ) from e
+
     logger.debug("[ScoringHook] step_guard missing from context or no threat detected.")
     return False
 
@@ -34,16 +48,29 @@ def _extract_falsifier_data(data: dict[str, Any]) -> Any | None:
         data (dict): The current workflow data.
 
     Returns:
-        Any | None: The falsifier data if found, otherwise None.
+        Any | None: The strictly typed falsifier data if found, otherwise None.
     """
     falsifier_model = data.get("step_falsifier")
     panel_model = data.get("step_panel")
 
-    if falsifier_model and falsifier_model.get("falsifier_data"):
-        return falsifier_model["falsifier_data"]
+    try:
+        if falsifier_model is not None:
+            falsifier_dto = StepFalsifierDTO.model_validate(falsifier_model)
+            if falsifier_dto.falsifier_data:
+                return falsifier_dto.falsifier_data
 
-    if panel_model and panel_model.get("falsifier_data"):
-        return panel_model["falsifier_data"]
+        if panel_model is not None:
+            panel_dto = StepPanelDTO.model_validate(panel_model)
+            if panel_dto.falsifier_data:
+                return panel_dto.falsifier_data
+    except ValidationError as e:
+        from backend_v2.exceptions import AppException, ErrorCodes
+
+        msg = f"Strict Fail-Fast Enforced: Falsifier data extraction failed: {e}"
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+        ) from e
 
     return None
 
@@ -52,14 +79,14 @@ def _calculate_falsifier_penalty(falsifier_data: Any | None) -> bool:
     """Determines if a post-hoc rationalization penalty should be applied.
 
     Args:
-        falsifier_data (Any | None): The falsifier data extracted from the state.
+        falsifier_data (Any | None): The strictly typed falsifier data.
 
     Returns:
         bool: True if post-hoc rationalization is detected, False otherwise.
     """
     if falsifier_data:
-        fidelity = falsifier_data.get("fidelity_audit", {})
-        if fidelity.get("post_hoc_rationalization"):
+        # Access strictly typed Pydantic attributes
+        if falsifier_data.fidelity_audit and falsifier_data.fidelity_audit.post_hoc_rationalization:
             return True
     return False
 
@@ -112,15 +139,21 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     unique_matrices = {}
 
     def _extract_scores(source: dict[str, Any]) -> None:
-        for k, v in source.items():
-            # Epic 10: Dynamic Evaluative Matrix resolution. Only average matrices explicitly flagged.
-            if isinstance(k, str) and k.endswith("_is_evaluative") and v is True:
-                block_id = k.replace("_is_evaluative", "")
-                norm_key = f"{block_id}_normalized"
-                if norm_key in source:
-                    unique_matrices[block_id] = float(source[norm_key])
-            elif isinstance(v, dict):
-                _extract_scores(v)
+        # Epic 34: O(1) Map Pre-computation instead of dynamically looping over dictionary keys!
+        eval_map = source.get("_evaluative_matrices", {})
+        for block_id, norm_val in eval_map.items():
+            unique_matrices[block_id] = float(norm_val)
+
+        # Legacy fallback if O(1) map is missing (backward compatibility during migration)
+        if not eval_map:
+            for k, v in source.items():
+                if isinstance(k, str) and k.endswith("_is_evaluative") and v is True:
+                    block_id = k.replace("_is_evaluative", "")
+                    norm_key = f"{block_id}_normalized"
+                    if norm_key in source:
+                        unique_matrices[block_id] = float(source[norm_key])
+                elif isinstance(v, dict):
+                    _extract_scores(v)
 
     for item in candidates:
         if isinstance(item, dict):
@@ -316,47 +349,61 @@ def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> 
 
                 updates_needed = True
 
-        # Strategy 2: V2 Matrix (Flat Schema)
+        # Strategy 2: V2 Matrix (Strict Schema via LightweightMatrixOutput)
         else:
             penalty_triggered = False
             scale_min = 1.0  # Default BARS scale minimum
 
+            from pydantic import ValidationError
+
+            from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+
+            matrix_keys = []
             for k, v in judge_model.items():
-                if (
-                    k.startswith("matrix_")
-                    and not k.endswith("_justification")
-                    and not k.endswith("_id")
-                    and not k.endswith("_quote")
-                    and not k.endswith("_raw")
-                ):
-                    if isinstance(v, (int, float)):
-                        if v <= scale_min:
-                            penalty_triggered = True
-                            logger.warning("[ScoringHook] Passive/Low Quality detected in V2 Matrix '%s'", k)
-                            break
+                if isinstance(v, dict) and "raw_score" in v and "normalized_score" in v:
+                    try:
+                        matrix_dto = LightweightMatrixOutput.model_validate(v)
+                        matrix_keys.append((k, matrix_dto))
+                    except ValidationError:
+                        pass
+
+            for k, matrix_dto in matrix_keys:
+                if matrix_dto.raw_score <= scale_min:
+                    penalty_triggered = True
+                    logger.warning("[ScoringHook] Passive/Low Quality detected in V2 Matrix '%s'", k)
+                    break
 
             if penalty_triggered:
                 logger.info("[ScoringHook] Applying V2 Passivity Penalty to %s (Factor %s).", judge_key, multiplier)
                 new_judge = judge_model.copy()
-                for k, v in new_judge.items():
-                    if (
-                        k.startswith("matrix_")
-                        and not k.endswith("_justification")
-                        and not k.endswith("_id")
-                        and not k.endswith("_quote")
-                        and not k.endswith("_raw")
-                    ):
-                        if isinstance(v, (int, float)):
-                            new_score = v * multiplier
-                            if new_score < scale_min:
-                                new_score = scale_min
-                            new_judge[k] = new_score
-                            # Add a penalty trace to validation string if available
-                            just_key = f"{k}_justification"
-                            if just_key in new_judge:
-                                new_judge[just_key] = f"[PASSIVITY PENALTY x{multiplier:.2f}] " + str(
-                                    new_judge[just_key]
-                                )
+
+                for k, matrix_dto in matrix_keys:
+                    new_score = matrix_dto.raw_score * multiplier
+                    if new_score < scale_min:
+                        new_score = scale_min
+
+                    new_norm = matrix_dto.normalized_score * multiplier
+                    if new_norm < 0.0:
+                        new_norm = 0.0
+
+                    justification = f"[PASSIVITY PENALTY x{multiplier:.2f}] " + matrix_dto.justification
+
+                    new_dto = LightweightMatrixOutput(
+                        raw_score=new_score,
+                        normalized_score=new_norm,
+                        level_breakdown=matrix_dto.level_breakdown,
+                        justification=justification,
+                        evaluated_atoms=matrix_dto.evaluated_atoms,
+                        extensions=matrix_dto.extensions,
+                    )
+                    new_judge[k] = new_dto.model_dump(mode="json")
+
+                # O(1) Map Update if using pre-computed map
+                eval_map = new_judge.get("_evaluative_matrices", {})
+                if eval_map:
+                    for k, _ in matrix_keys:
+                        if k in eval_map:
+                            eval_map[k] = new_judge[k]["normalized_score"]
 
                 if is_post_hook:
                     for k, v in new_judge.items():
@@ -732,6 +779,8 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
         updates_made = False
         new_payload = content_payload.copy()
 
+        eval_map = new_payload.get("_evaluative_matrices", {})
+
         for pb_id in prompt_block_ids:
             if pb_id not in new_payload:
                 continue
@@ -739,36 +788,51 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             # Epic 12: Micro-CoT Nested Dictionary Support && XAI Mapping
             raw_input_val = new_payload[pb_id]
 
-            if isinstance(raw_input_val, dict):
-                # Natively map XAI attributes for Flutter UI's dedicated alert containers!
-                if "step_1_evidence_quote" in raw_input_val:
-                    new_payload[f"{pb_id}_cited_text_quote"] = raw_input_val["step_1_evidence_quote"]
-                    updates_made = True
-                if "step_1b_cited_source_id" in raw_input_val:
-                    new_payload[f"{pb_id}_cited_source_id"] = raw_input_val["step_1b_cited_source_id"]
-                    updates_made = True
-                if "step_2_falsification" in raw_input_val:
-                    new_payload[f"{pb_id}_falsification"] = raw_input_val["step_2_falsification"]
-                    updates_made = True
-                if "extension_coaching" in raw_input_val:
-                    new_payload[f"{pb_id}_coaching"] = raw_input_val["extension_coaching"]
-                    updates_made = True
-                if "extension_theory_link" in raw_input_val:
-                    new_payload[f"{pb_id}_theory_link"] = raw_input_val["extension_theory_link"]
-                    updates_made = True
-                if "extension_emotional_sentiment" in raw_input_val:
-                    new_payload[f"{pb_id}_emotional_sentiment"] = raw_input_val["extension_emotional_sentiment"]
-                    updates_made = True
-                if "extension_remediation_steps" in raw_input_val:
-                    new_payload[f"{pb_id}_remediation_steps"] = raw_input_val["extension_remediation_steps"]
-                    updates_made = True
+            import json
 
-                # Epic 24: Atomi-osumat ja tasokohtaiset erittelyt joudutaan myäs m\u00e4pp\u00e4\u00e4m\u00e4\u00e4n,
-                # jotta ne eiv\u00e4t katoa kun alkuper\u00e4inen sanakirja korvataan fl\u00e4till\u00e4 liukuluvulla!
-                for metric in ["true_atoms", "false_atoms", "total_atoms", "level_breakdown"]:
+            from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+            from backend_v2.models.enums import XaiExtensionType
+
+            extensions: dict[XaiExtensionType, str] = {}
+            justification = ""
+            level_breakdown: dict[str, Any] = {}
+            evaluated_atoms: dict[str, bool] = {}
+
+            if isinstance(raw_input_val, dict):
+                # Strict Schema Mapping for XAI attributes!
+                if "step_1_evidence_quote" in raw_input_val:
+                    extensions[XaiExtensionType.CITATION] = str(raw_input_val["step_1_evidence_quote"])
+                    # Legacy UI mapping requirement
+                    new_payload[f"{pb_id}_cited_text_quote"] = raw_input_val["step_1_evidence_quote"]
+                if "step_1b_cited_source_id" in raw_input_val:
+                    extensions[XaiExtensionType.SOURCE_ID] = str(raw_input_val["step_1b_cited_source_id"])
+                    # Legacy UI mapping requirement
+                    new_payload[f"{pb_id}_cited_source_id"] = raw_input_val["step_1b_cited_source_id"]
+                if "step_2_falsification" in raw_input_val:
+                    extensions[XaiExtensionType.FALSIFICATION] = str(raw_input_val["step_2_falsification"])
+                    new_payload[f"{pb_id}_falsification"] = raw_input_val["step_2_falsification"]
+                if "extension_coaching" in raw_input_val:
+                    extensions[XaiExtensionType.COACHING] = str(raw_input_val["extension_coaching"])
+                    new_payload[f"{pb_id}_coaching"] = raw_input_val["extension_coaching"]
+                if "extension_theory_link" in raw_input_val:
+                    extensions[XaiExtensionType.THEORY_LINK] = str(raw_input_val["extension_theory_link"])
+                    new_payload[f"{pb_id}_theory_link"] = raw_input_val["extension_theory_link"]
+                if "extension_emotional_sentiment" in raw_input_val:
+                    extensions[XaiExtensionType.EMOTIONAL_SENTIMENT] = str(
+                        raw_input_val["extension_emotional_sentiment"]
+                    )
+                    new_payload[f"{pb_id}_emotional_sentiment"] = raw_input_val["extension_emotional_sentiment"]
+                if "extension_remediation_steps" in raw_input_val:
+                    extensions[XaiExtensionType.REMEDIATION_STEPS] = str(raw_input_val["extension_remediation_steps"])
+                    new_payload[f"{pb_id}_remediation_steps"] = raw_input_val["extension_remediation_steps"]
+
+                for metric in ["true_atoms", "false_atoms", "total_atoms"]:
                     if metric in raw_input_val:
                         new_payload[f"{pb_id}_{metric}"] = raw_input_val[metric]
-                        updates_made = True
+
+                if "level_breakdown" in raw_input_val:
+                    level_breakdown = raw_input_val["level_breakdown"]
+                    new_payload[f"{pb_id}_level_breakdown"] = level_breakdown
 
                 # The core reasoning and notes replace the global fallback, avoiding hardcoded markdown
                 just_parts = []
@@ -780,9 +844,9 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 if just_parts:
                     existing_just = new_payload.get(f"{pb_id}_justification", "")
                     if existing_just:
-                        new_payload[f"{pb_id}_justification"] = existing_just + "\n\n---\n\n" + "\n\n".join(just_parts)
+                        justification = existing_just + "\n\n---\n\n" + "\n\n".join(just_parts)
                     else:
-                        new_payload[f"{pb_id}_justification"] = "\n\n".join(just_parts)
+                        justification = "\n\n".join(just_parts)
                     updates_made = True
 
                 # Keep text as text, numbers as numbers (Tapa 1 vs Tapa 2)
@@ -790,7 +854,9 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                     # Tapa 1: Extract numeric score and continue to scale logic
                     raw_input_val = raw_input_val["step_4_final_score"]
                 else:
-                    # Tapa 2: String-only block. We already extracted mapped fields, so skip math scaling.
+                    # Tapa 2: String-only block. Ensure justification is mapped back for UI.
+                    if justification:
+                        new_payload[f"{pb_id}_justification"] = justification
                     continue
 
             # --- Raw Float Cast Enforcement (V8 Pipeline) ---
@@ -906,25 +972,33 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 math_max=math_max,
             )
 
-            # Epic 12: Flatten the Micro-CoT dict so the Flutter UI can plot the float on the XY graphs!
-            new_payload[pb_id] = raw_val
-
-            new_payload[f"{pb_id}_scaled"] = scaled_val
-            new_payload[f"{pb_id}_normalized"] = normalized_val
-
-            # Epic 10: Check the DB truth for Evaluative Matrix status and inject it
-            if pb_dict.get("is_evaluative", True):
-                new_payload[f"{pb_id}_is_evaluative"] = True
-
-            just_key = f"{pb_id}_justification"
-
             # Strip out the ||DECIMAL: X.Y|| Chain-of-Thought tag from justification
             # before saving (Legacy V1 Support)
-            if just_key in new_payload and isinstance(new_payload[just_key], str):
-                import re
+            import re
 
-                cleaned = re.sub(r"\|\|DECIMAL:\s*[0-9.]+\|\|", "", new_payload[just_key])
-                new_payload[just_key] = cleaned.strip()
+            cleaned_just = re.sub(r"\|\|DECIMAL:\s*[0-9.]+\|\|", "", justification)
+            justification = cleaned_just.strip()
+
+            # Replace legacy flattening with strict schema mapping!
+            matrix_dto = LightweightMatrixOutput(
+                raw_score=raw_float,
+                normalized_score=normalized_val,
+                level_breakdown=json.dumps(level_breakdown) if level_breakdown else "",
+                justification=justification,
+                evaluated_atoms=evaluated_atoms,
+                extensions=extensions,
+            )
+
+            new_payload[pb_id] = matrix_dto.model_dump(mode="json")
+
+            # Epic 10 & 34: Check the DB truth for Evaluative Matrix status and inject to O(1) Map
+            if pb_dict.get("is_evaluative", True):
+                eval_map[pb_id] = normalized_val
+
+            new_payload["_evaluative_matrices"] = eval_map
+
+            # UI Traceability Fallback (Keep explicitly required fields)
+            new_payload[f"{pb_id}_justification"] = justification
 
             updates_made = True
             logger.info(

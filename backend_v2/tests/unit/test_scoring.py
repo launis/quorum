@@ -1,8 +1,10 @@
-from typing import Any
+from collections.abc import Awaitable
+from typing import Any, cast
 
 import pytest
 
-from backend_v2.core.hook_registry import HookDependencies, HookState
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
+from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.scoring import normalize_matrix_scores_hook
 
@@ -27,10 +29,10 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
         inputs={"test_block": 5.0},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=MockRepository())  # type: ignore
+    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepository()))
 
     with pytest.raises(AppException) as exc_info:
-        await normalize_matrix_scores_hook(state, deps)  # type: ignore[misc]
+        await cast(Awaitable[HookResult], normalize_matrix_scores_hook(state, deps))
 
     assert exc_info.value.error_code == "CONFIGURATION_ERROR"
     assert "Corrupted scale value 'not_a_number' in PromptBlock 'test_block'" in exc_info.value.message
@@ -63,9 +65,9 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
         },
         global_context_vars={},
     )
-    deps = HookDependencies(repository=MockRepoTapa2())  # type: ignore
+    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepoTapa2()))
 
-    result = await normalize_matrix_scores_hook(state, deps)  # type: ignore[misc]
+    result = await cast(Awaitable[HookResult], normalize_matrix_scores_hook(state, deps))
 
     assert result.success is True
     delta = result.state_delta
@@ -156,10 +158,10 @@ async def test_waterfall_scoring_hook_ignores_instructions() -> None:
         inputs={"evaluations": [{"atom_id": atom_hash, "boolean": True}]},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=MockRepoWaterfallMixed())  # type: ignore
+    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepoWaterfallMixed()))
 
     # TDD RED: This should NOT raise AppException(Strict Fail-Fast Enforced: PromptBlock has no scales)
-    result = await waterfall_scoring_hook(state, deps)  # type: ignore[misc]
+    result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
     assert result.success is True
 
 
@@ -183,10 +185,11 @@ async def test_waterfall_scoring_hook_pass_all() -> None:
         inputs={"evaluations": evaluations},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=MockRepoWaterfall())  # type: ignore
+    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepoWaterfall()))
 
-    result = await waterfall_scoring_hook(state, deps)  # type: ignore[misc]
+    result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
     assert result.success is True
+    assert result.state_delta is not None
     assert result.state_delta["test_pb"] == 5.0
     assert "Level 5.0:** 1/1" in result.state_delta["test_pb_justification"]
 
@@ -213,9 +216,10 @@ async def test_waterfall_scoring_hook_ceiling_cap() -> None:
         inputs={"evaluations": evaluations},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=MockRepoWaterfall())  # type: ignore
-    result = await waterfall_scoring_hook(state, deps)  # type: ignore[misc]
+    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepoWaterfall()))
+    result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
     assert result.success is True
+    assert result.state_delta is not None
 
     # Floor should be 1.0 (Level 2 failed).
     # Weighted math: (1*1 + 0*2 + 1*3 + 1*4 + 1*5) = 13 achieved weights. Max weights: 15. Proportional = 13/15.
@@ -249,10 +253,11 @@ async def test_waterfall_scoring_hook_graceful_missing() -> None:
         inputs={"evaluations": evaluations},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=MockRepoWaterfall())  # type: ignore
-    result = await waterfall_scoring_hook(state, deps)  # type: ignore[misc]
+    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepoWaterfall()))
+    result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
 
     assert result.success is True
+    assert result.state_delta is not None
     # Level 1 (100%), Level 2 (100%), Level 3 (0%) -> Floor 2.0.
     # Weighted: (1*1 + 1*2 + 0) / (1+2+3) = 3 / 6 = 50%.
     # Weighted Score: 1.0 + (0.5 * 4.0) = 3.0. Max cap: 2.0 + 1.0 = 3.0. So score is 3.0.
@@ -347,11 +352,12 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
         inputs={"evaluations": evaluations},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=MockRepoWaterfallSimulation())  # type: ignore
+    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepoWaterfallSimulation()))
 
-    result = await waterfall_scoring_hook(state, deps)  # type: ignore[misc]
+    result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
 
     assert result.success is True
+    assert result.state_delta is not None
     assert abs(result.state_delta["fake_matrix_id"] - 3.207) < 0.01
 
     missing_context = result.state_delta["fake_matrix_id_missing_context"]

@@ -51,6 +51,7 @@ class XaiExtensionType(str, Enum):
     REMEDIATION_STEPS = "remediation_steps"
     EMOTIONAL_SENTIMENT = "emotional_sentiment"
     CONFIDENCE = "confidence"
+    SOURCE_ID = "source_id"
 
 
 class SelfHealingThresholdRatio(float, Enum):
@@ -116,9 +117,9 @@ class SystemConcurrency(int, Enum):
     """Global concurrency limits for DAG Execution to prevent API Rate Limits."""
 
     MAX_CONCURRENT_WORKFLOWS = 1
-    MAX_CONCURRENT_LLM_STEPS = 3  # Epic 27 Phase 3: Validated mathematically based on Vertex AI TPM
-    LLM_MAX_RETRIES = 3
-    LLM_MAX_CHUNK_SIZE = 40  # Epic 27 Phase 3: Provides optimal token density post-context pruning
+    MAX_CONCURRENT_LLM_STEPS = 1  # Forced to 1 for 5 RPM Quota Limits
+    LLM_MAX_RETRIES = 6
+    LLM_MAX_CHUNK_SIZE = 60  # Laskettu 100 -> 60 aikakatkaisujen (Timeout) välttämiseksi
     MATRIX_SAMPLING_LIMIT = 0
     LLM_DEFAULT_TIMEOUT_SECONDS = 300
     RATE_LIMIT_COOLDOWN_SECONDS = 65

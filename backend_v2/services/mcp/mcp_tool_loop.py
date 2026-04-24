@@ -88,32 +88,9 @@ async def _execute_tavily_search(
         result = await tavily_search(query)
         response_summary = result.answer
 
-        if target_language and target_language != "en" and llm_client:
-            logger.info("[MCPToolLoop] Translating search evidence to '%s'...", target_language)
-            try:
-                trans_prompt = (
-                    f"Translate the following search summary into {target_language} accurately. "
-                    f"Return only the translated text.\n\nSummary:\n{response_summary}"
-                )
-                trans_resp = await llm_client.run_chat(messages=[{"role": "user", "content": trans_prompt}])
-                if trans_resp and isinstance(trans_resp, str):
-                    response_summary = trans_resp.strip()
-            except Exception as tr_err:
-                msg = f"Evidence translation to '{target_language}' failed."
-                logger.error(
-                    "[MCPToolLoop] %s: %s",
-                    ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                    msg,
-                    extra={"detail": str(tr_err)},
-                    exc_info=True,
-                )
-                if isinstance(tr_err, AppException):
-                    raise
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                ) from tr_err
+        # NOTE: We previously did an explicit LLM call here to translate `response_summary`
+        # to `target_language`. This was removed to save 1 LLM call per search (5 RPM limit).
+        # The main LLM (Phase 2) is perfectly capable of reading English evidence and outputting Finnish.
 
         elapsed_ms = int(time.monotonic() * 1000) - start_ms
 
@@ -275,8 +252,14 @@ async def execute_tool_loop[T: BaseModel](
 
                 try:
                     tool_args = json.loads(tool_args)
-                except Exception:
-                    tool_args = {"query": tool_args}
+                except Exception as e:
+                    msg = f"LLM returned malformed JSON for tool arguments: {tool_args}"
+                    logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                    raise AppException(
+                        message=msg,
+                        status_code=400,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from e
 
             if tool_name != TAVILY_TOOL_ID:
                 logger.warning(

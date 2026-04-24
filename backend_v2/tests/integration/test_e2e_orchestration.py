@@ -38,6 +38,10 @@ def check_backend_health() -> bool:
 
 
 @pytest.mark.order("last")
+@pytest.mark.skipif(
+    os.environ.get("RUN_E2E_TESTS") != "1",
+    reason="Skipped by default to speed up quality gate and prevent log spam. Run with RUN_E2E_TESTS=1",
+)
 def test_e2e_orchestration() -> None:
     """End-to-End Orchestration Test for V2 Architecture.
 

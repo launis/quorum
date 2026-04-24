@@ -143,9 +143,11 @@ class PromptCompiler:
 
         # Add the CRITICAL MANDATE required by the architecture
         compiled += (
-            f"\n\nCRITICAL MANDATE: You must process the input and generate all your output text, reasoning, "
+            f"\n\n<CRITICAL_LANGUAGE_MANDATE>\n"
+            f"You must process the input and generate all your output text, reasoning, "
             f"and source justifications exclusively in the '{target_locale}' language, regardless of the language "
-            f"used in the instructions or source materials."
+            f"used in the instructions or source materials.\n"
+            f"</CRITICAL_LANGUAGE_MANDATE>"
         )
 
         return compiled
@@ -203,6 +205,11 @@ class PromptCompiler:
                     # Yritetään sukeltaa suoraan 'outputs' avaimeen jos se olemassa
                     target_dict = v.get("outputs", v) if "outputs" in v else v
                     for sub_k, sub_v in target_dict.items():
+                        # Epic 32: Prevent Context Snowballing (95k char prompts).
+                        # Never inject raw Matrix arrays into subsequent LLM contexts.
+                        if sub_k == "evaluations" and isinstance(sub_v, list):
+                            continue
+
                         if isinstance(sub_v, dict):
                             formatted.append(f"### {str(sub_k).upper()}")
                             for micro_k, micro_v in sub_v.items():
@@ -659,6 +666,19 @@ class PromptCompiler:
 
             xml_blocks.append("  </MATRIX>")
         xml_blocks.append("</EVALUATION_RUBRICS>")
+
+        # Epic 29 Phase 2: Anti-Sycophancy XAI Header
+        anti_sycophancy_mandate = (
+            "<ANTI_SYCOPHANCY_MANDATE>\n"
+            "ANTI-SYCOPHANCY MANDATE: All extension fields MUST follow the same strict, "
+            "coldly analytical tone as the main score. "
+            "If the user's score is low, coaching and missing_context must NOT be encouraging. "
+            "You must precisely point out the missing data, flawed metric, or shaky causal relationship. "
+            "Speak like a strict professional auditor.\n"
+            "</ANTI_SYCOPHANCY_MANDATE>"
+        )
+        xml_blocks.append(anti_sycophancy_mandate)
+
         return "\n".join(xml_blocks)
 
     def compile_static_instructions(self, blocks: list[dict[str, Any]], target_locale: str) -> str:
@@ -689,10 +709,8 @@ class PromptCompiler:
                     )
                     raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
-                if label:
-                    compiled_lines.append(f"[Static Instruction {target_locale.upper()}]: ### {label}")
-                if desc:
-                    compiled_lines.append(f"{desc}")
+                if label or desc:
+                    compiled_lines.append(f'<STATIC_INSTRUCTION label="{label}">\n{desc}\n</STATIC_INSTRUCTION>')
 
         return "\n\n".join(compiled_lines) if compiled_lines else ""
 
@@ -735,10 +753,8 @@ class PromptCompiler:
                 desc = desc.replace("{CURRENT_DATE}", current_date_str)
                 desc = desc.replace("{DYNAMIC_TIME}", dynamic_time_str)
 
-                if label:
-                    compiled_lines.append(f"[Dynamic Context {target_locale.upper()}]: ### {label}")
-                if desc:
-                    compiled_lines.append(f"{desc}")
+                if label or desc:
+                    compiled_lines.append(f'<DYNAMIC_INSTRUCTION label="{label}">\n{desc}\n</DYNAMIC_INSTRUCTION>')
 
         return "\n\n".join(compiled_lines) if compiled_lines else ""
 

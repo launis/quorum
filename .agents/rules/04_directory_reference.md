@@ -65,10 +65,11 @@
 
     <layer id="root_environment" path="/">
         <description>Primary development setup files natively guiding automated systems.</description>
-        <directory path=".agents/rules/">Master Architectural Directives natively formatted via structural constraints guiding intelligent machine compilation behaviors (AI Only).</directory>
+        <directory path=".agents/rules/">Ainoa paikka virallisille arkkitehtuurin säännöille ja AI-agenttien rajoitteille.</directory>
         <directory path=".agents/workflows/">Autonomous procedural orchestration playbooks ensuring code alterations properly resolve across specific isolated AI logic paths.</directory>
         <directory path="data/">Paikallinen konfiguraatiodata, workflows -prototyyppimäärittelyt JSON-muodossa ja lokaali TinyDB tietokanta.</directory>
-        <directory path="docs/">Projektin arkkitehtuuridokumentit ja Epic-suunnitelmat (Tier 1). Sisältää erilliset `architecture/` ja `epic/` alihakemistot.</directory>
+        <directory path="docs/architecture/">Puhtaasti arkkitehtuurin kuvaus- ja dokumentaatiokansio.</directory>
+        <directory path="docs/epic/">"Tehtävälista / Backlog". Täällä on puhtaasti toimintaohjeita siitä, mitä asioita pitää koodissa korjata tai rakentaa seuraavaksi. Kun Epic on koodattu, se on ikään kuin "tehty".</directory>
         <directory path="scripts/">Cross-functional development utilities. Features `flutter_audit_loop.py` which unifies CD routines.</directory>
         <file path="AGENTS.md">The Core Root Agent Configuration file ensuring foundational Windows 11 context laws exist natively before anything else.</file>
         <file path="backend_debug.log">Crucial Server Runtime trace logs exposing hidden Python/FastAPI validation faults natively generated during asynchronous events.</file>

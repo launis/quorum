@@ -69,28 +69,27 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
 
         for res in recent_executions:
             # V2 Event Sourcing: TraceEvents live directly on ExecutionRecord.execution_trace
-            # (Legacy V1 used res.results which no longer exists)
-            trace_events = getattr(res, "execution_trace", []) or []
+            trace_events = res.execution_trace
 
             if not trace_events:
                 logger.warning(f"Execution {res.id} has no trace events. Skipping.")
                 continue
 
-            judge_outputs = {}
+            from backend_v2.models.domain.judge import JudgeOutput
+
+            judge_outputs: dict[str, JudgeOutput] = {}
 
             for event in trace_events:
-                event_type = event.get("event_type") if isinstance(event, dict) else getattr(event, "event_type", "")
-                step_name = event.get("step_name") if isinstance(event, dict) else getattr(event, "step_name", "")
-                content = event.get("content") if isinstance(event, dict) else getattr(event, "content", None)
+                # Direct strict property access on TraceEvent (no dict fallback or getattr)
+                event_type = event.event_type
+                step_name = event.step_name
+                content = event.content
 
                 if event_type == "output" and isinstance(step_name, str) and "judge" in step_name:
-                    # Attempt strict inflation to see if it's a JudgeOutput
-                    # We don't care about the step name, only the data schema.
+                    # Strict inflation to JudgeOutput (Fail-Fast enforced)
                     try:
-                        judge_candidate = inflate(content, dict)  # type: ignore
+                        judge_candidate = inflate(content, JudgeOutput)
                         if judge_candidate:
-                            # Use step_name as label
-                            # (e.g. "step_judge" -> "Standard", "step_judge_cognitive" -> "Cognitive")
                             # Clean up label for UI
                             label = (
                                 str(step_name)
@@ -117,16 +116,10 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
                 verdict_parts = []
 
                 for label, judge_model in judge_outputs.items():
-                    avg = 0.0
-                    verdict_str = ""
-                    if isinstance(judge_model, dict) and judge_model.get("score_card"):
-                        score_card = judge_model.get("score_card", {})
-                        avg = score_card.get("total_score", 0.0)
-                        verdict_str = score_card.get("verdict", "")
-                    elif hasattr(judge_model, "score_card"):
-                        score_card = getattr(judge_model, "score_card", None)
-                        avg = getattr(score_card, "total_score", 0.0) if score_card else 0.0
-                        verdict_str = getattr(score_card, "verdict", "") if score_card else ""
+                    # Strict Pydantic access to JudgeOutput components
+                    score_card = judge_model.score_card
+                    avg = score_card.total_score
+                    verdict_str = score_card.verdict
 
                     score_parts.append(f"{label}: {avg:.2f}")
                     verdict_parts.append(f"{label}: {verdict_str[:50]}...")
@@ -134,21 +127,22 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
                 score_summary = " | ".join(score_parts)
                 verdict_text = " || ".join(verdict_parts)
 
-                precedents.append(
-                    {
-                        "id": res.id,
-                        "date": res.completed_at.isoformat() if res.completed_at else "",
-                        "scores": score_summary,
-                        "verdict": verdict_text[:150],  # Truncate
-                    }
+                from backend_v2.models.domain.archival import ArchivalPrecedentDTO
+
+                dto = ArchivalPrecedentDTO(
+                    id=res.id,
+                    date=res.completed_at.isoformat() if res.completed_at else "",
+                    scores=score_summary,
+                    verdict=verdict_text[:150],  # Truncate
                 )
+                precedents.append(dto.model_dump())
 
         # Keep only last 3
         precedents = precedents[-3:]
 
         logger.debug(f"[ArchivalHook] Found {len(precedents)} precedents.")
 
-        # 4. Return STRUCTURED data (List[dict]) matching ArchivistInput schema
+        # 4. Return STRUCTURED data matching ArchivalPrecedentDTO schema (dumped to dict for state_delta)
         return HookResult(success=True, state_delta={"archivist_precedents": precedents})
 
     except AppException:

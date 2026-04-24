@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
-from backend_v2.models.enums import BlockDataType
+from backend_v2.models.enums import BlockDataType, XaiExtensionType
 from backend_v2.models.v2_core import PromptBlock
 
 
@@ -31,7 +31,7 @@ class SchemaCompilerService:
         }
         return create_model(
             f"DynamicSchema_{schema_hash[:8]}",
-            __config__=ConfigDict(extra="forbid", strict=False, frozen=True),
+            __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
             **fields,
         )
 
@@ -74,71 +74,86 @@ class SchemaCompilerService:
             fields_list.append((slug, type_hint, desc))
 
             # Dynamically inject requested XAI output extensions into Pydantic schema
-            extensions = cfg.get("output_extensions", [])
-            if "justification" in extensions:
+            extensions = cfg["output_extensions"]
+            if XaiExtensionType.JUSTIFICATION.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_justification",
+                        f"{slug}_{XaiExtensionType.JUSTIFICATION.value}",
                         str,
                         f"Extensive analytical reasoning and justification for the {slug} output.",
                     )
                 )
-            if "citation" in extensions:
+            if XaiExtensionType.CITATION.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_citation",
+                        f"{slug}_{XaiExtensionType.CITATION.value}",
                         str,
                         f"Direct exact quote from the source text strongly supporting the {slug} justification.",
                     )
                 )
-            if "coaching" in extensions:
-                fields_list.append(
-                    (f"{slug}_coaching", str, "Concrete coaching tip/remediation advice to the subject.")
-                )
-            if "confidence" in extensions:
+            if XaiExtensionType.COACHING.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_confidence",
+                        f"{slug}_{XaiExtensionType.COACHING.value}",
+                        str,
+                        "STRICT MANDATE: Provide one concrete, actionable step to patch the observed data "
+                        "or logic gap. DO NOT give general tips or encouraging advice.",
+                    )
+                )
+            if XaiExtensionType.CONFIDENCE.value in extensions:
+                fields_list.append(
+                    (
+                        f"{slug}_{XaiExtensionType.CONFIDENCE.value}",
                         float,
                         "Numerical confidence from 0.0 to 100.0 based strictly on source evidence.",
                     )
                 )
-            if "falsification" in extensions:
-                fields_list.append(
-                    (f"{slug}_falsification", str, "Devil's advocate argument rejecting the primary justification.")
-                )
-            if "missing_context" in extensions:
+            if XaiExtensionType.FALSIFICATION.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_missing_context",
+                        f"{slug}_{XaiExtensionType.FALSIFICATION.value}",
                         str,
-                        "Missing data from the provided text that would have improved or changed the score.",
+                        "STRICT MANDATE: List the exact business scenario where the user's model or "
+                        "claim crashes 100%. No mitigating words allowed.",
                     )
                 )
-            if "risk_flag" in extensions:
-                fields_list.append(
-                    (f"{slug}_risk_flag", bool, "True if there is a severe risk present; False otherwise.")
-                )
-            if "remediation_steps" in extensions:
+            if XaiExtensionType.MISSING_CONTEXT.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_remediation_steps",
+                        f"{slug}_{XaiExtensionType.MISSING_CONTEXT.value}",
+                        str,
+                        "Exact missing data from the provided text that would have altered the evaluation score. "
+                        "No theoretical assumptions.",
+                    )
+                )
+            if XaiExtensionType.RISK_FLAG.value in extensions:
+                fields_list.append(
+                    (
+                        f"{slug}_{XaiExtensionType.RISK_FLAG.value}",
+                        bool,
+                        "True ONLY if there is a severe, documentable risk present; False otherwise.",
+                    )
+                )
+            if XaiExtensionType.REMEDIATION_STEPS.value in extensions:
+                fields_list.append(
+                    (
+                        f"{slug}_{XaiExtensionType.REMEDIATION_STEPS.value}",
                         list[str],
                         "Numbered actionable list of distinct textual remediation steps.",
                     )
                 )
-            if "emotional_sentiment" in extensions:
+            if XaiExtensionType.EMOTIONAL_SENTIMENT.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_emotional_sentiment",
+                        f"{slug}_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}",
                         str,
                         "Analysis of the user's emotional state or tone regarding this metric.",
                     )
                 )
-            if "theory_link" in extensions:
+            if XaiExtensionType.THEORY_LINK.value in extensions:
                 fields_list.append(
                     (
-                        f"{slug}_theory_link",
+                        f"{slug}_{XaiExtensionType.THEORY_LINK.value}",
                         str,
                         "Direct logical connection of the observation back to the governing theory framework.",
                     )

@@ -32,8 +32,8 @@ async def _fetch_historical_context(
     if mode == HistoricalContextMode.DISABLED:
         return ""
 
-    user_id = inputs.get("user_id")
-    org_id = inputs.get("organization_id")
+    user_id = state.global_context_vars.get("user_id")
+    org_id = state.global_context_vars.get("organization_id")
 
     if not (user_id or org_id):
         return ""
@@ -269,14 +269,19 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     enable_masking = synthesis_cfg.enable_pii_masking
     historical_mode = synthesis_cfg.historical_context_mode
 
-    hook_metadata = state.metadata or {}
-    raw_lang = hook_metadata.get("target_locale")
-    if not raw_lang:
-        msg = "Execution metadata is missing the mandatory 'target_locale' configuration."
-        logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-        raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+    from pydantic import ValidationError
 
-    language = str(raw_lang).strip().lower()
+    from backend_v2.models.domain.synthesis import SynthesisMetadataDTO, SynthesisStepDataDTO
+
+    try:
+        hook_metadata_dto = SynthesisMetadataDTO.model_validate(state.metadata or {})
+        language = hook_metadata_dto.target_locale.strip().lower()
+    except ValidationError as e:
+        msg = f"Strict Fail-Fast Enforced: Execution metadata failed validation: {e}"
+        logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+        ) from e
 
     preamble = preamble_dict.resolve(language) if preamble_dict else ""
 
@@ -296,24 +301,45 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     for step_id, step_data in inputs.items():
         is_wildcard = is_global_wildcard
 
+        try:
+            step_dto = SynthesisStepDataDTO.model_validate(step_data)
+            step_dict = (
+                step_data
+                if isinstance(step_data, dict)
+                else step_data.model_dump(mode="json")
+                if hasattr(step_data, "model_dump")
+                else dict(step_data)
+            )
+        except (ValidationError, TypeError, ValueError) as e:
+            msg = (
+                f"Strict Fail-Fast Enforced: Synthesis input data for step '{step_id}' "
+                f"must be a structured model. Found: {type(step_data)}"
+            )
+            logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+            ) from e
+
+        # O(1) Set intersection logic replacing nested loops
+        inner_keys = set(step_dict.keys())
         is_requested = False
-        if isinstance(step_data, dict):
-            # Check if any inner block matches, or if the step_id itself is explicitly requested.
-            for inner_k in step_data.keys():
-                if (
-                    inner_k in required_blocks
-                    or f"{step_id}_{inner_k}" in required_blocks
-                    or step_id in required_blocks
-                ):
+
+        if step_id in required_blocks:
+            is_requested = True
+        elif not required_blocks.isdisjoint(inner_keys):
+            is_requested = True
+        else:
+            # Final fallback for composite keys
+            for inner_k in inner_keys:
+                if f"{step_id}_{inner_k}" in required_blocks:
                     is_requested = True
                     break
 
         if not is_requested:
-            # Automaattinen kokoaminen (wildcard) tutkii pelkästään data-tyyppiä.
-            # Jätetään mustat listat pois. Validin asiantuntijatuloksen tunnistaa reasoning_trace -kentästä.
             if not is_wildcard:
                 continue
-            if not (isinstance(step_data, dict) and "reasoning_trace" in step_data):
+            # Wildcard valid block check via strictly parsed DTO
+            if not step_dto.reasoning_trace:
                 continue
 
         v = step_data
@@ -388,27 +414,29 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-    sys_prompt = f"{str(custom_sys_prompt).strip()}\n\n"
+    sys_prompt = f"<system_directive>\n<objective>\n{str(custom_sys_prompt).strip()}\n</objective>\n<rules>\n"
     if length_constraint:
         sys_prompt += (
-            f"GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be ~{length_constraint} characters.\n"
+            f"  <rule>GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be "
+            f"~{length_constraint} characters.</rule>\n"
         )
     if preamble:
         sys_prompt += (
-            "GLOBAL PREAMBLE INTRODUCTION: Start your global synthesis intuitively using the following "
-            f"preamble tone/context: '{preamble}'\n"
+            "  <rule>GLOBAL PREAMBLE INTRODUCTION: Start your global synthesis intuitively using the following "
+            f"preamble tone/context: '{preamble}'</rule>\n"
         )
 
     if section_instructions:
-        sys_prompt += "\n\n=== SECTION-LEVEL SYNTHESIS REQUIRED ===\n"
+        sys_prompt += "  <rule>=== SECTION-LEVEL SYNTHESIS REQUIRED ===\n"
         sys_prompt += (
             "You MUST ALSO provide targeted synthesized summaries for the following "
             "distinct sections as an array in `section_syntheses`.\n\n"
         )
         sys_prompt += "\n\n".join(section_instructions)
+        sys_prompt += "\n  </rule>\n"
 
     sys_prompt += (
-        "\n\nOmit internal system identifiers or raw JSON keys. "
+        "  <rule>Omit internal system identifiers or raw JSON keys. "
         "When referring to information, use inline numerical tags like [1], [2].\n"
         "CRITICAL RULE FOR CITATIONS: The numbers in your inline tags MUST perfectly correspond "
         "to the items in the `cited_sources` list (1-indexed). "
@@ -416,14 +444,14 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         "is an actual literary reference, empirical citation, methodology framework, or external "
         "document (e.g., 'Toulmin 2003', 'Sitra Report'). "
         "DO NOT use citation tags for general analysis sections, step titles, or internal data "
-        "dumps. If you mention internal findings, state them directly without using it."
+        "dumps. If you mention internal findings, state them directly without using it.</rule>\n"
     )
 
     active_exts = active_profile_dto.visible_extensions
     exts_str = ", ".join([x.value for x in active_exts]) if isinstance(active_exts, list) else str(active_exts)
 
     sys_prompt += (
-        "\n\nCRITICAL XAI EXTENSION SYNTHESIS MANDATE:\n"
+        "  <rule>CRITICAL XAI EXTENSION SYNTHESIS MANDATE:\n"
         "Your task is to act as the Chief Editor. Scan the flattened JSON outputs of the matrices for any localized "
         "extensions they produced. In the V2 schema, these extensions are always appended as suffixes "
         "to the matrix Stripe IDs\n"
@@ -434,7 +462,8 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         "and merge overlapping insights to create a coherent executive summary. "
         "Output these items strictly into the `xai_highlights` array, "
         'using the EXACT target extension name in `extension_type`. (e.g. "coaching")\n'
-        "Provide ONLY the core text, omitting any internal titles like 'Vasta-argumentti 1:'."
+        "Provide ONLY the core text, omitting any internal titles like 'Vasta-argumentti 1:'.</rule>\n"
+        "</rules>\n</system_directive>"
     )
 
     messages = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": raw_input_text}]

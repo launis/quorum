@@ -61,15 +61,24 @@ async def lifespan(app: FastAPI) -> Any:
         # We attempt to connect to the configured Redis instance, otherwise fallback to in-memory fake redis.
         from arq.connections import RedisSettings, create_pool
 
-        try:
-            settings = get_settings()
-            app.state.arq_pool = await create_pool(RedisSettings(host=settings.redis_host, port=settings.redis_port))
-            logger.info(f"Connected to Arq Redis at {settings.redis_host}:{settings.redis_port}")
-        except Exception as redis_err:
-            logger.warning(f"Failed to connect to real Redis: {redis_err}. Falling back to FakeRedis.")
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            # Bypass slow timeouts during unit tests to avoid spamming backend_debug.log
+            logger.info("Test environment detected. Forcing FakeRedis.")
             from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 
             app.state.arq_pool = get_patched_fakeredis_pool()
+        else:
+            try:
+                settings = get_settings()
+                app.state.arq_pool = await create_pool(
+                    RedisSettings(host=settings.redis_host, port=settings.redis_port)
+                )  # noqa: E501
+                logger.info(f"Connected to Arq Redis at {settings.redis_host}:{settings.redis_port}")
+            except Exception as redis_err:
+                logger.warning(f"Failed to connect to real Redis: {redis_err}. Falling back to FakeRedis.")
+                from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
+
+                app.state.arq_pool = get_patched_fakeredis_pool()
 
         yield
 

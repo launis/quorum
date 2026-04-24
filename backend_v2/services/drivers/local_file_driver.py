@@ -100,22 +100,24 @@ class LocalFileDriver(FileDriver):
         full_path = self._validate_path(path)
 
         try:
-            # Enforce explicit os.path validation: no silent directory creation
-            if not full_path.parent.exists() or not full_path.parent.is_dir():
-                msg = f"Parent directory for {path} does not exist"
-                logger.error("[LocalFileDriver] %s: %s", ErrorCodes.STORAGE_ACCESS_FAILED.name, msg)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
-                )
+            # Explicitly create parent directories to maintain parity with cloud storage drivers
+            # where paths are virtual keys and directory creation is implicit.
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+
+            import uuid
+
+            tmp_path = full_path.with_name(f"{full_path.name}.{uuid.uuid4().hex}.tmp")
 
             if isinstance(data, bytes):
-                async with aiofiles.open(full_path, "wb") as f:
+                async with aiofiles.open(tmp_path, "wb") as f:
                     await f.write(data)
             else:
-                async with aiofiles.open(full_path, "w", encoding="utf-8") as f:
+                async with aiofiles.open(tmp_path, "w", encoding="utf-8") as f:
                     await f.write(data)
+
+            # Atomic replace prevents race conditions where another thread/process
+            # might read a 0-byte truncated file during concurrent writes
+            os.replace(tmp_path, full_path)
 
             return str(full_path)
         except Exception as e:

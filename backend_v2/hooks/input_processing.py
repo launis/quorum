@@ -84,22 +84,29 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                     break
 
         # 1. Handle Questionnaire mode specifically if it exists
-        if isinstance(raw_val, dict) and any(str(k).startswith("q") for k in raw_val.keys()):
-            logger.info("Found questionnaire dict. Generating Markdown...", extra={"input_key": key})
-            title_text = expected_input.label.translations.get("en", "Questionnaire")
-            markdown_parts = [f"# {title_text}\n"]
-            keys = sorted(raw_val.keys())
-            for q_key in keys:
-                val = raw_val[q_key]
-                if str(q_key).startswith("q"):
-                    markdown_parts.append(f"### Q: {val}")
-                elif str(q_key).startswith("a"):
-                    # Epic 12: Isolate user input with blockquotes
-                    markdown_parts.append(f"> **A:** {val}\n")
-                else:
-                    markdown_parts.append(f"**{q_key}:** {val}\n")
-            resolved_text = "\n".join(markdown_parts)
+        if isinstance(raw_val, dict):
+            logger.info(
+                "Found questionnaire dict. Validating against GuidedReflectionInputDTO...",
+                extra={"input_key": key},
+            )
+            from pydantic import ValidationError
 
+            from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO
+
+            try:
+                dto = GuidedReflectionInputDTO.model_validate(raw_val)
+                title_text = expected_input.label.translations.get("en", "Questionnaire")
+                resolved_text = dto.to_markdown(title_text)
+            except ValidationError as e:
+                logger.error(
+                    "Invalid questionnaire dict format.",
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key, "detail": str(e)},
+                )
+                raise AppException(
+                    message=f"Workflow Input Validation Error: Invalid questionnaire format for '{key}'.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key, "errors": e.errors()},
+                ) from e
         else:
             # 2. Standard resolution (File, Paste)
             resolved_text = await resolve_input(raw_val)

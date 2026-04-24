@@ -234,3 +234,38 @@ def test_compile_chunk_payload_instruction() -> None:
     assert "<user_payload>" in res
     assert "</user_payload>" in res
     assert "Some dangerous input" in res
+
+
+def test_context_snowballing_prevention() -> None:
+    """Epic 32: Test that 'evaluations' array is stripped from prior step context to prevent 95k prompt bloat."""
+    compiler = PromptCompiler()
+
+    state = {
+        "inputs": {
+            "history": {
+                "step_analyst": {
+                    "outputs": {
+                        "evaluations": [
+                            {"atom_id": "1", "boolean": True, "reasoning": "Long text..."},
+                            {"atom_id": "2", "boolean": False, "reasoning": "Another long text..."}
+                        ],
+                        "evaluation_notes": "This is the summary.",
+                        "normalized_score": 4.5
+                    }
+                }
+            }
+        }
+    }
+
+    result = compiler._extract_value_from_state("$inputs.history", state)
+
+    # Should include the qualitative summary and score
+    assert "### EVALUATION_NOTES" in result
+    assert "This is the summary." in result
+    assert "### NORMALIZED_SCORE" in result
+    assert "4.5" in result
+    
+    # Should completely strip the raw evaluations array
+    assert "EVALUATIONS" not in result
+    assert "Long text" not in result
+    assert "atom_id" not in result

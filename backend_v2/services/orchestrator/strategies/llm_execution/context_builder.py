@@ -41,19 +41,68 @@ class ContextBuilder:
                 resolved_value = resolve_dot_notation(state_data, clean_path)
 
                 # Task 3: ContextRouter integration for trace data
-                if clean_path.startswith("steps."):
-                    if isinstance(resolved_value, dict) and "normalized_score" in resolved_value:
-                        try:
-                            pruned = ContextRouter.route_and_prune(resolved_value, output_profile)
-                            resolved_value = f"<matrix_data>\n{pruned.model_dump_json()}\n</matrix_data>"
-                        except Exception as e:
-                            msg = f"ContextRouter trace pruning failed for {_logical_name}: {e}"
-                            logger.error(msg, exc_info=True)
-                            raise AppException(
-                                message=msg,
-                                status_code=500,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                            ) from e
+                def _prune_steps_dict(steps_dict: dict[str, Any]) -> str:
+                    pruned_steps = {}
+                    import json
+
+                    for s_id, s_val in steps_dict.items():
+                        if isinstance(s_val, dict):
+                            if "normalized_score" in s_val:
+                                try:
+                                    pruned = ContextRouter.route_and_prune(s_val, output_profile)
+                                    pruned_steps[s_id] = pruned.model_dump()
+                                except Exception as e:
+                                    logger.warning(f"ContextRouter trace pruning failed for step {s_id}: {e}")
+                                    pruned_steps[s_id] = s_val
+                            elif "atoms" in s_val:
+                                atoms = s_val["atoms"]
+                                count = len(atoms) if isinstance(atoms, list) else 0
+                                pruned_steps[s_id] = {"status": "omitted_raw_atoms", "count": count}
+                            elif "history_text" in s_val or "extracted_text" in s_val:
+                                pruned_steps[s_id] = {"status": "omitted_raw_input_data"}
+                            elif "evaluations" in s_val:
+                                evs = s_val["evaluations"]
+                                if isinstance(evs, list):
+                                    pruned_steps[s_id] = {
+                                        "evaluations_bool_only": [
+                                            bool(e.get("boolean", False)) if isinstance(e, dict) else False
+                                            for e in evs
+                                        ]
+                                    }
+                                else:
+                                    pruned_steps[s_id] = {"status": "omitted_raw_evaluations"}
+                            else:
+                                pruned_steps[s_id] = s_val
+                        else:
+                            pruned_steps[s_id] = s_val
+                    return f"<matrix_data>\n{json.dumps(pruned_steps)}\n</matrix_data>"
+
+                if clean_path == "steps" and isinstance(resolved_value, dict):
+                    resolved_value = _prune_steps_dict(resolved_value)
+                elif clean_path == "global_context_vars" and isinstance(resolved_value, dict):
+                    resolved_value = copy.copy(resolved_value)
+                    if "steps" in resolved_value and isinstance(resolved_value["steps"], dict):
+                        resolved_value["steps"] = _prune_steps_dict(resolved_value["steps"])
+                elif clean_path.startswith("steps."):
+                    if isinstance(resolved_value, dict):
+                        if "normalized_score" in resolved_value:
+                            try:
+                                pruned = ContextRouter.route_and_prune(resolved_value, output_profile)
+                                resolved_value = f"<matrix_data>\n{pruned.model_dump_json()}\n</matrix_data>"
+                            except Exception as e:
+                                msg = f"ContextRouter trace pruning failed for {_logical_name}: {e}"
+                                logger.error(msg, exc_info=True)
+                                raise AppException(
+                                    message=msg,
+                                    status_code=500,
+                                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                ) from e
+                        elif "atoms" in resolved_value:
+                            atoms = resolved_value["atoms"]
+                            count = len(atoms) if isinstance(atoms, list) else 0
+                            resolved_value = {"status": "omitted_raw_atoms", "count": count}
+                        elif "history_text" in resolved_value or "extracted_text" in resolved_value:
+                            resolved_value = {"status": "omitted_raw_input_data"}
 
                 val_str = str(resolved_value)
                 # Task 2: Rigorous token checks

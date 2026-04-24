@@ -32,6 +32,16 @@ def mock_repo() -> Any:
         "model_strategy": "fast",
         "pre_hooks": [],
     }
+    repo.get_workflow.return_value = {
+        "id": "wf_5555555555555555",
+        "slug": "wf_test_slug",
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "prof_dddd1111dddd1111",
+        "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "steps": [{"id": "step_1111111111111111", "task_blueprint": "task_bp"}],
+    }
     return repo
 
 

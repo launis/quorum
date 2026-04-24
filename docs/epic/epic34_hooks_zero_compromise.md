@@ -18,22 +18,38 @@ An audit of the dynamic execution hooks (`scoring.py`, `reporting.py`, `input_pr
 
 ## 3. Implementation Phases
 
-### Phase 1: Cleansing `reporting.py` (Schema-First Templating)
+### Phase 0: Token Overflow Mitigation (ContextBuilder) [URGENT PREREQUISITE]
+- **Target:** `ContextBuilder.build` (`context_builder.py`).
+- **Action:** Introduce "Safe Fallback Pruning" to prevent `TokenLimitExceededError`. 
+- **Solution:** When mapping the global `$steps` variable, `ContextBuilder` currently drops unrecognized non-evaluation steps (like `Input Processing`) directly into the LLM context. Introduce explicit conditions to prune:
+  - **A. Atomization Steps:** If `"atoms" in s_val`, replace with `{"status": "omitted_raw_atoms", "count": len(s_val["atoms"])}`.
+  - **B. Raw Data Steps:** If `"history_text" in s_val` or `"extracted_text" in s_val`, replace with `{"status": "omitted_raw_input_data"}`.
+  - **C. Fail-Fast Enforcement (Zero-Compromise):** Do NOT implement arbitrary string length truncation (e.g., `[:2000]`). Any other unrecognized step data must pass through unmodified. If an unknown step causes the context to exceed 100,000 tokens, the system MUST crash with a `TokenLimitExceededError`. This forces the Workflow Admin to fix the DAG mapping in the UI, rather than the backend hiding the error via silent data corruption.
+
+### Phase 1: Matrix Output Schema Extension (Data Loss Prevention) [URGENT PREREQUISITE]
+- **Target:** `LightweightMatrixOutput` (`lightweight_matrix.py`) and `XaiExtensionType` (`enums.py`).
+- **Action:** Add missing schema fields required to preserve the original LLM evaluation state before replacing `scoring.py` legacy dictionary flattening.
+- **Solution:** 
+  1. Add `raw_score: float` to `LightweightMatrixOutput`. The backend operates fundamentally on this original value. `normalized_score` is just the derived 0.0-1.0 calculation for generic aggregation. If `raw_score` is omitted from the Pydantic schema, it will be lost from the final state persistence, destroying the original scale context.
+  2. Add `SOURCE_ID = "source_id"` to `XaiExtensionType` to preserve `step_1b_cited_source_id`.
+  3. Note: `true_atoms` and `false_atoms` do not need schema additions as they are organically derivable from the `evaluated_atoms` dictionary.
+
+### Phase 2: Cleansing `reporting.py` (Schema-First Templating)
 - **Target:** `generate_report_hook`
 - **Action:** Delete the scavenger hunting (`_get_agent_output`, `isinstance(overseer_out, dict)`).
 - **Solution:** Introduce a `ReportSynthesisDTO` that requires strict typed classes for every supported specialist report (e.g. `PerformativityReport`, `LogicianReport`). The hook will do a single `ReportSynthesisDTO.model_validate(global_context_vars)` sweep. If successful, pass the DTO into Jinja2.
 
-### Phase 2: Refactoring Scoring Key-Guessing
+### Phase 3: Refactoring Scoring Key-Guessing
 - **Target:** `enforce_passivity_penalty_hook` & `normalize_matrix_scores_hook` in `scoring.py`.
 - **Action:** Replace `startswith("matrix_")` matching with strict Evaluation block fetching.
-- **Solution:** Map the values through the explicit PromptBlock models directly (which already know what is a score and what is an evaluation) rather than doing string magic on the output keys.
+- **Solution:** Map the values through the explicit PromptBlock models directly (which already know what is a score and what is an evaluation) rather than doing string magic on the output keys. Replace legacy dictionary flattening with strict `LightweightMatrixOutput` compliance.
 
-### Phase 3: Formalizing Questionnaire Parsing
+### Phase 4: Formalizing Questionnaire Parsing
 - **Target:** `input_processing.py`.
 - **Action:** Remove the `isinstance(dict) and startswith("q")` markdown hack.
 - **Solution:** Implement a `GuidedReflectionInputDTO(BaseModel)` with explicit `questions: list[QuestionAnswerPair]`. Let the model handle `.to_markdown()` serialization deterministically.
 
-### Phase 4: Localization & Validation Metadata Sovereignty
+### Phase 5: Localization & Validation Metadata Sovereignty
 - **Target:** `validation.py` & `translation_hook.py`.
 - **Action:** Eradicate `.get("language")` and `.get("target_locale", "en")` fallbacks for state access.
 - **Solution:** Define strict `HookStateMetadata` and `I18nStatePayload` Pydantic models. Both hooks must intercept `state.inputs` and `state.metadata` at the start of execution using `Model.model_validate()` and leverage `I18nText.resolve()` logic to achieve Fail-Fast parity with the hardened `synthesis.py` hook.

@@ -6,7 +6,53 @@ from backend_v2.exceptions import AppException, TokenLimitExceededError
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 
 
-def test_context_builder_build_success(monkeypatch):
+def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that atoms, history_text, and extracted_text are pruned correctly."""
+    monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
+
+    input_mappings = {
+        "all_steps": "$steps",
+        "single_atom_step": "$steps.atom_step",
+        "single_raw_step": "$steps.raw_step",
+    }
+
+    state_data = {
+        "steps": {
+            "eval_step": {"normalized_score": 0.8},
+            "atom_step": {"atoms": ["a", "b", "c"]},
+            "raw_step": {"history_text": "huge string"},
+            "other_step": {"custom": "data"},
+        }
+    }
+
+    # Mock ContextRouter so eval_step pruning succeeds
+    mock_context_router = MagicMock()
+    mock_pruned = MagicMock()
+    mock_pruned.model_dump.return_value = {"pruned": True}
+    mock_pruned.model_dump_json.return_value = '{"pruned": True}'
+    mock_context_router.route_and_prune.return_value = mock_pruned
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.strategies.llm_execution.context_builder.ContextRouter",
+        mock_context_router,
+    )
+
+    llm_context_data, _ = ContextBuilder.build(
+        input_mappings=input_mappings,
+        state_data=state_data,
+        output_profile=None,
+    )
+
+    steps_context = llm_context_data["steps"]
+    assert "omitted_raw_atoms" in steps_context
+    assert '"count": 3' in steps_context
+    assert "omitted_raw_input_data" in steps_context
+    assert "custom" in steps_context
+
+    assert llm_context_data["atom_step"] == {"status": "omitted_raw_atoms", "count": 3}
+    assert llm_context_data["raw_step"] == {"status": "omitted_raw_input_data"}
+
+
+def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test successful building of context data."""
     # Mock litellm.token_counter to always return a small number
     monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
@@ -52,7 +98,7 @@ def test_context_builder_build_success(monkeypatch):
     assert new_input_mappings["text_field"] == "$document_text"
 
 
-def test_context_builder_build_token_limit_exceeded(monkeypatch):
+def test_context_builder_build_token_limit_exceeded(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that TokenLimitExceededError is raised when mapping exceeds limit."""
     # Mock litellm.token_counter to return a number larger than MAX_SAFE_TOKENS
     monkeypatch.setattr("litellm.token_counter", lambda model, text: ContextBuilder.MAX_SAFE_TOKENS + 1)
@@ -74,7 +120,7 @@ def test_context_builder_build_token_limit_exceeded(monkeypatch):
     assert "exceeded token limit" in str(exc_info.value)
 
 
-def test_context_builder_build_trace_pruning_fails_fast(monkeypatch):
+def test_context_builder_build_trace_pruning_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that an exception during trace pruning raises AppException (Fail-Fast)."""
     monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
 
@@ -96,11 +142,12 @@ def test_context_builder_build_trace_pruning_fails_fast(monkeypatch):
     assert "ContextRouter trace pruning failed" in str(exc_info.value.message)
 
 
-def test_context_builder_build_token_counting_fails_fast(monkeypatch):
+def test_context_builder_build_token_counting_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that an exception during token counting raises AppException (Fail-Fast)."""
-    def mock_counter(model, text):
+
+    def mock_counter(model: str, text: str) -> int:
         raise Exception("LiteLLM crashed")
-    
+
     monkeypatch.setattr("litellm.token_counter", mock_counter)
 
     input_mappings = {"text_field": "$document_text"}
@@ -114,13 +161,15 @@ def test_context_builder_build_token_counting_fails_fast(monkeypatch):
     assert "Token counting failed" in str(exc_info.value.message)
 
 
-def test_context_builder_build_resolution_fails_fast(monkeypatch):
+def test_context_builder_build_resolution_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that an exception during dot notation resolution raises AppException (Fail-Fast)."""
     monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
-    
-    def mock_resolve(data, path):
+
+    from typing import Any
+
+    def mock_resolve(data: dict[str, Any], path: str) -> Any:
         raise ValueError("Invalid path syntax")
-        
+
     monkeypatch.setattr(
         "backend_v2.services.orchestrator.strategies.llm_execution.context_builder.resolve_dot_notation",
         mock_resolve,

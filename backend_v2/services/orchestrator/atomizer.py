@@ -54,13 +54,19 @@ class PromptAtomizer:
             raise
 
         system_prompt = (
-            "You are a 'Kääntäjä-AI' compiler expert. Your task is to perform Deep Atomization and Obfuscation "
+            "<system_directive>\n"
+            "  <objective>\n"
+            "    You are a 'Kääntäjä-AI' compiler expert. Your task is to perform Deep Atomization and Obfuscation "
             "on an evaluation claim.\n"
-            "1. Explode the provided claim into precisely 15 distinct micro-atoms.\n"
-            "2. Obfuscate domain-specific vocabulary into abstract criteria.\n"
-            "3. Create 'Scaffolded' exception mechanisms for any special terms.\n"
-            "4. Provide a 'Rubric-CoT' reasoning to explain how these atoms preserve the "
-            "original meaning to prevent Context Drift."
+            "  </objective>\n"
+            "  <rules>\n"
+            "    <rule>Explode the provided claim into precisely 15 distinct micro-atoms.</rule>\n"
+            "    <rule>Obfuscate domain-specific vocabulary into abstract criteria.</rule>\n"
+            "    <rule>Create 'Scaffolded' exception mechanisms for any special terms.</rule>\n"
+            "    <rule>Provide a 'Rubric-CoT' reasoning to explain how these atoms preserve the "
+            "original meaning to prevent Context Drift.</rule>\n"
+            "  </rules>\n"
+            "</system_directive>"
         )
 
         for scale in block.scales:

@@ -28,6 +28,17 @@
         <mandatory_pattern>All execution limits MUST reference `SystemConcurrency` strictly. Parallel async LLM workers must wrap execution in a TaskGroup limited natively by `asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS)` (fixed at 2). Hardcoded or arbitrary new limits are banned.</mandatory_pattern>
         <catastrophic_reason>Fractured limits allow exponential concurrent API triggers, resulting in instant Cloud Rate Limits (HTTP 429) and quota exhaustion across the entire infrastructure.</catastrophic_reason>
     </rule_block>
+    <rule_block id="native_language_system_prompts">
+        <banned_pattern>Writing core system instructions, rules, or system prompts in Finnish (e.g. `_SYSTEM_INSTRUCTION = "SÄÄNTÖ: ..."`).</banned_pattern>
+        <mandatory_pattern>All system prompts MUST be strictly in English to ensure maximum compliance and instruction-following by the foundational models (Gemini/OpenAI).</mandatory_pattern>
+        <catastrophic_reason>LLMs are primarily trained on English logic and instruction tuning. Providing complex constraints in Finnish significantly degrades the model's ability to follow strict architectural rules like JSON formatting or key preservation.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="naked_prompt_injection">
+        <banned_pattern>Appending raw string instructions to the prompt context without XML tags (e.g. `compiled += "\n\nCRITICAL MANDATE: ..."`).</banned_pattern>
+        <mandatory_pattern>All dynamic prompt insertions MUST be wrapped in explicit XML tags (e.g. `<CRITICAL_LANGUAGE_MANDATE>...</CRITICAL_LANGUAGE_MANDATE>`).</mandatory_pattern>
+        <catastrophic_reason>Without XML tags, the LLM suffers from Attention Dilution and struggles to differentiate between source data, user intent, and absolute system constraints. XML tags force boundary recognition.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>

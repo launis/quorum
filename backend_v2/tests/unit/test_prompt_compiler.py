@@ -180,3 +180,25 @@ def test_prompt_compiler_architectural_integrity() -> None:
         "Tämä rikkoo Epic 20 Phase 7 sokeiden kokeilujen arkkitehtuurin."
     )
     assert hasattr(PromptCompiler, "build_blind_evaluation_schema"), msg2
+
+
+def test_compile_xml_rubrics_anti_sycophancy() -> None:
+    """Epic 29 Phase 2: Ensure Anti-Sycophancy XAI Header is injected into XML rubrics."""
+    from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+
+    compiler = PromptCompiler()
+    mock_criteria = [
+        {
+            "id": "blk_test",
+            "type": "slider",
+            "label": {"default_locale": "en", "translations": {"en": "Test"}},
+            "ai_description": "Test description",
+            "scales": [],
+        }
+    ]
+
+    result = compiler.compile_xml_rubrics(mock_criteria, target_locale="en")
+
+    assert "<ANTI_SYCOPHANCY_MANDATE>" in result
+    assert "ANTI-SYCOPHANCY MANDATE:" in result
+    assert "Speak like a strict professional auditor." in result

@@ -1,0 +1,91 @@
+import asyncio
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+from backend_v2.exceptions import AppException
+from backend_v2.models.chunking import Chunk
+from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker import ChunkWorker
+
+
+@pytest.mark.asyncio
+async def test_chunk_worker_process_chunk_success() -> None:
+    """Test successful execution of a chunk through structured LLM task."""
+    mock_compiler = MagicMock()
+    mock_compiler.compile_xml_rubrics.return_value = "<xml>rubrics</xml>"
+    mock_schema = MagicMock()
+    mock_compiler.build_dynamic_schema.return_value = mock_schema
+
+    mock_client = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.model_dump.return_value = {"answer": "42"}
+    mock_client.run_structured_task.return_value = (mock_result, {"prompt_tokens": 10, "completion_tokens": 5})
+
+    sem = asyncio.Semaphore(1)
+    chunk = Chunk(parent_id="wf1", index=0, items=[{"atom_id": "a1", "text": "hello"}])
+    criteria_blocks = [{"id": "b1", "category_id": "matrix"}]
+    atom_to_block_ids = {"a1": {"b1"}}
+
+    final, usage, traces = await ChunkWorker.process_chunk(
+        chunk=chunk,
+        sem=sem,
+        compiler=mock_compiler,
+        criteria_blocks=criteria_blocks,
+        user_payload="<payload>",
+        base_system_prompt="Base prompt",
+        has_search=False,
+        has_shuffled_atoms=True,
+        atom_to_block_ids=atom_to_block_ids,
+        effective_mcp_tools=[],
+        bound_client=mock_client,
+        step_id="step1",
+        target_locale="en",
+        state_data={},
+        output_profile=None,
+    )
+
+    assert final == {"answer": "42"}
+    assert usage == {"prompt_tokens": 10, "completion_tokens": 5}
+    assert traces == []
+
+    # Check compiler was called correctly
+    mock_compiler.compile_xml_rubrics.assert_called_once()
+    mock_compiler.build_dynamic_schema.assert_called_once()
+
+    # Check that client was called with correct arguments
+    mock_client.run_structured_task.assert_called_once()
+    kwargs = mock_client.run_structured_task.call_args.kwargs
+    assert kwargs["response_model"] == mock_schema
+    assert kwargs["mock_identity"] == "step1"
+
+
+@pytest.mark.asyncio
+async def test_chunk_worker_process_chunk_failure() -> None:
+    """Test that execution failure correctly raises AppException."""
+    mock_compiler = MagicMock()
+    mock_client = AsyncMock()
+    mock_client.run_structured_task.side_effect = Exception("LLM connection error")
+
+    sem = asyncio.Semaphore(1)
+
+    with pytest.raises(AppException) as exc_info:
+        await ChunkWorker.process_chunk(
+            chunk=None,
+            sem=sem,
+            compiler=mock_compiler,
+            criteria_blocks=[],
+            user_payload="<payload>",
+            base_system_prompt="Base prompt",
+            has_search=False,
+            has_shuffled_atoms=False,
+            atom_to_block_ids={},
+            effective_mcp_tools=[],
+            bound_client=mock_client,
+            step_id="step1",
+            target_locale="en",
+            state_data={},
+            output_profile=None,
+        )
+
+    assert exc_info.value.status_code == 500
+    assert "LLM connection error" in str(exc_info.value.message)

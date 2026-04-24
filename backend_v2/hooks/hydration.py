@@ -1,7 +1,6 @@
 """Validation hooks for structural integrity checks."""
 
 import logging
-from typing import Any
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 
@@ -26,34 +25,31 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
     if not state:
         return HookResult(success=True, state_delta={})
 
-    processor_output: dict[str, Any] | None = None
-    for _key, result in state.global_context_vars.items():
-        if isinstance(result, dict):
-            if result.get("agent_type") == "InputProcessorAgent" or "inputs" in result:
-                processor_output = result
-                break
+    from backend_v2.models.domain.hydration import HydrationInputSourceDTO
+    from backend_v2.utils.pydantic_utils import inflate
 
-    if not processor_output:
+    hydration_source: HydrationInputSourceDTO | None = None
+
+    for _key, result in state.global_context_vars.items():
+        try:
+            # Strict inflation attempts to parse the result into the DTO sieve
+            candidate = inflate(result, HydrationInputSourceDTO)
+            if candidate and candidate.is_valid_source():
+                hydration_source = candidate
+                break
+        except Exception:
+            # Ignore unrelated state payloads
+            continue
+
+    if not hydration_source:
         logger.warning("[HydrationHook] No InputProcessorOutput found in data. Skipping hydration.")
         return HookResult(success=True, state_delta={})
 
-    # Load existing inputs
-    inputs = state.inputs if isinstance(state.inputs, dict) else {}
-    if not isinstance(inputs, dict):
-        logger.warning("[HydrationHook] The 'inputs' key is invalid. Creating fresh dictionary.")
-        inputs = {}
+    # HookState strictly enforces inputs as dict[str, Any], eliminating legacy fallback checks
+    inputs = state.inputs.copy()
 
-    # Apply properties dynamically
-    updates: dict[str, Any] = {}
-
-    # Allow InputProcessor to specify 'inputs' dict directly
-    if "inputs" in processor_output and isinstance(processor_output["inputs"], dict):
-        updates.update(processor_output["inputs"])
-    else:
-        # Otherwise grab top-level strings as inputs
-        for k, v in processor_output.items():
-            if isinstance(v, str) and k != "agent_type":
-                updates[k] = v
+    # Extract updates safely via Pydantic model methods
+    updates = hydration_source.extract_hydrated_inputs()
 
     if not updates:
         logger.debug("[HydrationHook] Processor output contained no text fields to hydrate.")
@@ -61,7 +57,6 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
 
     logger.info(f"[HydrationHook] Hydrating global inputs with {list(updates.keys())}")
 
-    new_inputs = inputs.copy()
-    new_inputs.update(updates)
+    inputs.update(updates)
 
-    return HookResult(success=True, state_delta={"inputs": new_inputs})
+    return HookResult(success=True, state_delta={"inputs": inputs})

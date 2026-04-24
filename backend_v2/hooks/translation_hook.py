@@ -22,14 +22,18 @@ from backend_v2.llm.client import LLMClient
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_INSTRUCTION = """SÄÄNTÖ: Toimit automaattisena JSON-kääntäjänä.
-TEHTÄVÄ: Käännä alla olevan JSON-objektin **KAIKKI MERKKIJONOARVOT** kielelle: '{target_language}'.
-
-KRIITTINEN RAJOITE: ÄLÄ KOSKAAN KÄÄNNÄ TAI MUUTA JSON-AVAIMIA (Keys).
-Ne sisältävät ohjelmoitavia muuttujia. Vain "Values" käännetään.
-ÄLÄ KOSKAAN lisää kielikoodeja, kuten "fi - " tai "en - ", käännettyjen tekstien alkuun.
-Älä lisää mitään ylimääräistä tekstiä tai markdown-koodiblokkeja vasuksesesi alkuun tai loppuun.
-Palauta puhdasta, validia JSONia."""
+_SYSTEM_INSTRUCTION = """<system_directive>
+  <objective>
+    ROLE: You are an automatic JSON translator.
+    TASK: Translate **ALL STRING VALUES** of the provided JSON object into: '{target_language}'.
+  </objective>
+  <rules>
+    <rule>CRITICAL CONSTRAINT: NEVER TRANSLATE OR MODIFY JSON KEYS. Keys contain programmatic variables. Only translate the 'Values'.</rule>
+    <rule>NEVER prepend language codes like 'fi - ' or 'en - ' to the translated text.</rule>
+    <rule>Do not add any conversational text or markdown code blocks at the beginning or end of your response.</rule>
+    <rule>Return pure, valid JSON.</rule>
+  </rules>
+</system_directive>"""  # noqa: E501
 
 
 @hook_registry.register(name="translation_hook")
@@ -42,18 +46,21 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
     """
     logger.info("[TranslationHook] Running dynamic JSON translation...")
 
-    # Data is expected to be a dict (the flattened output of the node)
-    # The original inputs (including target_language and repository) should be passed in kwargs or accessible
+    try:
+        from backend_v2.models.dtos.state import HookStateMetadata, I18nStatePayload
 
-    # Check if this is the generic flat data payload or if we have full kwargs context
-    # Usually hooks receive the merged dict, so we need to find the target_language
+        meta = HookStateMetadata.model_validate(state.metadata)  # noqa: F841
+        payload = I18nStatePayload.model_validate(state.inputs)
+    except Exception as e:
+        msg = "Execution state is missing mandatory 'target_locale' metadata or 'language' inputs."
+        logger.error("[TranslationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        ) from e
 
-    if "language" not in state.inputs or not state.inputs["language"]:
-        # If no language is specified, we assume no translation is needed
-        logger.debug("[TranslationHook] No 'language' found in payload. Skipping translation.")
-        return HookResult(success=True, state_delta={})
-
-    target_language = state.inputs["language"]
+    target_language = payload.language
 
     if target_language == "en":
         # English is the native output of the AI, no translation needed
@@ -103,7 +110,7 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
     target_lang_name = lang_map.get(target_language, target_language)
 
     system_content = _SYSTEM_INSTRUCTION.replace("{target_language}", target_lang_name)
-    user_content = f"Lähde JSON:\n{json.dumps(payload_to_translate, ensure_ascii=False)}"
+    user_content = f"<SOURCE_JSON>\n{json.dumps(payload_to_translate, ensure_ascii=False)}\n</SOURCE_JSON>"
 
     messages = [{"role": "system", "content": system_content}, {"role": "user", "content": user_content}]
 
