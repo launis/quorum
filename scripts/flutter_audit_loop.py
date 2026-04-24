@@ -89,7 +89,9 @@ def main():
     if res.returncode == 0:
         print("\n🏆 Kaikki puhdasta! Kansio on Phase 9 vaatimusten mukainen.\n")
     else:
-        print("\n❌ Analyysi löysi koodista virheitä, korjaa ne ennen jatkamista!\n")
+        print("\n❌ AUDIT FAILED: Analyysi löysi koodista virheitä, korjaa ne ennen jatkamista!")
+        print("🤖 AI INSTRUCTION: Lue yllä oleva raportti ja korjaa kaatuvat staattisen analyysin virheet.")
+        print("🚨 THE ANTI-TDD TRAP MANDATE: The architectural laws in `c:\\src\\quorum\\.agents\\rules` are ABSOLUTE. Do NOT fall into the 'Test-Driven Development Trap' where you preserve legacy dict-parsing, fallback hacks, or hardcoded strings just to satisfy existing unit tests. If old tests conflict with the new rules (e.g., No-String Mandate, De-Generator, Pydantic V2), you MUST ruthlessly tear down the legacy code AND rewrite the tests. A green test suite that violates architectural sovereignty is a failed state.\n")
         sys.exit(res.returncode)
 
 if __name__ == "__main__":

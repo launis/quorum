@@ -1,17 +1,34 @@
 """Scoring Hook for evaluating agent performance and applying penalties."""
 
+import hashlib
+import json
 import logging
 from typing import Any
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
-from backend_v2.settings import get_settings
-
-logger = logging.getLogger(__name__)
-
-
 from pydantic import ValidationError
 
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepGuardDTO, StepPanelDTO
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, MicroCotDTO, StrictMatrixPayload
+from backend_v2.models.enums import (
+    CognitiveFlowStatus,
+    CognitiveFlowThreshold,
+    EvaluationMandate,
+    ScoringCalibrationThresholds,
+    WaterfallThreshold,
+    XaiExtensionType,
+)
+from backend_v2.settings import get_settings
+from backend_v2.utils.math_utils import (
+    calculate_progressive_dampening_score,
+    calculate_waterfall_floor,
+    calculate_weighted_score,
+    normalize_score_to_100,
+    scale_to_custom_range,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def _extract_guard_flag(data: dict[str, Any]) -> Any | None:
@@ -29,8 +46,6 @@ def _extract_guard_flag(data: dict[str, Any]) -> Any | None:
             dto = StepGuardDTO.model_validate(guard_model)
             return dto.security_check.threat_detected
         except ValidationError as e:
-            from backend_v2.exceptions import AppException, ErrorCodes
-
             msg = f"Strict Fail-Fast Enforced: step_guard validation failed in scoring hook: {e}"
             logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(
@@ -64,8 +79,6 @@ def _extract_falsifier_data(data: dict[str, Any]) -> Any | None:
             if panel_dto.falsifier_data:
                 return panel_dto.falsifier_data
     except ValidationError as e:
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         msg = f"Strict Fail-Fast Enforced: Falsifier data extraction failed: {e}"
         logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(
@@ -103,7 +116,8 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     logger.debug("[ScoringHook] Calculating final scores...")
 
     if not state:
-        return HookResult(success=True, state_delta={})
+        msg = "Strict Fail-Fast Enforced: Missing HookState in apply_scoring_logic_hook."
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     # V2 Architecture Isolation: Use the explicit execution context wrapper provided by DAGExecutor.
     global_vars = state.global_context_vars
@@ -139,21 +153,19 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     unique_matrices = {}
 
     def _extract_scores(source: dict[str, Any]) -> None:
-        # Epic 34: O(1) Map Pre-computation instead of dynamically looping over dictionary keys!
-        eval_map = source.get("_evaluative_matrices", {})
+        # Epic 34: O(1) Map Pre-computation. Zero-Compromise Pledge enforces strict map parsing.
+        eval_map = source.get("_evaluative_matrices")
+        if eval_map is None:
+            # Enforce Fail-Fast! Silent fallbacks and graceful degradation are BANNED.
+            msg = (
+                "Strict Fail-Fast Enforced: '_evaluative_matrices' missing from state. "
+                "Matrix normalization failed or was bypassed."
+            )
+            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
         for block_id, norm_val in eval_map.items():
             unique_matrices[block_id] = float(norm_val)
-
-        # Legacy fallback if O(1) map is missing (backward compatibility during migration)
-        if not eval_map:
-            for k, v in source.items():
-                if isinstance(k, str) and k.endswith("_is_evaluative") and v is True:
-                    block_id = k.replace("_is_evaluative", "")
-                    norm_key = f"{block_id}_normalized"
-                    if norm_key in source:
-                        unique_matrices[block_id] = float(source[norm_key])
-                elif isinstance(v, dict):
-                    _extract_scores(v)
 
     for item in candidates:
         if isinstance(item, dict):
@@ -176,8 +188,6 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
 
     final_score = average_score
     penalties = []
-
-    from backend_v2.models.enums import ScoringCalibrationThresholds
 
     total_penalty_factor = 0.0
 
@@ -246,10 +256,9 @@ def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> 
     # Logic: new_score = current_score * multiplier
     multiplier = settings.scoring_passivity_multiplier
 
-    logger.info("[ScoringHook] Enforcing passivity penalties (Multiplier: %s)...", multiplier)
-
     if not state:
-        return HookResult(success=True, state_delta={})
+        msg = "Strict Fail-Fast Enforced: Missing HookState in enforce_passivity_penalty_hook."
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     # V2 Architecture Isolation: Use the explicit execution context wrapper
     global_vars = state.global_context_vars
@@ -274,144 +283,73 @@ def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> 
         if not judge_model or not isinstance(judge_model, dict):
             continue
 
-        score_card = judge_model.get("score_card")
+        # Zero-Compromise Pledge: Strategy 1 (Legacy score_card) is eradicated.
+        # We exclusively process V2 Matrices (LightweightMatrixOutput).
+        if "score_card" in judge_model:
+            msg = (
+                f"Strict Fail-Fast Enforced: Legacy 'score_card' found in '{judge_key}'. "
+                "V1 monolithic judges are explicitly deprecated and banned."
+            )
+            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        # Strategy 1: Legacy Dimensions
-        if score_card and isinstance(score_card, dict):
-            if "scale_min" not in score_card:
-                from backend_v2.exceptions import AppException, ErrorCodes
+        penalty_triggered = False
+        scale_min = 1.0  # Default BARS scale minimum
 
-                msg = f"Strict Fail-Fast Enforced: Legacy score_card missing 'scale_min' in '{judge_key}'."
-                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                )
+        matrix_keys = []
+        for k, v in judge_model.items():
+            if isinstance(v, dict) and "raw_score" in v and "normalized_score" in v:
+                try:
+                    matrix_dto = LightweightMatrixOutput.model_validate(v)
+                    matrix_keys.append((k, matrix_dto))
+                except ValidationError:
+                    pass
 
-            scale_min = float(score_card["scale_min"])
-            dimensions = score_card.get("dimensions")
-            if not isinstance(dimensions, list):
-                dimensions = []
+        for k, matrix_dto in matrix_keys:
+            if matrix_dto.raw_score <= scale_min:
+                penalty_triggered = True
+                logger.warning("[ScoringHook] Passive/Low Quality detected in V2 Matrix '%s'", k)
+                break
 
-            penalty_triggered = False
-
-            for dim in dimensions:
-                if not isinstance(dim, dict):
-                    continue
-
-                if "score" not in dim or "dimension_id" not in dim:
-                    from backend_v2.exceptions import AppException, ErrorCodes
-
-                    msg = f"Strict Fail-Fast Enforced: Dimension missing 'score' or 'dimension_id' in '{judge_key}'."
-                    raise AppException(
-                        message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                    )
-
-                dim_score = float(dim["score"])
-                dim_id = str(dim["dimension_id"])
-
-                if dim_score <= scale_min:
-                    penalty_triggered = True
-                    logger.warning("[ScoringHook] Passive/Low Quality detected in %s dimension '%s'", judge_key, dim_id)
-                    break
-
-            if penalty_triggered:
-                logger.info("[ScoringHook] Applying Passivity Penalty to %s (Factor %s).", judge_key, multiplier)
-
-                if "total_score" not in score_card:
-                    from backend_v2.exceptions import AppException, ErrorCodes
-
-                    msg = f"Strict Fail-Fast Enforced: 'total_score' missing from score_card in '{judge_key}'."
-                    raise AppException(
-                        message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                    )
-
-                current_score = float(score_card["total_score"])
-                new_score = current_score * multiplier
-
-                if new_score < scale_min:
-                    logger.warning(
-                        "[ScoringHook] Passivity penalty reduced score (%s) below min (%s). Clamping.",
-                        new_score,
-                        scale_min,
-                    )
-                    new_score = scale_min
-
-                new_card = score_card.copy()
-                new_card["total_score"] = new_score
-                new_card["verdict"] = str(new_card.get("verdict", "")) + f" [PASSIVITY PENALTY x{multiplier:.2f}]"
-
-                if is_post_hook:
-                    new_data["score_card"] = new_card
-                else:
-                    new_judge = judge_model.copy()
-                    new_judge["score_card"] = new_card
-                    new_data[judge_key] = new_judge
-
-                updates_needed = True
-
-        # Strategy 2: V2 Matrix (Strict Schema via LightweightMatrixOutput)
-        else:
-            penalty_triggered = False
-            scale_min = 1.0  # Default BARS scale minimum
-
-            from pydantic import ValidationError
-
-            from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
-
-            matrix_keys = []
-            for k, v in judge_model.items():
-                if isinstance(v, dict) and "raw_score" in v and "normalized_score" in v:
-                    try:
-                        matrix_dto = LightweightMatrixOutput.model_validate(v)
-                        matrix_keys.append((k, matrix_dto))
-                    except ValidationError:
-                        pass
+        if penalty_triggered:
+            logger.info("[ScoringHook] Applying V2 Passivity Penalty to %s (Factor %s).", judge_key, multiplier)
+            new_judge = judge_model.copy()
 
             for k, matrix_dto in matrix_keys:
-                if matrix_dto.raw_score <= scale_min:
-                    penalty_triggered = True
-                    logger.warning("[ScoringHook] Passive/Low Quality detected in V2 Matrix '%s'", k)
-                    break
+                new_score = matrix_dto.raw_score * multiplier
+                if new_score < scale_min:
+                    new_score = scale_min
 
-            if penalty_triggered:
-                logger.info("[ScoringHook] Applying V2 Passivity Penalty to %s (Factor %s).", judge_key, multiplier)
-                new_judge = judge_model.copy()
+                new_norm = matrix_dto.normalized_score * multiplier
+                if new_norm < 0.0:
+                    new_norm = 0.0
 
-                for k, matrix_dto in matrix_keys:
-                    new_score = matrix_dto.raw_score * multiplier
-                    if new_score < scale_min:
-                        new_score = scale_min
+                justification = f"[PASSIVITY PENALTY x{multiplier:.2f}] " + matrix_dto.justification
 
-                    new_norm = matrix_dto.normalized_score * multiplier
-                    if new_norm < 0.0:
-                        new_norm = 0.0
+                new_dto = LightweightMatrixOutput(
+                    raw_score=new_score,
+                    normalized_score=new_norm,
+                    level_breakdown=matrix_dto.level_breakdown,
+                    justification=justification,
+                    evaluated_atoms=matrix_dto.evaluated_atoms,
+                    extensions=matrix_dto.extensions,
+                )
+                new_judge[k] = new_dto.model_dump(mode="json")
 
-                    justification = f"[PASSIVITY PENALTY x{multiplier:.2f}] " + matrix_dto.justification
+            # O(1) Map Update if using pre-computed map
+            eval_map = new_judge.get("_evaluative_matrices", {})
+            if eval_map:
+                for k, _ in matrix_keys:
+                    if k in eval_map:
+                        eval_map[k] = new_judge[k]["normalized_score"]
 
-                    new_dto = LightweightMatrixOutput(
-                        raw_score=new_score,
-                        normalized_score=new_norm,
-                        level_breakdown=matrix_dto.level_breakdown,
-                        justification=justification,
-                        evaluated_atoms=matrix_dto.evaluated_atoms,
-                        extensions=matrix_dto.extensions,
-                    )
-                    new_judge[k] = new_dto.model_dump(mode="json")
-
-                # O(1) Map Update if using pre-computed map
-                eval_map = new_judge.get("_evaluative_matrices", {})
-                if eval_map:
-                    for k, _ in matrix_keys:
-                        if k in eval_map:
-                            eval_map[k] = new_judge[k]["normalized_score"]
-
-                if is_post_hook:
-                    for k, v in new_judge.items():
-                        if k in judge_model and judge_model[k] != v:
-                            new_data[k] = v
-                else:
-                    new_data[judge_key] = new_judge
-                updates_needed = True
+            if is_post_hook:
+                for k, v in new_judge.items():
+                    if k in judge_model and judge_model[k] != v:
+                        new_data[k] = v
+            else:
+                new_data[judge_key] = new_judge
+            updates_needed = True
 
     if updates_needed:
         return HookResult(success=True, state_delta=new_data)
@@ -426,25 +364,21 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
 
     repository = deps.repository
     if not repository:
-        logger.warning("[ScoringHook] No repository provided in HookDependencies. Skipping hybrid scoring.")
-        return HookResult(success=True, state_delta={})
+        msg = "Strict Fail-Fast Enforced: No repository provided in HookDependencies for waterfall_scoring_hook."
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
 
     if not isinstance(state.inputs, dict):
-        logger.debug("[ScoringHook] State inputs is not a dictionary. Skipping.")
-        return HookResult(success=True, state_delta={})
+        msg = "Strict Fail-Fast Enforced: State inputs must be a dictionary in waterfall_scoring_hook."
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     blueprint_id = state.task_blueprint or state.step_id
     if not blueprint_id:
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         msg = "Strict Fail-Fast Enforced: No blueprint_id or step_id provided to waterfall_scoring_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     try:
         step_obj = await repository.get_step_by_id(blueprint_id)
         if not step_obj:
-            from backend_v2.exceptions import AppException, ErrorCodes
-
             msg = f"Strict Fail-Fast Enforced: Step blueprint '{blueprint_id}' not found in database."
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
@@ -468,8 +402,6 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
 
         content_payload = state.inputs
         if "evaluations" not in content_payload:
-            from backend_v2.exceptions import AppException, ErrorCodes
-
             msg = (
                 f"Strict Fail-Fast Enforced: 'evaluations' array is completely missing from state.inputs "
                 f"for step '{blueprint_id}'. Upstream atomization payload failed."
@@ -484,8 +416,6 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
         evaluations = content_payload["evaluations"]
 
         if not isinstance(evaluations, list) or len(evaluations) == 0:
-            from backend_v2.exceptions import AppException, ErrorCodes
-
             msg = f"Strict Fail-Fast Enforced: 'evaluations' array is empty or not a list for step '{blueprint_id}'."
             logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(
@@ -494,20 +424,6 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        import hashlib
-
-        from backend_v2.models.enums import (
-            CognitiveFlowStatus,
-            CognitiveFlowThreshold,
-            EvaluationMandate,
-            WaterfallThreshold,
-        )
-        from backend_v2.utils.math_utils import (
-            calculate_progressive_dampening_score,
-            calculate_waterfall_floor,
-            calculate_weighted_score,
-        )
-
         atom_mapping = {}
         blocks_meta: dict[str, dict[str, Any]] = {}
 
@@ -515,8 +431,6 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
         for pb_id, pb_dict in matrix_blocks:
             scales = pb_dict.get("scales", [])
             if not scales:
-                from backend_v2.exceptions import AppException, ErrorCodes
-
                 msg = f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' has no scales."
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
@@ -553,8 +467,6 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
 
             # Fail-fast: Ei fallbackeja. Korjattu normaalin virhehallinnan tyyliin.
             if not blocks_meta[pb_id]["scales"]:
-                from backend_v2.exceptions import AppException, ErrorCodes
-
                 msg = f"PromptBlock '{pb_id}' scales array failed to provide numeric values for waterfall bounds."
                 logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                 raise AppException(
@@ -571,15 +483,18 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
 
         # 2. Iterate evaluations
         for ev in evaluations:
-            # Handle both dict and Pydantic object inputs
-            if isinstance(ev, dict):
-                atom_id = ev.get("atom_id")
-                boolean_val = ev.get("boolean", False)
-                reasoning = ev.get("reasoning", "")
-            else:
-                atom_id = getattr(ev, "atom_id", None)
-                boolean_val = getattr(ev, "boolean", False)
-                reasoning = getattr(ev, "reasoning", "")
+            if not isinstance(ev, dict):
+                msg = f"Strict Fail-Fast Enforced: 'evaluations' array item must be a dictionary. Found {type(ev)}."
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+
+            atom_id = ev.get("atom_id")
+            boolean_val = ev.get("boolean", False)
+            reasoning = ev.get("reasoning", "")
 
             if not atom_id:
                 continue
@@ -612,91 +527,124 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
         new_payload = content_payload.copy()
         updates_made = False
 
+        total_true_atoms = 0
+        total_false_atoms = 0
+
         for pb_id, stats in block_scale_stats.items():
             meta = blocks_meta[pb_id]
             math_min = float(meta["math_min"])
             math_max = float(meta["math_max"])
 
-            # Shadow calculations for XAI logging
-            floor_score = calculate_waterfall_floor(stats, math_min, threshold=WaterfallThreshold.STANDARD.value)
-            weighted_score = calculate_weighted_score(stats, math_min, math_max)
+            global_total = sum(level_data["total"] for level_data in stats.values())
+            global_hits = sum(level_data["hits"] for level_data in stats.values())
 
-            # --- DINA Progressive Dampening Calculation ---
-            # V2 Optimal Math Model: Square Root Dampening natively creates natural Gaussian variance
-            # without requiring an artificial safety net floor. DINA_FLOOR is completely removed.
-            dampening_score = calculate_progressive_dampening_score(stats, math_min, math_max)
+            total_true_atoms += global_hits
+            total_false_atoms += global_total - global_hits
 
-            # Formatting the calculation log (Cognitive Diagnostic Model)
-            log_lines = ["### Cognitive Diagnostic Model (CDM) Breakdown:"]
-            sorted_levels = sorted(stats.keys())
-
-            modifier = 1.0
-            global_hits = 0
-            global_total = 0
-
-            for s_level in sorted_levels:
-                level_data = stats[s_level]
-                t_hits = level_data["hits"]
-                t_total = level_data["total"]
-
-                global_hits += t_hits
-                global_total += t_total
-
-                hit_rate = (t_hits / t_total) if t_total > 0 else 0.0
-                pct = int(hit_rate * 100)
-
-                if s_level == math_min:
-                    modifier = hit_rate
-                    log_lines.append(
-                        f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - Cognitive Flow: {modifier:.2f})"
-                    )
-                else:
-                    if hit_rate >= CognitiveFlowThreshold.OPTIMAL.value:
-                        status = CognitiveFlowStatus.OPTIMAL.value
-                    elif hit_rate >= CognitiveFlowThreshold.ACCEPTABLE.value:
-                        status = f"{CognitiveFlowStatus.ACCEPTABLE.value} ({hit_rate:.2f})"
-                    else:
-                        status = f"{CognitiveFlowStatus.WEAK.value} ({hit_rate:.2f})"
-
-                    log_lines.append(f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - {status})")
-                    modifier = modifier * hit_rate
-
-            log_lines.append("")
-            log_lines.append("**Shadow Calculation Data:**")
-            log_lines.append(f"1. *Raw Weighted Average:* {weighted_score:.2f} (Linear hits)")
-            log_lines.append(f"2. *Legacy Waterfall Floor:* {floor_score:.1f} (Cutoff point)")
-
-            diff = weighted_score - dampening_score
-            if diff > CognitiveFlowThreshold.SIGNIFICANT_DROP_DIFF.value:
-                log_lines.append(
-                    f"-> Deficiencies in foundation credibility dampen the final score significantly (-{diff:.2f})."
+            if global_total == 0:
+                logger.warning(
+                    "[ScoringHook] total_atoms == 0 for block %s. Falling back to math_min (%.1f).",
+                    pb_id,
+                    math_min,
                 )
-
-            log_lines.append(f"**Final CDM Score:** {dampening_score:.2f}")
-
-            calculation_log = "\n".join(log_lines)
-
-            # Epic 24: Tasokohtainen erittely scorecardia varten (JSON-yhteensopivat string-avaimet)
-            level_breakdown = {str(k): {"hits": v["hits"], "total": v["total"]} for k, v in stats.items()}
-
-            # Inject to new payload so normalize_matrix_scores_hook can scale it further
-            existing_val = new_payload.get(pb_id)
-            if isinstance(existing_val, dict):
-                # Enforce hybrid scoring update inside the existing Micro-CoT dictionary
-                new_payload[pb_id] = existing_val.copy()
-                new_payload[pb_id]["step_4_final_score"] = float(dampening_score)
-                new_payload[pb_id]["waterfall_calculation_log"] = calculation_log
-                new_payload[pb_id]["true_atoms"] = global_hits
-                new_payload[pb_id]["false_atoms"] = global_total - global_hits
-                new_payload[pb_id]["total_atoms"] = global_total
-                new_payload[pb_id]["level_breakdown"] = level_breakdown
+                dampening_score = math_min
+                weighted_score = math_min
+                floor_score = math_min
+                calculation_log = (
+                    "### Cognitive Diagnostic Model (CDM) Breakdown:\n\n"
+                    f"No evaluations provided (total_atoms=0). Score defaults to math_min ({math_min})."
+                )
+                level_breakdown = {str(k): {"hits": v["hits"], "total": v["total"]} for k, v in stats.items()}
             else:
-                new_payload[pb_id] = float(dampening_score)
-                new_payload[f"{pb_id}_justification"] = calculation_log
-                new_payload[f"{pb_id}_true_atoms"] = global_hits
-                new_payload[f"{pb_id}_false_atoms"] = global_total - global_hits
-                new_payload[f"{pb_id}_total_atoms"] = global_total
-                new_payload[f"{pb_id}_level_breakdown"] = level_breakdown
+                # Shadow calculations for XAI logging
+                floor_score = calculate_waterfall_floor(stats, math_min, threshold=WaterfallThreshold.STANDARD.value)
+                weighted_score = calculate_weighted_score(stats, math_min, math_max)
+
+                # --- DINA Progressive Dampening Calculation ---
+                # V2 Optimal Math Model: Square Root Dampening natively creates natural Gaussian variance
+                # without requiring an artificial safety net floor. DINA_FLOOR is completely removed.
+                dampening_score = calculate_progressive_dampening_score(stats, math_min, math_max)
+
+                # Formatting the calculation log (Cognitive Diagnostic Model)
+                log_lines = ["### Cognitive Diagnostic Model (CDM) Breakdown:"]
+                sorted_levels = sorted(stats.keys())
+
+                modifier = 1.0
+
+                for s_level in sorted_levels:
+                    level_data = stats[s_level]
+                    t_hits = level_data["hits"]
+                    t_total = level_data["total"]
+
+                    hit_rate = (t_hits / t_total) if t_total > 0 else 0.0
+                    pct = int(hit_rate * 100)
+
+                    if s_level == math_min:
+                        modifier = hit_rate
+                        log_lines.append(
+                            f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - Cognitive Flow: {modifier:.2f})"
+                        )
+                    else:
+                        if hit_rate >= CognitiveFlowThreshold.OPTIMAL.value:
+                            status = CognitiveFlowStatus.OPTIMAL.value
+                        elif hit_rate >= CognitiveFlowThreshold.ACCEPTABLE.value:
+                            status = f"{CognitiveFlowStatus.ACCEPTABLE.value} ({hit_rate:.2f})"
+                        else:
+                            status = f"{CognitiveFlowStatus.WEAK.value} ({hit_rate:.2f})"
+
+                        log_lines.append(f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - {status})")
+                        modifier = modifier * hit_rate
+
+                log_lines.append("")
+                log_lines.append("**Shadow Calculation Data:**")
+                log_lines.append(f"1. *Raw Weighted Average:* {weighted_score:.2f} (Linear hits)")
+                log_lines.append(f"2. *Legacy Waterfall Floor:* {floor_score:.1f} (Cutoff point)")
+
+                diff = weighted_score - dampening_score
+                if diff > CognitiveFlowThreshold.SIGNIFICANT_DROP_DIFF.value:
+                    log_lines.append(
+                        f"-> Deficiencies in foundation credibility dampen the final score significantly (-{diff:.2f})."
+                    )
+
+                log_lines.append(f"**Final CDM Score:** {dampening_score:.2f}")
+
+                calculation_log = "\n".join(log_lines)
+                level_breakdown = {str(k): {"hits": v["hits"], "total": v["total"]} for k, v in stats.items()}
+
+            # The Anti-TDD Trap & Zero-Compromise Pledge: We intercept the payload with a strict Pydantic adapter
+            # and guarantee all outputs are mapped into the strict MicroCotDTO, eliminating naked keys.
+
+            existing_val = new_payload.get(pb_id)
+            if existing_val is not None:
+                try:
+                    parsed_payload = StrictMatrixPayload.model_validate(existing_val).root
+
+                except Exception as e:
+                    # Fail-Fast: If it's an unrecognized structure, crash the pipeline
+                    logger.error(
+                        "[ScoringHook] %s: Invalid matrix payload for '%s': %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        pb_id,
+                        e,
+                    )
+
+                    raise AppException(
+                        message=f"Strict Fail-Fast: Invalid matrix payload for {pb_id}",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from e
+            else:
+                parsed_payload = MicroCotDTO()
+
+            # Enforce the calculation injection inside the strict DTO
+            parsed_payload.step_4_final_score = float(dampening_score)
+            parsed_payload.waterfall_calculation_log = calculation_log
+            parsed_payload.true_atoms = global_hits
+            parsed_payload.false_atoms = global_total - global_hits
+            parsed_payload.total_atoms = global_total
+            parsed_payload.level_breakdown = level_breakdown
+
+            new_payload[pb_id] = parsed_payload.model_dump(exclude_none=True)
 
             # Use extending logic to append without overwriting previous UI texts
             if missing_atoms_by_block[pb_id]:
@@ -705,11 +653,11 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
             updates_made = True
 
         if updates_made:
+            new_payload["true_atoms_count"] = total_true_atoms
+            new_payload["false_atoms_count"] = total_false_atoms
             return HookResult(success=True, state_delta=new_payload)
 
     except Exception as e:
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         if isinstance(e, AppException):
             raise
         msg = f"Hybrid waterfall scoring failed for step '{blueprint_id}': {e}"
@@ -739,14 +687,14 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
     repository = deps.repository
     if not repository:
-        logger.warning("[ScoringHook] No repository provided in HookDependencies. Skipping normalization.")
-        return HookResult(success=True, state_delta={})
+        msg = "Strict Fail-Fast Enforced: No repository provided in HookDependencies for normalize_matrix_scores_hook."
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
 
     # V2 Fast-Fail Architecture: State is now a strictly isolated dictionary (DAGExecutor final_dict)
     # We depend on _sys_step_id being injected during the execution context.
     if not isinstance(state.inputs, dict):
-        logger.debug("[ScoringHook] State inputs is not a dictionary. Skipping.")
-        return HookResult(success=True, state_delta={})
+        msg = "Strict Fail-Fast Enforced: State inputs must be a dictionary in normalize_matrix_scores_hook."
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     # Look up the PromptBlocks from the task_blueprint (the actual Step model schema)
     # rather than the workflow's StepRule instance ID, which lacks the prompt_blocks array.
@@ -755,8 +703,6 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
     content_payload = state.inputs
 
     if not blueprint_id:
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         msg = "Strict Fail-Fast Enforced: No blueprint_id or step_id found in execution context for normalization."
         logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
@@ -764,8 +710,6 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
     try:
         step_obj = await repository.get_step_by_id(blueprint_id)
         if not step_obj:
-            from backend_v2.exceptions import AppException, ErrorCodes
-
             msg = f"Strict Fail-Fast Enforced: Step blueprint '{blueprint_id}' not found in registry."
             logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
             raise AppException(
@@ -785,103 +729,71 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             if pb_id not in new_payload:
                 continue
 
-            # Epic 12: Micro-CoT Nested Dictionary Support && XAI Mapping
+            # The Anti-TDD Trap & Zero-Compromise Pledge: We intercept the payload with a strict Pydantic adapter
             raw_input_val = new_payload[pb_id]
 
-            import json
-
-            from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
-            from backend_v2.models.enums import XaiExtensionType
+            try:
+                parsed_payload = StrictMatrixPayload.model_validate(raw_input_val).root
+            except Exception as e:
+                # Strictly fail-fast, Graceful Degradation is banned!
+                msg = f"Strict Fail-Fast Enforced: Invalid input for normalization at PromptBlock '{pb_id}': {e}"
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
 
             extensions: dict[XaiExtensionType, str] = {}
             justification = ""
             level_breakdown: dict[str, Any] = {}
             evaluated_atoms: dict[str, bool] = {}
 
-            if isinstance(raw_input_val, dict):
-                # Strict Schema Mapping for XAI attributes!
-                if "step_1_evidence_quote" in raw_input_val:
-                    extensions[XaiExtensionType.CITATION] = str(raw_input_val["step_1_evidence_quote"])
-                    # Legacy UI mapping requirement
-                    new_payload[f"{pb_id}_cited_text_quote"] = raw_input_val["step_1_evidence_quote"]
-                if "step_1b_cited_source_id" in raw_input_val:
-                    extensions[XaiExtensionType.SOURCE_ID] = str(raw_input_val["step_1b_cited_source_id"])
-                    # Legacy UI mapping requirement
-                    new_payload[f"{pb_id}_cited_source_id"] = raw_input_val["step_1b_cited_source_id"]
-                if "step_2_falsification" in raw_input_val:
-                    extensions[XaiExtensionType.FALSIFICATION] = str(raw_input_val["step_2_falsification"])
-                    new_payload[f"{pb_id}_falsification"] = raw_input_val["step_2_falsification"]
-                if "extension_coaching" in raw_input_val:
-                    extensions[XaiExtensionType.COACHING] = str(raw_input_val["extension_coaching"])
-                    new_payload[f"{pb_id}_coaching"] = raw_input_val["extension_coaching"]
-                if "extension_theory_link" in raw_input_val:
-                    extensions[XaiExtensionType.THEORY_LINK] = str(raw_input_val["extension_theory_link"])
-                    new_payload[f"{pb_id}_theory_link"] = raw_input_val["extension_theory_link"]
-                if "extension_emotional_sentiment" in raw_input_val:
-                    extensions[XaiExtensionType.EMOTIONAL_SENTIMENT] = str(
-                        raw_input_val["extension_emotional_sentiment"]
-                    )
-                    new_payload[f"{pb_id}_emotional_sentiment"] = raw_input_val["extension_emotional_sentiment"]
-                if "extension_remediation_steps" in raw_input_val:
-                    extensions[XaiExtensionType.REMEDIATION_STEPS] = str(raw_input_val["extension_remediation_steps"])
-                    new_payload[f"{pb_id}_remediation_steps"] = raw_input_val["extension_remediation_steps"]
+            # Strict Schema Mapping for XAI attributes! Naked state keys eradicated.
+            if parsed_payload.step_1_evidence_quote is not None:
+                extensions[XaiExtensionType.CITATION] = str(parsed_payload.step_1_evidence_quote)
+            if parsed_payload.step_1b_cited_source_id is not None:
+                extensions[XaiExtensionType.SOURCE_ID] = str(parsed_payload.step_1b_cited_source_id)
+            if parsed_payload.step_2_falsification is not None:
+                extensions[XaiExtensionType.FALSIFICATION] = str(parsed_payload.step_2_falsification)
+            if parsed_payload.extension_coaching is not None:
+                extensions[XaiExtensionType.COACHING] = str(parsed_payload.extension_coaching)
+            if parsed_payload.extension_theory_link is not None:
+                extensions[XaiExtensionType.THEORY_LINK] = str(parsed_payload.extension_theory_link)
+            if parsed_payload.extension_emotional_sentiment is not None:
+                extensions[XaiExtensionType.EMOTIONAL_SENTIMENT] = str(parsed_payload.extension_emotional_sentiment)
+            if parsed_payload.extension_remediation_steps is not None:
+                extensions[XaiExtensionType.REMEDIATION_STEPS] = str(parsed_payload.extension_remediation_steps)
 
-                for metric in ["true_atoms", "false_atoms", "total_atoms"]:
-                    if metric in raw_input_val:
-                        new_payload[f"{pb_id}_{metric}"] = raw_input_val[metric]
+            if parsed_payload.level_breakdown is not None:
+                level_breakdown = parsed_payload.level_breakdown
 
-                if "level_breakdown" in raw_input_val:
-                    level_breakdown = raw_input_val["level_breakdown"]
-                    new_payload[f"{pb_id}_level_breakdown"] = level_breakdown
+            # The core reasoning and notes replace the global fallback, avoiding hardcoded markdown
+            just_parts = []
+            if parsed_payload.evaluation_notes:
+                just_parts.append(str(parsed_payload.evaluation_notes))
+            if parsed_payload.step_3_logical_friction:
+                just_parts.append(str(parsed_payload.step_3_logical_friction))
 
-                # The core reasoning and notes replace the global fallback, avoiding hardcoded markdown
-                just_parts = []
-                if "evaluation_notes" in raw_input_val and raw_input_val["evaluation_notes"]:
-                    just_parts.append(str(raw_input_val["evaluation_notes"]))
-                if "step_3_logical_friction" in raw_input_val and raw_input_val["step_3_logical_friction"]:
-                    just_parts.append(str(raw_input_val["step_3_logical_friction"]))
+            if just_parts:
+                justification = "\n\n".join(just_parts)
+                updates_made = True
 
-                if just_parts:
-                    existing_just = new_payload.get(f"{pb_id}_justification", "")
-                    if existing_just:
-                        justification = existing_just + "\n\n---\n\n" + "\n\n".join(just_parts)
-                    else:
-                        justification = "\n\n".join(just_parts)
-                    updates_made = True
+            if parsed_payload.step_4_final_score is not None:
+                raw_val = parsed_payload.step_4_final_score
+            else:
+                raw_val = None
 
-                # Keep text as text, numbers as numbers (Tapa 1 vs Tapa 2)
-                if "step_4_final_score" in raw_input_val:
-                    # Tapa 1: Extract numeric score and continue to scale logic
-                    raw_input_val = raw_input_val["step_4_final_score"]
-                else:
-                    # Tapa 2: String-only block. Ensure justification is mapped back for UI.
-                    if justification:
-                        new_payload[f"{pb_id}_justification"] = justification
-                    continue
-
-            # --- Raw Float Cast Enforcement (V8 Pipeline) ---
-            # Ensure the raw value itself is cast to a strict float so it hits the database
-            # as a number, not a string representation of a number.
-            try:
-                raw_val = float(raw_input_val)  # Always ensure we deal with flat numeric value mathematically
-            except (ValueError, TypeError):
-                # Graceful Degradation: Log info before skipping.
-                # Non-numeric outputs (like JSON blobs or reasoning traces) are expected for text PromptBlocks.
-                # Downgraded from ERROR to DEBUG to avoid terrifying the user with stack traces.
-                logger.debug(
-                    "[ScoringHook] Non-numeric data for '%s', skipping score normalization. Value snippet: %s...",
-                    pb_id,
-                    str(new_payload[pb_id])[:100],
-                )
-                continue
+            if raw_val is None:
+                # String-only block, ensure justification is stored correctly inside LightweightMatrixOutput
+                raw_val = 0.0  # BARS/matrix always requires numeric score for scaling, text block uses 0.0
+                # We do not continue here, we must construct the LightweightMatrixOutput!
 
             if not isinstance(raw_val, (int, float)):
                 continue
 
             pb = await repository.get_prompt_block_by_id(pb_id)
             if not pb:
-                from backend_v2.exceptions import AppException, ErrorCodes
-
                 msg = f"Strict Fail-Fast Enforced: Missing PromptBlock '{pb_id}' during score normalization."
                 logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
                 raise AppException(
@@ -899,8 +811,6 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
             # FAIL-FAST: The scales array MUST dictate the internal math boundaries.
             if not scales:
-                from backend_v2.exceptions import AppException, ErrorCodes
-
                 msg = f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' missing 'scales' array."
                 logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                 raise AppException(
@@ -912,8 +822,6 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             display_max = pb_dict.get("scale_max")
 
             if display_min is None or display_max is None:
-                from backend_v2.exceptions import AppException, ErrorCodes
-
                 msg = (
                     f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' missing explicit display "
                     "'scale_min' or 'scale_max' in database. Fallback estimates are forbidden."
@@ -930,8 +838,6 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                     try:
                         scores_in_scales.append(float(val))
                     except (TypeError, ValueError) as e:
-                        from backend_v2.exceptions import AppException, ErrorCodes
-
                         msg = f"Corrupted scale value '{val}' in PromptBlock '{pb_id}'. Expected float."
                         logger.error(
                             "[ScoringHook] %s: %s",
@@ -946,9 +852,14 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                         ) from e
 
             if not scores_in_scales:
-                continue
-
-            from backend_v2.utils.math_utils import normalize_score_to_100, scale_to_custom_range
+                msg = (
+                    f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' has a 'scales' array, "
+                    "but no valid numeric scores could be extracted from it."
+                )
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                )
 
             # 1. The original AI output, calculated on the internal Math bounds
             raw_float = float(raw_val)
@@ -972,12 +883,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 math_max=math_max,
             )
 
-            # Strip out the ||DECIMAL: X.Y|| Chain-of-Thought tag from justification
-            # before saving (Legacy V1 Support)
-            import re
-
-            cleaned_just = re.sub(r"\|\|DECIMAL:\s*[0-9.]+\|\|", "", justification)
-            justification = cleaned_just.strip()
+            justification = justification.strip()
 
             # Replace legacy flattening with strict schema mapping!
             matrix_dto = LightweightMatrixOutput(
@@ -997,9 +903,6 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
             new_payload["_evaluative_matrices"] = eval_map
 
-            # UI Traceability Fallback (Keep explicitly required fields)
-            new_payload[f"{pb_id}_justification"] = justification
-
             updates_made = True
             logger.info(
                 "[ScoringHook] 3-Tier Score '%s': Raw=%s, Scaled=%s, Normalized=%s",
@@ -1014,8 +917,6 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             return HookResult(success=True, state_delta=new_payload)
 
     except Exception as e:
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         if isinstance(e, AppException):
             raise
 

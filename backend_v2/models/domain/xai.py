@@ -5,9 +5,11 @@ including the final report output and context for report generation.
 """
 
 import logging
-from typing import Any
+from typing import Any, Literal, Union, Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from backend_v2.models.enums import XaiExtensionType
 
 from backend_v2.exceptions import AppException, ErrorCodes
 
@@ -69,8 +71,105 @@ class XAIScoreItem(BaseModel):
         return str(v).strip()
 
 
+class CitationExtension(BaseModel):
+    extension_type: Literal[XaiExtensionType.CITATION] = XaiExtensionType.CITATION
+    source_id: str
+    snippet: str
+    url: str | None = None
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+class JustificationExtension(BaseModel):
+    extension_type: Literal[XaiExtensionType.JUSTIFICATION] = XaiExtensionType.JUSTIFICATION
+    reasoning: str
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+class FalsificationExtension(BaseModel):
+    extension_type: Literal[XaiExtensionType.FALSIFICATION] = XaiExtensionType.FALSIFICATION
+    counter_argument: str
+    vulnerabilities: list[str]
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+class TheoryLinkExtension(BaseModel):
+    extension_type: Literal[XaiExtensionType.THEORY_LINK] = XaiExtensionType.THEORY_LINK
+    theory_name: str
+    relevance: str
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+class RiskFlagExtension(BaseModel):
+    extension_type: Literal[XaiExtensionType.RISK_FLAG] = XaiExtensionType.RISK_FLAG
+    risk_level: str
+    description: str
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+class CoachingExtension(BaseModel):
+    extension_type: Literal[XaiExtensionType.COACHING] = XaiExtensionType.COACHING
+    actionable_steps: list[str]
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+class MissingContextExtension(BaseModel):
+    extension_type: Literal[XaiExtensionType.MISSING_CONTEXT] = XaiExtensionType.MISSING_CONTEXT
+    context_needed: str
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+class RemediationStepsExtension(BaseModel):
+    extension_type: Literal[XaiExtensionType.REMEDIATION_STEPS] = XaiExtensionType.REMEDIATION_STEPS
+    steps: list[str]
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+class EmotionalSentimentExtension(BaseModel):
+    extension_type: Literal[XaiExtensionType.EMOTIONAL_SENTIMENT] = XaiExtensionType.EMOTIONAL_SENTIMENT
+    sentiment: str
+    intensity: float
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+class ConfidenceExtension(BaseModel):
+    extension_type: Literal[XaiExtensionType.CONFIDENCE] = XaiExtensionType.CONFIDENCE
+    confidence_score: float
+    rationale: str
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+class SourceIDExtension(BaseModel):
+    extension_type: Literal[XaiExtensionType.SOURCE_ID] = XaiExtensionType.SOURCE_ID
+    source_id: str
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+XAIExtension = Annotated[
+    Union[
+        CitationExtension,
+        JustificationExtension,
+        FalsificationExtension,
+        TheoryLinkExtension,
+        RiskFlagExtension,
+        CoachingExtension,
+        MissingContextExtension,
+        RemediationStepsExtension,
+        EmotionalSentimentExtension,
+        ConfidenceExtension,
+        SourceIDExtension,
+    ],
+    Field(discriminator="extension_type")
+]
+
+
+class ComparisonDataDTO(BaseModel):
+    baseline_score: float | None = None
+    delta: float | None = None
+    trend: str | None = None
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+
 class XAIOutputDTO(ReasoningTraceDTO):
     """Data Transfer Object for XAI Reporter Agent (Content Only)."""
+
+    output_extensions: list[XAIExtension] = Field(
+        default_factory=list,
+        description="Polymorphic list of XAI extensions.",
+    )
+    comparison_data: ComparisonDataDTO | None = Field(
+        default=None,
+        description="Structured comparison data.",
+        json_schema_extra={"x-ui-label": "Comparison Data"},
+    )
 
     executive_summary: str = Field(
         ...,
@@ -127,16 +226,8 @@ class XAIOutputDTO(ReasoningTraceDTO):
         description="Markdown formatted report.",
         json_schema_extra={"x-ui-label": "Formatted Report"},
     )
-    comparison_data: dict[str, Any] | None = Field(
-        default=None,
-        description="Structured comparison data.",
-        json_schema_extra={"x-ui-label": "Comparison Data"},
-    )
-    grouped_extensions: dict[str, list[Any]] | None = Field(
-        default_factory=dict, description="Keskitetysti ryhmitellyt XAI-laajennukset (esim. 'citation': [...])"
-    )
-
-    model_config = ConfigDict(frozen=True, extra="ignore")
+    
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator(
         "executive_summary",

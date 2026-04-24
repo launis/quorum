@@ -553,11 +553,11 @@ class PromptCompiler:
                 )
             if "remediation_steps" in extensions:
                 sub_fields["extension_remediation_steps"] = (
-                    list[str],
+                    str,
                     Field(
                         ...,
                         description=(
-                            "Actionable array of all necessary textual remediation steps. "
+                            "Actionable textual remediation steps, formatted clearly and separated by newlines. "
                             f"MANDATORY LANGUAGE: '{target_locale}'."
                         ),
                     ),

@@ -302,6 +302,7 @@ const _$XaiExtensionTypeEnumMap = {
   XaiExtensionType.remediationSteps: 'remediation_steps',
   XaiExtensionType.emotionalSentiment: 'emotional_sentiment',
   XaiExtensionType.confidence: 'confidence',
+  XaiExtensionType.sourceId: 'source_id',
 };
 
 _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(

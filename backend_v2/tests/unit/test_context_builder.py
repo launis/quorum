@@ -18,7 +18,14 @@ def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -
 
     state_data = {
         "steps": {
-            "eval_step": {"normalized_score": 0.8},
+            "eval_step": {
+                "raw_score": 5.0,
+                "normalized_score": 0.8,
+                "level_breakdown": "3/5",
+                "justification": "Good",
+                "evaluated_atoms": {"atom1": True, "atom2": False},
+                "extensions": {}
+            },
             "atom_step": {"atoms": ["a", "b", "c"]},
             "raw_step": {"history_text": "huge string"},
             "other_step": {"custom": "data"},
@@ -36,20 +43,15 @@ def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -
         mock_context_router,
     )
 
-    llm_context_data, _ = ContextBuilder.build(
-        input_mappings=input_mappings,
-        state_data=state_data,
-        output_profile=None,
-    )
+    with pytest.raises(AppException) as exc_info:
+        ContextBuilder.build(
+            input_mappings=input_mappings,
+            state_data=state_data,
+            output_profile=None,
+        )
 
-    steps_context = llm_context_data["steps"]
-    assert "omitted_raw_atoms" in steps_context
-    assert '"count": 3' in steps_context
-    assert "omitted_raw_input_data" in steps_context
-    assert "custom" in steps_context
-
-    assert llm_context_data["atom_step"] == {"status": "omitted_raw_atoms", "count": 3}
-    assert llm_context_data["raw_step"] == {"status": "omitted_raw_input_data"}
+    assert "validation errors for LightweightMatrixOutput" in str(exc_info.value.message)
+    assert exc_info.value.status_code == 400
 
 
 def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -60,6 +62,7 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
     # Mock ContextRouter
     mock_context_router = MagicMock()
     mock_pruned = MagicMock()
+    mock_pruned.model_dump.return_value = {"pruned": True}
     mock_pruned.model_dump_json.return_value = '{"pruned": True}'
     mock_context_router.route_and_prune.return_value = mock_pruned
     monkeypatch.setattr(
@@ -76,7 +79,16 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
     state_data = {
         "document_text": "Sample text",
         "nested": {"value": 123},
-        "steps": {"step1": {"normalized_score": 0.8, "raw": "data"}},
+        "steps": {
+            "step1": {
+                "raw_score": 5.0,
+                "normalized_score": 0.8,
+                "level_breakdown": "3/5",
+                "justification": "Good",
+                "evaluated_atoms": {"atom1": True, "atom2": False},
+                "extensions": {}
+            }
+        },
     }
 
     llm_context_data, new_input_mappings = ContextBuilder.build(
@@ -93,15 +105,17 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert "step1" in llm_context_data
     assert "<matrix_data>" in llm_context_data["step1"]
-    assert '{"pruned": True}' in llm_context_data["step1"]
+    assert '"pruned": true' in llm_context_data["step1"]
 
     assert new_input_mappings["text_field"] == "$document_text"
 
 
 def test_context_builder_build_token_limit_exceeded(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that TokenLimitExceededError is raised when mapping exceeds limit."""
+    from backend_v2.models.enums import SystemConcurrency
     # Mock litellm.token_counter to return a number larger than MAX_SAFE_TOKENS
-    monkeypatch.setattr("litellm.token_counter", lambda model, text: ContextBuilder.MAX_SAFE_TOKENS + 1)
+    limit = SystemConcurrency.MAX_SAFE_TOKENS.value
+    monkeypatch.setattr("litellm.token_counter", lambda model, text: limit + 1)
 
     input_mappings = {
         "large_text": "$document_text",
@@ -132,7 +146,18 @@ def test_context_builder_build_trace_pruning_fails_fast(monkeypatch: pytest.Monk
     )
 
     input_mappings = {"trace_field": "$steps.step1"}
-    state_data = {"steps": {"step1": {"normalized_score": 0.8, "raw": "data"}}}
+    state_data = {
+        "steps": {
+            "step1": {
+                "raw_score": 5.0,
+                "normalized_score": 0.8,
+                "level_breakdown": "3/5",
+                "justification": "Good",
+                "evaluated_atoms": {"atom1": True, "atom2": False},
+                "extensions": {}
+            }
+        }
+    }
 
     with pytest.raises(AppException) as exc_info:
         ContextBuilder.build(input_mappings, state_data, None)

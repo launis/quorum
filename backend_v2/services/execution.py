@@ -107,6 +107,25 @@ class ExecutionService:
                 if raw_data.get(key):
                     try:
                         await storage.delete(raw_data[key])
+                    except AppException as e:
+                        if e.status_code == 404:
+                            logger.warning(
+                                "[ExecutionService] Blob %s not found during cleanup, ignoring.", raw_data[key]
+                            )
+                            continue
+                        msg = f"Failed to clean up blob {raw_data[key]} during execution deletion."
+                        logger.error(
+                            "[ExecutionService] %s: %s",
+                            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                            msg,
+                            exc_info=True,
+                            extra={"execution_id": execution_id},
+                        )
+                        raise AppException(
+                            message=msg,
+                            status_code=500,
+                            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                        ) from e
                     except Exception as e:
                         msg = f"Failed to clean up blob {raw_data[key]} during execution deletion."
                         logger.error(
@@ -390,6 +409,15 @@ class ExecutionService:
             try:
                 storage = get_storage_driver()
                 await storage.delete(execution.pdf_report_path)
+            except AppException as e:
+                if e.status_code == 404:
+                    logger.warning("[ExecutionService] Old PDF blob %s not found, ignoring.", execution.pdf_report_path)
+                else:
+                    msg = "Failed to delete old PDF blob"
+                    logger.error("[ExecutionService] %s", msg, exc_info=True)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                    ) from e
             except Exception as e:
                 msg = "Failed to delete old PDF blob"
                 logger.error("[ExecutionService] %s", msg, exc_info=True)

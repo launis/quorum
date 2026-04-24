@@ -40,6 +40,8 @@ enum XaiExtensionType {
   emotionalSentiment,
   @JsonValue('confidence')
   confidence,
+  @JsonValue('source_id')
+  sourceId,
 }
 
 /// Static UI Renderer presets for report blocks.

@@ -113,14 +113,31 @@ def test_enforce_passivity_penalty_hook_v2_matrix(monkeypatch: pytest.MonkeyPatc
 
     state = _make_state(
         inputs={
-            "matrix_a": 1.0,  # <= 1.0, triggers penalty
-            "matrix_b": 5.0,
+            "matrix_a": {
+                "raw_score": 1.0,  # <= 1.0, triggers penalty
+                "normalized_score": 20.0,
+                "level_breakdown": "{}",
+                "justification": "test",
+                "evaluated_atoms": {},
+                "extensions": {}
+            },
+            "matrix_b": {
+                "raw_score": 5.0,
+                "normalized_score": 100.0,
+                "level_breakdown": "{}",
+                "justification": "test",
+                "evaluated_atoms": {},
+                "extensions": {}
+            },
         }
     )
     res = enforce_passivity_penalty_hook(state, None)
     # matrix_a is clamped to 1.0 (unchanged), so it won't appear in state_delta
     assert "matrix_a" not in res.state_delta
-    assert res.state_delta["matrix_b"] == 2.5
+    # matrix_b gets the penalty multiplier (0.5), so raw_score becomes 2.5
+    matrix_b_res = res.state_delta["matrix_b"]
+    import json
+    assert json.loads(matrix_b_res)["raw_score"] == 2.5
 
 
 @pytest.mark.asyncio
@@ -184,8 +201,9 @@ async def test_normalize_matrix_scores_micro_cot() -> None:
     state = state.model_copy(update={"task_blueprint": "step_1"})
 
     res = await normalize_matrix_scores_hook(state, deps)
-    assert res.state_delta["blk_1_cited_text_quote"] == "q1"
-    assert "note\n\nfric" in res.state_delta["blk_1_justification"]
+    matrix_res = res.state_delta["blk_1"]
+    assert matrix_res["extensions"]["CITATION"] == "q1"
+    assert "note\n\nfric" in matrix_res["justification"]
     assert res.state_delta["blk_1_scaled"] == 5.0
 
 
@@ -250,9 +268,11 @@ async def test_waterfall_scoring_hook_matrix_category() -> None:
     res = await waterfall_scoring_hook(state, deps)
     
     assert res.success is True
-    # The payload update MUST contain the calculated score mapped to blk_1
+    # The payload update MUST contain the strictly typed MicroCotDTO dictionary mapped to blk_1
     assert "blk_1" in res.state_delta
-    assert "blk_1_justification" in res.state_delta
+    matrix_dto = res.state_delta["blk_1"]
+    assert "step_4_final_score" in matrix_dto
+    assert "waterfall_calculation_log" in matrix_dto
 
 
 @pytest.mark.asyncio
@@ -301,5 +321,71 @@ async def test_waterfall_scoring_hook_dina_floor() -> None:
     assert res.success is True
     # With DINA_FLOOR removed, absolute zero failure (no hits) scores a mathematically exact 1.0
     assert "blk_dina" in res.state_delta
-    score = res.state_delta["blk_dina"]
-    assert abs(score - 1.0) < 0.01
+    matrix_dto = res.state_delta["blk_dina"]
+    assert abs(matrix_dto["step_4_final_score"] - 1.0) < 0.01
+
+
+@pytest.mark.asyncio
+async def test_waterfall_scoring_hook_zero_atoms() -> None:
+    """Verify that if total_atoms == 0, it gracefully falls back to math_min and returns correct true_atoms_count."""
+    mock_repo = AsyncMock()
+    mock_repo.get_step_by_id.return_value = {"prompt_blocks": ["blk_zero"]}
+    mock_repo.get_prompt_block_by_id.return_value = {
+        "category_id": "matrix",
+        "type": "float",
+        "scales": [
+            {"score": 2, "claims": [{"micro_atoms": ["atom_a"]}]},
+            {"score": 5, "claims": [{"micro_atoms": ["atom_b"]}]}
+        ],
+    }
+
+    deps = HookDependencies(repository=mock_repo)
+    # Give NO evaluations
+    state = _make_state(
+        step_id="step_1",
+        inputs={
+            "evaluations": []
+        }
+    )
+    state = state.model_copy(update={"task_blueprint": "step_1"})
+
+    # Wait, if 'evaluations' is empty, waterfall_scoring_hook throws an error earlier:
+    # "Strict Fail-Fast Enforced: 'evaluations' array is empty or not a list..."
+    # So we need to provide evaluations, but ones that DO NOT match the atoms of this block
+    # Or evaluations that match, but wait...
+    # Ah! In the current implementation, if `evaluations` is empty, it raises AppException at line 487.
+    # So we must provide some evaluation that is ignored, so that global_total becomes 0.
+    
+    import hashlib
+    from backend_v2.models.enums import EvaluationMandate
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+    # A hash that is NOT atom_a or atom_b
+    dummy_hash = hashlib.md5(f"dummy{mandate}".encode("utf-8")).hexdigest()
+
+    state = _make_state(
+        step_id="step_1",
+        inputs={
+            "evaluations": [
+                {
+                    "atom_id": dummy_hash,
+                    "boolean": True,
+                    "reasoning": "Dummy"
+                }
+            ]
+        }
+    )
+    state = state.model_copy(update={"task_blueprint": "step_1"})
+
+    res = await waterfall_scoring_hook(state, deps)
+    
+    assert res.success is True
+    # The score should fallback to math_min (2.0)
+    assert "blk_zero" in res.state_delta
+    matrix_dto = res.state_delta["blk_zero"]
+    assert abs(matrix_dto["step_4_final_score"] - 2.0) < 0.01
+    
+    # Check Observability counts (now injected directly into the MicroCotDTO for the block, wait no! They are also injected globally!)
+    # Actually, global true_atoms_count is at the top level:
+    assert res.state_delta.get("true_atoms_count") == 0
+    assert res.state_delta.get("false_atoms_count") == 0
+

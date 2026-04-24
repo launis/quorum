@@ -123,6 +123,7 @@ class SystemConcurrency(int, Enum):
     MATRIX_SAMPLING_LIMIT = 0
     LLM_DEFAULT_TIMEOUT_SECONDS = 300
     RATE_LIMIT_COOLDOWN_SECONDS = 65
+    MAX_SAFE_TOKENS = 100000
 
 
 # --- Restored V1 Enums ---
@@ -274,3 +275,12 @@ class LabelKey(str, Enum):
     CRITICAL_LABEL = "CRITICAL_LABEL"
     WARNING_LABEL = "WARNING_LABEL"
     UNCERTAIN_LABEL = "UNCERTAIN_LABEL"
+
+
+class ReferenceTitle(str, Enum):
+    """Strict Enum for UI Reference Strings to prevent hardcoded L10N (No String Mandate)."""
+
+    WEB_SEARCH = "REF_WEB_SEARCH"
+    INTERNAL_DOCUMENT = "REF_INTERNAL_DOCUMENT"
+    EXPERT_QUOTATION = "REF_EXPERT_QUOTATION"
+    PREVIOUS_REPORT = "REF_PREVIOUS_REPORT"

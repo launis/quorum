@@ -1,12 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/sse_client.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
 import 'package:client_app/core/logging/logger_service.dart';
-import 'package:dio/dio.dart';
 
 class MockExecutionClient implements ExecutionClient {
   @override
@@ -39,9 +37,9 @@ class MockExecutionClient implements ExecutionClient {
         'default': {
           'default_locale': 'en',
           'translations': {'en': 'Default Profile'},
-        }
+        },
       },
-      'layouts': []
+      'layouts': [],
     };
   }
 
@@ -49,7 +47,7 @@ class MockExecutionClient implements ExecutionClient {
   Future<Map<String, dynamic>> getExecutionStatus(String executionId) async {
     return {'id': executionId, 'status': 'completed'};
   }
-  
+
   @override
   Future<Map<String, dynamic>> getScorecard(String executionId) async {
     return {};
@@ -67,40 +65,63 @@ class MockLoggerService implements LoggerService {
   @override
   Future<void> init() async {}
   @override
-  void debug(String module, String message, [Object? error, StackTrace? stack]) {}
+  void debug(
+    String module,
+    String message, [
+    Object? error,
+    StackTrace? stack,
+  ]) {}
   @override
-  void info(String module, String message, [Object? error, StackTrace? stack]) {}
+  void info(
+    String module,
+    String message, [
+    Object? error,
+    StackTrace? stack,
+  ]) {}
   @override
-  void warning(String module, String message, [Object? error, StackTrace? stack]) {}
+  void warning(
+    String module,
+    String message, [
+    Object? error,
+    StackTrace? stack,
+  ]) {}
   @override
-  void error(String module, String message, [Object? error, StackTrace? stack]) {}
+  void error(
+    String module,
+    String message, [
+    Object? error,
+    StackTrace? stack,
+  ]) {}
 }
 
 void main() {
-  test('ExecutionController initializes state and handles SSE updates successfully', () async {
-    final container = ProviderContainer(
-      overrides: [
-        executionClientProvider.overrideWithValue(MockExecutionClient()),
-        sseClientProvider.overrideWithValue(MockSseClient()),
-        loggerServiceProvider.overrideWithValue(MockLoggerService()),
-      ],
-    );
+  test(
+    'ExecutionController initializes state and handles SSE updates successfully',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          executionClientProvider.overrideWithValue(MockExecutionClient()),
+          sseClientProvider.overrideWithValue(MockSseClient()),
+          loggerServiceProvider.overrideWithValue(MockLoggerService()),
+        ],
+      );
 
-    final sub = container.listen(executionControllerProvider, (_, __) {});
+      final sub = container.listen(executionControllerProvider, (_, __) {});
 
-    final controller = container.read(executionControllerProvider.notifier);
-    
-    await controller.startExecution('test_wf', {});
-    
-    // Wait for the stream update and heavy fetch
-    await Future.delayed(const Duration(milliseconds: 200));
+      final controller = container.read(executionControllerProvider.notifier);
 
-    final state = container.read(executionControllerProvider);
-    expect(state.hasValue, true);
-    expect(state.value?['id'], 'test_exec');
-    expect(state.value?['status'], 'completed');
-    expect(state.value?.containsKey('report_data'), true);
+      await controller.startExecution('test_wf', {});
 
-    sub.close();
-  });
+      // Wait for the stream update and heavy fetch
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final state = container.read(executionControllerProvider);
+      expect(state.hasValue, true);
+      expect(state.value?['id'], 'test_exec');
+      expect(state.value?['status'], 'completed');
+      expect(state.value?.containsKey('report_data'), true);
+
+      sub.close();
+    },
+  );
 }

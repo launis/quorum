@@ -406,6 +406,9 @@ class ProfileEditorView extends HookConsumerWidget {
                     case XaiExtensionType.confidence:
                       label = l10n.xaiConfidence;
                       break;
+                    case XaiExtensionType.sourceId:
+                      label = 'Lähde-ID / Source ID';
+                      break;
                   }
 
                   return CheckboxListTile(

@@ -37,7 +37,7 @@ class WebFetcher:
             if not url.startswith(("http://", "https://")):
                 raise ValueError("URL must start with http:// or https://")
 
-            headers = {"User-Role": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) CognitiveQuorum/1.0"}
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) CognitiveQuorum/1.0"}
             req = urllib.request.Request(url, headers=headers)
 
             with urllib.request.urlopen(req, timeout=timeout) as response:
@@ -81,9 +81,8 @@ class WebFetcher:
                             url,
                         )
 
-                # Log success with snippet as requested by user
-                snippet = final_text[:100].replace("\n", " ") + "..." if len(final_text) > 100 else final_text
-                logger.info("[WebFetcher] Successfully fetched '%s'. Snippet: '%s'", url, snippet)
+                # Log success without logging potentially sensitive content
+                logger.info("[WebFetcher] Successfully fetched '%s' (%d chars).", url, len(final_text))
 
                 return final_text
 

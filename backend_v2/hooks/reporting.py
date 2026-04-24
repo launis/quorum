@@ -87,19 +87,10 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
 
     gvars = dto.global_context_vars
 
-    # Fallback to Panel if direct roles are missing
+    # Strictly read roles without fallbacks (Fail-Fast / Zero-Compromise)
     overseer_data = gvars.step_overseer.overseer_data if gvars.step_overseer else None
-    if not overseer_data and gvars.step_panel:
-        overseer_data = gvars.step_panel.overseer_data
-
     logician_data = gvars.step_logician.logician_data if gvars.step_logician else None
-    if not logician_data and gvars.step_panel:
-        logician_data = gvars.step_panel.logician_data
-
     perf_data = gvars.step_detector.performativity_analysis if gvars.step_detector else None
-    if not perf_data and gvars.step_panel:
-        perf_data = gvars.step_panel.performativity_analysis
-
     falsifier_data = gvars.step_panel.falsifier_data if gvars.step_panel else None
     causal_data = gvars.step_panel.causal_analysis if gvars.step_panel else None
 
@@ -145,8 +136,8 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
             count += 1
             for dim in card.dimensions:
                 scores_dict[dim.dimension_id] = {
-                    "arvosana": dim.score,
-                    "perustelu": dim.reasoning,
+                    "score": dim.score,
+                    "reasoning": dim.reasoning,
                     "label": dim.dimension_label,
                 }
     elif gvars.step_judge and gvars.step_judge.score_card:
@@ -155,8 +146,8 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
         count = 1
         for dim in card.dimensions:
             scores_dict[dim.dimension_id] = {
-                "arvosana": dim.score,
-                "perustelu": dim.reasoning,
+                "score": dim.score,
+                "reasoning": dim.reasoning,
                 "label": dim.dimension_label,
             }
 
@@ -171,36 +162,38 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
 
     # Bibliography
     bib_data = gvars.bibliography_result
+    extracted_bibliography = []
     if bib_data:
         if isinstance(bib_data, list):
-            context["bibliography"] = bib_data
-        elif isinstance(bib_data, dict):
-            context["bibliography"] = bib_data.get("references", [])
-    else:
-        context["bibliography"] = []
+            for res in bib_data:
+                extracted_bibliography.extend(res.references)
+        else:
+            extracted_bibliography.extend(bib_data.references)
+
+    context["bibliography"] = [ref.model_dump() for ref in extracted_bibliography]
 
     # Contextual Citations & Global Bibliography (Unified References)
     references: list[ReferenceItem] = []
-    counters = {"SEARCH": 1, "GROUNDING": 1, "INTERNAL_KB": 1}
+    counters = {"SEARCH": 1, "INTERNAL_KB": 1}
 
-    search_items = []
+    search_items: list[Any] = []
     if gvars.step_analyst and gvars.step_analyst.rag_evidence:
         search_items.extend(gvars.step_analyst.rag_evidence)
 
     sr_obj = gvars.search_result
     if sr_obj:
-        results = (
-            getattr(sr_obj, "results", [])
-            if hasattr(sr_obj, "results")
-            else (sr_obj.get("results", []) if isinstance(sr_obj, dict) else sr_obj)
-        )
-        if isinstance(results, list):
-            search_items.extend(results)
+        if isinstance(sr_obj, list):
+            for sr in sr_obj:
+                search_items.extend(sr.results)
+        else:
+            search_items.extend(sr_obj.results)
 
     for item in search_items:
-        title = "Verkkohaku"
+        title = "Web Search"
         snippet = ""
         url = None
+
+        # item could be a dict if rag_evidence is raw strings, but SearchResult models have strict typing.
         if isinstance(item, dict):
             title = item.get("title", title)
             snippet = item.get("snippet", str(item))
@@ -224,59 +217,23 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
             )
             counters["SEARCH"] += 1
 
-    # GROUNDING
-    for step_key, step_data in state.global_context_vars.items():
-        if not step_key.startswith("step_") or not isinstance(step_data, dict):
-            continue
-        p_meta = step_data.get("metadata", {})
-        p_prov = getattr(p_meta, "provider_metadata", {}) if p_meta else {}
-        g_urls = p_prov.get("grounding_urls", []) if isinstance(p_prov, dict) else []
-        for url in g_urls:
+    # INTERNAL KB
+    for bib_item in extracted_bibliography:
+        title = bib_item.title or "Internal Knowledge Base"
+        snippet = bib_item.snippet or ""
+        url = bib_item.url or getattr(bib_item, "source_id", None)
+
+        if snippet and snippet.strip():
             references.append(
                 ReferenceItem(
-                    id=f"[F-{counters['GROUNDING']}]",
-                    intent=ReferenceIntent.GROUNDING,
-                    title="Faktantarkistus (Google)",
-                    snippet=f"Vertex AI Grounding lähde: {url}",
+                    id=f"[O-{counters['INTERNAL_KB']}]",
+                    intent=ReferenceIntent.INTERNAL_KB,
+                    title=title,
+                    snippet=snippet,
                     url=url,
                 )
             )
-            counters["GROUNDING"] += 1
-
-    # INTERNAL KB
-    if bib_data:
-        items = (
-            getattr(bib_data, "items", [])
-            if hasattr(bib_data, "items")
-            else (bib_data.get("items", []) if isinstance(bib_data, dict) else bib_data)
-        )
-        if isinstance(items, list):
-            for item in items:
-                title = "Organisaation Linjaus"
-                snippet = ""
-                url = None
-                if isinstance(item, dict):
-                    title = item.get("title", title)
-                    snippet = item.get("snippet", str(item))
-                    url = item.get("url") or item.get("source_id")
-                elif hasattr(item, "snippet"):
-                    title = getattr(item, "title", title)
-                    snippet = getattr(item, "snippet", str(item))
-                    url = getattr(item, "url", getattr(item, "source_id", None))
-                else:
-                    snippet = str(item)
-
-                if snippet and snippet.strip():
-                    references.append(
-                        ReferenceItem(
-                            id=f"[O-{counters['INTERNAL_KB']}]",
-                            intent=ReferenceIntent.INTERNAL_KB,
-                            title=title,
-                            snippet=snippet,
-                            url=url,
-                        )
-                    )
-                    counters["INTERNAL_KB"] += 1
+            counters["INTERNAL_KB"] += 1
 
     context["references"] = references
 
@@ -312,61 +269,6 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
     # Coaching Plan
     if gvars.step_coach:
         context["coaching_plan"] = gvars.step_coach
-
-    # EPIC 6: Console Koostaja (XAI Extensions logging)
-    all_grouped_ext: dict[str, list[str]] = {}
-    for step_key, step_data in state.global_context_vars.items():
-        if not step_key.startswith("step_") or not isinstance(step_data, dict):
-            continue
-
-        for k, v in step_data.items():
-            if not isinstance(v, dict):
-                continue
-
-            eval_notes = v.get("evaluation_notes", "")
-            raw_justification = str(v.get("step_3_logical_friction", eval_notes) or "")
-            if raw_justification:
-                all_grouped_ext.setdefault("justification", []).append(f"[{k}] {raw_justification[:100]}...")
-
-            raw_falsification = v.get("extension_falsification", v.get("step_2_falsification"))
-            if raw_falsification:
-                all_grouped_ext.setdefault("falsification", []).append(f"[{k}] {str(raw_falsification)[:100]}...")
-
-            raw_theory_link = v.get("extension_theory_link")
-            if raw_theory_link:
-                all_grouped_ext.setdefault("theory_link", []).append(f"[{k}] {str(raw_theory_link)[:100]}...")
-
-            raw_risk_flag = v.get("extension_risk_flag")
-            if raw_risk_flag is not None:
-                all_grouped_ext.setdefault("risk_flag", []).append(f"[{k}] {raw_risk_flag}")
-
-            coaching = v.get("extension_coaching")
-            if coaching:
-                all_grouped_ext.setdefault("coaching", []).append(f"[{k}] {str(coaching)[:100]}...")
-
-            missing_context = v.get("extension_missing_context")
-            if missing_context:
-                all_grouped_ext.setdefault("missing_context", []).append(f"[{k}] {str(missing_context)[:100]}...")
-
-            remediation_steps = v.get("extension_remediation_steps")
-            if remediation_steps:
-                all_grouped_ext.setdefault("remediation_steps", []).append(f"[{k}] {str(remediation_steps)[:100]}...")
-
-            confidence = v.get("extension_confidence")
-            if confidence is not None:
-                all_grouped_ext.setdefault("confidence", []).append(f"[{k}] {confidence}")
-
-    if all_grouped_ext:
-        logger.info("\n" + "=" * 60)
-        logger.info("  XAI OUTPUT EXTENSIONS (CONSOLE RENDER)")
-        logger.info("=" * 60)
-        for ext_key, items in all_grouped_ext.items():
-            logger.info(f"[{ext_key.upper()}] ({len(items)} items)")
-            for _i, itm in enumerate(items[:3]):
-                logger.info(f"  - {itm}")
-            if len(items) > 3:
-                logger.info(f"  ... (+ {len(items) - 3} more)")
-        logger.info("=" * 60 + "\n")
 
     logger.info("[ReportingHook] Report context prepared and validated successfully.")
     return HookResult(success=True, state_delta={"report_context": context})

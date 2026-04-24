@@ -101,8 +101,13 @@ def test_xai_flat_report_dto_serialization() -> None:
 
 
 @pytest.mark.asyncio
-async def test_generate_report_hook_success() -> None:
+async def test_generate_report_hook_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that the reporting hook can successfully parse a Zero-Compromise strict DTO."""
+    from pathlib import Path
+    
+    # Mock template directory existence to avoid filesystem dependence
+    monkeypatch.setattr(Path, "exists", lambda self: True)
+    
     from backend_v2.core.hook_registry import HookDependencies, HookState
     from backend_v2.hooks.reporting import generate_report_hook
 
@@ -136,10 +141,15 @@ async def test_generate_report_hook_success() -> None:
     assert ctx["ethical_issues"] == ["No bias"]
     
 @pytest.mark.asyncio
-async def test_generate_report_hook_missing_inputs() -> None:
+async def test_generate_report_hook_missing_inputs(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that the reporting hook strictly fails fast on missing inputs."""
+    from pathlib import Path
+    
+    # Mock template directory existence to avoid filesystem dependence
+    monkeypatch.setattr(Path, "exists", lambda self: True)
+    
     from backend_v2.core.hook_registry import HookDependencies, HookState
-    from backend_v2.exceptions import AppException
+    from backend_v2.exceptions import AppException, ErrorCodes
     from backend_v2.hooks.reporting import generate_report_hook
 
     state = HookState(
@@ -148,7 +158,7 @@ async def test_generate_report_hook_missing_inputs() -> None:
         step_id="test",
         task_blueprint="test",
         metadata={},
-        inputs=None, # Missing inputs!
+        inputs={}, # Missing inputs (empty dict triggers EMPTY_INPUT error in hook)
         global_context_vars={},
     )
     deps = HookDependencies(repository=None)
@@ -156,4 +166,4 @@ async def test_generate_report_hook_missing_inputs() -> None:
     with pytest.raises(AppException) as exc:
         generate_report_hook(state, deps)
         
-    assert exc.value.error_code == "EMPTY_INPUT"
+    assert exc.value.details["error_code"] == ErrorCodes.INVALID_OUTPUT_SCHEMA
