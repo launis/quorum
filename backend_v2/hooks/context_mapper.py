@@ -8,6 +8,9 @@ across all output profiles, holistic evaluations, and matrices.
 import logging
 from typing import Any
 
+from backend_v2.exceptions import AppException
+from backend_v2.models.v2_core import PromptBlock
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,11 +34,7 @@ class ContextMapper:
         for b_idx, block_id in enumerate(target_blocks):
             extrema_str = ""
             for b in all_blocks:
-                from backend_v2.models.v2_core import PromptBlock
-
                 if not isinstance(b, PromptBlock):
-                    from backend_v2.exceptions import AppException
-
                     msg = (
                         "Fail-Fast violation: ContextMapper MUST receive strictly typed "
                         "PromptBlock models, not raw dictionaries."
