@@ -119,3 +119,99 @@ async def test_render_execution_fails_fast_on_corrupt_pdf(
         assert exc_info.value.status_code == 500
         assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
         assert "Failed to fetch pre-generated PDF from storage" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_render_execution_html_format(
+    execution_service: ExecutionService, admin_token: TokenData, mock_repo: MagicMock
+) -> None:
+    """Test that HTML rendering calls the correct generation method."""
+    mock_execution = MagicMock()
+    from backend_v2.models.v2_core import ExecutionStatus
+
+    mock_execution.status = ExecutionStatus.COMPLETED
+    mock_execution.workflow_id = "wf_1"
+    mock_execution.metadata = {"target_locale": "fi"}
+    mock_execution.profile_syntheses = {"default": {}}
+
+    mock_repo.get_execution.return_value = mock_execution
+
+    mock_repo.get_workflow_by_id = AsyncMock(
+        return_value={
+            "id": "wf_1234567890abcdef",
+            "slug": "test-workflow",
+            "description": "Test",
+            "status": "active",
+            "version": 1,
+            "default_profile_id": "default",
+            "expected_inputs": [],
+            "steps": [],
+            "organization_id": "org_1",
+            "name": "wf",
+            "output_profiles": {
+                "default": {"name": {"default_locale": "en", "translations": {"en": "Default Profile"}}}
+            },
+        }
+    )
+
+    with patch("backend_v2.services.execution.BlueprintTransformer") as mock_transformer_cls, \
+         patch("backend_v2.services.execution.PdfReportService") as mock_pdf_service_cls:
+
+        mock_transformer = AsyncMock()
+        mock_dto = MagicMock()
+        mock_transformer.build_report_dto.return_value = mock_dto
+        mock_transformer_cls.return_value = mock_transformer
+
+        mock_pdf_service = AsyncMock()
+        mock_pdf_service.generate_execution_html.return_value = "<html>Test</html>"
+        mock_pdf_service_cls.return_value = mock_pdf_service
+
+        mock_arq = AsyncMock()
+
+        result, content_type, filename = await execution_service.render_execution(
+            initiator=admin_token,
+            execution_id="exe_123",
+            format_type="html",
+            profile_id="default",
+            accept_language=None,
+            arq_pool=mock_arq,
+        )
+
+        assert content_type == "text/html"
+        assert filename == "execution_exe_123.html"
+        assert result == b"<html>Test</html>"
+        mock_pdf_service.generate_execution_html.assert_called_once_with("exe_123", report_dto=mock_dto)
+
+
+@pytest.mark.asyncio
+async def test_list_executions_success_root(
+    execution_service: ExecutionService, admin_token: TokenData, mock_repo: MagicMock
+) -> None:
+    """Test list_executions for ROOT role."""
+    mock_execution = MagicMock()
+    mock_repo.get_all_executions.return_value = [mock_execution]
+    res = await execution_service.list_executions(admin_token)
+    assert len(res) == 1
+    mock_repo.get_all_executions.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_list_executions_success_user(
+    execution_service: ExecutionService, mock_repo: MagicMock
+) -> None:
+    """Test list_executions for regular user role."""
+    user_token = TokenData(id="user-1", role=UserRole.MEMBER, organization_id="org_1")
+
+    exec1 = MagicMock()
+    exec1.organization_id = "org_1"
+    exec1.created_by = "user-1"
+
+    exec2 = MagicMock()
+    exec2.organization_id = "org_2"
+    exec2.created_by = "user-2"
+
+    mock_repo.get_all_executions.return_value = [exec1, exec2]
+
+    res = await execution_service.list_executions(user_token)
+    assert len(res) == 1
+    assert res[0] == exec1

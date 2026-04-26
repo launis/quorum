@@ -9,7 +9,7 @@ def test_lightweight_matrix_preserves_raw_score_and_source_id() -> None:
     data = {
         "raw_score": 4.5,
         "normalized_score": 0.875,
-        "level_breakdown": "level 4",
+        "level_breakdown": {"4.0": {"hits": 1, "total": 1}},
         "justification": "Good enough",
         "evaluated_atoms": {"atom1": True},
         "extensions": {XaiExtensionType.SOURCE_ID: "doc_123"},
@@ -25,7 +25,7 @@ def test_lightweight_matrix_preserves_raw_score_and_source_id() -> None:
 def test_lightweight_matrix_fail_fast_missing_raw_score() -> None:
     data = {
         "normalized_score": 0.875,
-        "level_breakdown": "level 4",
+        "level_breakdown": {"4.0": {"hits": 1, "total": 1}},
         "justification": "Good enough",
         "evaluated_atoms": {"atom1": True},
         "extensions": {},

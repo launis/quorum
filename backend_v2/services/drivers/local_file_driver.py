@@ -1,7 +1,9 @@
 """Local File Driver Implementation."""
 
+import asyncio
 import logging
 import os
+import uuid
 from pathlib import Path
 
 import aiofiles
@@ -10,6 +12,10 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.services.file_driver import FileDriver
 
 logger = logging.getLogger(__name__)
+
+# Constants for Windows os.replace retry logic
+MAX_REPLACE_RETRIES = 5
+REPLACE_RETRY_DELAY_SEC = 0.1
 
 
 class LocalFileDriver(FileDriver):
@@ -103,9 +109,6 @@ class LocalFileDriver(FileDriver):
             # Explicitly create parent directories to maintain parity with cloud storage drivers
             # where paths are virtual keys and directory creation is implicit.
             full_path.parent.mkdir(parents=True, exist_ok=True)
-
-            import uuid
-
             tmp_path = full_path.with_name(f"{full_path.name}.{uuid.uuid4().hex}.tmp")
 
             if isinstance(data, bytes):
@@ -116,8 +119,22 @@ class LocalFileDriver(FileDriver):
                     await f.write(data)
 
             # Atomic replace prevents race conditions where another thread/process
-            # might read a 0-byte truncated file during concurrent writes
-            os.replace(tmp_path, full_path)
+            # might read a 0-byte truncated file during concurrent writes.
+            # On Windows, os.replace throws PermissionError if the file is open by a reader (e.g. UI polling).
+            for attempt in range(MAX_REPLACE_RETRIES):
+                try:
+                    os.replace(tmp_path, full_path)
+                    break
+                except PermissionError as e:
+                    if attempt == MAX_REPLACE_RETRIES - 1:
+                        raise e
+                    logger.warning(
+                        "[LocalFileDriver] WinError 5 on os.replace, retrying %d/%d for %s",
+                        attempt + 1,
+                        MAX_REPLACE_RETRIES,
+                        full_path.name,
+                    )
+                    await asyncio.sleep(REPLACE_RETRY_DELAY_SEC)
 
             return str(full_path)
         except Exception as e:

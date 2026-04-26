@@ -5,13 +5,12 @@ including the final report output and context for report generation.
 """
 
 import logging
-from typing import Any, Literal, Union, Annotated
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from backend_v2.models.enums import XaiExtensionType
-
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.enums import XaiExtensionType
 
 logger = logging.getLogger(__name__)
 
@@ -134,19 +133,7 @@ class SourceIDExtension(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 XAIExtension = Annotated[
-    Union[
-        CitationExtension,
-        JustificationExtension,
-        FalsificationExtension,
-        TheoryLinkExtension,
-        RiskFlagExtension,
-        CoachingExtension,
-        MissingContextExtension,
-        RemediationStepsExtension,
-        EmotionalSentimentExtension,
-        ConfidenceExtension,
-        SourceIDExtension,
-    ],
+    CitationExtension | JustificationExtension | FalsificationExtension | TheoryLinkExtension | RiskFlagExtension | CoachingExtension | MissingContextExtension | RemediationStepsExtension | EmotionalSentimentExtension | ConfidenceExtension | SourceIDExtension,
     Field(discriminator="extension_type")
 ]
 
@@ -226,7 +213,7 @@ class XAIOutputDTO(ReasoningTraceDTO):
         description="Markdown formatted report.",
         json_schema_extra={"x-ui-label": "Formatted Report"},
     )
-    
+
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator(

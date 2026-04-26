@@ -6,9 +6,11 @@ from pydantic import BaseModel, ConfigDict
 
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.state import StateProjector, TraceEvent
-from backend_v2.models.v2_core import FrozenContext, StepRule
+from backend_v2.models.v2_core import ExpectedInput, FrozenContext, StepRule
 from backend_v2.models.v2_core import Step as V2Step
+from backend_v2.services.usage_service import UsageService
 from backend_v2.utils.dict_utils import deep_merge_dicts
 
 logger = logging.getLogger(__name__)
@@ -23,7 +25,7 @@ class StrategyContext(BaseModel):
     execution_id: str
     workflow_id: str
     metadata: dict[str, Any]
-    expected_inputs: list[Any] | None = None
+    expected_inputs: list[ExpectedInput] | None = None
     model_strategy: str | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
@@ -73,9 +75,6 @@ class NodeStrategy(ABC):
             # Free tier or unbound system org
             return
 
-        from backend_v2.exceptions import AppException, ErrorCodes
-        from backend_v2.services.usage_service import UsageService
-
         usage_service = UsageService(self.repository)
         is_quota_safe = await usage_service.check_quota(org_id)
         if not is_quota_safe:
@@ -93,14 +92,11 @@ class NodeStrategy(ABC):
         step: StepRule,
         hook_state: HookState,
         hook_deps: HookDependencies,
-        state_data: dict[str, Any],
     ) -> HookState:
         """Executes all pre-hooks associated with the step safely and deterministically.
 
         Extracts common pre-hook loops previously bundled inside the God Method execution branches.
         """
-        current_data = dict(state_data)
-
         # SSOT Enforcement: Only the Blueprint (step_obj) owns pre_hooks
         if not step_obj.pre_hooks:
             return hook_state
@@ -108,8 +104,15 @@ class NodeStrategy(ABC):
         for pre_hook in step_obj.pre_hooks:
             res = await hook_registry.execute(pre_hook, hook_state, hook_deps)
             if res.success and res.state_delta:
-                current_data = deep_merge_dicts(current_data, res.state_delta)
+                current_data = deep_merge_dicts(hook_state.inputs, res.state_delta)
                 hook_state = hook_state.model_copy(update={"inputs": current_data})
+            elif not res.success:
+                # RFC 7807: Hook signaled non-success — log explicitly so the audit trail captures it.
+                logger.warning(
+                    "[NodeStrategy] Pre-hook '%s' returned success=False for step '%s'.",
+                    pre_hook,
+                    step_obj.slug,
+                )
 
         return hook_state
 
@@ -119,28 +122,26 @@ class NodeStrategy(ABC):
         step: StepRule,
         hook_state: HookState,
         hook_deps: HookDependencies,
-        final_dict: dict[str, Any],
-        global_context_vars: dict[str, Any],
-    ) -> dict[str, Any]:
+    ) -> HookState:
         """Executes all post-hooks deterministically across both AI and synchronous domains.
 
-        Safely injects global context variables so the post-hooks can act upon cross-boundary data.
+        Safely relies on the strictly typed HookState which must be populated before calling this.
         """
-        post_hook_state = hook_state.model_copy(
-            update={
-                "global_context_vars": global_context_vars,
-                "inputs": final_dict,
-            }
-        )
-
         # SSOT Enforcement: Only the Blueprint (step_obj) owns post_hooks.
         if not step_obj.post_hooks:
-            return final_dict
+            return hook_state
 
         for post_hook in step_obj.post_hooks:
-            ph_res = await hook_registry.execute(post_hook, post_hook_state, hook_deps)
+            ph_res = await hook_registry.execute(post_hook, hook_state, hook_deps)
             if ph_res.success and ph_res.state_delta:
-                final_dict = deep_merge_dicts(final_dict, ph_res.state_delta)
-                post_hook_state = post_hook_state.model_copy(update={"inputs": final_dict})
+                final_data = deep_merge_dicts(hook_state.inputs, ph_res.state_delta)
+                hook_state = hook_state.model_copy(update={"inputs": final_data})
+            elif not ph_res.success:
+                # RFC 7807: Post-hook signaled non-success — log explicitly so the audit trail captures it.
+                logger.warning(
+                    "[NodeStrategy] Post-hook '%s' returned success=False for step '%s'.",
+                    post_hook,
+                    step_obj.slug,
+                )
 
-        return final_dict
+        return hook_state

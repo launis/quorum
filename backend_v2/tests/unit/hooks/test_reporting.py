@@ -44,8 +44,7 @@ def test_reporting_hook_fail_fast_on_invalid_pydantic_schema(mock_exists: Any) -
         inputs={"valid": "input"},
         global_context_vars={
             "step_xai": {
-                # Invalid schema: expecting 'executive_summary' as string, but passing a dict,
-                # or expecting 'score_cards' as list, passing a string
+                # Invalid schema: expecting 'executive_summary' as string, but passing a list
                 "executive_summary": ["this", "should", "be", "a", "string"]
             }
         },
@@ -68,33 +67,25 @@ def test_reporting_hook_success_with_valid_schema(mock_exists: Any) -> None:
         step_id="step_123",
         task_blueprint="bp_123",
         metadata={},
-        inputs={"dataset_name": "Test dataset"},
+        inputs={
+            "dataset_name": "Test dataset",
+            "dim1": {
+                "raw_score": 4.5,
+                "normalized_score": 4.5,
+                "level_breakdown": "",
+                "justification": "Very logical.",
+                "evaluated_atoms": {},
+                "extensions": {}
+            }
+        },
         global_context_vars={
             "step_xai": {
-                "executive_summary": "All looks great.",
-                "score_cards": [
-                    {
-                        "total_score": 4.5,
-                        "dimensions": [
-                            {
-                                "dimension_id": "dim1",
-                                "dimension_label": "Logic",
-                                "score": 4.5,
-                                "reasoning": "Very logical.",
-                            }  # noqa: E501
-                        ],
-                    }
-                ],
+                "executive_summary": "All looks great."
             },
             "step_judge": {"critical_findings": ["Finding A", "Finding B"]},
         },
     )
     deps = HookDependencies(repository=AsyncMock())
-
-    # If it doesn't raise an exception, the validation passed.
-    # Note: Template validation might fail if the folder doesn't exist, but we mock or assume it does for this test.
-    # We'll monkeypatch Path.exists to true to bypass the template dir check if it fails in isolated test runners.
-    # We'll monkeypatch Path.exists to true to bypass the template dir check if it fails in isolated test runners.
 
     with patch("backend_v2.hooks.reporting.Path.exists", return_value=True):
         result = cast(HookResult, generate_report_hook(state, deps))
@@ -106,4 +97,4 @@ def test_reporting_hook_success_with_valid_schema(mock_exists: Any) -> None:
     assert ctx["summary"] == "All looks great."
     assert ctx["critical_findings"] == ["Finding A", "Finding B"]
     assert "dim1" in ctx["scores"]
-    assert ctx["scores"]["dim1"]["arvosana"] == 4.5
+    assert ctx["scores"]["dim1"]["score"] == 4.5

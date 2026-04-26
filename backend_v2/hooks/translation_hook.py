@@ -19,8 +19,15 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.dtos.base import BaseDTO
+from backend_v2.models.dtos.state import HookStateMetadata, I18nStatePayload
 
 logger = logging.getLogger(__name__)
+
+
+class TranslationResponseDTO(BaseDTO):
+    translated_data: dict[str, Any]
+
 
 _SYSTEM_INSTRUCTION = """<system_directive>
   <objective>
@@ -28,12 +35,18 @@ _SYSTEM_INSTRUCTION = """<system_directive>
     TASK: Translate **ALL STRING VALUES** of the provided JSON object into: '{target_language}'.
   </objective>
   <rules>
-    <rule>CRITICAL CONSTRAINT: NEVER TRANSLATE OR MODIFY JSON KEYS. Keys contain programmatic variables. Only translate the 'Values'.</rule>
+    <rule>
+      CRITICAL CONSTRAINT: NEVER TRANSLATE OR MODIFY JSON KEYS.
+      Keys contain programmatic variables. Only translate the 'Values'.
+    </rule>
     <rule>NEVER prepend language codes like 'fi - ' or 'en - ' to the translated text.</rule>
-    <rule>Do not add any conversational text or markdown code blocks at the beginning or end of your response.</rule>
-    <rule>Return pure, valid JSON.</rule>
+    <rule>Ensure the translation is professional, context-aware, and natural in the target language. Adapt the tone to match the original text exactly. ALL sentences must be fully translated.</rule>
+    <rule>
+      Return a JSON object containing a SINGLE key called 'translated_data',
+      where the value is the fully translated object.
+    </rule>
   </rules>
-</system_directive>"""  # noqa: E501
+</system_directive>"""
 
 
 @hook_registry.register(name="translation_hook")
@@ -47,8 +60,6 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
     logger.info("[TranslationHook] Running dynamic JSON translation...")
 
     try:
-        from backend_v2.models.dtos.state import HookStateMetadata, I18nStatePayload
-
         meta = HookStateMetadata.model_validate(state.metadata)  # noqa: F841
         payload = I18nStatePayload.model_validate(state.inputs)
     except Exception as e:
@@ -69,9 +80,9 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
 
     repo = deps.repository
     if not repo:
-        # Fallback if repository is missing - we cannot initialize LLMClient
-        logger.warning("[TranslationHook] Missing repository context. Cannot translate to %s.", target_language)
-        return HookResult(success=False, state_delta={})
+        msg = "Strict Fail-Fast Enforced: Missing repository context in TranslationHook."
+        logger.error("[TranslationHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
     # 1. Isolate the actual payload that needs translation.
     # We don't want to translate system keys starting with '_' or known metadata fields.
@@ -107,7 +118,7 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         "sv": "ruotsiksi (Swedish)",
         "et": "viroksi (Estonian)",
     }
-    target_lang_name = lang_map.get(target_language, target_language)
+    target_lang_name = lang_map[target_language] if target_language in lang_map else target_language
 
     system_content = _SYSTEM_INSTRUCTION.replace("{target_language}", target_lang_name)
     user_content = f"<SOURCE_JSON>\n{json.dumps(payload_to_translate, ensure_ascii=False)}\n</SOURCE_JSON>"
@@ -115,74 +126,51 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
     messages = [{"role": "system", "content": system_content}, {"role": "user", "content": user_content}]
 
     try:
-        # Call LLM for translation. We expect raw JSON back.
         logger.info("[TranslationHook] Translating %s fields to '%s'...", len(payload_to_translate), target_language)
-        # A generic dict string output, not a Pydantic strict model since input is dynamic
-        # SALLIVA ASETUS (User Preference): Odotetaan Enumissa määritelty (esim. 120s), jotta LiteLLM voi nukkua
-        # 5 RPM doormanin vaatiman ajan ilman, että joudumme pakotettuun englanninkieliseen fallbackiin.
-        response_text = await llm_client.run_chat(messages=messages)
 
-        # Clean potential markdown formatting if LLM didn't listen
-        if isinstance(response_text, dict):
-            translated_payload = response_text
-        else:
-            if response_text.startswith("```json"):
-                response_text = response_text[7:]
-            if response_text.startswith("```"):
-                response_text = response_text[3:]
-            if response_text.endswith("```"):
-                response_text = response_text[:-3]
+        # Enforce structured execution (No more string parsing duck-tape)
+        response_dto, _ = await llm_client.run_structured_task(
+            messages=messages,
+            response_model=TranslationResponseDTO,
+        )
 
-            translated_payload = json.loads(response_text.strip())
+        translated_payload = response_dto.translated_data
 
         # Merge back with preserved fields
         final_data = {**preserved_fields, **translated_payload}
         logger.info("[TranslationHook] Translation successful.")
         return HookResult(success=True, state_delta=final_data)
 
-    except json.JSONDecodeError as e:
-        # 1. Log with STRUCTURED FORMAT
+    except Exception as e:
         logger.error(
-            "[TranslationHook] %s: LLM returned invalid JSON on translation: %s",
+            "[TranslationHook] %s: LLM structured translation failed: %s",
             ErrorCodes.AGENT_RESPONSE_PARSING_FAILED.name,
             e,
             exc_info=True,
         )
         raise AppException(
-            message="LLM returned invalid JSON on translation.",
+            message="LLM structured translation failed.",
             status_code=500,
             details={"error_code": ErrorCodes.AGENT_RESPONSE_PARSING_FAILED.value},
-        ) from e
-    except Exception as e:
-        logger.error(
-            "[TranslationHook] %s: LLM generation failed for translation: %s",
-            ErrorCodes.INTERNAL_SERVER_ERROR.name,
-            e,
-            exc_info=True,
-        )
-        raise AppException(
-            message="LLM generation failed for translation.",
-            status_code=500,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
         ) from e
 
 
 # A deterministic dictionary for translating English SDUI string fields into Finnish.
 # Used by translate_sdui_payload to avoid the latency of an LLM call for static SDUI elements.
 _SDUI_DICT = {
-    "coaching": "Valmennus",
-    "falsification": "Väärennys",
-    "falsification audit": "Falsifikaatio",
-    "missing_context": "Puuttuva Konteksti",
-    "remediation_steps": "Korjaavat Toimenpiteet",
-    "emotional_sentiment": "Tunnesävy",
-    "theory_link": "Teoreettinen Linkki",
-    "risk_flag": "Riskilippu",
-    "confidence": "Luottamus",
-    "justification": "Perustelu",
-    "score": "Pisteet",
-    "normalized": "Normalisoitu",
-    "scaled": "Skaalattu",
+    "coaching": "COACHING",
+    "falsification": "FALSIFICATION",
+    "falsification audit": "FALSIFICATION_AUDIT",
+    "missing_context": "MISSING_CONTEXT",
+    "remediation_steps": "REMEDIATION_STEPS",
+    "emotional_sentiment": "EMOTIONAL_SENTIMENT",
+    "theory_link": "THEORY_LINK",
+    "risk_flag": "RISK_FLAG",
+    "confidence": "CONFIDENCE",
+    "justification": "JUSTIFICATION",
+    "score": "SCORE",
+    "normalized": "NORMALIZED",
+    "scaled": "SCALED",
 }
 
 

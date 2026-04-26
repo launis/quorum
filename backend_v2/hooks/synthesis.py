@@ -4,25 +4,29 @@ Implements TextConsolidationHook for generating LLM-based markdown synthesis,
 enforcing length constraints, preamble text, local PII masking, and structured output.
 """
 
+import copy
 import json
 import logging
 from typing import Any
 
 import logfire
 from fastapi import status
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.security import sanitize_text
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.context_mapper import ContextMapper
+from backend_v2.hooks.translation_hook import translation_hook
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.synthesis import SynthesisMetadataDTO, SynthesisStepDataDTO
+from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
+from backend_v2.models.dtos.synthesis import SynthesisOutputDTO
 from backend_v2.models.enums import HistoricalContextMode
+from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
 from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 
 logger = logging.getLogger(__name__)
-
-
-from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
-from backend_v2.models.dtos.synthesis import SynthesisOutputDTO
 
 
 async def _fetch_historical_context(
@@ -32,8 +36,8 @@ async def _fetch_historical_context(
     if mode == HistoricalContextMode.DISABLED:
         return ""
 
-    user_id = state.global_context_vars.get("user_id")
-    org_id = state.global_context_vars.get("organization_id")
+    user_id = state.global_context_vars["user_id"] if "user_id" in state.global_context_vars else None
+    org_id = state.global_context_vars["organization_id"] if "organization_id" in state.global_context_vars else None
 
     if not (user_id or org_id):
         return ""
@@ -55,7 +59,7 @@ async def _fetch_historical_context(
 
         best_cache = None
         if e.profile_syntheses:
-            best_cache = e.profile_syntheses.get(profile_to_use)
+            best_cache = e.profile_syntheses[profile_to_use] if profile_to_use in e.profile_syntheses else None
             if not best_cache:
                 best_cache = next(iter(e.profile_syntheses.values()))
 
@@ -80,7 +84,7 @@ async def _fetch_historical_context(
     return "<HistoricalContext>\n" + "\n\n".join(historical_parts) + "\n</HistoricalContext>\n\n"
 
 
-def _build_title_map(workflow_data: Any, all_steps: list[Any], language: str) -> dict[str, str]:
+def _build_title_map(workflow_data: Workflow | None, all_steps: list[Step], language: str) -> dict[str, str]:
     """Build an O(1) lookup map for resolving localized step and input titles."""
     title_map: dict[str, str] = {}
     if not workflow_data:
@@ -110,13 +114,13 @@ def _build_title_map(workflow_data: Any, all_steps: list[Any], language: str) ->
     return title_map
 
 
-def _compress_synthesis_payload(v: Any) -> str:
+def _compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisStepDataDTO) -> str:
     """Deep copy and strip heavy Pydantic metadata and AI internal logs before sending to final synthesis."""
+    if hasattr(v, "model_dump"):
+        v = v.model_dump(mode="json")
+
     if not isinstance(v, (dict, list)):
         return str(v)
-
-    import copy
-    import json
 
     clean_v = copy.deepcopy(v)
 
@@ -127,8 +131,6 @@ def _compress_synthesis_payload(v: Any) -> str:
             # Token Shield: Suodatetaan pois raskaat ruohonjuuritason evaluoinnit ja logit
             # jotta "Chief Editor" LLM voi keskittyä vain olennaisiin perusteluihin ja tuloksiin.
             obj.pop("evaluations", None)
-            obj.pop("quote", None)
-            obj.pop("reasoning", None)
 
             for _, val in list(obj.items()):
                 _strip_heavy_keys(val)
@@ -140,9 +142,9 @@ def _compress_synthesis_payload(v: Any) -> str:
     return json.dumps(clean_v, ensure_ascii=False, indent=2)
 
 
-def _build_section_instructions(layouts: list[Any], language: str, all_blocks: list[Any]) -> list[str]:
+def _build_section_instructions(layouts: list[Any], language: str, all_blocks: list[PromptBlock]) -> list[str]:
     """Compile section-level synthesis instructions for the LLM prompt."""
-    section_instructions = []
+    section_instructions: list[str] = []
     for idx, layout in enumerate(layouts):
         l_synthesis = layout.synthesis
         if not l_synthesis:
@@ -204,7 +206,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     """
     logger.debug("[SynthesisHook] Running text_consolidation_hook...")
     if not state:
-        return HookResult(success=True, state_delta={})
+        msg = "Strict Fail-Fast Enforced: Missing HookState in text_consolidation_hook."
+        logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     inputs = state.inputs
     if not isinstance(inputs, dict):
@@ -217,7 +221,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         )
 
     # Resolve active workflow to determine the output profile bounds
-    from backend_v2.models.v2_core import Workflow
 
     raw_workflow_data = await deps.repository.get_workflow_by_id(state.workflow_id)
     if not raw_workflow_data:
@@ -228,8 +231,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
         )
     workflow_data = Workflow.model_validate(raw_workflow_data)
-
-    from backend_v2.models.v2_core import ExecutionRecord
 
     raw_exec_data = await deps.repository.get_execution(state.execution_id)
     execution_data = ExecutionRecord.model_validate(raw_exec_data) if raw_exec_data else None
@@ -269,10 +270,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     enable_masking = synthesis_cfg.enable_pii_masking
     historical_mode = synthesis_cfg.historical_context_mode
 
-    from pydantic import ValidationError
-
-    from backend_v2.models.domain.synthesis import SynthesisMetadataDTO, SynthesisStepDataDTO
-
     try:
         hook_metadata_dto = SynthesisMetadataDTO.model_validate(state.metadata or {})
         language = hook_metadata_dto.target_locale.strip().lower()
@@ -285,13 +282,39 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     preamble = preamble_dict.resolve(language) if preamble_dict else ""
 
+    # Fetch all blocks to inject extrema scale bounds and resolve titles (V2 Architecture)
+    all_blocks = []
+    all_steps = []
+    if hasattr(deps.repository, "get_all"):
+        # Fetch blocks for the ContextMapper ordinal mapping
+        raw_blocks = await deps.repository.get_all("prompt_blocks")
+        all_blocks = [PromptBlock.model_validate(rb) for rb in raw_blocks]
+
+        # Fetch steps for Step title resolution
+        raw_steps = await deps.repository.get_all("steps")
+        all_steps = [Step.model_validate(rs) for rs in raw_steps]
+
+    # Pre-calculate matrix step IDs based on strict schema routing to avoid duck-typing
+    matrix_step_ids = set()
+    if workflow_data and workflow_data.steps:
+        step_def_map = {str(s.id): s for s in all_steps}
+        block_map = {str(b.id): b for b in all_blocks}
+        for w_step in workflow_data.steps:
+            target_step = step_def_map.get(str(w_step.task_blueprint))
+            if target_step and target_step.prompt_blocks:
+                for b_id in target_step.prompt_blocks:
+                    p_block = block_map.get(str(b_id))
+                    if p_block and p_block.category_id == "matrix":
+                        matrix_step_ids.add(str(w_step.id))
+                        break
+
     # --- Collect Target Blocks from UI Layouts ---
     layouts = active_profile_dto.layouts
-    required_blocks = set()
+    required_blocks: set[str] = set()
     for layout in layouts:
         tb = layout.target_blocks or []
-        for b in tb:
-            required_blocks.add(b)
+        for blk_id in tb:
+            required_blocks.add(blk_id)
 
     is_global_wildcard = ("*" in required_blocks) or not required_blocks
 
@@ -338,9 +361,20 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         if not is_requested:
             if not is_wildcard:
                 continue
-            # Wildcard valid block check via strictly parsed DTO
-            if not step_dto.reasoning_trace:
-                continue
+            # reasoning_trace acts as a discriminator for LLM execution steps.
+            # All LLM steps emit this field via prompt_compiler dynamic schema.
+            # Non-LLM steps (raw_inputs, inputs, logic nodes) do not have it.
+            # We check for None explicitly — not falsy — because an empty string
+            # is still a valid (if minimal) LLM thinking output.
+            # We also explicitly check the schema to see if this is a matrix step or an XAI extension.
+            if step_dto.reasoning_trace is None:
+                is_matrix_or_ext = False
+                for m_id in matrix_step_ids:
+                    if str(step_id) == m_id or str(step_id).startswith(f"{m_id}_"):
+                        is_matrix_or_ext = True
+                        break
+                if not is_matrix_or_ext:
+                    continue
 
         v = step_data
 
@@ -354,7 +388,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         return HookResult(
             success=True,
             state_delta={
-                "synthesized_markdown": "*No data available for synthesis.*",
+                "synthesized_markdown": "*NO_DATA_AVAILABLE*",
                 "cited_sources": [],
                 "step_metadata_updates": {},
             },
@@ -368,39 +402,21 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     # 2. Combine parts & PII mask
     combined_text_parts = []
 
-    # Fetch all blocks to inject extrema scale bounds and resolve titles (V2 Architecture)
-    all_blocks = []
-    all_steps = []
-    if hasattr(deps.repository, "get_all"):
-        from backend_v2.models.v2_core import PromptBlock, Step
-
-        # Fetch blocks for the ContextMapper ordinal mapping
-        raw_blocks = await deps.repository.get_all("prompt_blocks")
-        all_blocks = [PromptBlock.model_validate(rb) for rb in raw_blocks]
-
-        # Fetch steps for Step title resolution
-        raw_steps = await deps.repository.get_all("steps")
-        all_steps = [Step.model_validate(rs) for rs in raw_steps]
-
     title_map = _build_title_map(workflow_data, all_steps, language)
 
     for k, v in consolidated_inputs.items():
-        step_title = title_map.get(str(k).lower(), k)
+        k_str = str(k).lower()
+        step_title = title_map[k_str] if k_str in title_map else str(k)
         v_str = _compress_synthesis_payload(v)
         combined_text_parts.append(f"### Source: {step_title} (ID: {k})\n{v_str}")
 
-    layout_dicts = [lay.model_dump() for lay in layouts] if layouts else []
-    global_mapping = (
-        ContextMapper.build_global_mapping(workflow_data.model_dump(), layout_dicts) if workflow_data else ""
-    )
+    global_mapping = ContextMapper.build_global_mapping(workflow_data, layouts) if workflow_data else ""
     raw_input_text = historical_context_text + global_mapping + "\n\n".join(combined_text_parts)
 
     if enable_masking:
-        from backend_v2.core.security import sanitize_text
-
         raw_input_text, threats = sanitize_text(raw_input_text)
         if threats:
-            logger.warning("[SynthesisHook] PII redacted during synthesis: %s", threats)
+            logger.warning("[SynthesisHook] PII redacted during synthesis. Threat count: %d", len(threats))
 
     # --- Section-Level Synthesis Directives ---
     section_instructions = _build_section_instructions(active_profile_dto.layouts, language, all_blocks)
@@ -425,6 +441,12 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             "  <rule>GLOBAL PREAMBLE INTRODUCTION: Start your global synthesis intuitively using the following "
             f"preamble tone/context: '{preamble}'</rule>\n"
         )
+
+    sys_prompt += (
+        "  <rule>TONE AND QUALITY MANDATE: Maintain a highly professional, analytical, and executive tone. "
+        "Ensure the synthesis provides clear, actionable strategic value and avoids redundant or generic statements.</rule>\n"
+    )
+
 
     if section_instructions:
         sys_prompt += "  <rule>=== SECTION-LEVEL SYNTHESIS REQUIRED ===\n"
@@ -491,8 +513,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         span.set_attribute("synthesized_markdown_length", len(result.synthesized_markdown))
         span.set_attribute("synthesis_token_usage", json.dumps(token_usage))
 
-        step_metadata = state.metadata or {}
-        current_usage = step_metadata.get("token_usage", {})
+        current_usage = dict(hook_metadata_dto.token_usage)
         for k, v in token_usage.items():
             current_usage[k] = current_usage.get(k, 0) + v
 
@@ -518,33 +539,55 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
         if language != "en":
             logger.info(f"[SynthesisHook] Synthesis completed in English. Translating to {language.upper()}...")
-            from backend_v2.hooks.translation_hook import translation_hook
+
+            # Prepare XAI contents for safe translation without breaking UI enum keys
+            xai_map = {}
+            if result.xai_highlights:
+                for i, hl in enumerate(result.xai_highlights):
+                    xai_map[f"xai_{i}"] = hl.content
 
             trans_state = HookState(
                 execution_id=state.execution_id,
                 workflow_id=state.workflow_id,
                 metadata=state.metadata,
                 global_context_vars=state.global_context_vars,
-                inputs={"language": language, "synthesized_markdown": result.synthesized_markdown, **section_dict},
+                inputs={
+                    "language": language,
+                    "synthesized_markdown": result.synthesized_markdown,
+                    **section_dict,
+                    **xai_map,
+                },
             )
-            trans_res = await translation_hook(trans_state, deps)  # type: ignore[misc]
+            trans_res = await translation_hook(trans_state, deps)  # type: ignore[misc]  # Justification: hook_registry decorator obscures the Awaitable return type signature
             if trans_res.success and trans_res.state_delta:
                 logger.info("[SynthesisHook] Translation successful. Mapping back values.")
-                translated_global = trans_res.state_delta.get("synthesized_markdown", result.synthesized_markdown)
+
+                if "synthesized_markdown" in trans_res.state_delta:
+                    translated_global = trans_res.state_delta["synthesized_markdown"]
+                else:
+                    translated_global = result.synthesized_markdown
 
                 if result.cited_sources:
-                    bib_title = "\n\n### Lähdeluettelo\n" if language == "fi" else "\n\n### References\n"
+                    bib_title = "\n\n### BIBLIOGRAPHY_HEADER\n"
                     bib_items = [f"[{i + 1}] {src}" for i, src in enumerate(result.cited_sources)]
                     bib_text = bib_title + "\n".join(bib_items)
                     translated_global += bib_text
 
                 translated_sections = {}
                 for k in section_dict.keys():
-                    translated_sections[k] = trans_res.state_delta.get(k, section_dict[k])
+                    if k in trans_res.state_delta:
+                        translated_sections[k] = trans_res.state_delta[k]
+                    else:
+                        translated_sections[k] = section_dict[k]
 
-                # Note: We do not translate xai_highlights right now (requires proper i18n mapping later)
-                # For now, pass them as raw dict strings which the UI will handle
-                raw_highlights = [h.model_dump() for h in result.xai_highlights] if result.xai_highlights else []
+                translated_highlights = []
+                if result.xai_highlights:
+                    for i, hl in enumerate(result.xai_highlights):
+                        hl_dict = hl.model_dump()
+                        if f"xai_{i}" in trans_res.state_delta:
+                            hl_dict["content"] = trans_res.state_delta[f"xai_{i}"]
+                        translated_highlights.append(hl_dict)
+                raw_highlights = translated_highlights
 
                 return HookResult(
                     success=True,
@@ -561,7 +604,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         # Return native English payload or fallback if translation failed
         global_md = result.synthesized_markdown
         if result.cited_sources:
-            bib_title = "\n\n### Lähdeluettelo\n" if language == "fi" else "\n\n### References\n"
+            bib_title = "\n\n### BIBLIOGRAPHY_HEADER\n"
             bib_text = bib_title + "\n".join([f"[{i + 1}] {src}" for i, src in enumerate(result.cited_sources)])
             global_md += bib_text
 

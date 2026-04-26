@@ -139,11 +139,11 @@ async def test_synthesis_empty_inputs_returns_early(
     assert result.success is True
     assert result.state_delta is not None
     assert "synthesized_markdown" in result.state_delta
-    assert result.state_delta["synthesized_markdown"] == "*No data available for synthesis.*"
+    assert result.state_delta["synthesized_markdown"] == "*NO_DATA_AVAILABLE*"
 
 
 def test_compress_synthesis_payload_strips_heavy_keys() -> None:
-    """Test that _compress_synthesis_payload recursively removes log-heavy keys."""
+    """Test that _compress_synthesis_payload removes log-heavy keys but retains quotes and reasoning."""
     import json
 
     from backend_v2.hooks.synthesis import _compress_synthesis_payload
@@ -164,8 +164,8 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
 
     assert "evaluations" not in compressed["step_1"]
     assert "shuffled_atoms" not in compressed["step_1"]
-    assert "quote" not in compressed["step_1"]
-    assert "reasoning" not in compressed["step_1"]
+    assert "quote" in compressed["step_1"]
+    assert "reasoning" in compressed["step_1"]
     assert "evaluations" not in compressed["step_1"]["nested"]
     assert compressed["step_1"]["nested"]["keep_me"] is True
 

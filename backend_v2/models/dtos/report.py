@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import Field
@@ -37,32 +38,17 @@ from pydantic import ConfigDict
 from backend_v2.models.domain.analyst import SearchResult
 from backend_v2.models.domain.archivist import ArchivistOutputDTO
 from backend_v2.models.domain.coach import BibliographyResult, CoachingPlanDTO
-
-
-class ScoreCardDimension(BaseDTO):
-    dimension_id: str
-    dimension_label: str
-    score: float
-    reasoning: str
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-
-class ScoreCard(BaseDTO):
-    total_score: float = 0.0
-    dimensions: list[ScoreCardDimension] = Field(default_factory=list)
-    model_config = ConfigDict(strict=True, extra="forbid")
+from backend_v2.models.view.sdui import ReferenceItem
 
 
 class XaiReportData(BaseDTO):
     executive_summary: str | None = None
-    score_cards: list[ScoreCard] | None = None
     evaluation_notes: str | None = None
     model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class JudgeReportData(BaseDTO):
     critical_findings: list[str] = Field(default_factory=list)
-    score_card: ScoreCard | None = None
     model_config = ConfigDict(strict=True, extra="forbid")
 
 
@@ -204,5 +190,58 @@ class ReportSynthesisDTO(BaseDTO):
 
     inputs: MatrixObservabilityDTO
     global_context_vars: GlobalContextVarsDTO
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+
+class AuditQuestionItem(BaseDTO):
+    question: str
+    status: str
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+
+class ScoreItem(BaseDTO):
+    score: float
+    reasoning: str
+    label: str
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+
+class ReportContextDTO(BaseDTO):
+    """Strictly typed schema for the aggregated report context injected into state."""
+
+    inputs: MatrixObservabilityDTO
+    generated_at: str
+    timestamp: str
+    summary: str
+    critical_findings: list[str] = Field(default_factory=list)
+    pre_mortem_signals: list[str] = Field(default_factory=list)
+    ethical_issues: list[str] = Field(default_factory=list)
+    audit_questions: list[AuditQuestionItem] = Field(default_factory=list)
+    scores: dict[str, ScoreItem] = Field(default_factory=dict)
+    average_score: float = 0.0
+    hitl_required: bool = False
+    uncertainty: dict[str, str] = Field(default_factory=dict)
+    bibliography: list[dict[str, Any]] = Field(default_factory=list)
+    references: list[ReferenceItem] = Field(default_factory=list)
+
+    # Specialist Data (passthrough for templates)
+    logician_data: dict[str, Any] | None = None
+    overseer_data: dict[str, Any] | None = None
+    falsifier_data: FalsifierData | None = None
+    causal_analysis: CausalAnalysisData | None = None
+    performativity_analysis: dict[str, Any] | None = None
+
+    # Enrichment
+    word_count: int | None = None
+    input_control_ratio: float | None = None
+    google_search_results: list[Any] = Field(default_factory=list)
+    knowledge_items: list[Any] = Field(default_factory=list)
+
+    archivist_precedents: ArchivistOutputDTO | list[ArchivistOutputDTO] | None = None
+    penalties_applied: list[PenaltyData] | None = None
+    score_summary: ScoreSummaryData | None = None
+    structural_warnings: list[ValidationWarningData] | None = None
+    coaching_plan: CoachingPlanDTO | None = None
 
     model_config = ConfigDict(strict=True, extra="forbid")

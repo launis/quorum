@@ -9,7 +9,7 @@ import logging
 from typing import Any
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.v2_core import PromptBlock
+from backend_v2.models.v2_core import OutputLayoutBlock, PromptBlock, Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class ContextMapper:
 
     @staticmethod
     def build_global_mapping(
-        workflow_data: dict[str, Any], selected_layouts: list[dict[str, Any]] | None = None
+        workflow_data: Workflow | None = None, selected_layouts: list[OutputLayoutBlock] | None = None
     ) -> str:
         """Builds a global mapping cheatsheet across the entire workflow if needed.
         Scans all step IDs to ensure the LLM knows how step variable contexts map.

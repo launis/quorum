@@ -2,7 +2,11 @@
 
 import logging
 
+from pydantic import ValidationError
+
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.models.domain.hydration import HydrationInputSourceDTO
+from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +26,6 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
     """
     logger.debug("[HydrationHook] Running global inputs hydration...")
 
-    if not state:
-        return HookResult(success=True, state_delta={})
-
-    from backend_v2.models.domain.hydration import HydrationInputSourceDTO
-    from backend_v2.utils.pydantic_utils import inflate
-
     hydration_source: HydrationInputSourceDTO | None = None
 
     for _key, result in state.global_context_vars.items():
@@ -37,7 +35,7 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
             if candidate and candidate.is_valid_source():
                 hydration_source = candidate
                 break
-        except Exception:
+        except ValidationError:
             # Ignore unrelated state payloads
             continue
 
@@ -55,7 +53,7 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
         logger.debug("[HydrationHook] Processor output contained no text fields to hydrate.")
         return HookResult(success=True, state_delta={})
 
-    logger.info(f"[HydrationHook] Hydrating global inputs with {list(updates.keys())}")
+    logger.info("[HydrationHook] Hydrating global inputs with %s", list(updates.keys()))
 
     inputs.update(updates)
 

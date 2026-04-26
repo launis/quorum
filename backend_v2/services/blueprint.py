@@ -237,14 +237,23 @@ class BlueprintTransformer:
                                 target_val = v
 
                             if isinstance(target_val, dict):
-                                logger.error(
-                                    "Fail-Fast: Untyped dictionary payload for block is forbidden.", exc_info=True
-                                )
-                                raise AppException(
-                                    message="Invalid numeric score",
-                                    status_code=400,
-                                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                )
+                                # Epic 39 / Phase 9: Support V2 nested dict payload (LightweightMatrixOutput)
+                                if display_scale == "custom":
+                                    target_val = target_val.get("raw_score")
+                                elif display_scale == "normalized_100":
+                                    target_val = target_val.get("normalized_score")
+                                else:
+                                    target_val = target_val.get("raw_score")
+
+                                if target_val is None:
+                                    logger.error(
+                                        "Fail-Fast: Expected score key missing from dictionary payload.", exc_info=True
+                                    )
+                                    raise AppException(
+                                        message="Invalid numeric score",
+                                        status_code=400,
+                                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                    )
 
                             is_matrix_category = block and block.get("category_id") == "matrix"
                             is_num_type = isinstance(target_val, (int, float)) and not isinstance(target_val, bool)
@@ -379,6 +388,7 @@ class BlueprintTransformer:
                                         collision_counter += 1
 
                                 justification: str | None = None
+                                level_breakdown: dict[str, str] | None = None
                                 cited_source_id: str | None = None
                                 cited_text_quote: str | None = None
                                 cited_web_citation: str | None = None
@@ -395,20 +405,75 @@ class BlueprintTransformer:
                                     if is_legacy_score:
                                         justification = step_data.get("justification")
                                     else:
-                                        # Suffix-based flat key lookup: V2 strict output format.
-                                        # Nested-dict values were already rejected by Phase 1 Fail-Fast.
-                                        justification = step_data.get(f"{k}_justification")
-                                        cited_source_id = step_data.get(f"{k}_cited_source_id")
-                                        cited_text_quote = step_data.get(f"{k}_cited_text_quote")
-                                        cited_web_citation = step_data.get(f"{k}_google_citation")
-                                        falsification = step_data.get(f"{k}_falsification")
-                                        theory_link = step_data.get(f"{k}_theory_link")
-                                        risk_flag = step_data.get(f"{k}_risk_flag")
-                                        coaching = step_data.get(f"{k}_coaching")
-                                        confidence = step_data.get(f"{k}_confidence")
-                                        missing_context = step_data.get(f"{k}_missing_context")
-                                        remediation_steps = step_data.get(f"{k}_remediation_steps")
-                                        emotional_sentiment = step_data.get(f"{k}_emotional_sentiment")
+                                        if isinstance(v, dict):
+                                            # Epic 39 / Phase 9: V2 nested dict extraction
+                                            justification = v.get("justification")
+                                            raw_breakdown = v.get("level_breakdown")
+                                            if raw_breakdown and isinstance(raw_breakdown, dict):
+                                                clean_level_dict = {}
+                                                for lvl_key, lvl_data in raw_breakdown.items():
+                                                    if isinstance(lvl_data, dict):
+                                                        try:
+                                                            f_lvl = float(lvl_key)
+                                                            is_int = f_lvl.is_integer()
+                                                            c_key = str(int(f_lvl)) if is_int else str(lvl_key)
+                                                            hits = lvl_data.get("hits", 0)
+                                                            total = lvl_data.get("total", 0)
+                                                            clean_level_dict[c_key] = f"{hits}/{total}"
+                                                        except ValueError:
+                                                            pass
+                                                level_breakdown = clean_level_dict
+                                            ext_dict = v.get("extensions", {})
+                                            cited_source_id = ext_dict.get("source_id")
+                                            cited_text_quote = ext_dict.get("citation")
+                                            cited_web_citation = ext_dict.get("google_citation")
+                                            falsification = ext_dict.get("falsification")
+                                            theory_link = ext_dict.get("theory_link")
+                                            risk_flag = ext_dict.get("risk_flag")
+                                            coaching = ext_dict.get("coaching")
+                                            confidence = ext_dict.get("confidence")
+                                            missing_context = ext_dict.get("missing_context")
+                                            remediation_steps = ext_dict.get("remediation_steps")
+                                            emotional_sentiment = ext_dict.get("emotional_sentiment")
+                                        else:
+                                            # Suffix-based flat key lookup (Legacy Fallback)
+                                            justification = step_data.get(f"{k}_justification")
+
+                                            # Also support legacy fallback parsing if it's stored as JSON string
+                                            raw_legacy_breakdown = step_data.get(f"{k}_level_breakdown")
+                                            if isinstance(raw_legacy_breakdown, str):
+                                                import json
+                                                try:
+                                                    raw_legacy_breakdown = json.loads(raw_legacy_breakdown)
+                                                except json.JSONDecodeError:
+                                                    raw_legacy_breakdown = None
+
+                                            if raw_legacy_breakdown and isinstance(raw_legacy_breakdown, dict):
+                                                clean_level_dict = {}
+                                                for lvl_key, lvl_data in raw_legacy_breakdown.items():
+                                                    if isinstance(lvl_data, dict):
+                                                        try:
+                                                            f_lvl = float(lvl_key)
+                                                            is_int = f_lvl.is_integer()
+                                                            c_key = str(int(f_lvl)) if is_int else str(lvl_key)
+                                                            hits = lvl_data.get("hits", 0)
+                                                            total = lvl_data.get("total", 0)
+                                                            clean_level_dict[c_key] = f"{hits}/{total}"
+                                                        except ValueError:
+                                                            pass
+                                                level_breakdown = clean_level_dict
+
+                                            cited_source_id = step_data.get(f"{k}_cited_source_id")
+                                            cited_text_quote = step_data.get(f"{k}_cited_text_quote")
+                                            cited_web_citation = step_data.get(f"{k}_google_citation")
+                                            falsification = step_data.get(f"{k}_falsification")
+                                            theory_link = step_data.get(f"{k}_theory_link")
+                                            risk_flag = step_data.get(f"{k}_risk_flag")
+                                            coaching = step_data.get(f"{k}_coaching")
+                                            confidence = step_data.get(f"{k}_confidence")
+                                            missing_context = step_data.get(f"{k}_missing_context")
+                                            remediation_steps = step_data.get(f"{k}_remediation_steps")
+                                            emotional_sentiment = step_data.get(f"{k}_emotional_sentiment")
 
                                 # Use a combined key for uniqueness
                                 unique_k = f"{step_id}_{k}"
@@ -433,6 +498,7 @@ class BlueprintTransformer:
                                     scale_labels=scale_labels,
                                     ui_plot_ratio=ui_plot_ratio,
                                     ui_boundary_labels=ui_boundary_labels,
+                                    level_breakdown=level_breakdown,
                                 )
 
                 # Epic 13: Enforce strict 3D Tuple Ordinality (X, Y, Z)

@@ -42,7 +42,7 @@ class GCSFileDriver(FileDriver):
             raise AppException(
                 message=msg,
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_BUCKET_NOT_FOUND},
+                details={"error_code": ErrorCodes.STORAGE_BUCKET_NOT_FOUND.value},
             )
 
         if storage is None:
@@ -51,7 +51,7 @@ class GCSFileDriver(FileDriver):
             raise AppException(
                 message=msg,
                 status_code=500,
-                details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING},
+                details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
             )
 
         self.bucket_name = bucket_name
@@ -75,7 +75,7 @@ class GCSFileDriver(FileDriver):
             raise AppException(
                 message=f"GCS Initialization Failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             ) from e
 
     async def save(self, path: str, data: bytes | str) -> str:
@@ -102,7 +102,7 @@ class GCSFileDriver(FileDriver):
             raise AppException(
                 message=f"GCS Save Failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             ) from e
 
     async def read(self, path: str) -> bytes:
@@ -124,7 +124,7 @@ class GCSFileDriver(FileDriver):
             raise AppException(
                 message=f"File not found in GCS: {path}",
                 status_code=404,
-                details={"error_code": ErrorCodes.FILE_NOT_FOUND},
+                details={"error_code": ErrorCodes.FILE_NOT_FOUND.value},
             ) from e
         except AppException:
             raise
@@ -136,7 +136,7 @@ class GCSFileDriver(FileDriver):
             raise AppException(
                 message=f"GCS Read Failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             ) from e
 
     async def delete(self, path: str) -> bool:
@@ -177,7 +177,7 @@ class GCSFileDriver(FileDriver):
             raise AppException(
                 message=f"GCS Delete Failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             ) from e
 
     async def exists(self, path: str) -> bool:
@@ -200,7 +200,7 @@ class GCSFileDriver(FileDriver):
             raise AppException(
                 message=f"GCS Exists Check Failed: {str(e)}",
                 status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             ) from e
 
     async def get_url(self, path: str) -> str | None:

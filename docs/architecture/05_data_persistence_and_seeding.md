@@ -40,8 +40,8 @@ Tapahtumaperusteisen historiikin (Event Sourcing) myötä tietokantaan syntyy ma
 ### Decoupled MCP Audit Trails
 Ennen mahdollisia Blob-siirtoja `_offload_payloads()` poimii `frozen_context` -paketista erilleen tekoälyn työkalukutsut (`mcp_tool_audit`). Tämä data voi työnkulun aikana paisua valtavaksi. Blob-storagen sijaan nämä MCP-lokit ohjataan tallennettavaksi täysin erillisinä dokumentteina natiiviin tietokantaan `executions/{doc_id}/audit_trails` -alakokoelmaan. Tämä eristys ohittaa normaalin JSON-Blob siirron ja mahdollistaa yksittäisten työkalukutsujen rakenteelliset haut ja selaamiset tietokantatasolla ohittaen muun datan.
 
-### Append-Only Workflow Versiointi (System Sovereignty)
-Työnkulut noudattavat asynkronisessa I/O -kerroksessa tiukkaa **Append-Only** -protokollaa forensisen jäljitettävyyden vaalimiseksi. Backend API:sta tulevat päivityspyynnöt (`update_workflow`) eivät koskaan tuhoa vanhaa tietokantatietuetta, vaan muuttavat edellisen version tilaksi `is_latest=False` ja luovat täysin uuden dokumenttiversion. Tämä varmistaa *System Sovereignty* -periaatteen säilymisen, jolloin historialliset ajot voidaan aina kytkeä tarkalleen siihen työnkulkukonfiguraatioon, jolla ne aikoinaan suoritettiin.
+### Työnkulkujen Versiointi (System Sovereignty)
+Backend API:sta tulevat päivityspyynnöt (kuten työnkulkujen tai agenttien muokkaus) ohjataan `AppendOnlyRepository` -luokan kautta, joka perii `UnifiedWorkflowRepository` -abstraktion. Tämä toteuttaa tiukan **Append-Only** -protokollan forensisen jäljitettävyyden vaalimiseksi. Sen sijaan että data ylikirjoitettaisiin, vanha tietue merkitään `{"is_latest": False}` ja uusi tietue luodaan vanhan ID:n pohjalta käyttämällä `_increment_version` -metodia (esim. liittämällä `_v2`, `_v3` jne. alkuperäiseen tunnisteeseen). Tämä arkkitehtuurillinen System Sovereignty varmistaa, että vanhat ajot pysyvät pysyvästi kytkettyinä juuri niihin historiallisiin konfiguraatioihin, joilla ne alunperin suoritettiin.
 
 ## 2. API ja Pydantic (SSOT Validation)
 

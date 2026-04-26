@@ -147,6 +147,12 @@
         <catastrophic_reason>Without explicitly tested Enum parity, the UI dynamically collapses or drops missing fields when the backend introduces a new type, leading to severe dataloss (e.g., dropping 3D coordinates because the UI reverted to a 1D default).</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="schema_driven_routing">
+        <banned_pattern>Using "Duck Typing" or blind `try...except` Pydantic validation (e.g. `if "raw_score" in dict`) to guess the type of a payload during orchestration or parsing.</banned_pattern>
+        <mandatory_pattern>ALWAYS look at the Database (UI configuration) first. Types and processing routes MUST be explicitly dictated by a `schema_map` derived from the database (e.g., Workflow or V2Step definitions). If a payload needs to be processed as a MATRIX block, the orchestrator must know it is a MATRIX block *before* parsing, based purely on the database's map, never by guessing based on JSON keys.</mandatory_pattern>
+        <catastrophic_reason>Duck typing breaks the "Single Source of Truth / De-Generator" architecture. If the UI defines an entity as a TEXT block, but it happens to coincidentally contain a `raw_score` key, duck typing will silently hijack it, bypassing the UI's explicit sovereignty and causing untraceable Fail-Fast violations down the line.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="prompt_compiler_immutability">
         <banned_pattern>Modifying the `backend_v2/services/orchestrator/prompt_compiler.py` file.</banned_pattern>
         <mandatory_pattern>The Prompt Compiler is a frozen architectural cornerstone. Do NOT touch this file. If a change is absolutely necessary, you must explicitly flag it and seek USER CONFIRMATION before making any edits.</mandatory_pattern>

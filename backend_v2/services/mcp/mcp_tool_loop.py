@@ -8,6 +8,7 @@ Implements a 2-phase execution:
 Adheres to RFC 7807 Dual-Reporting and Graceful Degradation (§6.3) mandates.
 """
 
+import json
 import logging
 import time
 from datetime import datetime, timezone
@@ -17,6 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.v2_core import MCPAuditTrace
+from backend_v2.services.mcp.tavily_search_client import tavily_search
 
 logger = logging.getLogger(__name__)
 
@@ -52,10 +54,28 @@ TAVILY_TOOL_DECLARATION: dict[str, Any] = {
 }
 
 
+class OpenAIFunctionCallDTO(BaseModel):
+    name: str
+    arguments: str | dict[str, Any]
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+
+class OpenAIToolCallDTO(BaseModel):
+    id: str
+    type: str = "function"
+    function: OpenAIFunctionCallDTO
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+
+class TavilyToolArgsDTO(BaseModel):
+    query: str
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+
 class MCPToolLoopResult(BaseModel):
     """Result from the Tool Loop — structured output + audit trail."""
 
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(frozen=True, strict=True)
 
     result_data: dict[str, Any] = Field(description="Final structured output dict.")
     audit_traces: list[MCPAuditTrace] = Field(default_factory=list, description="Audit log of all tool invocations.")
@@ -81,8 +101,6 @@ async def _execute_tavily_search(
     Graceful Degradation (§6.3): Tavily failures return an audit trace with empty results,
     allowing the LLM to proceed without external evidence. Translates evidence on-the-fly.
     """
-    from backend_v2.services.mcp.tavily_search_client import tavily_search
-
     start_ms = int(time.monotonic() * 1000)
     try:
         result = await tavily_search(query)
@@ -243,23 +261,33 @@ async def execute_tool_loop[T: BaseModel](
                 )
                 break
 
-            func = tc.get("function", {})
-            tool_name = func.get("name", "")
-            tool_args = func.get("arguments", {})
+            try:
+                tc_dto = OpenAIToolCallDTO.model_validate(tc)
+            except Exception as e:
+                msg = f"LLM returned malformed tool call structure: {e}"
+                logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
 
-            if isinstance(tool_args, str):
-                import json
+            tool_name = tc_dto.function.name
+            tool_args_raw = tc_dto.function.arguments
 
+            if isinstance(tool_args_raw, str):
                 try:
-                    tool_args = json.loads(tool_args)
+                    tool_args = json.loads(tool_args_raw)
                 except Exception as e:
-                    msg = f"LLM returned malformed JSON for tool arguments: {tool_args}"
+                    msg = f"LLM returned malformed JSON for tool arguments: {tool_args_raw}"
                     logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise AppException(
                         message=msg,
                         status_code=400,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     ) from e
+            else:
+                tool_args = tool_args_raw
 
             if tool_name != TAVILY_TOOL_ID:
                 logger.warning(
@@ -272,8 +300,18 @@ async def execute_tool_loop[T: BaseModel](
                 invalid_tools_detected = True
                 continue
 
-            query = tool_args.get("query", "")
-            if not query:
+            try:
+                tavily_args = TavilyToolArgsDTO.model_validate(tool_args)
+                query = tavily_args.query
+            except Exception:
+                logger.warning(
+                    "LLM returned invalid query for Tavily, skipping.",
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                )
+                invalid_tools_detected = True
+                continue
+
+            if not query.strip():
                 logger.warning(
                     "LLM returned empty query for Tavily, skipping.",
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
@@ -294,7 +332,7 @@ async def execute_tool_loop[T: BaseModel](
             tool_call_count += 1
 
             # Inject evidence as tool message — MUST use the LLM's original call ID
-            original_call_id = tc.get("id", f"{TAVILY_TOOL_ID}_{step_name}")
+            original_call_id = tc_dto.id
             evidence_msg = _build_tool_evidence_message(audit, tool_call_id=original_call_id)
 
             # Add the assistant's tool_call message and the tool response
@@ -381,5 +419,5 @@ async def execute_tool_loop[T: BaseModel](
         raise AppException(
             message=f"Tool Loop Phase 2 failed for step '{step_name}': {e}",
             status_code=500,
-            details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
+            details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.value},
         ) from e

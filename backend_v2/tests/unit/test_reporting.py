@@ -18,22 +18,13 @@ def test_report_synthesis_dto_validation_success() -> None:
         "global_context_vars": {
             "step_xai": {
                 "executive_summary": "System performs well.",
-                "score_cards": [
-                    {
-                        "total_score": 4.5,
-                        "dimensions": [
-                            {
-                                "dimension_id": "dim_1",
-                                "dimension_label": "Clarity",
-                                "score": 4.5,
-                                "reasoning": "Clear output.",
-                            }
-                        ],
-                    }
-                ],
             },
             "step_judge": {"critical_findings": ["No severe issues found."]},
             "step_overseer": {"overseer_data": {"ethical_issues": ["minor bias detected"]}},
+            "step_logician": {"logician_data": {"walton_scheme": {"critical_questions": ["Why?"]}}},
+            "step_detector": {"performativity_analysis": {"weak_signals": ["Signal 1"]}},
+            "step_panel": {"falsifier_data": {"vulnerabilities": ["Vuln 1"]}},
+            "step_profiler": {"metrics": {"word_count": 100, "control_ratio": 0.5}}
         },
     }
 
@@ -42,10 +33,6 @@ def test_report_synthesis_dto_validation_success() -> None:
     assert dto.inputs.true_atoms_count == 5
     assert dto.global_context_vars.step_xai is not None
     assert dto.global_context_vars.step_xai.executive_summary == "System performs well."
-    assert dto.global_context_vars.step_xai is not None
-    assert dto.global_context_vars.step_xai.score_cards is not None
-    assert len(dto.global_context_vars.step_xai.score_cards) == 1
-    assert dto.global_context_vars.step_xai.score_cards[0].dimensions[0].dimension_id == "dim_1"
     assert dto.global_context_vars.step_judge is not None
     assert dto.global_context_vars.step_judge.critical_findings == ["No severe issues found."]
 
@@ -104,10 +91,10 @@ def test_xai_flat_report_dto_serialization() -> None:
 async def test_generate_report_hook_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that the reporting hook can successfully parse a Zero-Compromise strict DTO."""
     from pathlib import Path
-    
+
     # Mock template directory existence to avoid filesystem dependence
     monkeypatch.setattr(Path, "exists", lambda self: True)
-    
+
     from backend_v2.core.hook_registry import HookDependencies, HookState
     from backend_v2.hooks.reporting import generate_report_hook
 
@@ -120,34 +107,44 @@ async def test_generate_report_hook_success(monkeypatch: pytest.MonkeyPatch) -> 
         inputs={
             "true_atoms_count": 5,
             "false_atoms_count": 0,
-            "test_pb": {"step_4_final_score": 5.0, "justification": "Test block", "extensions": {}}
+            "blk_123": {
+                "raw_score": 4.5,
+                "normalized_score": 85.0,
+                "level_breakdown": "",
+                "justification": "Test block",
+                "evaluated_atoms": {},
+                "extensions": {}
+            }
         },
         global_context_vars={
             "step_xai": {
                 "executive_summary": "System performs well.",
-                "score_cards": []
             },
-            "step_overseer": {"overseer_data": {"ethical_issues": ["No bias"]}}
+            "step_overseer": {"overseer_data": {"ethical_issues": ["No bias"]}},
+            "step_scoreengine1": {"score_summary": {"total_score": 85.0, "normalized_score": 85.0}},
+            "step_analyst": {"rag_evidence": ["Evidence 1"]},
         },
     )
     deps = HookDependencies(repository=None)
 
     result = generate_report_hook(state, deps)
-    
+
     assert result.success is True
     assert "report_context" in result.state_delta
     ctx = result.state_delta["report_context"]
     assert ctx["summary"] == "System performs well."
     assert ctx["ethical_issues"] == ["No bias"]
-    
+    assert "blk_123" in ctx["scores"]
+    assert ctx["scores"]["blk_123"]["score"] == 85.0
+
 @pytest.mark.asyncio
 async def test_generate_report_hook_missing_inputs(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that the reporting hook strictly fails fast on missing inputs."""
     from pathlib import Path
-    
+
     # Mock template directory existence to avoid filesystem dependence
     monkeypatch.setattr(Path, "exists", lambda self: True)
-    
+
     from backend_v2.core.hook_registry import HookDependencies, HookState
     from backend_v2.exceptions import AppException, ErrorCodes
     from backend_v2.hooks.reporting import generate_report_hook
@@ -165,5 +162,5 @@ async def test_generate_report_hook_missing_inputs(monkeypatch: pytest.MonkeyPat
 
     with pytest.raises(AppException) as exc:
         generate_report_hook(state, deps)
-        
+
     assert exc.value.details["error_code"] == ErrorCodes.INVALID_OUTPUT_SCHEMA

@@ -93,10 +93,100 @@ Kun järjestelmään syötetään massiivisia lausuntoja (esim. PDF/Word-tiedost
 
 ### B. Duck-Typing Token Shield (Token Exhaustion Suojamuuri)
 Backendin suurin arkkitehtuurinen riski dynaamisessa tulostuksessa on koko `execution_trace` laatikon sokkosyöttö LLM-mallille, mikä laukaisee API-tarjoajalla (esim. Vertex AI) "Resource Exhausted" 400 -virheen ja tukkii yli miljoonan tokenin rajat sekunneissa. Tämä estetään **"Duck-Typing Token Shield"** kerroksella:
-1. **Säännötön Imurointi (Wildcard `*`):** Jos UI pyytää kaikki osiot, Token Shield ei hae kaikkea dataa, vaan iteratiivisesti poimii ainoastaan Pydantic-solmut, joista löytyy tekoälyn luoma `reasoning_trace` eli "sormenjälki". Tämä leikkaa massiivisen Eager Extraction taustadatan satojen sivujen raakatekstit ja pitää kontekstin kurissa, antaen tekoälylle luettavaksi vain sen omat edellisen ajon asiantuntijalausunnot ja tiivistelmät.
+1. **Säännötön Imurointi (Wildcard `*`):** Jos UI pyytää kaikki osiot, Token Shield ei hae kaikkea dataa, vaan iteratiivisesti poimii ainoastaan Pydantic-solmut, joista löytyy tekoälyn luoma `reasoning_trace`. Tämä on **LLM-stepin diskriminaattori** — kaikki LLM-suoritusstepit emittoivat sen dynaamisessa schemassa (`prompt_compiler.py`), mutta `raw_inputs`, `inputs` ja logic-nodet eivät. Token Shield käyttää `SynthesisStepDataDTO` DTO:ta diskriminointiin (`extra="ignore"` — vain `reasoning_trace`-kentän tarkistus).
+   > **Tärkeä yksityiskohta:** Tarkistus tehdään `is None` -vertailulla (ei falsy `not`), koska tyhjä merkkijono on kelvollinen LLM-output tietyillä malleilla. Näin yhden stepin poisjääminen synteesistä ei tapahdu tyhjän thinking-outputin vuoksi.
 2. **Erikoiskohteistettu Kutsu (Explicit `target_blocks`):** Jos UI hakee raporttiin vain tiettyjä palikoita (esim. `["python_math_score", "report_metadata"]`), Token Shield ohittaa wildcard asiantuntijalogian ja purkaa Pydantic `frozen_context` rakenteesta natiivisti vain tasan nuo erikoisavaimet kielelliseen tulkkaukseen ilman muun malliston sotkeentumista päälle.
+3. **Raskaan datan poisto ennen LLM-kutsua (`_compress_synthesis_payload`):** Ennen LLM-kutsuhetkiä poistuu kentät `shuffled_atoms`, `evaluations`, `quote` ja `reasoning`, jotka voivat sisältää satoja atomeja tai pitkiä ketjupäättelylokeja. Näin Chief Editor -LLM saa vain olennaisen: perustelut ja pisteet.
+
+## 6. Zero-Compromise Export & Reporting (Epic 41)
+
+Tulostusmoottorin vienti- ja raportointiarkkitehtuuri noudattaa "HTML First" ja Zero-Compromise periaatteita varmistaakseen, että PDF- ja ruututulosteet ovat täysin vakaita ja heijastavat absoluuttista Pydantic-tietomallia:
+
+### 6.1 Datan Eheyden Varmistaminen (StrictMatrixPayload)
+* **Fail-Fast ja Tyyppiturvallisuus:** Järjestelmän tietokannasta luettava ajodata (ExecutionRecords) puretaan ehdottoman tiukasti `StrictMatrixPayload` -rakenteita noudattaen aina tiedon synnystä lopulliseen tulosteeseen saakka.
+* Koodissa ei sallita hiljaisia `except Exception: pass` -suodattimia ("God Blocks"), jotka piilottaisivat matriisidatan rakenteelliset virheet.
+* **Eksplisiittinen Tyyppikastaus:** Matriisien syvädataa luettaessa vältetään Mypy:n hylkäämä dynaaminen `union-attr` duck-typing. Tieto tyypitetään eksplisiittisesti (esim. `dict[str, Any]`), jotta varmistutaan tiedon virheettömästä siirtymisestä tietokannasta tulostusmoottorille ilman tiedonhäviötä. Kaikki validointivirheet (`ValidationError`) lokitetaan välittömästi, mikä estää viallisen tiedon päätymisen asiakasraportteihin.
+
+### 6.2 Raporttien Tulostus-API ja HTML Pariteetti (HTML-First Export Strategy)
+* **HTML First ja PDF:n Selaindelegointi:** Paikallisten Weasyprint (GTK3) -kaatumisten estämiseksi Windows-ympäristöissä tulostusmoottori tukee formaattia `format=html` suoraan `ExecutionService` -reitittimestä (`/render`). Tämä eriyttää HTML-templatoinnin raskaasta PDF-renderöinnistä, jolloin backend voi palauttaa raa'an HTML:n ja delegoida PDF-konversion suoraan selaimelle (esim. Flutter `url_launcher` tai natiivi print-to-pdf). Tämä ohittaa backendin Weasyprint-rajoitteet lokaalissa kehityksessä täysin ja takaa nopeat, kaatumattomat testausiteraatiot.
+* **Yhtenäinen API-rajapinta:** PDF:n tai kauniin HTML-raportin generointiin ei tueta erillisiä lokaaleja CLI-purkkaskriptejä. Kaikki raportit tuotetaan yksinomaan järjestelmän ydinrajapintojen (`BlueprintTransformer` + `HtmlReportService` / `PdfReportService`) kautta, jotta tulosteiden visuaalinen ja tietosisällöllinen renderöinti on aina täydellisesti linjassa tuotannon kanssa.
+
+### 6.3 XAI-Datan ja Matriisikoontitaulukon Synteesi
+* Loppuraportti (`report_template.jinja2`) tuottaa visuaalisessa muodossa 1:1 asiakaskäyttöliittymän (Flutter SDUI) kanssa kaikki matriisien syvälaajennukset (kuten Valmennusvinkit, Sävy ja Korjaustoimenpiteet). Tieto virtaa rikkomattomasti `ReportDataDTO`:n kautta.
+* **Kattava Matriisikoontitaulukko (Summary Table):** Raportin loppuun renderöidään automaattisesti kattava taulukko-osio. Se kokoaa matriisien tasot (esim. T1-T6), lyhyet perustelut ja skaalatut prosenttiarvot tiiviiksi yhteenvedoksi, muodostaen loogisen ja kauniin loppuyhteenvedon tuotettavalle dokumentille.
 
 ### C. Multi-Profile Caching & On-Demand Reprocessing (FinOps)
 Koko järjestelmä tallentaa kalliin prosessin vain kerran `ExecutionRecord.execution_trace` taulukkoon Pydantic Event Sourcing -mallilla.
 Kun tietty Output Profile (esim. Johdon Tiivistelmä) on prosessoitu, LLM:n palauttama DTO (`RenderedSynthesisCache`) välimuistitetaan ikuiseksi osaksi itse `ExecutionRecord` -tietuetta (`profile_syntheses["prof_executive"]`).
 Käyttäjä voi kuitenkin pyytää renderöinnin katselunäkymästä uuden tiivistelmän viikkoa myöhemmin toisella konfiguraatiolla (esim. "Syvä tekninen"). Tällöin järjestelmä ohittaa vanhan välimuistin uudelleenreitityksellä, noukkii vanhan raakadatan yhdellä tietokantahaulla ja puskee sen Token Shieldin läpi uudeksi DTO:ksi (esim. `profile_syntheses["prof_tech"]`), ilman että ainuttakaan alkuperäistä kognitiivista analyysi-agenttia herätetään uudelleen.
+
+---
+
+## 6. SDUI-Renderöinnin Tarkat Säännöt (`BlueprintTransformer`)
+
+`BlueprintTransformer.build_report_dto()` on universaali BFF-muuntaja, joka palvelee **sekä Flutter-näyttöä että PDF-generointia samasta `ReportDataDTO`-rakenteesta** (täydellinen pariteetti).
+
+### A. Block-suodatus — Fail-Fast rajapinta
+Stepin tuloksesta lähetetään `ReportAxisDTO`:ksi **vain** ne avaimet, joilla löytyy vastaava `PromptBlock` tietokannasta (tai legacy `score`-avain):
+```python
+block = blocks_by_id.get(k)
+if not block and not is_legacy_score:
+    continue  # reasoning_trace, _step_metadata, jne. suodatetaan POIS
+```
+Tämä takaa, että sisäiset diagnostiikkakentät (`reasoning_trace`, `_step_metadata`, `_evaluative_matrices`) eivät koskaan vuoda käyttöliittymälle.
+
+### B. Skaalauksen kolme tilaa (`display_scale`)
+
+| `display_scale` | Pistelähde | Rajat UI:lle |
+|---|---|---|
+| `original` | `raw_score` | DB:n `computed_min` / `computed_max` |
+| `custom` | `raw_score` | DB:n `scale_min` / `scale_max` |
+| `normalized_100` | `normalized_score` | 0 – 100 |
+
+Backend laskee `ui_plot_ratio` valmiiksi:
+```python
+ui_plot_ratio = (score_float - scale_min) / (scale_max - scale_min)
+```
+Flutter ei tee matematiikkaa — se renderöi suoraan saadun suhdeluvun (Zero-Math UI -mandaatti).
+
+### C. Akselijärjestys — `target_blocks` määrää
+`OutputProfile.layouts[n].target_blocks` -lista määrää akselijärjestyksen **täsmälleen** Admin Studion määrittämässä järjestyksessä:
+```python
+for target_k in target_blocks:          # UI:n määräämä järjestys
+    for unique_k, axis_dto in unsorted_axes.items():
+        if unique_k.endswith(f"_{target_k}"):
+            axes.append(axis_dto)        # akseli lisätään oikeaan kohtaan
+```
+Wildcard (`*`) → akselijärjestys on DAG:n steppijärjestys (ei-determininen).
+
+### D. Minimiakseli-vaatimukset — Fail-Fast
+```python
+if preset_view == "3d_complex" and len(axes) < 3:
+    raise AppException(...)   # kaatuu ennen UI-renderöintiä
+elif preset_view == "2d_compare" and len(axes) < 2:
+    raise AppException(...)
+```
+Jos layout-konfiguraatio on virheellinen, järjestelmä kaatuu backendissä, ei Flutterissa.
+
+### E. XAI Extensions ja Grouped Highlights
+`OutputProfile.visible_extensions` määrää mitä XAI-laajennusryhmiä populoidaan:
+```python
+visible_extensions = [v.value for v in profile.visible_extensions]
+grouped_extensions = {ext: [] for ext in visible_extensions}
+# ... highlight.extension_type → grouped_extensions[group_key].append(highlight)
+```
+Extension-data poimitaan V2-skeemasta nested dict -rakenteesta:
+```python
+ext_dict = v.get("extensions", {})
+coaching = ext_dict.get("coaching")     # 11 extension-kenttää
+falsification = ext_dict.get("falsification")
+risk_flag = ext_dict.get("risk_flag")
+# ...
+```
+
+### F. XSS-suojaus (bleach) ennen PDF/SDUI
+Synthesisoitu markdown sanitoidaan Bleach-kirjastolla ennen `ReportDataDTO`-konstruktiota:
+```python
+safe_md = bleach.clean(str(synthesis_md), tags=allowed_tags, attributes=allowed_attributes, strip=True)
+```
+Sallittu tagisetti kattaa kaikki markdown-muuntimet (`h1`–`h6`, `p`, `table`, `blockquote`, jne.) mutta poistaa `<script>` ja muut XSS-vektorit.

@@ -25,10 +25,22 @@ MAX_RESULTS = 5
 CONTENT_CHAR_LIMIT = 8000
 
 
+class TavilyApiResultItemDTO(BaseModel):
+    url: str = Field(default="")
+    content: str = Field(default="")
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+
+class TavilyApiResponseDTO(BaseModel):
+    answer: str | None = Field(default="")
+    results: list[TavilyApiResultItemDTO] = Field(description="Search results list from Tavily.")
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+
 class TavilySearchResult(BaseModel):
     """Parsed Tavily response for downstream consumption."""
 
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(frozen=True, strict=True)
 
     query: str = Field(description="Echo of the original search query.")
     answer: str = Field(default="", description="AI-generated summary from Tavily.")
@@ -96,13 +108,15 @@ async def tavily_search(query: str) -> TavilySearchResult:
             raise AppException(
                 message=msg,
                 status_code=502,
-                details={"error_code": ErrorCodes.FETCH_FAILED, "query": query},
+                details={"error_code": ErrorCodes.FETCH_FAILED.value, "query": query},
             )
 
         try:
             data = response.json()
+            # Pydantic Zero-Compromise Check
+            parsed_data = TavilyApiResponseDTO.model_validate(data)
         except Exception as e:
-            msg = f"Tavily returned malformed JSON for query: {query}"
+            msg = f"Tavily returned malformed JSON or failed validation for query: {query}"
             logger.error(
                 f"[TavilyClient] {ErrorCodes.VALIDATION_FAILED.name}: {msg}: {e}",
                 exc_info=True,
@@ -110,12 +124,12 @@ async def tavily_search(query: str) -> TavilySearchResult:
             raise AppException(
                 message=msg,
                 status_code=502,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED, "query": query},
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "query": query},
             ) from e
 
         # Parse response — Zero-Compromise Fail-Fast, no empty result fallbacks
-        answer = str(data.get("answer", "") or "")
-        results_list: list[dict[str, Any]] = data.get("results", [])
+        answer = str(parsed_data.answer or "")
+        results_list = parsed_data.results
 
         if not results_list and not answer.strip():
             msg = f"Tavily search returned zero results for query: '{query}'. Zero-Compromise Fail-Fast enforced."
@@ -131,12 +145,12 @@ async def tavily_search(query: str) -> TavilySearchResult:
         seen_urls: set[str] = set()
 
         for item in results_list:
-            url = str(item.get("url", ""))
+            url = str(item.url)
             if url and url not in seen_urls:
                 source_urls.append(url)
                 seen_urls.add(url)
 
-            snippet = str(item.get("content", ""))
+            snippet = str(item.content)
             if snippet:
                 content_parts.append(_sanitize_text(snippet))
 
@@ -167,7 +181,7 @@ async def tavily_search(query: str) -> TavilySearchResult:
         raise AppException(
             message=msg,
             status_code=502,
-            details={"error_code": ErrorCodes.FETCH_FAILED, "query": query},
+            details={"error_code": ErrorCodes.FETCH_FAILED.value, "query": query},
         ) from e
     except httpx.HTTPError as e:
         msg = f"Tavily network error for query: {query}"
@@ -178,5 +192,5 @@ async def tavily_search(query: str) -> TavilySearchResult:
         raise AppException(
             message=msg,
             status_code=502,
-            details={"error_code": ErrorCodes.FETCH_FAILED, "query": query},
+            details={"error_code": ErrorCodes.FETCH_FAILED.value, "query": query},
         ) from e

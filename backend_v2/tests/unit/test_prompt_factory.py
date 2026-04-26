@@ -21,12 +21,24 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
     """Test successful compilation of PromptPayload."""
     criteria_blocks = [
         {
-            "id": "block1",
+            "id": "blk_12345678901234567890123456789012",
+            "slug": "test_slug",
+            "label": {"default_locale": "en", "translations": {"en": "Test Label", "fi": "Testi"}},
+            "description": {"default_locale": "en", "translations": {"en": "Test Desc", "fi": "Testi"}},
+            "type": "string",
             "category_id": "matrix",
+            "scale_min": 1,
+            "scale_max": 5,
             "scales": [
                 {
+                    "score": 1,
+                    "ai_label": "Scale 1",
                     "claims": [
-                        {"micro_atoms": ["Atom 1", "Atom 2"]},
+                        {
+                            "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Väite 1"}},
+                            "ai_description": "Claim 1 Desc",
+                            "micro_atoms": ["Atom 1", "Atom 2"]
+                        },
                     ]
                 }
             ],
@@ -60,12 +72,24 @@ def test_prompt_factory_missing_micro_atoms(mock_compiler: MagicMock) -> None:
     """Test Fail-Fast when micro_atoms are missing."""
     criteria_blocks = [
         {
-            "id": "block1",
+            "id": "blk_12345678901234567890123456789012",
+            "slug": "test_slug",
+            "label": {"default_locale": "en", "translations": {"en": "Test Label", "fi": "Testi"}},
+            "description": {"default_locale": "en", "translations": {"en": "Test Desc", "fi": "Testi"}},
+            "type": "string",
             "category_id": "matrix",
+            "scale_min": 1,
+            "scale_max": 5,
             "scales": [
                 {
+                    "score": 1,
+                    "ai_label": "Scale 1",
                     "claims": [
-                        {"micro_atoms": []},  # Empty micro atoms should crash
+                        {
+                            "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Väite 1"}},
+                            "ai_description": "Claim 1 Desc",
+                            "micro_atoms": [] # Empty micro atoms should crash
+                        },
                     ]
                 }
             ],

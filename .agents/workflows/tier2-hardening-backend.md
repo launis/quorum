@@ -12,15 +12,16 @@ description: Tier 2 (Backend Hardening) - Step-by-step auditing loop for Python 
     <phase id="1" name="Mapping (Kartoitus ja Suunnitelma)">
 Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus) ja hahmottaa hakemiston rakenteen syvyys.
 * Jos käyttäjä antaa komennossaan tarkan alipolun (esim. `backend_v2/api/routers/studio`), kartoita RAKENNE VAIN TÄSTÄ POLUSTA alaspäin. Jos alipolkua ei erikseen määritetä, kartoita koko `backend_v2`.
+* **ERIKOISSÄÄNTÖ YKSITTÄISILLE TIEDOSTOILLE:** Jos käyttäjä antaa komennossaan tarkan tiedoston tai tiedostoja (esim. `backend_v2/services/execution.py`), kartoita lista **Vain näistä yksittäisistä tiedostoista**. Älä laajenna auditointia koko hakemistoon.
 * **EHDOTON KIELTO (Sivuutettavat tiedostot):** Sivuuta analyysissä täysin `__pycache__` -kansiot, virtuaaliympäristöt (`venv`, `.venv`), alembic-migraatioiden versiotiedostot (`alembic/versions`) ja täysin tyhjät `__init__.py` -tiedostot. Älä lue, auditoi tai yritä muokata niitä säästääksesi resursseja ja kontekstia.
-* **SÄÄNTÖ:** Rakenna havainnoistasi chattiin tulostettava virtuaalinen Markdown-tarkistuslista (`task_backend.md`). Jaa lista niin hienojakoiseksi, että **JOKAINEN alin alihakemisto (leaf directory) on oma erillinen kohtansa listalla** (esim. pelkkä `backend_v2/api/routers` ei riitä, vaan listalla on oltava erikseen `backend_v2/api/routers/studio` jne.). Hakemistoja ei saa niputtaa.
+* **SÄÄNTÖ:** Rakenna havainnoistasi chattiin tulostettava virtuaalinen Markdown-tarkistuslista (`task_backend.md`). Jaa lista niin hienojakoiseksi, että **JOKAINEN alin alihakemisto (leaf directory) TAI annettujen yksittäisten tiedostojen tapauksessa JOKAINEN yksittäinen tiedosto on oma erillinen kohtansa listalla**. Hakemistoja ei saa niputtaa.
 * **STATE PERSISTENCE & CONTEXT RENEWAL:** Jos käyttäjän komennossa on `--resume` tai tiedosto `c:\src\quorum\tmp\hardening_state.json` on olemassa, lue se. Jätä listalta pois kaikki hakemistot, jotka on siellä merkitty tilaan "DONE". Tuo lista vain tekemättömistä hakemistoista. Aseta samalla lokaali tavoite: "Käsittelen maksimissaan 5 kansiota tässä sessiossa estääkseni kontekstin hajoamisen."
 * **KIELTO:** ÄLÄ tee koodimuutoksia tässä vaiheessa. Päätä vastauksesi aina sanoihin: *"Lista valmis. Odotan PROCEED-komentoa."*
     </phase>
     <phase id="2" name="Auditing (Systemaattinen Auditointi, One Subdirectory At A Time)">
 Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
-1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto.
-2. Lue ensin tiukasti KAIKKI kyseisen alihakemiston `.py`-tiedostot (huomioiden sivuutettavat kansiot).
+1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto TAI yksittäinen tiedosto.
+2. Lue tiukasti kyseisen kohteen `.py`-tiedostot (tai vain se yksittäinen annettu tiedosto) huomioiden sivuutettavat kansiot. Määrittele auditointitaulukko koskemaan Vain valittua laajuutta.
 3. **MANDATOITU TRACEABILITY MATRIX**: Sinun on **EHDOTTOMASTI** raportoitava havaintosi tulostamalla chattiin tarkka Markdown-taulukko ("Audit Matrix"). Taulukon on **PAKKO** sisältää oma erillinen rivinsä jokaiselle Phase 9 -säännölle (24+ kpl), ja jokainen on arvioitava (Pass/Fail/NA):
    - **`the_zero_compromise_pledge`**: Ei `.get("default")` fallbackeja. Pydantic-validointi pakollinen.
    - **`the_duct_tape_ban` / `silent_failures`**: Ei "God Blockeja" (`except Exception: pass`). Virheet on lokitettava ja heitettävä.
@@ -47,6 +48,7 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
    - **`global_settings_import`**: `get_settings` tuotava tiedoston alussa.
    - **`no_inline_imports`**: Ei inline importteja (esim. funktioiden sisällä). Kaikki importit tiedoston alussa.
    - **`cross_language_enum_parity`**: Pydantic Enum/Literal muuttujat täytyy olla pariteetissa Flutterin kanssa.
+   - **`schema_driven_routing`**: Ei "Duck Typingiä" (sokeaa sanakirjojen muodon availua). Reititys aina tietokannasta tulevan schema_map:in perusteella.
    - **`prompt_compiler_immutability`**: Älä muokkaa `prompt_compiler.py` -tiedostoa.
    - **`Synthesis.py Standard`**: Funktiot "Pure Functions" muodossa. Sisäkkäisten looppien tilalla O(1) haut.
    - Käytä sarakkeita: `| Rule Block ID / Sääntö | Tila (Pass / Fail) | Löydökset & Perustelu |`.

@@ -6,6 +6,8 @@ from fastapi import status
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.archival import ArchivalPrecedentDTO
+from backend_v2.models.domain.judge import JudgeOutput
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
@@ -58,7 +60,7 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
 
         # FAIL FAST: Strict Data Integrity (All completed executions must have a updated_at timestamp)
         for res in recent_executions:
-            if not getattr(res, "updated_at", None):
+            if not res.updated_at:
                 # Fail Fast Protocol (Part 18): Hard crash on data integrity violation
                 error_code = ErrorCodes.STATE_INTEGRITY_ERROR
                 msg = f"Data Integrity Violation: Execution {res.id} marked complete but missing updated_at timestamp."
@@ -74,8 +76,6 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
             if not trace_events:
                 logger.warning(f"Execution {res.id} has no trace events. Skipping.")
                 continue
-
-            from backend_v2.models.domain.judge import JudgeOutput
 
             judge_outputs: dict[str, JudgeOutput] = {}
 
@@ -127,15 +127,13 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
                 score_summary = " | ".join(score_parts)
                 verdict_text = " || ".join(verdict_parts)
 
-                from backend_v2.models.domain.archival import ArchivalPrecedentDTO
-
                 dto = ArchivalPrecedentDTO(
                     id=res.id,
                     date=res.completed_at.isoformat() if res.completed_at else "",
                     scores=score_summary,
                     verdict=verdict_text[:150],  # Truncate
                 )
-                precedents.append(dto.model_dump())
+                precedents.append(dto.model_dump(mode="json"))
 
         # Keep only last 3
         precedents = precedents[-3:]

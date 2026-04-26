@@ -56,15 +56,15 @@ class PdfReportService:
 
         self.env.filters["md"] = md_filter
 
-    async def generate_execution_pdf(self, execution_id: str, report_dto: ReportDataDTO | None = None) -> bytes:
-        """Generates a dynamic PDF for the given execution ID using static DTO constraints.
+    async def generate_execution_html(self, execution_id: str, report_dto: ReportDataDTO | None = None) -> str:
+        """Generates a dynamic HTML string for the given execution ID using static DTO constraints.
 
         Args:
             execution_id: The execution UUID.
             report_dto: Optional pre-assembled ReportDataDTO.
 
         Returns:
-            bytes: The generated PDF data.
+            str: The generated HTML content.
         """
         try:
             # 1. Fetch Data
@@ -153,6 +153,33 @@ class PdfReportService:
                 printed_at=printed_at,
                 charts=charts,
             )
+            return str(html_content)
+
+        except AppException:
+            # Re-raise known AppExceptions (e.g. 404) as-is
+            raise
+
+        except Exception as e:
+            msg = f"HTML generation failed: {e}"
+            logger.error("[PdfReportService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "original_error": str(e)},
+            ) from e
+
+    async def generate_execution_pdf(self, execution_id: str, report_dto: ReportDataDTO | None = None) -> bytes:
+        """Generates a dynamic PDF for the given execution ID using static DTO constraints.
+
+        Args:
+            execution_id: The execution UUID.
+            report_dto: Optional pre-assembled ReportDataDTO.
+
+        Returns:
+            bytes: The generated PDF data.
+        """
+        try:
+            html_content = await self.generate_execution_html(execution_id, report_dto)
 
             # 4. Generate PDF
             import asyncio

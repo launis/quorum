@@ -69,10 +69,19 @@ class PromptAtomizer:
             "</system_directive>"
         )
 
+        new_scales = []
         for scale in block.scales:
+            new_claims = []
             for claim in scale.claims:
                 if not claim.micro_atoms:
-                    text_to_atomize = claim.label.get("en", "No English label provided")
+                    if "en" not in claim.label.translations or not claim.label.translations["en"].strip():
+                        msg = "Atomization failed: Claim label missing mandatory 'en' translation."
+                        logger.error("[PromptAtomizer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        raise AppException(
+                            message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                        )
+
+                    text_to_atomize = claim.label.translations["en"]
                     user_prompt = (
                         f"Score level: {scale.score}\n"
                         f"AI Label: {scale.ai_label}\n"
@@ -96,10 +105,14 @@ class PromptAtomizer:
                                 message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                             )
 
-                        claim.micro_atoms = atoms
+                        new_claims.append(claim.model_copy(update={"micro_atoms": atoms}))
 
                     except Exception as e:
                         logger.error("[PromptAtomizer] Atomization failed for score %s: %s", scale.score, e)
                         raise
+                else:
+                    new_claims.append(claim)
 
-        return block
+            new_scales.append(scale.model_copy(update={"claims": new_claims}))
+
+        return block.model_copy(update={"scales": new_scales})

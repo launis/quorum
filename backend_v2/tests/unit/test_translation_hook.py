@@ -86,9 +86,9 @@ async def test_translation_hook_role_segregation_and_success(
 
     # Setup Mock
     mock_client = AsyncMock()
-    # Mock LLM response string (should be valid JSON as per prompt)
-    mock_llm_response = '{"title": "Esimerkki Otsikko"}'
-    mock_client.run_chat.return_value = mock_llm_response
+    from backend_v2.hooks.translation_hook import TranslationResponseDTO
+    mock_llm_response = TranslationResponseDTO(translated_data={"title": "Esimerkki Otsikko"})
+    mock_client.run_structured_task.return_value = (mock_llm_response, {})
     mock_from_strategy.return_value = mock_client
 
     res = await cast(Awaitable[HookResult], translation_hook(state, deps))
@@ -100,9 +100,9 @@ async def test_translation_hook_role_segregation_and_success(
 
     # Assert Role Segregation
     mock_from_strategy.assert_called_once_with("fast", repository=mock_repository)
-    mock_client.run_chat.assert_called_once()
+    mock_client.run_structured_task.assert_called_once()
 
-    call_kwargs = mock_client.run_chat.call_args.kwargs
+    call_kwargs = mock_client.run_structured_task.call_args.kwargs
     messages = call_kwargs["messages"]
 
     assert len(messages) == 2
@@ -136,9 +136,9 @@ async def test_translate_sdui_payload_success(mock_repository: AsyncMock) -> Non
     res = await translate_sdui_payload(obj, "fi", mock_repository)
 
     assert isinstance(res, DummySduiModel)
-    assert res.title == "Väärennys"  # Found in _SDUI_DICT case-insensitive
-    assert res.items[0]["label"] == "Valmennus"
-    assert res.items[1]["status"] == "Puuttuva Konteksti"
+    assert res.title == "FALSIFICATION"  # Found in _SDUI_DICT case-insensitive
+    assert res.items[0]["label"] == "COACHING"
+    assert res.items[1]["status"] == "MISSING_CONTEXT"
     assert res.items[2]["unknown"] == "Not In Dict"  # Unchanged
 
 

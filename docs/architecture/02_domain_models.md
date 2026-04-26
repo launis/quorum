@@ -232,6 +232,33 @@ classDiagram
         +dict input_schema
     }
 
+    class XAIExtension{
+        <<Discriminated Union>>
+        +extension_type
+    }
+
+    class LightweightMatrixOutput{
+        +float raw_score
+        +float normalized_score
+        +str level_breakdown
+        +str justification
+        +dict evaluated_atoms
+        +dict extensions
+    }
+    
+    class StrictMatrixPayload{
+        <<RootModel>>
+    }
+
+    class SynthesisStepDataDTO{
+        +Any reasoning_trace
+    }
+
+    class SynthesisMetadataDTO{
+        +str target_locale
+        +dict token_usage
+    }
+
     V2CoreBase <|-- I18nText
     V2CoreBase <|-- ExpectedInput
     V2CoreBase <|-- Workflow
@@ -247,6 +274,10 @@ classDiagram
     V2CoreBase <|-- ReportLayoutDTO
     V2CoreBase <|-- ModelProfile
     V2CoreBase <|-- AllowedMCPTool
+    V2CoreBase <|-- LightweightMatrixOutput
+    V2CoreBase <|-- StrictMatrixPayload
+    V2CoreBase <|-- SynthesisStepDataDTO
+    V2CoreBase <|-- SynthesisMetadataDTO
 
     Workflow *-- ExpectedInput : "määrittää syötteet"
     Workflow *-- StepRule : "sisältää (Opaque DAG Nodes)"
@@ -257,6 +288,8 @@ classDiagram
     OutputProfile *-- OutputLayoutBlock : "sisältää (Layouts)"
     OutputLayoutBlock --> SynthesisConfigDTO : "määrittelee XAI-synteesin"
     ReportDataDTO *-- ReportLayoutDTO : "koostaa UI-näkymän"
+    ReportDataDTO *-- XAIExtension : "polymorfinen rikastus"
+    LightweightMatrixOutput --> XAIExtension : "laajennosdata"
 ```
 
 ### Keskeiset Arkkitehtuuriset Kokonaisuudet
@@ -287,3 +320,21 @@ Työnkulun ajanhetkellinen tila ja lopullinen valmis raportti tallennetaan tiukk
 1. **ExecutionRecord:** Tallentaa tekoälyajon koko elinkaaren. Se lukitsee sisäänsä tarkan `FrozenContext` kopion kaikista siinä hetkessä käytetyistä PromptBlockeista ja säännöistä. Tämän konseptin ansiosta kone pystyy kuukausia myöhemmin selittämään tarkasti, miksi tekoäly on tietyt päätökset tehnyt (Explainable AI / Forensic Sovereignty).
 2. **TraceEvent & MCPAuditTrace:** Työn lennossa, taustaprosessi lähettää atomisia `TraceEvent`-objekteja tilanteesta tietokantaan. Samalla kaikki Vertex AI-hakujen tai vastaavien ulkoisten MCP-työkalujen haut tallentuvat `MCPAuditTrace`-jäljeksi lokiin. MCPAuditTrace kirjaa ylös tarkan latenssin (`duration_ms`), työkalun käyttämän tietolähteen (`source_urls`), ja täsmällisen numeerisen/tekstillisen vastineen (`response_summary`). Tämä varmistaa koko työkalun logiikkaan läpinäkyvän, auditointikelpoisen forensisen jäljen.
 
+## Phase 9: Strict Hook DTOs & Micro-CoT Validation
+
+Järjestelmän taustakoukuissa (hooks) toteutetaan "Zero-Duck-Typing" ja Fail-Fast arkkitehtuurit korvaamalla dynaamiset dictionary-objektit tiukoilla Pydantic V2 -malleilla:
+
+1. **Synthesis (synthesis.py):**
+   * Pydantic V2 DTOt `SynthesisStepDataDTO` ja `SynthesisMetadataDTO` ottavat tiukasti vastaan synteesiprosessin injektiot. Ne purkavat tarvittavat flagit generic step-outputeista ilman riskiä avainvirheistä (KeyErrors) ja mahdollistavat mallien lukitsemisen `frozen=True`.
+
+2. **Scoring ja Arviointi (scoring.py & lightweight_matrix.py):**
+   * Legacy-aikakauden dictionary-pohjaiset pisteytykset on korvattu RootModeliin perustuvalla `StrictMatrixPayload` -injektiolla ja `LightweightMatrixOutput` -mallilla. Tämä varmistaa, että matriisin suoritteet – mukaan lukien dynaamisesti luodut `MicroCotDTO` (Micro Chain of Thought) erittelyt – on validoitu ennalta.
+   * Moduuleissa kuten falsifier ja guard käytetään `StepGuardDTO`, `StepFalsifierDTO` ja `StepPanelDTO` malleja, jotka perivät `ReasoningTrace` -pohjan lukiten mallien rakenteen Fail-Fast periaatteen mukaiseksi.
+
+## Polymorfinen XAI-injektio (Discriminated Unions)
+
+Tekoälyn tuottamat selittävyyskomponentit ("Explainable AI") toteutetaan **Discriminated Union** -rakenteella (`models/domain/xai.py`).
+
+* **XAIExtension:** Kaikki laajennustyypit (esim. `CitationExtension`, `RiskFlagExtension`, `EmotionalSentimentExtension`) ovat erillisiä lukittuja (`frozen=True, extra="forbid"`) malleja.
+* Yhdistävä `XAIExtension` DTO tunnistaa oikean aliluokan dynaamisesti `extension_type` Literal-kentän perusteella.
+* **Token Shielding ja Turvallisuus:** Tämä polymorfisuus suojaa järjestelmän käyttöliittymää (Flutter). Jos taustalla toimiva tekoälymalli hallusinoi vääränlaisen laajennustyypin tai sen kentät ovat rikki, Pydantic hylkää palasen välittömästi reitityksessä. Sovellus ei näin koskaan yritä renderöidä korruptoitunutta laajennusta, taaten Token Shielding -tason vikasietoisuuden.

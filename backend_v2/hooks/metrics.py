@@ -8,13 +8,18 @@ from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.metrics import MetricsPayloadDTO
+from backend_v2.models.domain.metrics import (
+    BehavioralMetricsDTO,
+    MetricsPayloadDTO,
+    ProfilerMetricsDTO,
+    TextMetricsDTO,
+)
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
 
-def analyze_text(text: str) -> dict[str, int | float]:
+def analyze_text(text: str) -> TextMetricsDTO:
     """Calculates objective text metrics from the input text using simple heuristic counting.
 
     Metrics include word count, sentence count, avg sentence length, lexical diversity,
@@ -24,18 +29,18 @@ def analyze_text(text: str) -> dict[str, int | float]:
         text (str): The raw input text.
 
     Returns:
-        dict[str, int | float]: Key metrics object.
+        TextMetricsDTO: Strictly typed metrics payload.
 
     """
     if not text or not text.strip():
-        return {
-            "word_count": 0,
-            "sentence_count": 0,
-            "avg_sentence_length": 0.0,
-            "lexical_diversity": 0.0,
-            "capitalization_ratio": 0.0,
-            "control_ratio": 0.0,
-        }
+        return TextMetricsDTO(
+            word_count=0,
+            sentence_count=0,
+            avg_sentence_length=0.0,
+            lexical_diversity=0.0,
+            capitalization_ratio=0.0,
+            control_ratio=0.0,
+        )
 
     # 1. Word Count
     words = re.findall(r"\b\w+\b", text.lower())
@@ -58,14 +63,14 @@ def analyze_text(text: str) -> dict[str, int | float]:
     total_chars = sum(1 for c in text if c.isalpha())
     cap_ratio = caps / total_chars if total_chars > 0 else 0.0
 
-    return {
-        "word_count": word_count,
-        "sentence_count": sentence_count,
-        "avg_sentence_length": round(avg_sent_len, 2),
-        "lexical_diversity": round(lex_diversity, 2),
-        "capitalization_ratio": round(cap_ratio, 2),
-        "control_ratio": 0.0,  # Default, calculated separately in hook or explicit call
-    }
+    return TextMetricsDTO(
+        word_count=word_count,
+        sentence_count=sentence_count,
+        avg_sentence_length=round(avg_sent_len, 2),
+        lexical_diversity=round(lex_diversity, 2),
+        capitalization_ratio=round(cap_ratio, 2),
+        control_ratio=0.0,  # Default, calculated separately in hook or explicit call
+    )
 
 
 def calculate_control_ratio(text: str) -> float:
@@ -132,7 +137,7 @@ def calculate_control_ratio(text: str) -> float:
     return round(user_chars / total_chars, 4)
 
 
-def calculate_behavioral_metrics(metrics: dict[str, int | float] | None) -> dict[str, int | float]:
+def calculate_behavioral_metrics(text: str) -> BehavioralMetricsDTO:
     """Calculates heuristic behavioral metrics (Say-Do Gap, Automation Bias).
 
     NOTE: These are heuristic approximations to serve as a 'Single Source of Truth'
@@ -143,55 +148,72 @@ def calculate_behavioral_metrics(metrics: dict[str, int | float] | None) -> dict
     illusion_of_competence = 0.0
     imperative_command_count = 0
 
-    if not metrics:
-        return {
-            "say_do_gap": say_do_gap,
-            "automation_bias": automation_bias,
-            "illusion_of_competence": illusion_of_competence,
-            "imperative_command_count": imperative_command_count,
-        }
+    if not text:
+        return BehavioralMetricsDTO(
+            say_do_gap=say_do_gap,
+            automation_bias=automation_bias,
+            illusion_of_competence=illusion_of_competence,
+            imperative_command_count=imperative_command_count,
+        )
 
-    # 1. Automation Bias (Heuristic: Short, affirmative user messages)
-    # If user messages are consistently short (< 5 words) and frequent.
+    # Extract user lines from text using common headers
+    lines = text.split("\n")
     user_lines: list[str] = []
 
+    user_headers = ["user:", "human:", "k:", "käyttäjä:", "me:", "minä:"]
+    ai_headers = ["ai:", "assistant:", "t:", "tekoäly:", "gpt:", "bot:"]
+    current_speaker = "user"  # Assume default is user
+
+    for line in lines:
+        lower_line = line.strip().lower()
+        started_new = False
+
+        for h in user_headers:
+            if lower_line.startswith(h):
+                current_speaker = "user"
+                content = line[len(h) :].strip()
+                if content:
+                    user_lines.append(content)
+                started_new = True
+                break
+
+        if not started_new:
+            for h in ai_headers:
+                if lower_line.startswith(h):
+                    current_speaker = "ai"
+                    started_new = True
+                    break
+
+        if not started_new and current_speaker == "user" and line.strip():
+            user_lines.append(line.strip())
+
+    # 1. Automation Bias (Heuristic: Short, affirmative user messages)
     if user_lines:
-        short_responses = 0
-        for line in user_lines:
-            if len(line.split()) < get_settings().metrics_short_response_word_count:
-                short_responses += 1
+        threshold = get_settings().metrics_short_response_word_count
+        short_responses = sum(1 for line in user_lines if len(line.split()) < threshold)
 
         if len(user_lines) > 2 and (short_responses / len(user_lines) > get_settings().metrics_automation_bias_ratio):
             automation_bias = 1.0
 
-    # 2. Say-Do Gap / Illusion of Competence
-    # If Reflection exists (Claims) but History is purely mechanical (Do).
-    # Heuristic: Reflection has content, but History is dominated by "Execute" commands or short confirmations.
-    mechanical_keywords = ["tilaa", "vahvista", "generoi", "ok", "kyllä", "jatka"]
-    mechanical_count = 0
-    total_words = 0
+        # 2. Say-Do Gap / Illusion of Competence
+        mechanical_keywords = ["tilaa", "vahvista", "generoi", "ok", "kyllä", "jatka"]
+        mechanical_count = sum(
+            1 for line in user_lines for w in line.split() if any(mk in w.lower() for mk in mechanical_keywords)
+        )
+        total_words = sum(len(line.split()) for line in user_lines)
 
-    for line in user_lines:
-        words = line.split()
-        total_words += len(words)
-        for w in words:
-            if any(mk in w for mk in mechanical_keywords):
-                mechanical_count += 1
+        imperative_command_count = mechanical_count
 
-    imperative_command_count = mechanical_count
-
-    if True:
-        # If > 50% of user words are mechanical commands, assume Gap.
         if total_words > 0 and (mechanical_count / total_words > get_settings().metrics_mechanical_ratio):
             say_do_gap = 1.0
             illusion_of_competence = 1.0
 
-    return {
-        "say_do_gap": say_do_gap,
-        "automation_bias": automation_bias,
-        "illusion_of_competence": illusion_of_competence,
-        "imperative_command_count": imperative_command_count,
-    }
+    return BehavioralMetricsDTO(
+        say_do_gap=say_do_gap,
+        automation_bias=automation_bias,
+        illusion_of_competence=illusion_of_competence,
+        imperative_command_count=imperative_command_count,
+    )
 
 
 @hook_registry.register(name="calculate_control_ratio")
@@ -260,31 +282,29 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
         # Calculate Metrics using combined text
         base_metrics = analyze_text(all_text)
         control_ratio = calculate_control_ratio(all_text)
-        behavioral_metrics = calculate_behavioral_metrics(base_metrics)
+        behavioral_metrics = calculate_behavioral_metrics(all_text)
 
-        # Merge results into a single output dict
-        audit_metrics = {
-            # Text Metrics
-            "word_count": base_metrics["word_count"],
-            "sentence_count": base_metrics["sentence_count"],
-            "avg_sentence_length": base_metrics["avg_sentence_length"],
-            "lexical_diversity": base_metrics["lexical_diversity"],
-            "capitalization_ratio": base_metrics["capitalization_ratio"],
-            "control_ratio": control_ratio,
-            # Behavioral Metrics
-            "say_do_gap": behavioral_metrics["say_do_gap"],
-            "automation_bias": behavioral_metrics["automation_bias"],
-            "illusion_of_competence": behavioral_metrics["illusion_of_competence"],
-            "imperative_command_count": behavioral_metrics["imperative_command_count"],
-        }
+        # Merge results into a strictly typed DTO
+        audit_metrics = ProfilerMetricsDTO(
+            word_count=base_metrics.word_count,
+            sentence_count=base_metrics.sentence_count,
+            avg_sentence_length=base_metrics.avg_sentence_length,
+            lexical_diversity=base_metrics.lexical_diversity,
+            capitalization_ratio=base_metrics.capitalization_ratio,
+            control_ratio=control_ratio,
+            say_do_gap=behavioral_metrics.say_do_gap,
+            automation_bias=behavioral_metrics.automation_bias,
+            illusion_of_competence=behavioral_metrics.illusion_of_competence,
+            imperative_command_count=behavioral_metrics.imperative_command_count,
+        )
 
         logger.info("[MetricsHook] Metrics calculated successfully.")
 
-        # Return the strictly enforced dict -> dict output
+        # Return the strictly enforced dict serialization
         return HookResult(
             success=True,
             state_delta={
-                "profiler_metrics": audit_metrics,
+                "profiler_metrics": audit_metrics.model_dump(),
             },
         )
 

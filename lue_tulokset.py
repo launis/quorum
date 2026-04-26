@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 # Import V2 DTOs to enforce strict validation
 from backend_v2.models.v2_core import PromptBlock
@@ -17,8 +17,10 @@ class MinimalExecution(BaseModel):
     created_at: str | None = None
     completed_at: str | None = None
 
+
 # Set up logging for error traces
 logger = logging.getLogger(__name__)
+
 
 def print_latest_execution_results(target_locale: str = "fi") -> None:
     db_path = Path(r"C:\src\quorum\data\db_v2.json")
@@ -59,9 +61,9 @@ def print_latest_execution_results(target_locale: str = "fi") -> None:
             exe_model = MinimalExecution.model_validate(exe)
             if exe_model.status == "completed":
                 valid_executions.append(exe_model)
-        except Exception:
-            # Ignore invalid/corrupted ones but don't crash the whole script if one is bad
-            pass
+        except ValidationError as e:
+            # Graceful Degradation is allowed ONLY with explicit typed exception logging
+            logger.warning("[Fail-Fast] Ajotietueen validointi epäonnistui, ohitetaan: %s", e)
 
     if not valid_executions:
         raise ValueError("[FAIL-FAST] Ei löytynyt yhtään validia (completed) ajoa.")
@@ -109,23 +111,53 @@ def print_latest_execution_results(target_locale: str = "fi") -> None:
             for b_id in block_ids:
                 pb_model = prompt_blocks.get(b_id)
                 if pb_model and getattr(pb_model, "is_evaluative", False):
-                    # It's an evaluative matrix
-                    norm_score = content.get(f"{b_id}_normalized")
-                    if norm_score is None:
-                        # Sometimes the base value is the DINA score, but we want normalized
-                        norm_score = content.get(f"{b_id}_scaled")
+                    # Check if this is a Phase 9 V2 StrictMatrixPayload dict or V1 flat keys
+                    b_data = content.get(b_id)
 
-                    if norm_score is None:
-                        continue
+                    if isinstance(b_data, dict):
+                        b_dict: dict[str, Any] = b_data
+                        norm_score = b_dict.get("normalized_score")
+                        if norm_score is None:
+                            continue
+                        justification = b_dict.get("justification", "")
+                        missing = content.get(f"{b_id}_missing_context")  # Often still at root level
+                        raw_score = b_dict.get("raw_score", norm_score)
+                        level_dict = b_dict.get("level_breakdown")
 
-                    justification = content.get(f"{b_id}_justification", "")
-                    missing = content.get(f"{b_id}_missing_context")
+                        t_atoms = b_dict.get("total_atoms")
+                        if t_atoms is not None:
+                            extra_info = f"{b_dict.get('true_atoms')}/{t_atoms}"
+                        else:
+                            extra_info = ""
+                    else:
+                        # V1 Legacy logic
+                        norm_score = content.get(f"{b_id}_normalized")
+                        if norm_score is None:
+                            norm_score = content.get(f"{b_id}_scaled")
+
+                        if norm_score is None:
+                            continue
+
+                        justification = content.get(f"{b_id}_justification", "")
+                        missing = content.get(f"{b_id}_missing_context")
+                        raw_score = content.get(b_id, norm_score)
+                        level_dict = content.get(f"{b_id}_level_breakdown")
+
+                        if f"{b_id}_total_atoms" in content:
+                            extra_info = f"{content.get(f'{b_id}_true_atoms')}/{content.get(f'{b_id}_total_atoms')}"
+                        else:
+                            extra_info = ""
+
                     just_str = str(justification)
                     if missing:
                         just_str += f"\n[Puuttuva konteksti]:\n{missing}"
 
-                    level_dict = content.get(f"{b_id}_level_breakdown")
-                    extra_info = ""
+                    if isinstance(level_dict, str):
+                        try:
+                            level_dict = json.loads(level_dict)
+                        except json.JSONDecodeError:
+                            pass
+
                     if level_dict and isinstance(level_dict, dict):
                         clean_level_dict = {}
 
@@ -134,25 +166,24 @@ def print_latest_execution_results(target_locale: str = "fi") -> None:
 
                         for lvl_key in sorted(level_dict.keys(), key=parse_float):
                             lvl_data = level_dict[lvl_key]
-                            c_key = str(int(float(lvl_key))) if float(lvl_key).is_integer() else str(lvl_key)
-                            clean_level_dict[c_key] = f"{lvl_data.get('hits', 0)}/{lvl_data.get('total', 0)}"
+                            if isinstance(lvl_data, dict):
+                                c_key = str(int(float(lvl_key))) if float(lvl_key).is_integer() else str(lvl_key)
+                                clean_level_dict[c_key] = f"{lvl_data.get('hits', 0)}/{lvl_data.get('total', 0)}"
                         level_dict = clean_level_dict
-                    elif f"{b_id}_total_atoms" in content:
-                        extra_info = f"{content.get(f'{b_id}_true_atoms')}/{content.get(f'{b_id}_total_atoms')}"
 
                     found_matrices[b_id] = {
-                        "score": content.get(b_id, norm_score), "just": just_str, "extra_info": extra_info,
-                        "level_dict": level_dict, "normalized_score": norm_score,
-                        "pb_model": pb_model
+                        "score": raw_score,
+                        "just": just_str,
+                        "extra_info": extra_info,
+                        "level_dict": level_dict,
+                        "normalized_score": norm_score,
+                        "pb_model": pb_model,
                     }
 
     extract_flat_matrices(trace_data)
 
     # --- PENALTY SEARCH ---
-    found_penalties = {
-        "threat_detected": False,
-        "post_hoc_rationalization": False
-    }
+    found_penalties = {"threat_detected": False, "post_hoc_rationalization": False}
 
     def find_penalties(data: Any) -> None:
         if isinstance(data, dict):
@@ -191,10 +222,10 @@ def print_latest_execution_results(target_locale: str = "fi") -> None:
 
         score_str = f"{score:.1f}"
         if calc_max is not None:
-             score_str = f"{score:.1f}/{float(calc_max):.1f}"
+            score_str = f"{score:.1f}/{float(calc_max):.1f}"
 
-        level_dict = data.get('level_dict')
-        if level_dict is None:
+        level_dict = data.get("level_dict")
+        if not isinstance(level_dict, dict):
             level_dict = {}
 
         l1 = level_dict.get("1", "-")
@@ -204,13 +235,13 @@ def print_latest_execution_results(target_locale: str = "fi") -> None:
         l5 = level_dict.get("5", "-")
         l6 = level_dict.get("6", "-")
 
-        if not level_dict and data.get('extra_info'):
-            l1 = data.get('extra_info')
+        if not level_dict and data.get("extra_info"):
+            l1 = data.get("extra_info")
 
         # Tiivistetään syy ensimmäiseen virkkeeseen
-        short_reason = justification.split('\n')[0].strip()
-        if '.' in short_reason:
-            short_reason = short_reason.split('.')[0] + "."
+        short_reason = justification.split("\n")[0].strip()
+        if "." in short_reason:
+            short_reason = short_reason.split(".")[0] + "."
         if len(short_reason) > 42:
             short_reason = short_reason[:39] + "..."
 
@@ -261,7 +292,7 @@ def print_latest_execution_results(target_locale: str = "fi") -> None:
         if isinstance(trace_data, dict):
             print(list(trace_data.keys()))
 
+
 if __name__ == "__main__":
     cli_locale = sys.argv[1] if len(sys.argv) > 1 else "fi"
     print_latest_execution_results(target_locale=cli_locale)
-

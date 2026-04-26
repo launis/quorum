@@ -57,7 +57,7 @@ def test_detect_performative_patterns_success_en(mock_deps: HookDependencies) ->
     phrases = [p["detected_phrase"] for p in patterns]
     assert "game changer" in phrases
     assert "it is important to note" in phrases
-    assert patterns[0]["pattern_id"] == "detected_en_pattern"
+    assert patterns[0]["pattern_id"].startswith("ptrn_")
 
 
 def test_detect_performative_patterns_success_fi(mock_deps: HookDependencies) -> None:
@@ -80,7 +80,7 @@ def test_detect_performative_patterns_success_fi(mock_deps: HookDependencies) ->
     phrases = [p["detected_phrase"] for p in patterns]
     assert "mullistava" in phrases
     assert "syventyä" in phrases
-    assert patterns[0]["pattern_id"] == "detected_fi_pattern"
+    assert patterns[0]["pattern_id"].startswith("ptrn_")
 
 
 def test_detect_performative_patterns_no_matches(mock_deps: HookDependencies) -> None:

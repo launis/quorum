@@ -12,15 +12,16 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
     <phase id="1" name="Mapping (Kartoitus ja Suunnitelma)">
 Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus) ja hahmottaa hakemiston rakenteen syvyys.
 * Jos käyttäjä antaa komennossaan tarkan alipolun (esim. `client_app_v2/lib/features/studio`), kartoita RAKENNE VAIN TÄSTÄ POLUSTA alaspäin. Jos alipolkua ei erikseen määritetä, kartoita koko `client_app_v2/lib`.
+* **ERIKOISSÄÄNTÖ YKSITTÄISILLE TIEDOSTOILLE:** Jos käyttäjä antaa komennossaan tarkan tiedoston tai tiedostoja (esim. `client_app_v2/lib/main.dart`), kartoita lista **Vain näistä yksittäisistä tiedostoista**. Älä laajenna auditointia koko hakemistoon.
 * **EHDOTON KIELTO (Sivuutettavat tiedostot):** Sivuuta analyysissä täysin kaikki koodigeneraattoreiden luomat tiedostot (päättyvät `.g.dart` tai `.freezed.dart`). Sivuuta myös `build/` ja `.dart_tool/` -kansiot. Älä lue, auditoi tai yritä muokata niitä säästääksesi resursseja ja estääksesi vääriä korjausehdotuksia.
-* **SÄÄNTÖ:** Rakenna havainnoistasi chattiin tulostettava virtuaalinen Markdown-tarkistuslista (`task_front.md`). Jaa lista niin hienojakoiseksi, että **JOKAINEN alin alihakemisto (leaf directory) on oma erillinen kohtansa listalla**. Hakemistoja ei saa niputtaa.
+* **SÄÄNTÖ:** Rakenna havainnoistasi chattiin tulostettava virtuaalinen Markdown-tarkistuslista (`task_front.md`). Jaa lista niin hienojakoiseksi, että **JOKAINEN alin alihakemisto (leaf directory) TAI annettujen yksittäisten tiedostojen tapauksessa JOKAINEN yksittäinen tiedosto on oma erillinen kohtansa listalla**. Hakemistoja ei saa niputtaa.
 * **STATE PERSISTENCE & CONTEXT RENEWAL:** Jos käyttäjän komennossa on `--resume` tai tiedosto `c:\src\quorum\tmp\hardening_state.json` on olemassa, lue se. Jätä listalta pois kaikki hakemistot, jotka on siellä merkitty tilaan "DONE". Tuo lista vain tekemättömistä hakemistoista. Aseta samalla lokaali tavoite: "Käsittelen maksimissaan 5 kansiota tässä sessiossa estääkseni kontekstin hajoamisen."
 * **KIELTO:** ÄLÄ tee koodimuutoksia tässä vaiheessa. Päätä vastauksesi aina sanoihin: *"Lista valmis. Odotan PROCEED-komentoa."*
     </phase>
     <phase id="2" name="Auditing (Systemaattinen Auditointi, One Subdirectory At A Time)">
 Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
-1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto.
-2. Lue ensin tiukasti KAIKKI kyseisen alihakemiston `.dart`-tiedostot (pl. sivuutettavat kansiot/tiedostot).
+1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto TAI yksittäinen tiedosto.
+2. Lue tiukasti kyseisen kohteen `.dart`-tiedostot (tai vain se yksittäinen annettu tiedosto) huomioiden sivuutettavat kansiot/tiedostot. Määrittele auditointitaulukko koskemaan Vain valittua laajuutta.
 3. **MANDATOITU TRACEABILITY MATRIX**: Sinun on **EHDOTTOMASTI** raportoitava havaintosi tulostamalla chattiin tarkka Markdown-taulukko ("Audit Matrix"). Sinun on kirjoitettava tähän taulukkoon rivi *jokaiselle* `00-antigravity-core.md` ja `02_flutter_desktop.md` -tiedostoissa mainitulle säännölle (esim. `the_zero_compromise_pledge`, `riverpod_code_gen_mandate`, `opaque_stripe_id_mandate`, `frontend_zero_leaks`, `strongly_typed_routing` jne). **Erityishuomio:** Varmista ettet päästä "the_zero_compromise_pledge"-tarkistuksesta läpi yhtäkään Dartin null-coalescing (`?? 'default'`) oikotietä tai `.maybeWhen` fallbackia, jotka piilottavat rakenteellisia virheitä.
    - Käytä sarakkeita: `| Rule Block ID / Sääntö | Tila (Pass / Fail) | Löydökset & Perustelu |`.
    - Varmista, että todella käyt läpi koodista säännösten <banned_pattern> ja <mandatory_pattern> asiat kohta kohdalta. Tämä poistaa hallusinaatiot ja ohitukset.

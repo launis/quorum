@@ -16,7 +16,7 @@ class LightweightMatrixOutput(BaseModel):
 
     raw_score: float
     normalized_score: float = Field(ge=0.0, le=100.0)
-    level_breakdown: str
+    level_breakdown: dict[str, dict[str, int]] | None = None
     justification: str
     evaluated_atoms: dict[str, bool]
     extensions: dict[XaiExtensionType, str]
@@ -45,10 +45,21 @@ class MicroCotDTO(BaseModel):
     evaluation_notes: str | None = None
     step_3_logical_friction: str | None = None
 
-    model_config = ConfigDict(strict=False, extra="ignore")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class StrictMatrixPayload(RootModel[MicroCotDTO]):
     """Strict schema adapter enforcing modern Micro-CoT dicts. Legacy bare floats are explicitly banned."""
 
     pass
+
+
+class AtomEvaluationItemDTO(BaseModel):
+    """Strict schema for individual atom evaluations in the waterfall pipeline."""
+
+    atom_id: str
+    boolean: bool = False
+    reasoning: str = ""
+    quote: str | None = None
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

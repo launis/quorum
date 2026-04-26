@@ -19,12 +19,10 @@ def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -
     state_data = {
         "steps": {
             "eval_step": {
-                "raw_score": 5.0,
-                "normalized_score": 0.8,
-                "level_breakdown": "3/5",
-                "justification": "Good",
-                "evaluated_atoms": {"atom1": True, "atom2": False},
-                "extensions": {}
+                "blk_invalid": {
+                    "raw_score": "not_a_float",
+                    "missing_fields": "yes"
+                }
             },
             "atom_step": {"atoms": ["a", "b", "c"]},
             "raw_step": {"history_text": "huge string"},
@@ -48,10 +46,11 @@ def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -
             input_mappings=input_mappings,
             state_data=state_data,
             output_profile=None,
+            schema_map={"eval_step": "MATRIX", "blk_invalid": "MATRIX", "atom_step": "TEXT"}
         )
 
     assert "validation errors for LightweightMatrixOutput" in str(exc_info.value.message)
-    assert exc_info.value.status_code == 400
+    assert exc_info.value.status_code == 500
 
 
 def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -81,12 +80,14 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
         "nested": {"value": 123},
         "steps": {
             "step1": {
-                "raw_score": 5.0,
-                "normalized_score": 0.8,
-                "level_breakdown": "3/5",
-                "justification": "Good",
-                "evaluated_atoms": {"atom1": True, "atom2": False},
-                "extensions": {}
+                "blk_123": {
+                    "raw_score": 5.0,
+                    "normalized_score": 0.8,
+                    "level_breakdown": "3/5",
+                    "justification": "Good",
+                    "evaluated_atoms": {"atom1": True, "atom2": False},
+                    "extensions": {}
+                }
             }
         },
     }
@@ -95,6 +96,7 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
         input_mappings=input_mappings,
         state_data=state_data,
         output_profile=None,
+        schema_map={"step1": "MATRIX", "blk_123": "MATRIX"}
     )
 
     assert "document_text" in llm_context_data
@@ -149,18 +151,20 @@ def test_context_builder_build_trace_pruning_fails_fast(monkeypatch: pytest.Monk
     state_data = {
         "steps": {
             "step1": {
-                "raw_score": 5.0,
-                "normalized_score": 0.8,
-                "level_breakdown": "3/5",
-                "justification": "Good",
-                "evaluated_atoms": {"atom1": True, "atom2": False},
-                "extensions": {}
+                "blk_123": {
+                    "raw_score": 5.0,
+                    "normalized_score": 0.8,
+                    "level_breakdown": "3/5",
+                    "justification": "Good",
+                    "evaluated_atoms": {"atom1": True, "atom2": False},
+                    "extensions": {}
+                }
             }
         }
     }
 
     with pytest.raises(AppException) as exc_info:
-        ContextBuilder.build(input_mappings, state_data, None)
+        ContextBuilder.build(input_mappings, state_data, None, {"step1": "MATRIX", "blk_123": "MATRIX"})
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
@@ -182,7 +186,7 @@ def test_context_builder_build_token_counting_fails_fast(monkeypatch: pytest.Mon
         ContextBuilder.build(input_mappings, state_data, None)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    assert exc_info.value.details["error_code"] == "AGENT_EXECUTION_CRITICAL"
     assert "Token counting failed" in str(exc_info.value.message)
 
 

@@ -5,13 +5,14 @@ from __future__ import annotations
 import logging
 
 from fastapi import status
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.security import sanitize_text
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.security import SanitizationResultDTO, SecurityPayloadDTO
 
 logger = logging.getLogger(__name__)
-
-from backend_v2.core.security import sanitize_text
 
 # --- WORKFLOW STATE WRAPPERS (for HOOK_MAPPING compatibility) ---
 
@@ -25,15 +26,12 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
     logger.debug("[SecurityHook] Running sanitize_text_hook...")
 
     if not state:
-        logger.warning("[SecurityHook] Empty initial state. Skipping.")
-        return HookResult(success=True, state_delta={})
+        msg = "Strict Fail-Fast Enforced: Missing HookState in sanitize_text_hook."
+        logger.error("[SecurityHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     sanitized_inputs: dict[str, str] = {}
     threats_summary: list[str] = []
-
-    from pydantic import ValidationError
-
-    from backend_v2.models.domain.security import SanitizationResultDTO, SecurityPayloadDTO
 
     try:
         payload = SecurityPayloadDTO.model_validate(state.inputs)
@@ -78,6 +76,7 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
         dto = SanitizationResultDTO(
             sanitized_inputs=sanitized_inputs,
             security_status="DATA_CHECKED_AND_SECURED",
+            threat_detected=bool(threats_summary),
         )
         result = dto.model_dump(mode="json")
     except Exception as e:
@@ -91,7 +90,7 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
         ) from e
 
     if threats_summary:
-        logger.warning("[SecurityHook] PII detected and redacted: %s", threats_summary)
+        logger.warning("[SecurityHook] PII detected and redacted. Threat count: %d", len(threats_summary))
     else:
         logger.debug("[SecurityHook] No PII detected.")
 

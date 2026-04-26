@@ -17,7 +17,7 @@ def test_context_mapper_fail_fast_on_dict() -> None:
     """Test that passing naked dictionaries triggers the Fail-Fast AppException."""
     with pytest.raises(AppException) as exc_info:
         ContextMapper.build_ordinal_mapping(
-            target_blocks=["blk_1"], 
+            target_blocks=["blk_1"],
             all_blocks=[{"id": "blk_1"}]  # type: ignore
         )
     assert exc_info.value.status_code == 500
@@ -30,7 +30,7 @@ def test_context_mapper_valid_blocks() -> None:
     b1.id = "blk_1"
     b1.computed_min = 1.0
     b1.computed_max = 5.0
-    
+
     b2 = MagicMock(spec=PromptBlock)
     b2.id = "blk_2"
     b2.computed_min = 0.0
@@ -40,12 +40,12 @@ def test_context_mapper_valid_blocks() -> None:
     b3.id = "blk_3"
     b3.computed_min = None
     b3.computed_max = None
-    
+
     result = ContextMapper.build_ordinal_mapping(
         target_blocks=["blk_1", "blk_3"],
         all_blocks=[b1, b2, b3]
     )
-    
+
     assert "=== TARGET DATA MAPPING" in result
     assert "1. Target Data Element -> ID: blk_1 (Absolute Scale Limits: 1.0 to 5.0)" in result
     assert "2. Target Data Element -> ID: blk_3" in result
@@ -54,4 +54,4 @@ def test_context_mapper_valid_blocks() -> None:
 
 def test_context_mapper_global_mapping() -> None:
     """Test that global mapping returns empty string (MVP behavior)."""
-    assert ContextMapper.build_global_mapping({}, []) == ""
+    assert ContextMapper.build_global_mapping(None, None) == ""

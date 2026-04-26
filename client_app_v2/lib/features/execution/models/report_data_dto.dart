@@ -40,6 +40,7 @@ abstract class ReportAxisDTO with _$ReportAxisDTO {
     @JsonKey(name: 'ui_boundary_labels')
     @Default({})
     Map<String, String> uiBoundaryLabels,
+    @JsonKey(name: 'level_breakdown') Map<String, String>? levelBreakdown,
   }) = _ReportAxisDTO;
 
   factory ReportAxisDTO.fromJson(Map<String, dynamic> json) =>

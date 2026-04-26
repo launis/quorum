@@ -506,6 +506,18 @@ class ExecutionService:
 
             return dto.model_dump(mode="json"), "application/json", None
 
+        elif fmt == "html":
+            if not accept_language and execution.metadata:
+                accept_language = execution.metadata.get("target_locale")
+
+            transformer = BlueprintTransformer(self.repo)
+            dto = await transformer.build_report_dto(execution_id, resolved_pid, accept_language)
+
+            pdf_service = PdfReportService(self.repo)
+            html_string = await pdf_service.generate_execution_html(execution_id, report_dto=dto)
+
+            return html_string.encode("utf-8"), "text/html", f"execution_{execution_id}.html"
+
         elif fmt == "pdf":
             if resolved_pid == default_pid and execution.pdf_report_path:
                 storage = get_storage_driver()

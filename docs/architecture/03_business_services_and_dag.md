@@ -45,7 +45,7 @@ flowchart TD
 
 1. **DAGCompilerService (Shift-Left Pre-Flight Compilation):** 
    * Esivalmistelee ja validoi ylätason riippuvuudet staattisen analytiikan avulla jo työnkulkujen tallennusvaiheessa.
-   * Etsii syklisiä riippuvuuksia (Infinite Loops) ja resolvoi tuntemattomia muuttujareferenssejä (`$inputs`, `$steps`) estääkseen kalliin AI-kutsun myöhäisvaiheen kaatumisen ajettaessa.
+   * Etsii DFS-algoritmilla syklisiä riippuvuuksia (Infinite Loops) ja varmistaa topologisen analyysin (Kahn's iteration) avulla, että eteenpäin suunnatut muuttujaviittaukset (`$inputs`, `$steps`) ovat varmasti saatavilla suorituksen aikana. Tämä Shift-Left -validointi estää API-kustannuksia tuhlaavat myöhäisvaiheen kaatumiset ja umpikujat (Deadlocks).
 2. **DAGExecutor (Orkestraattori):** 
    * Vastaa verkon topologian (Dependency Graph) varmistamisesta ja solmujen rinnakkaisajosta. Ennen topologian aloitusta suoritetaan Pre-Hydration: moottori kutsuu Hook-rekisterin `input_processing` -tilaa eristetyllä `HookState`lla purkaakseen ja esikäsitelläkseen datan ajoa varten.
    * Suorittaa solmut (StepRule) natiiveina `asyncio.TaskGroup` -kapselointeina. Jos yksikin solmu sadoista kaatuu asynkronisen ajon aikana palamattomasti, `TaskGroup` perutaan ja ajon resurssit (esim. tekeillä olevat roikkuvat HTTP-pyynnöt LLM:lle) tapetaan automaattisesti taaten täydellisen "Fail-Fast" nollavuototilan.
@@ -57,6 +57,15 @@ flowchart TD
 4. **ExecutionCommitter (Event Sourcing -tallennin):** 
    * Ottaa vastaan ajonaikaisen JSON-lokijonon ja puskee "Snapshotit" (`execution_trace` / `step_states`) alastomana Pydantic-datana tuettuihin tallennuskerroksiin (`repository.py`).
    * Pysyy täysin tietämättömänä itse logiikasta varmistaen vain nopeimmat asynkroniset tietokantasiirrot ajon edetessä "Optimistic UI" tukea varten.
+
+### Orkestraattorin apukomponentit
+
+* **`prompt_compiler.py`:** Dynaamisten Pydantic-skeemojen ("Two-Tier schema") lennosta generoiva käännin V2 Structured Outputs -käyttöön. Käännin sisältää "Self-Healing citation" -logiikan, joka korjaa LLM:n palauttamat puolittaiset viitetekstit oikeiksi sallittujen lähteiden perusteella. Ehkäisee Pydantic-käännösten räjähtämisen suurissa yli 200 askeleen DAG-ajoissa hyödyntämällä LRU-välimuistia.
+* **`atomizer.py`:** Vastaa "Deep Atomization" -käsittelystä tallennusvaiheessa. Purkaa LLM:n avulla evaluointikriteerit täsmälleen 15 mikrootomiin ja obfuskoi asiantuntijatermit (Scaffolded exceptions) estääkseen kontekstipakoilua (Context Drift).
+* **`chunk_accumulator.py`:** Kokoaa turvallisesti yhteen Map-Reduce -suoritusten LLM-palaset (chunks). Pakottaa arkkitehtuurin "No Naked Dicts in State" -säännön siirtämällä sanakirjojen hallinnan ja stringien (esim. `reasoning_trace`) yhdistämisen orkestraattorin pääsilmukasta testattavaan erilliskomponenttiin.
+* **`context_router.py`:** Eristää UI-lähtöisen reitityksen ja datan karsinnan (`route_and_prune`). Poimii raskaasta suorituspuusta (`trace_event`) täsmälleen vain ne XAI-laajennokset, joita käyttöliittymän valittu `OutputProfileConfig` eksplisiittisesti vaatii.
+
+> **Syväsukellus NodeExecutorin kerrokseen:** Tarkempi arkkitehtuurikuvaus yksittäisen tason älystä ja kontekstin rakentamisesta löytyy dokumentista [03b: Orchestraattoristrategiat ja Kontekstin Rakennus](./03b_orchestrator_strategies.md).
 
 ### Rehydration (Kesken jääneen työn jatkaminen)
 DAG-moottorin nojatessa Event Sourcingiin (aiemmin mainittu `execution_trace`), pystyy prosessi tarvittaessa toipumaan mistä tahansa ulospäin näkyvästä konesaliradasta:
@@ -84,6 +93,52 @@ Toimii BlueprintTransformer-luokan rinnalla ja hyödyntää samaista Layout DTO 
 **Machine Control Protocol (MCP)**
 Järjestelmään sisältyy `mcp/` -hakemisto, joka toimii agenttisten verkkohakujen ja tekoälyn ulkoisten toimintojen rajapintana. Palvelut kuten `mcp_tool_loop.py` ja luokat kuten `tavily_search_client.py` kykenevät tekemään itsenäistä verkkohakua ulkopuolisista viitekehyksistä, laajentaen suppeaa staattista kontekstia merkittävästi. Moottori käyttää näitä LLM:n orkestroimana asynkronisesti tarvittavan tiedon hakemiseen.
 
+## Tukipalvelut ja Apuohjelmat (Utility Services)
+
+Järjestelmän taustalla toimii joukko erikoistuneita apupalveluita (Utilities), jotka noudattavat V2-arkkitehtuurin Fail-Fast -sääntöjä:
+
+* **`chat_parser.py` (ChatParserService):** Erottaa LLM:n (ChatParser-strategia) avulla ihmisen ja tekoälyn välisen keskustelun puhtaaksi Pydantic `ChatHistoryDTO`:ksi. Siivoaa esimerkiksi selaimeen copy-pastetetun ChatGPT-keskustelun turhasta UI-roskasta, soveltaen Fail-Fast -validointia sekaviin syötteisiin.
+* **`localization.py` (LocalizationService):** Hoitaa SDUI-skeemojen palvelinpuolen käännökset (esim. `x-ui-label` ja `label`). Hyödyntää `ContextVar`-pohjaista kielen valintaa pyynnön elinkaaren aikana. Noudattaa tiukkaa "No Fallbacks" -sääntöä käännösten suhteen nostamalla virheen, jos sanastoa ei löydy, taaten datan eheyden käyttöliittymäkerroksessa.
+* **`flattener.py` (FlatFileService):** Muuntaa nested-muotoisen DAG:n monimutkaisen suoritustuloksen yksiulotteiseksi tietorakenteeksi (esim. `[step_id]_[key] = value`) analytiikkaa ja CSV-vientiä varten hyödyntämällä `StateProjector.fold_trace` ominaisuutta.
+* **`progress.py` (ProgressTracker):** Hallinnoi asynkronisten prosessien edistymistä vakiomuotoisella tilakoneella (`started`, `running`, `completed`, `failed`). Toteuttaa Strategy-tyyppisen kuvion, joka skaalautuu erilaisiin tallennustarpeisiin (`DatabaseProgressTracker` DAG-ajoille, `InMemoryProgressTracker` API-testeille, `ProgressService` Redis-tapahtumille).
+* **`pii_analyzer.py` (PIIAnalyzerService):** Vastaa tietoturvasta hyödyntäen Microsoft Presidiota ja SpaCyä PII-datan maskaukseen. Singleton-palvelu on optimoitu "Lazy Loading" -tekniikalla, eli raskas kielimalli ladataan muistiin vasta kun tietoturvamaskaus aktivoidaan, mikä säästää kallista RAM-muistia järjestelmän käynnistyksessä.
+* **`usage_service.py` (UsageService):** Vastaa LLM-tokenien kulutuksen ja kustannusten (LiteLLM) kirjaamisesta immutaabelisti. Toimii lisäksi "FinOps Circuit Breaker" -komponenttina, joka tarkistaa dynaamisesti organisaation kiintiöt (`quota_limit`) ja katkaisee (Fail-Fast) lisäajot yli sallitun budjetin.
+* **`drivers/`:** Tiedostoajurien rajapinta, joka sisältää tuen lokaalille tiedostojärjestelmälle (`local_file_driver.py`) sekä pilvitallennukselle (`gcs_file_driver.py`) abstrahoiden säilytyskerroksen ydinlogiikasta.
+
 ## IAM ja Identiteetti
 
 `services/auth.py` valvoo ja todentaa pyynnöt erillisten Custom Claims tai Firebase SDK -tokentapaisten puitteissa (JWT). Moduulissa käsitellään organisaation vaihto-operaatiot (Tenant Isolation), tuetaan sisäänrakennettuina "Bring Your Own Key" (BYOK) hallintoa ja varmennetaan, etteivät ristiin organisaatiot tallenna dataa väärillä `org_` prefikseillä. Lokaalissa "Mock_DB"-tilassa tämä osio ohitetaan ylikuormittavien HTTP-viiveiden estämiseksi ja valtuutetaan keinotekoinen rooli rajapintatestejä varten.
+
+# Orchestraattoristrategiat ja Kontekstin Rakennus
+
+Tämä dokumentti syventää `03_business_services_and_dag.md` -kuvausta purkamalla työnkulkumoottorin strategiakerroksen (`backend_v2/services/orchestrator/strategies/`). Strategiakerros vastaa työnkulkujen yksittäisten solmujen (Step) täytäntöönpanosta NodeExecutorin alaisuudessa.
+
+Arkkitehtuuri perustuu Strategy-suunnittelumalliin, jossa solmun tyyppi (esim. `llm` tai `logic`) määrittää käytettävän suoritusstrategian. Kerros noudattaa tiukasti Quorumin Fail-Fast -periaatteita: virheet nostetaan välittömästi ja tila on vahvasti tyypitetty.
+
+## `BaseNodeStrategy` (base.py)
+Kaikkien strategioiden kantaluokka, joka määrittelee solmun suorituksen rajapinnan ja jakaa yhteiset operaatiot.
+
+- **Hookien suoritussilmukka:** Abstrahoi Pre- ja Post-hookien suorituksen (`run_pre_hooks`, `run_post_hooks`) ulos ydinlogiikasta. Silmukka iteroi solmun (Blueprint) määrittämät hookit ja yhdistää (deep merge) niiden palauttaman tilamuutoksen askeleen tilaan.
+- **`HookState` ja `HookDependencies` injektio:** Hookeille injektoidaan aina vahvasti tyypitetty `HookState` (sisältäen instanssikohtaiset muuttujat, kuten `execution_id` ja `inputs`) sekä `HookDependencies` (joka tarjoaa pääsyn esim. repository-kerrokseen).
+- **Fail-Fast ja Circuit Breaker:** Sisältää `assert_quota`-metodin ("Denial of Wallet" -suoja), joka tarkistaa organisaation token-rajat ennen ajoa. Jos raja ylittyy, luokka lokittaa ensin virheen (`logger.warning`) ja heittää välittömästi `AppException`-poikkeuksen. Myös hookien palauttama `success=False` lokitetaan varoituksena RFC 7807 -jäljitettävyyden takaamiseksi.
+
+## `LLMNodeStrategy` (llm.py)
+Vastaa tekoälysolmujen (LLM Step) raskaasta orkestroinnista dynaamisen mallintamisen ja token-optimoinnin avulla.
+
+- **Schema Map -rakentaminen (`build_schema_map_loop` logiikka):** Rakentaa työnkulun ajon yhteydessä dynaamisen `schema_map`:in lukemalla tietokannasta kaikki PromptBlockit. Tunnistaa matriisiblokit (`category_id == "matrix"`) ja merkitsee ne arvolla `_SCHEMA_BLOCK_MATRIX`, muiden saadessa arvon `_SCHEMA_BLOCK_TEXT`. Tämä ohjaa ContextBuilderin datankarsintaa deterministisesti ilman duck-typing-arvailuja.
+- **PromptBlock Fail-Fast Validointi:** Hakee askeleen vaatimat PromptBlockit tietokannasta ja validoi ne heti. Mikäli blokkia ei löydy, strategia ei yritä luoda oletusarvoja vaan heittää välittömästi `AppException`-virheen.
+- **Map-Reduce Orkestraatio:** Kun askeleessa on matriisiblokkeja ja `shuffled_atoms`-syöte, LLM-solmu jakaa datan `ChunkingService`:n avulla turvallisiin massapaloihin (Map). Palat ajetaan rinnakkain `ChunkWorker`:in avulla ja lopulta tulokset yhdistetään (Reduce) deterministisesti `ChunkAccumulator`:illa.
+
+## `LogicNodeStrategy` (logic.py)
+Käsittelee puhtaasti ohjelmalliset askeleet (Native/Logic Step) delegoimalla varsinaisen suorituksen Hook Registrylle.
+
+- **Hook Lookup:** Hakee solmuun kytketyn logiikka-hookin nimen suoraan `hook_registry`:stä Blueprintin perusteella.
+- **Tilan evaluointi:** Evaluoi nykyisen tilan (`$inputs` / `$steps`) StateProjectorista ja kokoaa sen tiukasti tyypitettyyn `HookState`:en ennen logiikkahookin asynkronista kutsumista.
+- **Fail-Fast:** Jos primaarisen logiikkahookin suoritus palauttaa `success=False`, `LogicNodeStrategy` lokittaa välittömästi kriittisen tason virheen (`logger.error`) ja heittää `AppException`-virheen (ErrorCodes.AGENT_EXECUTION_CRITICAL). Hiljaisia epäonnistumisia ("silent fallbacks") ei sallita ohjelmallisessa logiikassa.
+
+## `ContextBuilder` (context_builder.py)
+Vastaa LLM-kontekstin rakentamisesta, muuttujamappausten resoluutiosta ja datan karsimisesta ennen token-vientiä.
+
+- **`schema_map`-pohjainen suodatus:** Legacy-aikakauden regex-pohjainen arvailu (esim. `OPAQUE_BLOCK_ID_RE`) on korvattu puhtaasti `LLMNodeStrategy`:n tuottamalla `schema_map`-sanakirjalla. Vain `schema_map`:issa `MATRIX`-tyyppisiksi merkityt lohkot parsetaan Pydantic-malleilla (esim. `LightweightMatrixOutput`). Teksti-kentät ja muut tuntemattomat ohitetaan turvallisesti (passthrough).
+- **`_process_trace_event` Arkkitehtuuri:** Tämä ydinmetodi suodattaa askeleen (Step) aiemman output-lokituksen. Jos solmun tietotyyppi on `MATRIX`, metodi varmistaa, että sen tuottama data on kelvollinen sanakirja, ja käyttää `ContextRouter.route_and_prune` -funktiota datan rajaamiseen ulostuloprofiilin (Output Profile) mukaisesti.
+- **Reasoning Trace Passthrough:** Matriisidatassa saattaa olla metadatakenttiä, jotka eivät vastaa varsinaisia matriisiblokkeja (esim. `reasoning_trace` tai `_step_metadata`). Nämä metadatakentät eivät löydy `schema_map`:ista, jolloin `ContextBuilder` ohittaa (passthrough) ne muokkaamattomina takaisin LLM:n kontekstiin menettämättä tärkeää analytiikkaa.

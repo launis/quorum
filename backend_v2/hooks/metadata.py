@@ -4,6 +4,8 @@ import logging
 from datetime import datetime, timezone
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.metadata import MetadataHookPayloadDTO, MetadataHookResultDTO, StepMetadataDTO
 
 logger = logging.getLogger(__name__)
 
@@ -15,32 +17,47 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
     This fulfills the V2 requirement for providing 'kello' (timestamp) and 'user'
     information dynamically to the output dictionary without requiring LLM generation.
     """
+    if not state:
+        return HookResult(success=True, state_delta={})
+
     execution_id = state.execution_id or "unknown_execution"
     step_id = state.step_id or "unknown_step"
     workflow_id = state.workflow_id or "unknown_workflow"
 
-    # Try to grab user/initiator from context if it was passed down from the API/Authentication route
-    # Fallback to system user if absent
-    global_vars = state.global_context_vars or {}
-    initiator_id = global_vars.get("_sys_initiator_id", "system")
+    # Strict Validation via DTO inflation
+    try:
+        payload = MetadataHookPayloadDTO.model_validate(state.global_context_vars or {})
+    except Exception as e:
+        error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
+        msg = f"Failed to strictly validate global context for metadata: {e}"
+        logger.error("[MetadataHook] %s: %s", error_code.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={"error_code": error_code.value},
+        ) from e
 
-    metadata = {
-        "execution_id": execution_id,
-        "workflow_id": workflow_id,
-        "step_id": step_id,
-        "initiator_id": initiator_id,
-        "timestamp_isot": datetime.now(timezone.utc).isoformat(),
-        "unix_time": int(datetime.now(timezone.utc).timestamp()),
-        "v2_engine": True,
-    }
+    unix_time = int(datetime.now(timezone.utc).timestamp())
+
+    metadata = StepMetadataDTO(
+        execution_id=execution_id,
+        workflow_id=workflow_id,
+        step_id=step_id,
+        initiator_id=payload.sys_initiator_id,
+        timestamp_isot=datetime.now(timezone.utc).isoformat(),
+        unix_time=unix_time,
+        v2_engine=True,
+    )
+
+    result_dto = MetadataHookResultDTO(step_metadata=metadata)
 
     logger.debug("[MetadataHook] Injected metadata for step %s", step_id)
 
     return HookResult(
         success=True,
         state_delta={
-            "step_metadata": metadata,
+            "step_metadata": result_dto.step_metadata.model_dump(),
             # Ensure we always provide a deterministic audit signature
-            "_audit_signature": f"{step_id}:{execution_id}:{metadata['unix_time']}",
+            "_audit_signature": f"{step_id}:{execution_id}:{unix_time}",
         },
     )

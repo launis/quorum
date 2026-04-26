@@ -1,10 +1,16 @@
 """LLM hooks for configuring model providers and context."""
 
+import asyncio
 import logging
+import uuid
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.database.repository import UnifiedWorkflowRepository
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.llm import LLMProviderConfig
+from backend_v2.models.v2_core import SystemConfigModelRegistry
 from backend_v2.settings import get_settings
+from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
 
@@ -59,13 +65,13 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     # WorkflowDefinition's 'default_model_mapping' dictionary into 'state.context_variables'
     # so we can do: model_strategy = ctx.get("workflow_model_mapping", {}).get(step_id, model_strategy)
 
-    if "workflow_model_mapping" in ctx:
-        model_strategy = ctx["workflow_model_mapping"].get(step_id, model_strategy)
+    if "workflow_model_mapping" in ctx and isinstance(ctx["workflow_model_mapping"], dict):
+        mapping = ctx["workflow_model_mapping"]
+        if step_id in mapping and isinstance(mapping[step_id], str):
+            model_strategy = mapping[step_id]
 
     # 3. Resolve Provider & Model via SSOT Strategy Factory
     try:
-        import asyncio
-
         # Factory method is async. Pre-hooks run synchronously in the current engine,
         # so we must handle the event loop carefully. If configure_llm_context
         # remains synchronous, we use asyncio.run or retrieve settings synchronously.
@@ -77,9 +83,7 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
             # Standard async runtime (e.g., FastAPI) - this hook should theoretically be async.
             # If the engine wraps this synchronously, this will fail. We'll use a direct fetch
             # avoiding the async API if we are inside a sync hook execution.
-            from backend_v2.database.repository import UnifiedWorkflowRepository
-
-            UnifiedWorkflowRepository()  # type: ignore
+            UnifiedWorkflowRepository()  # type: ignore[call-arg] # Required for instantiation without DI in legacy sync hook context
 
             # Since the hook is `def configure...` and NOT `async def configure...`,
             # we must execute the async factory cleanly.
@@ -94,14 +98,9 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
             # For now, we perform local resolution using identical Pydantic models.
             pass
 
-        from backend_v2.exceptions import ConfigurationError
-        from backend_v2.models.llm import LLMProviderConfig
-        from backend_v2.models.v2_core import SystemConfigModelRegistry
-        from backend_v2.utils.pydantic_utils import inflate
-
-        raw_registry = getattr(settings, "model_registry", {})
-        if not raw_registry:
+        if not hasattr(settings, "model_registry") or not settings.model_registry:
             raise ConfigurationError("System config 'model_registry' is missing.")
+        raw_registry = settings.model_registry
 
         registry = inflate(raw_registry, SystemConfigModelRegistry)
         if not registry or not registry.models:
@@ -116,18 +115,18 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
 
-        provider = getattr(target_strategy, "provider", "google")
+        provider = target_strategy.provider or "google"
 
         llm_config = LLMProviderConfig(
-            id=f"{provider}/{model_strategy}",
+            id=f"llm_{uuid.uuid4().hex[:8]}",
             provider=provider,
-            model_name=getattr(target_strategy, "model_name", ""),
-            api_key=getattr(target_strategy, "api_key", ""),
-            temperature=getattr(target_strategy, "temperature", 0.0),
-            tpm_limit=getattr(target_strategy, "tpm_limit", 0),
-            rpm_limit=getattr(target_strategy, "rpm_limit", 0),
-            default_max_tokens=getattr(target_strategy, "max_tokens", 0),
-            supports_grounding=getattr(target_strategy, "supports_grounding", False),
+            model_name=target_strategy.model_name,
+            api_key=target_strategy.api_key,
+            temperature=target_strategy.temperature if target_strategy.temperature is not None else 0.7,
+            tpm_limit=target_strategy.tpm_limit or 0,
+            rpm_limit=target_strategy.rpm_limit or 0,
+            default_max_tokens=target_strategy.max_tokens,
+            supports_grounding=target_strategy.supports_grounding,
         )
 
         # 4. Inject

@@ -28,7 +28,7 @@ async def test_verify_citation_integrity_hook_analyst_hallucination(mock_deps: H
         inputs={
             "hypotheses": [
                 {
-                    "id": "HYP-1",
+                    "id": "hyp_123xyz",
                     "claim_text": "Fox is quick.",
                     "evidence_found": True,
                     "search_query": "fox",
@@ -60,7 +60,7 @@ async def test_verify_citation_integrity_hook_analyst_hallucination(mock_deps: H
 
 
 def test_enforce_hypothesis_linking_success(mock_deps: HookDependencies) -> None:
-    """Test successful validation of sequential hypothesis IDs."""
+    """Test successful validation of opaque hypothesis IDs."""
     state = HookState(
         execution_id="exe_1",
         workflow_id="wf_1",
@@ -70,14 +70,14 @@ def test_enforce_hypothesis_linking_success(mock_deps: HookDependencies) -> None
         inputs={
             "hypotheses": [
                 {
-                    "id": "HYP-1",
+                    "id": "hyp_abc123",
                     "claim_text": "Claim 1",
                     "evidence_found": False,
                     "search_query": "test 1",
                     "quotes": [],
                 },
                 {
-                    "id": "HYP-2",
+                    "id": "hyp_def456",
                     "claim_text": "Claim 2",
                     "evidence_found": False,
                     "search_query": "test 2",
@@ -97,8 +97,8 @@ def test_enforce_hypothesis_linking_success(mock_deps: HookDependencies) -> None
     assert result.state_delta == {}
 
 
-def test_enforce_hypothesis_linking_gap_fails(mock_deps: HookDependencies) -> None:
-    """Test Fail-Fast on sequence gap in hypothesis IDs."""
+def test_enforce_hypothesis_linking_duplicate_fails(mock_deps: HookDependencies) -> None:
+    """Test Fail-Fast on duplicate opaque hypothesis IDs."""
     state = HookState(
         execution_id="exe_1",
         workflow_id="wf_1",
@@ -108,14 +108,14 @@ def test_enforce_hypothesis_linking_gap_fails(mock_deps: HookDependencies) -> No
         inputs={
             "hypotheses": [
                 {
-                    "id": "HYP-1",
+                    "id": "hyp_duplicate",
                     "claim_text": "Claim 1",
                     "evidence_found": False,
                     "search_query": "test 1",
                     "quotes": [],
                 },
                 {
-                    "id": "HYP-3",  # Sequence gap!
+                    "id": "hyp_duplicate",  # Duplicate!
                     "claim_text": "Claim 3",
                     "evidence_found": False,
                     "search_query": "test 3",
@@ -134,4 +134,4 @@ def test_enforce_hypothesis_linking_gap_fails(mock_deps: HookDependencies) -> No
         enforce_hypothesis_linking_hook(state, mock_deps)
 
     assert exc.value.status_code == 500
-    assert "Expected HYP-2, got HYP-3" in exc.value.message
+    assert "Duplicate Hypothesis ID found" in exc.value.message

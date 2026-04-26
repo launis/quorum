@@ -5,11 +5,12 @@ from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import EvaluationMandate
+from backend_v2.models.v2_core import PromptBlock
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True)
 class PromptPayload:
     base_system_prompt: str
     user_payload: str
@@ -55,16 +56,27 @@ class PromptFactory:
             user_payload += f"\n\n--- RUNTIME AWARENESS ---\n{dynamic_instructions}"
 
         atom_to_block_ids: dict[str, set[str]] = {}
-        for block in criteria_blocks:
-            if block.get("category_id") == "matrix" and block.get("scales"):
-                b_id = block.get("id")
+        for raw_block in criteria_blocks:
+            try:
+                block_model = PromptBlock.model_validate(raw_block)
+            except Exception as e:
+                msg = f"Strict Fail-Fast Enforced: Malformed PromptBlock criteria payload. {str(e)}"
+                logger.error("[PromptFactory] %s", msg, exc_info=True)
+                raise AppException(
+                    message="Criteria block validation failed",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
+
+            if block_model.category_id == "matrix" and block_model.scales:
+                b_id = block_model.id
                 if not b_id:
                     continue
-                for scale in block.get("scales", []):
+                for scale in block_model.scales:
                     scale_atoms: list[str] = []
-                    for claim in scale.get("claims", []):
+                    for claim in scale.claims:
                         mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
-                        micro_atoms = claim.get("micro_atoms")
+                        micro_atoms = claim.micro_atoms
                         if micro_atoms and len(micro_atoms) > 0:
                             scale_atoms.extend([f"{ma.strip()}{mandate}" for ma in micro_atoms])
                         else:

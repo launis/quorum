@@ -76,6 +76,7 @@ async def test_tool_loop_single_search() -> None:
     tool_call_response = {
         "tool_calls": [
             {
+                "id": "call_mock123",
                 "function": {
                     "name": "mcp_tavily_search",
                     "arguments": '{"query": "Finland population 2024"}',
@@ -134,6 +135,7 @@ async def test_tool_loop_max_calls_enforced() -> None:
     tool_call_response = {
         "tool_calls": [
             {
+                "id": "call_mock123",
                 "function": {
                     "name": "mcp_tavily_search",
                     "arguments": '{"query": "test query"}',
@@ -183,6 +185,7 @@ async def test_tool_loop_tavily_failure_graceful() -> None:
     tool_call_response = {
         "tool_calls": [
             {
+                "id": "call_mock123",
                 "function": {
                     "name": "mcp_tavily_search",
                     "arguments": '{"query": "broken query"}',
@@ -534,6 +537,7 @@ async def test_tool_loop_malformed_json_fails_fast() -> None:
     tool_call_response = {
         "tool_calls": [
             {
+                "id": "call_mock123",
                 "function": {
                     "name": "mcp_tavily_search",
                     "arguments": "I am not JSON, just a raw string hallucination.",

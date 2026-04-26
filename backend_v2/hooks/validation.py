@@ -4,6 +4,7 @@ import logging
 import re
 
 from fastapi import status
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -59,7 +60,7 @@ def verify_structure(state: HookState, deps: HookDependencies) -> HookResult:
     try:
         # Zero-Compromise: Enforce strict dictionary structure via DTO
         payload = ValidationHookPayloadDTO.model_validate(state.inputs)
-    except Exception as e:
+    except ValidationError as e:
         msg = "Missing or invalid 'inputs' in state. Expected dict."
         logger.error("[ValidationHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
@@ -123,7 +124,7 @@ def verify_structure(state: HookState, deps: HookDependencies) -> HookResult:
     try:
         # Create strict DTO result
         result_dto = ValidationResultDTO(is_valid=len(warnings) == 0, errors=warnings)
-    except Exception as e:
+    except ValidationError as e:
         # Pydantic validation failure -> System Error
         error_code = ErrorCodes.INTERNAL_SERVER_ERROR
         logger.error("[ValidationHook] Failed to create ValidationResult: %s", e)
@@ -162,7 +163,7 @@ def verify_output_language(state: HookState, deps: HookDependencies) -> HookResu
         payload = ValidationHookPayloadDTO.model_validate(state.inputs)
         meta = HookStateMetadata.model_validate(state.metadata)
         _ = I18nStatePayload.model_validate(state.inputs)
-    except Exception as e:
+    except ValidationError as e:
         msg = "Execution state is missing mandatory 'target_locale' metadata or 'language' inputs."
         logger.error("[ValidationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(
@@ -212,8 +213,14 @@ def verify_output_language(state: HookState, deps: HookDependencies) -> HookResu
         try:
             warnings_payload = SystemWarningsStateDTO.model_validate(state.inputs)
             existing_warnings = warnings_payload.system_warnings.copy()
-        except Exception:
-            existing_warnings = []
+        except ValidationError as e:
+            msg = "Invalid '_system_warnings' schema in state inputs."
+            logger.error("[ValidationHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA},
+            ) from e
 
         new_warning = ValidationWarningDTO(
             type=f"{AppException.PROBLEM_BASE_URI}/language-mismatch",

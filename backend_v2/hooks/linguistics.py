@@ -1,11 +1,17 @@
 """Linguistics hooks for analyzing text patterns and language use."""
 
 import logging
+import uuid
 
 from fastapi import status
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.linguistics import (
+    LinguisticsPayloadDTO,
+    LinguisticsResultDTO,
+    PerformativePatternDTO,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -101,12 +107,6 @@ def detect_performative_patterns(state: HookState, deps: HookDependencies) -> Ho
     if not state:
         return HookResult(success=True, state_delta={})
 
-    from backend_v2.models.domain.linguistics import (
-        LinguisticsPayloadDTO,
-        LinguisticsResultDTO,
-        PerformativePatternDTO,
-    )
-
     # Strict Validation via DTO inflation
     try:
         payload = LinguisticsPayloadDTO.model_validate(state.inputs)
@@ -146,7 +146,7 @@ def detect_performative_patterns(state: HookState, deps: HookDependencies) -> Ho
         for p in detected:
             patterns_list.append(
                 PerformativePatternDTO(
-                    pattern_id=f"detected_{lang_simple}_pattern",
+                    pattern_id=f"ptrn_{uuid.uuid4().hex[:8]}",
                     detected_phrase=p,
                     category="performative_filler",
                 )

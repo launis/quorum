@@ -25,5 +25,6 @@ class SanitizationResultDTO(BaseModel):
 
     sanitized_inputs: dict[str, str]
     security_status: str
+    threat_detected: bool
 
     model_config = ConfigDict(frozen=True)

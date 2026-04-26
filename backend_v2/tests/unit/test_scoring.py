@@ -9,12 +9,54 @@ from backend_v2.exceptions import AppException
 from backend_v2.hooks.scoring import normalize_matrix_scores_hook
 
 
+def _build_valid_scale(score: Any, micro_atoms: list[str] | None = None) -> dict[str, Any]:
+    claims = []
+    if micro_atoms is not None:
+        claims.append({
+            "label": {"default_locale": "en", "translations": {"en": "Test Claim"}},
+            "ai_description": "Test Claim Desc",
+            "micro_atoms": micro_atoms,
+        })
+    return {
+        "score": score,
+        "ai_label": f"Level {score}",
+        "claims": claims,
+    }
+
+def _build_valid_pb_dict(pb_id: str, scales: list[dict[str, Any]], pb_type: str = "float", category_id: str = "matrix") -> dict[str, Any]:
+    pb = {
+        "id": pb_id,
+        "slug": "test_slug",
+        "label": {"default_locale": "en", "translations": {"en": "Test Label"}},
+        "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+        "ai_description": "Test AI Desc",
+        "type": pb_type,
+        "category_id": category_id,
+        "scale_min": 1,
+        "scale_max": 5,
+    }
+    if scales:
+        pb["scales"] = scales
+    return pb
+
+
+def _build_valid_step_dict(prompt_blocks: list[str]) -> dict[str, Any]:
+    return {
+        "id": "st_1234567890123456",
+        "slug": "test_step",
+        "name": {"default_locale": "en", "translations": {"en": "Test Step"}},
+        "type": "logic",
+        "hook": "dummy_hook",
+        "prompt_blocks": prompt_blocks,
+    }
+
+
 class MockRepository:
     async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
-        return {"prompt_blocks": ["test_block"]}
+        return _build_valid_step_dict(["pb_1234567890123456"])
 
     async def get_prompt_block_by_id(self, slug: str) -> dict[str, Any]:
-        return {"scale_min": 1.0, "scale_max": 5.0, "scales": [{"score": "not_a_number"}]}
+        return _build_valid_pb_dict("pb_1234567890123456", [_build_valid_scale("not_a_number")])
 
 
 @pytest.mark.asyncio
@@ -26,7 +68,7 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
         step_id="test_step",
         task_blueprint="test_blueprint",
         metadata={},
-        inputs={"test_block": {"step_4_final_score": 5.0}},
+        inputs={"pb_1234567890123456": {"step_4_final_score": 5.0}},
         global_context_vars={},
     )
     deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepository()))
@@ -34,8 +76,8 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
     with pytest.raises(AppException) as exc_info:
         await cast(Awaitable[HookResult], normalize_matrix_scores_hook(state, deps))
 
-    assert exc_info.value.error_code == "CONFIGURATION_ERROR"
-    assert "Corrupted scale value 'not_a_number'" in exc_info.value.message
+    assert exc_info.value.error_code == "VALIDATION_FAILED"
+    assert "Strict Fail-Fast Enforced: Invalid PromptBlock format for 'pb_1234567890123456'" in exc_info.value.message
 
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
@@ -43,15 +85,13 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
 
     class MockRepoTapa2:
         async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
-            return {"prompt_blocks": ["toulmin_text_block"]}
+            return _build_valid_step_dict(["tb_1234567890123456"])
 
         async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-            return {
-                "category_id": "matrix",
-                "scale_min": 1.0,
-                "scale_max": 5.0,
-                "scales": [{"score": 1.0}, {"score": 5.0}], # V2 Strictness requires scales for all normalized blocks
-            }
+            return _build_valid_pb_dict("tb_1234567890123456", [
+                _build_valid_scale(1, ["tapa_atom_1"]),
+                _build_valid_scale(5, ["tapa_atom_5"]),
+            ])
 
     state = HookState(
         execution_id="test_exec",
@@ -60,7 +100,7 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
         task_blueprint="test_blueprint",
         metadata={},
         inputs={
-            "toulmin_text_block": {
+            "tb_1234567890123456": {
                 "evaluation_notes": "Tämä on perustelu",
                 "step_1_evidence_quote": "Ote lähteestä",
                 "step_2_falsification": "Vastalause",
@@ -79,9 +119,9 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
     assert delta is not None
 
     # V2 Anti-TDD: Naked keys are BANNED. Must be inside LightweightMatrixOutput dict.
-    parsed_output = delta["toulmin_text_block"]
+    parsed_output = delta["tb_1234567890123456"]
     extensions = parsed_output.get("extensions", {})
-    
+
     assert extensions.get("citation") == "Ote lähteestä"
     assert extensions.get("falsification") == "Vastalause"
 
@@ -97,51 +137,38 @@ from backend_v2.hooks.scoring import waterfall_scoring_hook
 
 
 class MockRepoWaterfall:
-    def __init__(self, pb_id: str = "test_pb") -> None:
+    def __init__(self, pb_id: str = "pb_1234567890123456") -> None:
         self.pb_id = pb_id
 
     async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
-        return {"prompt_blocks": [self.pb_id]}
+        return _build_valid_step_dict([self.pb_id])
 
     async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-        return {
-            "category_id": "matrix",
-            "scale_min": 1.0,
-            "scale_max": 5.0,
-            "scales": [
-                {"score": 1.0, "claims": [{"micro_atoms": ["atom_1"]}]},
-                {"score": 2.0, "claims": [{"micro_atoms": ["atom_2"]}]},
-                {"score": 3.0, "claims": [{"micro_atoms": ["atom_3"]}]},
-                {"score": 4.0, "claims": [{"micro_atoms": ["atom_4"]}]},
-                {"score": 5.0, "claims": [{"micro_atoms": ["atom_5"]}]},
-            ],
-        }
+        return _build_valid_pb_dict(self.pb_id, [
+            _build_valid_scale(1, ["atom_1"]),
+            _build_valid_scale(2, ["atom_2"]),
+            _build_valid_scale(3, ["atom_3"]),
+            _build_valid_scale(4, ["atom_4"]),
+            _build_valid_scale(5, ["atom_5"]),
+        ])
 
 
 class MockRepoWaterfallMixed:
     def __init__(self) -> None:
-        pass
+        self.pb_matrix = "pm_1234567890123456"
+        self.pb_instruction = "pi_1234567890123456"
 
     async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
-        return {"prompt_blocks": ["test_matrix_pb", "test_instruction_pb"]}
+        return _build_valid_step_dict([self.pb_matrix, self.pb_instruction])
 
     async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-        if pb_id == "test_matrix_pb":
-            return {
-                "category_id": "matrix",
-                "type": "matrix",
-                "scale_min": 1.0,
-                "scale_max": 5.0,
-                "scales": [
-                    {"score": 1.0, "claims": [{"micro_atoms": ["atom_1"]}]},
-                    {"score": 5.0, "claims": [{"micro_atoms": ["atom_5"]}]},
-                ],
-            }
+        if pb_id == self.pb_matrix:
+            return _build_valid_pb_dict(self.pb_matrix, [
+                _build_valid_scale(1, ["atom_1"]),
+                _build_valid_scale(5, ["atom_5"]),
+            ])
         else:
-            return {
-                "type": "instruction",
-                "scales": [],
-            }
+            return _build_valid_pb_dict(self.pb_instruction, [], pb_type="instruction", category_id="instruction")
 
 
 @pytest.mark.asyncio
@@ -195,8 +222,8 @@ async def test_waterfall_scoring_hook_pass_all() -> None:
     result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta["test_pb"]["step_4_final_score"] == 5.0
-    assert "Level 5.0:** 1/1" in result.state_delta["test_pb"]["waterfall_calculation_log"]
+    assert result.state_delta["pb_1234567890123456"]["step_4_final_score"] == 5.0
+    assert "Level 5.0:** 1/1" in result.state_delta["pb_1234567890123456"]["waterfall_calculation_log"]
 
 
 @pytest.mark.asyncio
@@ -230,7 +257,7 @@ async def test_waterfall_scoring_hook_ceiling_cap() -> None:
     # Weighted math: (1*1 + 0*2 + 1*3 + 1*4 + 1*5) = 13 achieved weights. Max weights: 15. Proportional = 13/15.
     # Score = 1.0 + (13/15 * 4.0) = 1.0 + 3.46 = 4.46.
     # But Capped at Floor (1.0) + 1.0 = 2.0!
-    assert result.state_delta["test_pb"]["step_4_final_score"] == 1.0
+    assert result.state_delta["pb_1234567890123456"]["step_4_final_score"] == 1.0
 
 
 @pytest.mark.asyncio
@@ -264,29 +291,24 @@ async def test_waterfall_scoring_hook_graceful_missing() -> None:
     # Level 1 (100%), Level 2 (100%), Level 3 (0%) -> Floor 2.0.
     # Weighted: (1*1 + 1*2 + 0) / (1+2+3) = 3 / 6 = 50%.
     # Weighted Score: 1.0 + (0.5 * 4.0) = 3.0. Max cap: 2.0 + 1.0 = 3.0. So score is 3.0.
-    assert result.state_delta["test_pb"]["step_4_final_score"] == 2.0
+    assert result.state_delta["pb_1234567890123456"]["step_4_final_score"] == 2.0
 
 
 class MockRepoWaterfallSimulation:
-    def __init__(self, pb_id: str = "fake_matrix_id") -> None:
+    def __init__(self, pb_id: str = "pb_1234567890123456") -> None:
         self.pb_id = pb_id
 
     async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
-        return {"prompt_blocks": [self.pb_id]}
+        return _build_valid_step_dict([self.pb_id])
 
     async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-        return {
-            "category_id": "matrix",
-            "scale_min": 1.0,
-            "scale_max": 5.0,
-            "scales": [
-                {"score": 1.0, "claims": [{"micro_atoms": ["L1_A1", "L1_A2"]}]},
-                {"score": 2.0, "claims": [{"micro_atoms": ["L2_A1", "L2_A2"]}]},
-                {"score": 3.0, "claims": [{"micro_atoms": ["L3_A1", "L3_A2"]}]},
-                {"score": 4.0, "claims": [{"micro_atoms": ["L4_A1"]}]},
-                {"score": 5.0, "claims": [{"micro_atoms": ["L5_A1"]}]},
-            ],
-        }
+        return _build_valid_pb_dict(self.pb_id, [
+            _build_valid_scale(1, ["L1_A1", "L1_A2"]),
+            _build_valid_scale(2, ["L2_A1", "L2_A2"]),
+            _build_valid_scale(3, ["L3_A1", "L3_A2"]),
+            _build_valid_scale(4, ["L4_A1"]),
+            _build_valid_scale(5, ["L5_A1"]),
+        ])
 
 
 @pytest.mark.asyncio
@@ -358,9 +380,9 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
 
     assert result.success is True
     assert result.state_delta is not None
-    assert abs(result.state_delta["fake_matrix_id"]["step_4_final_score"] - 3.207) < 0.01
+    assert abs(result.state_delta["pb_1234567890123456"]["step_4_final_score"] - 3.207) < 0.01
 
-    log = result.state_delta["fake_matrix_id"]["waterfall_calculation_log"]
+    log = result.state_delta["pb_1234567890123456"]["waterfall_calculation_log"]
     assert "Level 3.0:** 1/2" in log
     assert "Level 4.0:** 1/1" in log
     assert "Final CDM Score:** 3.21" in log

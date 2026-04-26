@@ -3,16 +3,20 @@
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from fastapi import status
 from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.dtos.report import ReportSynthesisDTO
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.report import (
+    AuditQuestionItem,
+    ReportContextDTO,
+    ReportSynthesisDTO,
+    ScoreItem,
+)
 from backend_v2.models.view.sdui import ReferenceIntent, ReferenceItem
-from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +43,8 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
     logger.debug("[ReportingHook] Running generate_report_hook...")
 
     if not state:
-        return HookResult(success=True, state_delta={})
-
-    get_settings()
+        msg = "Strict Fail-Fast Enforced: Missing HookState in generate_report_hook."
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     # 1. TEMPLATE VALIDATION (Fail Fast)
     template_dir = Path("backend/templates")
@@ -80,10 +83,8 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
             details={"error_code": ErrorCodes.VALIDATION_FAILED, "errors": e.errors()},
         ) from e
 
-    context: dict[str, Any] = {}
-    context["inputs"] = dto.inputs
-    context["generated_at"] = datetime.now().astimezone().strftime("%d.%m.%Y %H:%M")
-    context["timestamp"] = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")
+    generated_at = datetime.now().astimezone().strftime("%d.%m.%Y %H:%M")
+    timestamp = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")
 
     gvars = dto.global_context_vars
 
@@ -95,70 +96,62 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
     causal_data = gvars.step_panel.causal_analysis if gvars.step_panel else None
 
     # Summary (From XAI)
+    summary = "No Executive Summary available (XAI Role did not run or failed)."
     if gvars.step_xai and gvars.step_xai.executive_summary:
-        context["summary"] = gvars.step_xai.executive_summary
-    else:
-        context["summary"] = "No Executive Summary available (XAI Role did not run or failed)."
+        summary = gvars.step_xai.executive_summary
 
     # Critical Findings (From Judge)
+    critical_findings = []
     if gvars.step_judge and gvars.step_judge.critical_findings:
-        context["critical_findings"] = gvars.step_judge.critical_findings
-    else:
-        context["critical_findings"] = []
+        critical_findings = gvars.step_judge.critical_findings
 
     # Pre-Morten Signals (From Performativity/Detector)
+    pre_mortem_signals = []
     if perf_data and perf_data.weak_signals:
-        context["pre_mortem_signals"] = perf_data.weak_signals
-    else:
-        context["pre_mortem_signals"] = []
+        pre_mortem_signals = perf_data.weak_signals
 
     # Ethical Issues (From Overseer)
+    ethical_issues = []
     if overseer_data and overseer_data.ethical_issues:
-        context["ethical_issues"] = overseer_data.ethical_issues
-    else:
-        context["ethical_issues"] = []
+        ethical_issues = overseer_data.ethical_issues
 
     # Audit Questions (From Logician)
-    audit_questions_list = []
+    audit_questions_list: list[AuditQuestionItem] = []
     if logician_data and logician_data.walton_scheme and logician_data.walton_scheme.critical_questions:
         for q in logician_data.walton_scheme.critical_questions:
-            audit_questions_list.append({"question": q, "status": "Open"})
-    context["audit_questions"] = audit_questions_list
+            audit_questions_list.append(AuditQuestionItem(question=q, status="OPEN"))
 
-    # Scores (From XAI Scorecards or Judge)
-    scores_dict = {}
+    # Scores (V2 Phase 9 Zero-Compromise: Matrices are extracted natively)
+    scores_dict: dict[str, ScoreItem] = {}
     total_score_sum = 0.0
     count = 0
 
-    if gvars.step_xai and gvars.step_xai.score_cards:
-        for card in gvars.step_xai.score_cards:
-            total_score_sum += card.total_score
-            count += 1
-            for dim in card.dimensions:
-                scores_dict[dim.dimension_id] = {
-                    "score": dim.score,
-                    "reasoning": dim.reasoning,
-                    "label": dim.dimension_label,
-                }
-    elif gvars.step_judge and gvars.step_judge.score_card:
-        card = gvars.step_judge.score_card
-        total_score_sum = card.total_score
-        count = 1
-        for dim in card.dimensions:
-            scores_dict[dim.dimension_id] = {
-                "score": dim.score,
-                "reasoning": dim.reasoning,
-                "label": dim.dimension_label,
-            }
+    # We iterate the raw inputs because ReportSynthesisDTO securely drops matrix keys to prevent token explosion.
+    for k, v in inputs.items():
+        if isinstance(v, dict) and "normalized_score" in v and "justification" in v:
+            try:
+                matrix_dto = LightweightMatrixOutput.model_validate(v)
+                scores_dict[k] = ScoreItem(
+                    score=matrix_dto.normalized_score,
+                    reasoning=matrix_dto.justification,
+                    label=k,  # UI Localization handles dimension resolving
+                )
+                total_score_sum += matrix_dto.normalized_score
+                count += 1
+            except ValidationError:
+                continue
 
-    context["scores"] = scores_dict
-    context["average_score"] = (total_score_sum / count) if count > 0 else 0.0
+    # Use the precise centralized average from score_summary if available
+    if gvars.step_scoreengine1 and gvars.step_scoreengine1.score_summary:
+        average_score = gvars.step_scoreengine1.score_summary.normalized_score
+    else:
+        average_score = (total_score_sum / count) if count > 0 else 0.0
 
     # Human In The Loop?
-    context["hitl_required"] = context["average_score"] < 2.5
+    hitl_required = average_score < 2.5
 
     # Uncertainty
-    context["uncertainty"] = {"status": "Not Assessed"}
+    uncertainty = {"status": "NOT_ASSESSED"}
 
     # Bibliography
     bib_data = gvars.bibliography_result
@@ -170,58 +163,52 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
         else:
             extracted_bibliography.extend(bib_data.references)
 
-    context["bibliography"] = [ref.model_dump() for ref in extracted_bibliography]
+    bibliography = [ref.model_dump() for ref in extracted_bibliography]
 
     # Contextual Citations & Global Bibliography (Unified References)
     references: list[ReferenceItem] = []
     counters = {"SEARCH": 1, "INTERNAL_KB": 1}
 
-    search_items: list[Any] = []
+    # 1. RAG Evidence (list of strict strings)
     if gvars.step_analyst and gvars.step_analyst.rag_evidence:
-        search_items.extend(gvars.step_analyst.rag_evidence)
+        for evidence in gvars.step_analyst.rag_evidence:
+            snippet = str(evidence).strip()
+            if snippet:
+                references.append(
+                    ReferenceItem(
+                        id=f"[H-{counters['SEARCH']}]",
+                        intent=ReferenceIntent.SEARCH,
+                        title="SEARCH_RESULT_FALLBACK",
+                        snippet=snippet,
+                        url=None,
+                    )
+                )
+                counters["SEARCH"] += 1
 
+    # 2. Search Result Objects (Strict SearchResult)
     sr_obj = gvars.search_result
     if sr_obj:
-        if isinstance(sr_obj, list):
-            for sr in sr_obj:
-                search_items.extend(sr.results)
-        else:
-            search_items.extend(sr_obj.results)
-
-    for item in search_items:
-        title = "Web Search"
-        snippet = ""
-        url = None
-
-        # item could be a dict if rag_evidence is raw strings, but SearchResult models have strict typing.
-        if isinstance(item, dict):
-            title = item.get("title", title)
-            snippet = item.get("snippet", str(item))
-            url = item.get("link")
-        elif hasattr(item, "snippet"):
-            title = getattr(item, "title", title)
-            snippet = getattr(item, "snippet", str(item))
-            url = getattr(item, "link", None)
-        else:
-            snippet = str(item)
-
-        if snippet and snippet.strip():
-            references.append(
-                ReferenceItem(
-                    id=f"[H-{counters['SEARCH']}]",
-                    intent=ReferenceIntent.SEARCH,
-                    title=title,
-                    snippet=snippet,
-                    url=url,
-                )
-            )
-            counters["SEARCH"] += 1
+        sr_list = sr_obj if isinstance(sr_obj, list) else [sr_obj]
+        for sr in sr_list:
+            for result_item in sr.results:
+                snippet = result_item.snippet.strip() if result_item.snippet else ""
+                if snippet:
+                    references.append(
+                        ReferenceItem(
+                            id=f"[H-{counters['SEARCH']}]",
+                            intent=ReferenceIntent.SEARCH,
+                            title=result_item.title or "SEARCH_RESULT_FALLBACK",
+                            snippet=snippet,
+                            url=result_item.link,
+                        )
+                    )
+                    counters["SEARCH"] += 1
 
     # INTERNAL KB
     for bib_item in extracted_bibliography:
-        title = bib_item.title or "Internal Knowledge Base"
+        title = bib_item.title or "KNOWLEDGE_BASE_FALLBACK"
         snippet = bib_item.snippet or ""
-        url = bib_item.url or getattr(bib_item, "source_id", None)
+        url = bib_item.url
 
         if snippet and snippet.strip():
             references.append(
@@ -235,40 +222,39 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
             )
             counters["INTERNAL_KB"] += 1
 
-    context["references"] = references
+    prof_metrics = gvars.step_profiler.metrics if gvars.step_profiler and gvars.step_profiler.metrics else None
 
-    # 4. PASS THROUGH SPECIALIST DATA (For Template deep dives)
-    context["logician_data"] = logician_data.model_dump() if logician_data else None
-    context["overseer_data"] = overseer_data.model_dump() if overseer_data else None
-    context["falsifier_data"] = falsifier_data
-    context["causal_analysis"] = causal_data
-    context["performativity_analysis"] = perf_data.model_dump() if perf_data else None
-
-    # 5. ENRICHMENT (Metrics & Knowledge)
-    if gvars.step_profiler and gvars.step_profiler.metrics:
-        context["word_count"] = gvars.step_profiler.metrics.word_count
-        context["input_control_ratio"] = gvars.step_profiler.metrics.control_ratio
-
-    if gvars.step_analyst:
-        context["google_search_results"] = []
-        context["knowledge_items"] = []
-
-    # Archivist
-    if gvars.step_archivist:
-        context["archivist_precedents"] = gvars.step_archivist
-
-    # Scoring Result (Hook)
-    if gvars.step_scoreengine1:
-        context["penalties_applied"] = gvars.step_scoreengine1.penalties_applied
-        context["score_summary"] = gvars.step_scoreengine1.score_summary
-
-    # Validation Result (Hook)
-    if gvars.step_validation:
-        context["structural_warnings"] = gvars.step_validation.warnings
-
-    # Coaching Plan
-    if gvars.step_coach:
-        context["coaching_plan"] = gvars.step_coach
+    # Assemble ReportContextDTO (No Naked Dicts!)
+    report_context = ReportContextDTO(
+        inputs=dto.inputs,
+        generated_at=generated_at,
+        timestamp=timestamp,
+        summary=summary,
+        critical_findings=critical_findings,
+        pre_mortem_signals=pre_mortem_signals,
+        ethical_issues=ethical_issues,
+        audit_questions=audit_questions_list,
+        scores=scores_dict,
+        average_score=average_score,
+        hitl_required=hitl_required,
+        uncertainty=uncertainty,
+        bibliography=bibliography,
+        references=references,
+        logician_data=logician_data.model_dump() if logician_data else None,
+        overseer_data=overseer_data.model_dump() if overseer_data else None,
+        falsifier_data=falsifier_data,
+        causal_analysis=causal_data,
+        performativity_analysis=perf_data.model_dump() if perf_data else None,
+        word_count=prof_metrics.word_count if prof_metrics else None,
+        input_control_ratio=prof_metrics.control_ratio if prof_metrics else None,
+        google_search_results=[],
+        knowledge_items=[],
+        archivist_precedents=gvars.step_archivist if gvars.step_archivist else None,
+        penalties_applied=gvars.step_scoreengine1.penalties_applied if gvars.step_scoreengine1 else None,
+        score_summary=gvars.step_scoreengine1.score_summary if gvars.step_scoreengine1 else None,
+        structural_warnings=gvars.step_validation.warnings if gvars.step_validation else None,
+        coaching_plan=gvars.step_coach if gvars.step_coach else None,
+    )
 
     logger.info("[ReportingHook] Report context prepared and validated successfully.")
-    return HookResult(success=True, state_delta={"report_context": context})
+    return HookResult(success=True, state_delta={"report_context": report_context.model_dump(mode="json")})

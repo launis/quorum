@@ -25,18 +25,28 @@ def test_context_builder_build_success(monkeypatch):
         "text_field": "$.document_text",
         "nested_field": "$.nested.value",
         "trace_field": "$.steps.step1",
+        "text_trace_field": "$.steps.step2",
     }
 
     state_data = {
         "document_text": "Sample text",
         "nested": {"value": 123},
-        "steps": {"step1": {"normalized_score": 0.8, "raw": "data"}},
+        "steps": {
+            "step1": {"normalized_score": 0.8, "raw": "data"},
+            "step2": "This is a simple text trace that should bypass pruning."
+        },
+    }
+    
+    schema_map = {
+        "step1": "MATRIX",
+        "step2": "TEXT",
     }
 
     llm_context_data, new_input_mappings = ContextBuilder.build(
         input_mappings=input_mappings,
         state_data=state_data,
         output_profile=None,
+        schema_map=schema_map,
     )
 
     assert "document_text" in llm_context_data
@@ -48,8 +58,11 @@ def test_context_builder_build_success(monkeypatch):
     assert "step1" in llm_context_data
     assert "<matrix_data>" in llm_context_data["step1"]
     assert '{"pruned": True}' in llm_context_data["step1"]
+    
+    assert "step2" in llm_context_data
+    assert llm_context_data["step2"] == "This is a simple text trace that should bypass pruning."
 
-    assert new_input_mappings["text_field"] == "$.document_text"
+    assert new_input_mappings["text_field"] == "$document_text"
 
 
 def test_context_builder_build_token_limit_exceeded(monkeypatch):

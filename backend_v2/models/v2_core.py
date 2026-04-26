@@ -570,6 +570,7 @@ class ReportAxisDTO(V2CoreBase):
     scale_min: float | None = None
     scale_max: float | None = None
     scale_labels: dict[str, str] = Field(default_factory=dict)
+    level_breakdown: dict[str, str] | None = None
 
     ui_plot_ratio: float | None = Field(
         default=None, description="Absolute normalized plot plot ratio [0.0 - 1.0] for mathless Flutter plotting"

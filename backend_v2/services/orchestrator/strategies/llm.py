@@ -9,7 +9,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.chunking import ChunkingRequest
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.state import StateProjector, TraceEvent
-from backend_v2.models.v2_core import FrozenContext, StepRule
+from backend_v2.models.v2_core import FrozenContext, PromptBlock, StepRule, Workflow
 from backend_v2.models.v2_core import Step as V2Step
 from backend_v2.services.orchestrator.chunk_accumulator import ChunkAccumulator
 from backend_v2.services.orchestrator.chunking_service import ChunkingService
@@ -20,6 +20,10 @@ from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory im
 
 logger = logging.getLogger(__name__)
 
+# Internal schema routing tokens — used to classify DAG step outputs without duck-typing.
+# These values are consumed by ContextBuilder; do NOT rename without updating that module.
+_SCHEMA_BLOCK_MATRIX = "MATRIX"
+_SCHEMA_BLOCK_TEXT = "TEXT"
 
 class LLMNodeStrategy(NodeStrategy):
     """Executes an AI/LLM Step.
@@ -39,7 +43,7 @@ class LLMNodeStrategy(NodeStrategy):
     ) -> list[TraceEvent]:
         current_state = dict(projector.snapshot)
 
-        blueprint_id = getattr(step, "task_blueprint", None)
+        blueprint_id = step.task_blueprint
         if not blueprint_id:
             logger.error(
                 "Step has no task_blueprint configured.",
@@ -66,11 +70,29 @@ class LLMNodeStrategy(NodeStrategy):
         step_obj = V2Step.model_validate(step_def)
         hook_deps = HookDependencies(repository=self.repository)
 
+        # Extract input keys from context — ExpectedInput.input_key is a required typed field.
+        input_keys = set()
+        if context.expected_inputs:
+            for ei in context.expected_inputs:
+                input_keys.add(ei.input_key)
+
+        # Exclude inputs from the $steps container to prevent matrix parsing crashes and context pollution
+        step_outputs = {}
+        for k, v in current_state.items():
+            if k not in input_keys and k not in ["inputs", "raw_inputs"]:
+                step_outputs[k] = v
+
         # Restore V1 namespace structure for state_data so ContextBuilder can resolve `$steps` and `$inputs`
-        state_data = {"steps": dict(current_state)}
+        state_data = {"steps": step_outputs}
         for key in ["inputs", "raw_inputs"]:
             if key in current_state:
                 state_data[key] = current_state[key]
+
+        # Provide all keys at root level for global input mapping
+        # (InputProcessingHook writes to root)
+        for k, v in current_state.items():
+            if k not in state_data:
+                state_data[k] = v
 
         hook_state = HookState(
             execution_id=context.execution_id,
@@ -83,23 +105,35 @@ class LLMNodeStrategy(NodeStrategy):
         )
 
         # 1. Pre-Hooks
-        hook_state = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps, state_data)
+        hook_state = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)
         state_data = dict(hook_state.inputs)
 
         # 2. Extract configuration criteria
-        criteria_blocks = []
-        all_prompt_blocks = await self.repository.get_all_prompt_blocks()
-        block_map = {b["id"]: b for b in all_prompt_blocks if "id" in b}
+        all_prompt_blocks_raw = await self.repository.get_all_prompt_blocks()
+        all_prompt_blocks = []
+        for raw in all_prompt_blocks_raw:
+            try:
+                all_prompt_blocks.append(PromptBlock.model_validate(raw))
+            except Exception as e:
+                logger.error(
+                    "[LLMStrategy] Malformed PromptBlock in DB — Fail-Fast.",
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                    exc_info=e,
+                )
+                raise
+
+        block_map = {b.id: b for b in all_prompt_blocks if b.id}
 
         target_profile = context.metadata.get("profile_id")
         if not target_profile:
             msg = f"Execution metadata missing mandatory 'profile_id' for workflow {context.workflow_id}."
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
+        criteria_blocks_models = []
         for m_id in step_obj.prompt_blocks:
             b = block_map.get(m_id)
             if b:
-                criteria_blocks.append(b)
+                criteria_blocks_models.append(b)
             else:
                 logger.error(
                     f"PromptBlock '{m_id}' not found.",
@@ -111,25 +145,47 @@ class LLMNodeStrategy(NodeStrategy):
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
-        target_locale = str(context.metadata.get("target_locale", "en"))
+        target_locale = context.metadata.get("target_locale")
+        if not target_locale:
+            msg = f"Execution metadata missing mandatory 'target_locale' for workflow {context.workflow_id}."
+            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
+        target_locale = str(target_locale)
         effective_mcp_tools = step_obj.allowed_mcp_tools
 
-        input_mappings = step.input_mappings if hasattr(step, "input_mappings") and step.input_mappings else {}
-        input_mappings = dict(input_mappings)
+        # StepRule.input_mappings has default_factory=dict — always present, no guard needed.
+        input_mappings = dict(step.input_mappings)
 
         workflow_def = await self.repository.get_workflow(context.workflow_id)
         output_profile = None
+        schema_map = {}
         if workflow_def:
-            from backend_v2.models.v2_core import Workflow
-
             workflow_obj = Workflow.model_validate(workflow_def)
             output_profile = workflow_obj.output_profiles.get(target_profile)
+
+            for s in workflow_obj.steps:
+                if s.id in state_data["steps"]:
+                    is_matrix = False
+                    blueprint_def = await self.repository.get_step(s.task_blueprint)
+                    if blueprint_def:
+                        blueprint_obj = V2Step.model_validate(blueprint_def)
+                        for m_id in blueprint_obj.prompt_blocks:
+                            b = block_map.get(m_id)
+                            if b and b.category_id == "matrix":
+                                is_matrix = True
+                                schema_map[m_id] = _SCHEMA_BLOCK_MATRIX
+                            else:
+                                schema_map[m_id] = _SCHEMA_BLOCK_TEXT
+                    schema_map[s.id] = _SCHEMA_BLOCK_MATRIX if is_matrix else _SCHEMA_BLOCK_TEXT
+
+        # Export back to dict for legacy consumers that haven't been hardened yet
+        criteria_blocks = [b.model_dump(mode="json") for b in criteria_blocks_models]
 
         # Step 1 - Context Building
         llm_context_data, new_input_mappings = ContextBuilder.build(
             input_mappings=input_mappings,
             state_data=state_data,
             output_profile=output_profile,
+            schema_map=schema_map,
         )
         input_mappings = new_input_mappings
 
@@ -153,7 +209,7 @@ class LLMNodeStrategy(NodeStrategy):
         chunks_list: list[Any] = []
 
         # Epic 32: Prevent state leakage. Only chunk if the current step actually contains matrix blocks.
-        is_matrix_step = any(b.get("category_id") == "matrix" for b in criteria_blocks)
+        is_matrix_step = any(b.category_id == "matrix" for b in criteria_blocks_models)
 
         if is_matrix_step and "shuffled_atoms" in state_data:
             has_shuffled_atoms = True
@@ -233,8 +289,8 @@ class LLMNodeStrategy(NodeStrategy):
                             bound_client=bound_client,
                             step_id=step.id,
                             target_locale=target_locale,
-                            state_data=state_data,
-                            output_profile=getattr(context, "output_profile", None),
+                            synthesis_instructions=state_data.get("synthesis_instructions"),
+                            output_profile=None,
                         )
                     )
                 )
@@ -250,8 +306,9 @@ class LLMNodeStrategy(NodeStrategy):
 
             accumulator.add(c_final)
 
-            for k, v in c_usage.items():
-                usage_dict[k] = usage_dict.get(k, 0) + v
+            if c_usage is not None:
+                for k, v in c_usage.items():
+                    usage_dict[k] = usage_dict.get(k, 0) + v
 
             if frozen_ctx and c_traces:
                 existing_hashes = {f"{a.tool_id}::{a.query}" for a in frozen_ctx.mcp_tool_audit}
@@ -267,14 +324,20 @@ class LLMNodeStrategy(NodeStrategy):
             k: v.model_dump(mode="json") if hasattr(v, "model_dump") else v for k, v in dict(projector.snapshot).items()
         }
 
-        final_dict = await self.run_post_hooks(
+        post_hook_state = hook_state.model_copy(
+            update={
+                "global_context_vars": safe_context,
+                "inputs": final_dict,
+            }
+        )
+
+        post_hook_state = await self.run_post_hooks(
             step_obj=step_obj,
             step=step,
-            hook_state=hook_state,
+            hook_state=post_hook_state,
             hook_deps=hook_deps,
-            final_dict=final_dict,
-            global_context_vars=safe_context,
         )
+        final_dict = dict(post_hook_state.inputs)
 
         for key in ["profiler_metrics", "step_metadata", "_audit_signature"]:
             if key in state_data:

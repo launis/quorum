@@ -102,7 +102,7 @@ async def test_execute_fails_fast_on_missing_profile_id(llm_strategy: LLMNodeStr
         "slug": "test_step",
         "name": {"default_locale": "en", "translations": {"en": "Test"}},
         "description": {"default_locale": "en", "translations": {"en": "Test"}},
-        "prompt_blocks": ["block_1"],
+        "prompt_blocks": ["blk_0123456789abcdef0123456789abcdef"],
         "model_strategy": "standard",
     }
 
@@ -193,11 +193,18 @@ async def test_execute_success_path_structured_output(
         "slug": "test_step",
         "name": {"default_locale": "en", "translations": {"en": "Test"}},
         "description": {"default_locale": "en", "translations": {"en": "Test"}},
-        "prompt_blocks": ["block_1"],
+        "prompt_blocks": ["blk_0123456789abcdef0123456789abcdef"],
         "model_strategy": "standard",
     }
 
-    mock_repo.get_all_prompt_blocks.return_value = [{"id": "block_1", "category_id": "llm"}]
+    mock_repo.get_all_prompt_blocks.return_value = [{
+        "id": "blk_0123456789abcdef0123456789abcdef",
+        "slug": "test_block",
+        "category_id": "llm",
+        "type": "string",
+        "label": {"default_locale": "en", "translations": {"en": "Label"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}}
+    }]
     mock_repo.get_workflow.return_value = {
         "id": "wf_0123456789abcdef0123456789abcdef",
         "slug": "test",
@@ -219,7 +226,9 @@ async def test_execute_success_path_structured_output(
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
     ):
         mock_pre.return_value = mock_hook_state
-        mock_post.return_value = {"blocks": []}
+        mock_post_hook_state = MagicMock()
+        mock_post_hook_state.inputs = {"blocks": []}
+        mock_post.return_value = mock_post_hook_state
 
         # Mock Compiler returns
         mock_compiler.compile_static_instructions.return_value = "static"
@@ -250,3 +259,74 @@ async def test_execute_success_path_structured_output(
     assert len(traces) == 1
     assert traces[0].event_type == "output"
     assert "blocks" in traces[0].content
+
+
+@pytest.mark.asyncio
+async def test_configure_llm_context_hook_success() -> None:
+    """Test that the LLM hook correctly resolves provider configuration."""
+    from unittest.mock import MagicMock, patch
+
+    from backend_v2.core.hook_registry import HookDependencies, HookState
+    from backend_v2.hooks.llm import configure_llm_context_hook
+
+    state = HookState(
+        execution_id="123",
+        workflow_id="wf1",
+        step_id="step1",
+        inputs={},
+        global_context_vars={"workflow_model_mapping": {"step1": "fast"}},
+        metadata={}
+    )
+    deps = HookDependencies(repository=MagicMock())
+
+    with patch("backend_v2.hooks.llm.get_settings") as mock_settings:
+        mock_settings.return_value.default_model_strategy = "fast"
+        mock_settings.return_value.model_registry = {
+            "id": "reg_0123456789abcdef0123456789abcdef",
+            "slug": "model_registry",
+            "type": "model_registry",
+            "models": {
+                "fast": {
+                    "provider": "google",
+                    "model_name": "gemini",
+                    "temperature": 0.7,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 100
+                }
+            }
+        }
+        # Mock the repository call inside the hook if needed
+        with patch("backend_v2.hooks.llm.UnifiedWorkflowRepository"):
+            result = configure_llm_context_hook(state, deps)
+
+            assert result.success is True
+            assert "llm_config" in result.state_delta
+            assert result.state_delta["llm_config"].provider == "google"
+
+
+def test_configure_llm_context_hook_empty_state() -> None:
+    from unittest.mock import MagicMock
+
+    from backend_v2.core.hook_registry import HookDependencies
+    from backend_v2.hooks.llm import configure_llm_context_hook
+
+    result = configure_llm_context_hook(None, HookDependencies(repository=MagicMock()))
+    assert result.success is True
+    assert result.state_delta == {}
+
+
+def test_configure_llm_context_hook_error() -> None:
+    from unittest.mock import MagicMock
+
+    import pytest
+
+    from backend_v2.core.hook_registry import HookDependencies, HookState
+    from backend_v2.exceptions import AppException
+    from backend_v2.hooks.llm import configure_llm_context_hook
+
+    state = HookState(
+        execution_id="123", workflow_id="wf1", step_id="step1", inputs={}, global_context_vars={}, metadata={}
+    )
+
+    with pytest.raises(AppException):
+        configure_llm_context_hook(state, HookDependencies(repository=MagicMock()))

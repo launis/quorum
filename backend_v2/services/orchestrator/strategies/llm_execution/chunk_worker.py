@@ -3,14 +3,25 @@ import json
 import logging
 from typing import Any
 
-from pydantic import RootModel
+from pydantic import BaseModel, ConfigDict, RootModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.v2_core import PromptBlock
 from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 
 logger = logging.getLogger(__name__)
+
+
+class AtomIdentifier(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    atom_id: str
+
+
+class SduiResponseList(RootModel[list[AnySduiBlock]]):
+    model_config = ConfigDict(frozen=True)
+    pass
 
 
 class ChunkWorker:
@@ -31,9 +42,9 @@ class ChunkWorker:
         bound_client: LLMClient,
         step_id: str,
         target_locale: str,
-        state_data: dict[str, Any],
+        synthesis_instructions: dict[str, Any] | None,
         output_profile: Any | None,
-    ) -> tuple[dict[str, Any], dict[str, Any], list[Any]]:
+    ) -> tuple[dict[str, Any], dict[str, Any] | None, list[Any]]:
         """Processes a single execution chunk, mapping dynamic schemas and orchestrating tool loops."""
         async with sem:
             local_payload = user_payload
@@ -47,15 +58,33 @@ class ChunkWorker:
                 if has_shuffled_atoms:
                     chunk_matrix_ids = set()
                     for item in chunk.items:
-                        aid = item.get("atom_id") if isinstance(item, dict) else getattr(item, "atom_id", None)
-                        if aid and aid in atom_to_block_ids:
-                            chunk_matrix_ids.update(atom_to_block_ids[aid])
+                        try:
+                            aid_model = AtomIdentifier.model_validate(item)
+                            if aid_model.atom_id in atom_to_block_ids:
+                                chunk_matrix_ids.update(atom_to_block_ids[aid_model.atom_id])
+                        except Exception as e:
+                            msg = f"Strict Fail-Fast Enforced: Malformed atom item payload. {str(e)}"
+                            logger.error("[ChunkWorker] %s", msg, exc_info=True)
+                            raise AppException(
+                                message="Atom item validation failed",
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            ) from e
 
-                    chunk_criteria = [
-                        b
-                        for b in criteria_blocks
-                        if b.get("category_id") != "matrix" or b.get("id") in chunk_matrix_ids
-                    ]
+                    chunk_criteria = []
+                    for raw_b in criteria_blocks:
+                        try:
+                            bm = PromptBlock.model_validate(raw_b)
+                            if bm.category_id != "matrix" or bm.id in chunk_matrix_ids:
+                                chunk_criteria.append(raw_b)
+                        except Exception as e:
+                            msg = f"Strict Fail-Fast Enforced: Malformed PromptBlock criteria payload. {str(e)}"
+                            logger.error("[ChunkWorker] %s", msg, exc_info=True)
+                            raise AppException(
+                                message="Criteria block validation failed",
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            ) from e
 
             # Dynamically build system prompt and schema for this chunk
             local_xml_rubrics = compiler.compile_xml_rubrics(chunk_criteria, target_locale)
@@ -78,7 +107,7 @@ class ChunkWorker:
             ]
 
             chunk_final: dict[str, Any] = {}
-            chunk_usage: dict[str, Any] = {}
+            chunk_usage: dict[str, Any] | None = None
             chunk_traces: list[Any] = []
 
             if effective_mcp_tools:
@@ -91,10 +120,10 @@ class ChunkWorker:
                         step_name=step_id,
                         mock_identity=step_id,
                         target_language=target_locale,
-                        synthesis_instructions=state_data.get("synthesis_instructions"),
+                        synthesis_instructions=synthesis_instructions,
                     )
                     chunk_final = dict(loop_res.result_data)
-                    chunk_usage = dict(loop_res.usage) if loop_res.usage else {}
+                    chunk_usage = dict(loop_res.usage) if loop_res.usage else None
                     if loop_res.audit_traces:
                         chunk_traces.extend(loop_res.audit_traces)
                 except Exception as e:
@@ -117,10 +146,6 @@ class ChunkWorker:
             else:
                 try:
                     if output_profile is not None:
-
-                        class SduiResponseList(RootModel[list[AnySduiBlock]]):
-                            pass
-
                         result, usage = await bound_client.run_structured_task(
                             messages=messages,
                             response_model=SduiResponseList,
@@ -136,7 +161,7 @@ class ChunkWorker:
                         )
                         chunk_final = dict(result.model_dump(mode="json"))
 
-                    chunk_usage = dict(usage) if usage else {}
+                    chunk_usage = dict(usage) if usage else None
                 except Exception as e:
                     logger.error(
                         "Execution of structured LLM task failed.",

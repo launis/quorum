@@ -10,10 +10,11 @@ import hashlib
 import logging
 import random
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.enums import EvaluationMandate
 from backend_v2.models.v2_core import PromptBlock, Step
 
 logger = logging.getLogger(__name__)
@@ -64,7 +65,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
         logger.warning("[AtomFlatteningHook] Step blueprint '%s' not found.", state.task_blueprint)
         return HookResult(success=True, state_delta={})
 
-    step = TypeAdapter(Step).validate_python(step_def)
+    step = Step.model_validate(step_def)
     prompt_block_ids = step.prompt_blocks
 
     if not prompt_block_ids:
@@ -92,22 +93,23 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
 
     unique_atoms: dict[str, str] = {}
 
-    for block_dict in all_blocks:
-        if block_dict.get("id") in prompt_block_ids:
-            if block_dict.get("category_id") == "matrix":
-                # Strict parsing to uphold architectural mandate
-                block = TypeAdapter(PromptBlock).validate_python(block_dict)
+    for raw_block in all_blocks:
+        try:
+            block = PromptBlock.model_validate(raw_block)
+        except Exception as e:
+            # Skip invalid legacy models safely. Active models must strictly pass Pydantic validation.
+            logger.warning("[AtomFlatteningHook] Skipping malformed raw block: %s", e)
+            continue
 
-                if not block.scales:
-                    continue
+        if block.id in prompt_block_ids:
+            if block.category_id == "matrix":
+                assert block.scales is not None, "Matrix Block missing scales. Pydantic fail-fast bypassed."
 
                 logger.info(
                     "[AtomFlatteningHook] Flattening Matrix: '%s'. Sampling limit: %s",
                     block.id,
                     sampling_limit_val,
                 )
-
-                from backend_v2.models.enums import EvaluationMandate
 
                 matrix_collected_atoms: list[str] = []
                 mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
