@@ -434,6 +434,12 @@ abstract class AppLocalizations {
   /// **'Global Average'**
   String get scorecard_global_average;
 
+  /// No description provided for @scorecard_matrix_summary.
+  ///
+  /// In en, this message translates to:
+  /// **'Matrix Summary'**
+  String get scorecard_matrix_summary;
+
   /// No description provided for @atomicBreakdownTitle.
   ///
   /// In en, this message translates to:
@@ -6143,6 +6149,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reasoning: {count}'**
   String reportReasoningTokens(String count);
+
+  /// No description provided for @matrixEvaluativeAsteriskLegend.
+  ///
+  /// In en, this message translates to:
+  /// **'* = Evaluative Matrix (Impacts global score)'**
+  String get matrixEvaluativeAsteriskLegend;
 }
 
 class _AppLocalizationsDelegate

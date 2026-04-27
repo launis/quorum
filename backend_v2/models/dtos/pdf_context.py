@@ -46,4 +46,4 @@ class ReportContext(BaseDTO):
     knowledge_items: list[RetrievedFact] = Field(default_factory=list, description="Knowledge Base items.")
 
     # Allow type coercion (e.g. string "1" to integer 1) for LLM friendliness, but keep fields frozen
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

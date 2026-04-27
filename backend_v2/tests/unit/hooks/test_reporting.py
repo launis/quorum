@@ -19,7 +19,7 @@ def test_reporting_hook_fail_fast_on_invalid_inputs(mock_exists: Any) -> None:
         step_id="step_123",
         task_blueprint="bp_123",
         metadata={},
-        inputs=None,  # Missing
+        inputs=None,  # type: ignore[arg-type] # Missing
         global_context_vars={},
     )
     deps = HookDependencies(repository=AsyncMock())
@@ -68,20 +68,19 @@ def test_reporting_hook_success_with_valid_schema(mock_exists: Any) -> None:
         task_blueprint="bp_123",
         metadata={},
         inputs={
-            "dataset_name": "Test dataset",
+            "true_atoms_count": 0,
+            "false_atoms_count": 0,
             "dim1": {
                 "raw_score": 4.5,
                 "normalized_score": 4.5,
-                "level_breakdown": "",
+                "level_breakdown": None,
                 "justification": "Very logical.",
                 "evaluated_atoms": {},
-                "extensions": {}
-            }
+                "extensions": {},
+            },
         },
         global_context_vars={
-            "step_xai": {
-                "executive_summary": "All looks great."
-            },
+            "step_xai": {"executive_summary": "All looks great."},
             "step_judge": {"critical_findings": ["Finding A", "Finding B"]},
         },
     )

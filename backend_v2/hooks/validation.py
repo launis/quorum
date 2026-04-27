@@ -162,7 +162,9 @@ def verify_output_language(state: HookState, deps: HookDependencies) -> HookResu
     try:
         payload = ValidationHookPayloadDTO.model_validate(state.inputs)
         meta = HookStateMetadata.model_validate(state.metadata)
-        _ = I18nStatePayload.model_validate(state.inputs)
+        # Explicit routing to satisfy extra="forbid" Zero-Compromise Pydantic V2 rule
+        i18n_inputs = {"language": state.inputs.get("language")} if "language" in state.inputs else {}
+        _ = I18nStatePayload.model_validate(i18n_inputs)
     except ValidationError as e:
         msg = "Execution state is missing mandatory 'target_locale' metadata or 'language' inputs."
         logger.error("[ValidationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)

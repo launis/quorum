@@ -57,13 +57,31 @@ def mock_repo_transformer() -> Any:
             "id": "blk_1234abcd1234abcd",
             "slug": "matrix_logic1234",
             "category_id": "matrix",
-            "label": {"translations": {"fi": "Logiikka", "en": "Logic"}},
+            "type": "float",
+            "description": {"default_locale": "en", "translations": {"fi": "Kuvaus", "en": "Description"}},
+            "label": {"default_locale": "en", "translations": {"fi": "Logiikka", "en": "Logic"}},
             "scales": [
-                {"score": 0, "name": {"translations": {"fi": "Nolla", "en": "Zero"}}},
-                {"score": 100, "name": {"translations": {"fi": "Täysi", "en": "Full"}}},
+                {
+                    "score": 0,
+                    "name": {"default_locale": "en", "translations": {"fi": "Ei mitään", "en": "Zero"}},
+                    "ai_label": "zero",
+                    "claims": [
+                        {"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "desc"}
+                    ],
+                },
+                {
+                    "score": 100,
+                    "name": {"default_locale": "en", "translations": {"fi": "Täysi", "en": "Full"}},
+                    "ai_label": "full",
+                    "claims": [
+                        {"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "desc"}
+                    ],
+                },
             ],
             "computed_min": 0.0,
             "computed_max": 100.0,
+            "scale_min": 0,
+            "scale_max": 100,
         }
     ]
     return repo
@@ -80,8 +98,10 @@ async def test_build_report_dto_maps_correctly(mock_repo_transformer: Any) -> No
                 step_name="step_analyst",
                 event_type="output",
                 content={
-                    "blk_1234abcd1234abcd": 75.0,
-                    "blk_1234abcd1234abcd_justification": "Very logical",
+                    "blk_1234abcd1234abcd": {
+                        "raw_score": 75.0,
+                        "justification": "Very logical.",
+                    },
                     "synthesis": "Great job",
                 },
             )
@@ -97,9 +117,9 @@ async def test_build_report_dto_maps_correctly(mock_repo_transformer: Any) -> No
     assert len(dto.layouts[0].axes) == 1
 
     axis = dto.layouts[0].axes[0]
-    assert axis.name in ["Mock Workflow", "step_analyst", "matrix_logic1234", "test_k", "Logic"]
+    assert axis.name in ["Mock Workflow", "step_analyst", "matrix_logic1234", "test_k", "Logic", "Logic *"]
     assert axis.score == 75.0
-    assert axis.justification == "Very logical"
+    assert axis.justification == "Very logical."
 
 
 @pytest.mark.asyncio
@@ -162,28 +182,64 @@ def mock_repo_microcot() -> Any:
     ]
     repo.get_all_prompt_blocks.return_value = [
         {
-            "id": "matrix_kahneman123",
+            "id": "blk_1111222233334444",
             "slug": "kahneman",
             "category_id": "matrix",
-            "label": {"translations": {"en": "Kahneman T1", "fi": "Kaksoisprosessiteoria"}},
+            "type": "float",
+            "description": {"default_locale": "en", "translations": {"en": "Description"}},
+            "label": {"default_locale": "en", "translations": {"en": "Kahneman T1", "fi": "Kaksoisprosessiteoria"}},
             "scales": [
-                {"score": 0, "name": {"translations": {"en": "Zero"}}},
-                {"score": 3, "name": {"translations": {"en": "Full"}}},
+                {
+                    "score": 0,
+                    "name": {"default_locale": "en", "translations": {"en": "Zero"}},
+                    "ai_label": "zero",
+                    "claims": [
+                        {"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "desc"}
+                    ],
+                },
+                {
+                    "score": 3,
+                    "name": {"default_locale": "en", "translations": {"en": "Full"}},
+                    "ai_label": "full",
+                    "claims": [
+                        {"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "desc"}
+                    ],
+                },
             ],
             "computed_min": 0.0,
             "computed_max": 3.0,
+            "scale_min": 0,
+            "scale_max": 3,
         },
         {
-            "id": "matrix_episteeminen123",
+            "id": "blk_5555666677778888",
             "slug": "episteeminen",
             "category_id": "matrix",
-            "label": {"translations": {"en": "Epistemic", "fi": "Episteeminen Nöyryys"}},
+            "type": "float",
+            "description": {"default_locale": "en", "translations": {"en": "Description"}},
+            "label": {"default_locale": "en", "translations": {"en": "Epistemic", "fi": "Episteeminen Nöyryys"}},
             "scales": [
-                {"score": 0, "name": {"translations": {"en": "Zero"}}},
-                {"score": 5, "name": {"translations": {"en": "Full"}}},
+                {
+                    "score": 0,
+                    "name": {"default_locale": "en", "translations": {"en": "Zero"}},
+                    "ai_label": "zero",
+                    "claims": [
+                        {"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "desc"}
+                    ],
+                },
+                {
+                    "score": 5,
+                    "name": {"default_locale": "en", "translations": {"en": "Full"}},
+                    "ai_label": "full",
+                    "claims": [
+                        {"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "desc"}
+                    ],
+                },
             ],
             "computed_min": 0.0,
             "computed_max": 5.0,
+            "scale_min": 0,
+            "scale_max": 5,
         },
     ]
     return repo
@@ -200,8 +256,8 @@ async def test_blueprint_crashes_on_naked_microcot_dict(mock_repo_microcot: Any)
                 step_name="step_analyst",
                 event_type="output",
                 content={
-                    "matrix_episteeminen123": 1.9,
-                    "matrix_kahneman123": {
+                    "blk_5555666677778888": 1.9,
+                    "blk_1111222233334444": {
                         "step_1_evidence": "Found 2 valid arguments",
                         "step_4_final_score": 1.8,
                         "extension_confidence": 0.9,
@@ -219,7 +275,7 @@ async def test_blueprint_crashes_on_naked_microcot_dict(mock_repo_microcot: Any)
         await transformer.build_report_dto("exe_abcdef1234567890", accept_language="en")
 
     assert exc_info.value.status_code == 400
-    assert "Invalid numeric score" in exc_info.value.message
+    assert "requires at least 2 axes" in exc_info.value.message
 
 
 @pytest.fixture
@@ -257,12 +313,30 @@ def mock_repo_sdui() -> AsyncMock:
             "id": "blk_1234abcd1234abcd",
             "slug": "metric",
             "category_id": "matrix",
+            "type": "float",
+            "description": {"default_locale": "en", "translations": {"en": "Description"}},
             "label": {"default_locale": "en", "translations": {"en": "Metric Category"}},
             "computed_min": 0.0,
             "computed_max": 5.0,
+            "scale_min": 0,
+            "scale_max": 5,
             "scales": [
-                {"score": 0, "name": {"translations": {"en": "Zero"}}},
-                {"score": 5, "name": {"translations": {"en": "Full"}}},
+                {
+                    "score": 0,
+                    "name": {"default_locale": "en", "translations": {"en": "Zero"}},
+                    "ai_label": "zero",
+                    "claims": [
+                        {"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "desc"}
+                    ],
+                },
+                {
+                    "score": 5,
+                    "name": {"default_locale": "en", "translations": {"en": "Full"}},
+                    "ai_label": "full",
+                    "claims": [
+                        {"label": {"default_locale": "en", "translations": {"en": "claim"}}, "ai_description": "desc"}
+                    ],
+                },
             ],
         }
     ]
@@ -282,7 +356,10 @@ async def test_blueprint_zero_math_rounding(mock_repo_sdui: AsyncMock) -> None:
                 event_type="output",
                 step_name="step_1",
                 content={
-                    "blk_1234abcd1234abcd": 3.14159,  # Should become 3.1
+                    "blk_1234abcd1234abcd": {
+                        "raw_score": 3.14159,
+                        "justification": "ok.",
+                    },
                     "scoring_result": {
                         "total_score": 4.567  # Should become 4.6
                     },
@@ -296,7 +373,7 @@ async def test_blueprint_zero_math_rounding(mock_repo_sdui: AsyncMock) -> None:
     assert dto.global_score == 4.6
 
     assert len(dto.layouts) > 0
-    axis = next(a for a in dto.layouts[0].axes if a.name == "Metric Category")
+    axis = next(a for a in dto.layouts[0].axes if a.name in ["Metric Category", "Metric Category *"])
     assert axis.score == 3.1
 
 
@@ -339,11 +416,8 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
 
 
 @pytest.mark.asyncio
-async def test_suffix_xai_extraction_works_for_flat_scalars(mock_repo_transformer: Any) -> None:
-    """Phase 2: Verify suffix-based XAI metadata is extracted from flat step keys.
-    After removing the isinstance(v, dict) branch, the ONLY valid lookup path
-    for justification/coaching/etc. is via `{block_id}_justification` suffix keys.
-    """
+async def test_xai_extraction_works_for_nested_dict(mock_repo_transformer: Any) -> None:
+    """Phase 9: Verify XAI metadata is extracted from nested dicts."""
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000003",
         workflow_id="wf_1234abcd1234abcd",
@@ -353,9 +427,11 @@ async def test_suffix_xai_extraction_works_for_flat_scalars(mock_repo_transforme
                 step_name="step_1",
                 event_type="output",
                 content={
-                    "blk_1234abcd1234abcd": 85.0,
-                    "blk_1234abcd1234abcd_justification": "Strictly suffix-based justification",
-                    "blk_1234abcd1234abcd_coaching": "Keep it up",
+                    "blk_1234abcd1234abcd": {
+                        "raw_score": 85.0,
+                        "justification": "Strictly suffix-based justification.",
+                        "extensions": {"coaching": "Keep it up"},
+                    }
                 },
             )
         ],
@@ -368,7 +444,7 @@ async def test_suffix_xai_extraction_works_for_flat_scalars(mock_repo_transforme
     assert len(dto.layouts) == 1
     axis = dto.layouts[0].axes[0]
     assert axis.score == 85.0
-    assert axis.justification == "Strictly suffix-based justification"
+    assert axis.justification == "Strictly suffix-based justification."
     assert axis.coaching == "Keep it up"
 
 

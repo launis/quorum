@@ -212,14 +212,16 @@ class PromptBlock(V2CoreBase):
             data.pop("computed_max", None)
         return data
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator] # MyPy does not support decorators on top of property, but Pydantic V2 requires it
+    @property
     def computed_min(self) -> int | None:
         """Dynamically computes the absolute minimum score from the scales array."""
         if not self.scales:
             return None
         return min(s.score for s in self.scales)
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator] # MyPy does not support decorators on top of property, but Pydantic V2 requires it
+    @property
     def computed_max(self) -> int | None:
         """Dynamically computes the absolute maximum score from the scales array."""
         if not self.scales:
@@ -546,13 +548,27 @@ class ExpectedInput(V2CoreBase):
         return self
 
 
-class ReportAxisDTO(V2CoreBase):
-    name: str = Field(description="Axis name, e.g. Y-Akseli")
+class MatrixScorecardRowDTO(V2CoreBase):
+    """Represents a single evaluated matrix row in the scorecard and plot axes."""
+
+    block_id: str = Field(..., description="The opaque Stripe ID of the prompt block.")
+    name: str = Field(..., description="Pre-localized name for PDF layouts and static charts.")
+    label_fi: str = Field(..., description="Finnish human-readable label.")
+    label_en: str = Field(..., description="English human-readable label.")
     description: str | None = Field(
         default=None, description="Detailed instructions or prompt context behind this axis."
     )
-    score: float | None = None
-    justification: str | None = None
+
+    score: float = Field(..., description="Raw scaled score.")
+    scale_min: float | None = Field(default=None, description="Minimum possible score.")
+    scale_max: float | None = Field(default=None, description="Maximum possible score.")
+    normalized_score: float | None = Field(default=None, description="Normalized score (0-100) if evaluative.")
+
+    true_atoms: int | None = Field(default=None, description="Global hits found.")
+    total_atoms: int | None = Field(default=None, description="Total atoms available to evaluate.")
+
+    justification: str = Field(..., description="The one-sentence justification.")
+
     cited_source_id: str | None = None
     cited_text_quote: str | None = None
     cited_web_citation: str | None = None
@@ -563,14 +579,19 @@ class ReportAxisDTO(V2CoreBase):
     falsification: str | None = None
     missing_context: str | None = None
     risk_flag: bool | None = None
-    remediation_steps: list[str] | None = None
+    remediation_steps: str | None = None
     emotional_sentiment: str | None = None
     theory_link: str | None = None
 
-    scale_min: float | None = None
-    scale_max: float | None = None
-    scale_labels: dict[str, str] = Field(default_factory=dict)
-    level_breakdown: dict[str, str] | None = None
+    level_breakdown: dict[str, str] | None = Field(
+        default=None,
+        description="Epic 24 Breakdowns: DINA hits vs total per scale floor e.g. {'1.0': '5/5'}",
+    )
+
+    level_names: dict[str, str] | None = Field(
+        default=None,
+        description="Map of level keys to their human readable names e.g. {'1': 'Heikko'}",
+    )
 
     ui_plot_ratio: float | None = Field(
         default=None, description="Absolute normalized plot plot ratio [0.0 - 1.0] for mathless Flutter plotting"
@@ -578,6 +599,8 @@ class ReportAxisDTO(V2CoreBase):
     ui_boundary_labels: dict[str, str] = Field(
         default_factory=dict, description="Pre-computed labels for extremes, e.g. {'0.0': 'Low', '1.0': 'High'}"
     )
+
+    is_evaluative: bool = Field(..., description="Whether this block contributes to global average.")
 
 
 class SynthesisConfigDTO(V2CoreBase):
@@ -606,7 +629,7 @@ class ReportLayoutDTO(V2CoreBase):
     preset_view: Literal["1d_metrics", "2d_compare", "3d_complex", "3d_matrix", "default", "text_only"]
     title: I18nText | None = Field(default=None)
     description: I18nText | None = Field(default=None)
-    axes: list[ReportAxisDTO] = Field(default_factory=list)
+    axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
     text_delivery_mode: Literal["full", "titles_only", "none"] = Field(
         default="full", description="Granularity of text output for this layout."
     )
@@ -638,6 +661,12 @@ class ReportDataDTO(V2CoreBase):
     )
     has_warning: bool = Field(
         default=False, description="Flag indicating if the report generation had non-fatal warnings."
+    )
+    evaluative_matrices: list[MatrixScorecardRowDTO] | None = Field(
+        default=None, description="Matrices that impact the final grade."
+    )
+    informational_matrices: list[MatrixScorecardRowDTO] | None = Field(
+        default=None, description="Matrices strictly for informational/tracking purposes."
     )
     synthesized_markdown: str | None = Field(default=None, description="Global synthesis markdown text")
     visible_metadata: list[str] = Field(

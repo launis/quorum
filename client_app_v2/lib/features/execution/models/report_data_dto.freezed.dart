@@ -13,348 +13,9 @@ part of 'report_data_dto.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
-mixin _$ReportAxisDTO {
-
- String get name; String? get description; double? get score; String? get justification;@JsonKey(name: 'cited_source_id') String? get citedSourceId;@JsonKey(name: 'cited_text_quote') String? get citedTextQuote;@JsonKey(name: 'cited_web_citation') String? get citedWebCitation;// Epic 6: XAI Output Extensions
- String? get coaching; double? get confidence; String? get falsification;@JsonKey(name: 'missing_context') String? get missingContext;@JsonKey(name: 'risk_flag') bool? get riskFlag;@JsonKey(name: 'remediation_steps') List<String>? get remediationSteps;@JsonKey(name: 'emotional_sentiment') String? get emotionalSentiment;@JsonKey(name: 'theory_link') String? get theoryLink;@JsonKey(name: 'scale_min') double get scaleMin;@JsonKey(name: 'scale_max') double get scaleMax;@JsonKey(name: 'scale_labels') Map<String, String> get scaleLabels;@JsonKey(name: 'ui_plot_ratio') double? get uiPlotRatio;@JsonKey(name: 'ui_boundary_labels') Map<String, String> get uiBoundaryLabels;@JsonKey(name: 'level_breakdown') Map<String, String>? get levelBreakdown;
-/// Create a copy of ReportAxisDTO
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$ReportAxisDTOCopyWith<ReportAxisDTO> get copyWith => _$ReportAxisDTOCopyWithImpl<ReportAxisDTO>(this as ReportAxisDTO, _$identity);
-
-  /// Serializes this ReportAxisDTO to a JSON map.
-  Map<String, dynamic> toJson();
-
-
-
-
-@override
-String toString() {
-  return 'ReportAxisDTO(name: $name, description: $description, score: $score, justification: $justification, citedSourceId: $citedSourceId, citedTextQuote: $citedTextQuote, citedWebCitation: $citedWebCitation, coaching: $coaching, confidence: $confidence, falsification: $falsification, missingContext: $missingContext, riskFlag: $riskFlag, remediationSteps: $remediationSteps, emotionalSentiment: $emotionalSentiment, theoryLink: $theoryLink, scaleMin: $scaleMin, scaleMax: $scaleMax, scaleLabels: $scaleLabels, uiPlotRatio: $uiPlotRatio, uiBoundaryLabels: $uiBoundaryLabels, levelBreakdown: $levelBreakdown)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $ReportAxisDTOCopyWith<$Res>  {
-  factory $ReportAxisDTOCopyWith(ReportAxisDTO value, $Res Function(ReportAxisDTO) _then) = _$ReportAxisDTOCopyWithImpl;
-@useResult
-$Res call({
- String name, String? description, double? score, String? justification,@JsonKey(name: 'cited_source_id') String? citedSourceId,@JsonKey(name: 'cited_text_quote') String? citedTextQuote,@JsonKey(name: 'cited_web_citation') String? citedWebCitation, String? coaching, double? confidence, String? falsification,@JsonKey(name: 'missing_context') String? missingContext,@JsonKey(name: 'risk_flag') bool? riskFlag,@JsonKey(name: 'remediation_steps') List<String>? remediationSteps,@JsonKey(name: 'emotional_sentiment') String? emotionalSentiment,@JsonKey(name: 'theory_link') String? theoryLink,@JsonKey(name: 'scale_min') double scaleMin,@JsonKey(name: 'scale_max') double scaleMax,@JsonKey(name: 'scale_labels') Map<String, String> scaleLabels,@JsonKey(name: 'ui_plot_ratio') double? uiPlotRatio,@JsonKey(name: 'ui_boundary_labels') Map<String, String> uiBoundaryLabels,@JsonKey(name: 'level_breakdown') Map<String, String>? levelBreakdown
-});
-
-
-
-
-}
-/// @nodoc
-class _$ReportAxisDTOCopyWithImpl<$Res>
-    implements $ReportAxisDTOCopyWith<$Res> {
-  _$ReportAxisDTOCopyWithImpl(this._self, this._then);
-
-  final ReportAxisDTO _self;
-  final $Res Function(ReportAxisDTO) _then;
-
-/// Create a copy of ReportAxisDTO
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? description = freezed,Object? score = freezed,Object? justification = freezed,Object? citedSourceId = freezed,Object? citedTextQuote = freezed,Object? citedWebCitation = freezed,Object? coaching = freezed,Object? confidence = freezed,Object? falsification = freezed,Object? missingContext = freezed,Object? riskFlag = freezed,Object? remediationSteps = freezed,Object? emotionalSentiment = freezed,Object? theoryLink = freezed,Object? scaleMin = null,Object? scaleMax = null,Object? scaleLabels = null,Object? uiPlotRatio = freezed,Object? uiBoundaryLabels = null,Object? levelBreakdown = freezed,}) {
-  return _then(_self.copyWith(
-name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as String?,score: freezed == score ? _self.score : score // ignore: cast_nullable_to_non_nullable
-as double?,justification: freezed == justification ? _self.justification : justification // ignore: cast_nullable_to_non_nullable
-as String?,citedSourceId: freezed == citedSourceId ? _self.citedSourceId : citedSourceId // ignore: cast_nullable_to_non_nullable
-as String?,citedTextQuote: freezed == citedTextQuote ? _self.citedTextQuote : citedTextQuote // ignore: cast_nullable_to_non_nullable
-as String?,citedWebCitation: freezed == citedWebCitation ? _self.citedWebCitation : citedWebCitation // ignore: cast_nullable_to_non_nullable
-as String?,coaching: freezed == coaching ? _self.coaching : coaching // ignore: cast_nullable_to_non_nullable
-as String?,confidence: freezed == confidence ? _self.confidence : confidence // ignore: cast_nullable_to_non_nullable
-as double?,falsification: freezed == falsification ? _self.falsification : falsification // ignore: cast_nullable_to_non_nullable
-as String?,missingContext: freezed == missingContext ? _self.missingContext : missingContext // ignore: cast_nullable_to_non_nullable
-as String?,riskFlag: freezed == riskFlag ? _self.riskFlag : riskFlag // ignore: cast_nullable_to_non_nullable
-as bool?,remediationSteps: freezed == remediationSteps ? _self.remediationSteps : remediationSteps // ignore: cast_nullable_to_non_nullable
-as List<String>?,emotionalSentiment: freezed == emotionalSentiment ? _self.emotionalSentiment : emotionalSentiment // ignore: cast_nullable_to_non_nullable
-as String?,theoryLink: freezed == theoryLink ? _self.theoryLink : theoryLink // ignore: cast_nullable_to_non_nullable
-as String?,scaleMin: null == scaleMin ? _self.scaleMin : scaleMin // ignore: cast_nullable_to_non_nullable
-as double,scaleMax: null == scaleMax ? _self.scaleMax : scaleMax // ignore: cast_nullable_to_non_nullable
-as double,scaleLabels: null == scaleLabels ? _self.scaleLabels : scaleLabels // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,uiPlotRatio: freezed == uiPlotRatio ? _self.uiPlotRatio : uiPlotRatio // ignore: cast_nullable_to_non_nullable
-as double?,uiBoundaryLabels: null == uiBoundaryLabels ? _self.uiBoundaryLabels : uiBoundaryLabels // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,levelBreakdown: freezed == levelBreakdown ? _self.levelBreakdown : levelBreakdown // ignore: cast_nullable_to_non_nullable
-as Map<String, String>?,
-  ));
-}
-
-}
-
-
-/// Adds pattern-matching-related methods to [ReportAxisDTO].
-extension ReportAxisDTOPatterns on ReportAxisDTO {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ReportAxisDTO value)?  $default,{required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _ReportAxisDTO() when $default != null:
-return $default(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ReportAxisDTO value)  $default,){
-final _that = this;
-switch (_that) {
-case _ReportAxisDTO():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ReportAxisDTO value)?  $default,){
-final _that = this;
-switch (_that) {
-case _ReportAxisDTO() when $default != null:
-return $default(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  String? description,  double? score,  String? justification, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  List<String>? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'scale_min')  double scaleMin, @JsonKey(name: 'scale_max')  double scaleMax, @JsonKey(name: 'scale_labels')  Map<String, String> scaleLabels, @JsonKey(name: 'ui_plot_ratio')  double? uiPlotRatio, @JsonKey(name: 'ui_boundary_labels')  Map<String, String> uiBoundaryLabels, @JsonKey(name: 'level_breakdown')  Map<String, String>? levelBreakdown)?  $default,{required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _ReportAxisDTO() when $default != null:
-return $default(_that.name,_that.description,_that.score,_that.justification,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.scaleMin,_that.scaleMax,_that.scaleLabels,_that.uiPlotRatio,_that.uiBoundaryLabels,_that.levelBreakdown);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  String? description,  double? score,  String? justification, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  List<String>? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'scale_min')  double scaleMin, @JsonKey(name: 'scale_max')  double scaleMax, @JsonKey(name: 'scale_labels')  Map<String, String> scaleLabels, @JsonKey(name: 'ui_plot_ratio')  double? uiPlotRatio, @JsonKey(name: 'ui_boundary_labels')  Map<String, String> uiBoundaryLabels, @JsonKey(name: 'level_breakdown')  Map<String, String>? levelBreakdown)  $default,) {final _that = this;
-switch (_that) {
-case _ReportAxisDTO():
-return $default(_that.name,_that.description,_that.score,_that.justification,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.scaleMin,_that.scaleMax,_that.scaleLabels,_that.uiPlotRatio,_that.uiBoundaryLabels,_that.levelBreakdown);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  String? description,  double? score,  String? justification, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  List<String>? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'scale_min')  double scaleMin, @JsonKey(name: 'scale_max')  double scaleMax, @JsonKey(name: 'scale_labels')  Map<String, String> scaleLabels, @JsonKey(name: 'ui_plot_ratio')  double? uiPlotRatio, @JsonKey(name: 'ui_boundary_labels')  Map<String, String> uiBoundaryLabels, @JsonKey(name: 'level_breakdown')  Map<String, String>? levelBreakdown)?  $default,) {final _that = this;
-switch (_that) {
-case _ReportAxisDTO() when $default != null:
-return $default(_that.name,_that.description,_that.score,_that.justification,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.scaleMin,_that.scaleMax,_that.scaleLabels,_that.uiPlotRatio,_that.uiBoundaryLabels,_that.levelBreakdown);case _:
-  return null;
-
-}
-}
-
-}
-
-/// @nodoc
-
-@JsonSerializable(disallowUnrecognizedKeys: true)
-class _ReportAxisDTO implements ReportAxisDTO {
-  const _ReportAxisDTO({required this.name, this.description, this.score, this.justification, @JsonKey(name: 'cited_source_id') this.citedSourceId, @JsonKey(name: 'cited_text_quote') this.citedTextQuote, @JsonKey(name: 'cited_web_citation') this.citedWebCitation, this.coaching, this.confidence, this.falsification, @JsonKey(name: 'missing_context') this.missingContext, @JsonKey(name: 'risk_flag') this.riskFlag, @JsonKey(name: 'remediation_steps') final  List<String>? remediationSteps, @JsonKey(name: 'emotional_sentiment') this.emotionalSentiment, @JsonKey(name: 'theory_link') this.theoryLink, @JsonKey(name: 'scale_min') this.scaleMin = 0.0, @JsonKey(name: 'scale_max') this.scaleMax = 6.0, @JsonKey(name: 'scale_labels') final  Map<String, String> scaleLabels = const {}, @JsonKey(name: 'ui_plot_ratio') this.uiPlotRatio, @JsonKey(name: 'ui_boundary_labels') final  Map<String, String> uiBoundaryLabels = const {}, @JsonKey(name: 'level_breakdown') final  Map<String, String>? levelBreakdown}): _remediationSteps = remediationSteps,_scaleLabels = scaleLabels,_uiBoundaryLabels = uiBoundaryLabels,_levelBreakdown = levelBreakdown;
-  factory _ReportAxisDTO.fromJson(Map<String, dynamic> json) => _$ReportAxisDTOFromJson(json);
-
-@override final  String name;
-@override final  String? description;
-@override final  double? score;
-@override final  String? justification;
-@override@JsonKey(name: 'cited_source_id') final  String? citedSourceId;
-@override@JsonKey(name: 'cited_text_quote') final  String? citedTextQuote;
-@override@JsonKey(name: 'cited_web_citation') final  String? citedWebCitation;
-// Epic 6: XAI Output Extensions
-@override final  String? coaching;
-@override final  double? confidence;
-@override final  String? falsification;
-@override@JsonKey(name: 'missing_context') final  String? missingContext;
-@override@JsonKey(name: 'risk_flag') final  bool? riskFlag;
- final  List<String>? _remediationSteps;
-@override@JsonKey(name: 'remediation_steps') List<String>? get remediationSteps {
-  final value = _remediationSteps;
-  if (value == null) return null;
-  if (_remediationSteps is EqualUnmodifiableListView) return _remediationSteps;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(value);
-}
-
-@override@JsonKey(name: 'emotional_sentiment') final  String? emotionalSentiment;
-@override@JsonKey(name: 'theory_link') final  String? theoryLink;
-@override@JsonKey(name: 'scale_min') final  double scaleMin;
-@override@JsonKey(name: 'scale_max') final  double scaleMax;
- final  Map<String, String> _scaleLabels;
-@override@JsonKey(name: 'scale_labels') Map<String, String> get scaleLabels {
-  if (_scaleLabels is EqualUnmodifiableMapView) return _scaleLabels;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(_scaleLabels);
-}
-
-@override@JsonKey(name: 'ui_plot_ratio') final  double? uiPlotRatio;
- final  Map<String, String> _uiBoundaryLabels;
-@override@JsonKey(name: 'ui_boundary_labels') Map<String, String> get uiBoundaryLabels {
-  if (_uiBoundaryLabels is EqualUnmodifiableMapView) return _uiBoundaryLabels;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(_uiBoundaryLabels);
-}
-
- final  Map<String, String>? _levelBreakdown;
-@override@JsonKey(name: 'level_breakdown') Map<String, String>? get levelBreakdown {
-  final value = _levelBreakdown;
-  if (value == null) return null;
-  if (_levelBreakdown is EqualUnmodifiableMapView) return _levelBreakdown;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(value);
-}
-
-
-/// Create a copy of ReportAxisDTO
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-_$ReportAxisDTOCopyWith<_ReportAxisDTO> get copyWith => __$ReportAxisDTOCopyWithImpl<_ReportAxisDTO>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$ReportAxisDTOToJson(this, );
-}
-
-
-
-@override
-String toString() {
-  return 'ReportAxisDTO(name: $name, description: $description, score: $score, justification: $justification, citedSourceId: $citedSourceId, citedTextQuote: $citedTextQuote, citedWebCitation: $citedWebCitation, coaching: $coaching, confidence: $confidence, falsification: $falsification, missingContext: $missingContext, riskFlag: $riskFlag, remediationSteps: $remediationSteps, emotionalSentiment: $emotionalSentiment, theoryLink: $theoryLink, scaleMin: $scaleMin, scaleMax: $scaleMax, scaleLabels: $scaleLabels, uiPlotRatio: $uiPlotRatio, uiBoundaryLabels: $uiBoundaryLabels, levelBreakdown: $levelBreakdown)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class _$ReportAxisDTOCopyWith<$Res> implements $ReportAxisDTOCopyWith<$Res> {
-  factory _$ReportAxisDTOCopyWith(_ReportAxisDTO value, $Res Function(_ReportAxisDTO) _then) = __$ReportAxisDTOCopyWithImpl;
-@override @useResult
-$Res call({
- String name, String? description, double? score, String? justification,@JsonKey(name: 'cited_source_id') String? citedSourceId,@JsonKey(name: 'cited_text_quote') String? citedTextQuote,@JsonKey(name: 'cited_web_citation') String? citedWebCitation, String? coaching, double? confidence, String? falsification,@JsonKey(name: 'missing_context') String? missingContext,@JsonKey(name: 'risk_flag') bool? riskFlag,@JsonKey(name: 'remediation_steps') List<String>? remediationSteps,@JsonKey(name: 'emotional_sentiment') String? emotionalSentiment,@JsonKey(name: 'theory_link') String? theoryLink,@JsonKey(name: 'scale_min') double scaleMin,@JsonKey(name: 'scale_max') double scaleMax,@JsonKey(name: 'scale_labels') Map<String, String> scaleLabels,@JsonKey(name: 'ui_plot_ratio') double? uiPlotRatio,@JsonKey(name: 'ui_boundary_labels') Map<String, String> uiBoundaryLabels,@JsonKey(name: 'level_breakdown') Map<String, String>? levelBreakdown
-});
-
-
-
-
-}
-/// @nodoc
-class __$ReportAxisDTOCopyWithImpl<$Res>
-    implements _$ReportAxisDTOCopyWith<$Res> {
-  __$ReportAxisDTOCopyWithImpl(this._self, this._then);
-
-  final _ReportAxisDTO _self;
-  final $Res Function(_ReportAxisDTO) _then;
-
-/// Create a copy of ReportAxisDTO
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? description = freezed,Object? score = freezed,Object? justification = freezed,Object? citedSourceId = freezed,Object? citedTextQuote = freezed,Object? citedWebCitation = freezed,Object? coaching = freezed,Object? confidence = freezed,Object? falsification = freezed,Object? missingContext = freezed,Object? riskFlag = freezed,Object? remediationSteps = freezed,Object? emotionalSentiment = freezed,Object? theoryLink = freezed,Object? scaleMin = null,Object? scaleMax = null,Object? scaleLabels = null,Object? uiPlotRatio = freezed,Object? uiBoundaryLabels = null,Object? levelBreakdown = freezed,}) {
-  return _then(_ReportAxisDTO(
-name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as String?,score: freezed == score ? _self.score : score // ignore: cast_nullable_to_non_nullable
-as double?,justification: freezed == justification ? _self.justification : justification // ignore: cast_nullable_to_non_nullable
-as String?,citedSourceId: freezed == citedSourceId ? _self.citedSourceId : citedSourceId // ignore: cast_nullable_to_non_nullable
-as String?,citedTextQuote: freezed == citedTextQuote ? _self.citedTextQuote : citedTextQuote // ignore: cast_nullable_to_non_nullable
-as String?,citedWebCitation: freezed == citedWebCitation ? _self.citedWebCitation : citedWebCitation // ignore: cast_nullable_to_non_nullable
-as String?,coaching: freezed == coaching ? _self.coaching : coaching // ignore: cast_nullable_to_non_nullable
-as String?,confidence: freezed == confidence ? _self.confidence : confidence // ignore: cast_nullable_to_non_nullable
-as double?,falsification: freezed == falsification ? _self.falsification : falsification // ignore: cast_nullable_to_non_nullable
-as String?,missingContext: freezed == missingContext ? _self.missingContext : missingContext // ignore: cast_nullable_to_non_nullable
-as String?,riskFlag: freezed == riskFlag ? _self.riskFlag : riskFlag // ignore: cast_nullable_to_non_nullable
-as bool?,remediationSteps: freezed == remediationSteps ? _self._remediationSteps : remediationSteps // ignore: cast_nullable_to_non_nullable
-as List<String>?,emotionalSentiment: freezed == emotionalSentiment ? _self.emotionalSentiment : emotionalSentiment // ignore: cast_nullable_to_non_nullable
-as String?,theoryLink: freezed == theoryLink ? _self.theoryLink : theoryLink // ignore: cast_nullable_to_non_nullable
-as String?,scaleMin: null == scaleMin ? _self.scaleMin : scaleMin // ignore: cast_nullable_to_non_nullable
-as double,scaleMax: null == scaleMax ? _self.scaleMax : scaleMax // ignore: cast_nullable_to_non_nullable
-as double,scaleLabels: null == scaleLabels ? _self._scaleLabels : scaleLabels // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,uiPlotRatio: freezed == uiPlotRatio ? _self.uiPlotRatio : uiPlotRatio // ignore: cast_nullable_to_non_nullable
-as double?,uiBoundaryLabels: null == uiBoundaryLabels ? _self._uiBoundaryLabels : uiBoundaryLabels // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,levelBreakdown: freezed == levelBreakdown ? _self._levelBreakdown : levelBreakdown // ignore: cast_nullable_to_non_nullable
-as Map<String, String>?,
-  ));
-}
-
-
-}
-
-
-/// @nodoc
 mixin _$ReportLayoutDTO {
 
-@JsonKey(name: 'preset_view') PresetView get presetView;@JsonKey(name: 'matrix_type') String? get matrixType; I18nText? get title; I18nText? get description; List<ReportAxisDTO> get axes;@JsonKey(name: 'text_delivery_mode') String get textDeliveryMode; Map<String, dynamic>? get synthesis;@JsonKey(name: 'synthesis_md') String? get synthesisMd;
+@JsonKey(name: 'preset_view') PresetView get presetView;@JsonKey(name: 'matrix_type') String? get matrixType; I18nText? get title; I18nText? get description; List<MatrixScorecardRowDto> get axes;@JsonKey(name: 'text_delivery_mode') String get textDeliveryMode; Map<String, dynamic>? get synthesis;@JsonKey(name: 'synthesis_md') String? get synthesisMd;
 /// Create a copy of ReportLayoutDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -380,7 +41,7 @@ abstract mixin class $ReportLayoutDTOCopyWith<$Res>  {
   factory $ReportLayoutDTOCopyWith(ReportLayoutDTO value, $Res Function(ReportLayoutDTO) _then) = _$ReportLayoutDTOCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'preset_view') PresetView presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<ReportAxisDTO> axes,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, Map<String, dynamic>? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
+@JsonKey(name: 'preset_view') PresetView presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, Map<String, dynamic>? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
 });
 
 
@@ -404,7 +65,7 @@ as PresetView,matrixType: freezed == matrixType ? _self.matrixType : matrixType 
 as String?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,axes: null == axes ? _self.axes : axes // ignore: cast_nullable_to_non_nullable
-as List<ReportAxisDTO>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
+as List<MatrixScorecardRowDto>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,synthesisMd: freezed == synthesisMd ? _self.synthesisMd : synthesisMd // ignore: cast_nullable_to_non_nullable
 as String?,
@@ -516,7 +177,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  PresetView presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  PresetView presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportLayoutDTO() when $default != null:
 return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
@@ -537,7 +198,7 @@ return $default(_that.presetView,_that.matrixType,_that.title,_that.description,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  PresetView presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  PresetView presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)  $default,) {final _that = this;
 switch (_that) {
 case _ReportLayoutDTO():
 return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
@@ -557,7 +218,7 @@ return $default(_that.presetView,_that.matrixType,_that.title,_that.description,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view')  PresetView presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<ReportAxisDTO> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view')  PresetView presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportLayoutDTO() when $default != null:
 return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
@@ -572,15 +233,15 @@ return $default(_that.presetView,_that.matrixType,_that.title,_that.description,
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ReportLayoutDTO implements ReportLayoutDTO {
-  const _ReportLayoutDTO({@JsonKey(name: 'preset_view') required this.presetView, @JsonKey(name: 'matrix_type') this.matrixType, this.title, this.description, final  List<ReportAxisDTO> axes = const [], @JsonKey(name: 'text_delivery_mode') required this.textDeliveryMode, final  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md') this.synthesisMd}): _axes = axes,_synthesis = synthesis;
+  const _ReportLayoutDTO({@JsonKey(name: 'preset_view') required this.presetView, @JsonKey(name: 'matrix_type') this.matrixType, this.title, this.description, final  List<MatrixScorecardRowDto> axes = const [], @JsonKey(name: 'text_delivery_mode') required this.textDeliveryMode, final  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md') this.synthesisMd}): _axes = axes,_synthesis = synthesis;
   factory _ReportLayoutDTO.fromJson(Map<String, dynamic> json) => _$ReportLayoutDTOFromJson(json);
 
 @override@JsonKey(name: 'preset_view') final  PresetView presetView;
 @override@JsonKey(name: 'matrix_type') final  String? matrixType;
 @override final  I18nText? title;
 @override final  I18nText? description;
- final  List<ReportAxisDTO> _axes;
-@override@JsonKey() List<ReportAxisDTO> get axes {
+ final  List<MatrixScorecardRowDto> _axes;
+@override@JsonKey() List<MatrixScorecardRowDto> get axes {
   if (_axes is EqualUnmodifiableListView) return _axes;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_axes);
@@ -624,7 +285,7 @@ abstract mixin class _$ReportLayoutDTOCopyWith<$Res> implements $ReportLayoutDTO
   factory _$ReportLayoutDTOCopyWith(_ReportLayoutDTO value, $Res Function(_ReportLayoutDTO) _then) = __$ReportLayoutDTOCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'preset_view') PresetView presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<ReportAxisDTO> axes,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, Map<String, dynamic>? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
+@JsonKey(name: 'preset_view') PresetView presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, Map<String, dynamic>? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
 });
 
 
@@ -648,7 +309,7 @@ as PresetView,matrixType: freezed == matrixType ? _self.matrixType : matrixType 
 as String?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,axes: null == axes ? _self._axes : axes // ignore: cast_nullable_to_non_nullable
-as List<ReportAxisDTO>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
+as List<MatrixScorecardRowDto>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self._synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,synthesisMd: freezed == synthesisMd ? _self.synthesisMd : synthesisMd // ignore: cast_nullable_to_non_nullable
 as String?,
@@ -962,7 +623,7 @@ as int,
 /// @nodoc
 mixin _$ReportDataDTO {
 
-@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'profile_id') String get profileId;@JsonKey(name: 'profile_name') I18nText? get profileName;@JsonKey(name: 'available_profiles') Map<String, I18nText> get availableProfiles;@JsonKey(name: 'global_score') double? get globalScore; List<ReportLayoutDTO> get layouts;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'org_name') String? get orgName;@JsonKey(name: 'cost_estimate') double? get costEstimate;@JsonKey(name: 'total_tokens') int? get totalTokens;@JsonKey(name: 'prompt_tokens') int? get promptTokens;@JsonKey(name: 'completion_tokens') int? get completionTokens;@JsonKey(name: 'reasoning_tokens') int? get reasoningTokens;@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> get mcpToolAudit;@JsonKey(name: 'has_warning') bool get hasWarning;@JsonKey(name: 'synthesized_markdown') String? get synthesizedMarkdown;@JsonKey(name: 'visible_metadata') List<String> get visibleMetadata;@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>> get groupedExtensions;@JsonKey(name: 'penalties_applied') List<String> get penaltiesApplied;
+@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'profile_id') String get profileId;@JsonKey(name: 'profile_name') I18nText? get profileName;@JsonKey(name: 'available_profiles') Map<String, I18nText> get availableProfiles;@JsonKey(name: 'global_score') double? get globalScore; List<ReportLayoutDTO> get layouts;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'org_name') String? get orgName;@JsonKey(name: 'cost_estimate') double? get costEstimate;@JsonKey(name: 'total_tokens') int? get totalTokens;@JsonKey(name: 'prompt_tokens') int? get promptTokens;@JsonKey(name: 'completion_tokens') int? get completionTokens;@JsonKey(name: 'reasoning_tokens') int? get reasoningTokens;@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> get mcpToolAudit;@JsonKey(name: 'has_warning') bool get hasWarning;@JsonKey(name: 'synthesized_markdown') String? get synthesizedMarkdown;@JsonKey(name: 'visible_metadata') List<String> get visibleMetadata;@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>> get groupedExtensions;@JsonKey(name: 'penalties_applied') List<String> get penaltiesApplied;@JsonKey(name: 'evaluative_matrices') List<MatrixScorecardRowDto> get evaluativeMatrices;@JsonKey(name: 'informational_matrices') List<MatrixScorecardRowDto> get informationalMatrices;
 /// Create a copy of ReportDataDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -977,7 +638,7 @@ $ReportDataDTOCopyWith<ReportDataDTO> get copyWith => _$ReportDataDTOCopyWithImp
 
 @override
 String toString() {
-  return 'ReportDataDTO(workflowId: $workflowId, profileId: $profileId, profileName: $profileName, availableProfiles: $availableProfiles, globalScore: $globalScore, layouts: $layouts, createdAt: $createdAt, orgName: $orgName, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit, hasWarning: $hasWarning, synthesizedMarkdown: $synthesizedMarkdown, visibleMetadata: $visibleMetadata, groupedExtensions: $groupedExtensions, penaltiesApplied: $penaltiesApplied)';
+  return 'ReportDataDTO(workflowId: $workflowId, profileId: $profileId, profileName: $profileName, availableProfiles: $availableProfiles, globalScore: $globalScore, layouts: $layouts, createdAt: $createdAt, orgName: $orgName, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit, hasWarning: $hasWarning, synthesizedMarkdown: $synthesizedMarkdown, visibleMetadata: $visibleMetadata, groupedExtensions: $groupedExtensions, penaltiesApplied: $penaltiesApplied, evaluativeMatrices: $evaluativeMatrices, informationalMatrices: $informationalMatrices)';
 }
 
 
@@ -988,7 +649,7 @@ abstract mixin class $ReportDataDTOCopyWith<$Res>  {
   factory $ReportDataDTOCopyWith(ReportDataDTO value, $Res Function(ReportDataDTO) _then) = _$ReportDataDTOCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore, List<ReportLayoutDTO> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> mcpToolAudit,@JsonKey(name: 'has_warning') bool hasWarning,@JsonKey(name: 'synthesized_markdown') String? synthesizedMarkdown,@JsonKey(name: 'visible_metadata') List<String> visibleMetadata,@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>> groupedExtensions,@JsonKey(name: 'penalties_applied') List<String> penaltiesApplied
+@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore, List<ReportLayoutDTO> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> mcpToolAudit,@JsonKey(name: 'has_warning') bool hasWarning,@JsonKey(name: 'synthesized_markdown') String? synthesizedMarkdown,@JsonKey(name: 'visible_metadata') List<String> visibleMetadata,@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>> groupedExtensions,@JsonKey(name: 'penalties_applied') List<String> penaltiesApplied,@JsonKey(name: 'evaluative_matrices') List<MatrixScorecardRowDto> evaluativeMatrices,@JsonKey(name: 'informational_matrices') List<MatrixScorecardRowDto> informationalMatrices
 });
 
 
@@ -1005,7 +666,7 @@ class _$ReportDataDTOCopyWithImpl<$Res>
 
 /// Create a copy of ReportDataDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? workflowId = null,Object? profileId = null,Object? profileName = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? layouts = null,Object? createdAt = freezed,Object? orgName = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,Object? hasWarning = null,Object? synthesizedMarkdown = freezed,Object? visibleMetadata = null,Object? groupedExtensions = null,Object? penaltiesApplied = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? workflowId = null,Object? profileId = null,Object? profileName = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? layouts = null,Object? createdAt = freezed,Object? orgName = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,Object? hasWarning = null,Object? synthesizedMarkdown = freezed,Object? visibleMetadata = null,Object? groupedExtensions = null,Object? penaltiesApplied = null,Object? evaluativeMatrices = null,Object? informationalMatrices = null,}) {
   return _then(_self.copyWith(
 workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,profileId: null == profileId ? _self.profileId : profileId // ignore: cast_nullable_to_non_nullable
@@ -1026,7 +687,9 @@ as bool,synthesizedMarkdown: freezed == synthesizedMarkdown ? _self.synthesizedM
 as String?,visibleMetadata: null == visibleMetadata ? _self.visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
 as List<String>,groupedExtensions: null == groupedExtensions ? _self.groupedExtensions : groupedExtensions // ignore: cast_nullable_to_non_nullable
 as Map<String, List<dynamic>>,penaltiesApplied: null == penaltiesApplied ? _self.penaltiesApplied : penaltiesApplied // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<String>,evaluativeMatrices: null == evaluativeMatrices ? _self.evaluativeMatrices : evaluativeMatrices // ignore: cast_nullable_to_non_nullable
+as List<MatrixScorecardRowDto>,informationalMatrices: null == informationalMatrices ? _self.informationalMatrices : informationalMatrices // ignore: cast_nullable_to_non_nullable
+as List<MatrixScorecardRowDto>,
   ));
 }
 /// Create a copy of ReportDataDTO
@@ -1123,10 +786,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>> groupedExtensions, @JsonKey(name: 'penalties_applied')  List<String> penaltiesApplied)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>> groupedExtensions, @JsonKey(name: 'penalties_applied')  List<String> penaltiesApplied, @JsonKey(name: 'evaluative_matrices')  List<MatrixScorecardRowDto> evaluativeMatrices, @JsonKey(name: 'informational_matrices')  List<MatrixScorecardRowDto> informationalMatrices)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportDataDTO() when $default != null:
-return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata,_that.groupedExtensions,_that.penaltiesApplied);case _:
+return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata,_that.groupedExtensions,_that.penaltiesApplied,_that.evaluativeMatrices,_that.informationalMatrices);case _:
   return orElse();
 
 }
@@ -1144,10 +807,10 @@ return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availab
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>> groupedExtensions, @JsonKey(name: 'penalties_applied')  List<String> penaltiesApplied)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>> groupedExtensions, @JsonKey(name: 'penalties_applied')  List<String> penaltiesApplied, @JsonKey(name: 'evaluative_matrices')  List<MatrixScorecardRowDto> evaluativeMatrices, @JsonKey(name: 'informational_matrices')  List<MatrixScorecardRowDto> informationalMatrices)  $default,) {final _that = this;
 switch (_that) {
 case _ReportDataDTO():
-return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata,_that.groupedExtensions,_that.penaltiesApplied);case _:
+return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata,_that.groupedExtensions,_that.penaltiesApplied,_that.evaluativeMatrices,_that.informationalMatrices);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1164,10 +827,10 @@ return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availab
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>> groupedExtensions, @JsonKey(name: 'penalties_applied')  List<String> penaltiesApplied)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>> groupedExtensions, @JsonKey(name: 'penalties_applied')  List<String> penaltiesApplied, @JsonKey(name: 'evaluative_matrices')  List<MatrixScorecardRowDto> evaluativeMatrices, @JsonKey(name: 'informational_matrices')  List<MatrixScorecardRowDto> informationalMatrices)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportDataDTO() when $default != null:
-return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata,_that.groupedExtensions,_that.penaltiesApplied);case _:
+return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata,_that.groupedExtensions,_that.penaltiesApplied,_that.evaluativeMatrices,_that.informationalMatrices);case _:
   return null;
 
 }
@@ -1179,7 +842,7 @@ return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availab
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ReportDataDTO extends ReportDataDTO {
-  const _ReportDataDTO({@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'profile_id') required this.profileId, @JsonKey(name: 'profile_name') this.profileName, @JsonKey(name: 'available_profiles') final  Map<String, I18nText> availableProfiles = const {}, @JsonKey(name: 'global_score') this.globalScore, final  List<ReportLayoutDTO> layouts = const [], @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'org_name') this.orgName, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'total_tokens') this.totalTokens, @JsonKey(name: 'prompt_tokens') this.promptTokens, @JsonKey(name: 'completion_tokens') this.completionTokens, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens, @JsonKey(name: 'mcp_tool_audit') final  List<MCPToolAuditDTO> mcpToolAudit = const [], @JsonKey(name: 'has_warning') this.hasWarning = false, @JsonKey(name: 'synthesized_markdown') this.synthesizedMarkdown, @JsonKey(name: 'visible_metadata') final  List<String> visibleMetadata = const [], @JsonKey(name: 'grouped_extensions') final  Map<String, List<dynamic>> groupedExtensions = const {}, @JsonKey(name: 'penalties_applied') final  List<String> penaltiesApplied = const []}): _availableProfiles = availableProfiles,_layouts = layouts,_mcpToolAudit = mcpToolAudit,_visibleMetadata = visibleMetadata,_groupedExtensions = groupedExtensions,_penaltiesApplied = penaltiesApplied,super._();
+  const _ReportDataDTO({@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'profile_id') required this.profileId, @JsonKey(name: 'profile_name') this.profileName, @JsonKey(name: 'available_profiles') final  Map<String, I18nText> availableProfiles = const {}, @JsonKey(name: 'global_score') this.globalScore, final  List<ReportLayoutDTO> layouts = const [], @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'org_name') this.orgName, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'total_tokens') this.totalTokens, @JsonKey(name: 'prompt_tokens') this.promptTokens, @JsonKey(name: 'completion_tokens') this.completionTokens, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens, @JsonKey(name: 'mcp_tool_audit') final  List<MCPToolAuditDTO> mcpToolAudit = const [], @JsonKey(name: 'has_warning') this.hasWarning = false, @JsonKey(name: 'synthesized_markdown') this.synthesizedMarkdown, @JsonKey(name: 'visible_metadata') final  List<String> visibleMetadata = const [], @JsonKey(name: 'grouped_extensions') final  Map<String, List<dynamic>> groupedExtensions = const {}, @JsonKey(name: 'penalties_applied') final  List<String> penaltiesApplied = const [], @JsonKey(name: 'evaluative_matrices') final  List<MatrixScorecardRowDto> evaluativeMatrices = const [], @JsonKey(name: 'informational_matrices') final  List<MatrixScorecardRowDto> informationalMatrices = const []}): _availableProfiles = availableProfiles,_layouts = layouts,_mcpToolAudit = mcpToolAudit,_visibleMetadata = visibleMetadata,_groupedExtensions = groupedExtensions,_penaltiesApplied = penaltiesApplied,_evaluativeMatrices = evaluativeMatrices,_informationalMatrices = informationalMatrices,super._();
   factory _ReportDataDTO.fromJson(Map<String, dynamic> json) => _$ReportDataDTOFromJson(json);
 
 @override@JsonKey(name: 'workflow_id') final  String workflowId;
@@ -1237,6 +900,20 @@ class _ReportDataDTO extends ReportDataDTO {
   return EqualUnmodifiableListView(_penaltiesApplied);
 }
 
+ final  List<MatrixScorecardRowDto> _evaluativeMatrices;
+@override@JsonKey(name: 'evaluative_matrices') List<MatrixScorecardRowDto> get evaluativeMatrices {
+  if (_evaluativeMatrices is EqualUnmodifiableListView) return _evaluativeMatrices;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_evaluativeMatrices);
+}
+
+ final  List<MatrixScorecardRowDto> _informationalMatrices;
+@override@JsonKey(name: 'informational_matrices') List<MatrixScorecardRowDto> get informationalMatrices {
+  if (_informationalMatrices is EqualUnmodifiableListView) return _informationalMatrices;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_informationalMatrices);
+}
+
 
 /// Create a copy of ReportDataDTO
 /// with the given fields replaced by the non-null parameter values.
@@ -1253,7 +930,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ReportDataDTO(workflowId: $workflowId, profileId: $profileId, profileName: $profileName, availableProfiles: $availableProfiles, globalScore: $globalScore, layouts: $layouts, createdAt: $createdAt, orgName: $orgName, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit, hasWarning: $hasWarning, synthesizedMarkdown: $synthesizedMarkdown, visibleMetadata: $visibleMetadata, groupedExtensions: $groupedExtensions, penaltiesApplied: $penaltiesApplied)';
+  return 'ReportDataDTO(workflowId: $workflowId, profileId: $profileId, profileName: $profileName, availableProfiles: $availableProfiles, globalScore: $globalScore, layouts: $layouts, createdAt: $createdAt, orgName: $orgName, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit, hasWarning: $hasWarning, synthesizedMarkdown: $synthesizedMarkdown, visibleMetadata: $visibleMetadata, groupedExtensions: $groupedExtensions, penaltiesApplied: $penaltiesApplied, evaluativeMatrices: $evaluativeMatrices, informationalMatrices: $informationalMatrices)';
 }
 
 
@@ -1264,7 +941,7 @@ abstract mixin class _$ReportDataDTOCopyWith<$Res> implements $ReportDataDTOCopy
   factory _$ReportDataDTOCopyWith(_ReportDataDTO value, $Res Function(_ReportDataDTO) _then) = __$ReportDataDTOCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore, List<ReportLayoutDTO> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> mcpToolAudit,@JsonKey(name: 'has_warning') bool hasWarning,@JsonKey(name: 'synthesized_markdown') String? synthesizedMarkdown,@JsonKey(name: 'visible_metadata') List<String> visibleMetadata,@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>> groupedExtensions,@JsonKey(name: 'penalties_applied') List<String> penaltiesApplied
+@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore, List<ReportLayoutDTO> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> mcpToolAudit,@JsonKey(name: 'has_warning') bool hasWarning,@JsonKey(name: 'synthesized_markdown') String? synthesizedMarkdown,@JsonKey(name: 'visible_metadata') List<String> visibleMetadata,@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>> groupedExtensions,@JsonKey(name: 'penalties_applied') List<String> penaltiesApplied,@JsonKey(name: 'evaluative_matrices') List<MatrixScorecardRowDto> evaluativeMatrices,@JsonKey(name: 'informational_matrices') List<MatrixScorecardRowDto> informationalMatrices
 });
 
 
@@ -1281,7 +958,7 @@ class __$ReportDataDTOCopyWithImpl<$Res>
 
 /// Create a copy of ReportDataDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? workflowId = null,Object? profileId = null,Object? profileName = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? layouts = null,Object? createdAt = freezed,Object? orgName = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,Object? hasWarning = null,Object? synthesizedMarkdown = freezed,Object? visibleMetadata = null,Object? groupedExtensions = null,Object? penaltiesApplied = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? workflowId = null,Object? profileId = null,Object? profileName = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? layouts = null,Object? createdAt = freezed,Object? orgName = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,Object? hasWarning = null,Object? synthesizedMarkdown = freezed,Object? visibleMetadata = null,Object? groupedExtensions = null,Object? penaltiesApplied = null,Object? evaluativeMatrices = null,Object? informationalMatrices = null,}) {
   return _then(_ReportDataDTO(
 workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,profileId: null == profileId ? _self.profileId : profileId // ignore: cast_nullable_to_non_nullable
@@ -1302,7 +979,9 @@ as bool,synthesizedMarkdown: freezed == synthesizedMarkdown ? _self.synthesizedM
 as String?,visibleMetadata: null == visibleMetadata ? _self._visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
 as List<String>,groupedExtensions: null == groupedExtensions ? _self._groupedExtensions : groupedExtensions // ignore: cast_nullable_to_non_nullable
 as Map<String, List<dynamic>>,penaltiesApplied: null == penaltiesApplied ? _self._penaltiesApplied : penaltiesApplied // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<String>,evaluativeMatrices: null == evaluativeMatrices ? _self._evaluativeMatrices : evaluativeMatrices // ignore: cast_nullable_to_non_nullable
+as List<MatrixScorecardRowDto>,informationalMatrices: null == informationalMatrices ? _self._informationalMatrices : informationalMatrices // ignore: cast_nullable_to_non_nullable
+as List<MatrixScorecardRowDto>,
   ));
 }
 

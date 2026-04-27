@@ -37,9 +37,9 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
                         {
                             "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Väite 1"}},
                             "ai_description": "Claim 1 Desc",
-                            "micro_atoms": ["Atom 1", "Atom 2"]
+                            "micro_atoms": ["Atom 1", "Atom 2"],
                         },
-                    ]
+                    ],
                 }
             ],
         }
@@ -88,9 +88,9 @@ def test_prompt_factory_missing_micro_atoms(mock_compiler: MagicMock) -> None:
                         {
                             "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Väite 1"}},
                             "ai_description": "Claim 1 Desc",
-                            "micro_atoms": [] # Empty micro atoms should crash
+                            "micro_atoms": [],  # Empty micro atoms should crash
                         },
-                    ]
+                    ],
                 }
             ],
         }

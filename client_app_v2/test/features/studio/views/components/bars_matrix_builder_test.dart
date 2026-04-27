@@ -58,7 +58,10 @@ void main() {
       expect(find.textContaining('1 - Terrible'), findsOneWidget);
       expect(find.textContaining('5 - Excellent'), findsOneWidget);
       expect(find.text('AI: LOW'), findsOneWidget);
-      expect(find.text('Atom'), findsWidgets); // Due to microAtoms mapping
+      expect(
+        find.textContaining('Atom'),
+        findsWidgets,
+      ); // Due to microAtoms mapping
 
       // Cleanup
       await tester.binding.setSurfaceSize(null);

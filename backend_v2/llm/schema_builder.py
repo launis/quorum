@@ -80,7 +80,9 @@ class SchemaCompilerService:
                     (
                         f"{slug}_{XaiExtensionType.JUSTIFICATION.value}",
                         str,
-                        f"Extensive analytical reasoning and justification for the {slug} output.",
+                        f"Extensive analytical reasoning and justification for the {slug} output. "
+                        "STRICT MANDATE: DO NOT output any final mathematical scores, grades, "
+                        "or 'Arvosana' in this text. ONLY explain the qualitative reasoning.",
                     )
                 )
             if XaiExtensionType.CITATION.value in extensions:

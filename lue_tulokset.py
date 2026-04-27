@@ -66,7 +66,9 @@ def print_latest_execution_results(target_locale: str = "fi") -> None:
             logger.warning("[Fail-Fast] Ajotietueen validointi epäonnistui, ohitetaan: %s", e)
 
     if not valid_executions:
-        raise ValueError("[FAIL-FAST] Ei löytynyt yhtään validia (completed) ajoa.")
+        print("\n[VIRHE] Ei löytynyt yhtään validia (completed) ajoa tietokannasta.")
+        print("Tee uusi ajo käyttöliittymän kautta tai seed-skriptillä nähdäksesi tuloksia.\n")
+        return
 
     def get_sort_key(exe_model: MinimalExecution) -> str:
         return str(exe_model.created_at or exe_model.completed_at or "")
@@ -101,22 +103,19 @@ def print_latest_execution_results(target_locale: str = "fi") -> None:
                 continue
 
             # Find all unique block IDs in this content
-            block_ids = set()
-            for k in content.keys():
-                if k.startswith("blk_"):
-                    # Extract the base block ID (e.g. blk_109dab5b6b3f403a)
-                    base_id = k.split("_")[0] + "_" + k.split("_")[1]
-                    block_ids.add(base_id)
-
+            block_ids = [pb.id for pb in prompt_blocks.values() if getattr(pb, "category_id", "") == "matrix"]
+            
             for b_id in block_ids:
                 pb_model = prompt_blocks.get(b_id)
-                if pb_model and getattr(pb_model, "is_evaluative", False):
+                if pb_model:
                     # Check if this is a Phase 9 V2 StrictMatrixPayload dict or V1 flat keys
                     b_data = content.get(b_id)
-
+                    justification = ""
                     if isinstance(b_data, dict):
                         b_dict: dict[str, Any] = b_data
                         norm_score = b_dict.get("normalized_score")
+                        if norm_score is None:
+                            norm_score = b_dict.get("raw_score")
                         if norm_score is None:
                             continue
                         justification = b_dict.get("justification", "")
@@ -210,9 +209,17 @@ def print_latest_execution_results(target_locale: str = "fi") -> None:
         justification = data["just"]
         pb_model = data["pb_model"]
 
-        # Etsi oikeankielinen nimi käännetystä Pydantic oliosta
-        locale_name = pb_model.label.get(target_locale, block_id)
-        is_evaluative = pb_model.is_evaluative
+        # Hae lokinimi fallbackilla jos get puuttuu
+        if hasattr(pb_model.label, "get"):
+            locale_name = pb_model.label.get(target_locale, block_id)
+        elif hasattr(pb_model.label, "translations"):
+            locale_name = pb_model.label.translations.get(target_locale, block_id)
+        else:
+            locale_name = block_id
+            
+        is_evaluative = getattr(pb_model, "is_evaluative", False)
+        if is_evaluative:
+            locale_name += " *"
 
         # Hae 'computed_' arvot UI tulostetta varten (PIST.)
         calc_max = pb_model.computed_max

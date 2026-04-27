@@ -77,10 +77,12 @@ class CitationExtension(BaseModel):
     url: str | None = None
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
+
 class JustificationExtension(BaseModel):
     extension_type: Literal[XaiExtensionType.JUSTIFICATION] = XaiExtensionType.JUSTIFICATION
     reasoning: str
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
 
 class FalsificationExtension(BaseModel):
     extension_type: Literal[XaiExtensionType.FALSIFICATION] = XaiExtensionType.FALSIFICATION
@@ -88,11 +90,13 @@ class FalsificationExtension(BaseModel):
     vulnerabilities: list[str]
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
+
 class TheoryLinkExtension(BaseModel):
     extension_type: Literal[XaiExtensionType.THEORY_LINK] = XaiExtensionType.THEORY_LINK
     theory_name: str
     relevance: str
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
 
 class RiskFlagExtension(BaseModel):
     extension_type: Literal[XaiExtensionType.RISK_FLAG] = XaiExtensionType.RISK_FLAG
@@ -100,20 +104,24 @@ class RiskFlagExtension(BaseModel):
     description: str
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
+
 class CoachingExtension(BaseModel):
     extension_type: Literal[XaiExtensionType.COACHING] = XaiExtensionType.COACHING
     actionable_steps: list[str]
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
 
 class MissingContextExtension(BaseModel):
     extension_type: Literal[XaiExtensionType.MISSING_CONTEXT] = XaiExtensionType.MISSING_CONTEXT
     context_needed: str
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
+
 class RemediationStepsExtension(BaseModel):
     extension_type: Literal[XaiExtensionType.REMEDIATION_STEPS] = XaiExtensionType.REMEDIATION_STEPS
     steps: list[str]
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
 
 class EmotionalSentimentExtension(BaseModel):
     extension_type: Literal[XaiExtensionType.EMOTIONAL_SENTIMENT] = XaiExtensionType.EMOTIONAL_SENTIMENT
@@ -121,20 +129,33 @@ class EmotionalSentimentExtension(BaseModel):
     intensity: float
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
+
 class ConfidenceExtension(BaseModel):
     extension_type: Literal[XaiExtensionType.CONFIDENCE] = XaiExtensionType.CONFIDENCE
     confidence_score: float
     rationale: str
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
+
 class SourceIDExtension(BaseModel):
     extension_type: Literal[XaiExtensionType.SOURCE_ID] = XaiExtensionType.SOURCE_ID
     source_id: str
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
+
 XAIExtension = Annotated[
-    CitationExtension | JustificationExtension | FalsificationExtension | TheoryLinkExtension | RiskFlagExtension | CoachingExtension | MissingContextExtension | RemediationStepsExtension | EmotionalSentimentExtension | ConfidenceExtension | SourceIDExtension,
-    Field(discriminator="extension_type")
+    CitationExtension
+    | JustificationExtension
+    | FalsificationExtension
+    | TheoryLinkExtension
+    | RiskFlagExtension
+    | CoachingExtension
+    | MissingContextExtension
+    | RemediationStepsExtension
+    | EmotionalSentimentExtension
+    | ConfidenceExtension
+    | SourceIDExtension,
+    Field(discriminator="extension_type"),
 ]
 
 

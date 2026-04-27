@@ -37,7 +37,7 @@ def test_frozen_mutability_is_enforced() -> None:
     ev = EvidenceItem(id="EV-1", source="Source", content="Content", score=0.95, type="concept")
 
     with pytest.raises(ValidationError) as exc_info:
-        ev.score = 0.5
+        ev.score = 0.5  # type: ignore[misc]
 
     assert "Instance is frozen" in str(exc_info.value)
 

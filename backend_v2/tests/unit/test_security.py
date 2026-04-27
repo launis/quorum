@@ -17,7 +17,11 @@ def mock_repository() -> AsyncMock:
 def test_sanitize_text_hook_fails_fast_on_invalid_inputs(mock_repository: AsyncMock) -> None:
     """Test that missing or non-dict inputs trigger AppException due to strict Pydantic parsing."""
     state = HookState.model_construct(
-        execution_id="exe_123", workflow_id="wf_123", inputs=None, metadata={}, global_context_vars={}
+        execution_id="exe_123",
+        workflow_id="wf_123",
+        inputs=None,  # type: ignore[arg-type]
+        metadata={},
+        global_context_vars={},
     )
     deps = HookDependencies(repository=mock_repository)
 
@@ -31,7 +35,11 @@ def test_sanitize_text_hook_fails_fast_on_invalid_inputs(mock_repository: AsyncM
 def test_sanitize_text_hook_fails_fast_on_list_inputs(mock_repository: AsyncMock) -> None:
     """Test that list inputs trigger AppException (extra='forbid' via RootModel[dict])."""
     state = HookState.model_construct(
-        execution_id="exe_123", workflow_id="wf_123", inputs=["invalid", "list"], metadata={}, global_context_vars={}
+        execution_id="exe_123",
+        workflow_id="wf_123",
+        inputs=["invalid", "list"],  # type: ignore[arg-type]
+        metadata={},
+        global_context_vars={},
     )
     deps = HookDependencies(repository=mock_repository)
 

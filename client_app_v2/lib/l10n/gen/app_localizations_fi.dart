@@ -201,6 +201,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get scorecard_global_average => 'Kokonaiskeskiarvo';
 
   @override
+  String get scorecard_matrix_summary => 'Yhteenveto / Matrix Summary';
+
+  @override
   String get atomicBreakdownTitle => 'Kovan tason atomianalyysi';
 
   @override
@@ -3384,4 +3387,8 @@ class AppLocalizationsFi extends AppLocalizations {
   String reportReasoningTokens(String count) {
     return 'Päättely: $count';
   }
+
+  @override
+  String get matrixEvaluativeAsteriskLegend =>
+      '* = Arvioiva matriisi (Vaikuttaa kokonaisarvosanaan)';
 }

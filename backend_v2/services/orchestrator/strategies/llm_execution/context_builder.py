@@ -13,6 +13,7 @@ from backend_v2.utils.dict_utils import resolve_dot_notation
 
 logger = logging.getLogger(__name__)
 
+
 class ContextBuilder:
     """Builds and sanitizes the LLM context data based on input mappings."""
 
@@ -42,10 +43,9 @@ class ContextBuilder:
         pruned_step_output = {}
         # A matrix step output contains block IDs and metadata. We must iterate over it.
         # schema_map is the source of truth: keys IN it are known block IDs to validate.
-        # Keys NOT in schema_map are metadata (reasoning_trace, _step_metadata, etc.) — pass through.
+        # Keys NOT in schema_map are dropped completely (Strict Fail-Fast Protocol).
         for key, value in trace_data.items():
             if schema_map is None or key not in schema_map:
-                pruned_step_output[key] = value
                 continue
 
             block_type = schema_map[key]
@@ -62,7 +62,11 @@ class ContextBuilder:
                         matrix_dto = LightweightMatrixOutput.model_validate(value)
                         pruned = ContextRouter.route_and_prune(value, output_profile)
                         pruned_dict = pruned.model_dump()
-                        pruned_dict["evaluations_bool_only"] = list(matrix_dto.evaluated_atoms.values())
+
+                        if "evaluated_atoms" in pruned_dict:
+                            del pruned_dict["evaluated_atoms"]
+
+                        pruned_dict["raw_result"] = f"{matrix_dto.raw_score} / {len(matrix_dto.evaluated_atoms)}"
                         pruned_step_output[key] = pruned_dict
                     except Exception as e:
                         msg = f"ContextRouter trace pruning failed for block {key}: {e}"

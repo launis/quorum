@@ -332,6 +332,9 @@ async def generate_profile_synthesis_and_pdf_task(
         if accept_language:
             metadata["target_locale"] = accept_language
 
+        # V2 Integrity Mandate: Inject step_results explicitly for SynthesisHook
+        metadata["step_results"] = final_inputs
+
         global_context_vars = final_inputs
         state = HookState(
             execution_id=execution_id,

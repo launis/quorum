@@ -1,6 +1,7 @@
+import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:client_app/features/execution/models/report_data_dto.dart'; // REQUIRED FOR ReportAxisDTO
+import 'package:client_app/features/execution/models/scorecard_dto.dart';
 
 /// A 2D Scatter Plot visualizing metrics across 2 or 3 dimensions.
 class LogicMatrixChart extends StatelessWidget {
@@ -11,9 +12,18 @@ class LogicMatrixChart extends StatelessWidget {
     this.zAxis,
   });
 
-  final ReportAxisDTO xAxis;
-  final ReportAxisDTO yAxis;
-  final ReportAxisDTO? zAxis;
+  final MatrixScorecardRowDto xAxis;
+  final MatrixScorecardRowDto yAxis;
+  final MatrixScorecardRowDto? zAxis;
+
+  double _calculateMarginRatio(double min, double max) {
+    final double range = max - min;
+    if (range <= 0) return 0.15;
+    final double val = math.max(1.0, range - 0.001);
+    final int exponent = (math.log(val) / math.ln10).floor();
+    final double margin = math.pow(10, exponent).toDouble();
+    return margin / range;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +50,9 @@ class LogicMatrixChart extends StatelessWidget {
       radius = 6.0 + (pct.clamp(0.0, 1.0) * 30.0);
     }
 
+    final double xMargin = _calculateMarginRatio(xAxis.scaleMin ?? 1.0, xAxis.scaleMax ?? 5.0);
+    final double yMargin = _calculateMarginRatio(yAxis.scaleMin ?? 1.0, yAxis.scaleMax ?? 5.0);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -61,10 +74,10 @@ class LogicMatrixChart extends StatelessWidget {
                   ),
                 ),
               ],
-              minX: xMin,
-              maxX: xMax + 0.05, // Visual padding
-              minY: yMin,
-              maxY: yMax + 0.05,
+              minX: xMin - xMargin, // Dynamic visual padding based on logarithmic scale rules
+              maxX: xMax + xMargin, 
+              minY: yMin - yMargin,
+              maxY: yMax + yMargin,
               backgroundColor: Theme.of(context).colorScheme.surface,
               gridData: FlGridData(
                 show: true,
@@ -98,21 +111,25 @@ class LogicMatrixChart extends StatelessWidget {
                   axisNameSize: 20, // Reserve space for name
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 60, // Increased for labels
-                    interval: 1.0, // Only 0.0 and 1.0 labels!
+                    reservedSize: 30,
+                    interval: 1.0,
                     getTitlesWidget: (value, meta) {
-                      final strVal = value.toStringAsFixed(1);
-                      final label = yAxis.uiBoundaryLabels[strVal];
-
-                      if (label != null && label.isNotEmpty) {
+                      if (value == 0.0 && yAxis.scaleMin != null) {
                         return Padding(
                           padding: const EdgeInsets.only(right: 6.0),
                           child: Text(
-                            label,
-                            style: const TextStyle(fontSize: 9),
-                            maxLines: 2,
+                            yAxis.scaleMin!.toStringAsFixed(1),
+                            style: const TextStyle(fontSize: 10),
                             textAlign: TextAlign.right,
-                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      } else if (value == 1.0 && yAxis.scaleMax != null) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6.0),
+                          child: Text(
+                            yAxis.scaleMax!.toStringAsFixed(1),
+                            style: const TextStyle(fontSize: 10),
+                            textAlign: TextAlign.right,
                           ),
                         );
                       }
@@ -134,37 +151,25 @@ class LogicMatrixChart extends StatelessWidget {
                   axisNameSize: 28,
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 60,
-                    interval: 1.0, // Only 0.0 and 1.0 labels
+                    reservedSize: 30,
+                    interval: 1.0,
                     getTitlesWidget: (value, meta) {
-                      final strVal = value.toStringAsFixed(1);
-                      final label = xAxis.uiBoundaryLabels[strVal];
-
-                      if (label != null && label.isNotEmpty) {
-                        Widget textWidget = SizedBox(
-                          width: 80,
-                          child: Text(
-                            label,
-                            style: const TextStyle(fontSize: 9),
-                            maxLines: 3,
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-
-                        // Prevent edge labels from bleeding out of the chart bounds
-                        double offsetX = 0;
-                        if (value == xMin) {
-                          offsetX = 30; // Shift right to avoid Y-axis overlap
-                        } else if (value == xMax) {
-                          offsetX = -30; // Shift left to stay inside the screen
-                        }
-
+                      if (value == 0.0 && xAxis.scaleMin != null) {
                         return Padding(
                           padding: const EdgeInsets.only(top: 6.0),
-                          child: Transform.translate(
-                            offset: Offset(offsetX, 0),
-                            child: textWidget,
+                          child: Text(
+                            xAxis.scaleMin!.toStringAsFixed(1),
+                            style: const TextStyle(fontSize: 10),
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      } else if (value == 1.0 && xAxis.scaleMax != null) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6.0),
+                          child: Text(
+                            xAxis.scaleMax!.toStringAsFixed(1),
+                            style: const TextStyle(fontSize: 10),
+                            textAlign: TextAlign.center,
                           ),
                         );
                       }
@@ -193,7 +198,7 @@ class LogicMatrixChart extends StatelessWidget {
         if (zAxis != null) ...[
           const SizedBox(height: 12),
           Text(
-            "Z (Pallon Koko): ${zAxis!.name} (${zAxis!.score ?? 'N/A'} / ${zAxis!.scaleMax})",
+            "Z (Pallon Koko): ${zAxis!.name} (${zAxis!.score} / ${zAxis!.scaleMax})",
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 10,

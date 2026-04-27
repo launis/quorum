@@ -1,12 +1,12 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:client_app/features/execution/models/report_data_dto.dart'; // REQUIRED FOR ReportAxisDTO
+import 'package:client_app/features/execution/models/scorecard_dto.dart';
 
 /// A Polar 3D connected Radar (Spider) chart visualizing metrics across 3+ dimensions.
 class LogicRadarChart extends StatelessWidget {
   const LogicRadarChart({super.key, required this.axes});
 
-  final List<ReportAxisDTO> axes;
+  final List<MatrixScorecardRowDto> axes;
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +17,7 @@ class LogicRadarChart extends StatelessWidget {
     // Baseline calculation to match PDF's scale constraints
     double maxScale = 6.0;
     for (var a in axes) {
-      if (a.scaleMax > maxScale) maxScale = a.scaleMax;
+      if (a.scaleMax != null && a.scaleMax! > maxScale) maxScale = a.scaleMax!;
     }
 
     final dataSets = [
@@ -28,7 +28,7 @@ class LogicRadarChart extends StatelessWidget {
         borderColor: Theme.of(context).colorScheme.primary,
         entryRadius: 4,
         dataEntries: axes.map((a) {
-          final val = a.score ?? 0.0;
+          final val = a.score;
           return RadarEntry(value: val);
         }).toList(),
         borderWidth: 2,
@@ -63,7 +63,7 @@ class LogicRadarChart extends StatelessWidget {
           radarShape: RadarShape.polygon,
           getTitle: (index, angle) {
             final axisName = axes[index].name;
-            final scoreStr = axes[index].score?.toStringAsFixed(1) ?? '0.0';
+            final scoreStr = axes[index].score.toStringAsFixed(1);
 
             // Re-use logic to chunk title lines like PDF
             final wrappedTitle = axisName.split(' ').join('\n');

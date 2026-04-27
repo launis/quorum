@@ -40,7 +40,9 @@ _SYSTEM_INSTRUCTION = """<system_directive>
       Keys contain programmatic variables. Only translate the 'Values'.
     </rule>
     <rule>NEVER prepend language codes like 'fi - ' or 'en - ' to the translated text.</rule>
-    <rule>Ensure the translation is professional, context-aware, and natural in the target language. Adapt the tone to match the original text exactly. ALL sentences must be fully translated.</rule>
+    <rule>Ensure the translation is professional, context-aware, and natural in the target language.
+      Adapt the tone to match the original text exactly. ALL sentences must be fully translated.
+    </rule>
     <rule>
       Return a JSON object containing a SINGLE key called 'translated_data',
       where the value is the fully translated object.
@@ -60,8 +62,17 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
     logger.info("[TranslationHook] Running dynamic JSON translation...")
 
     try:
-        meta = HookStateMetadata.model_validate(state.metadata)  # noqa: F841
-        payload = I18nStatePayload.model_validate(state.inputs)
+        # Explicit routing to satisfy extra="forbid" Zero-Compromise Pydantic V2 rule
+        i18n_meta = (
+            {"target_locale": state.metadata.get("target_locale")}
+            if state.metadata and "target_locale" in state.metadata
+            else {}
+        )
+        meta = HookStateMetadata.model_validate(i18n_meta)  # noqa: F841
+
+        # Explicit routing for inputs
+        i18n_inputs = {"language": state.inputs.get("language")} if "language" in state.inputs else {}
+        payload = I18nStatePayload.model_validate(i18n_inputs)
     except Exception as e:
         msg = "Execution state is missing mandatory 'target_locale' metadata or 'language' inputs."
         logger.error("[TranslationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)

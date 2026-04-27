@@ -41,13 +41,23 @@ from backend_v2.models.domain.coach import BibliographyResult, CoachingPlanDTO
 from backend_v2.models.view.sdui import ReferenceItem
 
 
-class XaiReportData(BaseDTO):
+class MatrixFieldsMixin(BaseDTO):
+    justification: str | None = None
+    raw_result: str | None = None
+    normalized_score: float | None = None
+    raw_score: float | None = None
+    evaluated_atoms: dict[str, bool] | None = None
+    extensions: dict[str, str] | None = None
+    level_breakdown: dict[str, dict[str, int]] | None = None
+
+
+class XaiReportData(MatrixFieldsMixin):
     executive_summary: str | None = None
     evaluation_notes: str | None = None
     model_config = ConfigDict(strict=True, extra="forbid")
 
 
-class JudgeReportData(BaseDTO):
+class JudgeReportData(MatrixFieldsMixin):
     critical_findings: list[str] = Field(default_factory=list)
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -57,7 +67,7 @@ class OverseerData(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid")
 
 
-class OverseerReportData(BaseDTO):
+class OverseerReportData(MatrixFieldsMixin):
     overseer_data: OverseerData | None = None
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -72,7 +82,7 @@ class LogicianData(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid")
 
 
-class LogicianReportData(BaseDTO):
+class LogicianReportData(MatrixFieldsMixin):
     logician_data: LogicianData | None = None
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -83,12 +93,12 @@ class PerformativityAnalysis(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid")
 
 
-class PerformativityReportData(BaseDTO):
+class PerformativityReportData(MatrixFieldsMixin):
     performativity_analysis: PerformativityAnalysis | None = None
     model_config = ConfigDict(strict=True, extra="forbid")
 
 
-class AnalystReportData(BaseDTO):
+class AnalystReportData(MatrixFieldsMixin):
     rag_evidence: list[str] = Field(default_factory=list)
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -103,7 +113,7 @@ class CausalAnalysisData(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid")
 
 
-class PanelReportData(BaseDTO):
+class PanelReportData(MatrixFieldsMixin):
     overseer_data: OverseerData | None = None
     logician_data: LogicianData | None = None
     performativity_analysis: PerformativityAnalysis | None = None
@@ -118,7 +128,7 @@ class ProfilerMetrics(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid")
 
 
-class ProfilerReportData(BaseDTO):
+class ProfilerReportData(MatrixFieldsMixin):
     metrics: ProfilerMetrics | None = None
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -135,7 +145,7 @@ class ScoreSummaryData(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid")
 
 
-class ScoringReportData(BaseDTO):
+class ScoringReportData(MatrixFieldsMixin):
     penalties_applied: list[PenaltyData] | None = None
     score_summary: ScoreSummaryData | None = None
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -147,7 +157,7 @@ class ValidationWarningData(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid")
 
 
-class ValidationReportData(BaseDTO):
+class ValidationReportData(MatrixFieldsMixin):
     warnings: list[ValidationWarningData] | None = None
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -173,16 +183,22 @@ class GlobalContextVarsDTO(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid")
 
 
+class MatrixObservabilityItem(BaseDTO):
+    normalized_score: float = 0.0
+    raw_result: str = ""
+    justification: str = ""
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+
 class MatrixObservabilityDTO(BaseDTO):
     """Securely transmits only essential counts to prevent token explosions."""
 
     true_atoms_count: int = Field(default=0, description="Total number of true evaluation atoms.")
     false_atoms_count: int = Field(default=0, description="Total number of false evaluation atoms.")
+    matrices: dict[str, MatrixObservabilityItem] = Field(default_factory=dict)
 
-    # We must explicitly allow extra fields here so that the full LightWeightMatrixOutput
-    # dictionaries in state.inputs don't trigger a ValidationError, but are silently
-    # dropped from this specific DTO to prevent token explosions in the report context.
-    model_config = ConfigDict(strict=True, extra="ignore")
+    # Strictly enforce Fail-Fast Pydantic V2 validations to prevent orphaned state.
+    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class ReportSynthesisDTO(BaseDTO):

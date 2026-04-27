@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
+import 'package:client_app/features/execution/models/scorecard_dto.dart';
 import 'package:client_app/features/execution/views/widgets/report_renderer_widget.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/models/enums.dart';
@@ -31,13 +32,15 @@ void main() {
             description: null,
             textDeliveryMode: 'full',
             axes: [
-              ReportAxisDTO(
+              MatrixScorecardRowDto(
+                blockId: 'mock',
+                labelFi: 'Mock Axis',
+                labelEn: 'Mock Axis',
                 name: 'Mock Axis',
                 score: 100.0,
                 justification: 'Perfect',
                 scaleMin: 0.0,
                 scaleMax: 6.0,
-                scaleLabels: {},
               ),
             ],
           ),
@@ -93,13 +96,15 @@ void main() {
             description: null,
             textDeliveryMode: 'full',
             axes: [
-              ReportAxisDTO(
+              MatrixScorecardRowDto(
+                blockId: 'text_mock',
+                labelFi: 'Text Axis',
+                labelEn: 'Text Axis',
                 name: 'Text Axis',
-                score: null,
+                score: 0.0,
                 justification: 'This is a text only justification',
                 scaleMin: 0.0,
                 scaleMax: 6.0,
-                scaleLabels: {},
               ),
             ],
           ),

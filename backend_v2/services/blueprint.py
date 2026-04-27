@@ -9,7 +9,14 @@ from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.state import StateProjector
-from backend_v2.models.v2_core import MCPAuditTrace, ReportAxisDTO, ReportDataDTO, ReportLayoutDTO, Workflow
+from backend_v2.models.v2_core import (
+    MatrixScorecardRowDTO,
+    MCPAuditTrace,
+    PromptBlock,
+    ReportDataDTO,
+    ReportLayoutDTO,
+    Workflow,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +55,26 @@ class BlueprintTransformer:
                 if isinstance(translations, dict):
                     return str(translations.get(lang) or translations.get("en") or fallback)
             return fallback
+
+        def _clean_hallucinated_numbers(text: str) -> str:
+            """Removes sentences that contain numeric evaluations (e.g. 'Taso 3') to prevent hallucinations."""
+            if not text:
+                return ""
+
+            import re
+
+            sentences = re.split(r"(?<=[.!?]) +", text)
+            cleaned = []
+
+            # Regex checks for words like taso, tason, tasolle, arvosana,
+            # piste etc. followed by an optional colon and a number
+            pattern = re.compile(r"(?i)(taso|arvosana|level|piste|score|grade)[a-zäö]*\s*:?\s*\d")
+
+            for s in sentences:
+                if not pattern.search(s):
+                    cleaned.append(s)
+
+            return " ".join(cleaned).strip()
 
         workflow_obj = Workflow.model_validate(workflow_data)
 
@@ -108,7 +135,13 @@ class BlueprintTransformer:
 
         # We must pre-fetch blocks early for resolving axis_label
         all_blocks = await self.repo.get_all_prompt_blocks()
-        blocks_by_id = {b["id"]: b for b in all_blocks if "id" in b}
+        blocks_by_id: dict[str, PromptBlock] = {}
+        for b in all_blocks:
+            if "id" in b:
+                try:
+                    blocks_by_id[b["id"]] = PromptBlock.model_validate(b)
+                except Exception as e:
+                    logger.warning("Failed to parse PromptBlock %s: %s", b["id"], e)
         layouts_list = []
         # Pre-fetch prompt blocks to enrich axis labels
         # (Blocks already fetched above for global aggregation)
@@ -172,6 +205,200 @@ class BlueprintTransformer:
             if isinstance(raw_penalties, list):
                 penalties_applied = [str(p) for p in raw_penalties]
 
+        evaluative_matrices: list[MatrixScorecardRowDTO] = []
+        informational_matrices: list[MatrixScorecardRowDTO] = []
+        all_parsed_matrices: dict[str, MatrixScorecardRowDTO] = {}
+
+        # Grand Unification: Single extraction loop for all Matrix blocks
+        for step_id, step_data in results.items():
+            if not isinstance(step_data, dict):
+                continue
+            for b_id, block_data in step_data.items():
+                if not isinstance(block_data, dict):
+                    continue
+
+                pb_meta = blocks_by_id.get(b_id)
+                # Fail-Fast: Only parse actual matrix blocks defined in the database
+                if not pb_meta or pb_meta.category_id != "matrix":
+                    continue
+
+                # Epic 39 / Phase 9 Extraction
+                raw_score = block_data.get("raw_score")
+                if raw_score is None:
+                    continue  # Valid Fail-Fast: Only include matrices that were actually scored
+
+                norm_score = block_data.get("normalized_score")
+
+                # Extrema & Localization
+                axis_name = pb_meta.label.resolve(locale) if pb_meta.label else b_id
+                if not axis_name:
+                    axis_name = b_id
+                if pb_meta.is_evaluative:
+                    axis_name += " *"
+
+                label_fi = pb_meta.label.resolve("fi") if pb_meta.label else b_id
+                label_en = pb_meta.label.resolve("en") if pb_meta.label else b_id
+                axis_description = pb_meta.description.resolve(locale) if pb_meta.description else ""
+
+                if pb_meta.computed_min is None or pb_meta.computed_max is None:
+                    raise AppException(
+                        message=f"PromptBlock '{b_id}' missing Pydantic computed_min/max.",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                    )
+                scale_min = float(pb_meta.computed_min)
+                scale_max = float(pb_meta.computed_max)
+
+                scales_def = pb_meta.scales
+                if not scales_def:
+                    raise AppException(
+                        message=f"PromptBlock '{b_id}' initialized as matrix but has no scales.",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                    )
+
+                level_names: dict[str, str] = {}
+                ui_boundary_labels: dict[str, str] = {}
+                for s in scales_def:
+                    s_score = float(s.score)
+                    if not s.name:
+                        raise AppException(
+                            message=f"Fail-Fast: MatrixScale in block '{b_id}' missing 'name'.",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        )
+                    s_label = s.name.resolve(locale)
+
+                    int_str = str(int(s_score)) if s_score.is_integer() else str(s_score)
+                    float_str = str(s_score)
+                    level_names[int_str] = s_label
+                    if float_str != int_str:
+                        level_names[float_str] = s_label
+
+                    if s_score == scale_min:
+                        ui_boundary_labels["0.0"] = s_label
+                    if s_score == scale_max:
+                        ui_boundary_labels["1.0"] = s_label
+
+                # Output override logic
+                display_scale_min = scale_min
+                display_scale_max = scale_max
+
+                active_score_key = "raw_score"
+                if display_scale == "normalized_100":
+                    active_score_key = "normalized_score"
+                    display_scale_min = 0.0
+                    display_scale_max = 100.0
+                    level_names = {}  # Purge mapping to prevent disproportionate labeling
+                elif display_scale == "custom":
+                    # Custom bounds are from pb_meta scale_min/scale_max
+                    scale_min_val = pb_meta.scale_min
+                    scale_max_val = pb_meta.scale_max
+                    if scale_min_val is None or scale_max_val is None:
+                        raise AppException(
+                            message=f"UI bounds missing for PromptBlock '{b_id}' under custom scale.",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                        )
+                    display_scale_min = float(scale_min_val)
+                    display_scale_max = float(scale_max_val)
+
+                target_val = block_data.get(active_score_key)
+                if target_val is None:
+                    target_val = raw_score
+
+                score_float = float(round(float(target_val), 1)) if target_val is not None else 0.0
+                if display_scale == "normalized_100":
+                    score_float = float(round(score_float))
+
+                # Plot ratio ALWAYS uses raw mathematical extrema, not display scale
+                # Fail-Fast logic guarantees scale_max > scale_min and raw_score is present
+                ratio = (float(raw_score) - scale_min) / (scale_max - scale_min)
+                ui_plot_ratio = float(max(0.0, min(1.0, ratio)))
+
+                # Collision Avoidance
+                original_axis_name = axis_name
+                collision_counter = 1
+                while any(ext.name == axis_name for ext in all_parsed_matrices.values()):
+                    step_node = workflow_steps.get(step_id) or {}
+                    step_title_obj = step_node.get("name") or step_node.get("title")
+                    step_title = _resolve_i18n_str(step_title_obj, locale, step_id)
+                    axis_name = f"{original_axis_name} ({step_title})"
+                    if any(ext.name == axis_name for ext in all_parsed_matrices.values()):
+                        axis_name = f"{original_axis_name} ({step_title} {collision_counter})"
+                        collision_counter += 1
+
+                # Legacy justifications and extensions
+                justification = block_data.get("justification")
+                if not justification:
+                    raise AppException(
+                        message=f"Fail-Fast: Missing justification for matrix block '{b_id}'",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+
+                # Breakdowns
+                axis_level_breakdown = None
+                raw_breakdown = block_data.get("level_breakdown")
+                if raw_breakdown and isinstance(raw_breakdown, dict):
+                    clean_level_dict = {}
+                    for lvl_key, lvl_data in raw_breakdown.items():
+                        if isinstance(lvl_data, dict):
+                            try:
+                                f_lvl = float(lvl_key)
+                                is_int = f_lvl.is_integer()
+                                c_key = str(int(f_lvl)) if is_int else str(lvl_key)
+                                hits = lvl_data.get("hits", 0)
+                                total = lvl_data.get("total", 0)
+                                clean_level_dict[c_key] = f"{hits}/{total}"
+                            except ValueError as v_err:
+                                raise AppException(
+                                    message=(
+                                        f"Fail-Fast: Invalid level key '{lvl_key}' in matrix breakdown for '{b_id}'."
+                                    ),
+                                    status_code=500,
+                                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                ) from v_err
+                    axis_level_breakdown = clean_level_dict
+
+                ext_dict = block_data.get("extensions", {})
+
+                row_dto = MatrixScorecardRowDTO(
+                    block_id=b_id,
+                    name=axis_name,
+                    label_fi=label_fi,
+                    label_en=label_en,
+                    description=axis_description,
+                    score=score_float,
+                    scale_min=display_scale_min,
+                    scale_max=display_scale_max,
+                    normalized_score=float(norm_score) if norm_score is not None else None,
+                    true_atoms=block_data.get("true_atoms"),
+                    total_atoms=block_data.get("total_atoms"),
+                    justification=_clean_hallucinated_numbers(justification),
+                    missing_context=ext_dict.get("missing_context") or "",
+                    cited_source_id=ext_dict.get("source_id"),
+                    cited_text_quote=ext_dict.get("citation"),
+                    cited_web_citation=ext_dict.get("google_citation"),
+                    coaching=ext_dict.get("coaching"),
+                    confidence=ext_dict.get("confidence"),
+                    falsification=ext_dict.get("falsification"),
+                    risk_flag=ext_dict.get("risk_flag"),
+                    remediation_steps=ext_dict.get("remediation_steps"),
+                    emotional_sentiment=ext_dict.get("emotional_sentiment"),
+                    theory_link=ext_dict.get("theory_link"),
+                    level_breakdown=axis_level_breakdown,
+                    level_names=level_names,
+                    ui_boundary_labels=ui_boundary_labels,
+                    ui_plot_ratio=ui_plot_ratio,
+                    is_evaluative=pb_meta.is_evaluative,
+                )
+
+                unique_k = f"{step_id}_{b_id}"
+                all_parsed_matrices[unique_k] = row_dto
+
+                # Arrays will be populated deterministically via layout_defs sorting later
+
         try:
             for idx, layout_def in enumerate(layout_defs):
                 preset_view = layout_def.preset_view
@@ -182,324 +409,7 @@ class BlueprintTransformer:
                 layout_title = layout_def.title
                 layout_desc = layout_def.description
 
-                axes: list[ReportAxisDTO] = []
-                unsorted_axes: dict[str, ReportAxisDTO] = {}
-                # Ensure unique key generation for collisions across steps
-                for step_id, step_data in results.items():
-                    if isinstance(step_data, dict):
-                        for k, v in step_data.items():
-                            # Determine if this key should be included in this layout
-                            if target_blocks and "*" not in target_blocks:
-                                # target_blocks may contain raw block IDs (blk_123)
-                                # OR fully qualified DAG IDs (step_xyz_blk_123)
-                                if k not in target_blocks and f"{step_id}_{k}" not in target_blocks:
-                                    continue
-
-                            is_legacy_score = k == "score"
-                            suffix_list = [
-                                "_justification",
-                                "_scaled",
-                                "_normalized",
-                                "_raw",
-                                "_cited_source_id",
-                                "_cited_text_quote",
-                                "_google_citation",
-                                "_coaching",
-                                "_confidence",
-                                "_falsification",
-                                "_missing_context",
-                                "_risk_flag",
-                                "_remediation_steps",
-                                "_emotional_sentiment",
-                                "_theory_link",
-                            ]
-                            is_suffix_key = any(k.endswith(sfx) for sfx in suffix_list)
-                            if is_suffix_key:
-                                continue
-
-                            block = blocks_by_id.get(k)
-
-                            # Adhere to Fail-Fast / Strict Domain Logic: Only print if key is a known Model
-                            # Block (or legacy score)
-                            if not block and not is_legacy_score:
-                                continue
-
-                            # --- Epic 12: View Scale Selection ---
-                            active_score_key = k
-                            if not is_legacy_score:
-                                if display_scale == "custom":
-                                    active_score_key = f"{k}_scaled"
-                                elif display_scale == "normalized_100":
-                                    active_score_key = f"{k}_normalized"
-
-                            target_val = step_data.get(active_score_key)
-                            if target_val is None:
-                                target_val = v
-
-                            if isinstance(target_val, dict):
-                                # Epic 39 / Phase 9: Support V2 nested dict payload (LightweightMatrixOutput)
-                                if display_scale == "custom":
-                                    target_val = target_val.get("raw_score")
-                                elif display_scale == "normalized_100":
-                                    target_val = target_val.get("normalized_score")
-                                else:
-                                    target_val = target_val.get("raw_score")
-
-                                if target_val is None:
-                                    logger.error(
-                                        "Fail-Fast: Expected score key missing from dictionary payload.", exc_info=True
-                                    )
-                                    raise AppException(
-                                        message="Invalid numeric score",
-                                        status_code=400,
-                                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                    )
-
-                            is_matrix_category = block and block.get("category_id") == "matrix"
-                            is_num_type = isinstance(target_val, (int, float)) and not isinstance(target_val, bool)
-                            is_numeric = is_num_type or str(target_val).replace(".", "", 1).isdigit()
-                            score_float = None
-
-                            # Strict Rendering: Only allow float scores to be parsed for Matrix categories
-                            # (or the original global score)
-                            if is_numeric and (is_matrix_category or is_legacy_score):
-                                try:
-                                    if target_val is not None:
-                                        raw_f = float(target_val)
-                                        if display_scale == "normalized_100":
-                                            score_float = float(round(raw_f))
-                                        else:
-                                            # Epic 13: Preserve variations (1 decimal) for custom/original views.
-                                            score_float = float(round(raw_f, 1))
-                                except (ValueError, TypeError) as e:
-                                    logger.error("Failed to parse score to float", exc_info=True)
-                                    raise AppException(
-                                        message=f"Invalid numeric score: {target_val}",
-                                        details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                                        status_code=400,
-                                    ) from e
-
-                            axis_name = step_id if is_legacy_score else k
-                            axis_description = ""
-                            scale_min = 0.0
-                            scale_max = 0.0  # 0.0 cleanly suppresses UI scaling badges if undefined
-                            scale_labels: dict[str, str] = {}
-
-                            if block:
-                                label_obj = block.get("label")
-                                axis_name = _resolve_i18n_str(label_obj, locale, k) or k
-
-                                desc_obj = block.get("description")
-                                axis_description = _resolve_i18n_str(desc_obj, locale, "")
-
-                                # Epic: Strict Math Extrema Anchoring (Zero-Compromise)
-                                semantic_min_str = ""
-                                semantic_max_str = ""
-
-                                if is_matrix_category:
-                                    if block.get("computed_min") is None or block.get("computed_max") is None:
-                                        raise AppException(
-                                            message=f"PromptBlock '{k}' missing Pydantic computed_min/max.",
-                                            status_code=500,
-                                            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                                        )
-                                    scale_min = float(block["computed_min"])
-                                    scale_max = float(block["computed_max"])
-
-                                    scales_def = block.get("scales")
-                                    if not scales_def:
-                                        raise AppException(
-                                            message=f"PromptBlock '{k}' initialized as matrix but has no scales.",
-                                            status_code=500,
-                                            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                                        )
-
-                                    for s in scales_def:
-                                        if "score" not in s:
-                                            raise AppException(
-                                                message=f"Fail-Fast: MatrixScale in block '{k}' missing 'score'.",
-                                                status_code=500,
-                                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                            )
-                                        s_score = float(s["score"])
-                                        s_label_obj = s.get("name")
-                                        if not s_label_obj:
-                                            raise AppException(
-                                                message=f"Fail-Fast: MatrixScale in block '{k}' missing 'name'.",
-                                                status_code=500,
-                                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                            )
-                                        s_label = _resolve_i18n_str(s_label_obj, locale, "")
-                                        cleaned_score = int(s_score) if s_score.is_integer() else s_score
-                                        scale_labels[str(cleaned_score)] = s_label
-
-                                    clean_orig_min = str(int(scale_min) if scale_min.is_integer() else scale_min)
-                                    clean_orig_max = str(int(scale_max) if scale_max.is_integer() else scale_max)
-
-                                    try:
-                                        semantic_min_str = scale_labels[clean_orig_min]
-                                        semantic_max_str = scale_labels[clean_orig_max]
-                                    except KeyError as k_err:
-                                        raise AppException(
-                                            message=f"Matrix extrema '{k_err}' missing scale label.",
-                                            status_code=500,
-                                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                        ) from k_err
-
-                                    # Override boundaries if visual display requires mapping
-                                    if display_scale == "normalized_100":
-                                        scale_min = 0.0
-                                        scale_max = 100.0
-                                        scale_labels = {}  # Purge mapping to prevent disproportionate labeling
-                                    elif display_scale == "custom":
-                                        scale_min_val = block.get("scale_min")
-                                        scale_max_val = block.get("scale_max")
-                                        if scale_min_val is None or scale_max_val is None:
-                                            raise AppException(
-                                                message=f"UI bounds missing for PromptBlock '{k}' under custom scale.",
-                                                status_code=500,
-                                                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                                            )
-                                        scale_min = float(scale_min_val)
-                                        scale_max = float(scale_max_val)
-
-                                # SDUI Logic calculation for Mathless Flutter
-                                ui_plot_ratio = None
-                                ui_boundary_labels = {}
-                                if scale_max > scale_min and score_float is not None:
-                                    ratio = (score_float - scale_min) / (scale_max - scale_min)
-                                    ui_plot_ratio = float(max(0.0, min(1.0, ratio)))
-
-                                    # Use semantic boundaries derived before visual override
-                                    ui_boundary_labels["0.0"] = semantic_min_str
-                                    ui_boundary_labels["1.0"] = semantic_max_str
-
-                                # Collision Avoidance
-                                original_axis_name = axis_name
-                                collision_counter = 1
-                                # Check if name is already present in axes from another block
-                                while any(ext.name == axis_name for ext in unsorted_axes.values()):
-                                    step_node = workflow_steps.get(step_id) or {}
-                                    step_title_obj = step_node.get("name") or step_node.get("title")
-                                    step_title = _resolve_i18n_str(step_title_obj, locale, step_id)
-                                    axis_name = f"{original_axis_name} ({step_title})"
-                                    if any(ext.name == axis_name for ext in unsorted_axes.values()):
-                                        axis_name = f"{original_axis_name} ({step_title} {collision_counter})"
-                                        collision_counter += 1
-
-                                justification: str | None = None
-                                level_breakdown: dict[str, str] | None = None
-                                cited_source_id: str | None = None
-                                cited_text_quote: str | None = None
-                                cited_web_citation: str | None = None
-                                coaching: str | None = None
-                                confidence: Any | None = None
-                                falsification: str | None = None
-                                missing_context: str | None = None
-                                risk_flag: Any | None = None
-                                remediation_steps: Any | None = None
-                                emotional_sentiment: str | None = None
-                                theory_link: str | None = None
-
-                                if text_delivery_mode != "none":
-                                    if is_legacy_score:
-                                        justification = step_data.get("justification")
-                                    else:
-                                        if isinstance(v, dict):
-                                            # Epic 39 / Phase 9: V2 nested dict extraction
-                                            justification = v.get("justification")
-                                            raw_breakdown = v.get("level_breakdown")
-                                            if raw_breakdown and isinstance(raw_breakdown, dict):
-                                                clean_level_dict = {}
-                                                for lvl_key, lvl_data in raw_breakdown.items():
-                                                    if isinstance(lvl_data, dict):
-                                                        try:
-                                                            f_lvl = float(lvl_key)
-                                                            is_int = f_lvl.is_integer()
-                                                            c_key = str(int(f_lvl)) if is_int else str(lvl_key)
-                                                            hits = lvl_data.get("hits", 0)
-                                                            total = lvl_data.get("total", 0)
-                                                            clean_level_dict[c_key] = f"{hits}/{total}"
-                                                        except ValueError:
-                                                            pass
-                                                level_breakdown = clean_level_dict
-                                            ext_dict = v.get("extensions", {})
-                                            cited_source_id = ext_dict.get("source_id")
-                                            cited_text_quote = ext_dict.get("citation")
-                                            cited_web_citation = ext_dict.get("google_citation")
-                                            falsification = ext_dict.get("falsification")
-                                            theory_link = ext_dict.get("theory_link")
-                                            risk_flag = ext_dict.get("risk_flag")
-                                            coaching = ext_dict.get("coaching")
-                                            confidence = ext_dict.get("confidence")
-                                            missing_context = ext_dict.get("missing_context")
-                                            remediation_steps = ext_dict.get("remediation_steps")
-                                            emotional_sentiment = ext_dict.get("emotional_sentiment")
-                                        else:
-                                            # Suffix-based flat key lookup (Legacy Fallback)
-                                            justification = step_data.get(f"{k}_justification")
-
-                                            # Also support legacy fallback parsing if it's stored as JSON string
-                                            raw_legacy_breakdown = step_data.get(f"{k}_level_breakdown")
-                                            if isinstance(raw_legacy_breakdown, str):
-                                                import json
-                                                try:
-                                                    raw_legacy_breakdown = json.loads(raw_legacy_breakdown)
-                                                except json.JSONDecodeError:
-                                                    raw_legacy_breakdown = None
-
-                                            if raw_legacy_breakdown and isinstance(raw_legacy_breakdown, dict):
-                                                clean_level_dict = {}
-                                                for lvl_key, lvl_data in raw_legacy_breakdown.items():
-                                                    if isinstance(lvl_data, dict):
-                                                        try:
-                                                            f_lvl = float(lvl_key)
-                                                            is_int = f_lvl.is_integer()
-                                                            c_key = str(int(f_lvl)) if is_int else str(lvl_key)
-                                                            hits = lvl_data.get("hits", 0)
-                                                            total = lvl_data.get("total", 0)
-                                                            clean_level_dict[c_key] = f"{hits}/{total}"
-                                                        except ValueError:
-                                                            pass
-                                                level_breakdown = clean_level_dict
-
-                                            cited_source_id = step_data.get(f"{k}_cited_source_id")
-                                            cited_text_quote = step_data.get(f"{k}_cited_text_quote")
-                                            cited_web_citation = step_data.get(f"{k}_google_citation")
-                                            falsification = step_data.get(f"{k}_falsification")
-                                            theory_link = step_data.get(f"{k}_theory_link")
-                                            risk_flag = step_data.get(f"{k}_risk_flag")
-                                            coaching = step_data.get(f"{k}_coaching")
-                                            confidence = step_data.get(f"{k}_confidence")
-                                            missing_context = step_data.get(f"{k}_missing_context")
-                                            remediation_steps = step_data.get(f"{k}_remediation_steps")
-                                            emotional_sentiment = step_data.get(f"{k}_emotional_sentiment")
-
-                                # Use a combined key for uniqueness
-                                unique_k = f"{step_id}_{k}"
-                                unsorted_axes[unique_k] = ReportAxisDTO(
-                                    name=axis_name,
-                                    description=axis_description,
-                                    score=score_float,
-                                    justification=justification,
-                                    cited_source_id=cited_source_id,
-                                    cited_text_quote=cited_text_quote,
-                                    cited_web_citation=cited_web_citation,
-                                    coaching=coaching,
-                                    confidence=confidence,
-                                    falsification=falsification,
-                                    missing_context=missing_context,
-                                    risk_flag=risk_flag,
-                                    remediation_steps=remediation_steps,
-                                    emotional_sentiment=emotional_sentiment,
-                                    theory_link=theory_link,
-                                    scale_min=scale_min,
-                                    scale_max=scale_max,
-                                    scale_labels=scale_labels,
-                                    ui_plot_ratio=ui_plot_ratio,
-                                    ui_boundary_labels=ui_boundary_labels,
-                                    level_breakdown=level_breakdown,
-                                )
+                unsorted_axes = all_parsed_matrices
 
                 # Epic 13: Enforce strict 3D Tuple Ordinality (X, Y, Z)
                 # Dictionary iteration is non-deterministic. We MUST sort the extracted axes
@@ -674,6 +584,16 @@ class BlueprintTransformer:
 
             visible_metadata = getattr(profile, "visible_metadata", [])
 
+            # Deterministic Population of global scorecard arrays
+            seen_matrix_ids = set()
+            for axis in all_parsed_matrices.values():
+                if axis.block_id not in seen_matrix_ids:
+                    seen_matrix_ids.add(axis.block_id)
+                    if axis.is_evaluative:
+                        evaluative_matrices.append(axis)
+                    else:
+                        informational_matrices.append(axis)
+
             dto = ReportDataDTO(
                 workflow_id=execution.workflow_id,
                 profile_id=resolved_pid,
@@ -694,6 +614,8 @@ class BlueprintTransformer:
                 mcp_tool_audit=mcp_audit_data,
                 grouped_extensions=grouped_extensions,
                 penalties_applied=penalties_applied,
+                evaluative_matrices=evaluative_matrices,
+                informational_matrices=informational_matrices,
             )
             return dto
         except Exception as e:

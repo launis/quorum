@@ -344,14 +344,20 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                               tooltip: AppLocalizations.of(
                                 context,
                               )!.regenerateProfileTooltip,
-                              onPressed: () {
+                              onPressed: () async {
                                 Navigator.of(ctx).pop();
-                                _clearProfileCache(
+                                await _clearProfileCache(
                                   context,
                                   ref,
                                   executionId,
                                   v,
                                 );
+                                if (ctx.mounted) {
+                                  ExecutionReportRoute(
+                                    executionId: executionId,
+                                    variant: v,
+                                  ).go(context);
+                                }
                               },
                             ),
                             onTap: () {

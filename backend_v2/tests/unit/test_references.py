@@ -13,14 +13,21 @@ async def test_generate_bibliography_hook_success() -> None:
         step_id="step1",
         inputs={"text": "This is a dummy text for testing citations."},
         global_context_vars={"knowledge_base": {"concepts": []}},
-        metadata={}
+        metadata={},
     )
     from unittest.mock import MagicMock
+
     deps = HookDependencies(repository=MagicMock())
 
-    result = await generate_bibliography_hook(state, deps)
+    from collections.abc import Awaitable
+    from typing import cast
+
+    from backend_v2.core.hook_registry import HookResult
+
+    result = await cast(Awaitable[HookResult], generate_bibliography_hook(state, deps))
 
     assert result.success is True
+    assert result.state_delta is not None
     assert "bibliography_result" in result.state_delta
     refs = result.state_delta["bibliography_result"]["references"]
 

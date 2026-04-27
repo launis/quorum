@@ -91,7 +91,7 @@ async def test_synthesis_fails_fast_on_invalid_step_data(
         execution_id="exe_1234567890abcdef1234567890abcdef",
         workflow_id=valid_workflow_data["id"],
         inputs={"step_1": 12345},  # Invalid structured data
-        metadata={"target_locale": "en"},
+        metadata={"target_locale": "en", "step_results": {"step_1": 12345}},
         global_context_vars={},
     )
 
@@ -121,7 +121,7 @@ async def test_synthesis_empty_inputs_returns_early(
         execution_id="exe_1234567890abcdef1234567890abcdef",
         workflow_id=valid_workflow_data["id"],
         inputs={},
-        metadata={"target_locale": "en"},
+        metadata={"target_locale": "en", "step_results": {"dummy_step": {}}},
         global_context_vars={},
     )
 

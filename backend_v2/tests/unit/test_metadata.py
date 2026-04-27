@@ -10,7 +10,11 @@ from backend_v2.hooks.metadata import inject_step_metadata
 def test_inject_step_metadata_empty_state() -> None:
     """Test behavior when state is None."""
     deps = HookDependencies(repository=MagicMock())
-    result = inject_step_metadata(None, deps)  # type: ignore[arg-type]
+    from typing import cast
+
+    from backend_v2.core.hook_registry import HookResult
+
+    result = cast(HookResult, inject_step_metadata(None, deps))  # type: ignore[arg-type]
 
     assert result.success is True
     assert result.state_delta == {}
@@ -18,19 +22,17 @@ def test_inject_step_metadata_empty_state() -> None:
 
 def test_inject_step_metadata_defaults() -> None:
     """Test metadata injection when no IDs or initiator are provided."""
-    state = HookState(
-        execution_id="",
-        workflow_id="",
-        step_id="",
-        inputs={},
-        global_context_vars={},
-        metadata={}
-    )
+    state = HookState(execution_id="", workflow_id="", step_id="", inputs={}, global_context_vars={}, metadata={})
     deps = HookDependencies(repository=MagicMock())
 
-    result = inject_step_metadata(state, deps)
+    from typing import cast
+
+    from backend_v2.core.hook_registry import HookResult
+
+    result = cast(HookResult, inject_step_metadata(state, deps))
 
     assert result.success is True
+    assert result.state_delta is not None
     assert "step_metadata" in result.state_delta
     assert "_audit_signature" in result.state_delta
 
@@ -54,13 +56,18 @@ def test_inject_step_metadata_custom_values() -> None:
         step_id="step_123",
         inputs={},
         global_context_vars={"_sys_initiator_id": "usr_777"},
-        metadata={}
+        metadata={},
     )
     deps = HookDependencies(repository=MagicMock())
 
-    result = inject_step_metadata(state, deps)
+    from typing import cast
+
+    from backend_v2.core.hook_registry import HookResult
+
+    result = cast(HookResult, inject_step_metadata(state, deps))
 
     assert result.success is True
+    assert result.state_delta is not None
     meta = result.state_delta["step_metadata"]
     assert meta["execution_id"] == "exec_555"
     assert meta["workflow_id"] == "wf_999"
@@ -80,7 +87,7 @@ def test_inject_step_metadata_validation_failure() -> None:
         step_id="step_1",
         inputs={},
         global_context_vars={"_sys_initiator_id": 12345},  # Int instead of str
-        metadata={}
+        metadata={},
     )
     deps = HookDependencies(repository=MagicMock())
 

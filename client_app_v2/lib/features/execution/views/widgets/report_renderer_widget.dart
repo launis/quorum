@@ -61,7 +61,11 @@ class ReportRendererWidget extends ConsumerWidget {
           XAIExtensionsBox(groupedExtensions: payload.groupedExtensions),
 
         // Epic 27: Render Independent Matrix Scorecard directly below extensions
-        DiagnosticScorecardWidget(executionId: executionId),
+        DiagnosticScorecardWidget(
+          globalAverage: payload.globalScore,
+          evaluativeMatrices: payload.evaluativeMatrices,
+          informationalMatrices: payload.informationalMatrices,
+        ),
 
         // XAI Evidence Box — only renders when MCP tool searches were executed
         if (payload.mcpToolAudit.isNotEmpty)
@@ -540,29 +544,29 @@ class ReportRendererWidget extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    if (axis.score != null) ...[
-                      const SizedBox(width: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          axis.scaleMax > axis.scaleMin
-                              ? '${axis.score} / ${axis.scaleMax}'
-                              : '${axis.score}',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
+                    const SizedBox(width: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        axis.scaleMax != null &&
+                                axis.scaleMin != null &&
+                                axis.scaleMax! > axis.scaleMin!
+                            ? '${axis.score} / ${axis.scaleMax}'
+                            : '${axis.score}',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
                         ),
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),

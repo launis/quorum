@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:client_app/features/execution/models/report_data_dto.dart';
+import 'package:client_app/features/execution/models/scorecard_dto.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class XAIAxisTelemetryGrid extends StatelessWidget {
-  final ReportAxisDTO axis;
+  final MatrixScorecardRowDto axis;
   final String textDeliveryMode;
   final bool showQuote;
 
@@ -47,8 +47,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
   }
 
   Widget _buildMainContent(BuildContext context) {
-    final hasJustification =
-        axis.justification != null && axis.justification!.trim().isNotEmpty;
+    final hasJustification = axis.justification.trim().isNotEmpty;
     final hasQuote = showQuote;
     final hasWebCitation =
         axis.citedWebCitation != null && axis.citedWebCitation!.isNotEmpty;
@@ -67,7 +66,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
       children: [
         if (hasJustification)
           Text(
-            axis.justification!,
+            axis.justification,
             style: const TextStyle(fontSize: 14, color: Colors.black87),
           ),
         if (hasQuote)
@@ -222,7 +221,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
       boxes.add(
         _buildBox(
           title: l10n.reportRemediationStepsTitle,
-          content: '- ${axis.remediationSteps!.join('\\n- ')}',
+          content: axis.remediationSteps!,
           color: Colors.teal,
         ),
       );

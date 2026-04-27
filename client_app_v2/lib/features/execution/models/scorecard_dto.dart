@@ -28,17 +28,39 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory MatrixScorecardRowDto({
     @JsonKey(name: 'block_id') required String blockId,
+    required String name,
     @JsonKey(name: 'label_fi') required String labelFi,
     @JsonKey(name: 'label_en') required String labelEn,
+    String? description,
     required double score,
+    @JsonKey(name: 'scale_min') double? scaleMin,
     @JsonKey(name: 'scale_max') double? scaleMax,
     @JsonKey(name: 'normalized_score') double? normalizedScore,
     @JsonKey(name: 'true_atoms') int? trueAtoms,
     @JsonKey(name: 'total_atoms') int? totalAtoms,
     @Default('') String justification,
-    @JsonKey(name: 'missing_context') @Default('') String missingContext,
-    @JsonKey(name: 'level_breakdown')
-    Map<String, Map<String, int>>? levelBreakdown,
+
+    @JsonKey(name: 'cited_source_id') String? citedSourceId,
+    @JsonKey(name: 'cited_text_quote') String? citedTextQuote,
+    @JsonKey(name: 'cited_web_citation') String? citedWebCitation,
+
+    // Epic 6: XAI Output Extensions
+    String? coaching,
+    double? confidence,
+    String? falsification,
+    @JsonKey(name: 'missing_context') String? missingContext,
+    @JsonKey(name: 'risk_flag') bool? riskFlag,
+    @JsonKey(name: 'remediation_steps') String? remediationSteps,
+    @JsonKey(name: 'emotional_sentiment') String? emotionalSentiment,
+    @JsonKey(name: 'theory_link') String? theoryLink,
+
+    @JsonKey(name: 'level_breakdown') Map<String, String>? levelBreakdown,
+    @JsonKey(name: 'level_names') Map<String, String>? levelNames,
+
+    @JsonKey(name: 'ui_boundary_labels') Map<String, String>? uiBoundaryLabels,
+
+    @JsonKey(name: 'ui_plot_ratio') double? uiPlotRatio,
+
     @JsonKey(name: 'is_evaluative') @Default(true) bool isEvaluative,
   }) = _MatrixScorecardRowDto;
 

@@ -6,143 +6,6 @@ part of 'report_data_dto.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_ReportAxisDTO _$ReportAxisDTOFromJson(
-  Map<String, dynamic> json,
-) => $checkedCreate(
-  '_ReportAxisDTO',
-  json,
-  ($checkedConvert) {
-    $checkKeys(
-      json,
-      allowedKeys: const [
-        'name',
-        'description',
-        'score',
-        'justification',
-        'cited_source_id',
-        'cited_text_quote',
-        'cited_web_citation',
-        'coaching',
-        'confidence',
-        'falsification',
-        'missing_context',
-        'risk_flag',
-        'remediation_steps',
-        'emotional_sentiment',
-        'theory_link',
-        'scale_min',
-        'scale_max',
-        'scale_labels',
-        'ui_plot_ratio',
-        'ui_boundary_labels',
-        'level_breakdown',
-      ],
-    );
-    final val = _ReportAxisDTO(
-      name: $checkedConvert('name', (v) => v as String),
-      description: $checkedConvert('description', (v) => v as String?),
-      score: $checkedConvert('score', (v) => (v as num?)?.toDouble()),
-      justification: $checkedConvert('justification', (v) => v as String?),
-      citedSourceId: $checkedConvert('cited_source_id', (v) => v as String?),
-      citedTextQuote: $checkedConvert('cited_text_quote', (v) => v as String?),
-      citedWebCitation: $checkedConvert(
-        'cited_web_citation',
-        (v) => v as String?,
-      ),
-      coaching: $checkedConvert('coaching', (v) => v as String?),
-      confidence: $checkedConvert('confidence', (v) => (v as num?)?.toDouble()),
-      falsification: $checkedConvert('falsification', (v) => v as String?),
-      missingContext: $checkedConvert('missing_context', (v) => v as String?),
-      riskFlag: $checkedConvert('risk_flag', (v) => v as bool?),
-      remediationSteps: $checkedConvert(
-        'remediation_steps',
-        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
-      ),
-      emotionalSentiment: $checkedConvert(
-        'emotional_sentiment',
-        (v) => v as String?,
-      ),
-      theoryLink: $checkedConvert('theory_link', (v) => v as String?),
-      scaleMin: $checkedConvert(
-        'scale_min',
-        (v) => (v as num?)?.toDouble() ?? 0.0,
-      ),
-      scaleMax: $checkedConvert(
-        'scale_max',
-        (v) => (v as num?)?.toDouble() ?? 6.0,
-      ),
-      scaleLabels: $checkedConvert(
-        'scale_labels',
-        (v) =>
-            (v as Map<String, dynamic>?)?.map(
-              (k, e) => MapEntry(k, e as String),
-            ) ??
-            const {},
-      ),
-      uiPlotRatio: $checkedConvert(
-        'ui_plot_ratio',
-        (v) => (v as num?)?.toDouble(),
-      ),
-      uiBoundaryLabels: $checkedConvert(
-        'ui_boundary_labels',
-        (v) =>
-            (v as Map<String, dynamic>?)?.map(
-              (k, e) => MapEntry(k, e as String),
-            ) ??
-            const {},
-      ),
-      levelBreakdown: $checkedConvert(
-        'level_breakdown',
-        (v) => (v as Map<String, dynamic>?)?.map(
-          (k, e) => MapEntry(k, e as String),
-        ),
-      ),
-    );
-    return val;
-  },
-  fieldKeyMap: const {
-    'citedSourceId': 'cited_source_id',
-    'citedTextQuote': 'cited_text_quote',
-    'citedWebCitation': 'cited_web_citation',
-    'missingContext': 'missing_context',
-    'riskFlag': 'risk_flag',
-    'remediationSteps': 'remediation_steps',
-    'emotionalSentiment': 'emotional_sentiment',
-    'theoryLink': 'theory_link',
-    'scaleMin': 'scale_min',
-    'scaleMax': 'scale_max',
-    'scaleLabels': 'scale_labels',
-    'uiPlotRatio': 'ui_plot_ratio',
-    'uiBoundaryLabels': 'ui_boundary_labels',
-    'levelBreakdown': 'level_breakdown',
-  },
-);
-
-Map<String, dynamic> _$ReportAxisDTOToJson(_ReportAxisDTO instance) =>
-    <String, dynamic>{
-      'name': instance.name,
-      'description': instance.description,
-      'score': instance.score,
-      'justification': instance.justification,
-      'cited_source_id': instance.citedSourceId,
-      'cited_text_quote': instance.citedTextQuote,
-      'cited_web_citation': instance.citedWebCitation,
-      'coaching': instance.coaching,
-      'confidence': instance.confidence,
-      'falsification': instance.falsification,
-      'missing_context': instance.missingContext,
-      'risk_flag': instance.riskFlag,
-      'remediation_steps': instance.remediationSteps,
-      'emotional_sentiment': instance.emotionalSentiment,
-      'theory_link': instance.theoryLink,
-      'scale_min': instance.scaleMin,
-      'scale_max': instance.scaleMax,
-      'scale_labels': instance.scaleLabels,
-      'ui_plot_ratio': instance.uiPlotRatio,
-      'ui_boundary_labels': instance.uiBoundaryLabels,
-      'level_breakdown': instance.levelBreakdown,
-    };
-
 _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
     $checkedCreate(
       '_ReportLayoutDTO',
@@ -182,7 +45,9 @@ _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
             (v) =>
                 (v as List<dynamic>?)
                     ?.map(
-                      (e) => ReportAxisDTO.fromJson(e as Map<String, dynamic>),
+                      (e) => MatrixScorecardRowDto.fromJson(
+                        e as Map<String, dynamic>,
+                      ),
                     )
                     .toList() ??
                 const [],
@@ -318,6 +183,8 @@ _ReportDataDTO _$ReportDataDTOFromJson(
         'visible_metadata',
         'grouped_extensions',
         'penalties_applied',
+        'evaluative_matrices',
+        'informational_matrices',
       ],
     );
     final val = _ReportDataDTO(
@@ -402,6 +269,28 @@ _ReportDataDTO _$ReportDataDTOFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
+      evaluativeMatrices: $checkedConvert(
+        'evaluative_matrices',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) =>
+                      MatrixScorecardRowDto.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
+      ),
+      informationalMatrices: $checkedConvert(
+        'informational_matrices',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) =>
+                      MatrixScorecardRowDto.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
+      ),
     );
     return val;
   },
@@ -424,6 +313,8 @@ _ReportDataDTO _$ReportDataDTOFromJson(
     'visibleMetadata': 'visible_metadata',
     'groupedExtensions': 'grouped_extensions',
     'penaltiesApplied': 'penalties_applied',
+    'evaluativeMatrices': 'evaluative_matrices',
+    'informationalMatrices': 'informational_matrices',
   },
 );
 
@@ -450,4 +341,10 @@ Map<String, dynamic> _$ReportDataDTOToJson(_ReportDataDTO instance) =>
       'visible_metadata': instance.visibleMetadata,
       'grouped_extensions': instance.groupedExtensions,
       'penalties_applied': instance.penaltiesApplied,
+      'evaluative_matrices': instance.evaluativeMatrices
+          .map((e) => e.toJson())
+          .toList(),
+      'informational_matrices': instance.informationalMatrices
+          .map((e) => e.toJson())
+          .toList(),
     };

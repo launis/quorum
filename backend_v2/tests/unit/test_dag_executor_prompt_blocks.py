@@ -15,7 +15,8 @@ def mock_repo() -> Any:
 
     repo.get_all_prompt_blocks.return_value = [
         {
-            "id": "blk_blocktest1",
+            "id": "blk_0123456789abcdef0123456789ab",
+            "slug": "task_bp",
             "label": {"default_locale": "fi", "translations": {"fi": "Testi", "en": "Test"}},
             "description": {"default_locale": "fi", "translations": {"fi": "Kuvaus", "en": "Desc"}},
             "category_id": "test",
@@ -24,14 +25,15 @@ def mock_repo() -> Any:
             "output_extensions": [],
         }
     ]
-    repo.get_step_by_id.return_value = {
+    repo.get_step.return_value = {
         "id": "step_1111111111111111",
         "slug": "task_bp",
         "name": {"default_locale": "fi", "translations": {"fi": "Vaihe", "en": "Step"}},
-        "prompt_blocks": ["blk_blocktest1"],
+        "prompt_blocks": ["blk_0123456789abcdef0123456789ab"],
         "model_strategy": "fast",
         "pre_hooks": [],
     }
+    repo.get_step_by_id.return_value = repo.get_step.return_value
     repo.get_workflow.return_value = {
         "id": "wf_5555555555555555",
         "slug": "wf_test_slug",

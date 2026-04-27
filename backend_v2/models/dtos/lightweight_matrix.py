@@ -1,4 +1,6 @@
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
 
 from backend_v2.models.enums import XaiExtensionType
 
@@ -22,6 +24,25 @@ class LightweightMatrixOutput(BaseModel):
     extensions: dict[XaiExtensionType, str]
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    @model_validator(mode="before")
+    @classmethod
+    def parse_db_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "extensions" in data:
+            exts = data["extensions"]
+            if isinstance(exts, dict):
+                new_exts: dict[Any, Any] = {}
+                for k, v in exts.items():
+                    if isinstance(k, str):
+                        try:
+                            new_exts[XaiExtensionType(k)] = v
+                        except ValueError:
+                            # If it's an invalid enum value, let strict validation catch it later or ignore
+                            new_exts[k] = v
+                    else:
+                        new_exts[k] = v
+                data["extensions"] = new_exts
+        return data
 
 
 class MicroCotDTO(BaseModel):

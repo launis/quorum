@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/execution/models/scorecard_dto.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// Renders a single matrix row enforcing the Zero-Math UI mandate.
 class MatrixRowItemWidget extends StatelessWidget {
@@ -35,17 +36,29 @@ class MatrixRowItemWidget extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  matrix.labelFi,
+                  (Localizations.localeOf(context).languageCode == 'fi'
+                          ? matrix.labelFi
+                          : matrix.labelEn) +
+                      (isEval ? ' *' : ''),
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: isEval ? FontWeight.bold : FontWeight.w600,
                   ),
                 ),
                 if (matrix.justification.isNotEmpty) ...[
-                  const SizedBox(height: 4.0),
+                  const SizedBox(height: 8.0),
+                  Text(
+                    AppLocalizations.of(context)!.xaiJustification,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 2.0),
                   Text(
                     matrix.justification,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
                 ],
@@ -59,21 +72,20 @@ class MatrixRowItemWidget extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: [
+              Text(
+                '${matrix.score.toStringAsFixed(1)} / ${matrix.scaleMax?.toStringAsFixed(1) ?? '-'}',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               if (matrix.normalizedScore != null)
                 Text(
-                  '${matrix.normalizedScore!.toStringAsFixed(1)} / ${matrix.scaleMax?.toStringAsFixed(1) ?? '1.0'}',
+                  '${matrix.normalizedScore!.toStringAsFixed(1)} %',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: isEval
                         ? theme.colorScheme.primary
                         : theme.colorScheme.secondary,
-                  ),
-                )
-              else
-                Text(
-                  matrix.score.toStringAsFixed(1),
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
               if (matrix.trueAtoms != null &&
@@ -96,36 +108,14 @@ class MatrixRowItemWidget extends StatelessWidget {
     final theme = Theme.of(context);
     final levelMap = matrix.levelBreakdown ?? {};
 
-    // lue_tulokset.py shows T1..T6 explicitly.
-    final keys = ['1', '2', '3', '4', '5', '6'];
+    // Epic 24: Dynamic level rendering instead of hardcoded 1-6
+    final keys = levelMap.keys.toList()..sort();
 
     return Wrap(
       spacing: 8.0,
       runSpacing: 4.0,
       children: keys.map((k) {
-        String display = '-';
-
-        // Trace keys can be '1' or '1.0' depending on how they were dumped
-        final floatKey = '$k.0';
-        final hasKey =
-            levelMap.containsKey(k) || levelMap.containsKey(floatKey);
-
-        if (hasKey) {
-          final stats = levelMap[k] ?? levelMap[floatKey];
-          if (stats is Map) {
-            final hits = stats?['hits'] ?? stats?['true_atoms'] ?? 0;
-            final total = stats?['total'] ?? stats?['total_atoms'] ?? 0;
-            display = '$hits/$total';
-          } else {
-            display = stats.toString();
-          }
-        } else if (k == '1' &&
-            levelMap.isEmpty &&
-            matrix.trueAtoms != null &&
-            matrix.totalAtoms != null) {
-          // Fallback exactly like lue_tulokset.py: if no level dict, put total atoms in T1
-          display = '${matrix.trueAtoms}/${matrix.totalAtoms}';
-        }
+        final display = levelMap[k]!;
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
@@ -138,7 +128,7 @@ class MatrixRowItemWidget extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'T$k',
+                matrix.levelNames?[k] ?? 'T$k',
                 style: theme.textTheme.labelSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),

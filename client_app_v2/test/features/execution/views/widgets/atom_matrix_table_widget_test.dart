@@ -14,14 +14,12 @@ void main() {
         blockId: 'block_1',
         labelFi: 'Kognitio',
         labelEn: 'Cognition',
+        name: 'Cognition',
         score: 3.5,
         scaleMax: 5.0,
         trueAtoms: 5,
         totalAtoms: 10,
-        levelBreakdown: {
-          'Level 1': {'true_atoms': 3, 'total_atoms': 5},
-          'Level 2': {'true_atoms': 2, 'total_atoms': 5},
-        },
+        levelBreakdown: {'Level 1': '3 / 5', 'Level 2': '2 / 5'},
       ),
     ];
 
@@ -57,13 +55,12 @@ void main() {
           blockId: 'block_1',
           labelFi: 'Kognitio',
           labelEn: 'Cognition',
+          name: 'Cognition',
           score: 3.5,
           scaleMax: 5.0,
           trueAtoms: 5,
           totalAtoms: 10,
-          levelBreakdown: {
-            'Level 1': {'true_atoms': 3, 'total_atoms': 5},
-          },
+          levelBreakdown: {'Level 1': '3 / 5'},
         ),
       ];
 
@@ -104,6 +101,7 @@ void main() {
           blockId: 'block_1',
           labelFi: 'Kognitio',
           labelEn: 'Cognition',
+          name: 'Cognition',
           score: 3.5,
         ),
       ];

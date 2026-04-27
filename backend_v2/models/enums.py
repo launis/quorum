@@ -117,10 +117,10 @@ class SystemConcurrency(int, Enum):
     """Global concurrency limits for DAG Execution to prevent API Rate Limits."""
 
     MAX_CONCURRENT_WORKFLOWS = 1
-    MAX_CONCURRENT_LLM_STEPS = 2  # Pakotettu arvoon 1, koska havaitsimme absoluuttisen 5 RPM rajan!
+    MAX_CONCURRENT_LLM_STEPS = 2
     LLM_MAX_RETRIES = 6
-    LLM_MAX_CHUNK_SIZE = 60  # Pidetään isona (60), jotta minimoidaan erillisten pyyntöjen määrä
-    MATRIX_SAMPLING_LIMIT = 0  # Kaikki data prosessoidaan
+    LLM_MAX_CHUNK_SIZE = 60
+    MATRIX_SAMPLING_LIMIT = 5
     LLM_DEFAULT_TIMEOUT_SECONDS = 300
     RATE_LIMIT_COOLDOWN_SECONDS = 65
     MAX_SAFE_TOKENS = 100000

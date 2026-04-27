@@ -30,7 +30,13 @@ def base_state() -> HookState:
             "step_2": {"locale": "en"},
         },
         global_context_vars={"language": "en"},
-        metadata={"target_locale": "en"},
+        metadata={
+            "target_locale": "en",
+            "step_results": {
+                "step_1": {"reasoning_trace": "test text abc@example.com"},
+                "step_2": {"locale": "en"},
+            },
+        },
     )
 
 
@@ -117,7 +123,7 @@ async def test_synthesis_hook_success(
     )
     assert "Always be concise." in sys_msg.get("content", "")
 
-    assert delta["synthesized_markdown"] == "Synthesized [1]\n\n### References\n[1] source1"
+    assert delta["synthesized_markdown"] == "Synthesized [1]\n\n### BIBLIOGRAPHY_HEADER\n[1] source1"
     assert delta["cited_sources"] == ["source1"]
     assert "token_usage" in delta["step_metadata_updates"]
     assert delta["step_metadata_updates"]["token_usage"]["total_tokens"] == 100
@@ -266,7 +272,15 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
                 "step_1": {"reasoning_trace": "AI says hello"},
                 "step_2": {"result": 1337},
                 "step_3": {"value": "this should be blocked by wildcard"},
-            }
+            },
+            "metadata": {
+                "target_locale": "en",
+                "step_results": {
+                    "step_1": {"reasoning_trace": "AI says hello"},
+                    "step_2": {"result": 1337},
+                    "step_3": {"value": "this should be blocked by wildcard"},
+                },
+            },
         }
     )
 
@@ -393,6 +407,7 @@ async def test_synthesis_hook_historical_context_mode(
         update={
             "inputs": {"step_1": {"reasoning_trace": "AI says hello"}},
             "global_context_vars": {"user_id": "usr_123"},
+            "metadata": {"target_locale": "en", "step_results": {"step_1": {"reasoning_trace": "AI says hello"}}},
         }
     )
 

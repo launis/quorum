@@ -12,7 +12,7 @@ from math import pi
 import matplotlib
 import matplotlib.pyplot as plt
 
-from backend_v2.models.v2_core import ReportAxisDTO
+from backend_v2.models.v2_core import MatrixScorecardRowDTO
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 matplotlib.use("Agg")
 
 
-def generate_scatter_chart(axes: list[ReportAxisDTO]) -> str:
+def generate_scatter_chart(axes: list[MatrixScorecardRowDTO]) -> str:
     """Generate a Cartesian 2D scatter matrix plot from the provided axes.
 
     Strict parity with Flutter's LogicMatrixChart.
@@ -62,8 +62,16 @@ def generate_scatter_chart(axes: list[ReportAxisDTO]) -> str:
 
     ax.scatter([x_val], [y_val], s=area, c="#2196F3", alpha=0.7, edgecolors="#0D47A1", linewidths=2)
 
-    ax.set_xlim(x_min, x_max + (x_max - x_min) * 0.05)
-    ax.set_ylim(y_min, y_max + (y_max - y_min) * 0.05)
+    import math
+
+    x_range = x_max - x_min
+    x_margin = math.pow(10, math.floor(math.log10(max(1.0, x_range - 0.001))))
+
+    y_range = y_max - y_min
+    y_margin = math.pow(10, math.floor(math.log10(max(1.0, y_range - 0.001))))
+
+    ax.set_xlim(x_min - x_margin, x_max + x_margin)
+    ax.set_ylim(y_min - y_margin, y_max + y_margin)
 
     x_mid = (x_min + x_max) / 2
     y_mid = (y_min + y_max) / 2
@@ -84,7 +92,7 @@ def generate_scatter_chart(axes: list[ReportAxisDTO]) -> str:
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
-def generate_radar_chart(axes: list[ReportAxisDTO]) -> str:
+def generate_radar_chart(axes: list[MatrixScorecardRowDTO]) -> str:
     """Generate a polar 3D Radar chart for N-dimensional datasets.
 
     Strict parity with Flutter's RadarChart layout block.

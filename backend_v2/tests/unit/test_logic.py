@@ -7,7 +7,7 @@ from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 
 
 @pytest.mark.asyncio
-async def test_logic_strategy_missing_blueprint():
+async def test_logic_strategy_missing_blueprint() -> None:
     repo = MagicMock()
     compiler = MagicMock()
     strategy = LogicNodeStrategy(repo, compiler)

@@ -12,6 +12,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.report import (
     AuditQuestionItem,
+    GlobalContextVarsDTO,
     ReportContextDTO,
     ReportSynthesisDTO,
     ScoreItem,
@@ -72,9 +73,34 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
             details={"error_code": error_code},
         )
 
-    # 3. ENFORCE PARSING WITH DTO
+    # 3. ENFORCE PARSING WITH DTO (Explicit Routing to satisfy extra="forbid")
+    matrices_dict = {}
+    for k, v in inputs.items():
+        if isinstance(v, dict) and "normalized_score" in v and "justification" in v:
+            try:
+                # We can safely parse it because scoring hook provides evaluated_atoms
+                matrix_dto = LightweightMatrixOutput.model_validate(v)
+                matrices_dict[k] = {
+                    "normalized_score": matrix_dto.normalized_score,
+                    "raw_result": v.get("raw_result", ""),
+                    "justification": matrix_dto.justification,
+                }
+            except ValidationError:
+                continue
+
+    observability_inputs = {
+        "true_atoms_count": inputs.get("true_atoms_count", 0),
+        "false_atoms_count": inputs.get("false_atoms_count", 0),
+        "matrices": matrices_dict,
+    }
+
+    filtered_gvars = {}
+    for k, v in state.global_context_vars.items():
+        if k in GlobalContextVarsDTO.model_fields:
+            filtered_gvars[k] = v
+
     try:
-        dto = ReportSynthesisDTO.model_validate({"inputs": inputs, "global_context_vars": state.global_context_vars})
+        dto = ReportSynthesisDTO.model_validate({"inputs": observability_inputs, "global_context_vars": filtered_gvars})
     except ValidationError as e:
         logger.error("[ReportingHook] Validation failed: %s", e)
         raise AppException(

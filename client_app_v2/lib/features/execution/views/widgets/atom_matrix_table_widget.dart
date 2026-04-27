@@ -32,7 +32,7 @@ class AtomMatrixTableWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              l10n.atomicBreakdownTitle,
+              l10n.scorecard_matrix_summary,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -47,6 +47,16 @@ class AtomMatrixTableWidget extends StatelessWidget {
                   ? _buildMobileList(context, tableMatrices, theme)
                   : _buildDataTable(context, tableMatrices, theme),
             ),
+            if (tableMatrices.any((m) => m.isEvaluative)) ...[
+              const SizedBox(height: 8),
+              Text(
+                l10n.matrixEvaluativeAsteriskLegend,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ],
         );
       },
@@ -59,57 +69,123 @@ class AtomMatrixTableWidget extends StatelessWidget {
     ThemeData theme,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    // Extract unique levels across all matrices to build columns
-    final allLevels = <String>{};
-    for (var m in tableMatrices) {
-      allLevels.addAll(m.levelBreakdown!.keys);
-    }
-    final sortedLevels = allLevels.toList()..sort();
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        headingRowColor: WidgetStatePropertyAll(
-          theme.colorScheme.surfaceContainerHighest,
-        ),
-        columns: [
-          DataColumn(label: Text(l10n.lblLogicMatrix)),
-          DataColumn(label: Text(l10n.score)),
-          ...sortedLevels.map((lvl) => DataColumn(label: Text(lvl))),
-        ],
-        rows: tableMatrices.map((m) {
-          final levelMap = m.levelBreakdown!;
-          return DataRow(
-            cells: [
-              DataCell(
-                SizedBox(
-                  width: 200,
-                  child: Text(
-                    m.labelFi, // Or locale selected...
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-              DataCell(
-                Text(
-                  (m.trueAtoms != null && m.totalAtoms != null)
-                      ? '${m.trueAtoms} / ${m.totalAtoms}'
-                      : '-',
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          color: theme.colorScheme.surfaceContainerHighest,
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  l10n.lblLogicMatrix,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
-              ...sortedLevels.map((lvl) {
-                final stats = levelMap[lvl];
-                if (stats == null) return const DataCell(Text('-'));
-                final hits = stats['hits'] ?? stats['true_atoms'] ?? 0;
-                final total = stats['total'] ?? stats['total_atoms'] ?? 0;
-                return DataCell(Text('$hits / $total'));
-              }),
+              Expanded(
+                flex: 1,
+                child: Text(
+                  l10n.score,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  l10n.scorecard_matrix_summary,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                flex: 4,
+                child: Text(
+                  l10n.xaiJustification,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              const Expanded(
+                flex: 1,
+                child: Text(
+                  '100 %',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
+          ),
+        ),
+        const Divider(height: 1),
+        ...tableMatrices.map((m) {
+          final levelMap = m.levelBreakdown!;
+          final levelNames = m.levelNames ?? {};
+          final sortedLevels = levelMap.keys.toList()..sort();
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    (Localizations.localeOf(context).languageCode == 'fi'
+                            ? m.labelFi
+                            : m.labelEn) +
+                        (m.isEvaluative ? ' *' : ''),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    '${m.score.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: sortedLevels.map((lvl) {
+                      final display = levelMap[lvl]!;
+                      final name = levelNames[lvl] ?? 'T$lvl';
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 2.0),
+                        child: Text(
+                          '$name: $display',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: Text(
+                    m.justification,
+                    style: const TextStyle(fontStyle: FontStyle.italic),
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    m.normalizedScore != null
+                        ? '${m.normalizedScore!.toStringAsFixed(1)} %'
+                        : '-',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           );
-        }).toList(),
-      ),
+        }).expand((widget) => [widget, const Divider(height: 1)]).toList()..removeLast(),
+      ],
     );
   }
 
@@ -130,23 +206,46 @@ class AtomMatrixTableWidget extends StatelessWidget {
 
         return ExpansionTile(
           title: Text(
-            m.labelFi,
+            (Localizations.localeOf(context).languageCode == 'fi'
+                    ? m.labelFi
+                    : m.labelEn) +
+                (m.isEvaluative ? ' *' : ''),
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          subtitle: Text(
-            (m.trueAtoms != null && m.totalAtoms != null)
-                ? '${l10n.score}: ${m.trueAtoms} / ${m.totalAtoms}'
-                : '',
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${l10n.score}: ${m.score.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
+              ),
+              if (m.normalizedScore != null)
+                Text(
+                  '100 %: ${m.normalizedScore!.toStringAsFixed(1)} %',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+              if (m.justification.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  m.justification,
+                  style: const TextStyle(
+                    fontStyle: FontStyle.italic,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ],
           ),
           children: sortedLevels.map((lvl) {
-            final stats = m.levelBreakdown![lvl]!;
-            final hits = stats['hits'] ?? stats['true_atoms'] ?? 0;
-            final total = stats['total'] ?? stats['total_atoms'] ?? 0;
+            final display = m.levelBreakdown![lvl]!;
+            final name = m.levelNames?[lvl] ?? 'T$lvl';
             return ListTile(
               dense: true,
-              title: Text(lvl),
+              title: Text(name),
               trailing: Text(
-                '$hits / $total',
+                display,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             );

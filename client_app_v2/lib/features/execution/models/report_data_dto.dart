@@ -5,47 +5,10 @@ import 'dart:isolate';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/features/execution/models/scorecard_dto.dart';
 
 part 'report_data_dto.freezed.dart';
 part 'report_data_dto.g.dart';
-
-/// Strictly typed DTO for a single reporting axis (e.g., metric, category).
-/// Enforces Fail-Fast parsing preventing dynamic type errors via json_serializable.
-@Freezed(equal: false)
-abstract class ReportAxisDTO with _$ReportAxisDTO {
-  @JsonSerializable(disallowUnrecognizedKeys: true)
-  const factory ReportAxisDTO({
-    required String name,
-    String? description,
-    double? score,
-    String? justification,
-    @JsonKey(name: 'cited_source_id') String? citedSourceId,
-    @JsonKey(name: 'cited_text_quote') String? citedTextQuote,
-    @JsonKey(name: 'cited_web_citation') String? citedWebCitation,
-
-    // Epic 6: XAI Output Extensions
-    String? coaching,
-    double? confidence,
-    String? falsification,
-    @JsonKey(name: 'missing_context') String? missingContext,
-    @JsonKey(name: 'risk_flag') bool? riskFlag,
-    @JsonKey(name: 'remediation_steps') List<String>? remediationSteps,
-    @JsonKey(name: 'emotional_sentiment') String? emotionalSentiment,
-    @JsonKey(name: 'theory_link') String? theoryLink,
-
-    @JsonKey(name: 'scale_min') @Default(0.0) double scaleMin,
-    @JsonKey(name: 'scale_max') @Default(6.0) double scaleMax,
-    @JsonKey(name: 'scale_labels') @Default({}) Map<String, String> scaleLabels,
-    @JsonKey(name: 'ui_plot_ratio') double? uiPlotRatio,
-    @JsonKey(name: 'ui_boundary_labels')
-    @Default({})
-    Map<String, String> uiBoundaryLabels,
-    @JsonKey(name: 'level_breakdown') Map<String, String>? levelBreakdown,
-  }) = _ReportAxisDTO;
-
-  factory ReportAxisDTO.fromJson(Map<String, dynamic> json) =>
-      _$ReportAxisDTOFromJson(json);
-}
 
 /// Strictly typed DTO representing a single layout block dynamically defining how to render axes.
 /// Note: Added synthesis field to prevent checked JSON parsing errors.
@@ -57,7 +20,7 @@ abstract class ReportLayoutDTO with _$ReportLayoutDTO {
     @JsonKey(name: 'matrix_type') String? matrixType,
     I18nText? title,
     I18nText? description,
-    @Default([]) List<ReportAxisDTO> axes,
+    @Default([]) List<MatrixScorecardRowDto> axes,
     @JsonKey(name: 'text_delivery_mode') required String textDeliveryMode,
     Map<String, dynamic>? synthesis,
     @JsonKey(name: 'synthesis_md') String? synthesisMd,
@@ -123,6 +86,12 @@ abstract class ReportDataDTO with _$ReportDataDTO {
     @JsonKey(name: 'penalties_applied')
     @Default([])
     List<String> penaltiesApplied,
+    @JsonKey(name: 'evaluative_matrices')
+    @Default([])
+    List<MatrixScorecardRowDto> evaluativeMatrices,
+    @JsonKey(name: 'informational_matrices')
+    @Default([])
+    List<MatrixScorecardRowDto> informationalMatrices,
   }) = _ReportDataDTO;
 
   factory ReportDataDTO.fromJson(Map<String, dynamic> json) =>

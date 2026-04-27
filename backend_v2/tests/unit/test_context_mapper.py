@@ -1,3 +1,4 @@
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -18,7 +19,7 @@ def test_context_mapper_fail_fast_on_dict() -> None:
     with pytest.raises(AppException) as exc_info:
         ContextMapper.build_ordinal_mapping(
             target_blocks=["blk_1"],
-            all_blocks=[{"id": "blk_1"}]  # type: ignore
+            all_blocks=cast(Any, [{"id": "blk_1"}]),
         )
     assert exc_info.value.status_code == 500
     assert "Internal compilation error" in str(exc_info.value.message)
@@ -41,10 +42,7 @@ def test_context_mapper_valid_blocks() -> None:
     b3.computed_min = None
     b3.computed_max = None
 
-    result = ContextMapper.build_ordinal_mapping(
-        target_blocks=["blk_1", "blk_3"],
-        all_blocks=[b1, b2, b3]
-    )
+    result = ContextMapper.build_ordinal_mapping(target_blocks=["blk_1", "blk_3"], all_blocks=[b1, b2, b3])
 
     assert "=== TARGET DATA MAPPING" in result
     assert "1. Target Data Element -> ID: blk_1 (Absolute Scale Limits: 1.0 to 5.0)" in result

@@ -37,6 +37,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Force UTF-8 encoding for stdout to support emojis on Windows
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 def run_tests_with_strict_coverage(target):
     print("🚀 Verifying Strict 30% TDD Coverage...")
     

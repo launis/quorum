@@ -99,6 +99,17 @@ class NodeExecutor:
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
 
+            # Rule 3: Fail-Fast variable resolution & Orphaned Step prevention
+            from backend_v2.services.orchestrator.context_router import ContextRouter
+
+            normalized_mappings = {}
+            for logical_name, path in step.input_mappings.items():
+                normalized_path = ContextRouter.normalize_and_validate_variable(path, projector.snapshot)
+                normalized_mappings[logical_name] = normalized_path
+
+            # Immutable freeze via model_copy
+            step = step.model_copy(update={"input_mappings": normalized_mappings})
+
             from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext
             from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
             from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
@@ -129,6 +140,10 @@ class NodeExecutor:
             )
             return emitted_events
 
+        except AppException as ae:
+            # Rule 3: Fail-Fast -> Crash loudly, don't swallow into ErrorTraceEvent
+            logger.error("[NodeExecutor] Fail-Fast Exception for step %s: %s", step.id, str(ae))
+            raise
         except Exception as e:
             logger.error("[NodeExecutor] Dual-Reporting Exception for step %s: %s", step.id, str(e), exc_info=True)
             return [

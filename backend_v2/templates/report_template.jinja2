@@ -134,12 +134,6 @@
 
             {% if layout.synthesis_md %}
             <div class="justify-box" style="margin-bottom: 20px; border-left: 4px solid #4CAF50; background-color: #F1F8E9;">
-                {% if layout.synthesis and layout.synthesis.preamble_text %}
-                    {% set section_synthesis_title = layout.synthesis.preamble_text.get('fi', layout.synthesis.preamble_text.get('en', '')) %}
-                    {% if section_synthesis_title %}
-                        <h3 style="margin: 0 0 8px 0; color: #2E7D32; font-size: 14px;">{{ section_synthesis_title }}</h3>
-                    {% endif %}
-                {% endif %}
                 <div style="font-size: 12px; color: #333; line-height: 1.5;">{{ layout.synthesis_md | md | safe }}</div>
             </div>
             {% endif %}
@@ -351,23 +345,18 @@
             <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; background-color: #fff; border: 1px solid #e0e0e0;">
                 <thead>
                     <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ccc;">
-                        <th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">Matriisi</th>
-                        <th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">Pisteet</th>
-                        <th style="padding: 12px 10px; width: 5%; color: #333; font-weight: 700;">T1</th>
-                        <th style="padding: 12px 10px; width: 5%; color: #333; font-weight: 700;">T2</th>
-                        <th style="padding: 12px 10px; width: 5%; color: #333; font-weight: 700;">T3</th>
-                        <th style="padding: 12px 10px; width: 5%; color: #333; font-weight: 700;">T4</th>
-                        <th style="padding: 12px 10px; width: 5%; color: #333; font-weight: 700;">T5</th>
-                        <th style="padding: 12px 10px; width: 5%; color: #333; font-weight: 700;">T6</th>
-                        <th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">Perustelu</th>
-                        <th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">100%</th>
+                        <th style="padding: 12px 10px; width: 30%; color: #333; font-weight: 700;">{{ l10n.lblLogicMatrix }}</th>
+                        <th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ l10n.score }}</th>
+                        <th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">{{ l10n.atomicBreakdownTitle }}</th>
+                        <th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">{{ l10n.xaiJustification }}</th>
+                        <th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ l10n.normalizedScore }}</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for layout in report_data.layouts %}
                     {% for axis in layout.axes %}
                     <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 10px; font-weight: 600; color: #2c3e50;">{{ axis.name }}</td>
+                        <td style="padding: 10px; font-weight: 600; color: #2c3e50;">{{ axis.name }}{% if axis.is_evaluative %} *{% endif %}</td>
                         <td style="padding: 10px; font-weight: bold; color: #1565C0;">
                             {% if axis.score != None %}
                                 {{ "%.1f"|format(axis.score) }} {% if axis.scale_max != None and axis.scale_max > (axis.scale_min or 0) %}/ {{ "%.1f"|format(axis.scale_max) }}{% endif %}
@@ -375,13 +364,21 @@
                                 -
                             {% endif %}
                         </td>
-                        {% set lvl = axis.level_breakdown or {} %}
-                        <td style="padding: 10px; color: #555;">{{ lvl.get("1", "-") }}</td>
-                        <td style="padding: 10px; color: #555;">{{ lvl.get("2", "-") }}</td>
-                        <td style="padding: 10px; color: #555;">{{ lvl.get("3", "-") }}</td>
-                        <td style="padding: 10px; color: #555;">{{ lvl.get("4", "-") }}</td>
-                        <td style="padding: 10px; color: #555;">{{ lvl.get("5", "-") }}</td>
-                        <td style="padding: 10px; color: #555;">{{ lvl.get("6", "-") }}</td>
+                        <td style="padding: 10px; color: #555; vertical-align: top;">
+                            {% set lvl = axis.level_breakdown or {} %}
+                            {% set lvl_names = axis.level_names or {} %}
+                            {% if lvl %}
+                                <ul style="margin: 0; padding-left: 15px; font-size: 10px; line-height: 1.3;">
+                                {% for key, val in lvl.items() %}
+                                    {% set hit_str = val if val is string else (val.get('hits', val.get('true_atoms', 0)) ~ '/' ~ val.get('total', val.get('total_atoms', 0))) %}
+                                    {% set name = lvl_names.get(key, 'T' ~ key) %}
+                                    <li style="margin-bottom: 2px;"><strong>{{ name }}</strong>: {{ hit_str }}</li>
+                                {% endfor %}
+                                </ul>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
                         <td style="padding: 10px; color: #555; line-height: 1.4;">
                             {% if axis.justification %}
                                 {{ axis.justification | striptags | truncate(200) }}
@@ -403,6 +400,19 @@
                 {% endfor %}
                 </tbody>
             </table>
+            {% set has_evaluative = false %}
+            {% for layout in report_data.layouts %}
+                {% for axis in layout.axes %}
+                    {% if axis.is_evaluative %}
+                        {% set has_evaluative = true %}
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+            {% if has_evaluative %}
+            <div style="font-size: 11px; color: #666; margin-top: 8px; font-style: italic;">
+                {{ l10n.matrixEvaluativeAsteriskLegend }}
+            </div>
+            {% endif %}
         </div>
         {% endif %}
 

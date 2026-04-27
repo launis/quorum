@@ -12,18 +12,26 @@ from backend_v2.hooks.scoring import normalize_matrix_scores_hook
 def _build_valid_scale(score: Any, micro_atoms: list[str] | None = None) -> dict[str, Any]:
     claims = []
     if micro_atoms is not None:
-        claims.append({
-            "label": {"default_locale": "en", "translations": {"en": "Test Claim"}},
-            "ai_description": "Test Claim Desc",
-            "micro_atoms": micro_atoms,
-        })
+        claims.append(
+            {
+                "label": {"default_locale": "en", "translations": {"en": "Test Claim"}},
+                "ai_description": "Test Claim Desc",
+                "micro_atoms": micro_atoms,
+            }
+        )
     return {
         "score": score,
         "ai_label": f"Level {score}",
         "claims": claims,
     }
 
-def _build_valid_pb_dict(pb_id: str, scales: list[dict[str, Any]], pb_type: str = "float", category_id: str = "matrix") -> dict[str, Any]:
+
+def _build_valid_pb_dict(
+    pb_id: str,
+    scales: list[dict[str, Any]],
+    pb_type: str = "float",
+    category_id: str = "matrix",
+) -> dict[str, Any]:
     pb = {
         "id": pb_id,
         "slug": "test_slug",
@@ -79,6 +87,7 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
     assert exc_info.value.error_code == "VALIDATION_FAILED"
     assert "Strict Fail-Fast Enforced: Invalid PromptBlock format for 'pb_1234567890123456'" in exc_info.value.message
 
+
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
     """Test that Tapa 2 string PromptBlocks preserve XAI variables in the new LightweightMatrixOutput."""
@@ -88,10 +97,13 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
             return _build_valid_step_dict(["tb_1234567890123456"])
 
         async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-            return _build_valid_pb_dict("tb_1234567890123456", [
-                _build_valid_scale(1, ["tapa_atom_1"]),
-                _build_valid_scale(5, ["tapa_atom_5"]),
-            ])
+            return _build_valid_pb_dict(
+                "tb_1234567890123456",
+                [
+                    _build_valid_scale(1, ["tapa_atom_1"]),
+                    _build_valid_scale(5, ["tapa_atom_5"]),
+                ],
+            )
 
     state = HookState(
         execution_id="test_exec",
@@ -131,6 +143,7 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
 
     assert "toulmin_text_block_scaled" not in delta
 
+
 import hashlib
 
 from backend_v2.hooks.scoring import waterfall_scoring_hook
@@ -144,13 +157,16 @@ class MockRepoWaterfall:
         return _build_valid_step_dict([self.pb_id])
 
     async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-        return _build_valid_pb_dict(self.pb_id, [
-            _build_valid_scale(1, ["atom_1"]),
-            _build_valid_scale(2, ["atom_2"]),
-            _build_valid_scale(3, ["atom_3"]),
-            _build_valid_scale(4, ["atom_4"]),
-            _build_valid_scale(5, ["atom_5"]),
-        ])
+        return _build_valid_pb_dict(
+            self.pb_id,
+            [
+                _build_valid_scale(1, ["atom_1"]),
+                _build_valid_scale(2, ["atom_2"]),
+                _build_valid_scale(3, ["atom_3"]),
+                _build_valid_scale(4, ["atom_4"]),
+                _build_valid_scale(5, ["atom_5"]),
+            ],
+        )
 
 
 class MockRepoWaterfallMixed:
@@ -163,10 +179,13 @@ class MockRepoWaterfallMixed:
 
     async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
         if pb_id == self.pb_matrix:
-            return _build_valid_pb_dict(self.pb_matrix, [
-                _build_valid_scale(1, ["atom_1"]),
-                _build_valid_scale(5, ["atom_5"]),
-            ])
+            return _build_valid_pb_dict(
+                self.pb_matrix,
+                [
+                    _build_valid_scale(1, ["atom_1"]),
+                    _build_valid_scale(5, ["atom_5"]),
+                ],
+            )
         else:
             return _build_valid_pb_dict(self.pb_instruction, [], pb_type="instruction", category_id="instruction")
 
@@ -302,13 +321,16 @@ class MockRepoWaterfallSimulation:
         return _build_valid_step_dict([self.pb_id])
 
     async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-        return _build_valid_pb_dict(self.pb_id, [
-            _build_valid_scale(1, ["L1_A1", "L1_A2"]),
-            _build_valid_scale(2, ["L2_A1", "L2_A2"]),
-            _build_valid_scale(3, ["L3_A1", "L3_A2"]),
-            _build_valid_scale(4, ["L4_A1"]),
-            _build_valid_scale(5, ["L5_A1"]),
-        ])
+        return _build_valid_pb_dict(
+            self.pb_id,
+            [
+                _build_valid_scale(1, ["L1_A1", "L1_A2"]),
+                _build_valid_scale(2, ["L2_A1", "L2_A2"]),
+                _build_valid_scale(3, ["L3_A1", "L3_A2"]),
+                _build_valid_scale(4, ["L4_A1"]),
+                _build_valid_scale(5, ["L5_A1"]),
+            ],
+        )
 
 
 @pytest.mark.asyncio

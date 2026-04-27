@@ -1,36 +1,45 @@
 {
   "appTitle": "Cognitive Quorum Client",
   "delete": "Delete",
-  "errorUnknown": "Unknown Error",
+  "errorUnknown": "Unknown error",
   "errorSseConnectionAborted": "Connection dropped unexpectedly (Server crashed or shut down). You can safely resume the execution using the 'Try again' button.",
-  "errorNetwork": "Network error. Check your connection.",
+  "errorNetwork": "Network error. Please check your connection.",
   "errorServer": "Server error. Please try again later.",
-  "errorUnauthorized": "Unauthorized. Please login again.",
+  "errorUnauthorized": "Unauthorized. Please log in again.",
   "errorNotFound": "Resource not found.",
-  "errorValidation": "Validation error.",
+  "errorValidation": "Validation failed.",
   "errorValidationEmpty": "Inputs cannot be empty.",
-  "errorValidationMissing": "Required fields missing: {fields}",
+  "errorValidationMissing": "Missing required fields: {fields}",
   "@errorValidationMissing": {
     "placeholders": {
-      "fields": { "type": "String" }
+      "fields": {
+        "type": "String"
+      }
     }
   },
-  "errorDataMapping": "Mapping error in field '{field}': {detail}",
+  "errorDataMapping": "Mapping Error in field '{field}': {detail}",
   "@errorDataMapping": {
     "placeholders": {
-      "field": { "type": "String" },
-      "detail": { "type": "String" }
+      "field": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
     }
   },
-  "errorDataType": "Type error in field '{field}': {detail}",
+  "errorDataType": "Type Error in field '{field}': {detail}",
   "@errorDataType": {
     "placeholders": {
-      "field": { "type": "String" },
-      "detail": { "type": "String" }
+      "field": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
     }
   },
-  "errorLoadingData": "Error loading data. Try again.",
-
+  "errorLoadingData": "Error loading data. Please try again.",
   "@appTitle": {
     "description": "The title of the application"
   },
@@ -147,6 +156,7 @@
   "scorecard_evaluative_matrices_title": "Evaluative Matrices",
   "scorecard_informational_matrices_title": "Informational Matrices",
   "scorecard_global_average": "Global Average",
+  "scorecard_matrix_summary": "Matrix Summary",
   "atomicBreakdownTitle": "Atomic Matrix Breakdown",
   "reportPenaltiesApplied": "Penalties (Applied Biases)",
   "rawData": "Raw Data",
@@ -186,13 +196,13 @@
   "statusCompleted": "COMPLETED",
   "statusRunning": "RUNNING",
   "statusFailed": "FAILED",
-  "statusRejected": "REJECTED",
+  "statusRejected": "Rejected",
   "statusDraft": "DRAFT",
-  "typeString": "String (Text)",
-  "typeFloat": "Float (Decimal)",
+  "typeString": "String",
+  "typeFloat": "Float",
   "typeInt": "Integer (Whole Number)",
   "typeJson": "JSON",
-  "typeBoolean": "Boolean (True/False)",
+  "typeBoolean": "Boolean",
   "cancelling": "Cancelling",
   "statusPending": "PENDING",
   "statusStarted": "STARTED",
@@ -289,37 +299,6 @@
     }
   },
   "validationInputEmpty": "Inputs cannot be empty.",
-  "errorUnknown": "Unknown error",
-  "errorNetwork": "Network error. Please check your connection.",
-  "errorServer": "Server error. Please try again later.",
-  "errorUnauthorized": "Unauthorized. Please log in again.",
-  "errorNotFound": "Resource not found.",
-  "errorValidation": "Validation failed.",
-  "errorValidationEmpty": "Inputs cannot be empty.",
-  "errorValidationMissing": "Missing required fields: {fields}",
-  "errorDataMapping": "Mapping Error in field '{field}': {detail}",
-  "@errorDataMapping": {
-    "placeholders": {
-      "field": {
-        "type": "String"
-      },
-      "detail": {
-        "type": "String"
-      }
-    }
-  },
-  "errorDataType": "Type Error in field '{field}': {detail}",
-  "@errorDataType": {
-    "placeholders": {
-      "field": {
-        "type": "String"
-      },
-      "detail": {
-        "type": "String"
-      }
-    }
-  },
-  "errorLoadingData": "Error loading data. Please try again.",
   "createOrganization": "Create Organization",
   "editOrganization": "Edit Organization",
   "deleteOrganization": "Delete Organization",
@@ -388,7 +367,7 @@
   "organizationId": "Organization ID",
   "helpBloom": "Based on the Revised Bloom's Taxonomy (Anderson & Krathwohl, 2001), this metric evaluates the cognitive complexity of the output. It distinguishes between lower-order thinking (Remembering, Understanding) and higher-order skills (Applying, Analyzing, Evaluating, Creating). High scores indicate the agent is not just retrieving facts but synthesizing new information.",
   "helpToulmin": "Derived from Stephen Toulmin's 'The Uses of Argument' (1958), this model moves beyond formal logic to practical argumentation. It assesses whether the Claim is supported by Data and connected via a Warrant. This structure ensures that arguments are not just assertions but reasoned positions.",
-  "helpWalton": "Based on Douglas Walton's Argumentation Schemes, Fidelity measures dialectical consistency. It checks if the reasoning strictly adheres to the provided premises (Source Data) or if the agent engages in 'Post-Hoc Rationalization'\u2014inventing justifications after the fact to support a hallucinated or biased conclusion.",
+  "helpWalton": "Based on Douglas Walton's Argumentation Schemes, Fidelity measures dialectical consistency. It checks if the reasoning strictly adheres to the provided premises (Source Data) or if the agent engages in 'Post-Hoc Rationalization'—inventing justifications after the fact to support a hallucinated or biased conclusion.",
   "helpControlRatio": "Based on Discourse Analysis and Interaction Dynamics, this ratio measures the balance of initiative. A 'Passenger' merely responds (reactive), while a 'Driver' or 'Architect' sets the frame and direction of the conversation (proactive). High control indicates the AI is leading the cognitive work.",
   "helpMethodology": "The Methodological Log tells what analysis methods the AI has applied in this phase (e.g. 'Logic Audit', 'Causality Testing').",
   "rolePassenger": "Passenger",
@@ -412,8 +391,8 @@
   "lblLogicMatrix": "Logic Matrix",
   "lblMatrixSubtitle": "Visual analysis of reasoning quality.",
   "lblFidelity": "Reasoning Fidelity",
-  "lblPostHocWarning": "\u26a0\ufe0f Post-Hoc Rationalization detected!",
-  "lblNoRationalization": "\u2705 No rationalization.",
+  "lblPostHocWarning": "⚠️ Post-Hoc Rationalization detected!",
+  "lblNoRationalization": "✅ No rationalization.",
   "lblAbductiveReasoning": "Abductive Reasoning",
   "lblScenarioActual": "Scenario A (Actual)",
   "lblScenarioSimulation": "Scenario B (Simulation)",
@@ -526,7 +505,7 @@
   "noMatricesFound": "No PromptBlocks found. Create one!",
   "stepCreateNew": "Create New Step",
   "stepEdit": "Edit Step",
-  "stepIdLabel": "Step ID",
+  "stepIdLabel": "Step ID (UUID or Unique String)",
   "stepIdHelper": "Unique identifier (e.g. 'step_analyst')",
   "stepNameLabel": "Name",
   "stepDescriptionLabel": "Description",
@@ -538,8 +517,8 @@
   "stepAddPrompt": "Attach PromptBlock",
   "stepPromptAssemblyHelper": "Blocks that shape the step's system instruction.",
   "stepSaveSuccess": "Step saved!",
-  "stepDeleteConfirmTitle": "Confirm Delete",
-  "stepDeleteConfirmMessage": "Delete step '{id}'?",
+  "stepDeleteConfirmTitle": "Delete Step",
+  "stepDeleteConfirmMessage": "Are you sure you want to delete step \"{id}\"?",
   "@stepDeleteConfirmMessage": {
     "placeholders": {
       "id": {
@@ -896,9 +875,9 @@
   "reportTitleMain": "Execution Report",
   "reportMetrics": "Performance Metrics",
   "reportScore": "Total Score",
-  "xAxisLabel": "X-Axis",
-  "yAxisLabel": "Y-Axis",
-  "zAxisLabel": "Z-Axis",
+  "xAxisLabel": "X-Axis (Matrix ID)",
+  "yAxisLabel": "Y-Axis (Matrix ID)",
+  "zAxisLabel": "Z-Axis (Matrix ID)",
   "selectWorkflowPrompt": "Select a workflow from the list to begin.",
   "noInputsRequired": "No inputs strictly required for \n{id}",
   "@noInputsRequired": {
@@ -1045,9 +1024,9 @@
     }
   },
   "workflowCloneBtn": "Clone Workflow",
-  "workflowCloneSuccess": "Workflow cloned successfully!",
+  "workflowCloneSuccess": "Workflow Cloned successfully",
   "workflowCloneErrorMissingDep": "Clone failed: Step dependency points to a non-existent step.",
-  "workflowSharedBlueprintWarning": "Warning: You are editing a shared PromptBlock. Changes will affect all workflows using this block.",
+  "workflowSharedBlueprintWarning": "Cloning a workflow will create a deep copy of the workflow configuration, but it will STILL reference the same Steps (DAG Nodes) by ID. If you edit a Step, it will be edited for both workflows. Are you sure you want to clone?",
   "overall_system_profile": "Overall System Profile",
   "blueprintSelectWorkflow": "Select Workflow",
   "blueprintVariantName": "Variant Name",
@@ -1113,7 +1092,7 @@
   },
   "reportCognitiveWork": "Cognitive Work (Tokens)",
   "reportTextSynthesis": "Text / Synthesis",
-  "reportQuoteTitle": "\ud83d\udcac Excerpt from original text:\n{quote}",
+  "reportQuoteTitle": "💬 Excerpt from original text:\n{quote}",
   "@reportQuoteTitle": {
     "placeholders": {
       "quote": {
@@ -1121,7 +1100,7 @@
       }
     }
   },
-  "reportFrameworkReference": "\u2696\ufe0f Reference framework: {source}",
+  "reportFrameworkReference": "⚖️ Reference framework: {source}",
   "@reportFrameworkReference": {
     "placeholders": {
       "source": {
@@ -1203,7 +1182,7 @@
   },
   "studioDashboardGatewaysTitle": "MCP Gateways",
   "studioDashboardGatewaysDesc": "Manage external tools and AI fact-checking integrations.",
-  "mcpGatewaysTitle": "MCP Gateways",
+  "mcpGatewaysTitle": "XAI Reporting / Toolkit Injection (MCP Gateways)",
   "mcpGatewaysDesc": "Configure system-level MCP tool gateways for AI execution.",
   "mcpToolSettings": "MCP Tool Settings",
   "mcpToolIdLabel": "Tool ID",
@@ -1228,54 +1207,128 @@
   "categoryTaskDefinition": "Task Definition",
   "categorySystemRule": "System Rule / Heuristic",
   "categoryProtocol": "Execution Protocol",
-  "retry": "Retry",
   "technicalDetails": "Technical Details",
   "systemError": "System Error",
   "signInSubtitle": "Sign in to continue",
-  "emailLabel": "Email",
   "errorEmptyEmail": "Please enter your email",
   "errorInvalidEmail": "Invalid email address",
-  "passwordLabel": "Password",
   "errorEmptyPassword": "Please enter your password",
   "signInButton": "Sign In",
-  "statusRejected": "Rejected",
   "executionTargetLabel": "Target: {id}",
-  "@executionTargetLabel": { "placeholders": { "id": { "type": "String" } } },
+  "@executionTargetLabel": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "executionMetricsTitle": "Performance Metrics",
   "executionTokensBreakdown": "Total Tokens: {total} (Prompt: {prompt}, Completion: {comp})",
-  "@executionTokensBreakdown": { "placeholders": { "total": { "type": "int" }, "prompt": { "type": "int" }, "comp": { "type": "int" } } },
+  "@executionTokensBreakdown": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "prompt": {
+        "type": "int"
+      },
+      "comp": {
+        "type": "int"
+      }
+    }
+  },
   "executionTokensCached": "Cached Tokens saved: {cached}",
-  "@executionTokensCached": { "placeholders": { "cached": { "type": "int" } } },
+  "@executionTokensCached": {
+    "placeholders": {
+      "cached": {
+        "type": "int"
+      }
+    }
+  },
   "executionTokensReasoning": "Reasoning Tokens spent: {reasoning}",
-  "@executionTokensReasoning": { "placeholders": { "reasoning": { "type": "int" } } },
+  "@executionTokensReasoning": {
+    "placeholders": {
+      "reasoning": {
+        "type": "int"
+      }
+    }
+  },
   "executionCostEstimate": "Estimated Cost: ${cost}",
-  "@executionCostEstimate": { "placeholders": { "cost": { "type": "String" } } },
+  "@executionCostEstimate": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
   "workflowPrefixLabel": "Workflow: {name}",
-  "@workflowPrefixLabel": { "placeholders": { "name": { "type": "String" } } },
+  "@workflowPrefixLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "deleteExecutionTooltip": "Delete Execution",
   "errSaveTimeout": "File save dialog did not respond (Timeout).",
   "startWorkflowTitle": "Start Workflow: {id}",
-  "@startWorkflowTitle": { "placeholders": { "id": { "type": "String" } } },
+  "@startWorkflowTitle": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "failedToLoadSchema": "Failed to load schema: {error}",
-  "@failedToLoadSchema": { "placeholders": { "error": { "type": "String" } } },
+  "@failedToLoadSchema": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "navSystemInspector": "System Inspector",
   "gatewayMetadataTitle": "Gateway Metadata",
-  "slugLabel": "Slug",
+  "slugLabel": "Slug (e.g., task_guard)",
   "allowedMcpToolsTitle": "Allowed MCP Tools",
   "addToolButton": "Add Tool",
   "noToolsDefinedGateway": "No tools defined for this gateway.",
   "deleteGatewayTitle": "Delete MCP Gateway?",
   "deleteGatewayConfirmation": "Are you sure you want to delete gateway {id}?",
-  "@deleteGatewayConfirmation": { "placeholders": { "id": { "type": "String" } } },
+  "@deleteGatewayConfirmation": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "cancelButton": "Cancel",
   "deleteButton": "Delete",
   "gatewaySavedSuccess": "MCP Gateway saved successfully.",
   "saveFailedError": "Save failed: {error}",
-  "@saveFailedError": { "placeholders": { "error": { "type": "String" } } },
+  "@saveFailedError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "deleteFailedError": "Delete failed: {error}",
-  "@deleteFailedError": { "placeholders": { "error": { "type": "String" } } },
+  "@deleteFailedError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "toolTitlePrefix": "Tool: {name}",
-  "@toolTitlePrefix": { "placeholders": { "name": { "type": "String" } } },
+  "@toolTitlePrefix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "toolIdLabel": "Tool ID (Slug)",
   "uiDisplayNameTitle": "UI Display Name (I18nText)",
   "englishNameLabel": "English Name",
@@ -1285,12 +1338,24 @@
   "invalidJsonError": "Invalid JSON",
   "deleteConfigTitle": "Delete Configuration?",
   "deleteConfigConfirmation": "Are you sure you want to delete config {id}?",
-  "@deleteConfigConfirmation": { "placeholders": { "id": { "type": "String" } } },
+  "@deleteConfigConfirmation": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "configSavedSuccess": "Model Registry saved successfully.",
   "profileSavedSuccess": "Profile saved successfully.",
   "deleteProfileTitle": "Delete Profile?",
   "deleteProfileConfirmation": "Are you sure you want to delete {id}?",
-  "@deleteProfileConfirmation": { "placeholders": { "id": { "type": "String" } } },
+  "@deleteProfileConfirmation": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "newOutputProfileTitle": "New Output Profile",
   "editOutputProfileTitle": "Edit Output Profile",
   "profileIdLabel": "Profile ID (e.g. general_executive)",
@@ -1320,39 +1385,72 @@
   "componentYAxisLabel": "Component 2 (Y-Axis)",
   "componentZAxisLabel": "Component 3 (Z-Axis)",
   "componentGenericLabel": "Component {num}",
-  "@componentGenericLabel": { "placeholders": { "num": { "type": "String" } } },
+  "@componentGenericLabel": {
+    "placeholders": {
+      "num": {
+        "type": "String"
+      }
+    }
+  },
   "selectAllComponentsLabel": "All Components (*)",
   "selectComponentHint": "Select component...",
   "duplicateComponentError": "The same target component is already selected.",
   "editProfilesTitle": "Edit Profiles: {slug}",
-  "@editProfilesTitle": { "placeholders": { "slug": { "type": "String" } } },
+  "@editProfilesTitle": {
+    "placeholders": {
+      "slug": {
+        "type": "String"
+      }
+    }
+  },
   "outputProfilesDictionary": "Output Profiles Dictionary",
   "addVariantBtn": "Add Variant",
   "newProfileIdTitle": "New Profile ID",
   "profileIdHint": "Profile ID (e.g. executive)",
   "variantIdLabel": "Variant ID: {id}",
-  "@variantIdLabel": { "placeholders": { "id": { "type": "String" } } },
+  "@variantIdLabel": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "reportLayoutSequenceLabel": "Report Layout Sequence",
   "preset2dCompare": "2D Compare",
   "preset3dComplex": "3D Complex",
   "presetDefaultView": "Default View",
   "sectionTitleLabel": "Section Title (Optional)",
   "sectionDescLabel": "Section Description (Optional)",
-  "xAxisLabel": "X-Axis (Matrix ID)",
-  "yAxisLabel": "Y-Axis (Matrix ID)",
-  "zAxisLabel": "Z-Axis (Matrix ID)",
   "promptBlockSavedSuccess": "Prompt Block saved (Optimistic).",
   "simulatorCorruptionError": "Simulator did not return rendered_prompt. Data corruption detected.",
   "simulatorOutputTitle": "Simulator Output",
   "simulatorFailedError": "Simulation Error: {error}",
-  "@simulatorFailedError": { "placeholders": { "error": { "type": "String" } } },
+  "@simulatorFailedError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "promptBlockEditTitle": "Edit Prompt Block",
   "promptBlockBuilderTitleId": "Builder: {id}",
-  "@promptBlockBuilderTitleId": { "placeholders": { "id": { "type": "String" } } },
+  "@promptBlockBuilderTitleId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "promptBlockMandatoryEnglishError": "English Label is required (English-Only Mandate).",
   "promptBlockConfigTitle": "Prompt Block Configuration",
   "opaqueIdLabel": "Opaque ID: {id}",
-  "@opaqueIdLabel": { "placeholders": { "id": { "type": "String" } } },
+  "@opaqueIdLabel": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "promptBlockPropertiesTitle": "Prompt Block Properties",
   "categoryLabel": "Category",
   "blockLabelName": "Block Label (Name)",
@@ -1360,11 +1458,8 @@
   "systemPromptMandatory": "System Prompt / Cognitive Blueprint (MANDATORY ENGLISH)",
   "dataTypeExecutionConstraints": "Data Type & Execution Constraints",
   "typeInstruction": "Text Instruction (No JSON Output)",
-  "typeString": "String",
   "typeNumber": "Number (Numeric)",
   "typeInteger": "Integer",
-  "typeFloat": "Float",
-  "typeBoolean": "Boolean",
   "allowDecimals": "Allow Decimals",
   "isEvaluativeMatrix": "Evaluative (Calculated)",
   "xaiOutputExtensionsTitle": "XAI Output Extensions (Proaktiivinen Valmentaja & Report Fields)",
@@ -1389,26 +1484,33 @@
   "scaleMinLabel": "Scale Min (e.g. 4)",
   "scaleMaxLabel": "Scale Max (e.g. 10)",
   "claimsCountLabel": "{count} Claims",
-  "@claimsCountLabel": { "placeholders": { "count": { "type": "String" } } },
+  "@claimsCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
   "gradeScoreLabel": "Grade/Score: {score} {name}",
-  "@gradeScoreLabel": { "placeholders": { "score": { "type": "String" }, "name": { "type": "String" } } },
+  "@gradeScoreLabel": {
+    "placeholders": {
+      "score": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "closeModalBtn": "Close",
   "studioSaveSuccess": "Saved successfully",
-  "stepDeleteConfirmTitle": "Delete Step",
-  "stepDeleteConfirmMessage": "Are you sure you want to delete step \"{id}\"?",
-  "@stepDeleteConfirmMessage": { "placeholders": { "id": { "type": "String" } } },
-  "cancel": "Cancel",
-  "delete": "Delete",
   "stepSavedSuccess": "Step saved (Optimistic).",
   "stepEditTitle": "Edit Step",
   "simulateStepTooltip": "Simulate Step",
   "idRequiredError": "ID is required.",
   "configurationTitle": "Configuration",
-  "stepIdLabel": "Step ID (UUID or Unique String)",
-  "slugLabel": "Slug (e.g., task_guard)",
   "nameLabel": "Name",
   "descriptionLabel": "Description",
-  "mcpGatewaysTitle": "XAI Reporting / Toolkit Injection (MCP Gateways)",
   "preHooksTitle": "Pre Hooks",
   "postHooksTitle": "Post Hooks",
   "addHookBtn": "Add Hook",
@@ -1423,27 +1525,39 @@
   "hookValidation": "Strict Validation (validation_hook)",
   "hookScore": "Grading Matrix (score_hook)",
   "hookLegacy": "Legacy: {name}",
-  "@hookLegacy": { "placeholders": { "name": { "type": "String" } } },
+  "@hookLegacy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "promptBlocksTitle": "Prompt Blocks",
   "addPromptBlockBtn": "Add Prompt Block",
   "promptBlockLabel": "Prompt Block",
   "workflowSavedSuccess": "Workflow saved successfully.",
   "simulatorValidDag": "DAG is Valid!",
   "simulatorDagErrors": "DAG Errors: {errors}",
-  "@simulatorDagErrors": { "placeholders": { "errors": { "type": "String" } } },
+  "@simulatorDagErrors": {
+    "placeholders": {
+      "errors": {
+        "type": "String"
+      }
+    }
+  },
   "workflowNameMissingError": "Workflow name is missing for existing workflow.",
   "validateDagBtn": "Validate DAG",
   "workflowTabGeneral": "1. General & Outputs",
   "workflowTabInputs": "2. Inputs",
   "workflowTabSteps": "3. Steps & Dependencies",
-  "workflowCloneBtn": "Clone Workflow",
-  "workflowSharedBlueprintWarning": "Cloning a workflow will create a deep copy of the workflow configuration, but it will STILL reference the same Steps (DAG Nodes) by ID. If you edit a Step, it will be edited for both workflows. Are you sure you want to clone?",
-  "workflowCloneSuccess": "Workflow Cloned successfully",
-  "workflowDeleteConfirmTitle": "Delete Workflow",
-  "workflowDeleteConfirmDesc": "Are you sure you want to delete workflow \"{id}\"?",
-  "@workflowDeleteConfirmDesc": { "placeholders": { "id": { "type": "String" } } },
   "errNavigationFallback": "Navigation Error: {uri} not found. Returning to workspace...",
-  "@errNavigationFallback": { "placeholders": { "uri": { "type": "String" } } },
+  "@errNavigationFallback": {
+    "placeholders": {
+      "uri": {
+        "type": "String"
+      }
+    }
+  },
   "studioWorkflowIdOpaque": "Opaque Workflow ID (System Generated)",
   "studioWorkflowSlugSemantic": "Semantic Routing Slug (e.g. audit-master)",
   "studioWorkflowIdentity": "Workflow Identity",
@@ -1454,7 +1568,13 @@
   "studioWorkflowDefaultProfile": "Default Fallback Profile",
   "studioWorkflowInputsEmpty": "No expected inputs defined.",
   "studioWorkflowStepCount": "Step {count}",
-  "@studioWorkflowStepCount": { "placeholders": { "count": { "type": "int" } } },
+  "@studioWorkflowStepCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "studioWorkflowNodeIdOpaque": "Node ID (Opaque Stripe Pattern)",
   "studioWorkflowTaskBlueprint": "Task Blueprint (Cognitive Engine)",
   "studioWorkflowXaiReporting": "XAI Reporting / Toolkit Injection (MCP Gateways):",
@@ -1474,19 +1594,49 @@
   "studioViews2dCompare": "2D Compare View",
   "studioViews3dComplex": "3D Complex Matrix",
   "studioViewsFailedToClone": "Failed to clone: {error}",
-  "@studioViewsFailedToClone": { "placeholders": { "error": { "type": "String" } } },
+  "@studioViewsFailedToClone": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "studioViewsNewMatrix": "New Matrix",
   "studioViewsErrorLoadingWorkflows": "Error loading workflows: {error}",
-  "@studioViewsErrorLoadingWorkflows": { "placeholders": { "error": { "type": "String" } } },
+  "@studioViewsErrorLoadingWorkflows": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "studioViewsProfileIdRequired": "Profile ID is required",
   "studioViewsErrorLoadingBlocks": "Error loading blocks: {error}",
-  "@studioViewsErrorLoadingBlocks": { "placeholders": { "error": { "type": "String" } } },
+  "@studioViewsErrorLoadingBlocks": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "studioViewsOutputProfilesMasterTitle": "Output Profiles",
   "studioViewsNewProfileBtn": "New Profile",
   "studioViewsNoOutputProfiles": "No Output Profiles defined.",
   "studioViewsUnnamedProfile": "Unnamed Profile",
   "studioViewsProfileListSubtitle": "ID: {id} | Workflow: {workflow} | {layouts} Layout Blocks",
-  "@studioViewsProfileListSubtitle": { "placeholders": { "id": { "type": "String" }, "workflow": { "type": "String" }, "layouts": { "type": "int" } } },
+  "@studioViewsProfileListSubtitle": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      },
+      "workflow": {
+        "type": "String"
+      },
+      "layouts": {
+        "type": "int"
+      }
+    }
+  },
   "studioViewsNone": "None",
   "studioViewsAddBtn": "Add",
   "studioViewsWarningNoModels": "Warning: No models found.",
@@ -1498,21 +1648,54 @@
   "studioViewsPromptBlocksStandard": "Prompt Blocks (Standard)",
   "studioViewsNoStandardPromptBlocks": "No standard prompt blocks defined.",
   "studioViewsSlugSubtitle": "Slug: {slug}",
-  "@studioViewsSlugSubtitle": { "placeholders": { "slug": { "type": "String" } } },
+  "@studioViewsSlugSubtitle": {
+    "placeholders": {
+      "slug": {
+        "type": "String"
+      }
+    }
+  },
   "studioViewsNoMatricesDefined": "No matrices defined.",
   "studioViewsNoStepsDefined": "No Steps defined.",
   "studioViewsStepsSubtitle": "Blocks: {blocks} | Hooks: {hooks}",
-  "@studioViewsStepsSubtitle": { "placeholders": { "blocks": { "type": "int" }, "hooks": { "type": "int" } } },
+  "@studioViewsStepsSubtitle": {
+    "placeholders": {
+      "blocks": {
+        "type": "int"
+      },
+      "hooks": {
+        "type": "int"
+      }
+    }
+  },
   "studioViewsNoSystemConfigs": "No System Configs defined.",
   "studioViewsConfiguredModels": "Configured Models: {count}",
-  "@studioViewsConfiguredModels": { "placeholders": { "count": { "type": "int" } } },
+  "@studioViewsConfiguredModels": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "studioViewsNewBtn": "New",
   "studioViewsWorkflowBuilderTitle": "Workflow Builder",
   "studioViewsNewWorkflowBtn": "New Workflow",
   "studioViewsWorkflowBuilderDesc": "Manage master execution blueprints (DAGs) defining agentic workflows, inputs, and strategies.",
   "studioViewsNoWorkflowsConfigured": "No workflows configured.",
   "studioViewsWorkflowSubtitle": "ID: {id} | Nodes: {nodes} | Status: {status}",
-  "@studioViewsWorkflowSubtitle": { "placeholders": { "id": { "type": "String" }, "nodes": { "type": "int" }, "status": { "type": "String" } } },
+  "@studioViewsWorkflowSubtitle": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      },
+      "nodes": {
+        "type": "int"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
   "studioWorkflowAddMappingBtn": "Add Mapping",
   "studioWorkflowStepsDependencies": "Steps & Dependencies",
   "studioWorkflowAddStepNodeBtn": "Add Step Node",
@@ -1520,8 +1703,6 @@
   "studioViewsMatricesDescription": "Manage system evaluation matrices.",
   "studioViewsNoMatricesAvailable": "No Matrices Available.",
   "studioViewsMatrixCloned": "Matrix cloned successfully.",
-  "studioViewsFailedToClone": "Failed to clone: {error}",
-  "@studioViewsFailedToClone": { "placeholders": { "error": { "type": "String" } } },
   "sharedNoTimelineData": "No timeline data available.",
   "sharedNoReportData": "No report data available.",
   "sharedFlatReportNoData": "No Flat Report data found for this execution.",
@@ -1554,9 +1735,28 @@
   "profileEditorMaxExtensionItemsDesc": "Limits how many most critical items are shown per section (Severity sorted).",
   "reportExecutiveSummary": "Executive Summary",
   "reportPromptTokens": "Prompt: {count}",
-  "@reportPromptTokens": { "placeholders": { "count": { "type": "String" } } },
+  "@reportPromptTokens": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
   "reportCompletionTokens": "Completion: {count}",
-  "@reportCompletionTokens": { "placeholders": { "count": { "type": "String" } } },
+  "@reportCompletionTokens": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
   "reportReasoningTokens": "Reasoning: {count}",
-  "@reportReasoningTokens": { "placeholders": { "count": { "type": "String" } } }
+  "@reportReasoningTokens": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "matrixEvaluativeAsteriskLegend": "* = Evaluative Matrix (Impacts global score)"
 }

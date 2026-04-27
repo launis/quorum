@@ -17,7 +17,6 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.core.security import sanitize_text
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.context_mapper import ContextMapper
-from backend_v2.hooks.translation_hook import translation_hook
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.synthesis import SynthesisMetadataDTO, SynthesisStepDataDTO
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
@@ -36,8 +35,15 @@ async def _fetch_historical_context(
     if mode == HistoricalContextMode.DISABLED:
         return ""
 
-    user_id = state.global_context_vars["user_id"] if "user_id" in state.global_context_vars else None
-    org_id = state.global_context_vars["organization_id"] if "organization_id" in state.global_context_vars else None
+    try:
+        user_id = state.global_context_vars["user_id"]
+    except KeyError:
+        user_id = None
+
+    try:
+        org_id = state.global_context_vars["organization_id"]
+    except KeyError:
+        org_id = None
 
     if not (user_id or org_id):
         return ""
@@ -59,8 +65,9 @@ async def _fetch_historical_context(
 
         best_cache = None
         if e.profile_syntheses:
-            best_cache = e.profile_syntheses[profile_to_use] if profile_to_use in e.profile_syntheses else None
-            if not best_cache:
+            try:
+                best_cache = e.profile_syntheses[profile_to_use]
+            except KeyError:
                 best_cache = next(iter(e.profile_syntheses.values()))
 
         if not best_cache or not best_cache.synthesized_markdown:
@@ -91,8 +98,13 @@ def _build_title_map(workflow_data: Workflow | None, all_steps: list[Step], lang
         return title_map
 
     if workflow_data.steps:
+        step_def_map = {s.id: s for s in all_steps}
         for step in workflow_data.steps:
-            target_step = next((s for s in all_steps if s.id == step.task_blueprint), None)
+            try:
+                target_step = step_def_map[step.task_blueprint]
+            except KeyError:
+                target_step = None
+
             if not target_step:
                 msg = (
                     f"Data integrity failure: StepRule '{step.id}' "
@@ -186,6 +198,13 @@ def _build_section_instructions(layouts: list[Any], language: str, all_blocks: l
         if l_synthesis.length_constraint:
             instruction += f"LENGTH LIMIT: ~{l_synthesis.length_constraint} chars.\n"
 
+        if language:
+            instruction += (
+                f"CRITICAL LANGUAGE MANDATE: You MUST generate this section's output strictly in the "
+                f"'{language}' language (ISO code), ignoring any previous instructions to output in "
+                f"English or another language.\n"
+            )
+
         section_instructions.append(instruction)
 
     return section_instructions
@@ -218,6 +237,25 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+        )
+
+    try:
+        hook_metadata_dto = SynthesisMetadataDTO.model_validate(state.metadata or {})
+        language = hook_metadata_dto.target_locale.strip().lower()
+    except ValidationError as e:
+        msg = f"Strict Fail-Fast Enforced: Execution metadata failed validation: {e}"
+        logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+        ) from e
+
+    if not hook_metadata_dto.step_results:
+        msg = "Fail-Fast: Execution metadata is missing step_results. Cannot synthesize an empty execution."
+        logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
 
     # Resolve active workflow to determine the output profile bounds
@@ -270,16 +308,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     enable_masking = synthesis_cfg.enable_pii_masking
     historical_mode = synthesis_cfg.historical_context_mode
 
-    try:
-        hook_metadata_dto = SynthesisMetadataDTO.model_validate(state.metadata or {})
-        language = hook_metadata_dto.target_locale.strip().lower()
-    except ValidationError as e:
-        msg = f"Strict Fail-Fast Enforced: Execution metadata failed validation: {e}"
-        logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-        raise AppException(
-            message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-        ) from e
-
     preamble = preamble_dict.resolve(language) if preamble_dict else ""
 
     # Fetch all blocks to inject extrema scale bounds and resolve titles (V2 Architecture)
@@ -300,10 +328,18 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         step_def_map = {str(s.id): s for s in all_steps}
         block_map = {str(b.id): b for b in all_blocks}
         for w_step in workflow_data.steps:
-            target_step = step_def_map.get(str(w_step.task_blueprint))
+            try:
+                target_step = step_def_map[str(w_step.task_blueprint)]
+            except KeyError:
+                target_step = None
+
             if target_step and target_step.prompt_blocks:
                 for b_id in target_step.prompt_blocks:
-                    p_block = block_map.get(str(b_id))
+                    try:
+                        p_block = block_map[str(b_id)]
+                    except KeyError:
+                        p_block = None
+
                     if p_block and p_block.category_id == "matrix":
                         matrix_step_ids.add(str(w_step.id))
                         break
@@ -321,7 +357,10 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     # 1. Clean up inputs (Omit Empty Sections & Original Inputs)
     consolidated_inputs: dict[str, Any] = {}
 
-    for step_id, step_data in inputs.items():
+    combined_source_data = dict(inputs)
+    combined_source_data.update(hook_metadata_dto.step_results)
+
+    for step_id, step_data in combined_source_data.items():
         is_wildcard = is_global_wildcard
 
         try:
@@ -431,6 +470,13 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     sys_prompt = f"<system_directive>\n<objective>\n{str(custom_sys_prompt).strip()}\n</objective>\n<rules>\n"
+
+    sys_prompt += (
+        f"  <rule>CRITICAL LANGUAGE MANDATE: You must process the input and generate all your output text, "
+        f"reasoning, and source justifications exclusively in the '{language}' language, regardless of the language "
+        f"used in the instructions or source materials.</rule>\n"
+    )
+
     if length_constraint:
         sys_prompt += (
             f"  <rule>GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be "
@@ -444,9 +490,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     sys_prompt += (
         "  <rule>TONE AND QUALITY MANDATE: Maintain a highly professional, analytical, and executive tone. "
-        "Ensure the synthesis provides clear, actionable strategic value and avoids redundant or generic statements.</rule>\n"
+        "Ensure the synthesis provides clear, actionable strategic value and avoids redundant "
+        "or generic statements.</rule>\n"
     )
-
 
     if section_instructions:
         sys_prompt += "  <rule>=== SECTION-LEVEL SYNTHESIS REQUIRED ===\n"
@@ -515,7 +561,10 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
         current_usage = dict(hook_metadata_dto.token_usage)
         for k, v in token_usage.items():
-            current_usage[k] = current_usage.get(k, 0) + v
+            try:
+                current_usage[k] = current_usage[k] + v
+            except KeyError:
+                current_usage[k] = v
 
         raw_audits = [a.model_dump(mode="json") for a in audit_traces] if audit_traces else []
 
@@ -537,71 +586,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             for s in result.section_syntheses:
                 section_dict[s.layout_id] = s.synthesized_markdown
 
-        if language != "en":
-            logger.info(f"[SynthesisHook] Synthesis completed in English. Translating to {language.upper()}...")
-
-            # Prepare XAI contents for safe translation without breaking UI enum keys
-            xai_map = {}
-            if result.xai_highlights:
-                for i, hl in enumerate(result.xai_highlights):
-                    xai_map[f"xai_{i}"] = hl.content
-
-            trans_state = HookState(
-                execution_id=state.execution_id,
-                workflow_id=state.workflow_id,
-                metadata=state.metadata,
-                global_context_vars=state.global_context_vars,
-                inputs={
-                    "language": language,
-                    "synthesized_markdown": result.synthesized_markdown,
-                    **section_dict,
-                    **xai_map,
-                },
-            )
-            trans_res = await translation_hook(trans_state, deps)  # type: ignore[misc]  # Justification: hook_registry decorator obscures the Awaitable return type signature
-            if trans_res.success and trans_res.state_delta:
-                logger.info("[SynthesisHook] Translation successful. Mapping back values.")
-
-                if "synthesized_markdown" in trans_res.state_delta:
-                    translated_global = trans_res.state_delta["synthesized_markdown"]
-                else:
-                    translated_global = result.synthesized_markdown
-
-                if result.cited_sources:
-                    bib_title = "\n\n### BIBLIOGRAPHY_HEADER\n"
-                    bib_items = [f"[{i + 1}] {src}" for i, src in enumerate(result.cited_sources)]
-                    bib_text = bib_title + "\n".join(bib_items)
-                    translated_global += bib_text
-
-                translated_sections = {}
-                for k in section_dict.keys():
-                    if k in trans_res.state_delta:
-                        translated_sections[k] = trans_res.state_delta[k]
-                    else:
-                        translated_sections[k] = section_dict[k]
-
-                translated_highlights = []
-                if result.xai_highlights:
-                    for i, hl in enumerate(result.xai_highlights):
-                        hl_dict = hl.model_dump()
-                        if f"xai_{i}" in trans_res.state_delta:
-                            hl_dict["content"] = trans_res.state_delta[f"xai_{i}"]
-                        translated_highlights.append(hl_dict)
-                raw_highlights = translated_highlights
-
-                return HookResult(
-                    success=True,
-                    state_delta={
-                        "synthesized_markdown": translated_global,
-                        "section_syntheses": translated_sections,
-                        "cited_sources": result.cited_sources,
-                        "xai_highlights": raw_highlights,
-                        "step_metadata_updates": {"token_usage": current_usage},
-                        "mcp_tool_audit": raw_audits,
-                    },
-                )
-
-        # Return native English payload or fallback if translation failed
+        # Synthesis is now natively generated in target_locale due to CRITICAL_LANGUAGE_MANDATE
         global_md = result.synthesized_markdown
         if result.cited_sources:
             bib_title = "\n\n### BIBLIOGRAPHY_HEADER\n"
@@ -610,6 +595,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
         raw_highlights = [h.model_dump() for h in result.xai_highlights] if result.xai_highlights else []
 
+        # EPIC 13 M3: Save synthesis metrics directly to DB state
         return HookResult(
             success=True,
             state_delta={

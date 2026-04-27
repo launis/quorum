@@ -25,12 +25,7 @@ async def test_tavily_search_success(mock_settings: Any) -> None:
         status_code=200,
         json={
             "answer": "Finland has a population of 5.6 million.",
-            "results": [
-                {
-                    "url": "https://example.com/finland",
-                    "content": "Detailed article about Finland."
-                }
-            ]
+            "results": [{"url": "https://example.com/finland", "content": "Detailed article about Finland."}],
         },
         request=httpx.Request("POST", "https://api.tavily.com/search"),
     )

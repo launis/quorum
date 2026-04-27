@@ -41,9 +41,9 @@ async def test_chunk_worker_process_chunk_success() -> None:
                         {
                             "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Väite 1"}},
                             "ai_description": "Claim 1 Desc",
-                            "micro_atoms": ["Atom 1", "Atom 2"]
+                            "micro_atoms": ["Atom 1", "Atom 2"],
                         },
-                    ]
+                    ],
                 }
             ],
         }

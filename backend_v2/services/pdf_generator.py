@@ -144,6 +144,26 @@ class PdfReportService:
 
             printed_at = datetime.now().astimezone().strftime("%d.%m.%Y %H:%M")
 
+            l10n_dict = {
+                "en": {
+                    "lblLogicMatrix": "Matrix",
+                    "score": "Score",
+                    "atomicBreakdownTitle": "Level Breakdown",
+                    "xaiJustification": "Justification",
+                    "normalizedScore": "100%",
+                    "matrixEvaluativeAsteriskLegend": "* Matrix score is included in the global average.",
+                },
+                "fi": {
+                    "lblLogicMatrix": "Matriisi",
+                    "score": "Pisteet",
+                    "atomicBreakdownTitle": "Tasojakauma",
+                    "xaiJustification": "Perustelu",
+                    "normalizedScore": "100%",
+                    "matrixEvaluativeAsteriskLegend": "* Matriisi lasketaan mukaan kokonaisarvosanan keskiarvoon.",
+                },
+            }
+            l10n = l10n_dict.get(target_locale, l10n_dict["en"])
+
             html_content = template.render(
                 execution_id=execution_id,
                 workflow_name=workflow_name,
@@ -152,6 +172,7 @@ class PdfReportService:
                 report_data=report_dto,
                 printed_at=printed_at,
                 charts=charts,
+                l10n=l10n,
             )
             return str(html_content)
 

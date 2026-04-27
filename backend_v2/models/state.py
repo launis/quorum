@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 
@@ -30,7 +30,7 @@ class ReasoningTrace(BaseModel):
     model_name: str | None = Field(default=None, description="The model used for reasoning.")
     token_usage: dict[str, int] = Field(default_factory=dict, description="Token usage statistics.")
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
     @field_validator("thought_process", "conclusion")
     @classmethod
@@ -61,7 +61,7 @@ class TraceEvent(BaseModel):
     reasoning: ReasoningTrace | None = Field(default=None, description="Associated reasoning trace.")
     metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata.")
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
     @field_validator("step_name")
     @classmethod
@@ -71,6 +71,29 @@ class TraceEvent(BaseModel):
             logger.error("[StateModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
         return v.strip()
+
+    @model_validator(mode="before")
+    @classmethod
+    def parse_db_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            val_id = data.get("event_id")
+            if isinstance(val_id, str):
+                try:
+                    data["event_id"] = uuid.UUID(val_id)
+                except ValueError as e:
+                    logger.error("Failed to parse TraceEvent event_id", exc_info=True)
+                    raise ValueError(f"Input should be a valid UUID for event_id: {val_id}") from e
+
+            val_ts = data.get("timestamp")
+            if isinstance(val_ts, str):
+                try:
+                    if val_ts.endswith("Z"):
+                        val_ts = val_ts.replace("Z", "+00:00")
+                    data["timestamp"] = datetime.fromisoformat(val_ts)
+                except ValueError as e:
+                    logger.error("Failed to parse TraceEvent timestamp", exc_info=True)
+                    raise ValueError(f"Input should be a valid datetime or ISO format for timestamp: {val_ts}") from e
+        return data
 
 
 class ErrorTraceEvent(TraceEvent):
@@ -125,7 +148,7 @@ class WorkflowState(BaseModel):
         """Legacy accessor for reasoning context (now largely superseded by step_analyst)."""
         return self.context_variables.get("reasoning_context")
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
     @field_validator("workflow_id")
     @classmethod

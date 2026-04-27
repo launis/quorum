@@ -61,7 +61,7 @@ def create_mock_execution(
             status=ExecutionStatus.COMPLETED,
             execution_trace=trace_events,
             created_at=datetime.now(timezone.utc),
-            updated_at=None,
+            updated_at=None,  # type: ignore[arg-type]
             completed_at=datetime.now(timezone.utc),
         )
 

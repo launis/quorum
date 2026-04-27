@@ -87,6 +87,7 @@ async def test_translation_hook_role_segregation_and_success(
     # Setup Mock
     mock_client = AsyncMock()
     from backend_v2.hooks.translation_hook import TranslationResponseDTO
+
     mock_llm_response = TranslationResponseDTO(translated_data={"title": "Esimerkki Otsikko"})
     mock_client.run_structured_task.return_value = (mock_llm_response, {})
     mock_from_strategy.return_value = mock_client

@@ -154,9 +154,10 @@ async def test_render_execution_html_format(
         }
     )
 
-    with patch("backend_v2.services.execution.BlueprintTransformer") as mock_transformer_cls, \
-         patch("backend_v2.services.execution.PdfReportService") as mock_pdf_service_cls:
-
+    with (
+        patch("backend_v2.services.execution.BlueprintTransformer") as mock_transformer_cls,
+        patch("backend_v2.services.execution.PdfReportService") as mock_pdf_service_cls,
+    ):
         mock_transformer = AsyncMock()
         mock_dto = MagicMock()
         mock_transformer.build_report_dto.return_value = mock_dto
@@ -196,9 +197,7 @@ async def test_list_executions_success_root(
 
 
 @pytest.mark.asyncio
-async def test_list_executions_success_user(
-    execution_service: ExecutionService, mock_repo: MagicMock
-) -> None:
+async def test_list_executions_success_user(execution_service: ExecutionService, mock_repo: MagicMock) -> None:
     """Test list_executions for regular user role."""
     user_token = TokenData(id="user-1", role=UserRole.MEMBER, organization_id="org_1")
 

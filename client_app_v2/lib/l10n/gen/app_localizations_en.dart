@@ -199,6 +199,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scorecard_global_average => 'Global Average';
 
   @override
+  String get scorecard_matrix_summary => 'Matrix Summary';
+
+  @override
   String get atomicBreakdownTitle => 'Atomic Matrix Breakdown';
 
   @override
@@ -3359,4 +3362,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String reportReasoningTokens(String count) {
     return 'Reasoning: $count';
   }
+
+  @override
+  String get matrixEvaluativeAsteriskLegend =>
+      '* = Evaluative Matrix (Impacts global score)';
 }

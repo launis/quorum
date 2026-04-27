@@ -14,6 +14,7 @@ class SynthesisMetadataDTO(BaseModel):
 
     target_locale: str
     token_usage: dict[str, int] = Field(default_factory=dict)
+    step_results: dict[str, Any] = Field(default_factory=dict)
 
     # Allow extra fields for safety in metadata, as other hooks may inject telemetry
     model_config = ConfigDict(extra="ignore", frozen=True)

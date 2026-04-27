@@ -24,6 +24,9 @@ logger = logging.getLogger(__name__)
 # These values are consumed by ContextBuilder; do NOT rename without updating that module.
 _SCHEMA_BLOCK_MATRIX = "MATRIX"
 _SCHEMA_BLOCK_TEXT = "TEXT"
+_SCHEMA_BLOCK_EXTENSION = "EXTENSION"
+_SCHEMA_BLOCK_SYSTEM = "SYSTEM"
+
 
 class LLMNodeStrategy(NodeStrategy):
     """Executes an AI/LLM Step.
@@ -163,19 +166,27 @@ class LLMNodeStrategy(NodeStrategy):
             output_profile = workflow_obj.output_profiles.get(target_profile)
 
             for s in workflow_obj.steps:
-                if s.id in state_data["steps"]:
-                    is_matrix = False
-                    blueprint_def = await self.repository.get_step(s.task_blueprint)
-                    if blueprint_def:
-                        blueprint_obj = V2Step.model_validate(blueprint_def)
-                        for m_id in blueprint_obj.prompt_blocks:
-                            b = block_map.get(m_id)
-                            if b and b.category_id == "matrix":
+                is_matrix = False
+                blueprint_def = await self.repository.get_step(s.task_blueprint)
+                if blueprint_def:
+                    blueprint_obj = V2Step.model_validate(blueprint_def)
+                    for m_id in blueprint_obj.prompt_blocks:
+                        b = block_map.get(m_id)
+                        if b:
+                            if b.category_id == "matrix":
                                 is_matrix = True
                                 schema_map[m_id] = _SCHEMA_BLOCK_MATRIX
                             else:
                                 schema_map[m_id] = _SCHEMA_BLOCK_TEXT
-                    schema_map[s.id] = _SCHEMA_BLOCK_MATRIX if is_matrix else _SCHEMA_BLOCK_TEXT
+
+                            if b.output_extensions:
+                                for ext in b.output_extensions:
+                                    schema_map[ext] = _SCHEMA_BLOCK_EXTENSION
+
+                schema_map[s.id] = _SCHEMA_BLOCK_MATRIX if is_matrix else _SCHEMA_BLOCK_TEXT
+
+            schema_map["_step_metadata"] = _SCHEMA_BLOCK_SYSTEM
+            schema_map["_audit_signature"] = _SCHEMA_BLOCK_SYSTEM
 
         # Export back to dict for legacy consumers that haven't been hardened yet
         criteria_blocks = [b.model_dump(mode="json") for b in criteria_blocks_models]
