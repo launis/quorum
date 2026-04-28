@@ -79,8 +79,8 @@ def generate_scatter_chart(axes: list[MatrixScorecardRowDTO]) -> str:
     ax.axhline(y=y_mid, color="gray", linestyle="--", alpha=0.5)
     ax.axvline(x=x_mid, color="gray", linestyle="--", alpha=0.5)
 
-    ax.set_xlabel(x_axis.name, fontsize=10)
-    ax.set_ylabel(y_axis.name, fontsize=10)
+    ax.set_xlabel(f"{x_axis.name} ({x_val} / {x_max})", fontsize=10)
+    ax.set_ylabel(f"{y_axis.name} ({y_val} / {y_max})", fontsize=10)
     ax.grid(True, linestyle=":", alpha=0.6)
 
     plt.tight_layout()

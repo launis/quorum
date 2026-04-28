@@ -95,7 +95,7 @@ class AtomMatrixTableWidget extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: Text(
-                  l10n.scorecard_matrix_summary,
+                  l10n.atomicBreakdownTitle,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -106,11 +106,11 @@ class AtomMatrixTableWidget extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
-              const Expanded(
+              Expanded(
                 flex: 1,
                 child: Text(
-                  '100 %',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  l10n.normalizedScore,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -120,7 +120,12 @@ class AtomMatrixTableWidget extends StatelessWidget {
         ...tableMatrices.map((m) {
           final levelMap = m.levelBreakdown!;
           final levelNames = m.levelNames ?? {};
-          final sortedLevels = levelMap.keys.toList()..sort();
+          final sortedLevels = levelMap.keys.toList()
+            ..sort((a, b) {
+              final numA = double.tryParse(a) ?? 0;
+              final numB = double.tryParse(b) ?? 0;
+              return numB.compareTo(numA);
+            });
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -152,10 +157,11 @@ class AtomMatrixTableWidget extends StatelessWidget {
                     children: sortedLevels.map((lvl) {
                       final display = levelMap[lvl]!;
                       final name = levelNames[lvl] ?? 'T$lvl';
+                      final numLvl = double.tryParse(lvl)?.toInt() ?? lvl;
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 2.0),
                         child: Text(
-                          '$name: $display',
+                          '$numLvl - $name: $display',
                           style: const TextStyle(fontSize: 12),
                         ),
                       );
@@ -202,7 +208,12 @@ class AtomMatrixTableWidget extends StatelessWidget {
       separatorBuilder: (context, index) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final m = tableMatrices[index];
-        final sortedLevels = m.levelBreakdown!.keys.toList()..sort();
+        final sortedLevels = m.levelBreakdown!.keys.toList()
+          ..sort((a, b) {
+            final numA = double.tryParse(a) ?? 0;
+            final numB = double.tryParse(b) ?? 0;
+            return numB.compareTo(numA);
+          });
 
         return ExpansionTile(
           title: Text(
@@ -241,13 +252,10 @@ class AtomMatrixTableWidget extends StatelessWidget {
           children: sortedLevels.map((lvl) {
             final display = m.levelBreakdown![lvl]!;
             final name = m.levelNames?[lvl] ?? 'T$lvl';
+            final numLvl = double.tryParse(lvl)?.toInt() ?? lvl;
             return ListTile(
               dense: true,
-              title: Text(name),
-              trailing: Text(
-                display,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+              title: Text('$numLvl - $name: $display'),
             );
           }).toList(),
         );

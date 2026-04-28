@@ -190,8 +190,16 @@ class BlueprintTransformer:
             if group_key not in grouped_extensions:
                 grouped_extensions[group_key] = []
 
-            highlight_dict = highlight.model_dump()
-            grouped_extensions[group_key].append(highlight_dict)
+            # Epic 10: Map the synthesized global highlight so it outranks fragmented matrix extensions.
+            # We omit 'axis_name' so it doesn't render a 'teoriaotsikko' in the UI.
+            grouped_extensions[group_key].append(
+                {
+                    group_key: highlight.content,
+                    "content": highlight.content,
+                    "_score": -999.0,
+                    "_is_synthesized": True
+                }
+            )
 
         if results.get("has_warning"):
             has_warning = True
@@ -397,7 +405,31 @@ class BlueprintTransformer:
                 unique_k = f"{step_id}_{b_id}"
                 all_parsed_matrices[unique_k] = row_dto
 
-                # Arrays will be populated deterministically via layout_defs sorting later
+                # Epic 10/12: Aggregate Matrix-Level XAI Extensions into grouped_extensions for the UI
+                for ext_key, ext_val in ext_dict.items():
+                    # Only map extensions that are requested in the OutputProfile's visible_extensions
+                    if ext_val and ext_key in grouped_extensions:
+                        grouped_extensions[ext_key].append(
+                            {
+                                "axis_name": axis_name,
+                                ext_key: ext_val,
+                                "_score": score_float,
+                            }
+                        )
+
+        # Epic 10: Sort and limit the XAI extensions based on max_extension_items from OutputProfile
+        max_items = getattr(profile, "max_extension_items", 2)
+        if max_items is not None and max_items > 0:
+            for ext_key in grouped_extensions:
+                # If a synthesized global highlight exists, it EXCLUSIVELY takes over the category
+                # suppressing all raw fragmented matrix extensions (no theory titles).
+                synthesized = [x for x in grouped_extensions[ext_key] if x.get("_is_synthesized")]
+                if synthesized:
+                    grouped_extensions[ext_key] = synthesized[:max_items]
+                else:
+                    # Sort by lowest score first (most critical gaps = "most relevant")
+                    grouped_extensions[ext_key].sort(key=lambda x: x.get("_score", 999.0))
+                    grouped_extensions[ext_key] = grouped_extensions[ext_key][:max_items]
 
         try:
             for idx, layout_def in enumerate(layout_defs):

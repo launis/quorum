@@ -51,7 +51,7 @@ class ReportRendererWidget extends ConsumerWidget {
         if (payload.synthesizedMarkdown != null &&
             payload.synthesizedMarkdown!.isNotEmpty)
           _buildGlobalSynthesisBox(context),
-        if (payload.globalScore != null) _buildGlobalScoreBadge(context),
+
         ...payload.layouts.map(
           (layout) => _buildLayoutSequence(context, ref, layout),
         ),
@@ -61,6 +61,7 @@ class ReportRendererWidget extends ConsumerWidget {
           XAIExtensionsBox(groupedExtensions: payload.groupedExtensions),
 
         // Epic 27: Render Independent Matrix Scorecard directly below extensions
+        // V6.1 Parity Fix: This is the 'Appendix' of all matrices, regardless of 3D layout inclusion.
         DiagnosticScorecardWidget(
           globalAverage: payload.globalScore,
           evaluativeMatrices: payload.evaluativeMatrices,

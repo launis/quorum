@@ -443,8 +443,20 @@ abstract class AppLocalizations {
   /// No description provided for @atomicBreakdownTitle.
   ///
   /// In en, this message translates to:
-  /// **'Atomic Matrix Breakdown'**
+  /// **'Level Breakdown'**
   String get atomicBreakdownTitle;
+
+  /// No description provided for @normalizedScore.
+  ///
+  /// In en, this message translates to:
+  /// **'100 %'**
+  String get normalizedScore;
+
+  /// No description provided for @matrixEvaluativeAsteriskLegend.
+  ///
+  /// In en, this message translates to:
+  /// **'* = Evaluative Matrix (Impacts global score)'**
+  String get matrixEvaluativeAsteriskLegend;
 
   /// No description provided for @reportPenaltiesApplied.
   ///
@@ -6149,12 +6161,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reasoning: {count}'**
   String reportReasoningTokens(String count);
-
-  /// No description provided for @matrixEvaluativeAsteriskLegend.
-  ///
-  /// In en, this message translates to:
-  /// **'* = Evaluative Matrix (Impacts global score)'**
-  String get matrixEvaluativeAsteriskLegend;
 }
 
 class _AppLocalizationsDelegate

@@ -105,7 +105,7 @@ class LogicMatrixChart extends StatelessWidget {
                 show: true,
                 leftTitles: AxisTitles(
                   axisNameWidget: Text(
-                    "Y: ${yAxis.name}",
+                    "Y: ${yAxis.name} (${yAxis.score} / ${yAxis.scaleMax})",
                     style: const TextStyle(fontSize: 10),
                   ),
                   axisNameSize: 20, // Reserve space for name
@@ -141,7 +141,7 @@ class LogicMatrixChart extends StatelessWidget {
                   axisNameWidget: Padding(
                     padding: const EdgeInsets.only(top: 12.0),
                     child: Text(
-                      "X: ${xAxis.name}",
+                      "X: ${xAxis.name} (${xAxis.score} / ${xAxis.scaleMax})",
                       style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,

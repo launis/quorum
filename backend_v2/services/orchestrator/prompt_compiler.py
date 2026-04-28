@@ -679,6 +679,29 @@ class PromptCompiler:
         )
         xml_blocks.append(anti_sycophancy_mandate)
 
+        # Anti-ID Mandate to prevent raw UUID/System-ID hallucination
+        anti_id_mandate = (
+            "<ANTI_ID_MANDATE>\n"
+            "CRITICAL FORMATTING RULE: You MUST NEVER include raw system IDs, UUIDs, or MD5 hashes "
+            "(e.g. 'sr_566e...', 'f6091a1defeae...') in your final output text, reasoning, or justification. "
+            "Do NOT use `atom_id` values as citations. Always refer to concepts by their human-readable "
+            "names or descriptions.\n"
+            "</ANTI_ID_MANDATE>"
+        )
+        xml_blocks.append(anti_id_mandate)
+
+        # Anti-Score Mandate to enforce Zero-Trust Auditor architecture
+        anti_score_mandate = (
+            "<ANTI_SCORE_MANDATE>\n"
+            "CRITICAL ARCHITECTURAL RULE: You are a blind micro-evaluator. You MUST NEVER declare a final score, "
+            "a final grade, or use text like 'Arvioidaan tasolle 4' or 'Pysyn arviossa 3' in your justification text. "
+            "Your ONLY job is to analytically explain the presence or absence of logical elements and evidence. "
+            "The final mathematical calculation and grading will be done strictly by the backend system. "
+            "Do NOT attempt to act as the final judge.\n"
+            "</ANTI_SCORE_MANDATE>"
+        )
+        xml_blocks.append(anti_score_mandate)
+
         return "\n".join(xml_blocks)
 
     def compile_static_instructions(self, blocks: list[dict[str, Any]], target_locale: str) -> str:

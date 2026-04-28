@@ -144,24 +144,35 @@ class PdfReportService:
 
             printed_at = datetime.now().astimezone().strftime("%d.%m.%Y %H:%M")
 
-            l10n_dict = {
-                "en": {
-                    "lblLogicMatrix": "Matrix",
-                    "score": "Score",
-                    "atomicBreakdownTitle": "Level Breakdown",
-                    "xaiJustification": "Justification",
-                    "normalizedScore": "100%",
-                    "matrixEvaluativeAsteriskLegend": "* Matrix score is included in the global average.",
-                },
-                "fi": {
-                    "lblLogicMatrix": "Matriisi",
-                    "score": "Pisteet",
-                    "atomicBreakdownTitle": "Tasojakauma",
-                    "xaiJustification": "Perustelu",
-                    "normalizedScore": "100%",
-                    "matrixEvaluativeAsteriskLegend": "* Matriisi lasketaan mukaan kokonaisarvosanan keskiarvoon.",
-                },
-            }
+            import json
+            l10n_dir = Path(__file__).parent.parent.parent / "client_app_v2" / "lib" / "l10n"
+            l10n_dict = {"en": {}, "fi": {}}
+            
+            try:
+                with open(l10n_dir / "app_en.arb", "r", encoding="utf-8") as f:
+                    l10n_dict["en"] = json.load(f)
+                with open(l10n_dir / "app_fi.arb", "r", encoding="utf-8") as f:
+                    l10n_dict["fi"] = json.load(f)
+            except Exception as e:
+                logger.warning("Failed to load .arb files, falling back to static dict: %s", e)
+                l10n_dict = {
+                    "en": {
+                        "lblLogicMatrix": "Logic Matrix",
+                        "score": "Score",
+                        "atomicBreakdownTitle": "Level Breakdown",
+                        "xaiJustification": "Justification",
+                        "normalizedScore": "100 %",
+                        "matrixEvaluativeAsteriskLegend": "* Matrix score is included in the global average.",
+                    },
+                    "fi": {
+                        "lblLogicMatrix": "Logiikkamatriisi",
+                        "score": "Pisteet",
+                        "atomicBreakdownTitle": "Tasojakauma",
+                        "xaiJustification": "Perustelut",
+                        "normalizedScore": "100 %",
+                        "matrixEvaluativeAsteriskLegend": "* Matriisi lasketaan mukaan kokonaisarvosanan keskiarvoon.",
+                    },
+                }
             l10n = l10n_dict.get(target_locale, l10n_dict["en"])
 
             html_content = template.render(

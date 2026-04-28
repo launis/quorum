@@ -204,7 +204,14 @@ class AppLocalizationsFi extends AppLocalizations {
   String get scorecard_matrix_summary => 'Yhteenveto / Matrix Summary';
 
   @override
-  String get atomicBreakdownTitle => 'Kovan tason atomianalyysi';
+  String get atomicBreakdownTitle => 'Tasojakauma';
+
+  @override
+  String get normalizedScore => '100 %';
+
+  @override
+  String get matrixEvaluativeAsteriskLegend =>
+      '* = Arvioiva matriisi (Vaikuttaa kokonaisarvosanaan)';
 
   @override
   String get reportPenaltiesApplied => 'Rangaistukset (Sovelletut vääristymät)';
@@ -3387,8 +3394,4 @@ class AppLocalizationsFi extends AppLocalizations {
   String reportReasoningTokens(String count) {
     return 'Päättely: $count';
   }
-
-  @override
-  String get matrixEvaluativeAsteriskLegend =>
-      '* = Arvioiva matriisi (Vaikuttaa kokonaisarvosanaan)';
 }

@@ -22,10 +22,9 @@ class XAIExtensionsBox extends ConsumerWidget {
         if (e.value.isEmpty) {
           ref
               .read(loggerServiceProvider)
-              .error(
+              .info(
                 'XAIExtensionsBox',
                 'Extension group "${e.key}" was requested but AI produced no data. Supressing empty header.',
-                null,
               );
           return false;
         }
