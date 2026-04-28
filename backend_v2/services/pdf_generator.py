@@ -6,15 +6,21 @@ Adheres to V2 Architecture (De-Generator Policy / SDUI Block Building):
 - Resolves XAI citations and justifications automatically.
 """
 
+import asyncio
+import json
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 
+import markdown  # type: ignore[import-untyped, unused-ignore]
 import weasyprint
 from jinja2 import Environment, FileSystemLoader
 
 from backend_v2.database.repository import AbstractWorkflowRepository
-from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.v2_core import ReportDataDTO
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.state import StateProjector
+from backend_v2.models.v2_core import ReportDataDTO, Workflow
+from backend_v2.utils.static_charts import generate_radar_chart, generate_scatter_chart
 
 logger = logging.getLogger(__name__)
 
@@ -43,16 +49,7 @@ class PdfReportService:
         def md_filter(text: str) -> str:
             if not isinstance(text, str):
                 return str(text) if text else ""
-            try:
-                import markdown  # type: ignore[import-untyped, unused-ignore]
-
-                return str(markdown.markdown(text, extensions=["extra", "nl2br"]))
-            except ImportError as e:
-                from backend_v2.exceptions import ConfigurationError
-
-                msg = "Fail-Fast: 'markdown' package is required for PDF Markdown rendering but is not installed."
-                logger.error("[PdfReportService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                raise ConfigurationError(msg) from e
+            return str(markdown.markdown(text, extensions=["extra", "nl2br"]))
 
         self.env.filters["md"] = md_filter
 
@@ -78,27 +75,32 @@ class PdfReportService:
                     details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
                 )
 
-            target_locale = execution.metadata.get("target_locale", "en") if execution.metadata else "en"
+            if not execution.metadata or "target_locale" not in execution.metadata:
+                msg = f"Execution {execution_id} is missing target_locale in metadata."
+                logger.error("[PdfReportService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
+
+            target_locale = str(execution.metadata["target_locale"])
 
             # Fetch Workflow Name for Header
             workflow_id = execution.workflow_id
             workflow_name = "Dynamic Workflow Execution"
+
             if report_dto and report_dto.profile_name:
-                title_obj = report_dto.profile_name
-                workflow_name = title_obj.get(target_locale, title_obj.get("en", workflow_name))
+                workflow_name = report_dto.profile_name.resolve(target_locale)
             elif workflow_id:
                 workflow_dict = await self.repository.get_workflow_by_id(workflow_id)
-                if workflow_dict and "name" in workflow_dict:
-                    name_obj = workflow_dict["name"]
-                    # Assuming I18nText dict or just string
-                    if isinstance(name_obj, dict):
-                        workflow_name = name_obj.get("default_locale", workflow_name)
+                if workflow_dict:
+                    workflow = Workflow.model_validate(workflow_dict)
+                    if isinstance(workflow.name, str):
+                        workflow_name = workflow.name
                     else:
-                        workflow_name = str(name_obj)
+                        workflow_name = workflow.name.resolve(target_locale)
 
             # 2. Extract context and results
             frozen_context = execution.frozen_context.model_dump() if execution.frozen_context else {}
-            from backend_v2.models.state import StateProjector
 
             projector = StateProjector()
             results = projector.fold_trace(execution.execution_trace)
@@ -106,8 +108,6 @@ class PdfReportService:
             # 2.5 Generate static charts if DTO is provided
             charts = {}
             if report_dto and report_dto.layouts:
-                from backend_v2.utils.static_charts import generate_radar_chart, generate_scatter_chart
-
                 for idx, layout in enumerate(report_dto.layouts):
                     try:
                         if layout.preset_view in ("radar_3d", "3d_complex"):
@@ -115,8 +115,6 @@ class PdfReportService:
                             if b64_data:
                                 charts[idx] = b64_data
                             else:
-                                from backend_v2.exceptions import ConfigurationError
-
                                 msg = f"generate_radar_chart returned empty data for layout {idx}"
                                 raise ConfigurationError(msg)
                         elif layout.preset_view in ("matrix_2d", "2d_compare", "matrix_3d", "3d_matrix"):
@@ -124,8 +122,6 @@ class PdfReportService:
                             if b64_data:
                                 charts[idx] = b64_data
                             else:
-                                from backend_v2.exceptions import ConfigurationError
-
                                 msg = f"generate_scatter_chart returned empty data for layout {idx}"
                                 raise ConfigurationError(msg)
                     except Exception as e:
@@ -140,40 +136,29 @@ class PdfReportService:
             # 3. Render Template
             template = self.env.get_template("report_template.jinja2")
 
-            from datetime import datetime
+            printed_at = datetime.now(timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M")
 
-            printed_at = datetime.now().astimezone().strftime("%d.%m.%Y %H:%M")
-
-            import json
             l10n_dir = Path(__file__).parent.parent.parent / "client_app_v2" / "lib" / "l10n"
-            l10n_dict = {"en": {}, "fi": {}}
-            
+            l10n_dict: dict[str, dict[str, str]] = {"en": {}, "fi": {}}
+
             try:
-                with open(l10n_dir / "app_en.arb", "r", encoding="utf-8") as f:
+                with open(l10n_dir / "app_en.arb", encoding="utf-8") as f:
                     l10n_dict["en"] = json.load(f)
-                with open(l10n_dir / "app_fi.arb", "r", encoding="utf-8") as f:
+                with open(l10n_dir / "app_fi.arb", encoding="utf-8") as f:
                     l10n_dict["fi"] = json.load(f)
             except Exception as e:
-                logger.warning("Failed to load .arb files, falling back to static dict: %s", e)
-                l10n_dict = {
-                    "en": {
-                        "lblLogicMatrix": "Logic Matrix",
-                        "score": "Score",
-                        "atomicBreakdownTitle": "Level Breakdown",
-                        "xaiJustification": "Justification",
-                        "normalizedScore": "100 %",
-                        "matrixEvaluativeAsteriskLegend": "* Matrix score is included in the global average.",
-                    },
-                    "fi": {
-                        "lblLogicMatrix": "Logiikkamatriisi",
-                        "score": "Pisteet",
-                        "atomicBreakdownTitle": "Tasojakauma",
-                        "xaiJustification": "Perustelut",
-                        "normalizedScore": "100 %",
-                        "matrixEvaluativeAsteriskLegend": "* Matriisi lasketaan mukaan kokonaisarvosanan keskiarvoon.",
-                    },
-                }
-            l10n = l10n_dict.get(target_locale, l10n_dict["en"])
+                msg = f"Missing or corrupt .arb L10n files: {e}"
+                logger.error("[PdfReportService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise ConfigurationError(msg) from e
+
+            if target_locale not in l10n_dict:
+                msg = f"Locale '{target_locale}' is not supported in .arb L10n files."
+                logger.error("[PdfReportService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
+
+            l10n = l10n_dict[target_locale]
 
             html_content = template.render(
                 execution_id=execution_id,
@@ -214,8 +199,6 @@ class PdfReportService:
             html_content = await self.generate_execution_html(execution_id, report_dto)
 
             # 4. Generate PDF
-            import asyncio
-
             loop = asyncio.get_running_loop()
 
             def _render_pdf() -> bytes:

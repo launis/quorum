@@ -86,14 +86,14 @@ class UsageService:
                 total_t = input_tokens + output_tokens
                 update_data = {
                     "total_executions": 1,
-                    "usage": {
-                        "prompt_tokens": input_tokens,
-                        "completion_tokens": output_tokens,
-                        "total_tokens": total_t,
-                        "cached_tokens": cached_tokens,
-                        "reasoning_tokens": reasoning_tokens,
-                        "cost_usd": cost_usd,
-                    },
+                    "usage": TokenUsage(
+                        prompt_tokens=input_tokens,
+                        completion_tokens=output_tokens,
+                        total_tokens=total_t,
+                        cached_tokens=cached_tokens,
+                        reasoning_tokens=reasoning_tokens,
+                        cost_usd=cost_usd,
+                    ).model_dump(mode="json"),
                 }
 
                 # System Level (All traffic)
@@ -135,14 +135,17 @@ class UsageService:
             if org_id == SystemOrganizations.ROOT_SYSTEM:
                 return True  # System internal tasks are exempt from hard quota ceilings
 
-            org = await self.repo.get_organization(org_id)
-            if not org:
+            from backend_v2.models.auth import Organization
+
+            org_data = await self.repo.get_organization(org_id)
+            if not org_data:
                 # Fail-Fast: Unknown orgs cannot consume LLM traffic
                 msg = f"Quota Check: Organization '{org_id}' not found. Execution denied."
                 logger.error("[UsageService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
                 raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND})
 
-            limit = float(org.get("quota_limit", 10.0))  # Default $10.00 conservative
+            org = Organization.model_validate(org_data)
+            limit = float(org.quota_limit)
 
             # 2. Calculate Usage (Current Month)
             now = datetime.now(UTC)
@@ -177,36 +180,31 @@ class UsageService:
             if since >= start_of_month:
                 period = now.strftime("%Y-%m")
 
-        agg = None
+        from backend_v2.models.domain.usage import UsageAggregate
+
+        agg_data = None
         if hasattr(self.repo, "get_usage_aggregate"):
             # Map frontend scope 'org' to 'organization' exactly as aggregated
             mapped_scope = "organization" if scope == "org" else scope
-            agg = await self.repo.get_usage_aggregate(mapped_scope, entity_id, period)
+            agg_data = await self.repo.get_usage_aggregate(mapped_scope, entity_id, period)
 
-        if agg:
-            usage_data = agg.get("usage", {})
-            token_usage = TokenUsage(
-                prompt_tokens=usage_data.get("prompt_tokens", 0),
-                completion_tokens=usage_data.get("completion_tokens", 0),
-                total_tokens=usage_data.get("total_tokens", 0),
-                cached_tokens=usage_data.get("cached_tokens", 0),
-                reasoning_tokens=usage_data.get("reasoning_tokens", 0),
-                cost_usd=usage_data.get("cost_usd", 0.0),
-            )
+        if agg_data:
+            agg = UsageAggregate.model_validate(agg_data)
+            token_usage = agg.usage
         else:
             records_data = []
             if hasattr(self.repo, "get_usage_records"):
                 mapped_scope = "organization" if scope == "org" else scope
                 records_data = await self.repo.get_usage_records(scope=mapped_scope, entity_id=entity_id, since=since)
 
-            prompt_tokens = sum(r.get("input_tokens", 0) for r in records_data)
-            completion_tokens = sum(r.get("output_tokens", 0) for r in records_data)
-            total_tokens = sum(
-                r.get("total_tokens", r.get("input_tokens", 0) + r.get("output_tokens", 0)) for r in records_data
-            )
-            cached_tokens = sum(r.get("cached_tokens", 0) for r in records_data)
-            reasoning_tokens = sum(r.get("reasoning_tokens", 0) for r in records_data)
-            cost_usd = sum(float(r.get("cost_usd", 0.0)) for r in records_data)
+            records = [UsageRecord.model_validate(r) for r in records_data]
+
+            prompt_tokens = sum(r.input_tokens for r in records)
+            completion_tokens = sum(r.output_tokens for r in records)
+            total_tokens = sum((r.input_tokens + r.output_tokens) for r in records)
+            cached_tokens = sum((r.cached_tokens or 0) for r in records)
+            reasoning_tokens = sum((r.reasoning_tokens or 0) for r in records)
+            cost_usd = sum(float(r.cost_usd) for r in records)
 
             token_usage = TokenUsage(
                 prompt_tokens=prompt_tokens,
@@ -221,9 +219,12 @@ class UsageService:
         percentage_used = None
         mapped_scope = "organization" if scope == "org" else scope
         if mapped_scope == "organization" and entity_id:
-            org = await self.repo.get_organization(entity_id)
-            if org:
-                quota_limit = float(org.get("quota_limit", 10.0))
+            from backend_v2.models.auth import Organization
+
+            org_data = await self.repo.get_organization(entity_id)
+            if org_data:
+                org = Organization.model_validate(org_data)
+                quota_limit = float(org.quota_limit)
                 if quota_limit > 0:
                     percentage_used = min(100.0, (token_usage.cost_usd / quota_limit) * 100.0)
 

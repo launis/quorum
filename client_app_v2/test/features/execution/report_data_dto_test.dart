@@ -36,6 +36,9 @@ void main() {
             "text_delivery_mode": "full",
             "axes": [
               {
+                "block_id": "test_block",
+                "label_fi": "Loogisuus",
+                "label_en": "Logicality",
                 "name": "Loogisuus",
                 "score": 88.0,
                 "justification": "Analyysi perustelu...",

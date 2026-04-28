@@ -5,15 +5,23 @@ Modernized for GraphEngine and TaskRegistry (V2.9).
 
 import asyncio
 import logging
+import uuid
+import logfire
 from datetime import UTC, datetime
 from typing import Any
 
 from arq.connections import RedisSettings
 
+from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.core.registry import TaskRegistry
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.database.factory import get_repository
+from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
+from backend_v2.models.enums import SystemConcurrency
+from backend_v2.models.state import StateProjector
+from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache, Workflow
+from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.pdf_generator import PdfReportService
@@ -59,8 +67,6 @@ async def execute_workflow_job(
 
     # LOGFIRE INTEGRATION: Bind execution_id to this trace context
     # This groups all subsequent logs (Agent, LLM, DB) under this execution_id.
-    import logfire
-
     with logfire.span("execute_workflow_job", tags={"execution_id": execution_id or "unknown"}):
         # Inject Organization ID into inputs (Blackboard State) if provided
         # This ensures that valid WorkflowState objects created from this dict will have organization_id populated.
@@ -82,13 +88,7 @@ async def execute_workflow_job(
             workflow_dict = await repository.get_workflow(workflow_id)
 
             if not workflow_dict:
-                from backend_v2.exceptions import WorkflowNotFoundError
-
                 raise WorkflowNotFoundError(workflow_id)
-
-            import uuid
-
-            from backend_v2.models.v2_core import Workflow
 
             # V2 MUST validate strictly before execution
             workflow_def = Workflow.model_validate(workflow_dict)
@@ -134,8 +134,6 @@ async def execute_workflow_job(
             }
 
         except Exception as e:
-            from backend_v2.exceptions import AppException
-
             if not isinstance(e, AppException):
                 msg = f"Workflow {workflow_id} failed: {e}"
                 logger.error(
@@ -200,9 +198,6 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
     """
     logger.info(f"[Task] Starting Async PDF Koonti for execution {execution_id}")
     try:
-        from backend_v2.database.factory import get_repository
-        from backend_v2.services.blueprint import BlueprintTransformer
-
         repo = await get_repository(get_settings())
         transformer = BlueprintTransformer(repo)
 
@@ -213,8 +208,6 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
             return
 
         # V2 MANDATE: Strict Pydantic parsing at the boundary
-        from backend_v2.models.v2_core import ExecutionRecord
-
         execution_record = (
             ExecutionRecord.model_validate(execution_dict) if isinstance(execution_dict, dict) else execution_dict
         )
@@ -254,8 +247,6 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
             extra={"error_code": ErrorCodes.PDF_GENERATION_FAILED.value},
         )
         try:
-            from backend_v2.database.factory import get_repository
-
             repo = await get_repository(get_settings())
             await repo.update_execution(
                 execution_id,
@@ -271,6 +262,7 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
                 exc_info=True,
                 extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
             )
+        raise e
 
 
 async def render_profile_job(
@@ -287,10 +279,6 @@ async def generate_profile_synthesis_and_pdf_task(
     """Background Task. Synthesizes Markdown and enqueues PDF generation. Epic 14 M4."""
     logger.info(f"[Task] Starting Async Text Synthesis for execution {execution_id} (Profile: {profile_id})")
     try:
-        from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
-        from backend_v2.database.factory import get_repository
-        from backend_v2.models.state import StateProjector
-
         repo = await get_repository(get_settings())
 
         execution_data = await repo.get_execution(execution_id)
@@ -299,8 +287,6 @@ async def generate_profile_synthesis_and_pdf_task(
             return
 
         # V2 MANDATE: Strict Pydantic parsing at the boundary
-        from backend_v2.models.v2_core import ExecutionRecord
-
         execution = (
             ExecutionRecord.model_validate(execution_data) if isinstance(execution_data, dict) else execution_data
         )
@@ -349,8 +335,6 @@ async def generate_profile_synthesis_and_pdf_task(
         hook_res = await hook_registry.execute("text_consolidation_hook", state, deps)
 
         if hook_res.success and hook_res.state_delta:
-            from backend_v2.models.v2_core import RenderedSynthesisCache
-
             cache = RenderedSynthesisCache(
                 synthesized_markdown=hook_res.state_delta.get("synthesized_markdown", ""),
                 section_syntheses=hook_res.state_delta.get("section_syntheses", {}),
@@ -378,8 +362,6 @@ async def generate_profile_synthesis_and_pdf_task(
             extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
         )
         try:
-            from backend_v2.database.factory import get_repository
-
             repo = await get_repository(get_settings())
             await repo.update_execution(
                 execution_id,
@@ -395,6 +377,7 @@ async def generate_profile_synthesis_and_pdf_task(
                 exc_info=True,
                 extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
             )
+        raise e
 
 
 # --- Lifecycle ---
@@ -425,8 +408,6 @@ async def startup(ctx: Any) -> None:
     logger.info(f"TaskRegistry initialized. Registered tasks: {list(TaskRegistry._tasks.keys())}")
 
     # 2. Initialize Dependencies
-    from backend_v2.database.factory import get_repository
-
     # Repository (Firestore/TinyDB)
     repository = await get_repository(settings)
 
@@ -454,11 +435,6 @@ async def shutdown(ctx: Any) -> None:
 async def health_check(ctx: Any) -> str:
     """Simple health check task."""
     return "OK"
-
-
-from backend_v2.models.enums import SystemConcurrency
-
-
 class WorkerSettings:
     """Configuration for the Arq worker."""
 

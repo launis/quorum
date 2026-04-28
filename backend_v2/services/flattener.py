@@ -9,6 +9,7 @@ Adheres to V2 Architecture:
 import json
 from typing import Any
 
+from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import ExecutionRecord
 
 
@@ -34,8 +35,6 @@ class FlatFileService:
             "workflow_id": execution.workflow_id,
             "status": execution.status.value,
         }
-
-        from backend_v2.models.state import StateProjector
 
         projector = StateProjector()
         results = projector.fold_trace(execution.execution_trace)

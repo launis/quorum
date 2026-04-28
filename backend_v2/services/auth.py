@@ -10,6 +10,11 @@ from datetime import datetime, timezone
 from typing import Any
 
 import jwt
+
+try:
+    from firebase_admin import auth as firebase_auth_module
+except ImportError:
+    firebase_auth_module = None
 from fastapi import Depends
 
 from backend_v2.database.repository import AbstractWorkflowRepository
@@ -81,12 +86,12 @@ class UserRepository:
     async def get_by_id(self, id: str) -> User | None:
         data = await self.repo.get_user(id)
 
-        return User(**data) if data else None
+        return User.model_validate(data) if data else None
 
     async def get_by_email(self, email: str) -> User | None:
         data = await self.repo.get_user_by_email(email)
 
-        return User(**data) if data else None
+        return User.model_validate(data) if data else None
 
     async def create(self, user: User) -> User:
         if await self.get_by_id(user.id):
@@ -110,13 +115,13 @@ class UserRepository:
         return await self.get_by_id(id)
 
     async def list_all(self) -> list[User]:
-        return [User(**u) for u in await self.repo.list_users()]
+        return [User.model_validate(u) for u in await self.repo.list_users()]
 
     async def delete(self, id: str) -> bool:
         return await self.repo.delete_user(id)
 
     async def get_by_organization(self, org_id: str) -> list[User]:
-        return [User(**u) for u in await self.repo.list_users(org_id)]
+        return [User.model_validate(u) for u in await self.repo.list_users(org_id)]
 
 
 # --- Service Layer ---
@@ -141,18 +146,12 @@ class AuthService:
             self._init_firebase()
 
     def _init_firebase(self) -> None:
-        try:
-            from firebase_admin import auth
-
-            self.firebase_auth = auth
-
+        if firebase_auth_module:
+            self.firebase_auth = firebase_auth_module
             logger.info("[AuthService] Firebase Admin SDK initialized.")
-
             self._initialized_firebase = True
-
-        except ImportError:
+        else:
             logger.warning("[AuthService] Firebase SDK not installed. Falling back to Mock mode.")
-
             self.use_firebase = False
 
     def create_impersonation_token(self, target_id: str, duration_seconds: int = 3600) -> str:
@@ -846,8 +845,6 @@ class AuthService:
         user = await self.repo.get_by_id(target_id)
 
         if not user:
-            from backend_v2.exceptions import ResourceNotFoundError
-
             raise ResourceNotFoundError(resource_type="user", resource_id=target_id)
 
         # Tenant Isolation

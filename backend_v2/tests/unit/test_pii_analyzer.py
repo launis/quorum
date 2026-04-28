@@ -9,9 +9,9 @@ from backend_v2.services.pii_analyzer import PIIAnalyzerService
 @pytest.fixture
 def pii_service() -> PIIAnalyzerService:
     """Returns a fresh instance of PIIAnalyzerService for each test."""
-    # Reset singleton State
-    PIIAnalyzerService._instance = None
-    return PIIAnalyzerService.get_instance()
+    from backend_v2.services.pii_analyzer import get_pii_service
+    get_pii_service.cache_clear()
+    return get_pii_service()
 
 
 def test_lazy_loading_singleton(pii_service: PIIAnalyzerService) -> None:
@@ -25,8 +25,8 @@ def test_lazy_loading_singleton(pii_service: PIIAnalyzerService) -> None:
     assert pii_service._analyzer is None
 
 
-@patch("presidio_analyzer.AnalyzerEngine")
-@patch("presidio_anonymizer.AnonymizerEngine")
+@patch("backend_v2.services.pii_analyzer.AnalyzerEngine")
+@patch("backend_v2.services.pii_analyzer.AnonymizerEngine")
 def test_mask_pii_initialization(
     mock_anonymizer_class: MagicMock,
     mock_analyzer_class: MagicMock,
@@ -57,7 +57,7 @@ def test_mask_pii_initialization(
     assert res == "Hello <PERSON>"
 
 
-@patch("presidio_analyzer.AnalyzerEngine", side_effect=OSError("Model missing"))
+@patch("backend_v2.services.pii_analyzer.AnalyzerEngine", side_effect=OSError("Model missing"))
 def test_mask_pii_spacy_model_missing(mock_analyzer_class: MagicMock, pii_service: PIIAnalyzerService) -> None:
     """Test Fail-Fast doctrine if Spacy en_core_web_lg model is missing."""
     with pytest.raises(AppException) as exc_info:

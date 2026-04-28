@@ -92,8 +92,15 @@ void main() {
         layouts: [
           ReportLayoutDTO(
             presetView: PresetView.textOnly,
-            title: null,
-            description: null,
+            title: I18nText(
+              defaultLocale: 'en',
+              translations: {'en': 'Text Layout Title'},
+            ),
+            description: I18nText(
+              defaultLocale: 'en',
+              translations: {'en': 'Text Layout Desc'},
+            ),
+            synthesisMd: 'Synthesis content',
             textDeliveryMode: 'full',
             axes: [
               MatrixScorecardRowDto(
@@ -128,9 +135,11 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Text Axis'), findsOneWidget);
-      expect(find.text('This is a text only justification'), findsOneWidget);
-      expect(find.textContaining('Static Placeholder'), findsNothing);
+      expect(find.text('Text Layout Title'), findsOneWidget);
+      expect(find.text('Text Layout Desc'), findsOneWidget);
+      expect(find.textContaining('Synthesis content'), findsOneWidget);
+      expect(find.text('Text Axis'), findsNothing);
+      expect(find.text('This is a text only justification'), findsNothing);
     },
   );
 }

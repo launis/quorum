@@ -1,40 +1,33 @@
 import logging
+from functools import lru_cache
 from typing import Any
+
+from presidio_analyzer import AnalyzerEngine
+from presidio_anonymizer import AnonymizerEngine
+
+from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
 
 class PIIAnalyzerService:
-    """Lazy-loading Singleton service for Microsoft Presidio.
+    """Lazy-loading service for Microsoft Presidio.
     This ensures that the heavy ~500MB en_core_web_lg SpaCy model is only loaded into RAM
     when actually requested during an evaluation path, avoiding boot-time overhead.
     """
-
-    _instance: PIIAnalyzerService | None = None
 
     def __init__(self) -> None:
         self._analyzer: Any | None = None
         self._anonymizer: Any | None = None
 
-    @classmethod
-    def get_instance(cls) -> PIIAnalyzerService:
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
-
     def _ensure_initialized(self) -> None:
         if self._analyzer is None or self._anonymizer is None:
             logger.info("Initializing Microsoft Presidio and loading SpaCy model into memory...")
-            from presidio_analyzer import AnalyzerEngine
-            from presidio_anonymizer import AnonymizerEngine
-
             try:
                 self._analyzer = AnalyzerEngine()
                 self._anonymizer = AnonymizerEngine()  # type: ignore[no-untyped-call]
                 logger.info("Presidio initialized successfully.")
             except OSError as e:
-                from backend_v2.exceptions import AppException, ErrorCodes
-
                 msg = "Presidio model 'en_core_web_lg' not found. Please install the model via spacy download."
                 logger.error("[PIIAnalyzerService] %s: %s - Error: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, e)
                 raise AppException(
@@ -57,3 +50,9 @@ class PIIAnalyzerService:
         # 2. Anonymize
         anonymized_result = self._anonymizer.anonymize(text=text, analyzer_results=results)
         return str(anonymized_result.text)
+
+
+@lru_cache
+def get_pii_service() -> PIIAnalyzerService:
+    """FastAPI Dependency Provider for lazy-loaded PIIAnalyzerService."""
+    return PIIAnalyzerService()

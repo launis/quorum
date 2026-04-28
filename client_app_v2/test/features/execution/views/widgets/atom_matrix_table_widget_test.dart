@@ -19,7 +19,7 @@ void main() {
         scaleMax: 5.0,
         trueAtoms: 5,
         totalAtoms: 10,
-        levelBreakdown: {'Level 1': '3 / 5', 'Level 2': '2 / 5'},
+        levelBreakdown: {'1': '3 / 5', '2': '2 / 5'},
       ),
     ];
 
@@ -28,6 +28,7 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
           // Set a large screen size to render the DataTable instead of mobile list
           home: MediaQuery(
             data: const MediaQueryData(size: Size(800, 600)),
@@ -39,12 +40,10 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Kognitio'), findsOneWidget);
-    expect(find.text('5 / 10'), findsOneWidget);
-    expect(find.text('Level 1'), findsOneWidget);
-    expect(find.text('3 / 5'), findsOneWidget);
-    expect(find.text('Level 2'), findsOneWidget);
-    expect(find.text('2 / 5'), findsOneWidget);
+    expect(find.text('Cognition *'), findsOneWidget);
+    expect(find.text('3.5 / 5.0'), findsOneWidget);
+    expect(find.text('1 - T1: 3 / 5'), findsOneWidget);
+    expect(find.text('2 - T2: 2 / 5'), findsOneWidget);
   });
 
   testWidgets(
@@ -60,7 +59,7 @@ void main() {
           scaleMax: 5.0,
           trueAtoms: 5,
           totalAtoms: 10,
-          levelBreakdown: {'Level 1': '3 / 5'},
+          levelBreakdown: {'1': '3 / 5'},
         ),
       ];
 
@@ -69,6 +68,7 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('en'),
             // Small screen size to trigger mobile layout
             home: MediaQuery(
               data: const MediaQueryData(size: Size(400, 800)),
@@ -81,15 +81,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // ExpansionTile should be present
-      expect(find.text('Kognitio'), findsOneWidget);
-      expect(find.textContaining('5 / 10'), findsWidgets);
+      expect(find.text('Cognition *'), findsOneWidget);
+      expect(find.textContaining('3.5 / 5.0'), findsWidgets);
 
       // Tap to expand
-      await tester.tap(find.text('Kognitio'));
+      await tester.tap(find.text('Cognition *'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Level 1'), findsOneWidget);
-      expect(find.text('3 / 5'), findsOneWidget);
+      expect(find.text('1 - T1: 3 / 5'), findsOneWidget);
     },
   );
 
@@ -111,6 +110,7 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('en'),
             home: Scaffold(body: AtomMatrixTableWidget(matrices: matrices)),
           ),
         ),

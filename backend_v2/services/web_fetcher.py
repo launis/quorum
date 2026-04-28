@@ -2,8 +2,8 @@
 
 import logging
 import re
-import urllib.error
-import urllib.request
+
+import httpx
 
 from backend_v2.exceptions import AppException, ErrorCodes
 
@@ -13,12 +13,12 @@ logger = logging.getLogger(__name__)
 class WebFetcher:
     """Simple service to fetch text content from URLs.
 
-    Uses generic utilities to avoid heavy dependencies efficiently for metadata fetching.
+    Uses httpx to perform asynchronous non-blocking network requests.
     """
 
     @staticmethod
     def fetch_text(url: str, timeout: int = 5) -> str:
-        """Fetches the content of a URL and extracts visible text using naive parsing.
+        """Fetches the content of a URL synchronously using httpx and extracts visible text using naive parsing.
 
         Useful for quick checkups or reference validation.
         Limits output to first 5000 chars.
@@ -38,10 +38,11 @@ class WebFetcher:
                 raise ValueError("URL must start with http:// or https://")
 
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) CognitiveQuorum/1.0"}
-            req = urllib.request.Request(url, headers=headers)
 
-            with urllib.request.urlopen(req, timeout=timeout) as response:
-                html_bytes = response.read()
+            with httpx.Client(headers=headers, timeout=timeout, follow_redirects=True) as client:
+                response = client.get(url)
+                response.raise_for_status()
+                html_bytes = response.content
                 html_text = html_bytes.decode("utf-8", errors="ignore")
 
                 # Naive HTML to Text
@@ -91,12 +92,27 @@ class WebFetcher:
             logger.error("[WebFetcher] %s: Invalid URL format: %s", ErrorCodes.URL_INVALID.name, e, exc_info=True)
             raise AppException(message=str(e), status_code=400, details={"error_code": ErrorCodes.URL_INVALID}) from e
 
-        except (urllib.error.URLError, TimeoutError) as e:
+        except httpx.RequestError as e:
             # Network or Protocol error
             logger.error("[WebFetcher] %s: Failed to fetch %s: %s", ErrorCodes.FETCH_FAILED.name, url, e, exc_info=True)
             raise AppException(
                 message=f"Failed to fetch content from {url}",
                 status_code=502,  # Bad Gateway / Upstream Error
+                details={"error_code": ErrorCodes.FETCH_FAILED, "original_error": str(e)},
+            ) from e
+
+        except httpx.HTTPStatusError as e:
+            # HTTP Error response
+            logger.error(
+                "[WebFetcher] %s: HTTP error %s for %s",
+                ErrorCodes.FETCH_FAILED.name,
+                e.response.status_code,
+                url,
+                exc_info=True,
+            )
+            raise AppException(
+                message=f"Failed to fetch content from {url}: HTTP {e.response.status_code}",
+                status_code=502,
                 details={"error_code": ErrorCodes.FETCH_FAILED, "original_error": str(e)},
             ) from e
 

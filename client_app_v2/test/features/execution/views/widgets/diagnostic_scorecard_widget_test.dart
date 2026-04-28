@@ -13,6 +13,7 @@ void main() {
         MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
           home: const Scaffold(
             body: DiagnosticScorecardWidget(
               globalAverage: 4.5,
@@ -41,7 +42,7 @@ void main() {
       expect(find.byType(AtomMatrixTableWidget), findsOneWidget);
 
       // Check specific data from the mock
-      expect(find.text('Testimatriisi'), findsWidgets);
+      expect(find.text('Test Matrix *'), findsWidgets);
       expect(find.text('4.50'), findsOneWidget); // Global average formatted
     },
   );
@@ -53,6 +54,7 @@ void main() {
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('en'),
         home: const Scaffold(
           body: DiagnosticScorecardWidget(
             globalAverage: null,

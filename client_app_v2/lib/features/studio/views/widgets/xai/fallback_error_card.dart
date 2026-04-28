@@ -21,7 +21,6 @@ class FallbackErrorCard extends StatelessWidget {
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         color: theme.colorScheme.errorContainer.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(8.0),
         border: Border(
           left: BorderSide(color: theme.colorScheme.error, width: 4.0),
           top: BorderSide(color: theme.dividerColor),

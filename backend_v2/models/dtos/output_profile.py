@@ -108,6 +108,7 @@ class OutputProfileResponseDTO(BaseModel):
     id: str
     slug: str
     workflow_id: str
+    organization_id: str | None = Field(default=None, description="Tenant organization ID.", exclude=True)
     name: I18nText
     description: I18nText | None = None
     visible_metadata: list[str] = Field(default_factory=lambda: ["date", "organization"])

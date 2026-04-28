@@ -79,7 +79,7 @@ class AtomMatrixTableWidget extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                flex: 2,
+                flex: 3,
                 child: Text(
                   l10n.lblLogicMatrix,
                   style: const TextStyle(fontWeight: FontWeight.bold),
@@ -93,16 +93,9 @@ class AtomMatrixTableWidget extends StatelessWidget {
                 ),
               ),
               Expanded(
-                flex: 2,
+                flex: 3,
                 child: Text(
                   l10n.atomicBreakdownTitle,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Expanded(
-                flex: 4,
-                child: Text(
-                  l10n.xaiJustification,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -117,80 +110,80 @@ class AtomMatrixTableWidget extends StatelessWidget {
           ),
         ),
         const Divider(height: 1),
-        ...tableMatrices.map((m) {
-          final levelMap = m.levelBreakdown!;
-          final levelNames = m.levelNames ?? {};
-          final sortedLevels = levelMap.keys.toList()
-            ..sort((a, b) {
-              final numA = double.tryParse(a) ?? 0;
-              final numB = double.tryParse(b) ?? 0;
-              return numB.compareTo(numA);
-            });
+        ...tableMatrices
+            .map((m) {
+              final levelMap = m.levelBreakdown!;
+              final levelNames = m.levelNames ?? {};
+              final sortedLevels = levelMap.keys.toList()
+                ..sort((a, b) {
+                  final numA = double.tryParse(a) ?? 0;
+                  final numB = double.tryParse(b) ?? 0;
+                  return numB.compareTo(numA);
+                });
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    (Localizations.localeOf(context).languageCode == 'fi'
-                            ? m.labelFi
-                            : m.labelEn) +
-                        (m.isEvaluative ? ' *' : ''),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 12.0,
                 ),
-                Expanded(
-                  flex: 1,
-                  child: Text(
-                    '${m.score.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: sortedLevels.map((lvl) {
-                      final display = levelMap[lvl]!;
-                      final name = levelNames[lvl] ?? 'T$lvl';
-                      final numLvl = double.tryParse(lvl)?.toInt() ?? lvl;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 2.0),
-                        child: Text(
-                          '$numLvl - $name: $display',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                Expanded(
-                  flex: 4,
-                  child: Text(
-                    m.justification,
-                    style: const TextStyle(fontStyle: FontStyle.italic),
-                  ),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Text(
-                    m.normalizedScore != null
-                        ? '${m.normalizedScore!.toStringAsFixed(1)} %'
-                        : '-',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        (Localizations.localeOf(context).languageCode == 'fi'
+                                ? m.labelFi
+                                : m.labelEn) +
+                            (m.isEvaluative ? ' *' : ''),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        '${m.score.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: sortedLevels.map((lvl) {
+                          final display = levelMap[lvl]!;
+                          final name = levelNames[lvl] ?? 'T$lvl';
+                          final numLvl = double.tryParse(lvl)?.toInt() ?? lvl;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 2.0),
+                            child: Text(
+                              '$numLvl - $name: $display',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        m.normalizedScore != null
+                            ? '${m.normalizedScore!.toStringAsFixed(1)} %'
+                            : '-',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        }).expand((widget) => [widget, const Divider(height: 1)]).toList()..removeLast(),
+              );
+            })
+            .expand((widget) => [widget, const Divider(height: 1)])
+            .toList()
+          ..removeLast(),
       ],
     );
   }
@@ -237,16 +230,6 @@ class AtomMatrixTableWidget extends StatelessWidget {
                     color: Colors.blue,
                   ),
                 ),
-              if (m.justification.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  m.justification,
-                  style: const TextStyle(
-                    fontStyle: FontStyle.italic,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
             ],
           ),
           children: sortedLevels.map((lvl) {

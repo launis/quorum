@@ -305,64 +305,6 @@ class ReportRendererWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildGlobalScoreBadge(BuildContext context) {
-    if (payload.globalScore == null) {
-      throw AppException.validation(
-        'CRITICAL FAIL-FAST: payload.globalScore missing!',
-      );
-    }
-
-    final l10n = AppLocalizations.of(context)!;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        border: Border.all(color: Colors.green, width: 2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Text(
-            l10n.reportScore.toUpperCase(),
-            style: TextStyle(
-              color: Colors.green.shade800,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                payload.globalScore!.toStringAsFixed(1),
-                style: TextStyle(
-                  color: Colors.green.shade900,
-                  fontSize: 42,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '/ 100',
-                style: TextStyle(
-                  color: Colors.green.shade700,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildLayoutSequence(
     BuildContext context,
     WidgetRef ref,
@@ -390,7 +332,7 @@ class ReportRendererWidget extends ConsumerWidget {
         PresetView.compare2d => _build2DCompare(context, layout),
         PresetView.matrix3d => _build3DComplex(context, layout),
         PresetView.complex3d => _build3DRadar(context, layout),
-        PresetView.textOnly => _build1DMetrics(context, layout),
+        PresetView.textOnly => const SizedBox.shrink(),
         _ => _build1DMetrics(context, layout),
       };
     } catch (e, st) {
@@ -534,6 +476,41 @@ class ReportRendererWidget extends ConsumerWidget {
                                 color: Colors.grey.shade700,
                                 fontStyle: FontStyle.italic,
                               ),
+                            ),
+                          ],
+                          if (layout.presetView == PresetView.metrics1d &&
+                              axis.uiPlotRatio != null) ...[
+                            const SizedBox(height: 12),
+                            Stack(
+                              children: [
+                                Container(
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                ),
+                                FractionallySizedBox(
+                                  widthFactor: axis.uiPlotRatio!.clamp(
+                                    0.0,
+                                    1.0,
+                                  ),
+                                  child: Container(
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Theme.of(
+                                            context,
+                                          ).primaryColor.withValues(alpha: 0.6),
+                                          Theme.of(context).primaryColor,
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                           const SizedBox(height: 8),

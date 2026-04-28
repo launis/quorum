@@ -17,10 +17,11 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
         id="exe_aaaaaaaabbbbbbbb",
         workflow_id="test_wf",
         status=ExecutionStatus.COMPLETED,
+        metadata={"target_locale": "en"},
         execution_trace=[TraceEvent(step_name="test_step", event_type="output", content={"ok": True})],
     )
     mock_repo.get_execution.return_value = mock_execution
-    mock_repo.get_workflow_by_id.return_value = {"name": {"en": "Workflow Name"}}
+    mock_repo.get_workflow_by_id.return_value = None
 
     svc = PdfReportService(repository=mock_repo)
 
@@ -44,10 +45,11 @@ async def test_html_generator_chart_injection_failure_safe() -> None:
         id="exe_aaaaaaaabbbbbbbb",
         workflow_id="test_wf",
         status=ExecutionStatus.COMPLETED,
+        metadata={"target_locale": "en"},
         execution_trace=[TraceEvent(step_name="test_step", event_type="output", content={"ok": True})],
     )
     mock_repo.get_execution.return_value = mock_execution
-    mock_repo.get_workflow_by_id.return_value = {"name": {"en": "Workflow Name"}}
+    mock_repo.get_workflow_by_id.return_value = None
 
     svc = PdfReportService(repository=mock_repo)
 

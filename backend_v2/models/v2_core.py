@@ -165,6 +165,7 @@ class PromptBlock(V2CoreBase):
         ),
     )
     slug: str = Field(description="URL routing helper field. Strictly no data relation role.")
+    organization_id: str | None = Field(default=None, description="Tenant organization ID.")
     label: I18nText = Field(description="Localizable label for the UI.")
     description: I18nText = Field(description="Localizable description or help text for the UI.")
     ai_description: str | None = Field(
@@ -393,6 +394,7 @@ class Step(V2CoreBase):
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique UUID for storage optionally")
     slug: str = Field(description="Human-readable identifier (e.g., 'step_guard')")
+    organization_id: str | None = Field(default=None, description="Tenant organization ID.")
     name: I18nText = Field(description="Localized step name")
     description: I18nText | None = Field(default=None, description="Detailed step context")
     type: Literal["llm", "logic"] = Field(default="llm", description="Step execution type (llm or native logic)")
@@ -756,6 +758,7 @@ class OutputProfile(V2CoreBase):
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique Profile ID")
     slug: str = Field(min_length=1, pattern=r"^[a-zA-Z0-9_\-]+$", description="Fallback slug identifier")
     workflow_id: str = Field(description="ID of the associated Workflow")
+    organization_id: str | None = Field(default=None, description="Tenant organization ID.")
     name: I18nText = Field(description="Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})")
     description: I18nText | None = Field(default=None, description="Detailed profile context")
     visible_metadata: list[str] = Field(

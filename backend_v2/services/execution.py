@@ -27,6 +27,7 @@ from backend_v2.models.v2_core import (
     ExecutionStatus,
     ExecutionStepState,
     FrozenContext,
+    PromptBlock,
     Step,
     Workflow,
 )
@@ -241,11 +242,20 @@ class ExecutionService:
                     logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise ConfigurationError(msg)
 
-                dt = pb_dict.get("type")
+                try:
+                    pb_obj = PromptBlock.model_validate(pb_dict)
+                except Exception as e:
+                    msg = f"Invalid PromptBlock format for '{pb_id}': {str(e)}"
+                    logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    ) from e
+
+                dt = pb_obj.type
 
                 # Define component defaults based on Strict Block Types
                 comp_type = ComponentType.HIDDEN
-                if dt in ["float", "int", "string"] and pb_dict.get("scales"):
+                if dt in ["float", "int", "string"] and pb_obj.scales:
                     # Only numeric or scaled blocks map to sliders/gauges
                     comp_type = ComponentType.SLIDER
                 elif dt in ["float", "int"]:
@@ -254,12 +264,12 @@ class ExecutionService:
                     comp_type = ComponentType.DROPDOWN
 
                 max_val = None
-                if pb_dict.get("scales"):
+                if pb_obj.scales:
                     try:
-                        scores = [float(s["score"]) for s in pb_dict["scales"] if "score" in s]
+                        scores = [float(s.score) for s in pb_obj.scales if hasattr(s, "score") and s.score is not None]
                         if scores:
                             max_val = float(max(scores))
-                    except (ValueError, TypeError, KeyError) as e:
+                    except (ValueError, TypeError) as e:
                         msg = f"Fail-Fast SDUI Generator: Corrupted scale scores in PromptBlock '{pb_id}'."
                         logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                         raise ConfigurationError(msg) from e
@@ -273,7 +283,7 @@ class ExecutionService:
                     raise ConfigurationError(msg)
 
                 # Extract translation map for UI label
-                label_obj = pb_dict.get("label", {})
+                label_obj = pb_obj.label.model_dump(exclude_unset=True) if pb_obj.label else {}
 
                 val_rules = {}
                 if max_val is not None:

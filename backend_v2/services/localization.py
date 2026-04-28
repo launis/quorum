@@ -159,35 +159,3 @@ class LocalizationService:
     def get(cls, key: str, lang: str | None = None, **kwargs: Any) -> str:
         """Class method alias for translate. (Hardcoded defaults purged)."""
         return cls.translate(key, lang, **kwargs)
-
-
-def localize_schema(schema: dict[str, Any], lang: str | None = None) -> dict[str, Any]:
-    """Recursively traverses a JSON Schema and translates SDUI hints."""
-    # If lang is provided explicitly (legacy), use it. Otherwise translate() picks up Context.
-
-    if isinstance(schema, dict):
-        # 1. Translate UI Hints (Pydantic / JSON Schema proper)
-        if "x-ui-label" in schema and isinstance(schema["x-ui-label"], str):
-            schema["x-ui-label"] = LocalizationService.translate(schema["x-ui-label"], lang)
-
-        if "x-ui-group" in schema and isinstance(schema["x-ui-group"], str):
-            schema["x-ui-group"] = LocalizationService.translate(schema["x-ui-group"], lang)
-
-        # 2. Translate Generic UI Schema (Workflow Config)
-        # Seed data uses "label" for input fields
-        if "label" in schema and isinstance(schema["label"], str):
-            # heuristic: only translate if it looks like a key (uppercase start?)
-            # or just always try. If key missing, it falls back to value.
-            # But if value is long English text "1. Chat History...", we don't want to use that as key.
-            # We rely on seed_data being updated to simple keys first.
-            schema["label"] = LocalizationService.translate(schema["label"], lang)
-
-        # 3. Recurse into children
-        for key, value in schema.items():
-            schema[key] = localize_schema(value, lang)
-
-    elif isinstance(schema, list):
-        for i, item in enumerate(schema):
-            schema[i] = localize_schema(item, lang)
-
-    return schema

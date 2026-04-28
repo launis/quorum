@@ -95,8 +95,8 @@ void main() {
       // The dropdown label is "Prompt Block"
       expect(find.text('Prompt Block'), findsOneWidget);
 
-      // Verify that 'block_a' is selected initial value
-      expect(find.text('block_a'), findsWidgets);
+      // Verify that 'Block A (block_a)' is selected initial value
+      expect(find.text('Block A (block_a)'), findsWidgets);
 
       // Open the dropdown
       final dropdownFinder = find.byType(DropdownButtonFormField<String>).last;
@@ -106,7 +106,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify dropdown items exist
-      expect(find.text('block_b').last, findsOneWidget);
+      expect(find.text('Block B (block_b)').last, findsOneWidget);
 
       // Restore error widget builder at the very end
       ErrorWidget.builder = originalErrorBuilder;

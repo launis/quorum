@@ -1,12 +1,14 @@
 """Blueprint Transformer Service for V3 Extreme MVC."""
 
 import logging
+import re
 from typing import Any
 
 import bleach
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.auth import Organization
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
@@ -61,8 +63,6 @@ class BlueprintTransformer:
             if not text:
                 return ""
 
-            import re
-
             sentences = re.split(r"(?<=[.!?]) +", text)
             cleaned = []
 
@@ -84,43 +84,36 @@ class BlueprintTransformer:
         # If API requested "default" explicitly, we should treat it as seeking the workflow's default
         resolved_pid_request = profile_id if profile_id and profile_id != "default" else default_profile_ref
 
-        profile_data = None
-
         # Pre-fetch all profiles for relation resolution and UI dropdown mapping
         all_profiles_data = await self.repo.get_all_output_profiles()
-
-        # 1. Try to resolve by Exact Opaque ID
-        for p_dict in all_profiles_data:
-            if p_dict.get("id") == resolved_pid_request:
-                profile_data = p_dict
-                break
-
-        if not profile_data:
-            msg = f"Output profile '{resolved_pid_request}' not found in the database. Failing fast."
-            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
-            raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND})
-
-        resolved_pid = str(profile_data.get("id"))
-
-        profile = OutputProfile.model_validate(profile_data)
-
-        # Build dropdown options
-        available_profiles_map = {}
+        all_profiles = []
         for pd in all_profiles_data:
             try:
-                op = OutputProfile.model_validate(pd)
-                available_profiles_map[op.id] = op.name
+                all_profiles.append(OutputProfile.model_validate(pd))
             except Exception as e:
                 logger.error(
-                    "[BlueprintTransformer] VALIDATION_FAILED: Failed to parse profile for dropdown map: %s",
+                    "[BlueprintTransformer] VALIDATION_FAILED: Failed to parse profile: %s",
                     e,
                     exc_info=True,
                 )
                 raise AppException(
-                    message="Failed to parse profile for dropdown map",
+                    message="Failed to parse profile from database",
                     status_code=500,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED},
                 ) from e
+
+        # 1. Try to resolve by Exact Opaque ID
+        profile = next((p for p in all_profiles if p.id == resolved_pid_request), None)
+
+        if not profile:
+            msg = f"Output profile '{resolved_pid_request}' not found in the database. Failing fast."
+            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+            raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND})
+
+        resolved_pid = str(profile.id)
+
+        # Build dropdown options
+        available_profiles_map = {p.id: p.name for p in all_profiles}
 
         if resolved_pid not in available_profiles_map:
             available_profiles_map[resolved_pid] = profile.name
@@ -147,7 +140,7 @@ class BlueprintTransformer:
         # (Blocks already fetched above for global aggregation)
 
         # Pre-fetch DAG workflow steps for collision avoidance renaming
-        workflow_steps = {s["id"]: s for s in workflow_data.get("steps") or []}
+        workflow_steps = {s.id: s for s in workflow_obj.steps} if workflow_obj.steps else {}
 
         global_score = None
 
@@ -193,12 +186,7 @@ class BlueprintTransformer:
             # Epic 10: Map the synthesized global highlight so it outranks fragmented matrix extensions.
             # We omit 'axis_name' so it doesn't render a 'teoriaotsikko' in the UI.
             grouped_extensions[group_key].append(
-                {
-                    group_key: highlight.content,
-                    "content": highlight.content,
-                    "_score": -999.0,
-                    "_is_synthesized": True
-                }
+                {group_key: highlight.content, "content": highlight.content, "_score": -999.0, "_is_synthesized": True}
             )
 
         if results.get("has_warning"):
@@ -328,9 +316,16 @@ class BlueprintTransformer:
                 original_axis_name = axis_name
                 collision_counter = 1
                 while any(ext.name == axis_name for ext in all_parsed_matrices.values()):
-                    step_node = workflow_steps.get(step_id) or {}
-                    step_title_obj = step_node.get("name") or step_node.get("title")
-                    step_title = _resolve_i18n_str(step_title_obj, locale, step_id)
+                    step_node = workflow_steps.get(step_id)
+                    step_title = step_id
+                    if step_node:
+                        name_obj = getattr(step_node, "name", None) or getattr(step_node, "title", None)
+                        if name_obj and hasattr(name_obj, "resolve"):
+                            step_title = name_obj.resolve(locale)
+                        elif isinstance(name_obj, str):
+                            step_title = name_obj
+                        elif isinstance(name_obj, dict):
+                            step_title = _resolve_i18n_str(name_obj, locale, step_id)
                     axis_name = f"{original_axis_name} ({step_title})"
                     if any(ext.name == axis_name for ext in all_parsed_matrices.values()):
                         axis_name = f"{original_axis_name} ({step_title} {collision_counter})"
@@ -449,9 +444,13 @@ class BlueprintTransformer:
                 axes = []
                 if target_blocks and "*" not in target_blocks:
                     for target_k in target_blocks:
-                        for unique_k, axis_dto in unsorted_axes.items():
-                            if unique_k == target_k or unique_k.endswith(f"_{target_k}"):
-                                axes.append(axis_dto)
+                        if target_k in unsorted_axes:
+                            axes.append(unsorted_axes[target_k])
+                        else:
+                            for k, v in unsorted_axes.items():
+                                if k.endswith(target_k):
+                                    axes.append(v)
+                                    break
                 else:
                     axes = list(unsorted_axes.values())
 
@@ -555,9 +554,10 @@ class BlueprintTransformer:
         if execution.organization_id:
             try:
                 # Need to lookup organisation if possible
-                org = await self.repo.get_organization(execution.organization_id)
-                if org and "name" in org:
-                    org_name = str(org["name"])
+                org_data = await self.repo.get_organization(execution.organization_id)
+                if org_data:
+                    org = Organization.model_validate(org_data)
+                    org_name = org.name
             except Exception as org_err:
                 logger.error(
                     "[BlueprintTransformer] RESOURCE_NOT_FOUND: Failed to resolve org name "

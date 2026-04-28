@@ -1,10 +1,13 @@
 """Progress Tracking Service for async operations."""
 
+import json
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
+
+from pydantic import BaseModel, ConfigDict
 
 from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -16,6 +19,19 @@ STATUS_STARTED = "started"
 STATUS_RUNNING = "running"
 STATUS_COMPLETED = "completed"
 STATUS_FAILED = "failed"
+
+
+class ProgressState(BaseModel):
+    """Pydantic model representing in-memory progress state."""
+
+    model_config = ConfigDict(extra="allow", frozen=True)
+
+    status: str
+    timestamp: str
+    stage: str | None = None
+    percent: int | None = None
+    error: str | None = None
+    result: dict[str, Any] | None = None
 
 
 class ProgressTracker(ABC):
@@ -183,7 +199,7 @@ class InMemoryProgressTracker(ProgressTracker):
 
         """
         self.callback = callback
-        self.current_state: dict[str, Any] = {}
+        self.current_state: ProgressState | None = None
 
     def _emit(self, status: str, payload: dict[str, Any]) -> None:
         """Internal helper to emit status.
@@ -197,9 +213,10 @@ class InMemoryProgressTracker(ProgressTracker):
             if k in payload:
                 raise ValueError(f"InMemory Tracker property bypass attempt: '{k}'")
         base.update(payload)
-        self.current_state = base
+
+        self.current_state = ProgressState.model_validate(base)
         # Pass the simplified view expected by API consumers
-        self.callback(base)
+        self.callback(self.current_state.model_dump(exclude_none=True))
 
     async def start(self, details: dict[str, Any] | None = None) -> None:
         """Signals start."""
@@ -252,8 +269,6 @@ class ProgressService:
         Raises:
             AppException: If Redis connection fails.
         """
-        import json
-
         key = f"progress:{execution_id}:{task_key}"
         payload = {
             "execution_id": execution_id,

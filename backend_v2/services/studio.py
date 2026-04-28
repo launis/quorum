@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import string
+import uuid
 from typing import Any
 
 from backend_v2.database.repository import AbstractWorkflowRepository
@@ -10,6 +12,8 @@ from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedErro
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.v2_core import PromptBlock, Step, SystemConfigMCPGateways, SystemConfigModelRegistry, Workflow
+from backend_v2.services.orchestrator.atomizer import PromptAtomizer
+from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +25,12 @@ class StudioService:
         self.repo = repo
 
     def _enforce_tenant_isolation(
-        self, initiator: TokenData, data: dict[str, Any], resource_type: str, allow_system: bool = True
+        self,
+        initiator: TokenData,
+        data_org_id: str | None,
+        resource_type: str,
+        resource_id: str,
+        allow_system: bool = True,
     ) -> None:
         """Helper to enforce tenant boundaries for reads."""
         org_id = getattr(initiator, "organization_id", None)
@@ -29,11 +38,12 @@ class StudioService:
         if allow_system:
             allowed_orgs.append(SystemOrganizations.ROOT_SYSTEM)
 
-        if initiator.role != "ROOT" and data.get("organization_id") not in allowed_orgs:
+        if initiator.role not in ["ROOT", UserRole.ROOT] and data_org_id not in allowed_orgs:
             logger.error(
-                "[StudioService] PERMISSION_DENIED: User %s ",
+                "[StudioService] PERMISSION_DENIED: User %s attempted to access isolated %s %s.",
                 initiator.id,
-                f"attempted to access isolated {resource_type} {data.get('id')}.",
+                resource_type,
+                resource_id,
             )
             raise PermissionDeniedError(f"You do not have permission to view this {resource_type}.")
 
@@ -62,31 +72,34 @@ class StudioService:
                 )
                 raise PermissionDeniedError("Cannot modify resources outside your organization.")
 
-    async def _stitch_profiles_to_workflows(self, workflows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    async def _stitch_profiles_to_workflows(self, workflows: list[Workflow]) -> list[Workflow]:
         """Dynamically attach standalone output profiles to the workflow dict for backward compatibility.
         Supports the client App during the V2 transition.
         """
-        all_profiles = await self.repo.get_all_output_profiles()
+        from backend_v2.models.v2_core import EmbeddedOutputProfile
+
+        all_profiles_data = await self.repo.get_all_output_profiles()
+        all_profiles = [OutputProfile.model_validate(p) for p in all_profiles_data]
+
         for wf in workflows:
             attached = {}
             for p in all_profiles:
-                target_wf_id = p.get("workflow_id")
-                if target_wf_id == wf.get("id") or target_wf_id == "*":
-                    attached[p.get("id")] = {
-                        "name": p.get("name"),
-                        "description": p.get("description"),
-                        "visible_metadata": p.get("visible_metadata", ["date", "organization"]),
-                        "display_scale": p.get("display_scale", "original"),
-                        "synthesis": p.get("synthesis"),
-                        "layouts": p.get("layouts", []),
-                    }
+                if p.workflow_id == wf.id or p.workflow_id == "*":
+                    dumped = p.model_dump(mode="json")
+                    attached[p.id] = EmbeddedOutputProfile.model_validate(
+                        {
+                            "name": dumped.get("name"),
+                            "description": dumped.get("description"),
+                            "visible_metadata": dumped.get("visible_metadata", ["date", "organization"]),
+                            "display_scale": dumped.get("display_scale", "original"),
+                            "synthesis": dumped.get("synthesis"),
+                            "layouts": dumped.get("layouts", []),
+                        }
+                    )
 
-            existing = wf.get("output_profiles")
-            if not isinstance(existing, dict):
-                existing = {}
-
-            existing.update(attached)
-            wf["output_profiles"] = existing
+            if not isinstance(wf.output_profiles, dict):
+                wf.output_profiles = {}
+            wf.output_profiles.update(attached)
 
         return workflows
 
@@ -94,14 +107,14 @@ class StudioService:
 
     async def list_workflows(self, initiator: TokenData) -> list[Workflow]:
         all_data = await self.repo.get_all("workflows")
-        all_data = await self._stitch_profiles_to_workflows(all_data)
+        workflows = [Workflow.model_validate(x) for x in all_data]
 
-        if initiator.role == "ROOT":
-            return [Workflow.model_validate(x) for x in all_data]
+        if initiator.role in ["ROOT", UserRole.ROOT]:
+            return await self._stitch_profiles_to_workflows(workflows)
 
         org_id = getattr(initiator, "organization_id", None)
-        data = [x for x in all_data if x.get("organization_id") in [org_id, SystemOrganizations.ROOT_SYSTEM]]
-        return [Workflow.model_validate(x) for x in data]
+        filtered = [x for x in workflows if x.organization_id in [org_id, SystemOrganizations.ROOT_SYSTEM]]
+        return await self._stitch_profiles_to_workflows(filtered)
 
     async def get_workflow(self, initiator: TokenData, id: str) -> Workflow:
         data = await self.repo.get("workflows", id)
@@ -109,16 +122,14 @@ class StudioService:
             logger.error("[StudioService] %s: Workflow %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
 
-        data_list = await self._stitch_profiles_to_workflows([data])
-        data = data_list[0]
+        wf = Workflow.model_validate(data)
+        self._enforce_tenant_isolation(initiator, wf.organization_id, "workflow", wf.id)
 
-        self._enforce_tenant_isolation(initiator, data, "workflow")
-        return Workflow.model_validate(data)
+        stitched = await self._stitch_profiles_to_workflows([wf])
+        return stitched[0]
 
     async def save_workflow(self, initiator: TokenData, id: str, data: Workflow) -> Workflow:
         self._enforce_modification_rights(initiator, data.organization_id)
-
-        from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
         DAGCompilerService.validate_workflow(data)
 
@@ -139,13 +150,12 @@ class StudioService:
             logger.error("[StudioService] %s: Workflow %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
 
-        self._enforce_modification_rights(initiator, data.get("organization_id"))
+        wf = Workflow.model_validate(data)
+        self._enforce_modification_rights(initiator, wf.organization_id)
         await self.repo.delete("workflows", id)
 
     async def create_workflow_draft(self, initiator: TokenData) -> Workflow:
         """System-level creation of an initial Workflow Draft."""
-        import uuid
-
         new_id = f"wf_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {
             "id": new_id,
@@ -174,11 +184,11 @@ class StudioService:
             logger.error("[StudioService] %s: Workflow %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
 
-        self._enforce_tenant_isolation(initiator, data, "workflow")
-        import uuid
+        wf = Workflow.model_validate(data)
+        self._enforce_tenant_isolation(initiator, wf.organization_id, "workflow", wf.id)
 
         new_id = f"wf_{uuid.uuid4().hex[:16]}"
-        cloned_data = Workflow.model_validate(data).model_dump(mode="json")
+        cloned_data = wf.model_dump(mode="json")
         cloned_data["id"] = new_id
 
         if initiator.role not in ["ROOT", UserRole.ROOT]:
@@ -249,12 +259,13 @@ class StudioService:
 
     async def list_steps(self, initiator: TokenData) -> list[Step]:
         all_data = await self.repo.get_all("steps")
-        if initiator.role == "ROOT":
-            return [Step.model_validate(x) for x in all_data]
+        steps = [Step.model_validate(x) for x in all_data]
+
+        if initiator.role in ["ROOT", UserRole.ROOT]:
+            return steps
 
         org_id = getattr(initiator, "organization_id", None)
-        data = [x for x in all_data if x.get("organization_id") in [org_id, SystemOrganizations.ROOT_SYSTEM]]
-        return [Step.model_validate(x) for x in data]
+        return [x for x in steps if x.organization_id in [org_id, SystemOrganizations.ROOT_SYSTEM]]
 
     async def get_step(self, initiator: TokenData, id: str) -> Step:
         data = await self.repo.get("steps", id)
@@ -262,8 +273,9 @@ class StudioService:
             logger.error("[StudioService] %s: Step %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="step", resource_id=id)
 
-        self._enforce_tenant_isolation(initiator, data, "step")
-        return Step.model_validate(data)
+        step = Step.model_validate(data)
+        self._enforce_tenant_isolation(initiator, step.organization_id, "step", step.id)
+        return step
 
     async def save_step(self, initiator: TokenData, id: str, data: Step) -> Step:
         org_id = getattr(data, "organization_id", None)
@@ -286,13 +298,12 @@ class StudioService:
             logger.error("[StudioService] %s: Step %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="step", resource_id=id)
 
-        self._enforce_modification_rights(initiator, data.get("organization_id"))
+        step = Step.model_validate(data)
+        self._enforce_modification_rights(initiator, step.organization_id)
         await self.repo.delete_step(id, force_delete=force_delete)
 
     async def create_step_draft(self, initiator: TokenData) -> Step:
         """System-level creation of an initial Step Draft."""
-        import uuid
-
         new_id = f"step_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {
             "id": new_id,
@@ -322,13 +333,12 @@ class StudioService:
             logger.error("[StudioService] %s: Step %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="step", resource_id=id)
 
-        self._enforce_tenant_isolation(initiator, data, "step")
-
-        import uuid
+        step = Step.model_validate(data)
+        self._enforce_tenant_isolation(initiator, step.organization_id, "step", step.id)
 
         new_id = f"step_{uuid.uuid4().hex[:16]}"
 
-        cloned_data = Step.model_validate(data).model_dump(mode="json")
+        cloned_data = step.model_dump(mode="json")
         cloned_data["id"] = new_id
 
         if initiator.role not in ["ROOT", UserRole.ROOT]:
@@ -347,12 +357,13 @@ class StudioService:
 
     async def list_prompt_blocks(self, initiator: TokenData) -> list[PromptBlock]:
         all_data = await self.repo.get_all("prompt_blocks")
-        if initiator.role == "ROOT":
-            return [PromptBlock.model_validate(x) for x in all_data]
+        blocks = [PromptBlock.model_validate(x) for x in all_data]
+
+        if initiator.role in ["ROOT", UserRole.ROOT]:
+            return blocks
 
         org_id = getattr(initiator, "organization_id", None)
-        data = [x for x in all_data if x.get("organization_id") in [org_id, SystemOrganizations.ROOT_SYSTEM]]
-        return [PromptBlock.model_validate(x) for x in data]
+        return [x for x in blocks if x.organization_id in [org_id, SystemOrganizations.ROOT_SYSTEM]]
 
     async def get_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:
         data = await self.repo.get("prompt_blocks", id)
@@ -360,8 +371,9 @@ class StudioService:
             logger.error("[StudioService] %s: PromptBlock %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
-        self._enforce_tenant_isolation(initiator, data, "prompt_block")
-        return PromptBlock.model_validate(data)
+        block = PromptBlock.model_validate(data)
+        self._enforce_tenant_isolation(initiator, block.organization_id, "prompt_block", block.id)
+        return block
 
     async def save_prompt_block(self, initiator: TokenData, id: str, data: PromptBlock) -> PromptBlock:
         org_id = getattr(data, "organization_id", None)
@@ -369,13 +381,9 @@ class StudioService:
 
         # -- EPIC 20: Design-Time Syvä-atomisointi
         try:
-            from backend_v2.services.orchestrator.atomizer import PromptAtomizer
-
             data = await PromptAtomizer.atomize_prompt_block(data, repository=self.repo)
         except Exception as e:
             logger.error("[StudioService] Atomization failed prior to save: %s", e)
-            from backend_v2.exceptions import AppException, ErrorCodes
-
             raise AppException(
                 message=f"Atomization failed: {e}",
                 status_code=500,
@@ -399,13 +407,12 @@ class StudioService:
             logger.error("[StudioService] %s: PromptBlock %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
-        self._enforce_modification_rights(initiator, data.get("organization_id"))
+        block = PromptBlock.model_validate(data)
+        self._enforce_modification_rights(initiator, block.organization_id)
         await self.repo.delete_prompt_block(id, force_delete=force_delete)
 
     async def create_prompt_block_draft(self, initiator: TokenData) -> PromptBlock:
         """System-level creation of an initial PromptBlock Draft."""
-        import uuid
-
         new_id = f"blk_{uuid.uuid4().hex[:16]}"
 
         draft_dict: dict[str, Any] = {
@@ -437,13 +444,12 @@ class StudioService:
             logger.error("[StudioService] %s: PromptBlock %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
-        self._enforce_tenant_isolation(initiator, data, "prompt_block")
-
-        import uuid
+        block = PromptBlock.model_validate(data)
+        self._enforce_tenant_isolation(initiator, block.organization_id, "prompt_block", block.id)
 
         new_id = f"blk_{uuid.uuid4().hex[:16]}"
 
-        cloned_data = PromptBlock.model_validate(data).model_dump(mode="json")
+        cloned_data = block.model_dump(mode="json")
         cloned_data["id"] = new_id
 
         if initiator.role not in ["ROOT", UserRole.ROOT]:
@@ -508,7 +514,6 @@ class StudioService:
     async def create_model_registry_draft(self, initiator: TokenData) -> SystemConfigModelRegistry:
         """System-level creation of an initial ModelConfig Draft."""
         self._enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
-        import uuid
 
         new_id = f"sys_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {"id": new_id, "slug": new_id, "type": "model_registry", "models": {}}
@@ -517,15 +522,13 @@ class StudioService:
 
     async def clone_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
         """Deep Clones a System Config for the ROOT tenant."""
-        if initiator.role != "ROOT":
+        if initiator.role not in ["ROOT", UserRole.ROOT]:
             logger.error("[StudioService] %s: Only ROOT can clone system configs.", ErrorCodes.PERMISSION_DENIED.name)
             raise PermissionDeniedError("Only ROOT can clone system configs.")
         data = await self.repo.get("system_config", id)
         if not data:
             logger.error("[StudioService] %s: SystemConfig %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
-
-        import uuid
 
         new_id = f"sys_{uuid.uuid4().hex}"
 
@@ -580,7 +583,6 @@ class StudioService:
     async def create_mcp_gateway_draft(self, initiator: TokenData) -> SystemConfigMCPGateways:
         """System-level creation of an initial MCP Gateway Config Draft."""
         self._enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
-        import uuid
 
         new_id = f"mcp_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {"id": new_id, "slug": new_id, "type": "mcp_gateways", "tools": []}
@@ -589,15 +591,13 @@ class StudioService:
 
     async def clone_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
         """Deep Clones an MCP Gateway Config for the ROOT tenant."""
-        if initiator.role != "ROOT":
+        if initiator.role not in ["ROOT", UserRole.ROOT]:
             logger.error("[StudioService] %s: Only ROOT can clone system configs.", ErrorCodes.PERMISSION_DENIED.name)
             raise PermissionDeniedError("Only ROOT can clone system configs.")
         data = await self.repo.get("system_config", id)
         if not data or data.get("type") != "mcp_gateways":
             logger.error("[StudioService] %s: MCP Gateway Config %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
-
-        import uuid
 
         new_id = f"mcp_{uuid.uuid4().hex}"
 
@@ -630,8 +630,9 @@ class StudioService:
             logger.error("[StudioService] %s: Output Profile %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
 
-        self._enforce_tenant_isolation(initiator, data, "output_profile")
-        return OutputProfile.model_validate(data)
+        profile = OutputProfile.model_validate(data)
+        self._enforce_tenant_isolation(initiator, profile.organization_id, "output_profile", profile.id)
+        return profile
 
     async def save_output_profile(
         self, initiator: TokenData, id: str, data: dict[str, Any] | OutputProfile
@@ -691,8 +692,6 @@ class StudioService:
 
     async def create_output_profile_draft(self, initiator: TokenData) -> OutputProfile:
         """System-level creation of an initial OutputProfile Draft."""
-        import uuid
-
         new_id = f"opt_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {
             "id": new_id,
@@ -718,13 +717,12 @@ class StudioService:
             logger.error("[StudioService] %s: OutputProfile %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
 
-        self._enforce_tenant_isolation(initiator, data, "output_profile")
-
-        import uuid
+        profile = OutputProfile.model_validate(data)
+        self._enforce_tenant_isolation(initiator, profile.organization_id, "output_profile", profile.id)
 
         new_id = f"prof_{uuid.uuid4().hex}"
 
-        cloned_data = OutputProfile.model_validate(data).model_dump(mode="json")
+        cloned_data = profile.model_dump(mode="json")
         cloned_data["id"] = new_id
 
         if initiator.role not in ["ROOT", UserRole.ROOT]:
@@ -832,8 +830,6 @@ class StudioService:
         self, initiator: TokenData, data: PromptBlock, mock_inputs: dict[str, Any]
     ) -> dict[str, Any]:
         """Provides a static analysis of a PromptBlock template rendering, including BARS matrix claims."""
-        import string
-
         errors: list[str] = []
         rendered = data.ai_description or ""
 

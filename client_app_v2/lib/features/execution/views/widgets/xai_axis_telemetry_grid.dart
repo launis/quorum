@@ -20,29 +20,14 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth >= 800) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 3, child: _buildMainContent(context)),
-              const SizedBox(width: 24),
-              Expanded(flex: 2, child: _buildTelemetryGrid(context)),
-            ],
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildMainContent(context),
-            const SizedBox(height: 12),
-            _buildTelemetryGrid(context),
-          ],
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildMainContent(context),
+        const SizedBox(height: 12),
+        _buildTelemetryGrid(context),
+      ],
     );
   }
 

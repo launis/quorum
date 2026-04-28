@@ -50,8 +50,14 @@ class LogicMatrixChart extends StatelessWidget {
       radius = 6.0 + (pct.clamp(0.0, 1.0) * 30.0);
     }
 
-    final double xMargin = _calculateMarginRatio(xAxis.scaleMin ?? 1.0, xAxis.scaleMax ?? 5.0);
-    final double yMargin = _calculateMarginRatio(yAxis.scaleMin ?? 1.0, yAxis.scaleMax ?? 5.0);
+    final double xMargin = _calculateMarginRatio(
+      xAxis.scaleMin ?? 1.0,
+      xAxis.scaleMax ?? 5.0,
+    );
+    final double yMargin = _calculateMarginRatio(
+      yAxis.scaleMin ?? 1.0,
+      yAxis.scaleMax ?? 5.0,
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -74,8 +80,10 @@ class LogicMatrixChart extends StatelessWidget {
                   ),
                 ),
               ],
-              minX: xMin - xMargin, // Dynamic visual padding based on logarithmic scale rules
-              maxX: xMax + xMargin, 
+              minX:
+                  xMin -
+                  xMargin, // Dynamic visual padding based on logarithmic scale rules
+              maxX: xMax + xMargin,
               minY: yMin - yMargin,
               maxY: yMax + yMargin,
               backgroundColor: Theme.of(context).colorScheme.surface,

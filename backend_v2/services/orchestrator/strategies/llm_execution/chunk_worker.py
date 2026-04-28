@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, RootModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
@@ -150,7 +151,7 @@ class ChunkWorker:
                             messages=messages,
                             response_model=SduiResponseList,
                             mock_identity=step_id,
-                            max_retries=3,
+                            max_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
                         )
                         chunk_final = {"blocks": result.model_dump(mode="json")}
                     else:
@@ -158,6 +159,7 @@ class ChunkWorker:
                             messages=messages,
                             response_model=local_dynamic_schema,
                             mock_identity=step_id,
+                            max_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
                         )
                         chunk_final = dict(result.model_dump(mode="json"))
 
