@@ -2854,6 +2854,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get xaiJustification => 'Perustelut';
 
   @override
+  String get xaiGlobalExtensionsHeader => 'Tekoälyn havainnot';
+
+  @override
   String get xaiCoachingTip => 'Valmennusvinkki';
 
   @override

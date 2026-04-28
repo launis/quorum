@@ -4,6 +4,7 @@ import pytest
 
 from backend_v2.exceptions import AppException, TokenLimitExceededError
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
+from backend_v2.models.state import StepOutputDTO
 
 
 def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -17,12 +18,12 @@ def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -
     }
 
     state_data = {
-        "steps": {
-            "eval_step": {"blk_invalid": {"raw_score": "not_a_float", "missing_fields": "yes"}},
-            "atom_step": {"atoms": ["a", "b", "c"]},
-            "raw_step": {"history_text": "huge string"},
-            "other_step": {"custom": "data"},
-        }
+        "steps": [
+            StepOutputDTO(step_id="eval_step", block_id="blk_invalid", data_type="dict", payload={"raw_score": "not_a_float", "missing_fields": "yes"}),
+            StepOutputDTO(step_id="atom_step", block_id="atoms", data_type="list", payload=["a", "b", "c"]),
+            StepOutputDTO(step_id="raw_step", block_id="history_text", data_type="str", payload="huge string"),
+            StepOutputDTO(step_id="other_step", block_id="custom", data_type="str", payload="data"),
+        ]
     }
 
     # Mock ContextRouter so eval_step pruning succeeds
@@ -41,7 +42,7 @@ def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -
             input_mappings=input_mappings,
             state_data=state_data,
             output_profile=None,
-            schema_map={"eval_step": "MATRIX", "blk_invalid": "MATRIX", "atom_step": "TEXT"},
+            schema_map={"eval_step": "MATRIX", "blk_invalid": "MATRIX", "atom_step": "TEXT", "raw_step": "TEXT"},
         )
 
     assert "validation errors for LightweightMatrixOutput" in str(exc_info.value.message)
@@ -50,10 +51,8 @@ def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -
 
 def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test successful building of context data."""
-    # Mock litellm.token_counter to always return a small number
     monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
 
-    # Mock ContextRouter
     mock_context_router = MagicMock()
     mock_pruned = MagicMock()
     mock_pruned.model_dump.return_value = {"pruned": True}
@@ -73,9 +72,12 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
     state_data = {
         "document_text": "Sample text",
         "nested": {"value": 123},
-        "steps": {
-            "step1": {
-                "blk_123": {
+        "steps": [
+            StepOutputDTO(
+                step_id="step1",
+                block_id="blk_123",
+                data_type="dict",
+                payload={
                     "raw_score": 5.0,
                     "normalized_score": 0.8,
                     "level_breakdown": None,
@@ -83,8 +85,8 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
                     "evaluated_atoms": {"atom1": True, "atom2": False},
                     "extensions": {},
                 }
-            }
-        },
+            )
+        ],
     }
 
     llm_context_data, new_input_mappings = ContextBuilder.build(
@@ -111,7 +113,6 @@ def test_context_builder_build_token_limit_exceeded(monkeypatch: pytest.MonkeyPa
     """Test that TokenLimitExceededError is raised when mapping exceeds limit."""
     from backend_v2.models.enums import SystemConcurrency
 
-    # Mock litellm.token_counter to return a number larger than MAX_SAFE_TOKENS
     limit = SystemConcurrency.MAX_SAFE_TOKENS.value
     monkeypatch.setattr("litellm.token_counter", lambda model, text: limit + 1)
 
@@ -145,9 +146,12 @@ def test_context_builder_build_trace_pruning_fails_fast(monkeypatch: pytest.Monk
 
     input_mappings = {"trace_field": "$steps.step1"}
     state_data = {
-        "steps": {
-            "step1": {
-                "blk_123": {
+        "steps": [
+            StepOutputDTO(
+                step_id="step1",
+                block_id="blk_123",
+                data_type="dict",
+                payload={
                     "raw_score": 5.0,
                     "normalized_score": 0.8,
                     "level_breakdown": None,
@@ -155,8 +159,8 @@ def test_context_builder_build_trace_pruning_fails_fast(monkeypatch: pytest.Monk
                     "evaluated_atoms": {"atom1": True, "atom2": False},
                     "extensions": {},
                 }
-            }
-        }
+            )
+        ]
     }
 
     with pytest.raises(AppException) as exc_info:

@@ -8,13 +8,15 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend_v2.models.state import StepOutputDTO
+
 
 class SynthesisMetadataDTO(BaseModel):
     """Strict schema for execution metadata used during synthesis."""
 
     target_locale: str
     token_usage: dict[str, int] = Field(default_factory=dict)
-    step_results: dict[str, Any] = Field(default_factory=dict)
+    step_results: list[StepOutputDTO] = Field(default_factory=list)
 
     # Allow extra fields for safety in metadata, as other hooks may inject telemetry
     model_config = ConfigDict(extra="ignore", frozen=True)

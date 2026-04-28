@@ -9,7 +9,7 @@ Adheres to V2 Architecture:
 import json
 from typing import Any
 
-from backend_v2.models.state import StateProjector
+from backend_v2.models.state import StateProjector, StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord
 
 
@@ -37,29 +37,17 @@ class FlatFileService:
         }
 
         projector = StateProjector()
-        results = projector.fold_trace(execution.execution_trace)
+        results: list[StepOutputDTO] = projector.fold_trace(execution.execution_trace)
 
         if not results:
             return flat_record
 
-        # Currently in V2, DAG Executor dumps step outputs under the 'results' dictionary
-        # with keys usually corresponding to step_ids (e.g., 'results': {'step_judge': {...}}).
-        for step_id, step_output in results.items():
-            if isinstance(step_output, dict):
-                # We prefix all keys inside this step output with the step_id
-                for key, value in step_output.items():
-                    # Check for further nesting (e.g., lists or deep objects).
-                    # In a fully analytical view, we might flatten further or stringify.
-                    # Stringifying objects for CSV safety:
-                    if isinstance(value, (dict, list)):
-                        flat_record[f"{step_id}_{key}"] = json.dumps(value, ensure_ascii=False)
-                    else:
-                        flat_record[f"{step_id}_{key}"] = value
+        # Epic 43 Phase 2: Iterating over strict StepOutputDTO list
+        for dto in results:
+            val = dto.payload
+            if isinstance(val, (dict, list)):
+                flat_record[f"{dto.step_id}_{dto.block_id}"] = json.dumps(val, ensure_ascii=False)
             else:
-                # If a result is a primitive at the root level of results
-                if isinstance(step_output, list):
-                    flat_record[str(step_id)] = json.dumps(step_output, ensure_ascii=False)
-                else:
-                    flat_record[str(step_id)] = step_output
+                flat_record[f"{dto.step_id}_{dto.block_id}"] = val
 
         return flat_record

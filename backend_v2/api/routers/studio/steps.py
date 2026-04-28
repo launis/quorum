@@ -15,6 +15,7 @@ class StepDeleteResponse(BaseModel):
 
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
+from backend_v2.models.dtos.studio import StepResponseDTO
 from backend_v2.models.v2_core import Step
 
 logger = logging.getLogger(__name__)
@@ -38,25 +39,25 @@ async def simulate_step(
     return StepSimulationResponse(result)
 
 
-@router.get("/", response_model=list[Step], response_model_exclude={"__all__": {"organization_id"}})
+@router.get("/", response_model=list[StepResponseDTO])
 async def get_steps(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> list[Step]:
     """Retrieve all V2 dynamic step execution block schemas securely via SSOT."""
     return await studio_service.list_steps(current_user)
 
 
-@router.post("/", response_model=Step, response_model_exclude={"organization_id"})
+@router.post("/", response_model=StepResponseDTO)
 async def create_step(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Step:
     """Create a new Step draft securely via SSOT."""
     return await studio_service.create_step_draft(current_user)
 
 
-@router.get("/{id}", response_model=Step, response_model_exclude={"organization_id"})
+@router.get("/{id}", response_model=StepResponseDTO)
 async def get_step(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Step:
     """Retrieve a specific Step securely via SSOT Service Layer."""
     return await studio_service.get_step(current_user, id)
 
 
-@router.put("/{id}", response_model=Step, response_model_exclude={"organization_id"})
+@router.put("/{id}", response_model=StepResponseDTO)
 async def save_step(id: str, data: Step, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Step:
     """Append or update a Step securely via SSOT Service Layer."""
     return await studio_service.save_step(current_user, id, data)
@@ -89,7 +90,7 @@ async def delete_step(
         ) from e
 
 
-@router.post("/{id}/clone", response_model=Step, response_model_exclude={"organization_id"})
+@router.post("/{id}/clone", response_model=StepResponseDTO)
 async def clone_step(
     id: str,
     current_user: CurrentUserDep,

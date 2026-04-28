@@ -1,40 +1,39 @@
+// ignore_for_file: invalid_annotation_target
 import 'dart:convert';
 import 'dart:isolate';
+
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
+
+part 'execution_record.freezed.dart';
+part 'execution_record.g.dart';
+
+String _statusFromJson(String status) => status.toUpperCase();
+String? _traceVersionFromJson(dynamic value) => value?.toString();
 
 /// Represents the status and metadata of an execution.
 /// Follows The De-Generator Mandate: Replaces the old dynamic 'results' map
 /// with strict typed fields and an explicit reference to the [ReportDataDTO].
-class ExecutionRecord {
-  final String id;
-  final String workflowId;
-  final String status;
-  final String? traceVersion;
+@Freezed(equal: false)
+abstract class ExecutionRecord with _$ExecutionRecord {
+  const ExecutionRecord._();
 
-  /// The strictly typed DTO containing the presentation flat data.
-  /// Replaces the legacy `results` Map.
-  final ReportDataDTO? reportData;
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory ExecutionRecord({
+    required String id,
+    @JsonKey(name: 'workflow_id') required String workflowId,
+    @JsonKey(fromJson: _statusFromJson) required String status,
+    @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)
+    String? traceVersion,
 
-  const ExecutionRecord({
-    required this.id,
-    required this.workflowId,
-    required this.status,
-    this.traceVersion,
-    this.reportData,
-  });
+    /// The strictly typed DTO containing the presentation flat data.
+    /// Replaces the legacy `results` Map.
+    @JsonKey(name: 'report_data') ReportDataDTO? reportData,
+  }) = _ExecutionRecord;
 
   /// Instantiates a strictly typed [ExecutionRecord] from raw JSON.
-  factory ExecutionRecord.fromJson(Map<String, dynamic> json) {
-    return ExecutionRecord(
-      id: json['id'] as String,
-      workflowId: json['workflow_id'] as String,
-      status: (json['status'] as String).toUpperCase(),
-      traceVersion: json['trace_version']?.toString(),
-      reportData: json['report_data'] != null
-          ? ReportDataDTO.fromJson(json['report_data'] as Map<String, dynamic>)
-          : null,
-    );
-  }
+  factory ExecutionRecord.fromJson(Map<String, dynamic> json) =>
+      _$ExecutionRecordFromJson(json);
 
   /// Parses raw JSON string to ExecutionRecord in a background isolate
   /// to prevent Main Thread Jank when handling large payloads.
@@ -43,21 +42,5 @@ class ExecutionRecord {
       final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
       return ExecutionRecord.fromJson(decoded);
     });
-  }
-
-  /// Creates a copy of this record, allowing non-destructive mutation
-  /// (e.g., when merging a Heavy Fetch ReportDataDTO into an SSE Delta state).
-  ExecutionRecord copyWith({
-    String? status,
-    String? traceVersion,
-    ReportDataDTO? reportData,
-  }) {
-    return ExecutionRecord(
-      id: id,
-      workflowId: workflowId,
-      status: status ?? this.status,
-      traceVersion: traceVersion ?? this.traceVersion,
-      reportData: reportData ?? this.reportData,
-    );
   }
 }

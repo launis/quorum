@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -23,7 +24,19 @@ class LogicNodeStrategy(NodeStrategy):
         trace: list[TraceEvent] | None,
     ) -> list[TraceEvent]:
         # 1. State Extraction
-        current_state = dict(projector.snapshot)
+        # Epic 43 Phase 2 Fail-Fast Parity: Re-inject 'inputs' and 'raw_inputs' DTO payloads into the root state
+        # so legacy dot-notation mappings resolve properly without Naked Dict violations.
+        inputs_dto = next((d for d in projector.snapshot if getattr(d, "step_id", None) == "inputs"), None)
+        inputs_payload = getattr(inputs_dto, "payload", {}) if inputs_dto else {}
+
+        raw_inputs_dto = next((d for d in projector.snapshot if getattr(d, "step_id", None) == "raw_inputs"), None)
+        raw_inputs_payload = getattr(raw_inputs_dto, "payload", {}) if raw_inputs_dto else {}
+
+        current_state: dict[str, Any] = {
+            "steps": projector.snapshot,
+            "inputs": inputs_payload,
+            "raw_inputs": raw_inputs_payload,
+        }
 
         blueprint_id = step.task_blueprint
         if not blueprint_id:
@@ -99,9 +112,7 @@ class LogicNodeStrategy(NodeStrategy):
                 details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
             )
         # 4. Post-Hooks
-        safe_context = {
-            k: v.model_dump(mode="json") if hasattr(v, "model_dump") else v for k, v in dict(projector.snapshot).items()
-        }
+        safe_context: dict[str, Any] = {"steps": projector.snapshot}
 
         post_hook_state = hook_state.model_copy(
             update={

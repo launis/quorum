@@ -24,7 +24,7 @@ class PromptFactory:
     def build(
         cls,
         compiler: Any,
-        criteria_blocks: list[dict[str, Any]],
+        criteria_blocks: list[PromptBlock],
         target_locale: str,
         effective_mcp_tools: list[str] | None,
         input_mappings: dict[str, Any],
@@ -56,18 +56,7 @@ class PromptFactory:
             user_payload += f"\n\n--- RUNTIME AWARENESS ---\n{dynamic_instructions}"
 
         atom_to_block_ids: dict[str, set[str]] = {}
-        for raw_block in criteria_blocks:
-            try:
-                block_model = PromptBlock.model_validate(raw_block)
-            except Exception as e:
-                msg = f"Strict Fail-Fast Enforced: Malformed PromptBlock criteria payload. {str(e)}"
-                logger.error("[PromptFactory] %s", msg, exc_info=True)
-                raise AppException(
-                    message="Criteria block validation failed",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
-
+        for block_model in criteria_blocks:
             if block_model.category_id == "matrix" and block_model.scales:
                 b_id = block_model.id
                 if not b_id:

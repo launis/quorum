@@ -675,7 +675,7 @@ $I18nTextCopyWith<$Res>? get preambleText {
 /// @nodoc
 mixin _$OutputProfile {
 
-@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter() String get workflowId; I18nText get name; I18nText? get description; List<String> get visibleMetadata; List<XaiExtensionType> get visibleExtensions;@JsonKey(name: 'max_extension_items') int? get maxExtensionItems; String get displayScale; SynthesisConfigDTO? get synthesis;@JsonKey(name: 'include_diagnostic_scorecard') bool get includeDiagnosticScorecard; List<OutputLayoutBlock> get layouts;
+@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter() String get workflowId; String? get organizationId; I18nText get name; I18nText? get description; List<String> get visibleMetadata; List<XaiExtensionType> get visibleExtensions;@JsonKey(name: 'max_extension_items') int? get maxExtensionItems; String get displayScale; SynthesisConfigDTO? get synthesis;@JsonKey(name: 'include_diagnostic_scorecard') bool get includeDiagnosticScorecard; List<OutputLayoutBlock> get layouts;
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -690,7 +690,7 @@ $OutputProfileCopyWith<OutputProfile> get copyWith => _$OutputProfileCopyWithImp
 
 @override
 String toString() {
-  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, synthesis: $synthesis, includeDiagnosticScorecard: $includeDiagnosticScorecard, layouts: $layouts)';
+  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, organizationId: $organizationId, name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, synthesis: $synthesis, includeDiagnosticScorecard: $includeDiagnosticScorecard, layouts: $layouts)';
 }
 
 
@@ -701,7 +701,7 @@ abstract mixin class $OutputProfileCopyWith<$Res>  {
   factory $OutputProfileCopyWith(OutputProfile value, $Res Function(OutputProfile) _then) = _$OutputProfileCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale, SynthesisConfigDTO? synthesis,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard, List<OutputLayoutBlock> layouts
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale, SynthesisConfigDTO? synthesis,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard, List<OutputLayoutBlock> layouts
 });
 
 
@@ -718,12 +718,13 @@ class _$OutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? synthesis = freezed,Object? includeDiagnosticScorecard = null,Object? layouts = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? organizationId = freezed,Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? synthesis = freezed,Object? includeDiagnosticScorecard = null,Object? layouts = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
-as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
+as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,visibleMetadata: null == visibleMetadata ? _self.visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
 as List<String>,visibleExtensions: null == visibleExtensions ? _self.visibleExtensions : visibleExtensions // ignore: cast_nullable_to_non_nullable
@@ -850,10 +851,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OutputProfile() when $default != null:
-return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.layouts);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.layouts);case _:
   return orElse();
 
 }
@@ -871,10 +872,10 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.descriptio
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
 switch (_that) {
 case _OutputProfile():
-return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.layouts);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.layouts);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -891,10 +892,10 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.descriptio
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
 switch (_that) {
 case _OutputProfile() when $default != null:
-return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.layouts);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.layouts);case _:
   return null;
 
 }
@@ -906,12 +907,13 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.name,_that.descriptio
 @JsonSerializable()
 
 class _OutputProfile extends OutputProfile {
-  const _OutputProfile({@StrictOpaqueIdConverter() required this.id, this.slug = '', @StrictOpaqueIdConverter() required this.workflowId, required this.name, this.description, final  List<String> visibleMetadata = const ['date', 'organization'], required final  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items') this.maxExtensionItems, this.displayScale = 'original', this.synthesis, @JsonKey(name: 'include_diagnostic_scorecard') this.includeDiagnosticScorecard = false, final  List<OutputLayoutBlock> layouts = const []}): _visibleMetadata = visibleMetadata,_visibleExtensions = visibleExtensions,_layouts = layouts,super._();
+  const _OutputProfile({@StrictOpaqueIdConverter() required this.id, this.slug = '', @StrictOpaqueIdConverter() required this.workflowId, this.organizationId, required this.name, this.description, final  List<String> visibleMetadata = const ['date', 'organization'], required final  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items') this.maxExtensionItems, this.displayScale = 'original', this.synthesis, @JsonKey(name: 'include_diagnostic_scorecard') this.includeDiagnosticScorecard = false, final  List<OutputLayoutBlock> layouts = const []}): _visibleMetadata = visibleMetadata,_visibleExtensions = visibleExtensions,_layouts = layouts,super._();
   factory _OutputProfile.fromJson(Map<String, dynamic> json) => _$OutputProfileFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
 @override@JsonKey() final  String slug;
 @override@StrictOpaqueIdConverter() final  String workflowId;
+@override final  String? organizationId;
 @override final  I18nText name;
 @override final  I18nText? description;
  final  List<String> _visibleMetadata;
@@ -955,7 +957,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, synthesis: $synthesis, includeDiagnosticScorecard: $includeDiagnosticScorecard, layouts: $layouts)';
+  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, organizationId: $organizationId, name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, synthesis: $synthesis, includeDiagnosticScorecard: $includeDiagnosticScorecard, layouts: $layouts)';
 }
 
 
@@ -966,7 +968,7 @@ abstract mixin class _$OutputProfileCopyWith<$Res> implements $OutputProfileCopy
   factory _$OutputProfileCopyWith(_OutputProfile value, $Res Function(_OutputProfile) _then) = __$OutputProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale, SynthesisConfigDTO? synthesis,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard, List<OutputLayoutBlock> layouts
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale, SynthesisConfigDTO? synthesis,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard, List<OutputLayoutBlock> layouts
 });
 
 
@@ -983,12 +985,13 @@ class __$OutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? synthesis = freezed,Object? includeDiagnosticScorecard = null,Object? layouts = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? organizationId = freezed,Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? synthesis = freezed,Object? includeDiagnosticScorecard = null,Object? layouts = null,}) {
   return _then(_OutputProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
-as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
+as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,visibleMetadata: null == visibleMetadata ? _self._visibleMetadata : visibleMetadata // ignore: cast_nullable_to_non_nullable
 as List<String>,visibleExtensions: null == visibleExtensions ? _self._visibleExtensions : visibleExtensions // ignore: cast_nullable_to_non_nullable

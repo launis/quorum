@@ -194,6 +194,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'expected_inputs',
         'output_schema',
         'model_strategy',
+        'organization_id',
         'type',
       ],
     );
@@ -243,6 +244,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         (v) => v as Map<String, dynamic>?,
       ),
       modelStrategy: $checkedConvert('model_strategy', (v) => v as String?),
+      organizationId: $checkedConvert('organization_id', (v) => v as String?),
       $type: $checkedConvert('type', (v) => v as String?),
     );
     return val;
@@ -255,6 +257,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
     'expectedInputs': 'expected_inputs',
     'outputSchema': 'output_schema',
     'modelStrategy': 'model_strategy',
+    'organizationId': 'organization_id',
     r'$type': 'type',
   },
 );
@@ -274,6 +277,7 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       'expected_inputs': instance.expectedInputs,
       'output_schema': instance.outputSchema,
       'model_strategy': instance.modelStrategy,
+      'organization_id': instance.organizationId,
       'type': instance.$type,
     };
 
@@ -299,6 +303,7 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'expected_inputs',
         'output_schema',
         'model_strategy',
+        'organization_id',
         'type',
       ],
     );
@@ -348,6 +353,7 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         (v) => v as Map<String, dynamic>?,
       ),
       modelStrategy: $checkedConvert('model_strategy', (v) => v as String?),
+      organizationId: $checkedConvert('organization_id', (v) => v as String?),
       $type: $checkedConvert('type', (v) => v as String?),
     );
     return val;
@@ -360,6 +366,7 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
     'expectedInputs': 'expected_inputs',
     'outputSchema': 'output_schema',
     'modelStrategy': 'model_strategy',
+    'organizationId': 'organization_id',
     r'$type': 'type',
   },
 );
@@ -379,6 +386,7 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       'expected_inputs': instance.expectedInputs,
       'output_schema': instance.outputSchema,
       'model_strategy': instance.modelStrategy,
+      'organization_id': instance.organizationId,
       'type': instance.$type,
     };
 

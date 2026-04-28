@@ -18,34 +18,27 @@ class ContextBuilder:
     """Builds and sanitizes the LLM context data based on input mappings."""
 
     @staticmethod
-    def _process_trace_event(
-        trace_data: Any, output_profile: Any, schema_type: str = "MATRIX", schema_map: dict[str, str] | None = None
+    def _process_trace_dtos(
+        dtos: list[Any], output_profile: Any, schema_type: str = "MATRIX", schema_map: dict[str, str] | None = None
     ) -> Any:
-        """Strictly validates and prunes a single trace event based on its database schema type.
+        """Strictly validates and prunes a list of StepOutputDTOs based on its database schema type.
 
         If schema_type is 'MATRIX', it strictly validates against LightweightMatrixOutput.
-        If schema_type is 'TEXT' or anything else, it returns the data unchanged to support non-matrix steps.
+        If schema_type is 'TEXT' or anything else, it reconstructs a flat dictionary.
         Raises AppException if a MATRIX trace is invalid.
         """
         match schema_type:
             case "MATRIX":
                 pass
             case _:
-                return trace_data
-
-        if not isinstance(trace_data, dict):
-            raise AppException(
-                message="Matrix trace data must be a strictly typed dictionary.",
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
+                return {d.block_id: d.payload for d in dtos}
 
         pruned_step_output = {}
-        # A matrix step output contains block IDs and metadata. We must iterate over it.
-        # schema_map is the source of truth: keys IN it are known block IDs to validate.
-        # Keys NOT in schema_map are dropped completely (Strict Fail-Fast Protocol).
-        for key, value in trace_data.items():
-            if schema_map is None or key not in schema_map:
+        for dto in dtos:
+            key = getattr(dto, "block_id", None)
+            value = getattr(dto, "payload", None)
+
+            if not key or (schema_map is None) or (key not in schema_map):
                 continue
 
             block_type = schema_map[key]
@@ -61,7 +54,13 @@ class ContextBuilder:
                     try:
                         matrix_dto = LightweightMatrixOutput.model_validate(value)
                         pruned = ContextRouter.route_and_prune(value, output_profile)
-                        pruned_dict = pruned.model_dump()
+                        if not pruned:
+                            continue
+
+                        pruned_dump = pruned.model_dump()
+                        if not isinstance(pruned_dump, dict):
+                            continue
+                        pruned_dict: dict[str, Any] = pruned_dump
 
                         if "evaluated_atoms" in pruned_dict:
                             del pruned_dict["evaluated_atoms"]
@@ -77,7 +76,8 @@ class ContextBuilder:
                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         ) from e
                 case _:
-                    pruned_step_output[key] = value
+                    if value is not None:
+                        pruned_step_output[key] = value
 
         return pruned_step_output
 
@@ -112,28 +112,43 @@ class ContextBuilder:
             clean_path = path[1:] if path.startswith("$") else path
 
             try:
-                resolved_value = resolve_dot_notation(state_data, clean_path)
+                if clean_path == "steps" or clean_path.startswith("steps."):
+                    resolved_value = None
+                else:
+                    resolved_value = resolve_dot_notation(state_data, clean_path)
 
-                # Task 3: ContextRouter integration for trace data
-                def _prune_steps_dict(steps_dict: dict[str, Any]) -> str:
+                # Epic 43 Phase 3: Strict List Filtering
+                def _prune_step_dtos(dtos_list: list[Any]) -> str:
                     pruned_steps = {}
-                    for s_id, s_val in steps_dict.items():
-                        # Unknown steps default to "TEXT" passthrough — they may exist in state
-                        # without a schema entry (e.g. intermediate hook outputs).
-                        step_type = schema_map.get(s_id, "TEXT")
-                        pruned_steps[s_id] = ContextBuilder._process_trace_event(
-                            s_val, output_profile, step_type, schema_map
+                    steps_group: dict[str, list[Any]] = {}
+                    for d in dtos_list:
+                        s_id = getattr(d, "step_id", None)
+                        if s_id:
+                            steps_group.setdefault(s_id, []).append(d)
+
+                    for s_id, step_dtos in steps_group.items():
+                        if s_id not in schema_map:
+                            raise AppException(
+                                message=f"Fail-Fast: Missing schema mapping for step '{s_id}'.",
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            )
+                        step_type = schema_map[s_id]
+                        pruned_steps[s_id] = ContextBuilder._process_trace_dtos(
+                            step_dtos, output_profile, step_type, schema_map
                         )
                     return f"<matrix_data>\n{json.dumps(pruned_steps)}\n</matrix_data>"
 
-                if clean_path == "steps" and isinstance(resolved_value, dict):
-                    resolved_value = _prune_steps_dict(resolved_value)
+                if clean_path == "steps":
+                    dto_list = state_data.get("steps", [])
+                    resolved_value = _prune_step_dtos(dto_list)
                 elif clean_path == "global_context_vars" and isinstance(resolved_value, dict):
                     resolved_value = copy.copy(resolved_value)
-                    if "steps" in resolved_value and isinstance(resolved_value["steps"], dict):
-                        resolved_value["steps"] = _prune_steps_dict(resolved_value["steps"])
+                    if "steps" in resolved_value:
+                        resolved_value["steps"] = _prune_step_dtos(resolved_value["steps"])
                 elif clean_path.startswith("steps."):
-                    step_key = clean_path.split(".")[1]
+                    parts = clean_path.split(".")
+                    step_key = parts[1]
                     if step_key not in schema_map:
                         raise AppException(
                             message=f"Fail-Fast: Missing schema mapping for step '{step_key}'.",
@@ -141,10 +156,28 @@ class ContextBuilder:
                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
                     step_type = schema_map[step_key]
-                    pruned_dict = ContextBuilder._process_trace_event(
-                        resolved_value, output_profile, step_type, schema_map
-                    )
-                    resolved_value = f"<matrix_data>\n{json.dumps(pruned_dict)}\n</matrix_data>"
+                    dtos = [d for d in state_data.get("steps", []) if getattr(d, "step_id", None) == step_key]
+
+                    if len(parts) == 2:
+                        pruned_dict = ContextBuilder._process_trace_dtos(dtos, output_profile, step_type, schema_map)
+                        resolved_value = f"<matrix_data>\n{json.dumps(pruned_dict)}\n</matrix_data>"
+                    elif len(parts) == 3:
+                        # Exact block match
+                        block_key = parts[2]
+                        matched_dto = next((d for d in dtos if getattr(d, "block_id", None) == block_key), None)
+                        if not matched_dto:
+                            raise AppException(
+                                message=f"Fail-Fast: Block '{block_key}' not found in step '{step_key}'.",
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            )
+                        resolved_value = getattr(matched_dto, "payload", None)
+                    else:
+                        raise AppException(
+                            message=f"Fail-Fast: Invalid legacy path '{clean_path}'.",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        )
 
                 val_str = str(resolved_value)
                 # Task 2: Rigorous token checks

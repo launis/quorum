@@ -22,6 +22,7 @@ from backend_v2.models.domain.synthesis import SynthesisMetadataDTO, SynthesisSt
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.synthesis import SynthesisOutputDTO
 from backend_v2.models.enums import HistoricalContextMode
+from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
 from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 
@@ -357,43 +358,60 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     # 1. Clean up inputs (Omit Empty Sections & Original Inputs)
     consolidated_inputs: dict[str, Any] = {}
 
-    combined_source_data = dict(inputs)
-    combined_source_data.update(hook_metadata_dto.step_results)
+    available_dtos: list[StepOutputDTO] = []
+    
+    # In V2, inputs.get("steps") is the definitive state source.
+    steps_list = inputs.get("steps", [])
+    if isinstance(steps_list, list):
+        for item in steps_list:
+            if isinstance(item, StepOutputDTO):
+                available_dtos.append(item)
+            elif isinstance(item, dict):
+                try:
+                    available_dtos.append(StepOutputDTO.model_validate(item))
+                except ValidationError:
+                    pass
 
-    for step_id, step_data in combined_source_data.items():
+    # Merge metadata injection
+    if hook_metadata_dto.step_results:
+        for item in hook_metadata_dto.step_results:
+            if isinstance(item, StepOutputDTO):
+                available_dtos.append(item)
+
+    # Deduplicate and extract payload components
+    for step_dto_obj in available_dtos:
+        step_id = step_dto_obj.step_id
+        block_id = step_dto_obj.block_id
+        step_data = step_dto_obj.payload
+        uid = f"{step_id}_{block_id}"
+
         is_wildcard = is_global_wildcard
 
         try:
-            step_dto = SynthesisStepDataDTO.model_validate(step_data)
-            step_dict = (
-                step_data
-                if isinstance(step_data, dict)
-                else step_data.model_dump(mode="json")
-                if hasattr(step_data, "model_dump")
-                else dict(step_data)
-            )
+            step_dto = None
+            if isinstance(step_data, dict):
+                step_dto = SynthesisStepDataDTO.model_validate(step_data)
+                step_dict = step_data
+            elif hasattr(step_data, "model_dump"):
+                step_dict = step_data.model_dump(mode="json")
+                step_dto = SynthesisStepDataDTO.model_validate(step_dict)
+            else:
+                step_dict = {"_value": step_data}
         except (ValidationError, TypeError, ValueError) as e:
-            msg = (
-                f"Strict Fail-Fast Enforced: Synthesis input data for step '{step_id}' "
-                f"must be a structured model. Found: {type(step_data)}"
-            )
-            logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(
-                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-            ) from e
+            step_dict = {"_value": step_data}
 
         # O(1) Set intersection logic replacing nested loops
         inner_keys = set(step_dict.keys())
         is_requested = False
 
-        if step_id in required_blocks:
+        if step_id in required_blocks or block_id in required_blocks:
             is_requested = True
         elif not required_blocks.isdisjoint(inner_keys):
             is_requested = True
         else:
             # Final fallback for composite keys
             for inner_k in inner_keys:
-                if f"{step_id}_{inner_k}" in required_blocks:
+                if f"{step_id}_{inner_k}" in required_blocks or f"{block_id}_{inner_k}" in required_blocks:
                     is_requested = True
                     break
 
@@ -401,15 +419,13 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             if not is_wildcard:
                 continue
             # reasoning_trace acts as a discriminator for LLM execution steps.
-            # All LLM steps emit this field via prompt_compiler dynamic schema.
-            # Non-LLM steps (raw_inputs, inputs, logic nodes) do not have it.
-            # We check for None explicitly — not falsy — because an empty string
-            # is still a valid (if minimal) LLM thinking output.
-            # We also explicitly check the schema to see if this is a matrix step or an XAI extension.
-            if step_dto.reasoning_trace is None:
+            if step_dto and step_dto.reasoning_trace is None:
                 is_matrix_or_ext = False
                 for m_id in matrix_step_ids:
                     if str(step_id) == m_id or str(step_id).startswith(f"{m_id}_"):
+                        is_matrix_or_ext = True
+                        break
+                    if str(block_id) == m_id or str(block_id).startswith(f"{m_id}_"):
                         is_matrix_or_ext = True
                         break
                 if not is_matrix_or_ext:
@@ -418,10 +434,10 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         v = step_data
 
         if omit_empty and (v is None or v == "" or v == [] or str(v).strip() == ""):
-            logger.debug("[SynthesisHook] Omitting empty section: %s", step_id)
+            logger.debug("[SynthesisHook] Omitting empty section: %s", uid)
             continue
 
-        consolidated_inputs[step_id] = v
+        consolidated_inputs[uid] = v
 
     if not consolidated_inputs:
         return HookResult(

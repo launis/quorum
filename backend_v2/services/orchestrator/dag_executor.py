@@ -104,7 +104,7 @@ class NodeExecutor:
 
             normalized_mappings = {}
             for logical_name, path in step.input_mappings.items():
-                normalized_path = ContextRouter.normalize_and_validate_variable(path, projector.snapshot)
+                normalized_path = ContextRouter.normalize_and_validate_variable(path, {"steps": projector.snapshot})
                 normalized_mappings[logical_name] = normalized_path
 
             # Immutable freeze via model_copy

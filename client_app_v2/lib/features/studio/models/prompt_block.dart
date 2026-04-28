@@ -1,3 +1,4 @@
+// ignore_for_file: invalid_annotation_target
 import 'dart:convert';
 import 'dart:isolate';
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -42,6 +43,7 @@ enum BlockDataType {
 abstract class TheoryGrounding with _$TheoryGrounding {
   const TheoryGrounding._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory TheoryGrounding({
     required String sourceUrl,
     required String citationReference,
@@ -55,6 +57,7 @@ abstract class TheoryGrounding with _$TheoryGrounding {
 abstract class MatrixClaim with _$MatrixClaim {
   const MatrixClaim._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory MatrixClaim({
     required I18nText label,
     required String aiDescription,
@@ -69,6 +72,7 @@ abstract class MatrixClaim with _$MatrixClaim {
 abstract class MatrixRow with _$MatrixRow {
   const MatrixRow._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory MatrixRow({
     required I18nText label,
     required String aiDescription,
@@ -82,6 +86,7 @@ abstract class MatrixRow with _$MatrixRow {
 abstract class MatrixScale with _$MatrixScale {
   const MatrixScale._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory MatrixScale({
     required int score,
     I18nText? name,
@@ -99,9 +104,11 @@ abstract class MatrixScale with _$MatrixScale {
 abstract class PromptBlock with _$PromptBlock {
   const PromptBlock._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory PromptBlock({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
+    String? organizationId,
     required I18nText label,
     required I18nText description,
     String? aiDescription,

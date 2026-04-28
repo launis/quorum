@@ -8,6 +8,7 @@ from typing import Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import (
@@ -21,12 +22,6 @@ from backend_v2.models.enums import (
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
 logger = logging.getLogger(__name__)
-
-
-class V2CoreBase(BaseModel):
-    """Base model enforcing Pydantic strict mode across all V2 schemas."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 __all__ = [

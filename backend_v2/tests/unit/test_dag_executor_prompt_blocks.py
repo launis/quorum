@@ -112,4 +112,9 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
 
     projector = StateProjector()
     results = projector.fold_trace(record.execution_trace)
-    assert results["step_1111111111111111"]["test_res"] == 1
+    assert any(
+        dto.step_id == "step_1111111111111111" and 
+        dto.block_id == "test_res" and 
+        dto.payload == 1 
+        for dto in results
+    )

@@ -210,8 +210,8 @@ return $default(_that.questionId,_that.question,_that.type);case _:
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(disallowUnrecognizedKeys: true)
 class _QuestionnaireItem extends QuestionnaireItem {
   const _QuestionnaireItem({required this.questionId, required this.question, required this.type}): super._();
   factory _QuestionnaireItem.fromJson(Map<String, dynamic> json) => _$QuestionnaireItemFromJson(json);
@@ -497,8 +497,8 @@ return $default(_that.inputKey,_that.label,_that.required,_that.isChatHistory,_t
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(disallowUnrecognizedKeys: true)
 class _ExpectedInput extends ExpectedInput {
   const _ExpectedInput({required this.inputKey, required this.label, required this.required, this.isChatHistory = false, final  List<String> inputModes = const [], required this.description, this.aiDescription, final  List<QuestionnaireItem> questionnaireDefinition = const []}): _inputModes = inputModes,_questionnaireDefinition = questionnaireDefinition,super._();
   factory _ExpectedInput.fromJson(Map<String, dynamic> json) => _$ExpectedInputFromJson(json);
@@ -795,8 +795,8 @@ return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(disallowUnrecognizedKeys: true)
 class _StepRule extends StepRule {
   const _StepRule({@StrictOpaqueIdConverter() required this.id, @StrictOpaqueIdConverter() required this.taskBlueprint, final  List<String> dependsOn = const [], final  Map<String, String> inputMappings = const {}, this.uiPosX = 0.0, this.uiPosY = 0.0}): _dependsOn = dependsOn,_inputMappings = inputMappings,super._();
   factory _StepRule.fromJson(Map<String, dynamic> json) => _$StepRuleFromJson(json);
@@ -905,7 +905,7 @@ NodeStrategy _$NodeStrategyFromJson(
 /// @nodoc
 mixin _$NodeStrategy {
 
-@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText? get description; String? get hook; List<String> get promptBlocks; List<String> get preHooks; List<String> get postHooks; String get safety; List<String> get allowedMcpTools; List<String> get expectedInputs; Map<String, dynamic>? get outputSchema; String? get modelStrategy;
+@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText? get description; String? get hook; List<String> get promptBlocks; List<String> get preHooks; List<String> get postHooks; String get safety; List<String> get allowedMcpTools; List<String> get expectedInputs; Map<String, dynamic>? get outputSchema; String? get modelStrategy; String? get organizationId;
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -918,16 +918,16 @@ $NodeStrategyCopyWith<NodeStrategy> get copyWith => _$NodeStrategyCopyWithImpl<N
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategy&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&const DeepCollectionEquality().equals(other.promptBlocks, promptBlocks)&&const DeepCollectionEquality().equals(other.preHooks, preHooks)&&const DeepCollectionEquality().equals(other.postHooks, postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other.allowedMcpTools, allowedMcpTools)&&const DeepCollectionEquality().equals(other.expectedInputs, expectedInputs)&&const DeepCollectionEquality().equals(other.outputSchema, outputSchema)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategy&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&const DeepCollectionEquality().equals(other.promptBlocks, promptBlocks)&&const DeepCollectionEquality().equals(other.preHooks, preHooks)&&const DeepCollectionEquality().equals(other.postHooks, postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other.allowedMcpTools, allowedMcpTools)&&const DeepCollectionEquality().equals(other.expectedInputs, expectedInputs)&&const DeepCollectionEquality().equals(other.outputSchema, outputSchema)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,const DeepCollectionEquality().hash(promptBlocks),const DeepCollectionEquality().hash(preHooks),const DeepCollectionEquality().hash(postHooks),safety,const DeepCollectionEquality().hash(allowedMcpTools),const DeepCollectionEquality().hash(expectedInputs),const DeepCollectionEquality().hash(outputSchema),modelStrategy);
+int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,const DeepCollectionEquality().hash(promptBlocks),const DeepCollectionEquality().hash(preHooks),const DeepCollectionEquality().hash(postHooks),safety,const DeepCollectionEquality().hash(allowedMcpTools),const DeepCollectionEquality().hash(expectedInputs),const DeepCollectionEquality().hash(outputSchema),modelStrategy,organizationId);
 
 @override
 String toString() {
-  return 'NodeStrategy(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, promptBlocks: $promptBlocks, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, outputSchema: $outputSchema, modelStrategy: $modelStrategy)';
+  return 'NodeStrategy(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, promptBlocks: $promptBlocks, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, outputSchema: $outputSchema, modelStrategy: $modelStrategy, organizationId: $organizationId)';
 }
 
 
@@ -938,7 +938,7 @@ abstract mixin class $NodeStrategyCopyWith<$Res>  {
   factory $NodeStrategyCopyWith(NodeStrategy value, $Res Function(NodeStrategy) _then) = _$NodeStrategyCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook, List<String> promptBlocks, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs, Map<String, dynamic>? outputSchema, String? modelStrategy
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook, List<String> promptBlocks, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs, Map<String, dynamic>? outputSchema, String? modelStrategy, String? organizationId
 });
 
 
@@ -955,7 +955,7 @@ class _$NodeStrategyCopyWithImpl<$Res>
 
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? promptBlocks = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? outputSchema = freezed,Object? modelStrategy = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? promptBlocks = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? outputSchema = freezed,Object? modelStrategy = freezed,Object? organizationId = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -970,6 +970,7 @@ as String,allowedMcpTools: null == allowedMcpTools ? _self.allowedMcpTools : all
 as List<String>,expectedInputs: null == expectedInputs ? _self.expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
 as List<String>,outputSchema: freezed == outputSchema ? _self.outputSchema : outputSchema // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,modelStrategy: freezed == modelStrategy ? _self.modelStrategy : modelStrategy // ignore: cast_nullable_to_non_nullable
+as String?,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -1076,11 +1077,11 @@ return logic(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy)?  llm,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy)?  logic,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId)?  llm,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId)?  logic,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm() when llm != null:
-return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy);case NodeStrategyLogic() when logic != null:
-return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy);case _:
+return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId);case NodeStrategyLogic() when logic != null:
+return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId);case _:
   return orElse();
 
 }
@@ -1098,11 +1099,11 @@ return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.p
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy)  llm,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy)  logic,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId)  llm,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId)  logic,}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm():
-return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy);case NodeStrategyLogic():
-return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy);}
+return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId);case NodeStrategyLogic():
+return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -1116,11 +1117,11 @@ return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.p
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy)?  llm,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy)?  logic,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId)?  llm,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook,  List<String> promptBlocks,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId)?  logic,}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm() when llm != null:
-return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy);case NodeStrategyLogic() when logic != null:
-return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy);case _:
+return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId);case NodeStrategyLogic() when logic != null:
+return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.promptBlocks,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId);case _:
   return null;
 
 }
@@ -1129,10 +1130,10 @@ return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.p
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(disallowUnrecognizedKeys: true)
 class NodeStrategyLlm extends NodeStrategy {
-  const NodeStrategyLlm({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, this.hook, final  List<String> promptBlocks = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], final  List<String> expectedInputs = const [], final  Map<String, dynamic>? outputSchema, this.modelStrategy, final  String? $type}): _promptBlocks = promptBlocks,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_expectedInputs = expectedInputs,_outputSchema = outputSchema,$type = $type ?? 'llm',super._();
+  const NodeStrategyLlm({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, this.hook, final  List<String> promptBlocks = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], final  List<String> expectedInputs = const [], final  Map<String, dynamic>? outputSchema, this.modelStrategy, this.organizationId, final  String? $type}): _promptBlocks = promptBlocks,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_expectedInputs = expectedInputs,_outputSchema = outputSchema,$type = $type ?? 'llm',super._();
   factory NodeStrategyLlm.fromJson(Map<String, dynamic> json) => _$NodeStrategyLlmFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1186,6 +1187,7 @@ class NodeStrategyLlm extends NodeStrategy {
 }
 
 @override final  String? modelStrategy;
+@override final  String? organizationId;
 
 @JsonKey(name: 'type')
 final String $type;
@@ -1204,16 +1206,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLlm&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&const DeepCollectionEquality().equals(other._promptBlocks, _promptBlocks)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&const DeepCollectionEquality().equals(other._outputSchema, _outputSchema)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLlm&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&const DeepCollectionEquality().equals(other._promptBlocks, _promptBlocks)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&const DeepCollectionEquality().equals(other._outputSchema, _outputSchema)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,const DeepCollectionEquality().hash(_promptBlocks),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_expectedInputs),const DeepCollectionEquality().hash(_outputSchema),modelStrategy);
+int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,const DeepCollectionEquality().hash(_promptBlocks),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_expectedInputs),const DeepCollectionEquality().hash(_outputSchema),modelStrategy,organizationId);
 
 @override
 String toString() {
-  return 'NodeStrategy.llm(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, promptBlocks: $promptBlocks, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, outputSchema: $outputSchema, modelStrategy: $modelStrategy)';
+  return 'NodeStrategy.llm(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, promptBlocks: $promptBlocks, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, outputSchema: $outputSchema, modelStrategy: $modelStrategy, organizationId: $organizationId)';
 }
 
 
@@ -1224,7 +1226,7 @@ abstract mixin class $NodeStrategyLlmCopyWith<$Res> implements $NodeStrategyCopy
   factory $NodeStrategyLlmCopyWith(NodeStrategyLlm value, $Res Function(NodeStrategyLlm) _then) = _$NodeStrategyLlmCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String? hook, List<String> promptBlocks, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs, Map<String, dynamic>? outputSchema, String? modelStrategy
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String? hook, List<String> promptBlocks, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs, Map<String, dynamic>? outputSchema, String? modelStrategy, String? organizationId
 });
 
 
@@ -1241,7 +1243,7 @@ class _$NodeStrategyLlmCopyWithImpl<$Res>
 
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = freezed,Object? promptBlocks = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? outputSchema = freezed,Object? modelStrategy = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = freezed,Object? promptBlocks = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? outputSchema = freezed,Object? modelStrategy = freezed,Object? organizationId = freezed,}) {
   return _then(NodeStrategyLlm(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1256,6 +1258,7 @@ as String,allowedMcpTools: null == allowedMcpTools ? _self._allowedMcpTools : al
 as List<String>,expectedInputs: null == expectedInputs ? _self._expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
 as List<String>,outputSchema: freezed == outputSchema ? _self._outputSchema : outputSchema // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,modelStrategy: freezed == modelStrategy ? _self.modelStrategy : modelStrategy // ignore: cast_nullable_to_non_nullable
+as String?,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -1285,10 +1288,10 @@ $I18nTextCopyWith<$Res>? get description {
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(disallowUnrecognizedKeys: true)
 class NodeStrategyLogic extends NodeStrategy {
-  const NodeStrategyLogic({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, required this.hook, final  List<String> promptBlocks = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], final  List<String> expectedInputs = const [], final  Map<String, dynamic>? outputSchema, this.modelStrategy, final  String? $type}): _promptBlocks = promptBlocks,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_expectedInputs = expectedInputs,_outputSchema = outputSchema,$type = $type ?? 'logic',super._();
+  const NodeStrategyLogic({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, required this.hook, final  List<String> promptBlocks = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], final  List<String> expectedInputs = const [], final  Map<String, dynamic>? outputSchema, this.modelStrategy, this.organizationId, final  String? $type}): _promptBlocks = promptBlocks,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_expectedInputs = expectedInputs,_outputSchema = outputSchema,$type = $type ?? 'logic',super._();
   factory NodeStrategyLogic.fromJson(Map<String, dynamic> json) => _$NodeStrategyLogicFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1342,6 +1345,7 @@ class NodeStrategyLogic extends NodeStrategy {
 }
 
 @override final  String? modelStrategy;
+@override final  String? organizationId;
 
 @JsonKey(name: 'type')
 final String $type;
@@ -1360,16 +1364,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLogic&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&const DeepCollectionEquality().equals(other._promptBlocks, _promptBlocks)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&const DeepCollectionEquality().equals(other._outputSchema, _outputSchema)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLogic&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&const DeepCollectionEquality().equals(other._promptBlocks, _promptBlocks)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&const DeepCollectionEquality().equals(other._outputSchema, _outputSchema)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,const DeepCollectionEquality().hash(_promptBlocks),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_expectedInputs),const DeepCollectionEquality().hash(_outputSchema),modelStrategy);
+int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,const DeepCollectionEquality().hash(_promptBlocks),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_expectedInputs),const DeepCollectionEquality().hash(_outputSchema),modelStrategy,organizationId);
 
 @override
 String toString() {
-  return 'NodeStrategy.logic(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, promptBlocks: $promptBlocks, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, outputSchema: $outputSchema, modelStrategy: $modelStrategy)';
+  return 'NodeStrategy.logic(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, promptBlocks: $promptBlocks, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, outputSchema: $outputSchema, modelStrategy: $modelStrategy, organizationId: $organizationId)';
 }
 
 
@@ -1380,7 +1384,7 @@ abstract mixin class $NodeStrategyLogicCopyWith<$Res> implements $NodeStrategyCo
   factory $NodeStrategyLogicCopyWith(NodeStrategyLogic value, $Res Function(NodeStrategyLogic) _then) = _$NodeStrategyLogicCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook, List<String> promptBlocks, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs, Map<String, dynamic>? outputSchema, String? modelStrategy
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook, List<String> promptBlocks, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs, Map<String, dynamic>? outputSchema, String? modelStrategy, String? organizationId
 });
 
 
@@ -1397,7 +1401,7 @@ class _$NodeStrategyLogicCopyWithImpl<$Res>
 
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? promptBlocks = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? outputSchema = freezed,Object? modelStrategy = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? promptBlocks = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? outputSchema = freezed,Object? modelStrategy = freezed,Object? organizationId = freezed,}) {
   return _then(NodeStrategyLogic(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1412,6 +1416,7 @@ as String,allowedMcpTools: null == allowedMcpTools ? _self._allowedMcpTools : al
 as List<String>,expectedInputs: null == expectedInputs ? _self._expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
 as List<String>,outputSchema: freezed == outputSchema ? _self._outputSchema : outputSchema // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,modelStrategy: freezed == modelStrategy ? _self.modelStrategy : modelStrategy // ignore: cast_nullable_to_non_nullable
+as String?,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -1658,8 +1663,8 @@ return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_t
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(disallowUnrecognizedKeys: true)
 class _Workflow extends Workflow {
   const _Workflow({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, required this.description, this.status = "draft", this.version = 1, this.isPublic = false, this.organizationId, final  Map<String, dynamic> uiSchema = const {}, final  Map<String, EmbeddedOutputProfile> outputProfiles = const {}, this.defaultProfileId = "default", final  List<ExpectedInput> expectedInputs = const [], final  List<StepRule> steps = const []}): _uiSchema = uiSchema,_outputProfiles = outputProfiles,_expectedInputs = expectedInputs,_steps = steps,super._();
   factory _Workflow.fromJson(Map<String, dynamic> json) => _$WorkflowFromJson(json);

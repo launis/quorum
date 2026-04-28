@@ -59,6 +59,7 @@ abstract class OutputProfile with _$OutputProfile {
     @StrictOpaqueIdConverter() required String id,
     @Default('') String slug,
     @StrictOpaqueIdConverter() required String workflowId,
+    String? organizationId,
     required I18nText name,
     I18nText? description,
     @Default(['date', 'organization']) List<String> visibleMetadata,

@@ -130,6 +130,7 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
       allowedKeys: const [
         'id',
         'slug',
+        'organization_id',
         'label',
         'description',
         'ai_description',
@@ -154,6 +155,7 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
         (v) => const StrictOpaqueIdConverter().fromJson(v as String),
       ),
       slug: $checkedConvert('slug', (v) => v as String),
+      organizationId: $checkedConvert('organization_id', (v) => v as String?),
       label: $checkedConvert(
         'label',
         (v) => I18nText.fromJson(v as Map<String, dynamic>),
@@ -221,6 +223,7 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
     return val;
   },
   fieldKeyMap: const {
+    'organizationId': 'organization_id',
     'aiDescription': 'ai_description',
     'categoryId': 'category_id',
     'isEvaluative': 'is_evaluative',
@@ -238,6 +241,7 @@ Map<String, dynamic> _$PromptBlockToJson(_PromptBlock instance) =>
     <String, dynamic>{
       'id': const StrictOpaqueIdConverter().toJson(instance.id),
       'slug': instance.slug,
+      'organization_id': instance.organizationId,
       'label': instance.label.toJson(),
       'description': instance.description.toJson(),
       'ai_description': instance.aiDescription,

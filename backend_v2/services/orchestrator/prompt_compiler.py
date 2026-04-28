@@ -13,6 +13,7 @@ from typing import Any
 from pydantic import BaseModel, Field, create_model
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.v2_core import PromptBlock
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +28,11 @@ class PromptCompiler:
         """Initialize PromptCompiler."""
         pass
 
-    def resolve_i18n(self, text_obj: dict[str, Any] | str | None, target_locale: str) -> str:
+    def resolve_i18n(self, text_obj: Any, target_locale: str) -> str:
         """Resolve an I18n JSON object to a string based on locale fallback rules.
 
         Args:
-            text_obj: The I18n object (dict with default_locale and translations),
+            text_obj: The I18n object (model or dict with default_locale and translations),
                       or a raw string (legacy fallback), or None.
             target_locale: The requested language code (e.g., 'fi' or 'en').
 
@@ -40,6 +41,9 @@ class PromptCompiler:
         """
         if not text_obj:
             return ""
+
+        if hasattr(text_obj, "resolve"):
+            return str(text_obj.resolve(target_locale))
 
         from backend_v2.exceptions import ConfigurationError, ErrorCodes
 
@@ -337,7 +341,7 @@ class PromptCompiler:
     def build_dynamic_schema(
         self,
         schema_name: str,
-        criteria: list[dict[str, Any]],
+        criteria: list[PromptBlock],
         has_search_result: bool = False,
         has_shuffled_atoms: bool = False,
         target_locale: str = "en",
@@ -346,7 +350,8 @@ class PromptCompiler:
 
         # P4: Prevent Pydantic compilation explosion on 200+ step DAGs by hashing criteria
         # and delegating to an LRU cached private method.
-        criteria_json = json.dumps(criteria, sort_keys=True)
+        # Epic 43: Serialize strictly typed PromptBlocks back to json for the cache key.
+        criteria_json = json.dumps([c.model_dump(mode="json") for c in criteria], sort_keys=True)
         return self._cached_build_dynamic_schema(
             schema_name, criteria_json, has_search_result, has_shuffled_atoms, target_locale
         )
@@ -629,22 +634,22 @@ class PromptCompiler:
                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             ) from e
 
-    def compile_xml_rubrics(self, criteria: list[dict[str, Any]], target_locale: str) -> str:
+    def compile_xml_rubrics(self, criteria: list[PromptBlock], target_locale: str) -> str:
         """Epic 12: Generates Thick XML/Markdown rubrics for the System Prompt."""
         xml_blocks = ["<EVALUATION_RUBRICS>"]
         for crit in criteria:
-            if crit.get("type") == "instruction":
+            if crit.type == "instruction":
                 continue
 
-            crit_id = crit.get("id")
-            label = self.resolve_i18n(crit.get("label"), target_locale)
-            desc = crit.get("ai_description", "")
+            crit_id = crit.id
+            label = self.resolve_i18n(crit.label, target_locale)
+            desc = crit.ai_description or ""
 
             xml_blocks.append(f'  <MATRIX id="{crit_id}" title="{label}">')
             if desc:
                 xml_blocks.append(f"    <DIRECTIVE>{desc}</DIRECTIVE>")
 
-            scales = crit.get("scales", [])
+            scales = crit.scales or []
             if scales:
                 xml_blocks.append("    | Score | Label | Critical Directive |")
                 xml_blocks.append("    |---|---|---|")
@@ -652,12 +657,12 @@ class PromptCompiler:
 
                 mandate_str = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
                 for s in scales:
-                    s_val = s.get("score")
-                    s_lbl = self.resolve_i18n(s.get("name"), target_locale) if s.get("name") else s.get("ai_label", "")
+                    s_val = s.score
+                    s_lbl = self.resolve_i18n(s.name, target_locale) if s.name else s.ai_label
 
                     claims_texts = []
-                    for c in s.get("claims", []):
-                        substance = c.get("ai_description", "").strip()
+                    for c in s.claims:
+                        substance = (c.ai_description or "").strip()
                         if substance:
                             claims_texts.append(f"{substance}{mandate_str}")
 
@@ -704,13 +709,13 @@ class PromptCompiler:
 
         return "\n".join(xml_blocks)
 
-    def compile_static_instructions(self, blocks: list[dict[str, Any]], target_locale: str) -> str:
+    def compile_static_instructions(self, blocks: list[PromptBlock], target_locale: str) -> str:
         """Compile static instruction-type V2 PromptBlocks for the Cached System Prompt.
 
         Extracts blocks where type == "instruction" AND category_id != "runtime_variables".
 
         Args:
-            blocks: List of PromptBlock dictionaries.
+            blocks: List of PromptBlock definitions.
             target_locale: The requested language code.
 
         Returns:
@@ -718,13 +723,13 @@ class PromptCompiler:
         """
         compiled_lines = []
         for block in blocks:
-            if block.get("type") == "instruction" and block.get("category_id") != "runtime_variables":
-                label = self.resolve_i18n(block.get("label"), target_locale)
-                desc = block.get("ai_description")
+            if block.type == "instruction" and block.category_id != "runtime_variables":
+                label = self.resolve_i18n(block.label, target_locale)
+                desc = block.ai_description
                 if not desc:
                     from backend_v2.exceptions import ConfigurationError
 
-                    block_id = block.get("id")
+                    block_id = block.id
                     msg = f"PromptBlock '{block_id}' is missing mandatory 'ai_description'."
                     logger.error(
                         "PromptBlock is missing mandatory 'ai_description'.",
@@ -737,14 +742,14 @@ class PromptCompiler:
 
         return "\n\n".join(compiled_lines) if compiled_lines else ""
 
-    def compile_dynamic_instructions(self, blocks: list[dict[str, Any]], target_locale: str) -> str:
+    def compile_dynamic_instructions(self, blocks: list[PromptBlock], target_locale: str) -> str:
         """Compile dynamic instruction-type V2 PromptBlocks for the Uncached User Tail.
 
         Extracts blocks where type == "instruction" AND category_id == "runtime_variables",
         and performs real-time variable substitutions (e.g. {CURRENT_DATE}).
 
         Args:
-            blocks: List of PromptBlock dictionaries.
+            blocks: List of PromptBlock definitions.
             target_locale: The requested language code.
 
         Returns:
@@ -758,13 +763,13 @@ class PromptCompiler:
 
         compiled_lines = []
         for block in blocks:
-            if block.get("type") == "instruction" and block.get("category_id") == "runtime_variables":
-                label = self.resolve_i18n(block.get("label"), target_locale)
-                desc = block.get("ai_description")
+            if block.type == "instruction" and block.category_id == "runtime_variables":
+                label = self.resolve_i18n(block.label, target_locale)
+                desc = block.ai_description
                 if not desc:
                     from backend_v2.exceptions import ConfigurationError
 
-                    block_id = block.get("id")
+                    block_id = block.id
                     msg = f"PromptBlock '{block_id}' is missing mandatory 'ai_description'."
                     logger.error(
                         "PromptBlock is missing mandatory 'ai_description'.",

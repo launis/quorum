@@ -15,6 +15,7 @@ class PromptBlockDeleteResponse(BaseModel):
 
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
+from backend_v2.models.dtos.studio import PromptBlockResponseDTO
 from backend_v2.models.v2_core import PromptBlock
 
 logger = logging.getLogger(__name__)
@@ -38,25 +39,25 @@ async def simulate_prompt_block(
     return PromptBlockSimulationResponse(result)
 
 
-@router.get("/", response_model=list[PromptBlock])
+@router.get("/", response_model=list[PromptBlockResponseDTO])
 async def get_prompt_blocks(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> list[PromptBlock]:
     """Retrieve all PromptBlocks securely."""
     return await studio_service.list_prompt_blocks(current_user)
 
 
-@router.post("/", response_model=PromptBlock)
+@router.post("/", response_model=PromptBlockResponseDTO)
 async def create_prompt_block(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> PromptBlock:
     """Create a new PromptBlock draft securely via SSOT."""
     return await studio_service.create_prompt_block_draft(current_user)
 
 
-@router.get("/{id}", response_model=PromptBlock)
+@router.get("/{id}", response_model=PromptBlockResponseDTO)
 async def get_prompt_block(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> PromptBlock:
     """Retrieve a specific prompt block by id securely via SSOT Service Layer."""
     return await studio_service.get_prompt_block(current_user, id)
 
 
-@router.post("/{id}/clone", response_model=PromptBlock)
+@router.post("/{id}/clone", response_model=PromptBlockResponseDTO)
 async def clone_prompt_block(
     id: str,
     current_user: CurrentUserDep,
@@ -66,7 +67,7 @@ async def clone_prompt_block(
     return await studio_service.clone_prompt_block(current_user, id)
 
 
-@router.put("/{id}", response_model=PromptBlock)
+@router.put("/{id}", response_model=PromptBlockResponseDTO)
 async def save_prompt_block(
     id: str,
     data: PromptBlock,

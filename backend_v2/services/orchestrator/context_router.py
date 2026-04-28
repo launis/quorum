@@ -91,7 +91,24 @@ class ContextRouter:
             parts = clean_path.split(".")
             if len(parts) >= 2:
                 step_key = parts[1]
-                if step_key not in snapshot:
+                steps_container = snapshot.get("steps")
+
+                if isinstance(steps_container, dict):
+                    raise AppException(
+                        message=(
+                            "Fail-Fast: Legacy dictionary state detected in trace. "
+                            "Epic 43 Zero-Compromise Pledge forbids unstructured data; "
+                            "must be a list of StepOutputDTO."
+                        ),
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+
+                found = False
+                if isinstance(steps_container, list):
+                    found = any(getattr(dto, "step_id", None) == step_key for dto in steps_container)
+
+                if not found:
                     raise AppException(
                         message=f"Fail-Fast: Required step '{step_key}' not found in state (Orphaned Step).",
                         status_code=500,

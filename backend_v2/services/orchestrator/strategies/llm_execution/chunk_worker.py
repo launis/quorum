@@ -33,7 +33,7 @@ class ChunkWorker:
         chunk: Any,
         sem: asyncio.Semaphore,
         compiler: Any,
-        criteria_blocks: list[dict[str, Any]],
+        criteria_blocks: list[PromptBlock],
         user_payload: str,
         base_system_prompt: str,
         has_search: bool,
@@ -73,19 +73,9 @@ class ChunkWorker:
                             ) from e
 
                     chunk_criteria = []
-                    for raw_b in criteria_blocks:
-                        try:
-                            bm = PromptBlock.model_validate(raw_b)
-                            if bm.category_id != "matrix" or bm.id in chunk_matrix_ids:
-                                chunk_criteria.append(raw_b)
-                        except Exception as e:
-                            msg = f"Strict Fail-Fast Enforced: Malformed PromptBlock criteria payload. {str(e)}"
-                            logger.error("[ChunkWorker] %s", msg, exc_info=True)
-                            raise AppException(
-                                message="Criteria block validation failed",
-                                status_code=500,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                            ) from e
+                    for bm in criteria_blocks:
+                        if bm.category_id != "matrix" or bm.id in chunk_matrix_ids:
+                            chunk_criteria.append(bm)
 
             # Dynamically build system prompt and schema for this chunk
             local_xml_rubrics = compiler.compile_xml_rubrics(chunk_criteria, target_locale)

@@ -170,47 +170,10 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
       );
     }
 
-    if (axis.coaching != null && axis.coaching!.isNotEmpty) {
-      boxes.add(
-        _buildBox(
-          title: l10n.reportCoachingTitle,
-          content: axis.coaching!,
-          color: Colors.amber,
-        ),
-      );
-    }
-
-    if (axis.falsification != null && axis.falsification!.isNotEmpty) {
-      boxes.add(
-        _buildBox(
-          title: l10n.reportFalsificationTitle,
-          content: axis.falsification!,
-          color: Colors.deepPurple,
-          contentFontStyle: FontStyle.italic,
-        ),
-      );
-    }
-
-    if (axis.missingContext != null && axis.missingContext!.isNotEmpty) {
-      boxes.add(
-        _buildBox(
-          title: l10n.reportMissingContextTitle,
-          content: axis.missingContext!,
-          color: Colors.grey,
-          titleColor: Colors.black54,
-        ),
-      );
-    }
-
-    if (axis.remediationSteps != null && axis.remediationSteps!.isNotEmpty) {
-      boxes.add(
-        _buildBox(
-          title: l10n.reportRemediationStepsTitle,
-          content: axis.remediationSteps!,
-          color: Colors.teal,
-        ),
-      );
-    }
+    // Epic 10: Preserve in Payload, Hide in View.
+    // User Mandate: XAI extensions (Coaching, Falsification, etc.) are never rendered 
+    // at the fragmented matrix level in the UI. They are strictly reserved for the global synthesis block.
+    // The data remains intact within the ScorecardRow DTO for API JSON exports.
 
     if (axis.emotionalSentiment != null &&
         axis.emotionalSentiment!.isNotEmpty) {

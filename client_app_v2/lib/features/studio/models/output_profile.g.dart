@@ -188,6 +188,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
             'id',
             'slug',
             'workflow_id',
+            'organization_id',
             'name',
             'description',
             'visible_metadata',
@@ -208,6 +209,10 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
           workflowId: $checkedConvert(
             'workflow_id',
             (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
+          organizationId: $checkedConvert(
+            'organization_id',
+            (v) => v as String?,
           ),
           name: $checkedConvert(
             'name',
@@ -264,6 +269,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
       },
       fieldKeyMap: const {
         'workflowId': 'workflow_id',
+        'organizationId': 'organization_id',
         'visibleMetadata': 'visible_metadata',
         'visibleExtensions': 'visible_extensions',
         'maxExtensionItems': 'max_extension_items',
@@ -278,6 +284,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'id': const StrictOpaqueIdConverter().toJson(instance.id),
   'slug': instance.slug,
   'workflow_id': const StrictOpaqueIdConverter().toJson(instance.workflowId),
+  'organization_id': instance.organizationId,
   'name': instance.name.toJson(),
   'description': instance.description?.toJson(),
   'visible_metadata': instance.visibleMetadata,

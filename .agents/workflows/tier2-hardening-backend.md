@@ -26,6 +26,7 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
    - **`the_zero_compromise_pledge`**: Ei `.get("default")` fallbackeja. Pydantic-validointi pakollinen.
    - **`the_duct_tape_ban` / `silent_failures`**: Ei "God Blockeja" (`except Exception: pass`). Virheet on lokitettava ja heitettävä.
    - **`no_naked_dicts_in_state`**: Ei raakoja sanakirjoja (dict) tilanhallinnassa. Pydantic-mallit pakollisia.
+   - **`structured_state_envelopes_mandate`**: Tilaprojektiot ainoastaan `StepOutputDTO` listana, ei `dict` palautuksia. Ei merkkijonojen arvaamista (`.endswith()`) tilojen purussa.
    - **`strict_pydantic_v2_rust`**: `.model_validate()`, ei vanhaa `parse_obj()`. `extra='forbid'` käytössä.
    - **`fail_fast_hydration_mandate`**: Kaikki dict-muodossa kulkeva epävarma data (kuten komponentit/matriisit tietokannasta tai webhookista) on "hydratoitava" `.model_validate()` -metodilla VÄLITTÖMÄSTI ennen käsittelyä. Arvojen onkiminen `data.get("avain")` tyylillä on ehdottomasti kielletty logiikkakerroksessa.
    - **`opaque_stripe_id_mandate`**: Vain `usr_123` jne. Ei kokonaisluku-ID:itä (IDOR) tai slugeja relaatioissa.
@@ -40,7 +41,7 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
    - **`security_logging_ban`**: Lokeihin ei saa printata käyttäjien prompteja (PII) tai API-avaimia.
    - **`polymorphic_routing_o1`**: Käytä Discriminated Unioneita ja natiivia `match/case` syntaksia.
    - **`no_string_l10n`**: Ei kovakoodattuja näyttötekstejä. Enum-avaimet rajapintojen yli.
-   - **`data_leak_prevention_firewall`**: `response_model` on PAKOLLINEN jokaiseen reittiin tietovuotojen estämiseksi.
+   - **`data_leak_prevention_firewall`**: `response_model` (periytyen `BaseResponseDTO`:sta) on PAKOLLINEN jokaiseen reittiin tietovuotojen estämiseksi.
    - **`llm_structured_execution_mandate`**: LLM-kutsut vain `run_structured_task()` kautta.
    - **`ui_driven_synthesis_boundary`**: AI-raportointi suodatettava tiukasti UI-profiilin mukaan (ei token-räjähdyksiä).
    - **`tripartite_rendering_boundary`**: Ei kovakoodattuja markdown-taulukoita (esim. matriisiyhteenvedot) backendissä. Backend palauttaa vain DTO-dataa, ja UI (Flutter) + PDF (Jinja) vastaavat natiivista renderöinnistä.

@@ -65,28 +65,39 @@ class XAIExtensionsBox extends ConsumerWidget {
       }
     }
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
-        children: activeExtensions.entries.map((entry) {
-          final extKey = entry.key;
-          final extItems = entry.value;
-
-          final theme = Theme.of(context);
-          final colorScheme = theme.colorScheme;
-
-          return Card(
-            elevation: 4,
-            margin: const EdgeInsets.only(bottom: 16.0),
-            color: colorScheme.secondaryContainer,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: colorScheme.primary, width: 1.5),
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 24.0, top: 16.0),
+            child: Text(
+              l10n.xaiGlobalExtensionsHeader,
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
+          ),
+          ...activeExtensions.entries.map((entry) {
+            final extKey = entry.key;
+            final extItems = entry.value;
+
+            return Card(
+              elevation: 4,
+              margin: const EdgeInsets.only(bottom: 16.0),
+              color: colorScheme.secondaryContainer,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: colorScheme.primary, width: 1.5),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -218,7 +229,8 @@ class XAIExtensionsBox extends ConsumerWidget {
               ),
             ),
           );
-        }).toList(),
+        }),
+        ],
       ),
     );
   }

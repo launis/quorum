@@ -11,6 +11,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.falsifier import FalsifierData
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepGuardDTO, StepPanelDTO
 from backend_v2.models.domain.security import SanitizationResultDTO
+from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.dtos.lightweight_matrix import (
     AtomEvaluationItemDTO,
     LightweightMatrixOutput,
@@ -49,13 +50,50 @@ XAI_FIELD_MAP = {
 }
 
 
+def _extract_payloads(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Strict Phase 9 Extractor. No V1 Fallbacks. No Naked Dict guessing."""
+    payloads = []
+    
+    steps = data.get("steps")
+    if not isinstance(steps, list):
+        # Strict Fail-Fast: The execution snapshot must be a valid array of StepOutputDTOs.
+        msg = "Strict Fail-Fast Enforced: Execution snapshot 'steps' missing or is not a list."
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+        )
+
+    for dto_raw in steps:
+        try:
+            # Enforce strict Pydantic parsing instead of duck-typing `getattr(dto, "payload")`
+            valid_dto = StepOutputDTO.model_validate(dto_raw)
+            if isinstance(valid_dto.payload, dict):
+                payloads.append(valid_dto.payload)
+        except ValidationError as e:
+            msg = f"Strict Fail-Fast Enforced: Invalid StepOutputDTO in execution snapshot: {e}"
+            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+            ) from e
+
+    # Add any explicitly injected dict inputs (like 'inputs' or 'raw_inputs' from ContextBuilder)
+    for key in ["inputs", "raw_inputs"]:
+        val = data.get(key)
+        if isinstance(val, dict):
+            payloads.append(val)
+            
+    return payloads
+
+
 def _extract_guard_flag(data: dict[str, Any]) -> bool | None:
     """Extracts the security threat flag from the guard output in the state.
 
     Iterates over the V2 execution snapshot to find the sanitization_result.
     Silent Fallback is BANNED. If the data is malformed, we raise an exception.
     """
-    for step_output in data.values():
+    for step_output in _extract_payloads(data):
         # 1. Check for legacy StepGuardDTO (if any V2 step still emits it)
         guard_model = step_output.get("step_guard")
         if guard_model:
@@ -92,7 +130,7 @@ def _extract_falsifier_data(data: dict[str, Any]) -> FalsifierData | None:
 
     Iterates over the V2 execution snapshot. Silent Fallback is BANNED.
     """
-    for step_output in data.values():
+    for step_output in _extract_payloads(data):
         falsifier_model = step_output.get("step_falsifier")
         panel_model = step_output.get("step_panel")
 
@@ -186,9 +224,21 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
 
     for item in candidates:
         if isinstance(item, dict):
-            # In V2, lookup_ctx is _snapshot (a dictionary of step dictionaries)
-            for step_output in item.values():
+            # In V2, lookup_ctx is _snapshot (a dictionary of step dictionaries or new 'steps' list)
+            for step_output in _extract_payloads(item):
                 _extract_scores(step_output)
+            
+            # Epic 43 Phase 2 Fix: Extract from hoisted StepOutputDTO list
+            steps = item.get("steps")
+            if isinstance(steps, list):
+                for dto_raw in steps:
+                    try:
+                        valid_dto = StepOutputDTO.model_validate(dto_raw)
+                        if valid_dto.block_id == "_evaluative_matrices" and isinstance(valid_dto.payload, dict):
+                            for block_id, norm_val in valid_dto.payload.items():
+                                unique_matrices[block_id] = float(norm_val)
+                    except ValidationError:
+                        pass
 
     for v_float in unique_matrices.values():
         total_score_accum += v_float

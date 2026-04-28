@@ -2838,6 +2838,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get xaiJustification => 'Justification';
 
   @override
+  String get xaiGlobalExtensionsHeader => 'AI Observations';
+
+  @override
   String get xaiCoachingTip => 'Coaching Tip';
 
   @override

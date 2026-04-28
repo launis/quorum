@@ -1466,6 +1466,7 @@
   "isEvaluativeMatrix": "Evaluative (Calculated)",
   "xaiOutputExtensionsTitle": "XAI Output Extensions (Proaktiivinen Valmentaja & Report Fields)",
   "xaiJustification": "Justification",
+  "xaiGlobalExtensionsHeader": "AI Observations",
   "xaiCoachingTip": "Coaching Tip",
   "xaiDevilsAdvocate": "Devil's Advocate",
   "xaiMissingContext": "Missing Context",

@@ -934,6 +934,7 @@
   "isEvaluativeMatrix": "Lasketaan keskiarvoon (Evaluative)",
   "xaiOutputExtensionsTitle": "XAI Ulostulolaajennukset (Proaktiivinen Valmentaja ja Raporttikentät)",
   "xaiJustification": "Perustelut",
+  "xaiGlobalExtensionsHeader": "Tekoälyn havainnot",
   "xaiCoachingTip": "Valmennusvinkki",
   "xaiDevilsAdvocate": "Paholaisen asianajaja",
   "xaiMissingContext": "Puuttuva konteksti",

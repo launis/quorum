@@ -1,11 +1,13 @@
 import pytest
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.context_router import ContextRouter
 
 
 def test_normalize_and_validate_variable_legacy_output_rejected() -> None:
-    snapshot = {"step_1": {"some_data": 123}}
+    # Epic 43: State must be a list of StepOutputDTOs under the 'steps' key
+    snapshot = {"steps": [StepOutputDTO(step_id="step_1", block_id="b", data_type="text", payload={})]}
     path = "$steps.step_1.output"
 
     # It should strictly reject legacy .output with a 400 error
@@ -17,7 +19,7 @@ def test_normalize_and_validate_variable_legacy_output_rejected() -> None:
 
 
 def test_normalize_and_validate_variable_orphaned_step() -> None:
-    snapshot = {"step_2": {"some_data": 123}}
+    snapshot = {"steps": [StepOutputDTO(step_id="step_2", block_id="b", data_type="text", payload={})]}
     path = "$steps.step_1.output"
 
     # It should fail-fast since step_1 is not in snapshot
@@ -29,7 +31,7 @@ def test_normalize_and_validate_variable_orphaned_step() -> None:
 
 
 def test_normalize_and_validate_variable_no_output_suffix() -> None:
-    snapshot = {"step_1": {"some_data": 123}}
+    snapshot = {"steps": [StepOutputDTO(step_id="step_1", block_id="b", data_type="text", payload={})]}
     path = "$steps.step_1.some_data"
 
     # Should validate and not strip because it's not .output
@@ -38,7 +40,7 @@ def test_normalize_and_validate_variable_no_output_suffix() -> None:
 
 
 def test_normalize_and_validate_variable_nested_output_rejected() -> None:
-    snapshot = {"step_1": {"some_data": 123}}
+    snapshot = {"steps": [StepOutputDTO(step_id="step_1", block_id="b", data_type="text", payload={})]}
     path = "$steps.step_1.output.nested_key"
 
     # It should strictly reject legacy .output with a 400 error even if nested

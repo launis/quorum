@@ -4,6 +4,7 @@ This module defines the new Event Sourcing state model, replacing the old mutabl
 It uses an append-only log of `TraceEvent`s and a `ReasoningTrace` to capture cognitive processes.
 """
 
+import json
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -12,6 +13,21 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.analyst import AnalystOutput
+from backend_v2.models.domain.archivist import ArchivistOutput
+from backend_v2.models.domain.causal import CausalOutput
+from backend_v2.models.domain.coach import CoachingPlan
+from backend_v2.models.domain.falsifier import FalsifierOutput
+from backend_v2.models.domain.guard import GuardOutput
+from backend_v2.models.domain.interaction import InteractionAnalysis
+from backend_v2.models.domain.judge import JudgeOutput
+from backend_v2.models.domain.logician import LogicianOutput
+from backend_v2.models.domain.overseer import OverseerOutput
+from backend_v2.models.domain.performativity import PerformativityOutput
+from backend_v2.models.domain.profiler import ProfilerOutput
+from backend_v2.models.domain.xai import XAIOutput
+from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +127,15 @@ class TombstoneEvent(TraceEvent):
     redacted_hash: str = Field(description="Cryptographic hash or identifier of the original redacted data.")
 
 
+class StepOutputDTO(V2CoreBase):
+    """Strict execution trace payload format."""
+
+    step_id: str = Field(description="The opaque DAG Step ID.")
+    block_id: str = Field(description="The opaque PromptBlock ID.")
+    data_type: str = Field(description="Inferred or explicitly parsed data type (e.g. matrix, text).")
+    payload: Any = Field(description="The actual data payload.")
+
+
 class WorkflowState(BaseModel):
     """Aggregate root containing the execution trace and current state."""
 
@@ -182,9 +207,6 @@ class WorkflowState(BaseModel):
             return None
 
         if model_class:
-            # Avoid circular import at module level
-            from backend_v2.utils.pydantic_utils import inflate
-
             return inflate(val, model_class)
 
         return val
@@ -197,81 +219,57 @@ class WorkflowState(BaseModel):
     @property
     def step_guard(self) -> Any | None:
         """Type-Safe Accessor for Guard Output."""
-        from backend_v2.models.domain.guard import GuardOutput
-
         return self.get_context("step_guard", GuardOutput)
 
     @property
     def step_interaction(self) -> Any | None:
         """Type-Safe Accessor for Interaction Analysis."""
-        from backend_v2.models.domain.interaction import InteractionAnalysis
-
         return self.get_context("step_interaction", InteractionAnalysis)
 
     @property
     def step_analyst(self) -> Any | None:
         """Type-Safe Accessor for Analyst Output."""
-        from backend_v2.models.domain.analyst import AnalystOutput
-
         return self.get_context("step_analyst", AnalystOutput)
 
     @property
     def step_judge(self) -> Any | None:
         """Type-Safe Accessor for Judge Output."""
-        from backend_v2.models.domain.judge import JudgeOutput
-
         return self.get_context("step_judge", JudgeOutput)
 
     @property
     def step_coach(self) -> Any | None:
         """Type-Safe Accessor for Coach Output."""
-        from backend_v2.models.domain.coach import CoachingPlan
-
         return self.get_context("step_coach", CoachingPlan)
 
     @property
     def step_xai(self) -> Any | None:
         """Type-Safe Accessor for XAI Reporter Output."""
-        from backend_v2.models.domain.xai import XAIOutput
-
         return self.get_context("step_xai", XAIOutput)
 
     # --- Legacy / Sub-Step Accessors (Still useful for direct access if needed) ---
 
     @property
     def step_logician(self) -> Any | None:
-        from backend_v2.models.domain.logician import LogicianOutput
-
         return self.get_context("step_logician", LogicianOutput)
 
     @property
     def step_falsifier(self) -> Any | None:
-        from backend_v2.models.domain.falsifier import FalsifierOutput
-
         return self.get_context("step_falsifier", FalsifierOutput)
 
     @property
     def step_profiler(self) -> Any | None:
-        from backend_v2.models.domain.profiler import ProfilerOutput
-
         return self.get_context("step_profiler", ProfilerOutput)
 
     @property
     def step_archivist(self) -> Any | None:
-        from backend_v2.models.domain.archivist import ArchivistOutput
-
         return self.get_context("step_archivist", ArchivistOutput)
 
     @property
     def step_overseer(self) -> Any | None:
-        from backend_v2.models.domain.overseer import OverseerOutput
-
         return self.get_context("step_overseer", OverseerOutput)
 
     @property
     def step_causal(self) -> Any | None:
-        from backend_v2.models.domain.causal import CausalOutput
-
         return self.get_context("step_causal", CausalOutput)
 
     @property
@@ -288,14 +286,10 @@ class WorkflowState(BaseModel):
 
     @property
     def step_detector(self) -> Any | None:
-        from backend_v2.models.domain.performativity import PerformativityOutput
-
         return self.get_context("step_detector", PerformativityOutput)
 
     @property
     def step_judge_cognitive(self) -> Any | None:
-        from backend_v2.models.domain.judge import JudgeOutput
-
         return self.get_context("step_judge_cognitive", JudgeOutput)
 
 
@@ -313,17 +307,17 @@ class StateProjector:
             self.fold_trace(trace)
 
     @property
-    def snapshot(self) -> dict[str, Any]:
-        """Returns the current flattened read model."""
-        return self._snapshot
+    def snapshot(self) -> list[StepOutputDTO]:
+        """Returns the current flattened read model as a strictly typed list."""
+        return self._build_dto_list()
 
     @property
     def schema_version(self) -> int:
         """Returns the highest applied schema version from events."""
         return self._schema_version
 
-    def fold_trace(self, trace: list[TraceEvent], max_tokens: int | None = None) -> dict[str, Any]:
-        """Folds the entire trace into a flat read model dictionary.
+    def fold_trace(self, trace: list[TraceEvent], max_tokens: int | None = None) -> list[StepOutputDTO]:
+        """Folds the entire trace into a strictly typed list of StepOutputDTOs.
 
         If max_tokens is provided, reads the trace backwards (newest first),
         accumulating events until the estimated token limit is reached,
@@ -341,8 +335,6 @@ class StateProjector:
 
         for event in sorted_trace:
             if max_tokens is not None:
-                import json
-
                 event_str = json.dumps(event.content) if isinstance(event.content, dict) else str(event.content)
                 est_tokens = len(event_str) // 4
                 if current_tokens + est_tokens > max_tokens:
@@ -356,7 +348,30 @@ class StateProjector:
         for event in reversed(accepted_events):
             self.apply_delta(event)
 
-        return self._snapshot
+        return self._build_dto_list()
+
+    def _build_dto_list(self) -> list[StepOutputDTO]:
+        output: list[StepOutputDTO] = []
+        for step_id, step_output in self._snapshot.items():
+            if not isinstance(step_output, dict):
+                # Epic 43 Phase 2 Fail-Fast: Legacy unstructured traces are strictly forbidden.
+                msg = (
+                    f"Legacy flat trace detected for step '{step_id}'. "
+                    "Zero-Compromise Pledge forbids unstructured data."
+                )
+                logger.error("[StateProjector] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=500)
+
+            for block_id, payload in step_output.items():
+                # Dynamic type inference for legacy logs to support Phase 3
+                data_type = "unknown"
+                if isinstance(payload, str):
+                    data_type = "text"
+                elif isinstance(payload, dict):
+                    data_type = "matrix"
+
+                output.append(StepOutputDTO(step_id=step_id, block_id=block_id, data_type=data_type, payload=payload))
+        return output
 
     def apply_delta(self, event: TraceEvent) -> None:
         """Applies a single event to the snapshot in O(1) time."""

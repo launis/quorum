@@ -176,6 +176,11 @@ classDiagram
         +List~String~ allowed_mcp_tools
     }
 
+    class BaseResponseDTO{
+        <<API Boundary Sovereignty>>
+        +str id
+    }
+
     class ReportDataDTO{
         +String workflow_id
         +String profile_id
@@ -246,6 +251,14 @@ classDiagram
         +dict extensions
     }
     
+    class StepOutputDTO{
+        <<Structured State Envelope>>
+        +str step_id
+        +str block_id
+        +Literal data_type
+        +Any payload
+    }
+    
     class StrictMatrixPayload{
         <<RootModel>>
     }
@@ -270,11 +283,12 @@ classDiagram
     V2CoreBase <|-- OutputProfile
     V2CoreBase <|-- OutputLayoutBlock
     V2CoreBase <|-- SynthesisConfigDTO
-    V2CoreBase <|-- ReportDataDTO
-    V2CoreBase <|-- ReportLayoutDTO
+    BaseResponseDTO <|-- ReportDataDTO
+    BaseResponseDTO <|-- ReportLayoutDTO
     V2CoreBase <|-- ModelProfile
     V2CoreBase <|-- AllowedMCPTool
     V2CoreBase <|-- LightweightMatrixOutput
+    V2CoreBase <|-- StepOutputDTO
     V2CoreBase <|-- StrictMatrixPayload
     V2CoreBase <|-- SynthesisStepDataDTO
     V2CoreBase <|-- SynthesisMetadataDTO
@@ -319,6 +333,7 @@ Työnkulun ajanhetkellinen tila ja lopullinen valmis raportti tallennetaan tiukk
 
 1. **ExecutionRecord:** Tallentaa tekoälyajon koko elinkaaren. Se lukitsee sisäänsä tarkan `FrozenContext` kopion kaikista siinä hetkessä käytetyistä PromptBlockeista ja säännöistä. Tämän konseptin ansiosta kone pystyy kuukausia myöhemmin selittämään tarkasti, miksi tekoäly on tietyt päätökset tehnyt (Explainable AI / Forensic Sovereignty).
 2. **TraceEvent & MCPAuditTrace:** Työn lennossa, taustaprosessi lähettää atomisia `TraceEvent`-objekteja tilanteesta tietokantaan. Samalla kaikki Vertex AI-hakujen tai vastaavien ulkoisten MCP-työkalujen haut tallentuvat `MCPAuditTrace`-jäljeksi lokiin. MCPAuditTrace kirjaa ylös tarkan latenssin (`duration_ms`), työkalun käyttämän tietolähteen (`source_urls`), ja täsmällisen numeerisen/tekstillisen vastineen (`response_summary`). Tämä varmistaa koko työkalun logiikkaan läpinäkyvän, auditointikelpoisen forensisen jäljen.
+3. **Structured State Envelopes (`StepOutputDTO`):** Execution-jäljet eivät enää koskaan projisoidu irrallisiksi, litteiksi sanakirjoiksi (flat dictionaries). `StateProjector` taittaa ajon tilan tiukasti muotoon `List[StepOutputDTO]`. Tämä varmistaa täydellisen tyyppiturvallisuuden koko suoritusketjun ja DAG-orkestraation läpi poistaen "villiin" dot-notaatioon (`$steps.x.y`) liittyvät kaatumisriskit.
 
 ## Phase 9: Strict Hook DTOs & Micro-CoT Validation
 

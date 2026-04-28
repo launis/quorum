@@ -1,3 +1,4 @@
+// ignore_for_file: invalid_annotation_target
 import 'dart:convert';
 import 'dart:isolate';
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -12,6 +13,7 @@ part 'workflow.g.dart';
 abstract class QuestionnaireItem with _$QuestionnaireItem {
   const QuestionnaireItem._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory QuestionnaireItem({
     required String questionId,
     required I18nText question,
@@ -26,6 +28,7 @@ abstract class QuestionnaireItem with _$QuestionnaireItem {
 abstract class ExpectedInput with _$ExpectedInput {
   const ExpectedInput._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory ExpectedInput({
     required String inputKey,
     required I18nText label,
@@ -45,6 +48,7 @@ abstract class ExpectedInput with _$ExpectedInput {
 abstract class StepRule with _$StepRule {
   const StepRule._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory StepRule({
     @StrictOpaqueIdConverter() required String id,
     @StrictOpaqueIdConverter() required String taskBlueprint,
@@ -64,6 +68,7 @@ abstract class StepRule with _$StepRule {
 sealed class NodeStrategy with _$NodeStrategy {
   const NodeStrategy._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('llm')
   const factory NodeStrategy.llm({
     @StrictOpaqueIdConverter() required String id,
@@ -79,8 +84,10 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default([]) List<String> expectedInputs,
     Map<String, dynamic>? outputSchema,
     String? modelStrategy,
+    String? organizationId,
   }) = NodeStrategyLlm;
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('logic')
   const factory NodeStrategy.logic({
     @StrictOpaqueIdConverter() required String id,
@@ -96,6 +103,7 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default([]) List<String> expectedInputs,
     Map<String, dynamic>? outputSchema,
     String? modelStrategy,
+    String? organizationId,
   }) = NodeStrategyLogic;
 
   factory NodeStrategy.fromJson(Map<String, dynamic> json) =>
@@ -106,6 +114,7 @@ sealed class NodeStrategy with _$NodeStrategy {
 abstract class Workflow with _$Workflow {
   const Workflow._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory Workflow({
     @StrictOpaqueIdConverter() required String id,
     required String slug,

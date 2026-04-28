@@ -1293,7 +1293,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/Workflow-Output"
+                    "$ref": "#/components/schemas/WorkflowResponseDTO"
                   },
                   "type": "array",
                   "title": "Response Get Workflows Api V2 Studio Workflows  Get"
@@ -1321,7 +1321,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Workflow-Output"
+                  "$ref": "#/components/schemas/WorkflowResponseDTO"
                 }
               }
             }
@@ -1364,7 +1364,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Workflow-Output"
+                  "$ref": "#/components/schemas/WorkflowResponseDTO"
                 }
               }
             }
@@ -1409,7 +1409,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Workflow-Input"
+                "$ref": "#/components/schemas/Workflow"
               }
             }
           }
@@ -1420,7 +1420,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Workflow-Output"
+                  "$ref": "#/components/schemas/WorkflowResponseDTO"
                 }
               }
             }
@@ -1496,7 +1496,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Workflow-Input"
+                "$ref": "#/components/schemas/Workflow"
               }
             }
           },
@@ -1561,7 +1561,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Workflow-Output"
+                  "$ref": "#/components/schemas/WorkflowResponseDTO"
                 }
               }
             }
@@ -1641,7 +1641,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/PromptBlock-Output"
+                    "$ref": "#/components/schemas/PromptBlockResponseDTO"
                   },
                   "type": "array",
                   "title": "Response Get Prompt Blocks Api V2 Studio Prompt Blocks  Get"
@@ -1669,7 +1669,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PromptBlock-Output"
+                  "$ref": "#/components/schemas/PromptBlockResponseDTO"
                 }
               }
             }
@@ -1712,7 +1712,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PromptBlock-Output"
+                  "$ref": "#/components/schemas/PromptBlockResponseDTO"
                 }
               }
             }
@@ -1757,7 +1757,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PromptBlock-Input"
+                "$ref": "#/components/schemas/PromptBlock"
               }
             }
           }
@@ -1768,7 +1768,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PromptBlock-Output"
+                  "$ref": "#/components/schemas/PromptBlockResponseDTO"
                 }
               }
             }
@@ -1872,7 +1872,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PromptBlock-Output"
+                  "$ref": "#/components/schemas/PromptBlockResponseDTO"
                 }
               }
             }
@@ -1952,7 +1952,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/Step"
+                    "$ref": "#/components/schemas/StepResponseDTO"
                   },
                   "type": "array",
                   "title": "Response Get Steps Api V2 Studio Steps  Get"
@@ -1980,7 +1980,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Step"
+                  "$ref": "#/components/schemas/StepResponseDTO"
                 }
               }
             }
@@ -2023,7 +2023,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Step"
+                  "$ref": "#/components/schemas/StepResponseDTO"
                 }
               }
             }
@@ -2079,7 +2079,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Step"
+                  "$ref": "#/components/schemas/StepResponseDTO"
                 }
               }
             }
@@ -2183,7 +2183,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Step"
+                  "$ref": "#/components/schemas/StepResponseDTO"
                 }
               }
             }
@@ -4986,7 +4986,7 @@
         "title": "OutputProfileResponseDTO",
         "description": "DTO for returning an Output Profile."
       },
-      "PromptBlock-Input": {
+      "PromptBlock": {
         "properties": {
           "id": {
             "type": "string",
@@ -4998,6 +4998,18 @@
             "type": "string",
             "title": "Slug",
             "description": "URL routing helper field. Strictly no data relation role."
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id",
+            "description": "Tenant organization ID."
           },
           "label": {
             "$ref": "#/components/schemas/I18nText",
@@ -5142,7 +5154,25 @@
         "title": "PromptBlock",
         "description": "V2 PromptBlock representation.\nFuses legacy Components and Matrices into a unified directive model."
       },
-      "PromptBlock-Output": {
+      "PromptBlockDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "deleted_id": {
+            "type": "string",
+            "title": "Deleted Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "deleted_id"
+        ],
+        "title": "PromptBlockDeleteResponse"
+      },
+      "PromptBlockResponseDTO": {
         "properties": {
           "id": {
             "type": "string",
@@ -5154,6 +5184,18 @@
             "type": "string",
             "title": "Slug",
             "description": "URL routing helper field. Strictly no data relation role."
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id",
+            "description": "Explicitly exposed for Admin Studio UI routing."
           },
           "label": {
             "$ref": "#/components/schemas/I18nText",
@@ -5323,31 +5365,13 @@
           "computed_min",
           "computed_max"
         ],
-        "title": "PromptBlock",
-        "description": "V2 PromptBlock representation.\nFuses legacy Components and Matrices into a unified directive model."
-      },
-      "PromptBlockDeleteResponse": {
-        "properties": {
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "deleted_id": {
-            "type": "string",
-            "title": "Deleted Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "status",
-          "deleted_id"
-        ],
-        "title": "PromptBlockDeleteResponse"
+        "title": "PromptBlockResponseDTO",
+        "description": "API Response boundary for PromptBlock ensuring Data Sovereignty."
       },
       "PromptBlockSimulationRequest": {
         "properties": {
           "block": {
-            "$ref": "#/components/schemas/PromptBlock-Input"
+            "$ref": "#/components/schemas/PromptBlock"
           },
           "mock_inputs": {
             "additionalProperties": true,
@@ -5502,6 +5526,18 @@
             "title": "Slug",
             "description": "Human-readable identifier (e.g., 'step_guard')"
           },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id",
+            "description": "Tenant organization ID."
+          },
           "name": {
             "$ref": "#/components/schemas/I18nText",
             "description": "Localized step name"
@@ -5642,6 +5678,154 @@
           "deleted_id"
         ],
         "title": "StepDeleteResponse"
+      },
+      "StepResponseDTO": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "title": "Id",
+            "description": "Unique UUID for storage optionally"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug",
+            "description": "Human-readable identifier (e.g., 'step_guard')"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id",
+            "description": "Explicitly exposed for Admin Studio UI routing."
+          },
+          "name": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized step name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Detailed step context"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "llm",
+              "logic"
+            ],
+            "title": "Type",
+            "description": "Step execution type (llm or native logic)",
+            "default": "llm"
+          },
+          "hook": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hook",
+            "description": "Native Python hook to execute if type is 'logic'"
+          },
+          "prompt_blocks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Prompt Blocks",
+            "description": "List of PromptBlock IDs containing directives and matrices for this step."
+          },
+          "pre_hooks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pre Hooks",
+            "description": "Native Python functions to execute BEFORE LLM context building."
+          },
+          "post_hooks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Post Hooks",
+            "description": "Native Python functions to execute AFTER LLM generation."
+          },
+          "safety": {
+            "type": "string",
+            "enum": [
+              "safe",
+              "unsafe"
+            ],
+            "title": "Safety",
+            "description": "Marks step as safe (read-only MCP) or unsafe (email/API mutations) for strict execution security.",
+            "default": "safe"
+          },
+          "allowed_mcp_tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Mcp Tools",
+            "description": "List of allowed MCP tools for this step (e.g. ['mcp_tavily_search'])."
+          },
+          "model_strategy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Strategy",
+            "description": "Step-level override for cognitive strategy profile (e.g., 'fast'). Takes precedence over workflow strategy."
+          },
+          "expected_inputs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Expected Inputs",
+            "description": "List of expected input keys required for this step. Replaces free-text generic routing."
+          },
+          "output_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Schema",
+            "description": "Optional JSON schema defining the structured output of this step."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "name"
+        ],
+        "title": "StepResponseDTO",
+        "description": "API Response boundary for Step ensuring Data Sovereignty."
       },
       "StepRule": {
         "properties": {
@@ -6458,7 +6642,7 @@
         ],
         "title": "ValidationError"
       },
-      "Workflow-Input": {
+      "Workflow": {
         "properties": {
           "id": {
             "type": "string",
@@ -6564,112 +6748,6 @@
         "title": "Workflow",
         "description": "Dynamic Directed Acyclic Graph orchestrator model."
       },
-      "Workflow-Output": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
-            "title": "Id",
-            "description": "Unique Workflow ID"
-          },
-          "slug": {
-            "type": "string",
-            "title": "Slug"
-          },
-          "name": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "string"
-              }
-            ],
-            "title": "Name"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "string"
-              }
-            ],
-            "title": "Description"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "version": {
-            "type": "integer",
-            "title": "Version"
-          },
-          "is_public": {
-            "type": "boolean",
-            "title": "Is Public",
-            "default": false
-          },
-          "organization_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Organization Id"
-          },
-          "ui_schema": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Ui Schema"
-          },
-          "output_profiles": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/EmbeddedOutputProfile-Output"
-            },
-            "type": "object",
-            "title": "Output Profiles",
-            "description": "Dictionary of named output profiles for reporting."
-          },
-          "default_profile_id": {
-            "type": "string",
-            "title": "Default Profile Id",
-            "description": "The ID of the default output profile to use."
-          },
-          "expected_inputs": {
-            "items": {
-              "$ref": "#/components/schemas/ExpectedInput-Output"
-            },
-            "type": "array",
-            "title": "Expected Inputs",
-            "description": "List of dynamic expected inputs required by the workflow"
-          },
-          "steps": {
-            "items": {
-              "$ref": "#/components/schemas/StepRule"
-            },
-            "type": "array",
-            "title": "Steps"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "id",
-          "slug",
-          "name",
-          "description",
-          "status",
-          "version",
-          "default_profile_id"
-        ],
-        "title": "Workflow",
-        "description": "Dynamic Directed Acyclic Graph orchestrator model."
-      },
       "WorkflowDeleteResponse": {
         "properties": {
           "status": {
@@ -6747,6 +6825,113 @@
         "type": "object",
         "title": "WorkflowInputs",
         "description": "Strict input payload for the workflow (Content).\n\nThis model defines the DATA content that the workflow processes.\nIt does NOT include configuration (model parameters, API keys), which belong in StepConfig."
+      },
+      "WorkflowResponseDTO": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "title": "Id",
+            "description": "Unique Workflow ID"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Description"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "is_public": {
+            "type": "boolean",
+            "title": "Is Public",
+            "default": false
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id",
+            "description": "Explicitly exposed for Admin Studio UI routing."
+          },
+          "ui_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Ui Schema"
+          },
+          "output_profiles": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EmbeddedOutputProfile-Output"
+            },
+            "type": "object",
+            "title": "Output Profiles",
+            "description": "Dictionary of named output profiles for reporting."
+          },
+          "default_profile_id": {
+            "type": "string",
+            "title": "Default Profile Id",
+            "description": "The ID of the default output profile to use."
+          },
+          "expected_inputs": {
+            "items": {
+              "$ref": "#/components/schemas/ExpectedInput-Output"
+            },
+            "type": "array",
+            "title": "Expected Inputs",
+            "description": "List of dynamic expected inputs required by the workflow"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/StepRule"
+            },
+            "type": "array",
+            "title": "Steps"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "description",
+          "status",
+          "version",
+          "default_profile_id"
+        ],
+        "title": "WorkflowResponseDTO",
+        "description": "API Response boundary for Workflow ensuring Data Sovereignty."
       },
       "WorkflowSchemaResponse": {
         "additionalProperties": true,

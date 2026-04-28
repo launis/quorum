@@ -5216,6 +5216,12 @@ abstract class AppLocalizations {
   /// **'Justification'**
   String get xaiJustification;
 
+  /// No description provided for @xaiGlobalExtensionsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Observations'**
+  String get xaiGlobalExtensionsHeader;
+
   /// No description provided for @xaiCoachingTip.
   ///
   /// In en, this message translates to:

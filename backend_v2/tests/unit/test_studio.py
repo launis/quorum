@@ -304,3 +304,40 @@ async def test_step_methods(
     # Delete
     await studio_service.delete_step(tenant_initiator, "step_1234567890abcdef")
     mock_repo.delete_step.assert_called_once_with("step_1234567890abcdef", force_delete=False)
+
+
+def test_workflow_response_dto_excludes_organization_id():
+    from backend_v2.models.dtos.studio import WorkflowResponseDTO
+    """Test that WorkflowResponseDTO inherits from BaseResponseDTO and excludes organization_id."""
+    dto = WorkflowResponseDTO(
+        id="wor_1234567890abcdef",
+        slug="test-workflow",
+        organization_id="org_test",
+        name={"default_locale": "en", "translations": {"en": "Test Name"}},
+        description={"default_locale": "en", "translations": {"en": "Desc"}},
+        status="active",
+        version=1,
+        default_profile_id="prof_123",
+    )
+    assert dto.organization_id == "org_test"
+    dumped = dto.model_dump()
+    assert "organization_id" not in dumped
+    assert dumped["id"] == "wor_1234567890abcdef"
+
+
+def test_step_response_dto_excludes_organization_id():
+    from backend_v2.models.dtos.studio import StepResponseDTO
+    """Test that StepResponseDTO inherits from BaseResponseDTO and excludes organization_id."""
+    dto = StepResponseDTO(
+        id="stp_1234567890abcdef",
+        slug="step_guard",
+        organization_id="org_test",
+        name={"default_locale": "en", "translations": {"en": "Guard Step"}},
+        type="llm",
+        prompt_blocks=["pb_1"],
+        model_strategy="fast",
+    )
+    assert dto.organization_id == "org_test"
+    dumped = dto.model_dump()
+    assert "organization_id" not in dumped
+    assert dumped["slug"] == "step_guard"

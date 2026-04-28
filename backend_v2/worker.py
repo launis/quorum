@@ -6,10 +6,10 @@ Modernized for GraphEngine and TaskRegistry (V2.9).
 import asyncio
 import logging
 import uuid
-import logfire
 from datetime import UTC, datetime
 from typing import Any
 
+import logfire
 from arq.connections import RedisSettings
 
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
@@ -321,11 +321,11 @@ async def generate_profile_synthesis_and_pdf_task(
         # V2 Integrity Mandate: Inject step_results explicitly for SynthesisHook
         metadata["step_results"] = final_inputs
 
-        global_context_vars = final_inputs
+        global_context_vars = {"steps": final_inputs}
         state = HookState(
             execution_id=execution_id,
             workflow_id=execution.workflow_id,
-            inputs=final_inputs,
+            inputs={"steps": final_inputs},
             metadata=metadata,
             global_context_vars=global_context_vars,
         )
@@ -435,6 +435,8 @@ async def shutdown(ctx: Any) -> None:
 async def health_check(ctx: Any) -> str:
     """Simple health check task."""
     return "OK"
+
+
 class WorkerSettings:
     """Configuration for the Arq worker."""
 

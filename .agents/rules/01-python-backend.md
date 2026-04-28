@@ -58,6 +58,12 @@
         <catastrophic_reason>Passing naked dicts delays validation failures to the presentation layer, breaking traceability and defeating the 2026 Fail-Fast mandate.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="structured_state_envelopes_mandate">
+        <banned_pattern>Using naked dictionaries (`dict`) to represent the intermediate execution trace (e.g. `fold_trace` returning dicts) or parsing execution traces using string manipulation (`endswith()`, `split()`).</banned_pattern>
+        <mandatory_pattern>All execution traces and state projections MUST use structured envelopes (`List[StepOutputDTO]`). Downstream consumers must strictly filter by `step_id` and `block_id` natively.</mandatory_pattern>
+        <catastrophic_reason>Dictionary flatteners cause brittle "loose dictionary" traps, and string-parsing lineage leads to fatal reporting bugs.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="pydantic_native_field_priority">
         <banned_pattern>Using `@field_validator` for simple bounds checking or regex.</banned_pattern>
         <mandatory_pattern>ALWAYS prefer native `Field(ge=0, pattern=...)`. Native Field is executed in Rust (pydantic-core) at lightning speed.</mandatory_pattern>
@@ -88,8 +94,8 @@
     </rule_block>
     
     <rule_block id="data_leak_prevention_firewall">
-        <banned_pattern>Returning raw DB models natively out of FastAPI endpoints, bypassing Pydantic filtering.</banned_pattern>
-        <mandatory_pattern>Every single FastAPI router MUST explicitly define `response_model=UserDTO` to strip hidden database variables out of the HTTP response string, effectively preventing Cross-Tenant Trace Leaks.</mandatory_pattern>
+        <banned_pattern>Returning raw DB models natively out of FastAPI endpoints, bypassing Pydantic filtering, or defining `exclude=True` locally in Routers for security fields.</banned_pattern>
+        <mandatory_pattern>Every single FastAPI router MUST explicitly define `response_model=UserDTO` (which must inherit from a global `BaseResponseDTO`) to strip hidden database variables out of the HTTP response string globally, effectively preventing Cross-Tenant Trace Leaks.</mandatory_pattern>
     </rule_block>
 
     <rule_block id="llm_structured_execution_mandate">

@@ -44,7 +44,19 @@ class LLMNodeStrategy(NodeStrategy):
         frozen_ctx: FrozenContext | None,
         trace: list[TraceEvent] | None,
     ) -> list[TraceEvent]:
-        current_state = dict(projector.snapshot)
+        # Epic 43 Phase 2 Fail-Fast Parity: Re-inject 'inputs' and 'raw_inputs' DTO payloads into the root state
+        # so legacy dot-notation mappings resolve properly without Naked Dict violations.
+        inputs_dto = next((d for d in projector.snapshot if getattr(d, "step_id", None) == "inputs"), None)
+        inputs_payload = getattr(inputs_dto, "payload", {}) if inputs_dto else {}
+
+        raw_inputs_dto = next((d for d in projector.snapshot if getattr(d, "step_id", None) == "raw_inputs"), None)
+        raw_inputs_payload = getattr(raw_inputs_dto, "payload", {}) if raw_inputs_dto else {}
+
+        current_state: dict[str, Any] = {
+            "steps": projector.snapshot,
+            "inputs": inputs_payload,
+            "raw_inputs": raw_inputs_payload,
+        }
 
         blueprint_id = step.task_blueprint
         if not blueprint_id:
@@ -79,23 +91,7 @@ class LLMNodeStrategy(NodeStrategy):
             for ei in context.expected_inputs:
                 input_keys.add(ei.input_key)
 
-        # Exclude inputs from the $steps container to prevent matrix parsing crashes and context pollution
-        step_outputs = {}
-        for k, v in current_state.items():
-            if k not in input_keys and k not in ["inputs", "raw_inputs"]:
-                step_outputs[k] = v
-
-        # Restore V1 namespace structure for state_data so ContextBuilder can resolve `$steps` and `$inputs`
-        state_data = {"steps": step_outputs}
-        for key in ["inputs", "raw_inputs"]:
-            if key in current_state:
-                state_data[key] = current_state[key]
-
-        # Provide all keys at root level for global input mapping
-        # (InputProcessingHook writes to root)
-        for k, v in current_state.items():
-            if k not in state_data:
-                state_data[k] = v
+        state_data = current_state
 
         hook_state = HookState(
             execution_id=context.execution_id,
@@ -187,9 +183,10 @@ class LLMNodeStrategy(NodeStrategy):
 
             schema_map["_step_metadata"] = _SCHEMA_BLOCK_SYSTEM
             schema_map["_audit_signature"] = _SCHEMA_BLOCK_SYSTEM
+            schema_map["inputs"] = _SCHEMA_BLOCK_TEXT
+            schema_map["raw_inputs"] = _SCHEMA_BLOCK_TEXT
 
-        # Export back to dict for legacy consumers that haven't been hardened yet
-        criteria_blocks = [b.model_dump(mode="json") for b in criteria_blocks_models]
+        criteria_blocks = criteria_blocks_models
 
         # Step 1 - Context Building
         llm_context_data, new_input_mappings = ContextBuilder.build(
@@ -331,9 +328,7 @@ class LLMNodeStrategy(NodeStrategy):
 
         final_dict = accumulator.get_final_result()
 
-        safe_context = {
-            k: v.model_dump(mode="json") if hasattr(v, "model_dump") else v for k, v in dict(projector.snapshot).items()
-        }
+        safe_context: dict[str, Any] = {"steps": projector.snapshot}
 
         post_hook_state = hook_state.model_copy(
             update={

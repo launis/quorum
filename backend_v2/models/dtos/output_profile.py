@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from backend_v2.models.dtos.base import BaseResponseDTO
 from backend_v2.models.enums import XaiExtensionType
 from backend_v2.models.v2_core import (
     I18nText,
@@ -68,6 +69,7 @@ class OutputProfileUpdateDTO(BaseModel):
     workflow_id: str | None = Field(default=None, description="Optional workflow reassignment.")
     name: I18nText | None = Field(default=None, description="Localized name.")
     description: I18nText | None = Field(default=None, description="Localized description.")
+    organization_id: str | None = Field(default=None, description="Tenant organization scope.")
     visible_metadata: list[str] | None = Field(
         default=None,
         description="List of metadata fields visible on the UI and PDF cover header.",
@@ -102,13 +104,12 @@ class OutputProfileUpdateDTO(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
-class OutputProfileResponseDTO(BaseModel):
+class OutputProfileResponseDTO(BaseResponseDTO):
     """DTO for returning an Output Profile."""
 
     id: str
     slug: str
     workflow_id: str
-    organization_id: str | None = Field(default=None, description="Tenant organization ID.", exclude=True)
     name: I18nText
     description: I18nText | None = None
     visible_metadata: list[str] = Field(default_factory=lambda: ["date", "organization"])
