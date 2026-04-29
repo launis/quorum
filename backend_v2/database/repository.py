@@ -5,16 +5,21 @@ Business logic is written ONCE in UnifiedWorkflowRepository and delegates
 I/O to the injected StorageDriver.
 """
 
+import json
 import logging
+import os
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, cast
+
+from fastapi.concurrency import run_in_threadpool
 
 from backend_v2.database.driver import Filter, StorageDriver
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import SystemOrganizations
 from backend_v2.models.v2_core import ExecutionRecord
 from backend_v2.models.v2_core import Workflow as WorkflowDefinition
+from backend_v2.services.storage import get_storage_driver
 
 logger = logging.getLogger(__name__)
 
@@ -432,6 +437,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         doc_id = data.get("id")
         if not doc_id:
             doc_id = str(uuid.uuid4())
+            data["id"] = doc_id
         return await self.driver.upsert(collection, data, doc_id)
 
     async def delete(self, collection: str, doc_id: str) -> bool:
@@ -440,14 +446,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     # --- ExternaL BLOB Payloads (Firestore 1MB Limits Mitigation) ---
 
     async def _offload_payloads(self, doc_id: str, data: dict[str, Any]) -> None:
-        import json
-        import logging
-        import uuid
-
-        from backend_v2.services.storage import get_storage_driver
-
         driver = get_storage_driver()
-        logger = logging.getLogger(__name__)
 
         # 1. Decouple MCP Audit Trails into native DB subcollection
         if "frozen_context" in data:
@@ -464,7 +463,6 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                         except Exception as e:
                             msg = f"Failed to persist audit trace {item_id}: {e}"
                             logger.error("[Repository] %s", msg)
-                            from backend_v2.exceptions import AppException, ErrorCodes
 
                             raise AppException(
                                 message=msg,
@@ -486,7 +484,6 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 except Exception as e:
                     msg = f"Failed to offload {field} for {doc_id}: {e}"
                     logger.error("[Repository] %s", msg, exc_info=True)
-                    from backend_v2.exceptions import AppException, ErrorCodes
 
                     raise AppException(
                         message=msg,
@@ -497,13 +494,8 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     async def _hydrate_payloads(self, data: dict[str, Any] | None) -> None:
         if not data:
             return
-        import json
-        import logging
-
-        from backend_v2.services.storage import get_storage_driver
 
         driver = get_storage_driver()
-        logger = logging.getLogger(__name__)
 
         # 1. Fetch massive payloads from Storage Blobs
         for field in ["execution_trace", "frozen_context", "context_variables"]:
@@ -517,7 +509,6 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                     data[field] = json.loads(decoded)
                 except Exception as e:
                     logger.warning("[Repository] Failed to hydrate %s from %s. Error: %s", field, data[path_key], e)
-                    from backend_v2.exceptions import AppException, ErrorCodes
 
                     raise AppException(
                         message=f"Missing blob trace data for {field}.",
@@ -539,7 +530,6 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             except Exception as e:
                 msg = f"Failed to hydrate audit_trails for {doc_id}: {e}"
                 logger.error("[Repository] %s", msg)
-                from backend_v2.exceptions import AppException, ErrorCodes
 
                 raise AppException(
                     message=msg,
@@ -552,8 +542,6 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
     async def get_execution(self, execution_id: str) -> ExecutionRecord | None:
         data = await self.driver.get("executions", execution_id)
         if data:
-            from backend_v2.exceptions import AppException
-
             try:
                 await self._hydrate_payloads(data)
                 return ExecutionRecord.model_validate(data)
@@ -561,9 +549,6 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 # Re-raise so UI gets the true reason (e.g. data missing from disk)
                 raise
             except Exception as e:
-                import logging
-
-                logger = logging.getLogger(__name__)
                 logger.error(
                     "[Repository] Data corruption - Failed to parse execution %s: %s",
                     execution_id,
@@ -606,9 +591,6 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             try:
                 parsed_results.append(ExecutionRecord.model_validate(r))
             except Exception as e:
-                import logging
-
-                logger = logging.getLogger(__name__)
                 logger.error(
                     "[Repository] %s: Skipping corrupted execution %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
@@ -630,9 +612,6 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
             try:
                 parsed_results.append(ExecutionRecord.model_validate(r))
             except Exception as e:
-                import logging
-
-                logger = logging.getLogger(__name__)
                 logger.error(
                     "[Repository] %s: Skipping corrupted execution %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
@@ -651,16 +630,17 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
         # Disk Fallback (Critical for Dev)
         if not data:
-            import json
-            import os
-
             file_path = f"data/workflows/{workflow_id}.json"
             if os.path.exists(file_path):
                 try:
-                    with open(file_path, encoding="utf-8") as f:
-                        data = json.load(f)
-                        if "description" not in data:
-                            data["description"] = "Loaded from file"
+
+                    def _read_file() -> dict[str, Any]:
+                        with open(file_path, encoding="utf-8") as f:
+                            return cast(dict[str, Any], json.load(f))
+
+                    data = await run_in_threadpool(_read_file)
+                    if "description" not in data:
+                        data["description"] = "Loaded from file"
                 except Exception as e:
                     logger.error("Failed to load workflow from disk: %s", e)
                     return None
@@ -775,8 +755,6 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                 wf_steps = wf.get("steps", [])
                 for s in wf_steps:
                     if isinstance(s, dict) and s.get("id") == step_id:
-                        from backend_v2.exceptions import AppException, ErrorCodes
-
                         wf_id = wf.get("id", "unknown")
                         raise AppException(
                             message="Step delete blocked by workflow usage.",
@@ -788,8 +766,6 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
                             status_code=400,
                         )
                     elif isinstance(s, str) and s == step_id:
-                        from backend_v2.exceptions import AppException, ErrorCodes
-
                         wf_id = wf.get("id", "unknown")
                         raise AppException(
                             message="Step delete blocked by workflow usage.",

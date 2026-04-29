@@ -781,7 +781,7 @@
           "Executions"
         ],
         "summary": "Start Execution",
-        "description": "Start an asynchronous workflow execution securely via SSOT.\n\nEAGER EXTRACTION PATTERN: Intercepts PDF Base64 strings, resolves them\nvia PyMuPDF, and replaces them with Raw Text before Pydantic validation.",
+        "description": "Start an asynchronous workflow execution securely via SSOT.",
         "operationId": "start_execution_api_v2_execution_executions__post",
         "responses": {
           "202": {
@@ -1203,19 +1203,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "title": "Response Delete Profile Synthesis Api V2 Execution Executions  Execution Id  Profiles  Profile Id  Delete"
-                }
-              }
-            }
+          "204": {
+            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -4003,7 +3992,8 @@
           "message",
           "execution_id"
         ],
-        "title": "JobAcceptedDTO"
+        "title": "JobAcceptedDTO",
+        "description": "Omni-channel render endpoint accepted response."
       },
       "LoginResponse": {
         "properties": {

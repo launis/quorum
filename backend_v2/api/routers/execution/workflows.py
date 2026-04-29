@@ -1,20 +1,14 @@
 import logging
-from typing import Any
 
 from fastapi import APIRouter
-from pydantic import RootModel
 
 from backend_v2.api.dependencies import RepoDep, UserDep
 from backend_v2.exceptions import ErrorCodes, ResourceNotFoundError
-from backend_v2.models.v2_core import Workflow
+from backend_v2.models.v2_core import Workflow, WorkflowSchemaResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/workflows", tags=["Workflows"])
-
-
-class WorkflowSchemaResponse(RootModel[dict[str, Any]]):
-    pass
 
 
 @router.get("/{workflow_id}/ui_schema", response_model=WorkflowSchemaResponse)

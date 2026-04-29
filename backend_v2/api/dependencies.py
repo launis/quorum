@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -12,10 +12,14 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from backend_v2.database.factory import get_repository
 from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.exceptions import AuthenticationError
+from backend_v2.llm.handler import LLMHandler
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.services.auth import AuthService
+from backend_v2.services.document_extraction import DocumentExtractionService
 from backend_v2.services.execution import ExecutionService
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
+from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.studio import StudioService
 from backend_v2.settings import Settings, get_settings
 
@@ -38,8 +42,6 @@ def get_auth_service(
 
 
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
-
-from backend_v2.exceptions import AuthenticationError
 
 
 async def get_current_user_from_header(
@@ -64,8 +66,6 @@ def get_current_admin_user() -> Any:
 
 
 async def get_dag_executor(repo: Annotated[AbstractWorkflowRepository, Depends(get_repo)]) -> DAGExecutor:
-    from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-
     compiler = PromptCompiler()
     return DAGExecutor(repo, compiler)
 
@@ -91,14 +91,10 @@ StudioServiceDep = Annotated[StudioService, Depends(get_studio_service)]
 
 
 def get_llm_handler(repo: Annotated[AbstractWorkflowRepository, Depends(get_repo)]) -> Any:
-    from backend_v2.llm.handler import LLMHandler
-
     return LLMHandler(repo=repo)
 
 
 LLMHandlerDep = Annotated[Any, Depends(get_llm_handler)]
-
-from typing import cast
 
 
 def get_arq_pool(request: Request) -> ArqRedis:
@@ -106,3 +102,10 @@ def get_arq_pool(request: Request) -> ArqRedis:
 
 
 ArqPoolDep = Annotated[ArqRedis, Depends(get_arq_pool)]
+
+
+def get_document_extraction_service() -> Any:
+    return DocumentExtractionService()
+
+
+DocumentExtractionServiceDep = Annotated[Any, Depends(get_document_extraction_service)]

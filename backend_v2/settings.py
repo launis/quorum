@@ -6,17 +6,12 @@ from enum import Enum
 from functools import lru_cache
 from typing import Annotated, Any
 
-from dotenv import load_dotenv
 from pydantic import BeforeValidator, Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
-
-# Explicitly load .env to ensure environment variables are populated
-# independent of Pydantic's internal loader (which seems brittle here)
-load_dotenv()
 
 
 def strip_whitespace(v: Any) -> Any:
@@ -282,7 +277,12 @@ class Settings(BaseSettings):
         """
         return {}
 
-    model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True, extra="ignore", case_sensitive=False)
+    model_config = SettingsConfigDict(
+        env_file=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"),
+        env_ignore_empty=True,
+        extra="ignore",
+        case_sensitive=False,
+    )
 
     def model_post_init(self, __context: Any) -> None:
         """Validates settings after initialization."""

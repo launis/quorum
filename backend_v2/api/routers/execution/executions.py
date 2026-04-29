@@ -1,12 +1,14 @@
 import asyncio
 import logging
+from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Query, Request, status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
-from pydantic import BaseModel
+from pydantic import ValidationError
 
-from backend_v2.api.dependencies import ArqPoolDep, CurrentUserDep, ExecutionServiceDep
-from backend_v2.models.v2_core import ExecutionCreate, ExecutionRecord, ExecutionStatus
+from backend_v2.api.dependencies import ArqPoolDep, CurrentUserDep, DocumentExtractionServiceDep, ExecutionServiceDep
+from backend_v2.exceptions import AppException
+from backend_v2.models.v2_core import ExecutionCreate, ExecutionRecord, ExecutionStatus, JobAcceptedDTO
 
 logger = logging.getLogger(__name__)
 
@@ -28,28 +30,9 @@ async def start_execution(
     arq_pool: ArqPoolDep,
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
+    doc_service: DocumentExtractionServiceDep,
 ) -> ExecutionRecord:
-    """Start an asynchronous workflow execution securely via SSOT.
-
-    EAGER EXTRACTION PATTERN: Intercepts PDF Base64 strings, resolves them
-    via PyMuPDF, and replaces them with Raw Text before Pydantic validation.
-    """
-    import base64
-
-    import fitz
-    from fastapi.concurrency import run_in_threadpool
-
-    from backend_v2.exceptions import AppException
-
-    def _extract_pdf(file_bytes: bytes) -> str:
-        """Isolated CPU-bound PyMuPDF extraction."""
-        import pymupdf4llm
-
-        doc = fitz.open(stream=file_bytes, filetype="pdf")
-        md_text = str(pymupdf4llm.to_markdown(doc))
-        doc.close()
-        return md_text.strip()
-
+    """Start an asynchronous workflow execution securely via SSOT."""
     try:
         data = await request.json()
     except Exception as e:
@@ -60,34 +43,10 @@ async def start_execution(
         ) from e
 
     raw_inputs = data.get("raw_inputs", {})
-    if isinstance(raw_inputs, dict):
-        for key, val in raw_inputs.items():
-            if isinstance(val, dict) and "content_base64" in val:
-                filename = val.get("filename", "unknown.pdf").lower()
-                try:
-                    file_bytes = base64.b64decode(val["content_base64"])
-                    if filename.endswith(".pdf"):
-                        logger.info(
-                            "[EagerExtraction] Found binary PDF %s. Extracting synchronously at Router.", filename
-                        )
-                        extracted = await run_in_threadpool(_extract_pdf, file_bytes)
-                        # Destroy base64 blob, replace with string
-                        raw_inputs[key] = extracted
-                    else:
-                        logger.info("[EagerExtraction] Found text file %s. Decoding.", filename)
-                        raw_inputs[key] = file_bytes.decode("utf-8", errors="ignore")
-                except Exception as e:
-                    logger.error("[EagerExtraction] Failed to extract %s", filename, exc_info=True)
-                    raise AppException(
-                        message=f"Failed to extract text from {filename}",
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        details={"error_code": "FILE_EXTRACTION_FAILED"},
-                    ) from e
-
-    from pydantic import ValidationError
+    await doc_service.process_raw_inputs(raw_inputs)
 
     try:
-        payload = ExecutionCreate(**data)
+        payload = ExecutionCreate.model_validate(data)
     except ValidationError as e:
         raise AppException(
             message=f"Payload validation failed: {str(e)}",
@@ -130,8 +89,6 @@ async def stream_execution_status(
     """Stream execution status and results securely via Sever-Sent Events (SSE)."""
     # 1. Authorize connection first
     await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
-
-    from collections.abc import AsyncGenerator
 
     async def event_generator() -> AsyncGenerator[str]:
         try:
@@ -215,12 +172,6 @@ async def render_execution(
     return Response(content=content, media_type=media_type, headers=headers)
 
 
-class JobAcceptedDTO(BaseModel):
-    status: str
-    message: str
-    execution_id: str
-
-
 @router.post("/{execution_id}/render_pdf", response_model=JobAcceptedDTO, status_code=status.HTTP_202_ACCEPTED)
 async def generate_pdf_async(
     request: Request,
@@ -246,17 +197,16 @@ async def generate_pdf_async(
     return JobAcceptedDTO(status="Accepted", message="PDF Generation queued", execution_id=execution_id)
 
 
-@router.delete("/{execution_id}/profiles/{profile_id}", status_code=status.HTTP_200_OK)
+@router.delete("/{execution_id}/profiles/{profile_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_profile_synthesis(
     execution_id: str,
     profile_id: str,
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
-) -> dict[str, str]:
+) -> None:
     """Clears the cached synthesis state for a specific profile.
     This forces the next render request to dispatch On-Demand Rendering.
     """
     await execution_service.clear_profile_synthesis(
         initiator=current_user, execution_id=execution_id, profile_id=profile_id
     )
-    return {"status": "success", "message": "Profile synthesis cache cleared"}
