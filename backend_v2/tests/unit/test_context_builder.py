@@ -3,8 +3,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from backend_v2.exceptions import AppException, TokenLimitExceededError
-from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 from backend_v2.models.state import StepOutputDTO
+from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 
 
 def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -19,7 +19,12 @@ def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -
 
     state_data = {
         "steps": [
-            StepOutputDTO(step_id="eval_step", block_id="blk_invalid", data_type="dict", payload={"raw_score": "not_a_float", "missing_fields": "yes"}),
+            StepOutputDTO(
+                step_id="eval_step",
+                block_id="blk_invalid",
+                data_type="dict",
+                payload={"raw_score": "not_a_float", "missing_fields": "yes"},
+            ),  # noqa: E501
             StepOutputDTO(step_id="atom_step", block_id="atoms", data_type="list", payload=["a", "b", "c"]),
             StepOutputDTO(step_id="raw_step", block_id="history_text", data_type="str", payload="huge string"),
             StepOutputDTO(step_id="other_step", block_id="custom", data_type="str", payload="data"),
@@ -84,7 +89,7 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
                     "justification": "Good",
                     "evaluated_atoms": {"atom1": True, "atom2": False},
                     "extensions": {},
-                }
+                },
             )
         ],
     }
@@ -158,7 +163,7 @@ def test_context_builder_build_trace_pruning_fails_fast(monkeypatch: pytest.Monk
                     "justification": "Good",
                     "evaluated_atoms": {"atom1": True, "atom2": False},
                     "extensions": {},
-                }
+                },
             )
         ]
     }

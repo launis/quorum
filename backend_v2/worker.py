@@ -69,7 +69,7 @@ async def execute_workflow_job(
     # This groups all subsequent logs (Agent, LLM, DB) under this execution_id.
     with logfire.span("execute_workflow_job", tags={"execution_id": execution_id or "unknown"}):
         # Inject Organization ID into inputs (Blackboard State) if provided
-        # This ensures that valid WorkflowState objects created from this dict will have organization_id populated.
+        # This ensures that valid WorkflowState objects created from this dict will have organization_id populated.  # noqa: E501
         if organization_id and "organization_id" not in inputs:
             inputs["organization_id"] = organization_id
 
@@ -78,7 +78,7 @@ async def execute_workflow_job(
             inputs["user_id"] = user_id
 
         # Retrieve pre-initialized Engine
-        engine: DAGExecutor = ctx["engine"]
+        engine = ctx["engine"]
         # Retrieve Repository (for loading definition)
         repository = ctx["repository"]
 
@@ -162,7 +162,7 @@ async def execute_workflow_job(
             raise e
         except asyncio.CancelledError:
             local_exec_id = locals().get("exec_id", execution_id)
-            logger.warning(f"[Job] Workflow {workflow_id} CANCELLED (Timeout/Shutdown). Execution ID: {local_exec_id}")
+            logger.warning(f"[Job] Workflow {workflow_id} CANCELLED (Timeout/Shutdown). Execution ID: {local_exec_id}")  # noqa: E501
             if local_exec_id:
                 try:
                     await repository.update_execution(
@@ -192,24 +192,24 @@ async def generate_pdf_job(
     return f"PDF Generated for {execution_id}"
 
 
-async def generate_pdf_task(execution_id: str, accept_language: str | None = None, profile_id: str = "default") -> None:
+async def generate_pdf_task(execution_id: str, accept_language: str | None = None, profile_id: str = "default") -> None:  # noqa: E501
     """Background Task. Assembles the SDUI JSON via Transformer and passes to PDF generator.
     Called by Arq worker for resilient PDF background compilation.
     """
     logger.info(f"[Task] Starting Async PDF Koonti for execution {execution_id}")
     try:
         repo = await get_repository(get_settings())
-        transformer = BlueprintTransformer(repo)
+        transformer = BlueprintTransformer(exec_repo=repo, workflow_repo=repo, comp_repo=repo, identity_repo=repo)  # noqa: E501
 
         # 0. Guard: Execution may have been deleted while PDF job was queued
         execution_dict = await repo.get_execution(execution_id)
         if not execution_dict:
-            logger.warning(f"[Task] Execution {execution_id} no longer exists (deleted?). Skipping PDF generation.")
+            logger.warning(f"[Task] Execution {execution_id} no longer exists (deleted?). Skipping PDF generation.")  # noqa: E501
             return
 
         # V2 MANDATE: Strict Pydantic parsing at the boundary
         execution_record = (
-            ExecutionRecord.model_validate(execution_dict) if isinstance(execution_dict, dict) else execution_dict
+            ExecutionRecord.model_validate(execution_dict) if isinstance(execution_dict, dict) else execution_dict  # noqa: E501
         )
 
         # 0b. Get explicit locale via Execution
@@ -226,7 +226,7 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
         dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
 
         # 2. Feed structured DTO to PDF Engine instead of DB fetching
-        service = PdfReportService(repo)
+        service = PdfReportService(exec_repo=repo, workflow_repo=repo)
         pdf_bytes = await service.generate_execution_pdf(execution_id, report_dto=dto)
 
         # 3. Save bytes
@@ -269,15 +269,18 @@ async def render_profile_job(
     ctx: Any, execution_id: str, accept_language: str | None = None, profile_id: str = "default"
 ) -> str:
     """Invoked by Arq Worker to ensure background synthesis & PDF compilation resilience."""
-    await generate_profile_synthesis_and_pdf_task(execution_id, accept_language, profile_id, ctx.get("redis"))
+    await generate_profile_synthesis_and_pdf_task(execution_id, accept_language, profile_id, ctx.get("redis"))  # noqa: E501
     return f"Render Job Completed for {execution_id}"
 
 
 async def generate_profile_synthesis_and_pdf_task(
-    execution_id: str, accept_language: str | None = None, profile_id: str = "default", redis: Any | None = None
+    execution_id: str,
+    accept_language: str | None = None,
+    profile_id: str = "default",
+    redis: Any | None = None,  # noqa: E501
 ) -> None:
     """Background Task. Synthesizes Markdown and enqueues PDF generation. Epic 14 M4."""
-    logger.info(f"[Task] Starting Async Text Synthesis for execution {execution_id} (Profile: {profile_id})")
+    logger.info(f"[Task] Starting Async Text Synthesis for execution {execution_id} (Profile: {profile_id})")  # noqa: E501
     try:
         repo = await get_repository(get_settings())
 
@@ -288,12 +291,12 @@ async def generate_profile_synthesis_and_pdf_task(
 
         # V2 MANDATE: Strict Pydantic parsing at the boundary
         execution = (
-            ExecutionRecord.model_validate(execution_data) if isinstance(execution_data, dict) else execution_data
+            ExecutionRecord.model_validate(execution_data) if isinstance(execution_data, dict) else execution_data  # noqa: E501
         )
 
         has_synthesis = profile_id in (execution.profile_syntheses or {})
         if has_synthesis:
-            logger.info(f"[Task] Synthesis already exists for profile {profile_id}. Proceeding to PDF generation.")
+            logger.info(f"[Task] Synthesis already exists for profile {profile_id}. Proceeding to PDF generation.")  # noqa: E501
             if redis:
                 await redis.enqueue_job("generate_pdf_job", execution_id, accept_language, profile_id)
             return
@@ -329,7 +332,9 @@ async def generate_profile_synthesis_and_pdf_task(
             metadata=metadata,
             global_context_vars=global_context_vars,
         )
-        deps = HookDependencies(repository=repo)
+        deps = HookDependencies(
+            exec_repo=repo, workflow_repo=repo, comp_repo=repo, identity_repo=repo, audit_repo=repo, system_repo=repo
+        )  # noqa: E501
 
         # Execute Text Consolidation Hook
         hook_res = await hook_registry.execute("text_consolidation_hook", state, deps)
@@ -409,7 +414,7 @@ async def startup(ctx: Any) -> None:
 
     # 2. Initialize Dependencies
     # Repository (Firestore/TinyDB)
-    repository = await get_repository(settings)
+    repository = await get_repository(get_settings())
 
     # LLM Client (Instructor) - Singleton init
     llm_client = LLMClient()
@@ -417,7 +422,15 @@ async def startup(ctx: Any) -> None:
 
     # 3. Initialize DAGExecutor (V2 SSOT Enforcer)
     compiler = PromptCompiler()
-    engine = DAGExecutor(repository=repository, prompt_compiler=compiler)
+    engine = DAGExecutor(
+        exec_repo=repository,
+        workflow_repo=repository,
+        comp_repo=repository,
+        identity_repo=repository,
+        audit_repo=repository,
+        system_repo=repository,
+        prompt_compiler=compiler,
+    )
 
     # 4. Store in Context
     ctx["engine"] = engine

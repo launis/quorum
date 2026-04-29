@@ -624,6 +624,9 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
 
     # --- Workflows ---
 
+    async def get_workflow(self, workflow_id: str) -> WorkflowDefinition | None:
+        return await self.get_workflow_definition(workflow_id)
+
     async def get_workflow_definition(self, workflow_id: str) -> WorkflowDefinition | None:
         """Hydrates workflow with steps from registry."""
         data = await self.driver.get("workflows", workflow_id)

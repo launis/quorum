@@ -84,7 +84,12 @@ def test_e2e_orchestration() -> None:
                 'uvicorn.main()"'
             )
             backend_process = subprocess.Popen(
-                backend_cmd, cwd=str(PROJECT_ROOT), env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT, shell=True
+                backend_cmd,
+                cwd=str(PROJECT_ROOT),
+                env=env,
+                stdout=backend_log_fp,
+                stderr=subprocess.STDOUT,
+                shell=True,  # noqa: E501
             )
 
             # Start worker

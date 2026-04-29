@@ -15,5 +15,13 @@ class DummyStrategy(NodeStrategy):
 async def test_node_strategy_instantiation() -> None:
     repo = MagicMock()
     compiler = MagicMock()
-    strategy = DummyStrategy(repo, compiler)
-    assert strategy.repository == repo
+    strategy = DummyStrategy(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
+        prompt_compiler=compiler,
+    )  # noqa: E501
+    assert strategy.exec_repo == repo

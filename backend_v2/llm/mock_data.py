@@ -139,6 +139,7 @@ MOCK_PERFORMATIVITY_ANALYSIS = PerformativityAnalysis(
     pre_mortem_analysis=PreMortemAnalysis(performed=True, weak_signals=["Signal 1"]),
     authenticity_assessment=AuthenticityLevel.ORGANIC,
     authenticity_score=3.0,
+    description="Mock performativity description",
 )
 
 MOCK_PERFORMATIVITY_OUTPUT = PerformativityOutput(

@@ -11,7 +11,12 @@ from backend_v2.models.domain.linguistics import LinguisticsPayloadDTO
 @pytest.fixture
 def mock_deps() -> HookDependencies:
     return HookDependencies(
-        repository=AsyncMock(),
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),  # noqa: E501
         search_client=AsyncMock(),
     )
 
@@ -43,7 +48,7 @@ def test_detect_performative_patterns_success_en(mock_deps: HookDependencies) ->
         step_id="step_1",
         metadata={},
         global_context_vars={},
-        inputs={"q1": "It is important to note that this is a game changer.", "q2": "Regular text with no fillers."},
+        inputs={"q1": "It is important to note that this is a game changer.", "q2": "Regular text with no fillers."},  # noqa: E501
     )
 
     result = cast(HookResult, detect_performative_patterns(state, mock_deps))

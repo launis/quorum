@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -8,24 +8,31 @@ from backend_v2.services.execution import ExecutionService
 
 
 @pytest.fixture
-def mock_repo() -> MagicMock:
-    repo = MagicMock()
+def mock_repo() -> AsyncMock:
+    repo = AsyncMock()
     repo.get_all_executions = AsyncMock(return_value=[])
     repo.get_execution = AsyncMock()
     repo.delete_execution = AsyncMock(return_value=True)
-    repo.driver = MagicMock()
+    repo.driver = AsyncMock()
     repo.driver.get = AsyncMock()
     return repo
 
 
 @pytest.fixture
-def mock_executor() -> MagicMock:
-    return MagicMock()
+def mock_executor() -> AsyncMock:
+    return AsyncMock()
 
 
 @pytest.fixture
-def execution_service(mock_repo: MagicMock, mock_executor: MagicMock) -> ExecutionService:
-    return ExecutionService(repo=mock_repo, executor=mock_executor)
+def execution_service(mock_repo: AsyncMock, mock_executor: AsyncMock) -> ExecutionService:
+    return ExecutionService(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        usage_service=AsyncMock(),
+        executor=mock_executor,
+    )  # noqa: E501
 
 
 @pytest.fixture
@@ -35,16 +42,20 @@ def admin_token() -> TokenData:
 
 @pytest.mark.asyncio
 async def test_delete_execution_fails_fast_on_storage_error(
-    execution_service: ExecutionService, admin_token: TokenData, mock_repo: MagicMock
+    execution_service: ExecutionService, admin_token: TokenData, mock_repo: AsyncMock
 ) -> None:
     """Test that execution deletion fails fast and crashes if blob storage cleanup fails."""
     # Mock database returning raw execution with a trace storage path
-    mock_repo.driver.get.return_value = {
+    from unittest.mock import MagicMock
+
+    mock_execution = MagicMock()
+    mock_execution.model_dump.return_value = {
         "id": "exe_123",
         "created_by": "admin-1",
         "organization_id": "org_1",
         "execution_trace_storage_path": "traces/exe_123.json",
     }
+    mock_repo.get_execution.return_value = mock_execution
 
     with patch("backend_v2.services.execution.get_storage_driver") as mock_get_storage:
         mock_storage = AsyncMock()
@@ -63,11 +74,11 @@ async def test_delete_execution_fails_fast_on_storage_error(
 
 @pytest.mark.asyncio
 async def test_render_execution_fails_fast_on_corrupt_pdf(
-    execution_service: ExecutionService, admin_token: TokenData, mock_repo: MagicMock
+    execution_service: ExecutionService, admin_token: TokenData, mock_repo: AsyncMock
 ) -> None:
     """Test that PDF rendering fails fast if the pre-generated PDF is missing from storage."""
     # Mock an execution that is COMPLETED and has a PDF path
-    mock_execution = MagicMock()
+    mock_execution = AsyncMock()
     from backend_v2.models.v2_core import ExecutionStatus
 
     mock_execution.status = ExecutionStatus.COMPLETED
@@ -123,10 +134,10 @@ async def test_render_execution_fails_fast_on_corrupt_pdf(
 
 @pytest.mark.asyncio
 async def test_render_execution_html_format(
-    execution_service: ExecutionService, admin_token: TokenData, mock_repo: MagicMock
+    execution_service: ExecutionService, admin_token: TokenData, mock_repo: AsyncMock
 ) -> None:
     """Test that HTML rendering calls the correct generation method."""
-    mock_execution = MagicMock()
+    mock_execution = AsyncMock()
     from backend_v2.models.v2_core import ExecutionStatus
 
     mock_execution.status = ExecutionStatus.COMPLETED
@@ -159,7 +170,7 @@ async def test_render_execution_html_format(
         patch("backend_v2.services.execution.PdfReportService") as mock_pdf_service_cls,
     ):
         mock_transformer = AsyncMock()
-        mock_dto = MagicMock()
+        mock_dto = AsyncMock()
         mock_transformer.build_report_dto.return_value = mock_dto
         mock_transformer_cls.return_value = mock_transformer
 
@@ -186,10 +197,10 @@ async def test_render_execution_html_format(
 
 @pytest.mark.asyncio
 async def test_list_executions_success_root(
-    execution_service: ExecutionService, admin_token: TokenData, mock_repo: MagicMock
+    execution_service: ExecutionService, admin_token: TokenData, mock_repo: AsyncMock
 ) -> None:
     """Test list_executions for ROOT role."""
-    mock_execution = MagicMock()
+    mock_execution = AsyncMock()
     mock_repo.get_all_executions.return_value = [mock_execution]
     res = await execution_service.list_executions(admin_token)
     assert len(res) == 1
@@ -197,15 +208,15 @@ async def test_list_executions_success_root(
 
 
 @pytest.mark.asyncio
-async def test_list_executions_success_user(execution_service: ExecutionService, mock_repo: MagicMock) -> None:
+async def test_list_executions_success_user(execution_service: ExecutionService, mock_repo: AsyncMock) -> None:
     """Test list_executions for regular user role."""
     user_token = TokenData(id="user-1", role=UserRole.MEMBER, organization_id="org_1")
 
-    exec1 = MagicMock()
+    exec1 = AsyncMock()
     exec1.organization_id = "org_1"
     exec1.created_by = "user-1"
 
-    exec2 = MagicMock()
+    exec2 = AsyncMock()
     exec2.organization_id = "org_2"
     exec2.created_by = "user-2"
 

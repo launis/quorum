@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import ValidationError
@@ -114,9 +115,14 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
     )
     from typing import cast
 
-    from backend_v2.database.repository import AbstractWorkflowRepository
-
-    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepository()))
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=cast(Any, MockRepository()),
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
 
     # Mock storage to avoid writing actual files during tests
     class MockStorage:
@@ -168,9 +174,14 @@ async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPa
     from collections.abc import Awaitable
     from typing import cast
 
-    from backend_v2.database.repository import AbstractWorkflowRepository
-
-    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepository()))
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=cast(Any, MockRepository()),
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
 
     with pytest.raises(AppException) as exc:
         await cast(Awaitable[HookResult], process_inputs(state, deps))

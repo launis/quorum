@@ -9,7 +9,14 @@ from backend_v2.hooks.metadata import inject_step_metadata
 
 def test_inject_step_metadata_empty_state() -> None:
     """Test behavior when state is None."""
-    deps = HookDependencies(repository=MagicMock())
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
     from typing import cast
 
     from backend_v2.core.hook_registry import HookResult
@@ -23,7 +30,14 @@ def test_inject_step_metadata_empty_state() -> None:
 def test_inject_step_metadata_defaults() -> None:
     """Test metadata injection when no IDs or initiator are provided."""
     state = HookState(execution_id="", workflow_id="", step_id="", inputs={}, global_context_vars={}, metadata={})
-    deps = HookDependencies(repository=MagicMock())
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
 
     from typing import cast
 
@@ -58,7 +72,14 @@ def test_inject_step_metadata_custom_values() -> None:
         global_context_vars={"_sys_initiator_id": "usr_777"},
         metadata={},
     )
-    deps = HookDependencies(repository=MagicMock())
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
 
     from typing import cast
 
@@ -89,7 +110,14 @@ def test_inject_step_metadata_validation_failure() -> None:
         global_context_vars={"_sys_initiator_id": 12345},  # Int instead of str
         metadata={},
     )
-    deps = HookDependencies(repository=MagicMock())
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
 
     with pytest.raises(AppException) as exc_info:
         inject_step_metadata(state, deps)

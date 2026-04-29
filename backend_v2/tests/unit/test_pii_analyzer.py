@@ -10,6 +10,7 @@ from backend_v2.services.pii_analyzer import PIIAnalyzerService
 def pii_service() -> PIIAnalyzerService:
     """Returns a fresh instance of PIIAnalyzerService for each test."""
     from backend_v2.services.pii_analyzer import get_pii_service
+
     get_pii_service.cache_clear()
     return get_pii_service()
 

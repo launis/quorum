@@ -19,14 +19,14 @@ from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
-from backend_v2.database.repository import AbstractWorkflowRepository
-
-
-class IExecutionRepository(Protocol):
-    """Protocol for abstracting repository I/O from hook execution."""
-
-    async def get_execution(self, execution_id: str) -> dict[str, Any] | None: ...
-    async def update_execution(self, execution_id: str, updates: dict[str, Any]) -> None: ...
+from backend_v2.database.interfaces import (
+    IAuditRepository,
+    IComponentRepository,
+    IExecutionRepository,
+    IIdentityRepository,
+    ISystemRepository,
+    IWorkflowRepository,
+)
 
 
 class ISearchClient(Protocol):
@@ -39,7 +39,12 @@ class ISearchClient(Protocol):
 class HookDependencies:
     """Strictly typed DI container separating infrastructure from data."""
 
-    repository: AbstractWorkflowRepository
+    exec_repo: IExecutionRepository
+    workflow_repo: IWorkflowRepository
+    comp_repo: IComponentRepository
+    identity_repo: IIdentityRepository
+    audit_repo: IAuditRepository
+    system_repo: ISystemRepository
     search_client: ISearchClient | None = None
 
 

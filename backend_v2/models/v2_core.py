@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel, computed_field, field_validator, model_validator
+from pydantic import BaseModel, Field, RootModel, computed_field, field_validator, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.inputs import WorkflowInputs
@@ -1057,11 +1057,14 @@ class ExecutionRecord(V2CoreBase):
                         raise ValueError(f"Input should be a valid datetime or ISO format for {field}: {val}") from e
         return data
 
+
 class JobAcceptedDTO(BaseModel):
     """Omni-channel render endpoint accepted response."""
+
     status: str
     message: str
     execution_id: str
+
 
 class WorkflowSchemaResponse(RootModel[dict[str, Any]]):
     pass

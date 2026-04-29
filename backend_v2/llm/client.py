@@ -356,11 +356,11 @@ class LLMClient:
                         )
                     else:
                         logger.warning("[LLMClient] Structural Schema Error detected. Triggering Syntax Self-Healing.")
-                        
+
                         eof_warning = ""
                         if "EOF while parsing" in error_str:
                             eof_warning = (
-                                "CRITICAL: Your previous response was truncated because it exceeded the maximum token limit. "
+                                "CRITICAL: Your previous response was truncated because it exceeded the maximum token limit. "  # noqa: E501
                                 "You MUST be significantly more concise in your reasoning_trace and evaluation_notes. "
                             )
 
@@ -368,7 +368,7 @@ class LLMClient:
                             f"\n\n[SYSTEM: SELF-HEALING CORRECTION - STRUCTURAL]\n"
                             f"Validation errors:\n{error_msg}\n"
                             f"{eof_warning}"
-                            f"ACTION: Please correct the JSON output to strictly match the requested schema types. Ensure the JSON object is completely closed and valid."
+                            f"ACTION: Please correct the JSON output to strictly match the requested schema types. Ensure the JSON object is completely closed and valid."  # noqa: E501
                         )
 
                     # Append the hallucinated response and the correction instruction to guide the next iteration

@@ -9,7 +9,14 @@ import logging
 from typing import Any
 
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
-from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.database.interfaces import (
+    IAuditRepository,
+    IComponentRepository,
+    IExecutionRepository,
+    IIdentityRepository,
+    ISystemRepository,
+    IWorkflowRepository,
+)
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
@@ -29,8 +36,8 @@ logger = logging.getLogger(__name__)
 class ExecutionCommitter:
     """Handles Checkpointing of the Event Sourced Trace."""
 
-    def __init__(self, repository: AbstractWorkflowRepository, execution_id: str):
-        self.repository = repository
+    def __init__(self, exec_repo: IExecutionRepository, execution_id: str):
+        self.exec_repo = exec_repo
         self.execution_id = execution_id
 
     async def commit_trace(
@@ -55,7 +62,7 @@ class ExecutionCommitter:
                 payload["error"] = error
 
             # The repository natively handles 100KB+ offloading to Blob storage via _offload_payloads()
-            await self.repository.update_execution(self.execution_id, payload)
+            await self.exec_repo.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to commit execution trace for {self.execution_id}"
             logger.error("[ExecutionCommitter] %s: %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, exc_info=True)
@@ -67,8 +74,22 @@ class ExecutionCommitter:
 class NodeExecutor:
     """Executes a single step in pure isolation, emitting TraceEvents."""
 
-    def __init__(self, repository: AbstractWorkflowRepository, prompt_compiler: Any):
-        self.repository = repository
+    def __init__(
+        self,
+        exec_repo: IExecutionRepository,
+        workflow_repo: IWorkflowRepository,
+        comp_repo: IComponentRepository,
+        identity_repo: IIdentityRepository,
+        audit_repo: IAuditRepository,
+        system_repo: ISystemRepository,
+        prompt_compiler: Any,
+    ):
+        self.exec_repo = exec_repo
+        self.workflow_repo = workflow_repo
+        self.comp_repo = comp_repo
+        self.identity_repo = identity_repo
+        self.audit_repo = audit_repo
+        self.system_repo = system_repo
         self.compiler = prompt_compiler
 
     async def execute(
@@ -91,7 +112,7 @@ class NodeExecutor:
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
 
-            step_def = await self.repository.get_step_by_id(blueprint_id)
+            step_def = await self.workflow_repo.get_step_by_id(blueprint_id)
             if not step_def:
                 raise AppException(
                     message=f"Configuration error: Step '{blueprint_id}' not found.",
@@ -124,9 +145,25 @@ class NodeExecutor:
 
             strategy_impl: NodeStrategy
             if step_def.get("type", "llm") == "logic":
-                strategy_impl = LogicNodeStrategy(self.repository, self.compiler)
+                strategy_impl = LogicNodeStrategy(
+                    self.exec_repo,
+                    self.workflow_repo,
+                    self.comp_repo,
+                    self.identity_repo,
+                    self.audit_repo,
+                    self.system_repo,
+                    self.compiler,
+                )
             else:
-                strategy_impl = LLMNodeStrategy(self.repository, self.compiler)
+                strategy_impl = LLMNodeStrategy(
+                    self.exec_repo,
+                    self.workflow_repo,
+                    self.comp_repo,
+                    self.identity_repo,
+                    self.audit_repo,
+                    self.system_repo,
+                    self.compiler,
+                )
 
             # FinOps Circuit Breaker: Worker Cut-off Check (Graceful Exit Hatch)
             await strategy_impl.assert_quota(org_id=metadata.get("organization_id"))
@@ -156,11 +193,27 @@ class NodeExecutor:
 class DAGExecutor:
     """The central DAGOrchestrator."""
 
-    def __init__(self, repository: AbstractWorkflowRepository, prompt_compiler: Any):
-        self.repository = repository
+    def __init__(
+        self,
+        exec_repo: IExecutionRepository,
+        workflow_repo: IWorkflowRepository,
+        comp_repo: IComponentRepository,
+        identity_repo: IIdentityRepository,
+        audit_repo: IAuditRepository,
+        system_repo: ISystemRepository,
+        prompt_compiler: Any,
+    ):
+        self.exec_repo = exec_repo
+        self.workflow_repo = workflow_repo
+        self.comp_repo = comp_repo
+        self.identity_repo = identity_repo
+        self.audit_repo = audit_repo
+        self.system_repo = system_repo
         self.compiler = prompt_compiler
-        self.committer = ExecutionCommitter(repository, "")
-        self.node_executor = NodeExecutor(repository, prompt_compiler)
+        self.committer = ExecutionCommitter(exec_repo, "")
+        self.node_executor = NodeExecutor(
+            exec_repo, workflow_repo, comp_repo, identity_repo, audit_repo, system_repo, prompt_compiler
+        )
 
     async def execute_workflow(
         self, execution_id: str, workflow: Workflow, raw_inputs: dict[str, Any]
@@ -174,7 +227,7 @@ class DAGExecutor:
         self.committer.execution_id = execution_id
 
         # 1. State Rehydration / Initialization
-        existing_record_dict = await self.repository.get_execution(execution_id)
+        existing_record_dict = await self.exec_repo.get_execution(execution_id)
 
         step_states = {
             step.id: ExecutionStepState(id=step.id, label=step.id, status="pending") for step in workflow.steps
@@ -210,7 +263,14 @@ class DAGExecutor:
             projector.apply_delta(input_event)
 
             try:
-                global_hook_deps = HookDependencies(repository=self.repository)
+                global_hook_deps = HookDependencies(
+                    exec_repo=self.exec_repo,
+                    workflow_repo=self.workflow_repo,
+                    comp_repo=self.comp_repo,
+                    identity_repo=self.identity_repo,
+                    audit_repo=self.audit_repo,
+                    system_repo=self.system_repo,
+                )
                 global_hook_state = HookState(
                     execution_id=execution_id,
                     workflow_id=workflow.id,

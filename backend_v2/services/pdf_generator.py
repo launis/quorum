@@ -16,7 +16,7 @@ import markdown  # type: ignore[import-untyped, unused-ignore]
 import weasyprint
 from jinja2 import Environment, FileSystemLoader
 
-from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.database.interfaces import IExecutionRepository, IWorkflowRepository
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import ReportDataDTO, Workflow
@@ -28,13 +28,9 @@ logger = logging.getLogger(__name__)
 class PdfReportService:
     """Service to generate PDF reports dynamically from V2 execution data."""
 
-    def __init__(self, repository: AbstractWorkflowRepository):
-        """Initialize the service.
-
-        Args:
-            repository: Workflow repository.
-        """
-        self.repository = repository
+    def __init__(self, exec_repo: IExecutionRepository, workflow_repo: IWorkflowRepository):
+        self.exec_repo = exec_repo
+        self.workflow_repo = workflow_repo
 
         # Suppress verbose fontTools logs (used by WeasyPrint)
         logging.getLogger("fontTools.subset").setLevel(logging.WARNING)
@@ -65,7 +61,7 @@ class PdfReportService:
         """
         try:
             # 1. Fetch Data
-            execution = await self.repository.get_execution(execution_id)
+            execution = await self.exec_repo.get_execution(execution_id)
             if not execution:
                 msg = f"Execution {execution_id} not found"
                 logger.error("[PdfReportService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
@@ -91,7 +87,7 @@ class PdfReportService:
             if report_dto and report_dto.profile_name:
                 workflow_name = report_dto.profile_name.resolve(target_locale)
             elif workflow_id:
-                workflow_dict = await self.repository.get_workflow_by_id(workflow_id)
+                workflow_dict = await self.workflow_repo.get_workflow_by_id(workflow_id)
                 if workflow_dict:
                     workflow = Workflow.model_validate(workflow_dict)
                     if isinstance(workflow.name, str):

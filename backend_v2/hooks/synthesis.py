@@ -55,7 +55,7 @@ async def _fetch_historical_context(
         user_id,
         mode.value,
     )
-    all_execs = await deps.repository.get_all_executions(organization_id=org_id, user_id=user_id)
+    all_execs = await deps.exec_repo.get_all_executions(organization_id=org_id, user_id=user_id)
 
     valid_past = []
     for e in all_execs:
@@ -261,7 +261,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     # Resolve active workflow to determine the output profile bounds
 
-    raw_workflow_data = await deps.repository.get_workflow_by_id(state.workflow_id)
+    raw_workflow_data = await deps.workflow_repo.get_workflow_by_id(state.workflow_id)
     if not raw_workflow_data:
         msg = f"Workflow '{state.workflow_id}' not found."
         raise AppException(
@@ -271,7 +271,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         )
     workflow_data = Workflow.model_validate(raw_workflow_data)
 
-    raw_exec_data = await deps.repository.get_execution(state.execution_id)
+    raw_exec_data = await deps.exec_repo.get_execution(state.execution_id)
     execution_data = ExecutionRecord.model_validate(raw_exec_data) if raw_exec_data else None
 
     output_profile_id = execution_data.output_profile_id if execution_data else None
@@ -288,7 +288,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         )
 
     # --- Epic 13 M1: Fetch Output Profile from SSOT ---
-    p_dict = await deps.repository.get_output_profile_by_id(profile_to_use)
+    p_dict = await deps.comp_repo.get_output_profile_by_id(profile_to_use)
     active_profile_dto: OutputProfileResponseDTO | None = None
     if p_dict:
         active_profile_dto = OutputProfileResponseDTO.model_validate(p_dict)
@@ -314,13 +314,13 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     # Fetch all blocks to inject extrema scale bounds and resolve titles (V2 Architecture)
     all_blocks = []
     all_steps = []
-    if hasattr(deps.repository, "get_all"):
+    if hasattr(deps.comp_repo, "get_all_prompt_blocks") and hasattr(deps.workflow_repo, "get_all_steps"):
         # Fetch blocks for the ContextMapper ordinal mapping
-        raw_blocks = await deps.repository.get_all("prompt_blocks")
+        raw_blocks = await deps.comp_repo.get_all_prompt_blocks()
         all_blocks = [PromptBlock.model_validate(rb) for rb in raw_blocks]
 
         # Fetch steps for Step title resolution
-        raw_steps = await deps.repository.get_all("steps")
+        raw_steps = await deps.workflow_repo.get_all_steps()
         all_steps = [Step.model_validate(rs) for rs in raw_steps]
 
     # Pre-calculate matrix step IDs based on strict schema routing to avoid duck-typing
@@ -359,7 +359,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     consolidated_inputs: dict[str, Any] = {}
 
     available_dtos: list[StepOutputDTO] = []
-    
+
     # In V2, inputs.get("steps") is the definitive state source.
     steps_list = inputs.get("steps", [])
     if isinstance(steps_list, list):
@@ -397,7 +397,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 step_dto = SynthesisStepDataDTO.model_validate(step_dict)
             else:
                 step_dict = {"_value": step_data}
-        except (ValidationError, TypeError, ValueError) as e:
+        except (ValidationError, TypeError, ValueError):
             step_dict = {"_value": step_data}
 
         # O(1) Set intersection logic replacing nested loops
@@ -554,7 +554,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     # 4. LLM execution with telemetry
     # Fail-fast: Assuming the strategy for output formatting is named 'synthesis_strategy'
-    client = await LLMClient.from_strategy("synthesis", repository=deps.repository)
+    client = await LLMClient.from_strategy("synthesis", repository=deps.system_repo)
 
     allowed_tools = synthesis_cfg.allowed_mcp_tools
 

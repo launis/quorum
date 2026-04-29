@@ -10,7 +10,15 @@ from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 async def test_logic_strategy_missing_blueprint() -> None:
     repo = MagicMock()
     compiler = MagicMock()
-    strategy = LogicNodeStrategy(repo, compiler)
+    strategy = LogicNodeStrategy(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
+        prompt_compiler=compiler,
+    )  # noqa: E501
 
     step = MagicMock()
     step.task_blueprint = None

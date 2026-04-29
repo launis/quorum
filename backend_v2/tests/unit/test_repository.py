@@ -89,9 +89,9 @@ async def test_get_all_delegates_to_driver() -> None:
     mock_driver = AsyncMock()
     mock_driver.query.return_value = [{"id": "123"}]
     repo = UnifiedWorkflowRepository(driver=mock_driver)
-    
+
     result = await repo.get_all("workflows")
-    
+
     mock_driver.query.assert_called_once_with("workflows")
     assert result == [{"id": "123"}]
 
@@ -102,9 +102,9 @@ async def test_get_delegates_to_driver() -> None:
     mock_driver = AsyncMock()
     mock_driver.get.return_value = {"id": "123"}
     repo = UnifiedWorkflowRepository(driver=mock_driver)
-    
+
     result = await repo.get("workflows", "123")
-    
+
     mock_driver.get.assert_called_once_with("workflows", "123")
     assert result == {"id": "123"}
 
@@ -115,7 +115,7 @@ async def test_create_raw_delegates_to_driver() -> None:
     mock_driver = AsyncMock()
     mock_driver.upsert.return_value = "new_123"
     repo = UnifiedWorkflowRepository(driver=mock_driver)
-    
+
     # Without ID
     result = await repo.create_raw("workflows", {"name": "Test"})
     assert mock_driver.upsert.call_count == 1
@@ -123,7 +123,7 @@ async def test_create_raw_delegates_to_driver() -> None:
     assert args[0] == "workflows"
     assert "id" in args[1]
     assert result == "new_123"
-    
+
     # With ID
     mock_driver.upsert.reset_mock()
     result = await repo.create_raw("workflows", {"id": "existing_id", "name": "Test"})
@@ -136,9 +136,9 @@ async def test_delete_delegates_to_driver() -> None:
     mock_driver = AsyncMock()
     mock_driver.delete.return_value = True
     repo = UnifiedWorkflowRepository(driver=mock_driver)
-    
+
     result = await repo.delete("workflows", "123")
-    
+
     mock_driver.delete.assert_called_once_with("workflows", "123")
     assert result is True
 
@@ -203,8 +203,6 @@ async def test_banned_phrases_delegates() -> None:
     assert await repo.get_banned_phrases() == []
     await repo.add_banned_phrase("bad")
     mock_driver.upsert.assert_called_once()
-    
+
     mock_driver.query.return_value = [{"id": "123"}]
     assert await repo.delete_banned_phrase("bad") is mock_driver.delete.return_value
-
-

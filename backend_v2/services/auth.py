@@ -17,7 +17,7 @@ except ImportError:
     firebase_auth_module = None
 from fastapi import Depends
 
-from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.database.interfaces import IIdentityRepository
 from backend_v2.exceptions import (
     AppException,
     AuthenticationError,
@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 class OrganizationRepository:
     """Repository for Organization data access."""
 
-    def __init__(self, repo: AbstractWorkflowRepository):
+    def __init__(self, repo: IIdentityRepository):
         self.repo = repo
 
     async def get_by_id(self, org_id: str) -> Organization | None:
@@ -80,7 +80,7 @@ class OrganizationRepository:
 
 
 class UserRepository:
-    def __init__(self, repo: AbstractWorkflowRepository):
+    def __init__(self, repo: IIdentityRepository):
         self.repo = repo
 
     async def get_by_id(self, id: str) -> User | None:
@@ -130,7 +130,7 @@ class UserRepository:
 class AuthService:
     """Hybrid Auth Service with Multi-Tenancy (SaaS)."""
 
-    def __init__(self, repo: AbstractWorkflowRepository, use_firebase: bool = False, audit_service: Any = None):
+    def __init__(self, repo: IIdentityRepository, use_firebase: bool = False, audit_service: Any = None):
         """Initialize AuthService."""
         self.repo = UserRepository(repo)
 

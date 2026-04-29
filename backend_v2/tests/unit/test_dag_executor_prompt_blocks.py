@@ -61,7 +61,15 @@ def mock_compiler() -> Any:
 @pytest.mark.asyncio
 async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: Any, mock_compiler: Any) -> None:
     # Setup Executor
-    executor = DAGExecutor(repository=mock_repo, prompt_compiler=mock_compiler)
+    executor = DAGExecutor(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )  # noqa: E501
 
     # Setup basic valid workflow
     workflow = Workflow(
@@ -113,8 +121,5 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
     projector = StateProjector()
     results = projector.fold_trace(record.execution_trace)
     assert any(
-        dto.step_id == "step_1111111111111111" and 
-        dto.block_id == "test_res" and 
-        dto.payload == 1 
-        for dto in results
+        dto.step_id == "step_1111111111111111" and dto.block_id == "test_res" and dto.payload == 1 for dto in results
     )

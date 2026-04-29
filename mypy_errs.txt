@@ -1,0 +1,51 @@
+backend_v2\tests\unit\test_core_base.py:19: error: Unused "type: ignore" comment  [unused-ignore]
+backend_v2\tests\unit\test_web_fetcher.py:12: error: Function is missing a return type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_web_fetcher.py:12: note: Use "-> None" if function does not return a value
+backend_v2\tests\unit\test_web_fetcher.py:15: error: Function is missing a return type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_web_fetcher.py:15: note: Use "-> None" if function does not return a value
+backend_v2\tests\unit\test_web_fetcher.py:19: error: Function is missing a type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_web_fetcher.py:22: error: Function is missing a type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_web_fetcher.py:25: error: Function is missing a type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_web_fetcher.py:26: error: Call to untyped function "MockResponse" in typed context  [no-untyped-call]
+backend_v2\tests\unit\test_web_fetcher.py:42: error: Function is missing a type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_web_fetcher.py:45: error: Function is missing a type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_web_fetcher.py:48: error: Function is missing a type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_web_fetcher.py:57: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+backend_v2\tests\unit\test_web_fetcher.py:59: error: Function is missing a return type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_web_fetcher.py:59: note: Use "-> None" if function does not return a value
+backend_v2\tests\unit\test_web_fetcher.py:62: error: Function is missing a return type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_web_fetcher.py:62: note: Use "-> None" if function does not return a value
+backend_v2\tests\unit\test_web_fetcher.py:66: error: Function is missing a type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_web_fetcher.py:69: error: Function is missing a type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_web_fetcher.py:72: error: Function is missing a type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_web_fetcher.py:73: error: Call to untyped function "MockResponse" in typed context  [no-untyped-call]
+backend_v2\tests\unit\test_localization.py:15: error: Function is missing a return type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_document_extraction.py:50: error: Non-overlapping equality check (left operand type: "dict[str, str]", right operand type: "str")  [comparison-overlap]
+backend_v2\tests\unit\test_output_profile.py:30: error: Unexpected keyword argument "malicious_leak" for "OutputProfileResponseDTO"  [call-arg]
+backend_v2\tests\unit\test_progress.py:72: error: Missing type parameters for generic type "dict"  [type-arg]
+backend_v2\tests\unit\test_blueprint.py:509: error: Argument "frozen_context" to "ExecutionRecord" has incompatible type "dict[str, list[dict[str, str]]]"; expected "FrozenContext"  [arg-type]
+backend_v2\tests\unit\test_base.py:18: error: Missing positional arguments "comp_repo", "identity_repo", "audit_repo", "system_repo", "prompt_compiler" in call to "DummyStrategy"  [call-arg]
+backend_v2\tests\unit\test_logic.py:13: error: Missing positional arguments "comp_repo", "identity_repo", "audit_repo", "system_repo", "prompt_compiler" in call to "LogicNodeStrategy"  [call-arg]
+backend_v2\tests\unit\test_studio.py:74: error: Argument "label" to "PromptBlock" has incompatible type "dict[str, Collection[str]]"; expected "I18nText"  [arg-type]
+backend_v2\tests\unit\test_studio.py:75: error: Argument "description" to "PromptBlock" has incompatible type "dict[str, Collection[str]]"; expected "I18nText"  [arg-type]
+backend_v2\tests\unit\test_studio.py:314: error: Argument "name" to "WorkflowResponseDTO" has incompatible type "dict[str, Collection[str]]"; expected "I18nText | str"  [arg-type]
+backend_v2\tests\unit\test_studio.py:315: error: Argument "description" to "WorkflowResponseDTO" has incompatible type "dict[str, Collection[str]]"; expected "I18nText | str"  [arg-type]
+backend_v2\tests\unit\test_studio.py:334: error: Argument "name" to "StepResponseDTO" has incompatible type "dict[str, Collection[str]]"; expected "I18nText"  [arg-type]
+backend_v2\tests\unit\test_llm.py:36: error: Unexpected keyword argument "repository" for "LLMNodeStrategy"  [call-arg]
+backend_v2\services\orchestrator\strategies\base.py: note: "LLMNodeStrategy" defined here
+backend_v2\tests\unit\test_dag_taskgroup.py:40: error: Unexpected keyword argument "repository" for "DAGExecutor"  [call-arg]
+backend_v2\services\orchestrator\dag_executor.py: note: "DAGExecutor" defined here
+backend_v2\tests\unit\test_dag_executor_prompt_blocks.py:64: error: Unexpected keyword argument "repository" for "DAGExecutor"  [call-arg]
+backend_v2\services\orchestrator\dag_executor.py:196: note: "DAGExecutor" defined here
+backend_v2\tests\unit\test_execution_service.py:22: error: Unexpected keyword argument "repo" for "ExecutionService"  [call-arg]
+backend_v2\services\execution.py: note: "ExecutionService" defined here
+backend_v2\tests\unit\test_execution.py:28: error: Unexpected keyword argument "repo" for "ExecutionService"  [call-arg]
+backend_v2\services\execution.py:52: note: "ExecutionService" defined here
+backend_v2\tests\unit\test_dependencies.py:28: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+backend_v2\tests\unit\test_dependencies.py:64: error: "StudioService" has no attribute "repo"  [attr-defined]
+backend_v2\tests\unit\test_executions.py:39: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+backend_v2\tests\unit\test_executions.py:48: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+backend_v2\tests\unit\test_executions.py:65: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+backend_v2\tests\unit\test_executions.py:87: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+backend_v2\tests\unit\test_executions.py:100: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+Found 41 errors in 17 files (checked 276 source files)

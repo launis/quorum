@@ -36,7 +36,7 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
     if not state:
         return HookResult(success=True, state_delta={})
 
-    repository = deps.repository
+    repository = deps.exec_repo
     if not repository:
         # STRICT CONFIG CHECK
         error_code = ErrorCodes.CONFIGURATION_ERROR

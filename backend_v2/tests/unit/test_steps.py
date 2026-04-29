@@ -1,7 +1,7 @@
-import pytest
 from typing import Any
 from unittest.mock import AsyncMock
 
+import pytest
 from fastapi.testclient import TestClient
 
 from backend_v2.api.dependencies import get_current_user_from_header, get_studio_service

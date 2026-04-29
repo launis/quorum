@@ -1,7 +1,7 @@
 """Unit tests for the Synthesis Hook."""
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -12,8 +12,8 @@ from backend_v2.services.mcp.mcp_tool_loop import MCPToolLoopResult
 
 
 @pytest.fixture
-def mock_repo() -> MagicMock:
-    repo = MagicMock()
+def mock_repo() -> AsyncMock:
+    repo = AsyncMock()
     repo.get_workflow_by_id = AsyncMock()
     repo.get_all = AsyncMock(return_value=[])
     return repo
@@ -32,10 +32,15 @@ def base_state() -> HookState:
         global_context_vars={"language": "en"},
         metadata={
             "target_locale": "en",
-            "step_results": {
-                "step_1": {"reasoning_trace": "test text abc@example.com"},
-                "step_2": {"locale": "en"},
-            },
+            "step_results": [
+                {
+                    "step_id": "step_1",
+                    "block_id": "b1",
+                    "data_type": "text",
+                    "payload": {"reasoning_trace": "test text abc@example.com"},
+                },  # noqa: E501
+                {"step_id": "step_2", "block_id": "b2", "data_type": "text", "payload": {"locale": "en"}},
+            ],
         },
     )
 
@@ -44,7 +49,7 @@ def base_state() -> HookState:
 @patch("backend_v2.hooks.synthesis.execute_tool_loop")
 @patch("backend_v2.hooks.synthesis.LLMClient")
 async def test_synthesis_hook_success(
-    mock_llm_client_class: MagicMock, mock_execute_tool_loop: MagicMock, mock_repo: MagicMock, base_state: HookState
+    mock_llm_client_class: AsyncMock, mock_execute_tool_loop: AsyncMock, mock_repo: AsyncMock, base_state: HookState
 ) -> None:
     """Test that synthesis hook injects config constraints correctly and calls LLM."""
     mock_repo.get_workflow_by_id = AsyncMock()
@@ -82,7 +87,15 @@ async def test_synthesis_hook_success(
     prof_data = dict(mock_workflow["output_profiles"]["prf_test"])
     prof_data.update({"id": "prf_test", "slug": "profile-test", "workflow_id": "wf_1111111111111111"})
     mock_repo.get_output_profile_by_id = AsyncMock(return_value=prof_data)
-    deps = HookDependencies(repository=mock_repo)
+    mock_repo.get_step_by_id.return_value = {"id": "step_111111111111111111111111"}
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )
 
     # Setup the mock LLM Client Instance
     mock_client_instance = AsyncMock()
@@ -130,10 +143,18 @@ async def test_synthesis_hook_success(
 
 
 @pytest.mark.asyncio
-async def test_synthesis_hook_workflow_not_found(mock_repo: MagicMock, base_state: HookState) -> None:
+async def test_synthesis_hook_workflow_not_found(mock_repo: AsyncMock, base_state: HookState) -> None:
     """Test that missing workflow throws an AppException."""
     mock_repo.get_workflow_by_id.return_value = None
-    deps = HookDependencies(repository=mock_repo)
+    mock_repo.get_step_by_id.return_value = {"id": "step_111111111111111111111111"}
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )
 
     with pytest.raises(AppException) as exc_info:
         await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
@@ -145,7 +166,7 @@ async def test_synthesis_hook_workflow_not_found(mock_repo: MagicMock, base_stat
 @patch("backend_v2.hooks.synthesis.execute_tool_loop")
 @patch("backend_v2.hooks.synthesis.LLMClient")
 async def test_synthesis_hook_multi_profile_routing(
-    mock_llm_client_class: MagicMock, mock_execute_tool_loop: MagicMock, mock_repo: MagicMock, base_state: HookState
+    mock_llm_client_class: AsyncMock, mock_execute_tool_loop: AsyncMock, mock_repo: AsyncMock, base_state: HookState
 ) -> None:
     """Test that synthesis routes to requested target_profile_id and uses its distinct rules."""
     mock_repo.get_execution = AsyncMock(
@@ -190,7 +211,15 @@ async def test_synthesis_hook_multi_profile_routing(
     prof_data = dict(mock_workflow["output_profiles"]["prof_b"])
     prof_data.update({"id": "prof_b", "slug": "prof-b", "workflow_id": "wf_1111111111111111"})
     mock_repo.get_output_profile_by_id = AsyncMock(return_value=prof_data)
-    deps = HookDependencies(repository=mock_repo)
+    mock_repo.get_step_by_id.return_value = {"id": "step_111111111111111111111111"}
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )
 
     # Force the hook to use prof_b
     base_state.metadata["target_profile_id"] = "prof_b"
@@ -225,7 +254,7 @@ async def test_synthesis_hook_multi_profile_routing(
 @patch("backend_v2.hooks.synthesis.execute_tool_loop")
 @patch("backend_v2.hooks.synthesis.LLMClient")
 async def test_synthesis_hook_target_blocks_wildcard_bypass(
-    mock_llm_client_class: MagicMock, mock_execute_tool_loop: MagicMock, mock_repo: MagicMock, base_state: HookState
+    mock_llm_client_class: AsyncMock, mock_execute_tool_loop: AsyncMock, mock_repo: AsyncMock, base_state: HookState
 ) -> None:
     """Test the dual-layer filter: AI traces are included by *, explicit Python variables bypass the check."""
     mock_repo.get_execution = AsyncMock(
@@ -264,7 +293,15 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
     prof_data = dict(mock_workflow["output_profiles"]["prof_a"])
     prof_data.update({"id": "prof_a", "slug": "prof-a", "workflow_id": "wf_1111111111111111"})
     mock_repo.get_output_profile_by_id = AsyncMock(return_value=prof_data)
-    deps = HookDependencies(repository=mock_repo)
+    mock_repo.get_step_by_id.return_value = {"id": "step_111111111111111111111111"}
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )
 
     base_state = base_state.model_copy(
         update={
@@ -275,11 +312,21 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
             },
             "metadata": {
                 "target_locale": "en",
-                "step_results": {
-                    "step_1": {"reasoning_trace": "AI says hello"},
-                    "step_2": {"result": 1337},
-                    "step_3": {"value": "this should be blocked by wildcard"},
-                },
+                "step_results": [
+                    {
+                        "step_id": "step_1",
+                        "block_id": "b1",
+                        "data_type": "text",
+                        "payload": {"reasoning_trace": "AI says hello"},
+                    },  # noqa: E501
+                    {"step_id": "step_2", "block_id": "b2", "data_type": "text", "payload": {"result": 1337}},
+                    {
+                        "step_id": "step_3",
+                        "block_id": "b3",
+                        "data_type": "text",
+                        "payload": {"value": "this should be blocked by wildcard"},
+                    },  # noqa: E501
+                ],
             },
         }
     )
@@ -331,7 +378,7 @@ def test_synthesis_hook_is_registered() -> None:
 @patch("backend_v2.hooks.synthesis.execute_tool_loop")
 @patch("backend_v2.hooks.synthesis.LLMClient")
 async def test_synthesis_hook_historical_context_mode(
-    mock_llm_client_class: MagicMock, mock_execute_tool_loop: MagicMock, mock_repo: MagicMock, base_state: HookState
+    mock_llm_client_class: AsyncMock, mock_execute_tool_loop: AsyncMock, mock_repo: AsyncMock, base_state: HookState
 ) -> None:
     """Test that SLIDING_WINDOW_3 fetches valid past executions and ignores failed ones."""
     mock_repo.get_execution = AsyncMock(
@@ -369,17 +416,17 @@ async def test_synthesis_hook_historical_context_mode(
     # Mocking past executions
     from datetime import datetime, timezone
 
-    mock_past_exec = MagicMock()
+    mock_past_exec = AsyncMock()
     mock_past_exec.id = "exe_past_1"
     mock_past_exec.status.value = "completed"
     mock_past_exec.created_at = datetime.now(timezone.utc)
     mock_past_exec.completed_at = datetime.now(timezone.utc)
 
-    mock_cache = MagicMock()
+    mock_cache = AsyncMock()
     mock_cache.synthesized_markdown = "Past history text"
     mock_past_exec.profile_syntheses = {"prf_test": mock_cache}
 
-    mock_failed_exec = MagicMock()
+    mock_failed_exec = AsyncMock()
     mock_failed_exec.id = "exe_past_2"
     mock_failed_exec.status.value = "failed"
 
@@ -388,7 +435,15 @@ async def test_synthesis_hook_historical_context_mode(
     prof_data.update({"id": "prf_test", "slug": "profile-test", "workflow_id": "wf_1111111111111111"})
     mock_repo.get_output_profile_by_id = AsyncMock(return_value=prof_data)
 
-    deps = HookDependencies(repository=mock_repo)
+    mock_repo.get_step_by_id.return_value = {"id": "step_111111111111111111111111"}
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )
 
     mock_client_instance = AsyncMock()
     mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
@@ -407,7 +462,17 @@ async def test_synthesis_hook_historical_context_mode(
         update={
             "inputs": {"step_1": {"reasoning_trace": "AI says hello"}},
             "global_context_vars": {"user_id": "usr_123"},
-            "metadata": {"target_locale": "en", "step_results": {"step_1": {"reasoning_trace": "AI says hello"}}},
+            "metadata": {
+                "target_locale": "en",
+                "step_results": [
+                    {
+                        "step_id": "step_1",
+                        "block_id": "b1",
+                        "data_type": "text",
+                        "payload": {"reasoning_trace": "AI says hello"},
+                    }
+                ],
+            },  # noqa: E501
         }
     )
 

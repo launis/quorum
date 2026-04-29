@@ -121,14 +121,15 @@ class TaskRegistry:
 
             # 2. Configure Model (Inject Dependency)
             try:
-                from backend_v2.dependencies import get_async_repository
                 from backend_v2.services.agent_registry import AgentRegistry
 
+                from backend_v2.database.factory import get_repository
                 from backend_v2.services.usage_service import UsageService
+                from backend_v2.settings import get_settings
 
-                repo = await get_async_repository()
+                repo = await get_repository(get_settings())
                 registry = AgentRegistry(repo)
-                usage_service = UsageService(repo)
+                usage_service = UsageService(identity_repo=repo, audit_repo=repo)
                 model_config = await registry.resolve_model_config(agent_cls.__name__)
 
                 if hasattr(agent, "set_model"):

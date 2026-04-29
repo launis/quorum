@@ -202,7 +202,7 @@
           "Authentication & Users"
         ],
         "summary": "Delete User",
-        "description": "Delete a user.\n\nEnforces Last Admin Protection.\n\nArgs:\n    id (str): The UID of the user to delete.\n    current_user (CurrentUserDep): The requesting user (ROOT or ADMIN).\n    auth_service (AuthServiceDep): Authorization service.\n    repo (RepositoryDep): Repository dependency.\n\nReturns:\n    UserDeleteResponse: Status confirmation.\n\nRaises:\n    HTTPException: Permission denied (403) or business logic error (400).",
+        "description": "Delete a user.\n\nEnforces Last Admin Protection.\n\nArgs:\n    id (str): The UID of the user to delete.\n    current_user (CurrentUserDep): The requesting user (ROOT or ADMIN).\n    auth_service (AuthServiceDep): Authorization service.\n\nReturns:\n    UserDeleteResponse: Status confirmation.\n\nRaises:\n    HTTPException: Permission denied (403) or business logic error (400).",
         "operationId": "delete_user_api_v2_iam_auth_users__id__delete",
         "security": [
           {

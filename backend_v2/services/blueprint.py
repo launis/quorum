@@ -6,7 +6,12 @@ from typing import Any
 
 import bleach
 
-from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.database.interfaces import (
+    IComponentRepository,
+    IExecutionRepository,
+    IIdentityRepository,
+    IWorkflowRepository,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import Organization
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -26,20 +31,29 @@ logger = logging.getLogger(__name__)
 class BlueprintTransformer:
     """The Universal Transformer Hub. Parses raw execution results into ReportDataDTO."""
 
-    def __init__(self, repo: AbstractWorkflowRepository):
-        self.repo = repo
+    def __init__(
+        self,
+        exec_repo: IExecutionRepository,
+        workflow_repo: IWorkflowRepository,
+        comp_repo: IComponentRepository,
+        identity_repo: IIdentityRepository,
+    ):
+        self.exec_repo = exec_repo
+        self.workflow_repo = workflow_repo
+        self.comp_repo = comp_repo
+        self.identity_repo = identity_repo
 
     async def build_report_dto(
         self, execution_id: str, profile_id: str | None = None, accept_language: str | None = None
     ) -> ReportDataDTO:
         """Builds the strictly typed report payload by parsing results according to the selected profile."""
-        execution = await self.repo.get_execution(execution_id)
+        execution = await self.exec_repo.get_execution(execution_id)
         if not execution:
             msg = f"Execution {execution_id} not found."
             logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
             raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND})
 
-        workflow_data = await self.repo.get_workflow_by_id(execution.workflow_id)
+        workflow_data = await self.workflow_repo.get_workflow_by_id(execution.workflow_id)
         if not workflow_data:
             msg = f"Executing workflow {execution.workflow_id} not found."
             logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -85,7 +99,7 @@ class BlueprintTransformer:
         resolved_pid_request = profile_id if profile_id and profile_id != "default" else default_profile_ref
 
         # Pre-fetch all profiles for relation resolution and UI dropdown mapping
-        all_profiles_data = await self.repo.get_all_output_profiles()
+        all_profiles_data = await self.comp_repo.get_all_output_profiles()
         all_profiles = []
         for pd in all_profiles_data:
             try:
@@ -127,7 +141,7 @@ class BlueprintTransformer:
         grouped_extensions: dict[str, list[Any]] = {ext: [] for ext in visible_extensions}
 
         # We must pre-fetch blocks early for resolving axis_label
-        all_blocks = await self.repo.get_all_prompt_blocks()
+        all_blocks = await self.comp_repo.get_all_prompt_blocks()
         blocks_by_id: dict[str, PromptBlock] = {}
         for b in all_blocks:
             if "id" in b:
@@ -147,7 +161,7 @@ class BlueprintTransformer:
         has_warning = False
         synthesis_md = None
         scoring_out = None
-        
+
         for dto in results:
             if dto.block_id == "scoring_result" and isinstance(dto.payload, dict):
                 scoring_out = dto.payload
@@ -210,7 +224,7 @@ class BlueprintTransformer:
             step_id = dto.step_id
             b_id = dto.block_id
             block_data = dto.payload
-            
+
             if not isinstance(block_data, dict):
                 continue
 
@@ -357,9 +371,7 @@ class BlueprintTransformer:
                             clean_level_dict[c_key] = f"{hits}/{total}"
                         except ValueError as v_err:
                             raise AppException(
-                                message=(
-                                    f"Fail-Fast: Invalid level key '{lvl_key}' in matrix breakdown for '{b_id}'."
-                                ),
+                                message=(f"Fail-Fast: Invalid level key '{lvl_key}' in matrix breakdown for '{b_id}'."),
                                 status_code=500,
                                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                             ) from v_err
@@ -424,7 +436,7 @@ class BlueprintTransformer:
                     grouped_extensions[ext_key] = synthesized[:max_items]
                 else:
                     # ZERO-COMPROMISE / FAIL-FAST: No Graceful Degradation.
-                    # If global synthesis failed to produce an insight, we do not fallback 
+                    # If global synthesis failed to produce an insight, we do not fallback
                     # to showing fragmented matrix outputs.
                     grouped_extensions[ext_key] = []
 
@@ -553,7 +565,7 @@ class BlueprintTransformer:
         if execution.organization_id:
             try:
                 # Need to lookup organisation if possible
-                org_data = await self.repo.get_organization(execution.organization_id)
+                org_data = await self.identity_repo.get_organization(execution.organization_id)
                 if org_data:
                     org = Organization.model_validate(org_data)
                     org_name = org.name

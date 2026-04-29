@@ -2,8 +2,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from backend_v2.api.dependencies import get_llm_handler, get_repo
-from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.api.dependencies import get_llm_handler
+from backend_v2.database.factory import get_repository
 
 app = FastAPI()
 
@@ -20,13 +20,13 @@ async def route_test_llm_dep(llm_handler: Annotated[Any, Depends(get_llm_handler
 @pytest.mark.asyncio
 async def test_llm_handler_dependency_injection() -> None:
     # Override the repo dependency specifically for this test
-    # Use a pure MagicMock to bypass strict AbstractWorkflowRepository ABC requirements
+    # Use a pure MagicMock to bypass strict Any ABC requirements
     from unittest.mock import MagicMock
 
-    mock_repo = MagicMock(spec=AbstractWorkflowRepository)
+    mock_repo = MagicMock(spec=Any)
     mock_repo._db = "mock_db_instance"
 
-    app.dependency_overrides[get_repo] = lambda: mock_repo
+    app.dependency_overrides[get_repository] = lambda: mock_repo
 
     with TestClient(app) as client:
         response = client.get("/test-llm-dep")

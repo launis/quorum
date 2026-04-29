@@ -11,7 +11,6 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.falsifier import FalsifierData
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepGuardDTO, StepPanelDTO
 from backend_v2.models.domain.security import SanitizationResultDTO
-from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.dtos.lightweight_matrix import (
     AtomEvaluationItemDTO,
     LightweightMatrixOutput,
@@ -26,6 +25,7 @@ from backend_v2.models.enums import (
     WaterfallThreshold,
     XaiExtensionType,
 )
+from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import PromptBlock, Step
 from backend_v2.settings import get_settings
 from backend_v2.utils.math_utils import (
@@ -53,17 +53,13 @@ XAI_FIELD_MAP = {
 def _extract_payloads(data: dict[str, Any]) -> list[dict[str, Any]]:
     """Strict Phase 9 Extractor. No V1 Fallbacks. No Naked Dict guessing."""
     payloads = []
-    
+
     steps = data.get("steps")
     if not isinstance(steps, list):
         # Strict Fail-Fast: The execution snapshot must be a valid array of StepOutputDTOs.
         msg = "Strict Fail-Fast Enforced: Execution snapshot 'steps' missing or is not a list."
         logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-        raise AppException(
-            message=msg,
-            status_code=500,
-            details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-        )
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     for dto_raw in steps:
         try:
@@ -83,7 +79,7 @@ def _extract_payloads(data: dict[str, Any]) -> list[dict[str, Any]]:
         val = data.get(key)
         if isinstance(val, dict):
             payloads.append(val)
-            
+
     return payloads
 
 
@@ -227,7 +223,7 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
             # In V2, lookup_ctx is _snapshot (a dictionary of step dictionaries or new 'steps' list)
             for step_output in _extract_payloads(item):
                 _extract_scores(step_output)
-            
+
             # Epic 43 Phase 2 Fix: Extract from hoisted StepOutputDTO list
             steps = item.get("steps")
             if isinstance(steps, list):
@@ -334,7 +330,7 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
         msg = "Strict Fail-Fast Enforced: Missing HookState in enforce_passivity_penalty_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-    repository = deps.repository
+    repository = deps.workflow_repo
     if not repository:
         msg = (
             "Strict Fail-Fast Enforced: No repository provided in HookDependencies for enforce_passivity_penalty_hook."
@@ -364,7 +360,7 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
         # Resolve which prompt blocks are matrices (Schema-Driven Routing, strictly no duck typing)
         matrix_block_ids = set()
         for pb_id in prompt_block_ids:
-            pb_data = await repository.get_prompt_block_by_id(pb_id)
+            pb_data = await deps.comp_repo.get_prompt_block_by_id(pb_id)
             if pb_data:
                 pb_model = PromptBlock.model_validate(pb_data)
                 if pb_model.category_id == "matrix":
@@ -478,7 +474,7 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
     """Post-Hook to calculate Hybrid Waterfall scores from blind atom evaluations."""
     logger.info("[ScoringHook] Running waterfall_scoring_hook...")
 
-    repository = deps.repository
+    repository = deps.workflow_repo
     if not repository:
         msg = "Strict Fail-Fast Enforced: No repository provided in HookDependencies for waterfall_scoring_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
@@ -513,7 +509,7 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
         # Determine if this step actually contains matrix blocks
         matrix_blocks = []
         for pb_id in prompt_block_ids:
-            pb_data = await repository.get_prompt_block_by_id(pb_id)
+            pb_data = await deps.comp_repo.get_prompt_block_by_id(pb_id)
             if pb_data:
                 try:
                     pb_model = PromptBlock.model_validate(pb_data)
@@ -817,7 +813,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
     """
     logger.info("[ScoringHook] Running normalize_matrix_scores_hook...")
 
-    repository = deps.repository
+    repository = deps.workflow_repo
     if not repository:
         msg = "Strict Fail-Fast Enforced: No repository provided in HookDependencies for normalize_matrix_scores_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
@@ -922,7 +918,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             if not isinstance(raw_val, (int, float)):
                 continue
 
-            pb_data = await repository.get_prompt_block_by_id(pb_id)
+            pb_data = await deps.comp_repo.get_prompt_block_by_id(pb_id)
             if not pb_data:
                 msg = f"Strict Fail-Fast Enforced: Missing PromptBlock '{pb_id}' during score normalization."
                 logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)

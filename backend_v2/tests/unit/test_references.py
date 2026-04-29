@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest
 
 from backend_v2.core.hook_registry import HookDependencies, HookState
@@ -15,9 +17,15 @@ async def test_generate_bibliography_hook_success() -> None:
         global_context_vars={"knowledge_base": {"concepts": []}},
         metadata={},
     )
-    from unittest.mock import MagicMock
 
-    deps = HookDependencies(repository=MagicMock())
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
 
     from collections.abc import Awaitable
     from typing import cast

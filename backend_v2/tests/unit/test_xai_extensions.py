@@ -79,7 +79,7 @@ def test_xai_extensions_schema_generation_happy_path(test_blocks: Any) -> None:
     assert instance.matrix_logic_justification == "Valid logic structure."  # type: ignore[attr-defined]
     assert instance.matrix_logic_citation == "'Always test edge cases.'"  # type: ignore[attr-defined]
     assert instance.matrix_logic_falsification == "Unless the edge case is impossible."  # type: ignore[attr-defined]
-    assert instance.matrix_logic_missing_context == "Background dependencies not mentioned."  # type: ignore[attr-defined]
+    assert instance.matrix_logic_missing_context == "Background dependencies not mentioned."  # type: ignore[attr-defined]  # noqa: E501
 
 
 def test_xai_extensions_validation_failures(test_blocks: Any) -> None:

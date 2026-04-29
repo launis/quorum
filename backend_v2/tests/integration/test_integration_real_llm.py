@@ -278,7 +278,7 @@ async def test_real_llm_e2e_orchestration() -> None:
 
                 deep_logic_compare(old_trace, new_trace)
             else:
-                logger.info("Skipping deep logic compare because no historical file or previous DB trace is available.")
+                logger.info("Skipping deep logic compare because no historical file or previous DB trace is available.")  # noqa: E501
 
         # 4. Assert Dual-Log Generation (User Request: "Varmista, että näihin molempiin logeihin tulostuu dataa.")
         backend_log_size = os.path.getsize(BACKEND_LOG_FILE)

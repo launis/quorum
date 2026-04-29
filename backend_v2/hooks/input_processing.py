@@ -37,10 +37,11 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     logger.info("[InputProcessingHook] Running deterministic input normalizer...")
 
     # Fetch workflow to know about expected_inputs
-    repo = deps.repository
+    workflow_repo = deps.workflow_repo
+    system_repo = deps.system_repo
     workflow_id = state.workflow_id
 
-    if not repo or not workflow_id:
+    if not workflow_repo or not workflow_id:
         logger.error("Missing repository or workflow_id in context.", extra={"error_code": "MISSING_EXECUTION_CONTEXT"})
         raise AppException(
             message="Missing execution context for input processing.",
@@ -48,7 +49,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
             details={"error_code": "MISSING_EXECUTION_CONTEXT"},
         )
 
-    workflow_dict = await repo.get_workflow_by_id(workflow_id)
+    workflow_dict = await workflow_repo.get_workflow_by_id(workflow_id)
     if not workflow_dict:
         raise AppException(
             message=f"Workflow {workflow_id} not found.",
@@ -123,7 +124,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         if expected_input.is_chat_history and resolved_text and not resolved_text.strip().startswith("{"):
             logger.info("[InputProcessingHook] Unstructured chat detected for %s. Invoking ChatParserLLM...", key)
             try:
-                chat_dto = await ChatParserService.parse_pasted_chat(resolved_text, repository=repo)
+                chat_dto = await ChatParserService.parse_pasted_chat(resolved_text, system_repo=system_repo)
 
                 # Format to Markdown instead of raw JSON to prevent \n escaping in LLM prompt
                 chat_lines = []

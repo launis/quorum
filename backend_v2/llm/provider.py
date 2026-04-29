@@ -4,11 +4,14 @@ import asyncio
 import json
 import logging
 import os
+import random
 import time
 from abc import ABC, abstractmethod
-from typing import Any
+from pathlib import Path
+from typing import Any, cast
 
 import litellm
+from dotenv import load_dotenv
 from litellm import Router  # type: ignore
 from pydantic import BaseModel
 
@@ -20,6 +23,7 @@ from backend_v2.exceptions import (
     SecurityViolationError,
     ServiceUnavailableError,
 )
+from backend_v2.llm.mock import MockLLMService
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.llm import LLMProviderConfig, LLMResponse
 from backend_v2.services.usage_service import UsageService
@@ -283,10 +287,6 @@ class LiteLLMProvider(LLMProvider):
             # Robustly resolve location (Settings attr or Env Var)
 
             # Ensure env is loaded from project root
-            from pathlib import Path
-
-            from dotenv import load_dotenv
-
             # provider.py is at backend/llm/provider.py
             # Go up 3 levels to reach project root
             root_dir = Path(__file__).resolve().parent.parent.parent
@@ -335,14 +335,10 @@ class LiteLLMProvider(LLMProvider):
 
             for attempt in range(max_rate_limit_retries):
                 try:
-                    import asyncio
-
                     _timeout = call_kwargs.get("timeout", 300)
                     response = await asyncio.wait_for(self.router.acompletion(**call_kwargs), timeout=float(_timeout))
                     break  # Success, exit the retry loop
                 except Exception as e:
-                    import asyncio
-
                     error_msg = str(e)
                     error_type = type(e).__name__
 
@@ -361,9 +357,6 @@ class LiteLLMProvider(LLMProvider):
 
                     if is_transient_error:
                         if attempt < max_rate_limit_retries - 1:
-                            import asyncio
-                            import random
-
                             base_cooldown = SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value
                             jitter = random.uniform(1, 15)
                             actual_cooldown = base_cooldown + jitter
@@ -538,8 +531,6 @@ class LiteLLMProvider(LLMProvider):
 
             # Inject cost into usage dict so BaseAgent can pick it up
             usage["cost_usd"] = cost
-
-            from typing import cast
 
             # Extract tool_calls from LLM response (MCP Tool Loop support)
             extracted_tool_calls: list[dict[str, Any]] = []
@@ -721,8 +712,6 @@ class MockProvider(LLMProvider):
         **kwargs,
     ) -> LLMResponse:
         """Simulates generation by invoking the MockLLMService."""
-        from backend_v2.llm.mock import MockLLMService
-
         logger.info("[MockProvider] Calling Mock Service (Simulating Async)... %s", kwargs)
 
         # STRICT CONFIGURATION (Jan 2026): Reject defaults in Mock too.
@@ -974,8 +963,6 @@ class LLMFactory:
                 case "openai":
                     resolved_api_key = settings.openai_api_key
                     if not resolved_api_key:
-                        import os
-
                         resolved_api_key = os.getenv("OPENAI_API_KEY")
 
         return LiteLLMProvider(

@@ -16,7 +16,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
-from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.database.interfaces import IComponentRepository
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.dtos.base import BaseDTO
@@ -89,8 +89,8 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         logger.debug("[TranslationHook] Target language is English. Skipping translation.")
         return HookResult(success=True, state_delta={})
 
-    repo = deps.repository
-    if not repo:
+    system_repo = deps.system_repo
+    if not system_repo:
         msg = "Strict Fail-Fast Enforced: Missing repository context in TranslationHook."
         logger.error("[TranslationHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
@@ -111,7 +111,7 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
 
     try:
         # Initialize LLM Client via Strategy Pattern (use 'fast' for translation)
-        llm_client = await LLMClient.from_strategy("fast", repository=repo)
+        llm_client = await LLMClient.from_strategy("fast", repository=system_repo)
     except ConfigurationError as e:
         logger.error(
             "[TranslationHook] %s: Failed to init LLM for translation: %s", ErrorCodes.CONFIGURATION_ERROR.name, e
@@ -186,7 +186,7 @@ _SDUI_DICT = {
 
 
 async def translate_sdui_payload[TModel: BaseModel](
-    obj: TModel, target_language: str, repo: AbstractWorkflowRepository
+    obj: TModel, target_language: str, repo: IComponentRepository
 ) -> TModel:
     """Epic 35: API Pipeline Splicing Translation Hook.
 

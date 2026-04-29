@@ -56,7 +56,9 @@ def valid_output_profile_data() -> dict[str, Any]:
 
 @pytest.mark.asyncio
 async def test_synthesis_fails_fast_on_invalid_metadata(
-    valid_workflow_data: dict[str, Any], valid_execution_data: dict[str, Any], valid_output_profile_data: dict[str, Any]
+    valid_workflow_data: dict[str, Any],
+    valid_execution_data: dict[str, Any],
+    valid_output_profile_data: dict[str, Any],  # noqa: E501
 ) -> None:  # noqa: E501
     """Test that missing target_locale triggers AppException due to strict Pydantic parsing."""
     state = HookState(
@@ -70,7 +72,14 @@ async def test_synthesis_fails_fast_on_invalid_metadata(
     mock_repo.get_workflow_by_id.return_value = valid_workflow_data
     mock_repo.get_execution.return_value = valid_execution_data
     mock_repo.get_output_profile_by_id.return_value = valid_output_profile_data
-    deps = HookDependencies(repository=mock_repo)
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )  # noqa: E501
 
     from collections.abc import Awaitable
 
@@ -84,14 +93,16 @@ async def test_synthesis_fails_fast_on_invalid_metadata(
 
 @pytest.mark.asyncio
 async def test_synthesis_fails_fast_on_invalid_step_data(
-    valid_workflow_data: dict[str, Any], valid_execution_data: dict[str, Any], valid_output_profile_data: dict[str, Any]
+    valid_workflow_data: dict[str, Any],
+    valid_execution_data: dict[str, Any],
+    valid_output_profile_data: dict[str, Any],  # noqa: E501
 ) -> None:  # noqa: E501
     """Test that non-dict/model step data triggers AppException enforcing Phase 9 logic."""
     state = HookState(
         execution_id="exe_1234567890abcdef1234567890abcdef",
         workflow_id=valid_workflow_data["id"],
         inputs={"step_1": 12345},  # Invalid structured data
-        metadata={"target_locale": "en", "step_results": {"step_1": 12345}},
+        metadata={"target_locale": "en", "step_results": [{"invalid": "data"}]},
         global_context_vars={},
     )
 
@@ -100,28 +111,40 @@ async def test_synthesis_fails_fast_on_invalid_step_data(
     mock_repo.get_execution.return_value = valid_execution_data
     mock_repo.get_output_profile_by_id.return_value = valid_output_profile_data
 
-    deps = HookDependencies(repository=mock_repo)
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )  # noqa: E501
 
     from collections.abc import Awaitable
 
     with pytest.raises(AppException) as exc_info:
         await cast(Awaitable[HookResult], text_consolidation_hook(state, deps))
 
-    assert exc_info.value.status_code == 500
+    assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "must be a structured model" in exc_info.value.message
+    assert "Strict Fail-Fast Enforced" in exc_info.value.message
 
 
 @pytest.mark.asyncio
 async def test_synthesis_empty_inputs_returns_early(
-    valid_workflow_data: dict[str, Any], valid_execution_data: dict[str, Any], valid_output_profile_data: dict[str, Any]
+    valid_workflow_data: dict[str, Any],
+    valid_execution_data: dict[str, Any],
+    valid_output_profile_data: dict[str, Any],  # noqa: E501
 ) -> None:  # noqa: E501
     """Test that valid metadata and empty inputs safely return a HookResult without calling the LLM."""
     state = HookState(
         execution_id="exe_1234567890abcdef1234567890abcdef",
         workflow_id=valid_workflow_data["id"],
         inputs={},
-        metadata={"target_locale": "en", "step_results": {"dummy_step": {}}},
+        metadata={
+            "target_locale": "en",
+            "step_results": [{"step_id": "dummy_step", "block_id": "blk_1", "data_type": "json", "payload": {}}],
+        },  # noqa: E501
         global_context_vars={},
     )
 
@@ -130,7 +153,14 @@ async def test_synthesis_empty_inputs_returns_early(
     mock_repo.get_execution.return_value = valid_execution_data
     mock_repo.get_output_profile_by_id.return_value = valid_output_profile_data
 
-    deps = HookDependencies(repository=mock_repo)
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )  # noqa: E501
 
     from collections.abc import Awaitable
 

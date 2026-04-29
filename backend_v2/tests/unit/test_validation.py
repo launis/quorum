@@ -1,5 +1,5 @@
 from typing import cast
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import status
@@ -15,7 +15,14 @@ def mock_repository() -> AsyncMock:
 
 
 def test_verify_structure_empty_state(mock_repository: AsyncMock) -> None:
-    deps = HookDependencies(repository=mock_repository)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
     with pytest.raises(AppException) as exc:
         verify_structure(None, deps)  # type: ignore[arg-type]
     assert exc.value.status_code == status.HTTP_400_BAD_REQUEST
@@ -31,7 +38,14 @@ def test_verify_structure_success(mock_repository: AsyncMock) -> None:
         global_context_vars={},
         inputs={"data": "This is a sufficiently long string for the validation to pass."},
     )
-    deps = HookDependencies(repository=mock_repository)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
     res = cast(HookResult, verify_structure(state, deps))
     assert res.success is True
 
@@ -46,7 +60,14 @@ def test_verify_structure_invalid_input(mock_repository: AsyncMock) -> None:
         global_context_vars={},
         inputs={"data": "short"},  # < 10 chars
     )
-    deps = HookDependencies(repository=mock_repository)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
     with pytest.raises(AppException) as exc:
         verify_structure(state, deps)
     assert exc.value.status_code == status.HTTP_400_BAD_REQUEST
@@ -63,7 +84,14 @@ def test_verify_structure_empty_dict(mock_repository: AsyncMock) -> None:
         global_context_vars={},
         inputs={},
     )
-    deps = HookDependencies(repository=mock_repository)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
     with pytest.raises(AppException) as exc:
         verify_structure(state, deps)
     assert exc.value.status_code == status.HTTP_400_BAD_REQUEST
@@ -80,7 +108,14 @@ def test_verify_output_language_skips_en(mock_repository: AsyncMock) -> None:
         global_context_vars={},
         inputs={"language": "en", "data": "value"},
     )
-    deps = HookDependencies(repository=mock_repository)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
     res = cast(HookResult, verify_output_language(state, deps))
     assert res.success is True
 
@@ -93,7 +128,14 @@ def test_verify_output_language_crashes_missing_metadata(mock_repository: AsyncM
         global_context_vars={},
         inputs={"language": "en", "data": "value"},
     )
-    deps = HookDependencies(repository=mock_repository)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
     with pytest.raises(AppException) as exc:
         verify_output_language(state, deps)
     assert exc.value.status_code == status.HTTP_400_BAD_REQUEST
@@ -110,7 +152,14 @@ def test_verify_output_language_leaks_english(mock_repository: AsyncMock) -> Non
         global_context_vars={},
         inputs={"language": "fi", "evaluation_notes": "This is an english sentence with the and was and from."},
     )
-    deps = HookDependencies(repository=mock_repository)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
     res = cast(HookResult, verify_output_language(state, deps))
     assert res.success is True
     assert res.state_delta is not None

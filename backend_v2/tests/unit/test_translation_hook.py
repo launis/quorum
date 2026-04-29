@@ -25,7 +25,14 @@ async def test_translation_hook_skips_when_target_en(mock_repository: AsyncMock)
         global_context_vars={},
         inputs={"language": "en", "data": "value"},
     )
-    deps = HookDependencies(repository=mock_repository)
+    deps = HookDependencies(
+        exec_repo=mock_repository,
+        workflow_repo=mock_repository,
+        comp_repo=mock_repository,
+        identity_repo=mock_repository,
+        audit_repo=mock_repository,
+        system_repo=mock_repository,
+    )  # noqa: E501
 
     res = await cast(Awaitable[HookResult], translation_hook(state, deps))
 
@@ -34,7 +41,7 @@ async def test_translation_hook_skips_when_target_en(mock_repository: AsyncMock)
 
 
 @pytest.mark.asyncio
-async def test_translation_hook_crashes_when_missing_language_or_locale(mock_repository: AsyncMock) -> None:
+async def test_translation_hook_crashes_when_missing_language_or_locale(mock_repository: AsyncMock) -> None:  # noqa: E501
     """Ensure it drops into AppException when language or target_locale is missing."""
     # Missing target_locale
     state1 = HookState(
@@ -44,7 +51,14 @@ async def test_translation_hook_crashes_when_missing_language_or_locale(mock_rep
         global_context_vars={},
         inputs={"language": "en", "data": "value"},
     )
-    deps = HookDependencies(repository=mock_repository)
+    deps = HookDependencies(
+        exec_repo=mock_repository,
+        workflow_repo=mock_repository,
+        comp_repo=mock_repository,
+        identity_repo=mock_repository,
+        audit_repo=mock_repository,
+        system_repo=mock_repository,
+    )  # noqa: E501
 
     from backend_v2.exceptions import AppException
 
@@ -82,7 +96,14 @@ async def test_translation_hook_role_segregation_and_success(
         global_context_vars={},
         inputs={"language": "fi", "title": "Example Title", "_private": "hidden"},
     )
-    deps = HookDependencies(repository=mock_repository)
+    deps = HookDependencies(
+        exec_repo=mock_repository,
+        workflow_repo=mock_repository,
+        comp_repo=mock_repository,
+        identity_repo=mock_repository,
+        audit_repo=mock_repository,
+        system_repo=mock_repository,
+    )  # noqa: E501
 
     # Setup Mock
     mock_client = AsyncMock()
@@ -130,7 +151,8 @@ class DummySduiModel(BaseModel):
 async def test_translate_sdui_payload_success(mock_repository: AsyncMock) -> None:
     """Ensure it translates SDUI strings using the deterministic dictionary and rehydrates the model."""
     obj = DummySduiModel(
-        title="Falsification", items=[{"label": "Coaching"}, {"status": "missing_context"}, {"unknown": "Not In Dict"}]
+        title="Falsification",
+        items=[{"label": "Coaching"}, {"status": "missing_context"}, {"unknown": "Not In Dict"}],  # noqa: E501
     )
 
     # Translate to Finnish

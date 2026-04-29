@@ -7,11 +7,18 @@ from backend_v2.hooks.validation import verify_output_language
 
 def test_verify_output_language_detects_english_leakage() -> None:
     # Arrange
-    mock_repo = MagicMock()
     # English text with heavy stop words
     inputs = {"evaluation_notes": "The user was very good and the system is fine.", "language": "fi"}
 
-    deps = HookDependencies(repository=mock_repo)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
+    # mock_repo)
     state = HookState(
         execution_id="exec-123",
         workflow_id="wf-123",
@@ -33,14 +40,21 @@ def test_verify_output_language_detects_english_leakage() -> None:
 
 
 def test_verify_output_language_ignores_finnish_text() -> None:
-    mock_repo = MagicMock()
     # Finnish text lacking English stop words
     inputs = {
         "evaluation_notes": "Käyttäjä vaikutti erittäin fiksulta ja ymmärsi asian täydellisesti.",
         "language": "fi",
     }  # noqa: E501
 
-    deps = HookDependencies(repository=mock_repo)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
+    # mock_repo)
     state = HookState(
         execution_id="exec-123",
         workflow_id="wf-123",
@@ -57,11 +71,18 @@ def test_verify_output_language_ignores_finnish_text() -> None:
 
 
 def test_verify_output_language_allows_english_when_target_en() -> None:
-    mock_repo = MagicMock()
     # English text when English is requested
     inputs = {"evaluation_notes": "The user was very good and the system is fine.", "language": "en"}
 
-    deps = HookDependencies(repository=mock_repo)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
+    # mock_repo)
     state = HookState(
         execution_id="exec-123",
         workflow_id="wf-123",

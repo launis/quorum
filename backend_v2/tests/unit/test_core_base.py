@@ -16,7 +16,7 @@ def test_v2_core_base_extra_forbid() -> None:
 
     # Should fail if extra fields are provided
     with pytest.raises(ValidationError) as exc_info:
-        DummyModel(field="value", extra_field="not allowed")
+        DummyModel(**{"field": "value", "extra_field": "not allowed"})
 
     assert "Extra inputs are not permitted" in str(exc_info.value) or "extra_forbidden" in str(exc_info.value)
 

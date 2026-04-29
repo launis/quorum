@@ -33,7 +33,15 @@ def mock_compiler() -> MagicMock:
 
 @pytest.fixture
 def llm_strategy(mock_repo: MagicMock, mock_compiler: MagicMock) -> LLMNodeStrategy:
-    return LLMNodeStrategy(repository=mock_repo, prompt_compiler=mock_compiler)
+    return LLMNodeStrategy(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )  # noqa: E501
 
 
 @pytest.mark.asyncio
@@ -180,6 +188,7 @@ async def test_execute_success_path_structured_output(
 
     projector = MagicMock()
     from backend_v2.models.state import StepOutputDTO
+
     projector.snapshot = [StepOutputDTO(step_id="path", block_id="to", data_type="dict", payload={"test": "value"})]
 
     context = MagicMock()
@@ -267,7 +276,7 @@ async def test_execute_success_path_structured_output(
 @pytest.mark.asyncio
 async def test_configure_llm_context_hook_success() -> None:
     """Test that the LLM hook correctly resolves provider configuration."""
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import patch
 
     from backend_v2.core.hook_registry import HookDependencies, HookState
     from backend_v2.hooks.llm import configure_llm_context_hook
@@ -280,7 +289,14 @@ async def test_configure_llm_context_hook_success() -> None:
         global_context_vars={"workflow_model_mapping": {"step1": "fast"}},
         metadata={},
     )
-    deps = HookDependencies(repository=MagicMock())
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
 
     with patch("backend_v2.hooks.llm.get_settings") as mock_settings:
         mock_settings.return_value.default_model_strategy = "fast"
@@ -321,7 +337,17 @@ def test_configure_llm_context_hook_empty_state() -> None:
 
     result = cast(
         HookResult,
-        configure_llm_context_hook(cast(HookState, None), HookDependencies(repository=MagicMock())),
+        configure_llm_context_hook(
+            cast(HookState, None),
+            HookDependencies(
+                exec_repo=MagicMock(),
+                workflow_repo=MagicMock(),
+                comp_repo=MagicMock(),
+                identity_repo=MagicMock(),
+                audit_repo=MagicMock(),
+                system_repo=MagicMock(),
+            ),
+        ),
     )
     assert result.success is True
     assert result.state_delta == {}
@@ -341,4 +367,14 @@ def test_configure_llm_context_hook_error() -> None:
     )
 
     with pytest.raises(AppException):
-        configure_llm_context_hook(state, HookDependencies(repository=MagicMock()))
+        configure_llm_context_hook(
+            state,
+            HookDependencies(
+                exec_repo=MagicMock(),
+                workflow_repo=MagicMock(),
+                comp_repo=MagicMock(),
+                identity_repo=MagicMock(),
+                audit_repo=MagicMock(),
+                system_repo=MagicMock(),
+            ),
+        )

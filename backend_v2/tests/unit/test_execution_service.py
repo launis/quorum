@@ -19,7 +19,14 @@ async def test_resume_execution_fails_fast_on_invalid_state() -> None:
     mock_record.status = ExecutionStatus.RUNNING
     repo_mock.get_execution.return_value = mock_record
 
-    service = ExecutionService(repo=repo_mock, executor=executor_mock)
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=repo_mock,
+        comp_repo=repo_mock,
+        identity_repo=repo_mock,
+        usage_service=AsyncMock(),
+        executor=executor_mock,
+    )  # noqa: E501
     initiator = TokenData(id="u1", role=UserRole.ROOT)  # Bypasses auth checks
 
     with pytest.raises(AppException) as exc_info:

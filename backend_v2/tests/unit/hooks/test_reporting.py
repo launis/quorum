@@ -9,6 +9,26 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.reporting import generate_report_hook
 
+valid_execution_data = {
+    "id": "exe_123",
+    "workflow_id": "wf_123",
+    "organization_id": "org_1",
+    "status": "running",
+    "output_profile_id": "prof_123",
+}
+
+valid_workflow_data = {
+    "id": "wf_123",
+    "slug": "test_workflow",
+    "name": {"default_locale": "en", "translations": {"en": "Test"}},
+    "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+    "status": "draft",
+    "version": 1,
+    "default_profile_id": "prof_123",
+    "expected_inputs": [],
+    "steps": [],
+}
+
 
 @patch("backend_v2.hooks.reporting.Path.exists", return_value=True)
 def test_reporting_hook_fail_fast_on_invalid_inputs(mock_exists: Any) -> None:
@@ -22,7 +42,24 @@ def test_reporting_hook_fail_fast_on_invalid_inputs(mock_exists: Any) -> None:
         inputs=None,  # type: ignore[arg-type] # Missing
         global_context_vars={},
     )
-    deps = HookDependencies(repository=AsyncMock())
+    mock_exec_repo = AsyncMock()
+    mock_workflow_repo = AsyncMock()
+    mock_exec_repo.get_execution.return_value = valid_execution_data
+    mock_workflow_repo.get_workflow_by_id.return_value = valid_workflow_data
+    mock_workflow_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_123",
+        "layouts": [],
+        "display_scale": "original",
+    }  # noqa: E501
+    deps = HookDependencies(
+        exec_repo=mock_exec_repo,
+        workflow_repo=mock_workflow_repo,
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    # AsyncMock())
 
     with pytest.raises(AppException) as exc:
         generate_report_hook(state, deps)
@@ -49,7 +86,24 @@ def test_reporting_hook_fail_fast_on_invalid_pydantic_schema(mock_exists: Any) -
             }
         },
     )
-    deps = HookDependencies(repository=AsyncMock())
+    mock_exec_repo = AsyncMock()
+    mock_workflow_repo = AsyncMock()
+    mock_exec_repo.get_execution.return_value = valid_execution_data
+    mock_workflow_repo.get_workflow_by_id.return_value = valid_workflow_data
+    mock_workflow_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_123",
+        "layouts": [],
+        "display_scale": "original",
+    }  # noqa: E501
+    deps = HookDependencies(
+        exec_repo=mock_exec_repo,
+        workflow_repo=mock_workflow_repo,
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    # AsyncMock())
 
     with pytest.raises(AppException) as exc:
         generate_report_hook(state, deps)
@@ -84,7 +138,24 @@ def test_reporting_hook_success_with_valid_schema(mock_exists: Any) -> None:
             "step_judge": {"critical_findings": ["Finding A", "Finding B"]},
         },
     )
-    deps = HookDependencies(repository=AsyncMock())
+    mock_exec_repo = AsyncMock()
+    mock_workflow_repo = AsyncMock()
+    mock_exec_repo.get_execution.return_value = valid_execution_data
+    mock_workflow_repo.get_workflow_by_id.return_value = valid_workflow_data
+    mock_workflow_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_123",
+        "layouts": [],
+        "display_scale": "original",
+    }  # noqa: E501
+    deps = HookDependencies(
+        exec_repo=mock_exec_repo,
+        workflow_repo=mock_workflow_repo,
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    # AsyncMock())
 
     with patch("backend_v2.hooks.reporting.Path.exists", return_value=True):
         result = cast(HookResult, generate_report_hook(state, deps))

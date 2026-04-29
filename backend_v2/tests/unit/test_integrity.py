@@ -5,19 +5,24 @@ import pytest
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
 from backend_v2.exceptions import AppException
-from backend_v2.hooks.integrity import enforce_hypothesis_linking_hook, verify_citation_integrity_hook
+from backend_v2.hooks.integrity import enforce_hypothesis_linking_hook, verify_citation_integrity_hook  # noqa: E501
 
 
 @pytest.fixture
 def mock_deps() -> HookDependencies:
     return HookDependencies(
-        repository=AsyncMock(),
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),  # noqa: E501
         search_client=AsyncMock(),
     )
 
 
 @pytest.mark.asyncio
-async def test_verify_citation_integrity_hook_analyst_hallucination(mock_deps: HookDependencies) -> None:
+async def test_verify_citation_integrity_hook_analyst_hallucination(mock_deps: HookDependencies) -> None:  # noqa: E501
     """Test that hallucinations in AnalystOutput quotes are stripped."""
     state = HookState(
         execution_id="exe_1",

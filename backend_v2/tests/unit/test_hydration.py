@@ -10,7 +10,12 @@ from backend_v2.models.domain.hydration import HydrationInputSourceDTO
 @pytest.fixture
 def mock_deps() -> HookDependencies:
     return HookDependencies(
-        repository=AsyncMock(),
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),  # noqa: E501
         search_client=AsyncMock(),
     )
 

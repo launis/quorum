@@ -10,9 +10,14 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
 
     # Mocking the JSON structure we confirmed in Phase 1
     mock_matrix_block = {
-        "id": "blk_test_matrix",
+        "id": "blk_1234567890abcdef",
+        "slug": "test_matrix",
+        "category_id": "matrix",
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
         "type": BlockDataType.FLOAT,
         "allow_decimals": True,
+        "scale_min": 1,
+        "scale_max": 5,
         "label": {"default_locale": "en", "translations": {"en": "Critical Distance Score"}},
         "ai_description": "ROLE: ADVERSARIAL AUDITOR... Evaluate the user's intellectual effort...",
         "rows": [
@@ -69,17 +74,21 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
     }
 
     # Act
-    DynamicSchema = compiler.build_dynamic_schema(schema_name="TestSchema", criteria=[mock_matrix_block])
+    from backend_v2.models.v2_core import PromptBlock
+
+    DynamicSchema = compiler.build_dynamic_schema(
+        schema_name="TestSchema", criteria=[PromptBlock.model_validate(mock_matrix_block)]
+    )  # noqa: E501
 
     # Assert
     assert issubclass(DynamicSchema, BaseModel)
 
     # Get the field description which contains the compiled BARS matrix
-    field_info = DynamicSchema.model_fields["blk_test_matrix"]
+    field_info = DynamicSchema.model_fields["blk_1234567890abcdef"]
     compiled_desc = field_info.description
 
     # Target Snapshot format
-    expected_snapshot = "Evaluation object for blk_test_matrix"
+    expected_snapshot = "Evaluation object for blk_1234567890abcdef"
 
     assert compiled_desc == expected_snapshot, (
         f"Snapshot mismatch!\nEXPECTED:\n{expected_snapshot}\n\nACTUAL:\n{compiled_desc}"
@@ -93,22 +102,40 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     compiler = PromptCompiler()
 
     mock_matrix = {
-        "id": "blk_extract_test",
+        "id": "blk_2234567890abcdef",
+        "slug": "extract_test",
+        "category_id": "matrix",
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
         "type": BlockDataType.FLOAT,
         "allow_decimals": True,
+        "scale_min": 1,
+        "scale_max": 5,
         "label": {"default_locale": "en", "translations": {"en": "Test Score"}},
         "ai_description": "Base Desc",
         "output_extensions": ["justification", "remediation_steps", "confidence"],
-        "scales": [{"score": 1, "ai_label": "ONE", "claims": [{"label": "Claim 1", "ai_description": "Directive 1"}]}],
+        "scales": [
+            {
+                "score": 1,
+                "ai_label": "ONE",
+                "claims": [
+                    {
+                        "label": {"default_locale": "en", "translations": {"en": "Claim 1"}},
+                        "ai_description": "Directive 1",
+                    }
+                ],
+            }
+        ],  # noqa: E501
     }
 
-    DynamicSchema = compiler.build_dynamic_schema("TestExtract", [mock_matrix])
+    from backend_v2.models.v2_core import PromptBlock
+
+    DynamicSchema = compiler.build_dynamic_schema("TestExtract", [PromptBlock.model_validate(mock_matrix)])
 
     # Simulate LLM Response parsing
     llm_payload = {
         "reasoning_trace": "Let's think...",
         "evaluation_notes": "User was bad",
-        "blk_extract_test": {
+        "blk_2234567890abcdef": {
             "step_3_logical_friction": "I gave a 1 because...",
             "extension_remediation_steps": "Step 1\nStep 2",
             "extension_confidence": 95.5,
@@ -116,10 +143,10 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     }
 
     parsed = DynamicSchema.model_validate(llm_payload)
-    assert parsed.blk_extract_test.extension_remediation_steps == "Step 1\nStep 2"  # type: ignore[attr-defined]
-    assert parsed.blk_extract_test.extension_confidence == 95.5  # type: ignore[attr-defined]
+    assert parsed.blk_2234567890abcdef.extension_remediation_steps == "Step 1\nStep 2"  # type: ignore[attr-defined]
+    assert parsed.blk_2234567890abcdef.extension_confidence == 95.5  # type: ignore[attr-defined]
     assert parsed.reasoning_trace == "Let's think..."  # type: ignore[attr-defined]
-    assert parsed.blk_extract_test.step_3_logical_friction == "I gave a 1 because..."  # type: ignore[attr-defined]
+    assert parsed.blk_2234567890abcdef.step_3_logical_friction == "I gave a 1 because..."  # type: ignore[attr-defined]
 
 
 def test_generate_mcp_instruction() -> None:
@@ -189,15 +216,21 @@ def test_compile_xml_rubrics_anti_sycophancy() -> None:
     compiler = PromptCompiler()
     mock_criteria = [
         {
-            "id": "blk_test",
-            "type": "slider",
+            "id": "blk_3234567890abcdef",
+            "slug": "test",
+            "category_id": "matrix",
+            "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+            "type": "float",
+            "scale_min": 1,
+            "scale_max": 5,
             "label": {"default_locale": "en", "translations": {"en": "Test"}},
             "ai_description": "Test description",
-            "scales": [],
         }
     ]
 
-    result = compiler.compile_xml_rubrics(mock_criteria, target_locale="en")
+    from backend_v2.models.v2_core import PromptBlock
+
+    result = compiler.compile_xml_rubrics([PromptBlock.model_validate(c) for c in mock_criteria], target_locale="en")
 
     assert "<ANTI_SYCOPHANCY_MANDATE>" in result
     assert "ANTI-SYCOPHANCY MANDATE:" in result

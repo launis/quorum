@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -93,8 +94,17 @@ async def test_atom_flattening_missing_strategy_fails_fast(base_hook_state: Hook
     """Test that missing matrix_sampling_strategy triggers fail-fast."""
     state = base_hook_state.model_copy(update={"metadata": {}})  # Empty metadata
 
-    repo = MockRepository(step=mock_step, blocks=[])
-    deps = HookDependencies(repository=repo)  # type: ignore[arg-type]
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=mock_workflow_repo,
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    # repo)  # type: ignore[arg-type]
 
     with pytest.raises(AppException) as exc_info:
         await process_matrix_flattening(state, deps)  # type: ignore[misc]
@@ -109,8 +119,17 @@ async def test_atom_flattening_invalid_strategy_fails_fast(base_hook_state: Hook
     """Test that invalid matrix_sampling_strategy triggers fail-fast."""
     state = base_hook_state.model_copy(update={"metadata": {"matrix_sampling_strategy": -1}})  # Invalid negative limit
 
-    repo = MockRepository(step=mock_step, blocks=[])
-    deps = HookDependencies(repository=repo)  # type: ignore[arg-type]
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=mock_workflow_repo,
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    # repo)  # type: ignore[arg-type]
 
     with pytest.raises(AppException) as exc_info:
         await process_matrix_flattening(state, deps)  # type: ignore[misc]
@@ -123,9 +142,20 @@ async def test_atom_flattening_invalid_strategy_fails_fast(base_hook_state: Hook
 @pytest.mark.asyncio
 async def test_atom_flattening_stratified_sampling(base_hook_state: HookState, mock_step: Step) -> None:
     """Test Stratified sampling selects exactly N elements per scale."""
-    block = create_mock_matrix_block("blk_0123456789abcdef0123456789abcdef", num_atoms_per_scale=10)
-    repo = MockRepository(step=mock_step, blocks=[block])
-    deps = HookDependencies(repository=repo)  # type: ignore[arg-type]
+    mock_block = create_mock_matrix_block("blk_0123456789abcdef0123456789abcdef", num_atoms_per_scale=10)
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
+    mock_comp_repo = AsyncMock()
+    mock_comp_repo.get_all_prompt_blocks.return_value = [mock_block.model_dump(mode="json")]
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=mock_workflow_repo,
+        comp_repo=mock_comp_repo,
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    # repo)  # type: ignore[arg-type]
 
     # Use STRATIFIED_3
     state = base_hook_state.model_copy(update={"metadata": {"matrix_sampling_strategy": 3}})
@@ -149,9 +179,20 @@ async def test_atom_flattening_stratified_sampling(base_hook_state: HookState, m
 @pytest.mark.asyncio
 async def test_atom_flattening_all_strategy_no_sampling(base_hook_state: HookState, mock_step: Step) -> None:
     """Test ALL sampling strategy flattens everything without dropping."""
-    block = create_mock_matrix_block("blk_0123456789abcdef0123456789abcdef", num_atoms_per_scale=5)
-    repo = MockRepository(step=mock_step, blocks=[block])
-    deps = HookDependencies(repository=repo)  # type: ignore[arg-type]
+    mock_block = create_mock_matrix_block("blk_0123456789abcdef0123456789abcdef", num_atoms_per_scale=5)
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
+    mock_comp_repo = AsyncMock()
+    mock_comp_repo.get_all_prompt_blocks.return_value = [mock_block.model_dump(mode="json")]
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=mock_workflow_repo,
+        comp_repo=mock_comp_repo,
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    # repo)  # type: ignore[arg-type]
 
     # Use ALL
     state = base_hook_state.model_copy(update={"metadata": {"matrix_sampling_strategy": 0}})

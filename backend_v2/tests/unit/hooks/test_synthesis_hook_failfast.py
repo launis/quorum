@@ -20,7 +20,15 @@ async def test_synthesis_hook_fail_fast_on_missing_step_results() -> None:
         inputs={"input_1": "some value"},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=AsyncMock())
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    # AsyncMock())
 
     from collections.abc import Awaitable
     from typing import cast
@@ -42,11 +50,19 @@ async def test_synthesis_hook_fail_fast_on_empty_step_results() -> None:
         workflow_id="wf_123",
         step_id="step_123",
         task_blueprint="bp_123",
-        metadata={"target_locale": "en", "step_results": {}},  # empty step_results
+        metadata={"target_locale": "en", "step_results": []},  # empty step_results
         inputs={"input_1": "some value"},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=AsyncMock())
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    # AsyncMock())
 
     from collections.abc import Awaitable
     from typing import cast

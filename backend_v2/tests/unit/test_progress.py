@@ -1,26 +1,24 @@
 import json
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
-from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.services.progress import (
-    DatabaseProgressTracker,
-    InMemoryProgressTracker,
-    ProgressService,
-    ProgressState,
     STATUS_COMPLETED,
     STATUS_FAILED,
     STATUS_RUNNING,
     STATUS_STARTED,
+    DatabaseProgressTracker,
+    InMemoryProgressTracker,
+    ProgressService,
+    ProgressState,
 )
 
 
 @pytest.mark.asyncio
 async def test_database_progress_tracker() -> None:
-    mock_repo = AsyncMock(spec=AbstractWorkflowRepository)
+    mock_repo = AsyncMock()
     tracker = DatabaseProgressTracker(repository=mock_repo, execution_id="exe_123")
 
     # Test start
@@ -70,7 +68,7 @@ async def test_database_progress_tracker() -> None:
 async def test_in_memory_progress_tracker() -> None:
     emitted = []
 
-    def callback(data: dict) -> None:
+    def callback(data: dict) -> None:  # type: ignore
         emitted.append(data)
 
     tracker = InMemoryProgressTracker(callback=callback)
@@ -136,5 +134,5 @@ async def test_progress_service() -> None:
     mock_redis.set.side_effect = Exception("Redis Down")
     with pytest.raises(AppException) as exc_info:
         await service.emit_progress("exe", "task", "msg", 1.0)
-    
+
     assert exc_info.value.details["error_code"] == ErrorCodes.PROGRESS_UPDATE_FAILED

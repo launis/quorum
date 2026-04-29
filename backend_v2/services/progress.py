@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.database.interfaces import IExecutionRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
@@ -90,11 +90,11 @@ class DatabaseProgressTracker(ProgressTracker):
     Used by WorkflowEngine to persist state across server restarts.
     """
 
-    def __init__(self, repository: AbstractWorkflowRepository, execution_id: str):
+    def __init__(self, repository: IExecutionRepository, execution_id: str):
         """Initializes the tracker for a specific execution.
 
         Args:
-            repository (AbstractWorkflowRepository): Data access layer.
+            repository (IExecutionRepository): Data access layer.
             execution_id (str): UUID of the execution.
 
         """

@@ -9,7 +9,12 @@ from uuid import uuid4
 
 from arq.connections import ArqRedis
 
-from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.database.interfaces import (
+    IComponentRepository,
+    IExecutionRepository,
+    IIdentityRepository,
+    IWorkflowRepository,
+)
 from backend_v2.exceptions import (
     AppException,
     ConfigurationError,
@@ -44,14 +49,26 @@ logger = logging.getLogger(__name__)
 class ExecutionService:
     """Domain Service for Orchestration Executions enforcing Tenant Isolation and Authorization."""
 
-    def __init__(self, repo: AbstractWorkflowRepository, executor: DAGExecutor):
-        self.repo = repo
+    def __init__(
+        self,
+        exec_repo: IExecutionRepository,
+        workflow_repo: IWorkflowRepository,
+        comp_repo: IComponentRepository,
+        identity_repo: IIdentityRepository,
+        usage_service: UsageService,
+        executor: DAGExecutor,
+    ):
+        self.exec_repo = exec_repo
+        self.workflow_repo = workflow_repo
+        self.comp_repo = comp_repo
+        self.identity_repo = identity_repo
+        self.usage_service = usage_service
         self.executor = executor
 
     async def list_executions(self, initiator: TokenData) -> list[ExecutionRecord]:
         """Fetch executions securely based on Tenant/Role."""
         try:
-            executions = await self.repo.get_all_executions()
+            executions = await self.exec_repo.get_all_executions()
 
             # SSOT MANDATE: Tenant Isolation Check
             if initiator.role != "ROOT":
@@ -70,7 +87,7 @@ class ExecutionService:
 
     async def get_execution(self, initiator: TokenData, execution_id: str) -> ExecutionRecord:
         """Fetch single execution securely."""
-        data = await self.repo.get_execution(execution_id)
+        data = await self.exec_repo.get_execution(execution_id)
         if not data:
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
@@ -86,8 +103,9 @@ class ExecutionService:
         """Securely delete an execution."""
         # 1. Raw fetch to bypass hydration (Fail-Fast ResourceNotFound / PermissionDenied).
         # This allows deleting corrupted executions where blob files are missing.
-        repo_driver = getattr(self.repo, "driver", None)
-        raw_data = await repo_driver.get("executions", execution_id) if repo_driver else None
+        # Since we decoupled, we just use the execution repo's getter directly
+        raw_data_record = await self.exec_repo.get_execution(execution_id)
+        raw_data = raw_data_record.model_dump() if raw_data_record else None
         if not raw_data:
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
@@ -142,7 +160,7 @@ class ExecutionService:
                             details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                         ) from e
 
-            return await self.repo.delete_execution(execution_id)
+            return await self.exec_repo.delete_execution(execution_id)
         except Exception as e:
             msg = f"Failed to delete execution {execution_id}: {str(e)}"
             logger.error("[ExecutionService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
@@ -154,7 +172,7 @@ class ExecutionService:
         self, initiator: TokenData, payload: ExecutionCreate, arq_pool: ArqRedis
     ) -> ExecutionRecord:
         """Initialize and trigger workflow securely."""
-        workflow_dict = await self.repo.get_workflow_by_id(payload.workflow_id)
+        workflow_dict = await self.workflow_repo.get_workflow_by_id(payload.workflow_id)
         if not workflow_dict:
             raise ResourceNotFoundError(resource_type="workflow", resource_id=payload.workflow_id)
 
@@ -168,8 +186,7 @@ class ExecutionService:
 
         # Circuit Breaker: Denial of Wallet Protection
         if org_id:
-            usage_service = UsageService(self.repo)
-            is_quota_safe = await usage_service.check_quota(org_id)
+            is_quota_safe = await self.usage_service.check_quota(org_id)
             if not is_quota_safe:
                 msg = f"Organization '{org_id}' has exceeded its execution quota."
                 logger.warning("[ExecutionService] Circuit Breaker Tripped: %s", msg)
@@ -210,7 +227,7 @@ class ExecutionService:
         step_states: dict[str, ExecutionStepState] = {}
         for step_rule in workflow.steps:
             # We fetch the step definition to find its core mapped matrices/blocks
-            step_dict = await self.repo.get_step(step_rule.task_blueprint)
+            step_dict = await self.workflow_repo.get_step_by_id(step_rule.task_blueprint)
             if not step_dict:
                 msg = f"Missing task blueprint {step_rule.task_blueprint} for DAG."
                 logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
@@ -232,7 +249,7 @@ class ExecutionService:
 
             prompt_blocks_refs = step_obj.prompt_blocks
             for pb_id in prompt_blocks_refs:
-                pb_dict = await self.repo.get_prompt_block(pb_id)
+                pb_dict = await self.comp_repo.get_prompt_block_by_id(pb_id)
                 if not pb_dict:
                     # V2 strictly says Fail Fast to guarantee auditability:
                     msg = (
@@ -321,7 +338,7 @@ class ExecutionService:
             organization_id=getattr(initiator, "organization_id", None),
         )
 
-        await self.repo.create_execution(initial_record.model_dump(mode="json"))
+        await self.exec_repo.create_execution(initial_record.model_dump(mode="json"))
 
         # Fire Async Process into durable Redis Queue
         await arq_pool.enqueue_job(
@@ -350,8 +367,7 @@ class ExecutionService:
         # Circuit Breaker: Denial of Wallet Protection
         org_id = getattr(initiator, "organization_id", None)
         if org_id:
-            usage_service = UsageService(self.repo)
-            is_quota_safe = await usage_service.check_quota(org_id)
+            is_quota_safe = await self.usage_service.check_quota(org_id)
             if not is_quota_safe:
                 msg = f"Organization '{org_id}' has exceeded its execution quota. Resumption blocked."
                 logger.warning("[ExecutionService] Circuit Breaker Tripped: %s", msg)
@@ -362,7 +378,7 @@ class ExecutionService:
                 )
 
         record.status = ExecutionStatus.RUNNING
-        await self.repo.update_execution(execution_id, {"status": "running"})
+        await self.exec_repo.update_execution(execution_id, {"status": "running"})
 
         # 2. Fire Async Process into durable Redis Queue using original raw inputs
         await arq_pool.enqueue_job(
@@ -406,7 +422,7 @@ class ExecutionService:
         if profile_id in execution.profile_syntheses:
             del execution.profile_syntheses[profile_id]
 
-        workflow_data = await self.repo.get_workflow_by_id(execution.workflow_id)
+        workflow_data = await self.workflow_repo.get_workflow_by_id(execution.workflow_id)
         if not workflow_data:
             raise ResourceNotFoundError(resource_type="workflow", resource_id=execution.workflow_id)
 
@@ -438,7 +454,7 @@ class ExecutionService:
 
         # Always update timestamp to invalidate any cached Arq background task locks
         update_payload["updated_at"] = datetime.now(timezone.utc).isoformat()
-        await self.repo.update_execution(execution_id, update_payload)
+        await self.exec_repo.update_execution(execution_id, update_payload)
 
         logger.info(
             "[ExecutionService] Cleared profile synthesis",
@@ -466,7 +482,7 @@ class ExecutionService:
             flat_data = FlatFileService.flatten_results(execution)
             return flat_data, "application/json", None
 
-        workflow_data = await self.repo.get_workflow_by_id(execution.workflow_id)
+        workflow_data = await self.workflow_repo.get_workflow_by_id(execution.workflow_id)
         if not workflow_data:
             msg = "Workflow not found"
             logger.error(
@@ -506,13 +522,13 @@ class ExecutionService:
             return {"status": "pending", "message": "Synthesis generating"}, "application/json", None
 
         if fmt == "json":
-            transformer = BlueprintTransformer(self.repo)
+            transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
             dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
 
             # API Pipeline Splicing (Epic 35)
             # Apply immutable translation hook before dumping to dictionary
             if accept_language and accept_language.lower() != "en":
-                dto = await translate_sdui_payload(dto, accept_language, self.repo)
+                dto = await translate_sdui_payload(dto, accept_language, self.comp_repo)
 
             return dto.model_dump(mode="json"), "application/json", None
 
@@ -520,10 +536,10 @@ class ExecutionService:
             if not accept_language and execution.metadata:
                 accept_language = execution.metadata.get("target_locale")
 
-            transformer = BlueprintTransformer(self.repo)
+            transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
             dto = await transformer.build_report_dto(execution_id, resolved_pid, accept_language)
 
-            pdf_service = PdfReportService(self.repo)
+            pdf_service = PdfReportService(self.exec_repo, self.workflow_repo)
             html_string = await pdf_service.generate_execution_html(execution_id, report_dto=dto)
 
             return html_string.encode("utf-8"), "text/html", f"execution_{execution_id}.html"
@@ -549,10 +565,10 @@ class ExecutionService:
             if not accept_language and execution.metadata:
                 accept_language = execution.metadata.get("target_locale")
 
-            transformer = BlueprintTransformer(self.repo)
+            transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
             dto = await transformer.build_report_dto(execution_id, resolved_pid, accept_language)
 
-            pdf_service = PdfReportService(self.repo)
+            pdf_service = PdfReportService(self.exec_repo, self.workflow_repo)
             pdf_bytes = await pdf_service.generate_execution_pdf(execution_id, report_dto=dto)
 
             if resolved_pid == default_pid:
@@ -561,7 +577,7 @@ class ExecutionService:
                     output_path_rel = f"executions/{execution_id}/report.pdf"
                     saved_path = await storage.save(output_path_rel, pdf_bytes)
                     if not execution.pdf_report_path or execution.pdf_report_path != saved_path:
-                        await self.repo.update_execution(execution_id, {"pdf_report_path": saved_path})
+                        await self.exec_repo.update_execution(execution_id, {"pdf_report_path": saved_path})
                     logger.info(
                         "[ExecutionService] Generated missing PDF",
                         extra={"execution_id": execution_id, "saved_path": saved_path},

@@ -37,7 +37,15 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
     """Test that asyncio.TaskGroup automatically cancels sibling tasks
     when one task fails, eradicating zombie threads naturally.
     """
-    executor = DAGExecutor(repository=mock_repo, prompt_compiler=mock_compiler)
+    executor = DAGExecutor(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )  # noqa: E501
 
     workflow = Workflow(
         id="wf_4444444444444444",

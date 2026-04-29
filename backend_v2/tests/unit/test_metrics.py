@@ -12,7 +12,12 @@ from backend_v2.hooks.metrics import calculate_control_ratio_hook, text_metrics
 @pytest.fixture
 def mock_deps() -> HookDependencies:
     return HookDependencies(
-        repository=AsyncMock(),
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),  # noqa: E501
         search_client=AsyncMock(),
     )
 
@@ -86,7 +91,7 @@ def test_control_ratio_hook_valid(mock_deps: HookDependencies) -> None:
 
 
 @patch("backend_v2.hooks.metrics.MetricsPayloadDTO.model_validate")
-def test_control_ratio_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: HookDependencies) -> None:
+def test_control_ratio_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: HookDependencies) -> None:  # noqa: E501
     """Mock the DTO validation to force a ValidationError and check Fail-Fast behavior."""
     from pydantic import BaseModel, ValidationError
 
@@ -117,7 +122,7 @@ def test_control_ratio_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: 
 
 
 @patch("backend_v2.hooks.metrics.MetricsPayloadDTO.model_validate")
-def test_text_metrics_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: HookDependencies) -> None:
+def test_text_metrics_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: HookDependencies) -> None:  # noqa: E501
     """Mock the DTO validation to force a ValidationError and check Fail-Fast behavior."""
     from pydantic import BaseModel, ValidationError
 

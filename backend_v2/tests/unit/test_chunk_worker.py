@@ -23,30 +23,34 @@ async def test_chunk_worker_process_chunk_success() -> None:
 
     sem = asyncio.Semaphore(1)
     chunk = Chunk(parent_id="wf1", index=0, items=[{"atom_id": "a1", "text": "hello"}])
+    from backend_v2.models.v2_core import PromptBlock
+
     criteria_blocks = [
-        {
-            "id": "blk_12345678901234567890123456789012",
-            "slug": "test_slug",
-            "label": {"default_locale": "en", "translations": {"en": "Test Label", "fi": "Testi"}},
-            "description": {"default_locale": "en", "translations": {"en": "Test Desc", "fi": "Testi"}},
-            "type": "string",
-            "category_id": "matrix",
-            "scale_min": 1,
-            "scale_max": 5,
-            "scales": [
-                {
-                    "score": 1,
-                    "ai_label": "Scale 1",
-                    "claims": [
-                        {
-                            "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Väite 1"}},
-                            "ai_description": "Claim 1 Desc",
-                            "micro_atoms": ["Atom 1", "Atom 2"],
-                        },
-                    ],
-                }
-            ],
-        }
+        PromptBlock.model_validate(
+            {
+                "id": "blk_12345678901234567890123456789012",
+                "slug": "test_slug",
+                "label": {"default_locale": "en", "translations": {"en": "Test Label", "fi": "Testi"}},
+                "description": {"default_locale": "en", "translations": {"en": "Test Desc", "fi": "Testi"}},
+                "type": "string",
+                "category_id": "matrix",
+                "scale_min": 1,
+                "scale_max": 5,
+                "scales": [
+                    {
+                        "score": 1,
+                        "ai_label": "Scale 1",
+                        "claims": [
+                            {
+                                "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Väite 1"}},
+                                "ai_description": "Claim 1 Desc",
+                                "micro_atoms": ["Atom 1", "Atom 2"],
+                            },
+                        ],
+                    }
+                ],
+            }
+        )
     ]
     atom_to_block_ids = {"a1": {"blk_12345678901234567890123456789012"}}
 

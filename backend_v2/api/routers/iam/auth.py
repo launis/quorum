@@ -9,7 +9,7 @@ import logging
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
-from backend_v2.api.dependencies import AuthServiceDep, CurrentUserDep, RepositoryDep
+from backend_v2.api.dependencies import AuthServiceDep, CurrentUserDep
 from backend_v2.core.rate_limit import limiter
 from backend_v2.exceptions import (
     AppException,
@@ -247,9 +247,7 @@ async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep)
 
 
 @router.delete("/users/{id}", response_model=UserDeleteResponse)
-async def delete_user(
-    id: str, current_user: CurrentUserDep, auth_service: AuthServiceDep, repo: RepositoryDep
-) -> UserDeleteResponse:
+async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthServiceDep) -> UserDeleteResponse:
     """Delete a user.
 
     Enforces Last Admin Protection.
@@ -258,7 +256,6 @@ async def delete_user(
         id (str): The UID of the user to delete.
         current_user (CurrentUserDep): The requesting user (ROOT or ADMIN).
         auth_service (AuthServiceDep): Authorization service.
-        repo (RepositoryDep): Repository dependency.
 
     Returns:
         UserDeleteResponse: Status confirmation.

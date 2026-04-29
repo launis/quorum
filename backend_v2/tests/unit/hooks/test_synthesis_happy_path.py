@@ -85,7 +85,17 @@ async def test_synthesis_happy_path(
         execution_id="exe_00000000000000000000",
         workflow_id="wf_00000000000000000000",
         inputs={"step_1": {"reasoning_trace": "Some logic"}},
-        metadata={"target_locale": "en", "step_results": {"step_1": {"reasoning_trace": "Some logic"}}},
+        metadata={
+            "target_locale": "en",
+            "step_results": [
+                {
+                    "step_id": "step_1",
+                    "block_id": "b",
+                    "data_type": "text",
+                    "payload": {"reasoning_trace": "Some logic"},
+                }
+            ],
+        },  # noqa: E501
         global_context_vars={},
     )
 
@@ -95,7 +105,15 @@ async def test_synthesis_happy_path(
     mock_repo.get_output_profile_by_id.return_value = valid_output_profile_data_for_synthesis
     mock_repo.get_all.return_value = []
 
-    deps = HookDependencies(repository=mock_repo)
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )
+    # mock_repo)
 
     from collections.abc import Awaitable
     from typing import cast

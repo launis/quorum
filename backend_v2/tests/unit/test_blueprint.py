@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import TraceEvent
@@ -109,7 +108,12 @@ async def test_build_report_dto_maps_correctly(mock_repo_transformer: Any) -> No
         active_profile_id="prf_dddd1111dddd1111",
         metadata={"target_locale": "en"},
     )
-    transformer = BlueprintTransformer(mock_repo_transformer)
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+    )  # noqa: E501
     dto = await transformer.build_report_dto("exe_0000000000000001", accept_language="en")
 
     assert isinstance(dto, ReportDataDTO)
@@ -117,7 +121,7 @@ async def test_build_report_dto_maps_correctly(mock_repo_transformer: Any) -> No
     assert len(dto.layouts[0].axes) == 1
 
     axis = dto.layouts[0].axes[0]
-    assert axis.name in ["Mock Workflow", "step_analyst", "matrix_logic1234", "test_k", "Logic", "Logic *"]
+    assert axis.name in ["Mock Workflow", "step_analyst", "matrix_logic1234", "test_k", "Logic", "Logic *"]  # noqa: E501
     assert axis.score == 75.0
     assert axis.justification == "Very logical."
 
@@ -132,7 +136,12 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
         active_profile_id="prf_dddd1111dddd1111",
         metadata={"target_locale": "fi"},
     )
-    transformer = BlueprintTransformer(mock_repo_transformer)
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+    )  # noqa: E501
     dto = await transformer.build_report_dto("exe_0000000000000002")
 
     assert isinstance(dto, ReportDataDTO)
@@ -187,7 +196,7 @@ def mock_repo_microcot() -> Any:
             "category_id": "matrix",
             "type": "float",
             "description": {"default_locale": "en", "translations": {"en": "Description"}},
-            "label": {"default_locale": "en", "translations": {"en": "Kahneman T1", "fi": "Kaksoisprosessiteoria"}},
+            "label": {"default_locale": "en", "translations": {"en": "Kahneman T1", "fi": "Kaksoisprosessiteoria"}},  # noqa: E501
             "scales": [
                 {
                     "score": 0,
@@ -217,7 +226,7 @@ def mock_repo_microcot() -> Any:
             "category_id": "matrix",
             "type": "float",
             "description": {"default_locale": "en", "translations": {"en": "Description"}},
-            "label": {"default_locale": "en", "translations": {"en": "Epistemic", "fi": "Episteeminen Nöyryys"}},
+            "label": {"default_locale": "en", "translations": {"en": "Epistemic", "fi": "Episteeminen Nöyryys"}},  # noqa: E501
             "scales": [
                 {
                     "score": 0,
@@ -269,7 +278,12 @@ async def test_blueprint_crashes_on_naked_microcot_dict(mock_repo_microcot: Any)
         metadata={"target_locale": "en"},
     )
 
-    transformer = BlueprintTransformer(mock_repo_microcot)
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_microcot,
+        workflow_repo=mock_repo_microcot,
+        comp_repo=mock_repo_microcot,
+        identity_repo=mock_repo_microcot,
+    )  # noqa: E501
 
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_abcdef1234567890", accept_language="en")
@@ -280,7 +294,7 @@ async def test_blueprint_crashes_on_naked_microcot_dict(mock_repo_microcot: Any)
 
 @pytest.fixture
 def mock_repo_sdui() -> AsyncMock:
-    repo = AsyncMock(spec=AbstractWorkflowRepository)
+    repo = AsyncMock()
     repo.get_workflow_by_id.return_value = {
         "id": "wf_1234abcd1234abcd",
         "slug": "wf_test",
@@ -345,7 +359,9 @@ def mock_repo_sdui() -> AsyncMock:
 
 @pytest.mark.asyncio
 async def test_blueprint_zero_math_rounding(mock_repo_sdui: AsyncMock) -> None:
-    transformer = BlueprintTransformer(repo=mock_repo_sdui)
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_sdui, workflow_repo=mock_repo_sdui, comp_repo=mock_repo_sdui, identity_repo=mock_repo_sdui
+    )  # noqa: E501
 
     mock_execution = ExecutionRecord(
         id="exe_1111111122222222",
@@ -368,6 +384,15 @@ async def test_blueprint_zero_math_rounding(mock_repo_sdui: AsyncMock) -> None:
         ],
     )
     mock_repo_sdui.get_execution.return_value = mock_execution
+    mock_repo_sdui.get_workflow_by_id.return_value = {
+        "id": "wor_1234abcd1234abcd",
+        "slug": "mock-workflow",
+        "name": {"default_locale": "en", "translations": {"en": "Mock"}},
+        "description": {"default_locale": "en", "translations": {"en": "Mock"}},
+        "status": "published",
+        "version": 1,
+        "default_profile_id": "prf_1234abcd1234abcd",
+    }
 
     dto = await transformer.build_report_dto("exe_1111111122222222")
     assert dto.global_score == 4.6
@@ -379,7 +404,9 @@ async def test_blueprint_zero_math_rounding(mock_repo_sdui: AsyncMock) -> None:
 
 @pytest.mark.asyncio
 async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock) -> None:
-    transformer = BlueprintTransformer(repo=mock_repo_sdui)
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_sdui, workflow_repo=mock_repo_sdui, comp_repo=mock_repo_sdui, identity_repo=mock_repo_sdui
+    )  # noqa: E501
 
     mock_execution = ExecutionRecord(
         id="exe_1111111122222222",
@@ -401,6 +428,15 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
         ],
     )
     mock_repo_sdui.get_execution.return_value = mock_execution
+    mock_repo_sdui.get_workflow_by_id.return_value = {
+        "id": "wor_1234abcd1234abcd",
+        "slug": "mock-workflow",
+        "name": {"default_locale": "en", "translations": {"en": "Mock"}},
+        "description": {"default_locale": "en", "translations": {"en": "Mock"}},
+        "status": "published",
+        "version": 1,
+        "default_profile_id": "prf_1234abcd1234abcd",
+    }
 
     dto = await transformer.build_report_dto("exe_1111111122222222")
     assert dto.has_warning is True
@@ -438,7 +474,12 @@ async def test_xai_extraction_works_for_nested_dict(mock_repo_transformer: Any) 
         active_profile_id="prf_dddd1111dddd1111",
         metadata={"target_locale": "en"},
     )
-    transformer = BlueprintTransformer(mock_repo_transformer)
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+    )  # noqa: E501
     dto = await transformer.build_report_dto("exe_0000000000000003", accept_language="en")
 
     assert len(dto.layouts) == 1
@@ -476,7 +517,12 @@ async def test_mcp_audit_deduplication_uses_strict_model_attrs(mock_repo_transfo
         frozen_context=frozen,
         metadata={"target_locale": "en"},
     )
-    transformer = BlueprintTransformer(mock_repo_transformer)
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+    )  # noqa: E501
     dto = await transformer.build_report_dto("exe_0000000000000004")
 
     # 3 items in, 1 duplicate must be removed → 2 unique

@@ -23,7 +23,7 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
     mock_repo.get_execution.return_value = mock_execution
     mock_repo.get_workflow_by_id.return_value = None
 
-    svc = PdfReportService(repository=mock_repo)
+    svc = PdfReportService(exec_repo=mock_repo, workflow_repo=mock_repo)
 
     # Empty layout (should not invoke chart rendering)
     dto = ReportDataDTO(
@@ -51,7 +51,7 @@ async def test_html_generator_chart_injection_failure_safe() -> None:
     mock_repo.get_execution.return_value = mock_execution
     mock_repo.get_workflow_by_id.return_value = None
 
-    svc = PdfReportService(repository=mock_repo)
+    svc = PdfReportService(exec_repo=mock_repo, workflow_repo=mock_repo)
 
     # Empty layout (should not invoke chart rendering)
     dto = ReportDataDTO(

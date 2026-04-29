@@ -51,7 +51,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
         logger.warning("[AtomFlatteningHook] No task_blueprint defined for step %s. Skpping.", state.step_id)
         return HookResult(success=True, state_delta={})
 
-    repo = deps.repository
+    repo = deps.workflow_repo
     if not repo:
         raise AppException(
             message="HookDependencies missing repository.",
@@ -89,7 +89,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
         )
 
     # 3. Retrieve and filter blocks
-    all_blocks = await repo.get_all_prompt_blocks()
+    all_blocks = await deps.comp_repo.get_all_prompt_blocks()
 
     unique_atoms: dict[str, str] = {}
 

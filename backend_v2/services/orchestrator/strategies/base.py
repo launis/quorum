@@ -5,7 +5,14 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
-from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.database.interfaces import (
+    IAuditRepository,
+    IComponentRepository,
+    IExecutionRepository,
+    IIdentityRepository,
+    ISystemRepository,
+    IWorkflowRepository,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import ExpectedInput, FrozenContext, StepRule
@@ -38,8 +45,22 @@ class NodeStrategy(ABC):
     by emitting immutable `TraceEvent` objects rather than mutating dictionaries in place.
     """
 
-    def __init__(self, repository: AbstractWorkflowRepository, prompt_compiler: Any):
-        self.repository = repository
+    def __init__(
+        self,
+        exec_repo: IExecutionRepository,
+        workflow_repo: IWorkflowRepository,
+        comp_repo: IComponentRepository,
+        identity_repo: IIdentityRepository,
+        audit_repo: IAuditRepository,
+        system_repo: ISystemRepository,
+        prompt_compiler: Any,
+    ):
+        self.exec_repo = exec_repo
+        self.workflow_repo = workflow_repo
+        self.comp_repo = comp_repo
+        self.identity_repo = identity_repo
+        self.audit_repo = audit_repo
+        self.system_repo = system_repo
         # Compiler is intentionally Any right now to avoid circular dependencies with heavy modules.
         # It's injected from the DAGExecutor.
         self.compiler = prompt_compiler
@@ -75,7 +96,7 @@ class NodeStrategy(ABC):
             # Free tier or unbound system org
             return
 
-        usage_service = UsageService(self.repository)
+        usage_service = UsageService(self.identity_repo, self.audit_repo)
         is_quota_safe = await usage_service.check_quota(org_id)
         if not is_quota_safe:
             msg = f"Organization '{org_id}' ran out of quota mid-execution."

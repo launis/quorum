@@ -8,7 +8,7 @@ import logging
 import uuid
 from datetime import UTC, datetime
 
-from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.database.interfaces import IAuditRepository, IIdentityRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import SystemOrganizations
 from backend_v2.models.domain import UsageRecord
@@ -20,13 +20,15 @@ logger = logging.getLogger(__name__)
 class UsageService:
     """Service for tracking and logging LLM usage (LiteLLM-compliant)."""
 
-    def __init__(self, repo: AbstractWorkflowRepository):
+    def __init__(self, identity_repo: IIdentityRepository, audit_repo: IAuditRepository):
         """Initialize the UsageService.
 
         Args:
-            repo (AbstractWorkflowRepository): The repository for data persistence.
+            identity_repo (IIdentityRepository): Repository for identity lookups.
+            audit_repo (IAuditRepository): Repository for usage/audit persistence.
         """
-        self.repo = repo
+        self.identity_repo = identity_repo
+        self.audit_repo = audit_repo
 
     async def track_usage(
         self,
@@ -78,10 +80,10 @@ class UsageService:
                 timestamp=datetime.now(UTC),
             )
 
-            await self.repo.log_usage(record)
+            await self.audit_repo.log_usage(record)
 
             # --- CUMULATIVE AGGREGATION ---
-            if hasattr(self.repo, "upsert_usage_aggregate"):
+            if hasattr(self.audit_repo, "upsert_usage_aggregate"):
                 period = datetime.now(UTC).strftime("%Y-%m")
                 total_t = input_tokens + output_tokens
                 update_data = {
@@ -97,16 +99,18 @@ class UsageService:
                 }
 
                 # System Level (All traffic)
-                await self.repo.upsert_usage_aggregate(SystemOrganizations.ROOT_SYSTEM, None, period, update_data)
-                await self.repo.upsert_usage_aggregate(SystemOrganizations.ROOT_SYSTEM, None, "all-time", update_data)
+                await self.audit_repo.upsert_usage_aggregate(SystemOrganizations.ROOT_SYSTEM, None, period, update_data)
+                await self.audit_repo.upsert_usage_aggregate(
+                    SystemOrganizations.ROOT_SYSTEM, None, "all-time", update_data
+                )  # noqa: E501
 
                 # Organization Level
                 if org_id:
-                    await self.repo.upsert_usage_aggregate("organization", org_id, period, update_data)
-                    await self.repo.upsert_usage_aggregate("organization", org_id, "all-time", update_data)
+                    await self.audit_repo.upsert_usage_aggregate("organization", org_id, period, update_data)
+                    await self.audit_repo.upsert_usage_aggregate("organization", org_id, "all-time", update_data)
                 if user_id:
-                    await self.repo.upsert_usage_aggregate("user", user_id, period, update_data)
-                    await self.repo.upsert_usage_aggregate("user", user_id, "all-time", update_data)
+                    await self.audit_repo.upsert_usage_aggregate("user", user_id, period, update_data)
+                    await self.audit_repo.upsert_usage_aggregate("user", user_id, "all-time", update_data)
 
             return record
 
@@ -137,7 +141,7 @@ class UsageService:
 
             from backend_v2.models.auth import Organization
 
-            org_data = await self.repo.get_organization(org_id)
+            org_data = await self.identity_repo.get_organization(org_id)
             if not org_data:
                 # Fail-Fast: Unknown orgs cannot consume LLM traffic
                 msg = f"Quota Check: Organization '{org_id}' not found. Execution denied."
@@ -152,7 +156,7 @@ class UsageService:
             # ISO Format for simple string comparison in JSON/TinyDB
             start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
 
-            used = await self.repo.get_org_usage_total(org_id, since=start_of_month)
+            used = await self.identity_repo.get_org_usage_total(org_id, since=start_of_month)
 
             if used >= limit:
                 logger.warning("Quota Exceeded for %s: Used $%s >= Limit $%s", org_id, used, limit)
@@ -183,19 +187,21 @@ class UsageService:
         from backend_v2.models.domain.usage import UsageAggregate
 
         agg_data = None
-        if hasattr(self.repo, "get_usage_aggregate"):
+        if hasattr(self.audit_repo, "get_usage_aggregate"):
             # Map frontend scope 'org' to 'organization' exactly as aggregated
             mapped_scope = "organization" if scope == "org" else scope
-            agg_data = await self.repo.get_usage_aggregate(mapped_scope, entity_id, period)
+            agg_data = await self.audit_repo.get_usage_aggregate(mapped_scope, entity_id, period)
 
         if agg_data:
             agg = UsageAggregate.model_validate(agg_data)
             token_usage = agg.usage
         else:
             records_data = []
-            if hasattr(self.repo, "get_usage_records"):
+            if hasattr(self.audit_repo, "get_usage_records"):
                 mapped_scope = "organization" if scope == "org" else scope
-                records_data = await self.repo.get_usage_records(scope=mapped_scope, entity_id=entity_id, since=since)
+                records_data = await self.audit_repo.get_usage_records(
+                    scope=mapped_scope, entity_id=entity_id, since=since
+                )
 
             records = [UsageRecord.model_validate(r) for r in records_data]
 
@@ -221,7 +227,7 @@ class UsageService:
         if mapped_scope == "organization" and entity_id:
             from backend_v2.models.auth import Organization
 
-            org_data = await self.repo.get_organization(entity_id)
+            org_data = await self.identity_repo.get_organization(entity_id)
             if org_data:
                 org = Organization.model_validate(org_data)
                 quota_limit = float(org.quota_limit)

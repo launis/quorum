@@ -51,12 +51,12 @@ _SYSTEM_INSTRUCTION = (
 
 class ChatParserService:
     @staticmethod
-    async def parse_pasted_chat(raw_paste: str, repository: Any) -> ChatHistoryDTO:
+    async def parse_pasted_chat(raw_paste: str, system_repo: Any) -> ChatHistoryDTO:
         """Parse raw pasted chat logs into strict JSON using LLM.
 
         Args:
             raw_paste (str): Raw unstructured text pasted from a chat UI.
-            repository (Any): AbstractWorkflowRepository instance.
+            system_repo (Any): ISystemRepository instance.
 
         Returns:
             ChatHistoryDTO: Strictly typed chat history object.
@@ -78,7 +78,7 @@ class ChatParserService:
         # Initialize LLM Client via Strategy Pattern
         try:
             # Note: The system model_registry must have a 'fast' (or alias) strategy defined.
-            llm_client = await LLMClient.from_strategy("fast", repository=repository)
+            llm_client = await LLMClient.from_strategy("fast", repository=system_repo)
         except ConfigurationError as e:
             error_code = ErrorCodes.CONFIGURATION_ERROR
             msg = f"Failed to initialize LLMClient for ChatParser: {e.message}"

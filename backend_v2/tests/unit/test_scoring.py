@@ -79,18 +79,25 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
         inputs={"pb_1234567890123456": {"step_4_final_score": 5.0}},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepository()))
+    deps = HookDependencies(
+        exec_repo=cast(AbstractWorkflowRepository, MockRepository()),
+        workflow_repo=cast(AbstractWorkflowRepository, MockRepository()),
+        comp_repo=cast(AbstractWorkflowRepository, MockRepository()),  # type: ignore
+        identity_repo=cast(AbstractWorkflowRepository, MockRepository()),
+        audit_repo=cast(AbstractWorkflowRepository, MockRepository()),  # type: ignore
+        system_repo=cast(AbstractWorkflowRepository, MockRepository()),
+    )  # noqa: E501
 
     with pytest.raises(AppException) as exc_info:
         await cast(Awaitable[HookResult], normalize_matrix_scores_hook(state, deps))
 
     assert exc_info.value.error_code == "VALIDATION_FAILED"
-    assert "Strict Fail-Fast Enforced: Invalid PromptBlock format for 'pb_1234567890123456'" in exc_info.value.message
+    assert "Strict Fail-Fast Enforced: Invalid PromptBlock format for 'pb_1234567890123456'" in exc_info.value.message  # noqa: E501
 
 
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
-    """Test that Tapa 2 string PromptBlocks preserve XAI variables in the new LightweightMatrixOutput."""
+    """Test that Tapa 2 string PromptBlocks preserve XAI variables in the new LightweightMatrixOutput."""  # noqa: E501
 
     class MockRepoTapa2:
         async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
@@ -122,7 +129,14 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
         },
         global_context_vars={},
     )
-    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepoTapa2()))
+    deps = HookDependencies(
+        exec_repo=cast(AbstractWorkflowRepository, MockRepoTapa2()),
+        workflow_repo=cast(AbstractWorkflowRepository, MockRepoTapa2()),
+        comp_repo=cast(AbstractWorkflowRepository, MockRepoTapa2()),  # type: ignore
+        identity_repo=cast(AbstractWorkflowRepository, MockRepoTapa2()),
+        audit_repo=cast(AbstractWorkflowRepository, MockRepoTapa2()),  # type: ignore
+        system_repo=cast(AbstractWorkflowRepository, MockRepoTapa2()),
+    )  # noqa: E501
 
     result = await cast(Awaitable[HookResult], normalize_matrix_scores_hook(state, deps))
 
@@ -187,7 +201,7 @@ class MockRepoWaterfallMixed:
                 ],
             )
         else:
-            return _build_valid_pb_dict(self.pb_instruction, [], pb_type="instruction", category_id="instruction")
+            return _build_valid_pb_dict(self.pb_instruction, [], pb_type="instruction", category_id="instruction")  # noqa: E501
 
 
 @pytest.mark.asyncio
@@ -209,7 +223,14 @@ async def test_waterfall_scoring_hook_ignores_instructions() -> None:
         inputs={"evaluations": [{"atom_id": atom_hash, "boolean": True}]},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepoWaterfallMixed()))
+    deps = HookDependencies(
+        exec_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallMixed()),
+        workflow_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallMixed()),
+        comp_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallMixed()),  # type: ignore
+        identity_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallMixed()),
+        audit_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallMixed()),  # type: ignore
+        system_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallMixed()),
+    )  # noqa: E501
 
     # TDD RED: This should NOT raise AppException(Strict Fail-Fast Enforced: PromptBlock has no scales)
     result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
@@ -236,7 +257,14 @@ async def test_waterfall_scoring_hook_pass_all() -> None:
         inputs={"evaluations": evaluations},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepoWaterfall()))
+    deps = HookDependencies(
+        exec_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+        workflow_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+        comp_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),  # type: ignore
+        identity_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+        audit_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),  # type: ignore
+        system_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+    )  # noqa: E501
 
     result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
     assert result.success is True
@@ -267,13 +295,20 @@ async def test_waterfall_scoring_hook_ceiling_cap() -> None:
         inputs={"evaluations": evaluations},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepoWaterfall()))
+    deps = HookDependencies(
+        exec_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+        workflow_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+        comp_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),  # type: ignore
+        identity_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+        audit_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),  # type: ignore
+        system_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+    )  # noqa: E501
     result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
     assert result.success is True
     assert result.state_delta is not None
 
     # Floor should be 1.0 (Level 2 failed).
-    # Weighted math: (1*1 + 0*2 + 1*3 + 1*4 + 1*5) = 13 achieved weights. Max weights: 15. Proportional = 13/15.
+    # Weighted math: (1*1 + 0*2 + 1*3 + 1*4 + 1*5) = 13 achieved weights. Max weights: 15. Proportional = 13/15.  # noqa: E501
     # Score = 1.0 + (13/15 * 4.0) = 1.0 + 3.46 = 4.46.
     # But Capped at Floor (1.0) + 1.0 = 2.0!
     assert result.state_delta["pb_1234567890123456"]["step_4_final_score"] == 1.0
@@ -302,7 +337,14 @@ async def test_waterfall_scoring_hook_graceful_missing() -> None:
         inputs={"evaluations": evaluations},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepoWaterfall()))
+    deps = HookDependencies(
+        exec_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+        workflow_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+        comp_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),  # type: ignore
+        identity_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+        audit_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),  # type: ignore
+        system_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+    )  # noqa: E501
     result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
 
     assert result.success is True
@@ -343,23 +385,23 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
 
     # Taso 1 (100% osuma)
     evaluations.append(
-        {"atom_id": hashlib.md5(f"L1_A1{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}
+        {"atom_id": hashlib.md5(f"L1_A1{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}  # noqa: E501
     )
     evaluations.append(
-        {"atom_id": hashlib.md5(f"L1_A2{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}
+        {"atom_id": hashlib.md5(f"L1_A2{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}  # noqa: E501
     )
 
     # Taso 2 (100% osuma)
     evaluations.append(
-        {"atom_id": hashlib.md5(f"L2_A1{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}
+        {"atom_id": hashlib.md5(f"L2_A1{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}  # noqa: E501
     )
     evaluations.append(
-        {"atom_id": hashlib.md5(f"L2_A2{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}
+        {"atom_id": hashlib.md5(f"L2_A2{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}  # noqa: E501
     )
 
     # Taso 3 (50% osuma -> Hit Rate < 90% -> VESIPUTOUS PYSÄHTYY)
     evaluations.append(
-        {"atom_id": hashlib.md5(f"L3_A1{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}
+        {"atom_id": hashlib.md5(f"L3_A1{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}  # noqa: E501
     )
     evaluations.append(
         {
@@ -396,7 +438,14 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
         inputs={"evaluations": evaluations},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=cast(AbstractWorkflowRepository, MockRepoWaterfallSimulation()))
+    deps = HookDependencies(
+        exec_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallSimulation()),
+        workflow_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallSimulation()),
+        comp_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallSimulation()),  # type: ignore
+        identity_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallSimulation()),
+        audit_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallSimulation()),  # type: ignore
+        system_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallSimulation()),
+    )  # noqa: E501
 
     result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
 

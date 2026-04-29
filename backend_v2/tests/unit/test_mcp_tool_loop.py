@@ -468,7 +468,7 @@ def test_static_tool_call_id_causes_mismatch() -> None:
 
 def test_llm_response_accepts_tool_call_messages() -> None:
     """FAULT INJECTION: Proves that LLMResponse.messages MUST accept dicts with
-    content=None and tool_calls=[list] — the exact structure that crashed Pydantic.
+    content="" and tool_calls=[list] — the exact structure that crashed Pydantic.
 
     OLD BUG: messages was typed as list[dict[str, str]] which rejected None and list values.
     """
@@ -522,7 +522,7 @@ def test_llm_response_rejects_missing_content() -> None:
 
     with pytest.raises(pydantic.ValidationError):
         LLMResponse(
-            content=None,  # type: ignore
+            content="",
             token_usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
         )
 

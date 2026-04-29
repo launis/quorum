@@ -1,5 +1,5 @@
 from typing import cast
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import status
@@ -23,7 +23,14 @@ def test_sanitize_text_hook_fails_fast_on_invalid_inputs(mock_repository: AsyncM
         metadata={},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=mock_repository)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
 
     with pytest.raises(AppException) as exc_info:
         sanitize_text_hook(state, deps)
@@ -41,7 +48,14 @@ def test_sanitize_text_hook_fails_fast_on_list_inputs(mock_repository: AsyncMock
         metadata={},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=mock_repository)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
 
     with pytest.raises(AppException) as exc_info:
         sanitize_text_hook(state, deps)
@@ -59,7 +73,14 @@ def test_sanitize_text_hook_success(mock_repository: AsyncMock) -> None:
         metadata={},
         global_context_vars={},
     )
-    deps = HookDependencies(repository=mock_repository)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
 
     result = cast(HookResult, sanitize_text_hook(state, deps))
 

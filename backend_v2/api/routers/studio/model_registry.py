@@ -54,7 +54,6 @@ async def get_all_model_registries(
     current_user: CurrentUserDep, studio_service: StudioServiceDep
 ) -> list[SystemConfigModelRegistry]:
     """Retrieve all global model registry configurations securely via SSOT Service Layer."""
-    # Temporarily, model registry relies on system_config collection
     return await studio_service.list_system_configs(current_user)
 
 

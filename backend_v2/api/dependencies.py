@@ -10,8 +10,24 @@ from arq.connections import ArqRedis
 from fastapi import Depends, Request, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from backend_v2.database.factory import get_repository
-from backend_v2.database.repository import AbstractWorkflowRepository
+from backend_v2.database.driver import StorageDriver
+from backend_v2.database.factory import get_driver
+from backend_v2.database.interfaces import (
+    IAuditRepository,
+    IComponentRepository,
+    IExecutionRepository,
+    IIdentityRepository,
+    IKnowledgeRepository,
+    ISystemRepository,
+    IWorkflowRepository,
+)
+from backend_v2.database.repositories.audit import AuditRepositoryImpl
+from backend_v2.database.repositories.component import ComponentRepositoryImpl
+from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
+from backend_v2.database.repositories.identity import IdentityRepositoryImpl
+from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
+from backend_v2.database.repositories.system import SystemRepositoryImpl
+from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
 from backend_v2.exceptions import AuthenticationError
 from backend_v2.llm.handler import LLMHandler
 from backend_v2.models.auth import TokenData, UserRole
@@ -21,21 +37,77 @@ from backend_v2.services.execution import ExecutionService
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.studio import StudioService
+from backend_v2.services.usage_service import UsageService
 from backend_v2.settings import Settings, get_settings
 
 security = HTTPBearer(auto_error=False)
 
 
-async def get_repo(settings: Annotated[Settings, Depends(get_settings)]) -> AbstractWorkflowRepository:
-    repo = await get_repository(settings)
-    return repo
+async def get_db_driver(settings: Annotated[Settings, Depends(get_settings)]) -> StorageDriver:
+    return await get_driver(settings)
 
 
-RepoDep = Annotated[AbstractWorkflowRepository, Depends(get_repo)]
+DriverDep = Annotated[StorageDriver, Depends(get_db_driver)]
+
+
+async def get_execution_repo(driver: DriverDep) -> IExecutionRepository:
+    return ExecutionRepositoryImpl(driver)
+
+
+ExecutionRepoDep = Annotated[IExecutionRepository, Depends(get_execution_repo)]
+
+
+async def get_identity_repo(driver: DriverDep) -> IIdentityRepository:
+    return IdentityRepositoryImpl(driver)
+
+
+IdentityRepoDep = Annotated[IIdentityRepository, Depends(get_identity_repo)]
+
+
+async def get_workflow_repo(driver: DriverDep) -> IWorkflowRepository:
+    return WorkflowRepositoryImpl(driver)
+
+
+WorkflowRepoDep = Annotated[IWorkflowRepository, Depends(get_workflow_repo)]
+
+
+async def get_component_repo(driver: DriverDep) -> IComponentRepository:
+    return ComponentRepositoryImpl(driver)
+
+
+ComponentRepoDep = Annotated[IComponentRepository, Depends(get_component_repo)]
+
+
+async def get_knowledge_repo(driver: DriverDep) -> IKnowledgeRepository:
+    return KnowledgeRepositoryImpl(driver)
+
+
+KnowledgeRepoDep = Annotated[IKnowledgeRepository, Depends(get_knowledge_repo)]
+
+
+async def get_system_repo(driver: DriverDep) -> ISystemRepository:
+    return SystemRepositoryImpl(driver)
+
+
+SystemRepoDep = Annotated[ISystemRepository, Depends(get_system_repo)]
+
+
+async def get_audit_repo(driver: DriverDep) -> IAuditRepository:
+    return AuditRepositoryImpl(driver)
+
+
+AuditRepoDep = Annotated[IAuditRepository, Depends(get_audit_repo)]
+
+
+def get_usage_service(identity_repo: IdentityRepoDep, audit_repo: AuditRepoDep) -> UsageService:
+    return UsageService(identity_repo=identity_repo, audit_repo=audit_repo)
+
+
+UsageServiceDep = Annotated[UsageService, Depends(get_usage_service)]
 
 
 def get_auth_service(
-    repo: Annotated[AbstractWorkflowRepository, Depends(get_repo)],
+    repo: IdentityRepoDep,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> AuthService:
     return AuthService(repo=repo, use_firebase=settings.use_firebase_auth)
@@ -58,39 +130,74 @@ async def get_current_user_from_header(
 
 UserDep = Annotated[TokenData, Depends(get_current_user_from_header)]
 CurrentUserDep = UserDep
-RepositoryDep = RepoDep
 
 
 def get_current_admin_user() -> Any:
     return AuthService.require_role(UserRole.ADMIN)()
 
 
-async def get_dag_executor(repo: Annotated[AbstractWorkflowRepository, Depends(get_repo)]) -> DAGExecutor:
+async def get_dag_executor(
+    exec_repo: ExecutionRepoDep,
+    workflow_repo: WorkflowRepoDep,
+    component_repo: ComponentRepoDep,
+    identity_repo: IdentityRepoDep,
+    audit_repo: AuditRepoDep,
+    system_repo: SystemRepoDep,
+) -> DAGExecutor:
     compiler = PromptCompiler()
-    return DAGExecutor(repo, compiler)
+    return DAGExecutor(
+        exec_repo=exec_repo,
+        workflow_repo=workflow_repo,
+        comp_repo=component_repo,
+        identity_repo=identity_repo,
+        audit_repo=audit_repo,
+        system_repo=system_repo,
+        prompt_compiler=compiler,
+    )
 
 
 ExecutorDep = Annotated[DAGExecutor, Depends(get_dag_executor)]
 
 
 async def get_execution_service(
-    repo: Annotated[AbstractWorkflowRepository, Depends(get_repo)],
+    exec_repo: ExecutionRepoDep,
+    workflow_repo: WorkflowRepoDep,
+    comp_repo: ComponentRepoDep,
+    identity_repo: IdentityRepoDep,
+    usage_service: UsageServiceDep,
     executor: Annotated[DAGExecutor, Depends(get_dag_executor)],
 ) -> ExecutionService:
-    return ExecutionService(repo=repo, executor=executor)
+    return ExecutionService(
+        exec_repo=exec_repo,
+        workflow_repo=workflow_repo,
+        comp_repo=comp_repo,
+        identity_repo=identity_repo,
+        usage_service=usage_service,
+        executor=executor,
+    )
 
 
 ExecutionServiceDep = Annotated[ExecutionService, Depends(get_execution_service)]
 
 
-async def get_studio_service(repo: Annotated[AbstractWorkflowRepository, Depends(get_repo)]) -> StudioService:
-    return StudioService(repo=repo)
+async def get_studio_service(
+    workflow_repo: WorkflowRepoDep,
+    component_repo: ComponentRepoDep,
+    knowledge_repo: KnowledgeRepoDep,
+    system_repo: SystemRepoDep,
+) -> StudioService:
+    return StudioService(
+        workflow_repo=workflow_repo,
+        component_repo=component_repo,
+        knowledge_repo=knowledge_repo,
+        system_repo=system_repo,
+    )
 
 
 StudioServiceDep = Annotated[StudioService, Depends(get_studio_service)]
 
 
-def get_llm_handler(repo: Annotated[AbstractWorkflowRepository, Depends(get_repo)]) -> Any:
+def get_llm_handler(repo: ComponentRepoDep) -> Any:
     return LLMHandler(repo=repo)
 
 

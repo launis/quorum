@@ -50,7 +50,7 @@ class LogicNodeStrategy(NodeStrategy):
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
-        step_def = await self.repository.get_step_by_id(blueprint_id)
+        step_def = await self.workflow_repo.get_step_by_id(blueprint_id)
         if not step_def:
             logger.error(
                 "Configuration error: Step '%s' not found.",
@@ -78,7 +78,14 @@ class LogicNodeStrategy(NodeStrategy):
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        hook_deps = HookDependencies(repository=self.repository)
+        hook_deps = HookDependencies(
+            exec_repo=self.exec_repo,
+            workflow_repo=self.workflow_repo,
+            comp_repo=self.comp_repo,
+            identity_repo=self.identity_repo,
+            audit_repo=self.audit_repo,
+            system_repo=self.system_repo,
+        )
 
         state_data = dict(current_state)
         hook_state = HookState(

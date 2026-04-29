@@ -70,7 +70,7 @@ class LLMNodeStrategy(NodeStrategy):
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
-        step_def = await self.repository.get_step_by_id(blueprint_id)
+        step_def = await self.workflow_repo.get_step_by_id(blueprint_id)
         if not step_def:
             logger.error(
                 f"Configuration error: Step '{blueprint_id}' not found.",
@@ -83,7 +83,14 @@ class LLMNodeStrategy(NodeStrategy):
             )
 
         step_obj = V2Step.model_validate(step_def)
-        hook_deps = HookDependencies(repository=self.repository)
+        hook_deps = HookDependencies(
+            exec_repo=self.exec_repo,
+            workflow_repo=self.workflow_repo,
+            comp_repo=self.comp_repo,
+            identity_repo=self.identity_repo,
+            audit_repo=self.audit_repo,
+            system_repo=self.system_repo,
+        )
 
         # Extract input keys from context — ExpectedInput.input_key is a required typed field.
         input_keys = set()
@@ -108,7 +115,7 @@ class LLMNodeStrategy(NodeStrategy):
         state_data = dict(hook_state.inputs)
 
         # 2. Extract configuration criteria
-        all_prompt_blocks_raw = await self.repository.get_all_prompt_blocks()
+        all_prompt_blocks_raw = await self.comp_repo.get_all_prompt_blocks()
         all_prompt_blocks = []
         for raw in all_prompt_blocks_raw:
             try:
@@ -154,7 +161,7 @@ class LLMNodeStrategy(NodeStrategy):
         # StepRule.input_mappings has default_factory=dict — always present, no guard needed.
         input_mappings = dict(step.input_mappings)
 
-        workflow_def = await self.repository.get_workflow(context.workflow_id)
+        workflow_def = await self.workflow_repo.get_workflow(context.workflow_id)
         output_profile = None
         schema_map = {}
         if workflow_def:
@@ -163,7 +170,7 @@ class LLMNodeStrategy(NodeStrategy):
 
             for s in workflow_obj.steps:
                 is_matrix = False
-                blueprint_def = await self.repository.get_step(s.task_blueprint)
+                blueprint_def = await self.workflow_repo.get_step(s.task_blueprint)
                 if blueprint_def:
                     blueprint_obj = V2Step.model_validate(blueprint_def)
                     for m_id in blueprint_obj.prompt_blocks:
@@ -264,7 +271,7 @@ class LLMNodeStrategy(NodeStrategy):
                 status_code=500,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
-        bound_client = await LLMClient.from_strategy(strategy_name, self.repository)
+        bound_client = await LLMClient.from_strategy(strategy_name, self.system_repo)
 
         sem = asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS.value)
 

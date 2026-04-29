@@ -15,7 +15,12 @@ from backend_v2.models.v2_core import ExecutionRecord
 @pytest.fixture
 def mock_deps() -> HookDependencies:
     return HookDependencies(
-        repository=AsyncMock(),
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
         search_client=AsyncMock(),
     )
 
@@ -83,7 +88,7 @@ async def test_retrieve_precedent_hook_success(mock_deps: HookDependencies) -> N
     """Test successful retrieval and formatting of precedents."""
     from typing import cast
 
-    cast(AsyncMock, mock_deps.repository.get_recent_completed_executions).return_value = [
+    cast(AsyncMock, mock_deps.exec_repo.get_recent_completed_executions).return_value = [
         create_mock_execution(),
         create_mock_execution(),
     ]
@@ -117,9 +122,17 @@ async def test_retrieve_precedent_hook_success(mock_deps: HookDependencies) -> N
 @pytest.mark.asyncio
 async def test_retrieve_precedent_hook_no_repository() -> None:
     """Test failure when repository is not injected."""
-    from typing import Any, cast
+    from typing import cast
 
-    deps = HookDependencies(repository=cast(Any, None), search_client=AsyncMock())
+    deps = HookDependencies(
+        exec_repo=None,  # type: ignore
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    # cast(Any, None), search_client=AsyncMock())
     state = HookState(
         execution_id="exe_current",
         workflow_id="wf_123",
@@ -146,7 +159,7 @@ async def test_retrieve_precedent_hook_invalid_output_schema(mock_deps: HookDepe
     """Test Fail-Fast when repository returns raw dicts instead of Models."""
     from typing import cast
 
-    cast(AsyncMock, mock_deps.repository.get_recent_completed_executions).return_value = [{"id": "not_a_model"}]
+    cast(AsyncMock, mock_deps.exec_repo.get_recent_completed_executions).return_value = [{"id": "not_a_model"}]
     state = HookState(
         execution_id="exe_current",
         workflow_id="wf_123",
@@ -173,7 +186,7 @@ async def test_retrieve_precedent_hook_state_integrity_error(mock_deps: HookDepe
     """Test Fail-Fast when an execution is missing updated_at."""
     from typing import cast
 
-    cast(AsyncMock, mock_deps.repository.get_recent_completed_executions).return_value = [
+    cast(AsyncMock, mock_deps.exec_repo.get_recent_completed_executions).return_value = [
         create_mock_execution(missing_updated_at=True)
     ]
     state = HookState(
@@ -202,7 +215,7 @@ async def test_retrieve_precedent_hook_invalid_judge_output(mock_deps: HookDepen
     """Test Fail-Fast when TraceEvent output fails strict inflation to JudgeOutput."""
     from typing import cast
 
-    cast(AsyncMock, mock_deps.repository.get_recent_completed_executions).return_value = [
+    cast(AsyncMock, mock_deps.exec_repo.get_recent_completed_executions).return_value = [
         create_mock_execution(invalid_judge=True)
     ]
     state = HookState(
