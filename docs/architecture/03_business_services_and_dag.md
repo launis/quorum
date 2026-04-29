@@ -11,6 +11,47 @@ Cognitive Quorumin `backend_v2/services/` -hakemisto sisältää järjestelmän 
 * **Tenant Isolation:** Rajaa tiedon tiukan "Tenant Isolation" -periaatteen mukaisesti. Rajoite on vahvistettu kaikissa perustoiminnoissa (`list_executions`, `get_execution`, `delete_execution`), estäen ristiinlukemisen.
 * **FinOps:** Valvoo puitebudjettia "Circuit Breaker" -rajoitteilla yhteistyössä `usage_service.py`:n kanssa suojellakseen osakkaiden kukkaroita karkaavalta AI-kulutukselta.
 
+## Pyynnön Elinkaari ja Kognitiivinen Kuorma (Call Stack)
+
+Yhden LLM-pyynnön matka HTTP-rajapinnasta varsinaiseen kielimalliin on jaettu useaan tiukkaan vastuualueeseen (Single Responsibility). Tämä eristys on teknisesti välttämätön skaalautuvuuden, tietoturvan ja virheiden hallinnan vuoksi, mutta se tekee koodin seuraamisesta aluksi hidasta.
+
+Alla oleva sekvenssikaavio havainnollistaa täydellisen kutsuketjun (`Call Stack`), jotta koodikannassa navigoiminen helpottuisi:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant API as API Router (executions.py)
+    participant Exec as ExecutionService
+    participant DAG as DAGExecutor
+    participant Node as NodeExecutor
+    participant Strat as LLMNodeStrategy
+    participant LLM as LiteLLMProvider
+    
+    API->>Exec: start_execution(Payload)
+    Note over Exec: Pydantic Fail-Fast<br/>Tenant Isolation
+    Exec->>DAG: execute(WorkflowState)
+    Note over DAG: Topologinen puu<br/>TaskGroup (Rinnakkaisuus)
+    DAG->>Node: run_node(Step)
+    Note over Node: FinOps Circuit Breaker<br/>Semafori (Rate Limits)
+    Node->>Strat: execute_strategy(HookState)
+    Note over Strat: Map-Reduce (Chunking)<br/>Kontekstin karsinta (Pruning)
+    Strat->>LLM: acreate(...)
+    Note over LLM: Verkkopyyntö (OpenAI jne.)<br/>Token-laskenta
+    LLM-->>Strat: LLM Vastaus (Pydantic Model)
+    Strat-->>Node: FlattenedAtomResult
+    Node-->>DAG: TraceEvent (Snapshot)
+    DAG-->>Exec: Työnkulku valmis
+    Exec-->>API: 200 OK (BaseResponseDTO)
+```
+
+**Abstraktioiden oikeutus:**
+1. **API Router** on tyhmä ("Anemic Router") – se hoitaa vain HTTP-liikenteen.
+2. **ExecutionService** vastaa käyttöoikeuksista ja tietokantatransaktioista.
+3. **DAGExecutor** ymmärtää verkkorakenteen, mutta ei tiedä mitä yksittäinen solmu tekee.
+4. **NodeExecutor** vastaa yhden solmun rahankäytön (FinOps) rajoittamisesta ja virheiden nappaamisesta.
+5. **LLMNodeStrategy** vastaa pelkästään promptien kääntämisestä (PromptCompiler) ja kontekstin rajaamisesta.
+6. **LiteLLMProvider** on fyysinen verkkokerros, joka voi vaihtua lennosta (OpenAI -> Anthropic).
+
 ## DAG-moottori: Arkkitehtuuri ja Asynkronisuus
 
 Työnkulkujen orkesterointi on keskitetty `services/orchestrator/dag_executor.py` -moduuliin. Moottori ei ylläpidä paksua ajonaikaista muistitilaa vaan perustuu puhtaalle Event Sourcing -mallille. Arkkitehtuuri on pilkottu neljään eristettyyn komponenttiin:

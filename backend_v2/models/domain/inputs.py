@@ -7,6 +7,15 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 logger = logging.getLogger(__name__)
 
+class Base64Attachment(BaseModel):
+    """Strict DTO for handling binary base64 file uploads."""
+    filename: str = Field(..., description="The name of the uploaded file")
+    content_base64: str = Field(..., description="The base64 encoded binary content")
+    content_type: str | None = Field(default=None, description="Optional MIME type")
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+
 
 class WorkflowInputs(BaseModel):
     """Strict input payload for the workflow (Content).
