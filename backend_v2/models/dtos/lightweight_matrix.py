@@ -58,11 +58,15 @@ class MicroCotDTO(BaseModel):
     # Optional dynamic XAI fields
     step_1_evidence_quote: str | None = None
     step_1b_cited_source_id: str | None = None
+    step_1c_google_citation: str | None = None
     step_2_falsification: str | None = None
     extension_coaching: str | None = None
     extension_theory_link: str | None = None
     extension_emotional_sentiment: str | None = None
     extension_remediation_steps: str | None = None
+    extension_confidence: float | None = None
+    extension_missing_context: str | None = None
+    extension_risk_flag: bool | None = None
     evaluation_notes: str | None = None
     step_3_logical_friction: str | None = None
 

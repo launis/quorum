@@ -395,7 +395,7 @@ class StudioService:
 
         # -- EPIC 20: Design-Time Syvä-atomisointi
         try:
-            data = await PromptAtomizer.atomize_prompt_block(data, repository=self.component_repo)
+            data = await PromptAtomizer.atomize_prompt_block(data, repository=self.system_repo)
         except Exception as e:
             logger.error("[StudioService] Atomization failed prior to save: %s", e)
             raise AppException(

@@ -532,6 +532,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     )
 
     active_exts = active_profile_dto.visible_extensions
+    max_items = active_profile_dto.max_extension_items or 2
     exts_str = ", ".join([x.value for x in active_exts]) if isinstance(active_exts, list) else str(active_exts)
 
     sys_prompt += (
@@ -541,7 +542,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         "to the matrix Stripe IDs\n"
         "(e.g., 'blk_22e3598e06414409_coaching', 'blk_80732a33fe1947ee_falsification').\n"
         f"TARGET EXTENSIONS TO HARVEST: {exts_str}\n"
-        "You must HARVEST these fragmented, atomized insights and SYNTHESIZE them into the TOP 3 most critical, "
+        f"You must HARVEST these fragmented, atomized insights and SYNTHESIZE them into the TOP {max_items} most critical, "
         "high-impact global highlights per target extension category. Do not simply copy-paste them blindly; elevate "
         "and merge overlapping insights to create a coherent executive summary. "
         "Output these items strictly into the `xai_highlights` array, "
