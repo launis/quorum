@@ -390,11 +390,6 @@ def get_db_client() -> AbstractDatabase:
     """Factory to get the appropriate database client based on configuration."""
     settings = get_settings()
 
-    # 1. Mock Mode (Priority)
-    if settings.use_mock_db:
-        return TinyDBClient(settings.mock_db_path)
-
-    # 2. Production Modes
     # Use computed property which handles None and Defaults safely
     backend = settings.active_backend
 
@@ -404,8 +399,6 @@ def get_db_client() -> AbstractDatabase:
         return FirestoreClient()  # type: ignore
     elif backend == "LOCAL":
         return TinyDBClient(settings.prod_db_path)
-    elif backend == "MOCK":
-        return TinyDBClient(settings.mock_db_path)
     else:
         # Should be unreachable if active_backend is strict
         raise ValueError(f"CRITICAL: Unknown/Unsupported BACKEND '{backend}'.")

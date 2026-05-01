@@ -45,10 +45,12 @@
             </file_rules>
         </directory>
         <directory path="seed/">
-            <description>Zero-Deploy initialization architecture. Features `backups` and `scripts`.</description>
+            <description>Zero-Deploy initialization architecture (The Seed Vault). Features `backups` and `scripts`.</description>
             <file_rules>
                 <file path="seed_data.json">Global mathematical logic templates and base definitions.</file>
-                <file path="run_seed.py">Ensures database integration parities and bootstrap.</file>
+                <file path="run_seed.py">Ensures database integration parities and bootstrap (Hard Reset).</file>
+                <file path="wipe_user_data.py">The 'Soft Reset' mechanism clearing dynamic executions and workflows while preserving seeded configs.</file>
+                <file path="harvest_output_profile.py">Surgical Extraction / Inverse Merge script to safely pull UI-created output profiles back into seed_data.json.</file>
             </file_rules>
         </directory>
         <directory path="services/">
@@ -92,8 +94,8 @@
         <file path="pubspec.yaml">Dart dependencies and asset declarations.</file>
     </layer>
 
-    <layer id="ephemeral_storage" path="tmp/">
-        <description>The AI Workspace Sandbox. A designated scratch directory for temporary execution and artifacts.</description>
+    <layer id="ephemeral_storage" path="scratch/">
+        <description>The AI Workspace Sandbox. A designated scratch directory for temporary execution, one-off automated refactoring tools, and Quality Gate verification scripts.</description>
         <instruction>All Antigravity-generated temporary scripts, debugging logs, and testing programs MUST be siloed here to protect the core architectural boundaries.</instruction>
     </layer>
 

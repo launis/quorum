@@ -29,7 +29,6 @@ class StorageBackend(str, Enum):
 
     FIRESTORE = "FIRESTORE"
     LOCAL = "LOCAL"  # Legacy/Dev modes. Production target is FIRESTORE.
-    MOCK = "MOCK"  # Legacy/Dev modes. Production target is FIRESTORE.
 
 
 class Settings(BaseSettings):
@@ -41,9 +40,6 @@ class Settings(BaseSettings):
     # --- Feature Flags ---
     use_mock_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock LLM Service")] = False
     use_vertex_llm: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Vertex AI for LLM")] = (
-        False
-    )
-    use_mock_db: Annotated[bool, BeforeValidator(strip_whitespace), Field(description="Use Mock Database (TinyDB)")] = (
         False
     )
     use_firebase_auth: Annotated[
@@ -193,21 +189,9 @@ class Settings(BaseSettings):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def mock_db_path(self) -> str:
-        """Returns the path to the mock database file. Isolated to V2."""
-        return os.path.join(self.db_dir, "db_mock_v2.json")
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
     def prod_db_path(self) -> str:
         """Returns the path to the production database file. Isolated to V2."""
         return os.path.join(self.data_dir, "db_v2.json")
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def start_db_path(self) -> str:
-        """Returns the path to the database file to be used at startup (Prod or Mock)."""
-        return self.mock_db_path if self.use_mock_db else self.prod_db_path
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -234,12 +218,8 @@ class Settings(BaseSettings):
         """Determines the active storage backend based on configuration.
 
         Priority 1: Explicit FIRESTORE backend.
-        Priority 2: Mock mode.
         Default: Local storage.
         """
-        if self.use_mock_db:
-            return StorageBackend.MOCK
-
         # Strict matching
         if not self.storage_backend:
             return StorageBackend.LOCAL
@@ -252,7 +232,7 @@ class Settings(BaseSettings):
 
         msg = (
             f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. "
-            "Must be LOCAL or FIRESTORE (or set USE_MOCK_DB=True)."
+            "Must be LOCAL or FIRESTORE."
         )
         logger.error("[Settings] %s", msg, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
         raise AppException(
@@ -315,9 +295,7 @@ class Settings(BaseSettings):
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
 
-        if self.use_mock_db:
-            pass
-        elif self.storage_backend == "FIRESTORE":
+        if self.storage_backend == "FIRESTORE":
             pass
         else:
             pass

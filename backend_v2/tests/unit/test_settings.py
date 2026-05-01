@@ -6,10 +6,8 @@ from backend_v2.settings import Settings, get_settings
 
 def test_settings_initialization() -> None:
     """Test that settings can be instantiated with default or provided values."""
-    settings = Settings(google_api_key="sk-google-test", use_mock_db=True, use_mock_llm=True)
+    settings = Settings(google_api_key="sk-google-test", use_mock_llm=True)
     assert settings.google_api_key == "sk-google-test"
-    assert settings.use_mock_db is True
-    assert settings.use_mock_llm is True
     assert settings.use_mock_llm is True
 
 

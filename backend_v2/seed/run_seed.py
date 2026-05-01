@@ -24,7 +24,6 @@ from backend_v2.seed.seed_registry import STANDARD_REGISTRY
 
 SEED_PATH = os.path.join(PROJECT_ROOT, "backend_v2", "seed", "seed_data.json")
 LOCAL_DB_PATH = os.path.join(PROJECT_ROOT, "data", "db_v2.json")
-MOCK_DB_PATH = os.path.join(PROJECT_ROOT, "backend_v2", "database", "db_mock_v2.json")
 
 # Configure Logging
 logging.basicConfig(
@@ -194,9 +193,8 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
                 if col_key == "prompt_blocks":
                     if getattr(validated, "category_id", "") == "matrix":
                         current_matrix += 1
-                        is_mock_target = target_env == "mock"
                         validated = await _atomize_with_cache(
-                            validated, repo, current_matrix, total_matrices, is_mock_target
+                            validated, repo, current_matrix, total_matrices, False
                         )
 
                 if hasattr(validated, "model_dump"):
@@ -347,10 +345,6 @@ async def seed_database(target: str) -> None:
         await _seed_tinydb(LOCAL_DB_PATH, data, target)
         print(f"[SUCCESS] V2 Seeded Local DB at {LOCAL_DB_PATH}")
 
-    elif target == "mock":
-        await _seed_tinydb(MOCK_DB_PATH, data, target)
-        print(f"[SUCCESS] V2 Seeded Mock DB at {MOCK_DB_PATH}")
-
     elif target == "firestore":
         print("[Seeder V2] Connecting to Firestore...")
         await _seed_firestore(data, target)
@@ -362,15 +356,15 @@ def main() -> None:
     parser.add_argument(
         "targets",
         nargs="+",
-        choices=["local", "mock", "firestore", "all"],
-        help="Target environment(s). 'local'=data/db_v2.json, 'mock'=data/db_mock_v2.json",
+        choices=["local", "firestore", "all"],
+        help="Target environment(s). 'local'=data/db_v2.json",
     )
 
     args = parser.parse_args()
 
     targets = set(args.targets)
     if "all" in targets:
-        targets = {"local", "mock", "firestore"}
+        targets = {"local", "firestore"}
 
     import asyncio
 
