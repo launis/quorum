@@ -10,9 +10,10 @@ from backend_v2.worker import generate_profile_synthesis_and_pdf_task
 @pytest.mark.asyncio
 async def test_worker_invokes_synthesis_hook() -> None:
     """Test that the worker background task invokes the text_consolidation_hook and updates the execution record."""
-    with patch("backend_v2.worker.get_repository", new_callable=AsyncMock) as mock_get_repo:
-        mock_repo = AsyncMock()
-        mock_get_repo.return_value = mock_repo
+    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock) as mock_driver:
+        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+            mock_repo = AsyncMock()
+            mock_repo_class.return_value = mock_repo
 
         mock_execution = ExecutionRecord(
             id="exec_1234567812345678", workflow_id="wf_1234567812345678", status=ExecutionStatus.COMPLETED

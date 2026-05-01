@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from backend_v2.database.repository import UnifiedWorkflowRepository
+from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
 from backend_v2.models.enums import BlockDataType
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, PromptBlock
 from backend_v2.services.orchestrator.atomizer import PromptAtomizer
@@ -12,7 +12,7 @@ from backend_v2.services.orchestrator.atomizer import PromptAtomizer
 @patch("backend_v2.services.orchestrator.atomizer.LLMClient.from_strategy")
 async def test_compile_atomizer_adds_15_atoms(mock_from_strategy: AsyncMock) -> None:
     """Tests that Kääntäjä-AI deeply atomizes claims if micro_atoms is missing."""
-    repo = UnifiedWorkflowRepository(driver=None)  # type: ignore[arg-type]
+    repo = WorkflowRepositoryImpl(driver=None)  # type: ignore[arg-type]
 
     mock_client = AsyncMock()
     mock_client.run_structured_task = AsyncMock(

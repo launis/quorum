@@ -5,22 +5,43 @@ Strictly restricted to V2 Pydantic models (SystemConfig, Role, Workflow, PromptB
 """
 
 import argparse
+import asyncio
+import hashlib
 import json
 import logging
 import os
+import shutil
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from pydantic import ValidationError
 from tinydb import Query, TinyDB
 
+try:
+    import firebase_admin
+    from firebase_admin import credentials, firestore
+    from google.cloud import firestore as async_firestore  # type: ignore[attr-defined]
+
+    FIREBASE_AVAILABLE = True
+except ImportError:
+    FIREBASE_AVAILABLE = False
+
 # Add project root to path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from backend_v2.database.firestore_driver import FirestoreDriver
+from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
+from backend_v2.database.tinydb_driver import TinyDBDriver
+from backend_v2.database.wrapper import TinyDBClient
+from backend_v2.exceptions import ErrorCodes
+from backend_v2.models.v2_core import MatrixScale
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY
+from backend_v2.services.orchestrator.atomizer import PromptAtomizer
+from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
 SEED_PATH = os.path.join(PROJECT_ROOT, "backend_v2", "seed", "seed_data.json")
 LOCAL_DB_PATH = os.path.join(PROJECT_ROOT, "data", "db_v2.json")
@@ -31,9 +52,6 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-
-from backend_v2.exceptions import ErrorCodes
 
 
 def _fail_fast(msg: str, error: Exception) -> None:
@@ -51,10 +69,6 @@ def _fail_fast(msg: str, error: Exception) -> None:
 async def _atomize_with_cache(
     validated: Any, repo: Any, current_matrix: int, total_matrices: int, is_test: bool
 ) -> Any:
-    import hashlib
-
-    from backend_v2.services.orchestrator.atomizer import PromptAtomizer
-
     val_label = getattr(validated, "label", None)
     if val_label and hasattr(val_label, "translations") and isinstance(val_label.translations, dict):
         label_en = val_label.translations.get("en", getattr(validated, "slug", "unknown"))
@@ -74,8 +88,6 @@ async def _atomize_with_cache(
 
     if cache_key in cache_data and cache_data[cache_key]:
         print(f"[Seeder V2] CACHE HIT for matrix ({current_matrix}/{total_matrices}): '{label_en}'...")
-        from backend_v2.models.v2_core import MatrixScale
-
         validated.scales = [MatrixScale.model_validate(s) for s in cache_data[cache_key]]
     else:
         print(f"[Seeder V2] Atomizing matrix ({current_matrix}/{total_matrices}): '{label_en}'...")
@@ -121,9 +133,6 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
 
         # 1. Automatic Backup before dropping the DB
         if os.path.exists(db_path):
-            import shutil
-            from datetime import datetime
-
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             backup_dir = os.path.join(PROJECT_ROOT, "backend_v2", "seed", "backups")
             os.makedirs(backup_dir, exist_ok=True)
@@ -150,8 +159,6 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
         if "db_v2.json" in db_path:
             executions_dir = os.path.join(PROJECT_ROOT, "data", "files", "executions")
             if os.path.exists(executions_dir):
-                import shutil
-
                 shutil.rmtree(executions_dir, ignore_errors=True)
                 os.makedirs(executions_dir, exist_ok=True)
                 print(f"[Seeder V2] WIPED physical orphaned files from {executions_dir}.")
@@ -159,11 +166,7 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
     except Exception as e:
         _fail_fast("Error initializing TinyDB", e)
 
-    from backend_v2.database.repository import UnifiedWorkflowRepository
-    from backend_v2.database.tinydb_driver import TinyDBDriver
-    from backend_v2.database.wrapper import TinyDBClient
-
-    repo = UnifiedWorkflowRepository(TinyDBDriver(TinyDBClient(db_path)))
+    repo = WorkflowRepositoryImpl(TinyDBDriver(TinyDBClient(db_path)))
 
     # Seed Standard Strict Collections
     for col_key, config in STANDARD_REGISTRY.items():
@@ -186,16 +189,12 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
                 validated = pyd_adapter.validate_python(item)
 
                 if col_key == "workflows":
-                    from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
-
                     DAGCompilerService.validate_workflow(validated)
 
                 if col_key == "prompt_blocks":
                     if getattr(validated, "category_id", "") == "matrix":
                         current_matrix += 1
-                        validated = await _atomize_with_cache(
-                            validated, repo, current_matrix, total_matrices, False
-                        )
+                        validated = await _atomize_with_cache(validated, repo, current_matrix, total_matrices, False)
 
                 if hasattr(validated, "model_dump"):
                     dumped = validated.model_dump(mode="json")
@@ -240,10 +239,7 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
 
 
 async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
-    try:
-        import firebase_admin
-        from firebase_admin import credentials, firestore
-    except ImportError:
+    if not FIREBASE_AVAILABLE:
         print("Firebase Admin not installed.")
         return
 
@@ -259,12 +255,7 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
     for col in collections_to_clear:
         _delete_collection(db.collection(col))
 
-    from google.cloud import firestore as async_firestore  # type: ignore[attr-defined]
-
-    from backend_v2.database.firestore_driver import FirestoreDriver
-    from backend_v2.database.repository import UnifiedWorkflowRepository
-
-    repo = UnifiedWorkflowRepository(FirestoreDriver(async_firestore.AsyncClient()))
+    repo = WorkflowRepositoryImpl(FirestoreDriver(async_firestore.AsyncClient()))
 
     def batch_upsert(collection_name: str, items: list[dict[str, Any]], id_field: str = "id") -> None:
         batch = db.batch()
@@ -302,8 +293,6 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
             try:
                 validated = pyd_adapter.validate_python(item)
                 if col_key == "workflows":
-                    from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
-
                     DAGCompilerService.validate_workflow(validated)
 
                 if col_key == "prompt_blocks":
@@ -365,8 +354,6 @@ def main() -> None:
     targets = set(args.targets)
     if "all" in targets:
         targets = {"local", "firestore"}
-
-    import asyncio
 
     for t in targets:
         try:

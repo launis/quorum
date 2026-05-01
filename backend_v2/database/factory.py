@@ -7,12 +7,15 @@ via the UnifiedWorkflowRepository and StorageDriver pattern.
 
 import logging
 
+from google.cloud import firestore  # type: ignore[attr-defined]
+
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.firestore_driver import FirestoreDriver
 
 # Drivers
 from backend_v2.database.tinydb_driver import TinyDBDriver
 from backend_v2.database.wrapper import AbstractDatabase, TinyDBClient
+from backend_v2.exceptions import ConfigurationError
 from backend_v2.settings import Settings, StorageBackend
 
 logger = logging.getLogger(__name__)
@@ -36,9 +39,6 @@ async def get_driver(settings: Settings, db_client: AbstractDatabase | None = No
 
     match backend:
         case StorageBackend.FIRESTORE:
-            # Lazy import to avoid hard dependency on google-cloud-firestore if not used everywhere
-            from google.cloud import firestore  # type: ignore[attr-defined]
-
             # Credentials are implicitly handled by GOOGLE_APPLICATION_CREDENTIALS env var
             # set by the .bat files.
             # We use the AsyncClient directly for the driver
@@ -61,14 +61,4 @@ async def get_driver(settings: Settings, db_client: AbstractDatabase | None = No
             return local_driver
 
         case _:
-            from backend_v2.exceptions import ConfigurationError
-
             raise ConfigurationError(f"Unknown storage backend: {backend}")
-
-
-from backend_v2.database.repository import UnifiedWorkflowRepository
-
-
-async def get_repository(settings: Settings, db_client: AbstractDatabase | None = None) -> UnifiedWorkflowRepository:
-    driver = await get_driver(settings, db_client)
-    return UnifiedWorkflowRepository(driver)

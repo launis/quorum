@@ -47,7 +47,7 @@ class LLMClient:
 
         Args:
             strategy_name: The name of the strategy (e.g. 'fast', 'SearchHook', 'cognitive-audit').
-            repository: Optional DB repository. If absent, attempts to resolve 'UnifiedWorkflowRepository' globally.
+            repository: Optional DB repository (e.g. ISystemRepository or IWorkflowRepository).
 
         Returns:
             A configured LLMClient instance ready for execution.
@@ -96,12 +96,7 @@ class LLMClient:
         if not target_strategy:
             raise ConfigurationError(f"Strategy '{strategy_name}' not found in registry.")
 
-        target_provider = getattr(target_strategy, "provider", None)
-        if not target_provider:
-            raise ConfigurationError(
-                f"Strict Mode: Strategy '{strategy_name}' is missing required 'provider' in Model Registry.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-            )
+        target_provider = target_strategy.provider
 
         # 4. Construct Provider Config — Fail-Fast: All values MUST come from Model Registry
         if target_strategy.tpm_limit is None or target_strategy.rpm_limit is None:

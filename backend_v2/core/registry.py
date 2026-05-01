@@ -123,11 +123,13 @@ class TaskRegistry:
             try:
                 from backend_v2.services.agent_registry import AgentRegistry
 
-                from backend_v2.database.factory import get_repository
+                from backend_v2.database.factory import get_driver
+                from backend_v2.database.repository import UnifiedWorkflowRepository
                 from backend_v2.services.usage_service import UsageService
                 from backend_v2.settings import get_settings
 
-                repo = await get_repository(get_settings())
+                driver = await get_driver(get_settings())
+                repo = UnifiedWorkflowRepository(driver)
                 registry = AgentRegistry(repo)
                 usage_service = UsageService(identity_repo=repo, audit_repo=repo)
                 model_config = await registry.resolve_model_config(agent_cls.__name__)

@@ -3,9 +3,9 @@
 import asyncio
 import logging
 import uuid
+from typing import Any
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
-from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.v2_core import SystemConfigModelRegistry
@@ -83,7 +83,6 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
             # Standard async runtime (e.g., FastAPI) - this hook should theoretically be async.
             # If the engine wraps this synchronously, this will fail. We'll use a direct fetch
             # avoiding the async API if we are inside a sync hook execution.
-            UnifiedWorkflowRepository()  # type: ignore[call-arg] # Required for instantiation without DI in legacy sync hook context
 
             # Since the hook is `def configure...` and NOT `async def configure...`,
             # we must execute the async factory cleanly.
@@ -115,19 +114,21 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
 
-        provider = target_strategy.provider or "google"
+        config_data: dict[str, Any] = {
+            "id": f"llm_{uuid.uuid4().hex[:8]}",
+            "provider": target_strategy.provider,
+            "model_name": target_strategy.model_name,
+            "api_key": target_strategy.api_key,
+            "tpm_limit": target_strategy.tpm_limit if target_strategy.tpm_limit is not None else 0,
+            "rpm_limit": target_strategy.rpm_limit if target_strategy.rpm_limit is not None else 0,
+            "default_max_tokens": target_strategy.max_tokens,
+            "supports_grounding": target_strategy.supports_grounding,
+        }
 
-        llm_config = LLMProviderConfig(
-            id=f"llm_{uuid.uuid4().hex[:8]}",
-            provider=provider,
-            model_name=target_strategy.model_name,
-            api_key=target_strategy.api_key,
-            temperature=target_strategy.temperature if target_strategy.temperature is not None else 0.7,
-            tpm_limit=target_strategy.tpm_limit or 0,
-            rpm_limit=target_strategy.rpm_limit or 0,
-            default_max_tokens=target_strategy.max_tokens,
-            supports_grounding=target_strategy.supports_grounding,
-        )
+        if target_strategy.temperature is not None:
+            config_data["temperature"] = target_strategy.temperature
+
+        llm_config = LLMProviderConfig.model_validate(config_data)
 
         # 4. Inject
         logger.info(

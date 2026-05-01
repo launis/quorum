@@ -15,16 +15,18 @@ async def test_health_check() -> None:
 
 @pytest.mark.asyncio
 async def test_startup() -> None:
-    with patch("backend_v2.worker.get_repository", new_callable=AsyncMock) as mock_repo:
-        with patch("backend_v2.worker.LLMClient"):
-            with patch("backend_v2.worker.PromptCompiler"):
-                with patch("backend_v2.worker.DAGExecutor"):
-                    mock_repo.return_value = AsyncMock()
-                    ctx: dict[str, Any] = {}
-                    await startup(ctx)
-                    assert "engine" in ctx
-                    assert "repository" in ctx
-                    assert "llm_client" in ctx
+    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock) as mock_driver:
+        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+            mock_repo = AsyncMock()
+            mock_repo_class.return_value = mock_repo
+            with patch("backend_v2.worker.LLMClient"):
+                with patch("backend_v2.worker.PromptCompiler"):
+                    with patch("backend_v2.worker.DAGExecutor"):
+                        ctx: dict[str, Any] = {}
+                        await startup(ctx)
+                        assert "engine" in ctx
+                        assert "repository" in ctx
+                        assert "llm_client" in ctx
 
 
 @pytest.mark.asyncio

@@ -2,7 +2,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from backend_v2.database.repository import UnifiedWorkflowRepository
+from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
+from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
+from backend_v2.database.repositories.identity import IdentityRepositoryImpl
+from backend_v2.database.repositories.system import SystemRepositoryImpl
+from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
 
 
@@ -13,9 +17,9 @@ async def test_hydrate_payloads_fails_fast_on_empty_blob() -> None:
     # Mock read to return empty bytes
     mock_driver.read.return_value = b"   "
 
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    repo = ExecutionRepositoryImpl(driver=mock_driver)
 
-    with patch("backend_v2.database.repository.get_storage_driver", return_value=mock_driver):
+    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_driver):
         data = {"id": "exe_123", "execution_trace_storage_path": "executions/exe_123/execution_trace.json"}
 
         with pytest.raises(AppException) as exc_info:
@@ -32,7 +36,7 @@ async def test_persist_audit_trace_fails_fast() -> None:
     mock_driver = AsyncMock()
     mock_driver.upsert.side_effect = Exception("DB crash")
 
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    repo = ExecutionRepositoryImpl(driver=mock_driver)
     data = {"frozen_context": {"mcp_tool_audit": [{"id": "audit_123"}]}}
 
     with pytest.raises(AppException) as exc_info:
@@ -47,7 +51,7 @@ async def test_persist_audit_trace_fails_fast() -> None:
 async def test_offload_payloads_fails_fast() -> None:
     """Test that failing to offload massive payloads to storage raises an AppException."""
     mock_driver = AsyncMock()
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    repo = ExecutionRepositoryImpl(driver=mock_driver)
 
     mock_storage_driver = AsyncMock()
     mock_storage_driver.save.side_effect = Exception("Storage crash")
@@ -56,7 +60,7 @@ async def test_offload_payloads_fails_fast() -> None:
         "execution_trace": ["large_data"] * 10000  # Will exceed 100KB
     }
 
-    with patch("backend_v2.database.repository.get_storage_driver", return_value=mock_storage_driver):
+    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_storage_driver):
         with pytest.raises(AppException) as exc_info:
             await repo._offload_payloads("doc_123", data)
 
@@ -71,10 +75,10 @@ async def test_hydrate_audit_trails_fails_fast() -> None:
     mock_driver = AsyncMock()
     mock_driver.query.side_effect = Exception("Query crash")
 
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    repo = ExecutionRepositoryImpl(driver=mock_driver)
     data = {"id": "doc_123"}
 
-    with patch("backend_v2.database.repository.get_storage_driver"):
+    with patch("backend_v2.database.repositories.execution.get_storage_driver"):
         with pytest.raises(AppException) as exc_info:
             await repo._hydrate_payloads(data)
 
@@ -88,7 +92,7 @@ async def test_get_all_delegates_to_driver() -> None:
     """Test that get_all delegates to driver.query."""
     mock_driver = AsyncMock()
     mock_driver.query.return_value = [{"id": "123"}]
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    repo = WorkflowRepositoryImpl(driver=mock_driver)
 
     result = await repo.get_all("workflows")
 
@@ -101,7 +105,7 @@ async def test_get_delegates_to_driver() -> None:
     """Test that get delegates to driver.get."""
     mock_driver = AsyncMock()
     mock_driver.get.return_value = {"id": "123"}
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    repo = WorkflowRepositoryImpl(driver=mock_driver)
 
     result = await repo.get("workflows", "123")
 
@@ -114,7 +118,7 @@ async def test_create_raw_delegates_to_driver() -> None:
     """Test that create_raw generates UUID if missing and delegates to driver.upsert."""
     mock_driver = AsyncMock()
     mock_driver.upsert.return_value = "new_123"
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    repo = WorkflowRepositoryImpl(driver=mock_driver)
 
     # Without ID
     result = await repo.create_raw("workflows", {"name": "Test"})
@@ -135,7 +139,7 @@ async def test_delete_delegates_to_driver() -> None:
     """Test that delete delegates to driver.delete."""
     mock_driver = AsyncMock()
     mock_driver.delete.return_value = True
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    repo = WorkflowRepositoryImpl(driver=mock_driver)
 
     result = await repo.delete("workflows", "123")
 
@@ -151,7 +155,7 @@ async def test_agent_delegates() -> None:
     mock_driver.upsert.return_value = "agent_1"
     mock_driver.update.return_value = True
     mock_driver.delete.return_value = True
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    repo = IdentityRepositoryImpl(driver=mock_driver)
 
     assert await repo.get_agent_by_id("agent_1") == {"id": "agent_1"}
     assert await repo.get_all_agents() == [{"id": "agent_1"}]
@@ -168,7 +172,7 @@ async def test_output_profile_delegates() -> None:
     mock_driver.upsert.return_value = "profile_1"
     mock_driver.update.return_value = True
     mock_driver.delete.return_value = True
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    repo = SystemRepositoryImpl(driver=mock_driver)
 
     assert await repo.get_all_output_profiles() == [{"id": "profile_1"}]
     assert await repo.get_output_profile_by_id("profile_1") == {"id": "profile_1"}
@@ -182,7 +186,7 @@ async def test_knowledge_base_delegates() -> None:
     mock_driver = AsyncMock()
     mock_driver.query.return_value = []
     mock_driver.upsert.return_value = "id_1"
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    repo = KnowledgeRepositoryImpl(driver=mock_driver)
 
     assert await repo.get_concepts() == []
     assert await repo.get_references() == []
@@ -198,7 +202,7 @@ async def test_knowledge_base_delegates() -> None:
 async def test_banned_phrases_delegates() -> None:
     mock_driver = AsyncMock()
     mock_driver.query.return_value = []
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    repo = SystemRepositoryImpl(driver=mock_driver)
 
     assert await repo.get_banned_phrases() == []
     await repo.add_banned_phrase("bad")

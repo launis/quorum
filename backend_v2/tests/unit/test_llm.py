@@ -314,18 +314,16 @@ async def test_configure_llm_context_hook_success() -> None:
                 }
             },
         }
-        # Mock the repository call inside the hook if needed
-        with patch("backend_v2.hooks.llm.UnifiedWorkflowRepository"):
-            from typing import cast
+        from typing import cast
 
-            from backend_v2.core.hook_registry import HookResult
+        from backend_v2.core.hook_registry import HookResult
 
-            result = cast(HookResult, configure_llm_context_hook(state, deps))
+        result = cast(HookResult, configure_llm_context_hook(state, deps))
 
-            assert result.success is True
-            assert result.state_delta is not None
-            assert "llm_config" in result.state_delta
-            assert result.state_delta["llm_config"].provider == "google"
+        assert result.success is True
+        assert result.state_delta is not None
+        assert "llm_config" in result.state_delta
+        assert result.state_delta["llm_config"].provider == "google"
 
 
 def test_configure_llm_context_hook_empty_state() -> None:

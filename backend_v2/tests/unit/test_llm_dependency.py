@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from backend_v2.api.dependencies import get_llm_handler
-from backend_v2.database.factory import get_repository
+from backend_v2.database.factory import get_driver
 
 app = FastAPI()
 
@@ -26,7 +26,7 @@ async def test_llm_handler_dependency_injection() -> None:
     mock_repo = MagicMock(spec=Any)
     mock_repo._db = "mock_db_instance"
 
-    app.dependency_overrides[get_repository] = lambda: mock_repo
+    app.dependency_overrides[get_driver] = lambda: mock_repo
 
     with TestClient(app) as client:
         response = client.get("/test-llm-dep")

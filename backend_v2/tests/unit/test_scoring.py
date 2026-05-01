@@ -4,7 +4,6 @@ from typing import Any, cast
 import pytest
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
-from backend_v2.database.repository import AbstractWorkflowRepository
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.scoring import normalize_matrix_scores_hook
 
@@ -80,12 +79,12 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
         global_context_vars={},
     )
     deps = HookDependencies(
-        exec_repo=cast(AbstractWorkflowRepository, MockRepository()),
-        workflow_repo=cast(AbstractWorkflowRepository, MockRepository()),
-        comp_repo=cast(AbstractWorkflowRepository, MockRepository()),  # type: ignore
-        identity_repo=cast(AbstractWorkflowRepository, MockRepository()),
-        audit_repo=cast(AbstractWorkflowRepository, MockRepository()),  # type: ignore
-        system_repo=cast(AbstractWorkflowRepository, MockRepository()),
+        exec_repo=cast(Any, MockRepository()),
+        workflow_repo=cast(Any, MockRepository()),
+        comp_repo=cast(Any, MockRepository()),
+        identity_repo=cast(Any, MockRepository()),
+        audit_repo=cast(Any, MockRepository()),
+        system_repo=cast(Any, MockRepository()),
     )  # noqa: E501
 
     with pytest.raises(AppException) as exc_info:
@@ -130,12 +129,12 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
         global_context_vars={},
     )
     deps = HookDependencies(
-        exec_repo=cast(AbstractWorkflowRepository, MockRepoTapa2()),
-        workflow_repo=cast(AbstractWorkflowRepository, MockRepoTapa2()),
-        comp_repo=cast(AbstractWorkflowRepository, MockRepoTapa2()),  # type: ignore
-        identity_repo=cast(AbstractWorkflowRepository, MockRepoTapa2()),
-        audit_repo=cast(AbstractWorkflowRepository, MockRepoTapa2()),  # type: ignore
-        system_repo=cast(AbstractWorkflowRepository, MockRepoTapa2()),
+        exec_repo=cast(Any, MockRepoTapa2()),
+        workflow_repo=cast(Any, MockRepoTapa2()),
+        comp_repo=cast(Any, MockRepoTapa2()),
+        identity_repo=cast(Any, MockRepoTapa2()),
+        audit_repo=cast(Any, MockRepoTapa2()),
+        system_repo=cast(Any, MockRepoTapa2()),
     )  # noqa: E501
 
     result = await cast(Awaitable[HookResult], normalize_matrix_scores_hook(state, deps))
@@ -224,12 +223,12 @@ async def test_waterfall_scoring_hook_ignores_instructions() -> None:
         global_context_vars={},
     )
     deps = HookDependencies(
-        exec_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallMixed()),
-        workflow_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallMixed()),
-        comp_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallMixed()),  # type: ignore
-        identity_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallMixed()),
-        audit_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallMixed()),  # type: ignore
-        system_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallMixed()),
+        exec_repo=cast(Any, MockRepoWaterfallMixed()),
+        workflow_repo=cast(Any, MockRepoWaterfallMixed()),
+        comp_repo=cast(Any, MockRepoWaterfallMixed()),
+        identity_repo=cast(Any, MockRepoWaterfallMixed()),
+        audit_repo=cast(Any, MockRepoWaterfallMixed()),
+        system_repo=cast(Any, MockRepoWaterfallMixed()),
     )  # noqa: E501
 
     # TDD RED: This should NOT raise AppException(Strict Fail-Fast Enforced: PromptBlock has no scales)
@@ -258,12 +257,12 @@ async def test_waterfall_scoring_hook_pass_all() -> None:
         global_context_vars={},
     )
     deps = HookDependencies(
-        exec_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
-        workflow_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
-        comp_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),  # type: ignore
-        identity_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
-        audit_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),  # type: ignore
-        system_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+        exec_repo=cast(Any, MockRepoWaterfall()),
+        workflow_repo=cast(Any, MockRepoWaterfall()),
+        comp_repo=cast(Any, MockRepoWaterfall()),
+        identity_repo=cast(Any, MockRepoWaterfall()),
+        audit_repo=cast(Any, MockRepoWaterfall()),
+        system_repo=cast(Any, MockRepoWaterfall()),
     )  # noqa: E501
 
     result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
@@ -296,12 +295,12 @@ async def test_waterfall_scoring_hook_ceiling_cap() -> None:
         global_context_vars={},
     )
     deps = HookDependencies(
-        exec_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
-        workflow_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
-        comp_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),  # type: ignore
-        identity_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
-        audit_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),  # type: ignore
-        system_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+        exec_repo=cast(Any, MockRepoWaterfall()),
+        workflow_repo=cast(Any, MockRepoWaterfall()),
+        comp_repo=cast(Any, MockRepoWaterfall()),
+        identity_repo=cast(Any, MockRepoWaterfall()),
+        audit_repo=cast(Any, MockRepoWaterfall()),
+        system_repo=cast(Any, MockRepoWaterfall()),
     )  # noqa: E501
     result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
     assert result.success is True
@@ -338,12 +337,12 @@ async def test_waterfall_scoring_hook_graceful_missing() -> None:
         global_context_vars={},
     )
     deps = HookDependencies(
-        exec_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
-        workflow_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
-        comp_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),  # type: ignore
-        identity_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
-        audit_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),  # type: ignore
-        system_repo=cast(AbstractWorkflowRepository, MockRepoWaterfall()),
+        exec_repo=cast(Any, MockRepoWaterfall()),
+        workflow_repo=cast(Any, MockRepoWaterfall()),
+        comp_repo=cast(Any, MockRepoWaterfall()),
+        identity_repo=cast(Any, MockRepoWaterfall()),
+        audit_repo=cast(Any, MockRepoWaterfall()),
+        system_repo=cast(Any, MockRepoWaterfall()),
     )  # noqa: E501
     result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
 
@@ -439,12 +438,12 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
         global_context_vars={},
     )
     deps = HookDependencies(
-        exec_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallSimulation()),
-        workflow_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallSimulation()),
-        comp_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallSimulation()),  # type: ignore
-        identity_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallSimulation()),
-        audit_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallSimulation()),  # type: ignore
-        system_repo=cast(AbstractWorkflowRepository, MockRepoWaterfallSimulation()),
+        exec_repo=cast(Any, MockRepoWaterfallSimulation()),
+        workflow_repo=cast(Any, MockRepoWaterfallSimulation()),
+        comp_repo=cast(Any, MockRepoWaterfallSimulation()),
+        identity_repo=cast(Any, MockRepoWaterfallSimulation()),
+        audit_repo=cast(Any, MockRepoWaterfallSimulation()),
+        system_repo=cast(Any, MockRepoWaterfallSimulation()),
     )  # noqa: E501
 
     result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))

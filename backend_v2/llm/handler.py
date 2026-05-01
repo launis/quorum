@@ -2,6 +2,7 @@
 
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import openai
@@ -9,7 +10,23 @@ import openai
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes, ServiceUnavailableError
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.llm import LLMProviderConfig
+from backend_v2.models.v2_core import SystemConfigModelRegistry
 from backend_v2.settings import get_settings
+from backend_v2.utils.pydantic_utils import inflate
+
+try:
+    import google.auth
+    import litellm
+    import requests
+    import vertexai
+    from google.api_core import client_options as g_client_options
+    from google.auth.transport.requests import Request as GRequest
+    from google.cloud import aiplatform_v1
+    from vertexai.generative_models import GenerativeModel
+
+    GOOGLE_DEPS_AVAILABLE = True
+except ImportError:
+    GOOGLE_DEPS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +42,10 @@ class LLMHandler:
 
         Attempts to fetch its metadata in the target location.
         """
-        try:
-            # Dynamic import to avoid top-level crash if library missing
-            from google.api_core import client_options as g_client_options
-            from google.cloud import aiplatform_v1
+        if not GOOGLE_DEPS_AVAILABLE:
+            return False
 
+        try:
             api_endpoint = f"{location}-aiplatform.googleapis.com"
             client = aiplatform_v1.ModelGardenServiceClient(
                 client_options=g_client_options.ClientOptions(api_endpoint=api_endpoint)
@@ -51,7 +67,7 @@ class LLMHandler:
         """Initializes the handler.
 
         Args:
-            repo (Any): The AbstractWorkflowRepository instance (injected via dependencies.py).
+            repo (Any): The IWorkflowRepository instance (injected via dependencies.py).
         """
         self.repo = repo
         self._cached_google_models: list[str] = []
@@ -120,20 +136,11 @@ class LLMHandler:
                 source_region = settings.discovery_location or "us-west1"
                 logger.debug("[LLMHandler] Initiating Model Discovery (Source: %s)...", source_region)
 
-                try:
-                    from concurrent.futures import ThreadPoolExecutor, as_completed
-
-                    import google.auth
-                    import litellm
-                    import requests
-                    from google.auth.transport.requests import Request as GRequest
-                except ImportError as ie:
-                    from backend_v2.exceptions import ConfigurationError, ErrorCodes
-
+                if not GOOGLE_DEPS_AVAILABLE:
                     raise ConfigurationError(
                         message="Missing required dependencies for Google discovery.",
-                        details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING, "original_error": str(ie)},
-                    ) from ie
+                        details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING},
+                    )
 
                 # Get all candidates
                 all_models = litellm.model_list
@@ -160,8 +167,6 @@ class LLMHandler:
                     credentials.refresh(GRequest())  # type: ignore
                     token = credentials.token
                 except Exception as auth_err:
-                    from backend_v2.exceptions import ConfigurationError, ErrorCodes
-
                     # Fail Fast: If we can't authenticate, we can't discover or use models.
                     raise ConfigurationError(
                         message="Google Authentication failed during discovery.",
@@ -178,9 +183,6 @@ class LLMHandler:
                             clean_id = clean_id[len(prefix) :]
 
                     try:
-                        import vertexai
-                        from vertexai.generative_models import GenerativeModel
-
                         # Initialize Vertex AI strictly in the target location
                         vertexai.init(project=project, location=target_location, credentials=credentials)
 
@@ -230,8 +232,6 @@ class LLMHandler:
 
             except Exception as e:
                 # If it's already an AppException, re-raise
-                from backend_v2.exceptions import AppException, ErrorCodes, ServiceUnavailableError
-
                 if isinstance(e, AppException):
                     raise e
 
@@ -268,8 +268,6 @@ class LLMHandler:
                             details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING},
                         )
             except Exception as e:
-                from backend_v2.exceptions import AppException, ErrorCodes, ServiceUnavailableError
-
                 if isinstance(e, AppException):
                     raise e
 
@@ -294,8 +292,6 @@ class LLMHandler:
         """
         try:
             res = await self.repo.get_model_registry()
-            from backend_v2.models.v2_core import SystemConfigModelRegistry
-            from backend_v2.utils.pydantic_utils import inflate
 
             parsed = inflate(res, SystemConfigModelRegistry)
             if not isinstance(parsed, SystemConfigModelRegistry):
@@ -304,8 +300,6 @@ class LLMHandler:
             models: dict[str, Any] = dump.get("models", {})
             return models
         except Exception as e:
-            from backend_v2.exceptions import ConfigurationError, ErrorCodes
-
             logger.error(
                 "[LLMHandler] %s: Failed to parse active model registry: %s",
                 ErrorCodes.CONFIGURATION_ERROR.name,
@@ -411,7 +405,7 @@ class LLMHandler:
                 vertex_location=cd.get("vertex_location"),
                 supports_grounding=cd["supports_grounding"],
                 is_active=cd["is_active"],
-                additional_params=cd.get("additional_params", {}),
+                additional_params=cd["additional_params"],
             )
 
             # FAIL FAST: Check Active Status

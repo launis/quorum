@@ -14,7 +14,8 @@ from arq.connections import RedisSettings
 
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.core.registry import TaskRegistry
-from backend_v2.database.factory import get_repository
+from backend_v2.database.factory import get_driver
+from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
@@ -198,7 +199,8 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
     """
     logger.info(f"[Task] Starting Async PDF Koonti for execution {execution_id}")
     try:
-        repo = await get_repository(get_settings())
+        driver = await get_driver(get_settings())
+        repo = UnifiedWorkflowRepository(driver)
         transformer = BlueprintTransformer(exec_repo=repo, workflow_repo=repo, comp_repo=repo, identity_repo=repo)  # noqa: E501
 
         # 0. Guard: Execution may have been deleted while PDF job was queued
@@ -247,7 +249,8 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
             extra={"error_code": ErrorCodes.PDF_GENERATION_FAILED.value},
         )
         try:
-            repo = await get_repository(get_settings())
+            driver = await get_driver(get_settings())
+            repo = UnifiedWorkflowRepository(driver)
             await repo.update_execution(
                 execution_id,
                 {
@@ -282,7 +285,8 @@ async def generate_profile_synthesis_and_pdf_task(
     """Background Task. Synthesizes Markdown and enqueues PDF generation. Epic 14 M4."""
     logger.info(f"[Task] Starting Async Text Synthesis for execution {execution_id} (Profile: {profile_id})")  # noqa: E501
     try:
-        repo = await get_repository(get_settings())
+        driver = await get_driver(get_settings())
+        repo = UnifiedWorkflowRepository(driver)
 
         execution_data = await repo.get_execution(execution_id)
         if not execution_data:
@@ -367,7 +371,8 @@ async def generate_profile_synthesis_and_pdf_task(
             extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
         )
         try:
-            repo = await get_repository(get_settings())
+            driver = await get_driver(get_settings())
+            repo = UnifiedWorkflowRepository(driver)
             await repo.update_execution(
                 execution_id,
                 {
@@ -414,7 +419,8 @@ async def startup(ctx: Any) -> None:
 
     # 2. Initialize Dependencies
     # Repository (Firestore/TinyDB)
-    repository = await get_repository(get_settings())
+    driver = await get_driver(get_settings())
+    repository = UnifiedWorkflowRepository(driver)
 
     # LLM Client (Instructor) - Singleton init
     llm_client = LLMClient()

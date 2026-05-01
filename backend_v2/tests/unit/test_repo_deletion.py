@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from backend_v2.database.repository import UnifiedWorkflowRepository
+from backend_v2.database.repositories.component import ComponentRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
 
 
@@ -16,7 +16,7 @@ def mock_driver() -> Any:
 @pytest.mark.asyncio
 # Test for Fail-Fast deletion boundary
 async def test_delete_prompt_block_blocks_orphan_data(mock_driver: Any) -> None:
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    repo = ComponentRepositoryImpl(driver=mock_driver)
 
     # Mock get_prompt_block_by_id to simulate the block exists
     # Mock get_all_steps to simulate it is used in a Step
