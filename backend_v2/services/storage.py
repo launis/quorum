@@ -23,7 +23,6 @@ def get_storage_driver() -> FileDriver:
     The driver is selected based on settings.storage_backend:
     - FIRESTORE -> GCSFileDriver (using settings.storage_bucket_name)
     - LOCAL -> LocalFileDriver (using settings.files_dir)
-    - MOCK -> LocalFileDriver (using settings.files_dir)
 
     Returns:
         FileDriver: The initialized driver.
@@ -47,7 +46,7 @@ def get_storage_driver() -> FileDriver:
         logger.info("Initializing GCSFileDriver with bucket: %s", bucket_name)
         return GCSFileDriver(bucket_name=bucket_name)
 
-    if backend in (StorageBackend.LOCAL, StorageBackend.MOCK):
+    if backend == StorageBackend.LOCAL:
         base_path = settings.files_dir
         base_url = f"{settings.api_url}/files" if settings.api_url else None
 

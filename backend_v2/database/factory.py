@@ -46,22 +46,15 @@ async def get_driver(settings: Settings, db_client: AbstractDatabase | None = No
             driver = FirestoreDriver(client)
             return driver
 
-        case StorageBackend.MOCK | StorageBackend.LOCAL:
-            # Both Mock and Local use TinyDB, just different paths or injected clients
-
+        case StorageBackend.LOCAL:
+            # Local uses TinyDB
             db_client_local: TinyDBClient
 
             if db_client and isinstance(db_client, TinyDBClient):
                 db_client_local = db_client
             else:
-                # Determine path based on mode
-                if backend == StorageBackend.MOCK:
-                    db_path = settings.mock_db_path
-                    logger.info("[Factory] Using MOCK configuration. Path: %s", db_path)
-                else:
-                    db_path = settings.prod_db_path
-                    logger.info("[Factory] Using LOCAL configuration. Path: %s", db_path)
-
+                db_path = settings.prod_db_path
+                logger.info("[Factory] Using LOCAL configuration. Path: %s", db_path)
                 db_client_local = TinyDBClient(db_path)
 
             local_driver = TinyDBDriver(db_client_local)

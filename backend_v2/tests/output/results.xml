@@ -1,124 +1,45 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="6" failures="0" skipped="0" tests="6" time="9.570" timestamp="2026-04-19T09:30:30.353263+03:00" hostname="Laptop-Risto"><testcase classname="" name="backend_v2.tests.architecture.test_boundaries" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\src\quorum\backend_v2\tests\architecture\test_boundaries.py'.
-Hint: make sure your test modules/packages have valid Python names.
-Traceback:
-C:\Python314\Lib\importlib\__init__.py:88: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-tests\architecture\test_boundaries.py:1: in &lt;module&gt;
-    from pytest_archon import archrule
-E   ModuleNotFoundError: No module named 'pytest_archon'</error></testcase><testcase classname="" name="backend_v2.tests.unit.test_api_clone_endpoints" time="0.000"><error message="collection failure">C:\Python314\Lib\site-packages\logfire\_internal\integrations\fastapi.py:27: in &lt;module&gt;
-    from opentelemetry.instrumentation.asgi import ServerRequestHook
-E   ModuleNotFoundError: No module named 'opentelemetry.instrumentation.asgi'
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.450" timestamp="2026-05-01T13:14:24.475911+03:00" hostname="Laptop-Risto"><testcase classname="backend_v2.tests.test_storage_bug" name="test_storage_driver_mock_bug" time="0.007"><failure message="AttributeError: type object 'StorageBackend' has no attribute 'MOCK'">@pytest.mark.asyncio
+    async def test_storage_driver_mock_bug():
+        # Calling get_storage_driver will evaluate StorageBackend.MOCK
+        # which will raise an AttributeError.
+&gt;       get_storage_driver()
 
-During handling of the above exception, another exception occurred:
-tests\unit\test_api_clone_endpoints.py:8: in &lt;module&gt;
-    from backend_v2.main import app
-main.py:109: in &lt;module&gt;
-    logfire.instrument_fastapi(app)
-C:\Python314\Lib\site-packages\logfire\_internal\main.py:1175: in instrument_fastapi
-    from .integrations.fastapi import instrument_fastapi
-&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
-    ???
-&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
-    ???
-&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
-    ???
-C:\Python314\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
-    exec(co, module.__dict__)
-C:\Python314\Lib\site-packages\logfire\_internal\integrations\fastapi.py:32: in &lt;module&gt;
-    raise RuntimeError(
-E   RuntimeError: The `logfire.instrument_fastapi()` method requires the `opentelemetry-instrumentation-fastapi` package.
-E   You can install this with:
-E       pip install 'logfire[fastapi]'</error></testcase><testcase classname="" name="backend_v2.tests.unit.test_api_prompt_blocks" time="0.000"><error message="collection failure">C:\Python314\Lib\site-packages\logfire\_internal\integrations\fastapi.py:27: in &lt;module&gt;
-    from opentelemetry.instrumentation.asgi import ServerRequestHook
-E   ModuleNotFoundError: No module named 'opentelemetry.instrumentation.asgi'
+tests\test_storage_bug.py:8: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-During handling of the above exception, another exception occurred:
-tests\unit\test_api_prompt_blocks.py:8: in &lt;module&gt;
-    from backend_v2.main import app
-main.py:109: in &lt;module&gt;
-    logfire.instrument_fastapi(app)
-C:\Python314\Lib\site-packages\logfire\_internal\main.py:1175: in instrument_fastapi
-    from .integrations.fastapi import instrument_fastapi
-&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
-    ???
-&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
-    ???
-&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
-    ???
-C:\Python314\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
-    exec(co, module.__dict__)
-C:\Python314\Lib\site-packages\logfire\_internal\integrations\fastapi.py:32: in &lt;module&gt;
-    raise RuntimeError(
-E   RuntimeError: The `logfire.instrument_fastapi()` method requires the `opentelemetry-instrumentation-fastapi` package.
-E   You can install this with:
-E       pip install 'logfire[fastapi]'</error></testcase><testcase classname="" name="backend_v2.tests.unit.test_api_seed_mutations" time="0.000"><error message="collection failure">C:\Python314\Lib\site-packages\logfire\_internal\integrations\fastapi.py:27: in &lt;module&gt;
-    from opentelemetry.instrumentation.asgi import ServerRequestHook
-E   ModuleNotFoundError: No module named 'opentelemetry.instrumentation.asgi'
+    @lru_cache
+    def get_storage_driver() -&gt; FileDriver:
+        """Returns the singleton StorageDriver instance.
+    
+        The driver is selected based on settings.storage_backend:
+        - FIRESTORE -&gt; GCSFileDriver (using settings.storage_bucket_name)
+        - LOCAL -&gt; LocalFileDriver (using settings.files_dir)
+        - MOCK -&gt; LocalFileDriver (using settings.files_dir)
+    
+        Returns:
+            FileDriver: The initialized driver.
+    
+        Raises:
+            ValueError: If FIRESTORE backend is selected but storage_bucket_name is missing.
+        """
+        settings = get_settings()
+        backend = settings.active_backend
+    
+        if backend == StorageBackend.FIRESTORE:
+            bucket_name = settings.storage_bucket_name
+            if not bucket_name:
+                msg = "CRITICAL: STORAGE_BACKEND=FIRESTORE requires STORAGE_BUCKET_NAME to be set."
+                logger.error("[StorageService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                )
+            logger.info("Initializing GCSFileDriver with bucket: %s", bucket_name)
+            return GCSFileDriver(bucket_name=bucket_name)
+    
+&gt;       if backend in (StorageBackend.LOCAL, StorageBackend.MOCK):
+                                             ^^^^^^^^^^^^^^^^^^^
+E       AttributeError: type object 'StorageBackend' has no attribute 'MOCK'
 
-During handling of the above exception, another exception occurred:
-tests\unit\test_api_seed_mutations.py:10: in &lt;module&gt;
-    from backend_v2.main import app
-main.py:109: in &lt;module&gt;
-    logfire.instrument_fastapi(app)
-C:\Python314\Lib\site-packages\logfire\_internal\main.py:1175: in instrument_fastapi
-    from .integrations.fastapi import instrument_fastapi
-&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
-    ???
-&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
-    ???
-&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
-    ???
-C:\Python314\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
-    exec(co, module.__dict__)
-C:\Python314\Lib\site-packages\logfire\_internal\integrations\fastapi.py:32: in &lt;module&gt;
-    raise RuntimeError(
-E   RuntimeError: The `logfire.instrument_fastapi()` method requires the `opentelemetry-instrumentation-fastapi` package.
-E   You can install this with:
-E       pip install 'logfire[fastapi]'</error></testcase><testcase classname="" name="backend_v2.tests.unit.test_api_workflow_fail_fast" time="0.000"><error message="collection failure">C:\Python314\Lib\site-packages\logfire\_internal\integrations\fastapi.py:27: in &lt;module&gt;
-    from opentelemetry.instrumentation.asgi import ServerRequestHook
-E   ModuleNotFoundError: No module named 'opentelemetry.instrumentation.asgi'
-
-During handling of the above exception, another exception occurred:
-tests\unit\test_api_workflow_fail_fast.py:8: in &lt;module&gt;
-    from backend_v2.main import app
-main.py:109: in &lt;module&gt;
-    logfire.instrument_fastapi(app)
-C:\Python314\Lib\site-packages\logfire\_internal\main.py:1175: in instrument_fastapi
-    from .integrations.fastapi import instrument_fastapi
-&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
-    ???
-&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
-    ???
-&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
-    ???
-C:\Python314\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
-    exec(co, module.__dict__)
-C:\Python314\Lib\site-packages\logfire\_internal\integrations\fastapi.py:32: in &lt;module&gt;
-    raise RuntimeError(
-E   RuntimeError: The `logfire.instrument_fastapi()` method requires the `opentelemetry-instrumentation-fastapi` package.
-E   You can install this with:
-E       pip install 'logfire[fastapi]'</error></testcase><testcase classname="" name="backend_v2.tests.unit.test_api_workflows" time="0.000"><error message="collection failure">C:\Python314\Lib\site-packages\logfire\_internal\integrations\fastapi.py:27: in &lt;module&gt;
-    from opentelemetry.instrumentation.asgi import ServerRequestHook
-E   ModuleNotFoundError: No module named 'opentelemetry.instrumentation.asgi'
-
-During handling of the above exception, another exception occurred:
-tests\unit\test_api_workflows.py:9: in &lt;module&gt;
-    from backend_v2.main import app
-main.py:109: in &lt;module&gt;
-    logfire.instrument_fastapi(app)
-C:\Python314\Lib\site-packages\logfire\_internal\main.py:1175: in instrument_fastapi
-    from .integrations.fastapi import instrument_fastapi
-&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
-    ???
-&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
-    ???
-&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
-    ???
-C:\Python314\Lib\site-packages\_pytest\assertion\rewrite.py:197: in exec_module
-    exec(co, module.__dict__)
-C:\Python314\Lib\site-packages\logfire\_internal\integrations\fastapi.py:32: in &lt;module&gt;
-    raise RuntimeError(
-E   RuntimeError: The `logfire.instrument_fastapi()` method requires the `opentelemetry-instrumentation-fastapi` package.
-E   You can install this with:
-E       pip install 'logfire[fastapi]'</error></testcase></testsuite></testsuites>
+services\storage.py:50: AttributeError</failure></testcase></testsuite></testsuites>

@@ -53,23 +53,24 @@ Antigravity V6.1 ei luota tekoälyn "hyvään tahtoon" tai kykyyn arvioida omia 
 
 ## ---
 
-**3\. Kontekstin Vaihto: "Viestikapula" (Tier 5 Clean Room)**
+**3\. Kontekstin Vaihto: "Universal Bootstrapper" (Tier 5 Session Handover & Resume)**
 
-Kielimallit kärsivät "kontekstiamnesiasta" (Context Fatigue). Kun chat-sessio venyy tuntien mittaiseksi, tekoäly väsyy ja alkaa vuotaa muistiin hallusinaatioita ("Prompt Bleed"). Lääke tähän on armoton ikkunoiden nollaus uudella, jaetulla Tier 5 \-protokollalla.
+Kielimallit kärsivät "kontekstiamnesiasta" (Context Fatigue). Kun chat-sessio venyy tuntien mittaiseksi, tekoäly väsyy ja alkaa vuotaa muistiin hallusinaatioita. Lääke tähän on säännöllinen ja älykäs session nollaus Tier 5 -protokollalla. Uudessa V6.1-päivityksessä Tier 5 on "Universal Bootstrapper", joka pakottaa arkkitehtuurin latauksen uudessa ikkunassa.
 
 ### **Askel 1: Vanhan chatin sulkeminen (Lähettäjä)**
 
-Kun yksi tiketti on valmis, siirrytte Backendistä Frontendiin, tai tekoäly alkaa väsyä:
+Kun yksi asioiden vaihe on valmis tai chat on liian pitkä, kirjoita:
 
-1. Kirjoita chattiin: **/handover**.  
-2. Tekoäly skannaa tekemänne työn, niputtaa oikeat koodi- ja testitiedostot ja tuottaa valmiin kopioitavan viestikapulan (Payloadin), joka sisältää suoritetun liiketoiminta-arvon (--done) ja seuraavan askeleen (--next).  
+1. **/tier5-session-handover**  
+2. Tekoäly päättelee oletko työstämässä Epic-dokumenttia vai toteutussuunnitelmaa (`implementation_plan.md`). Se tuottaa atomisen Git-tallennuskomennon ja generoi herätyskomennon uudelle ikkunalle (sisältäen Target Planin ja tiedon, mihin jäätiin).
 3. Kopioi tekoälyn antama Git-komento ja tallenna työsi. **Sulje nykyinen chat-ikkuna kokonaan.**
 
-### **Askel 2: Uuden chatin herätys (Vastaanottaja & Sniper)**
+### **Askel 2: Uuden chatin herätys (Vastaanottaja & Bootstrapper)**
 
 1. Avaa täysin puhdas chat-ikkuna.  
-2. Liimaa kenttään tekoälyn antama herätyskomento (esim. /tier5-resume backend\_v2/user.py \--done="..." \--next="...").  
-3. Uusi, terävä tekoäly lukee siirretyt tiedostot, **auditoi ne säälimättömästi (Zero-Shortcut Audit)** edellisen ikkunan sääntörikkeiden varalta, ja asettuu valmiustilaan jatkamaan työtä puhtaalta pöydältä.
+2. Liimaa kenttään tekoälyn antama herätyskomento (esim. `/tier5-resume --target="docs/epic/my_epic.md" --next="..."`).  
+3. Uusi, terävä tekoäly **pakotetaan** ensin lukemaan arkkitehtuurin säännöt (`.agents/rules/` ja `docs/architecture/`). Tämän jälkeen se aktivoi automaattisesti oikean työnkulun: `/tier1-planner` (jos kyseessä on Epic) tai `/tier2-execute` (jos kyseessä on toteutussuunnitelma).
+4. **Loppu-Hardening:** Kun suunnitelma tai Epic-taskit on saatu päätökseen, tekoäly ohjaa ajamaan muuttuneille tiedostoille laatuportin `/tier2-hardening-backend` tai `frontend`!
 
 ## ---
 

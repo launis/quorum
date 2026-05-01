@@ -127,7 +127,12 @@ class LocalFileDriver(FileDriver):
                     break
                 except PermissionError as e:
                     if attempt == MAX_REPLACE_RETRIES - 1:
-                        raise e
+                        logger.error("[LocalFileDriver] File is locked: %s", e)
+                        raise AppException(
+                            message=f"Tiedosto on auki toisessa ohjelmassa: {str(e)}",
+                            status_code=409,
+                            details={"error_code": ErrorCodes.FILE_LOCKED_ERROR.value}
+                        ) from e
                     logger.warning(
                         "[LocalFileDriver] WinError 5 on os.replace, retrying %d/%d for %s",
                         attempt + 1,
@@ -185,6 +190,13 @@ class LocalFileDriver(FileDriver):
             # Standard os.remove is sync but fast for local FS.
             os.remove(full_path)
             return True
+        except PermissionError as e:
+            logger.error("[LocalFileDriver] File is locked: %s", e)
+            raise AppException(
+                message=f"Tiedosto on auki toisessa ohjelmassa: {str(e)}",
+                status_code=409,
+                details={"error_code": ErrorCodes.FILE_LOCKED_ERROR.value}
+            ) from e
         except Exception as e:
             logger.error(
                 f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to delete file {path}: {e}",

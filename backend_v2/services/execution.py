@@ -438,6 +438,8 @@ class ExecutionService:
             except AppException as e:
                 if e.status_code == 404:
                     logger.warning("[ExecutionService] Old PDF blob %s not found, ignoring.", execution.pdf_report_path)
+                elif e.status_code == 409:
+                    raise e
                 else:
                     msg = "Failed to delete old PDF blob"
                     logger.error("[ExecutionService] %s", msg, exc_info=True)
