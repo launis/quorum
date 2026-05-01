@@ -4793,6 +4793,18 @@
             "title": "Workflow Id",
             "description": "References the execution DAG to scope Target Matrices."
           },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id",
+            "description": "Tenant organization scope."
+          },
           "name": {
             "$ref": "#/components/schemas/I18nText",
             "description": "Localized name."

@@ -263,6 +263,7 @@ class ErrorCodes(str, Enum):
     AGENT_RESPONSE_MALFORMED = "AGENT_RESPONSE_MALFORMED"
     AGENT_RESPONSE_PARSING_FAILED = "AGENT_RESPONSE_PARSING_FAILED"
     AGENT_SCHEMA_VALIDATION_FAILED = "AGENT_SCHEMA_VALIDATION_FAILED"
+    AGENT_LOGICAL_VALIDATION_FAILED = "AGENT_LOGICAL_VALIDATION_FAILED"
     AGENT_INVALID_INPUT = "AGENT_INVALID_INPUT"
 
 
@@ -694,3 +695,54 @@ class MissingRoutingModeError(AppException):
             status_code=status.HTTP_400_BAD_REQUEST,
             details=details,
         )
+
+
+class LLMSchemaValidationError(AppException):
+    """Raised when the LLM returns structured output that fails Pydantic schema validation.
+
+    This exception safely carries the raw JSON payload and EOF status to the orchestrator
+    for Self-Healing retry attempts.
+    """
+
+    def __init__(
+        self,
+        raw_llm_payload: str,
+        validation_error_msg: str,
+        is_eof: bool = False,
+    ):
+        """Initialize the exception."""
+        details = {
+            "error_code": ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED,
+            "raw_llm_payload": raw_llm_payload,
+            "validation_error_msg": validation_error_msg,
+            "is_eof": is_eof,
+        }
+        super().__init__(
+            message=f"LLM Schema Validation Failed: {validation_error_msg}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details=details,
+        )
+        self.raw_llm_payload = raw_llm_payload
+        self.validation_error_msg = validation_error_msg
+        self.is_eof = is_eof
+
+
+class LogicalValidationError(AppException):
+    """Raised by asynchronous domain-level validator hooks when cognitive validation fails.
+
+    This explicitly signals to the LLMTaskExecutor that the output is structurally sound
+    but contextually/logically flawed, triggering Semantic Self-Healing.
+    """
+
+    def __init__(self, validation_error_msg: str):
+        """Initialize the exception."""
+        details = {
+            "error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED,
+            "validation_error_msg": validation_error_msg,
+        }
+        super().__init__(
+            message=f"Logical Validation Failed: {validation_error_msg}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details=details,
+        )
+        self.validation_error_msg = validation_error_msg

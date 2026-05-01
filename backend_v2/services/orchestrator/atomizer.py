@@ -49,8 +49,11 @@ class PromptAtomizer:
         try:
             # We use 'fast' strategy. Using LLMClient.from_strategy ensures architectural compliance.
             client = await LLMClient.from_strategy("fast", repository=repository)
+            from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+            from backend_v2.services.llm_task_executor import LLMTaskExecutor
+            executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
         except Exception as e:
-            logger.error("[PromptAtomizer] Failed to initialize LLMClient: %s", e)
+            logger.error("[PromptAtomizer] Failed to initialize LLMClient or Executor: %s", e)
             raise
 
         system_prompt = (
@@ -94,8 +97,8 @@ class PromptAtomizer:
                     mock_identity = "atomize_mock" if is_test else None
 
                     try:
-                        res, _ = await client.run_structured_task(
-                            messages=messages, response_model=AtomizationSchema, mock_identity=mock_identity
+                        res, _ = await executor.execute_structured_task(
+                            client=client, messages=messages, response_model=AtomizationSchema, mock_identity=mock_identity
                         )
                         atoms = res.micro_atoms
                         if len(atoms) != 15:

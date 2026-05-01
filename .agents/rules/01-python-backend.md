@@ -99,8 +99,8 @@
     </rule_block>
 
     <rule_block id="llm_structured_execution_mandate">
-        <banned_pattern>Directly calling OpenAI/VertexSDKs, relying on raw text outputs, or parsing responses with Regex.</banned_pattern>
-        <mandatory_pattern>You MUST initialize the execution via `LLMClient.from_strategy("strategy_name", repo)`. For data retrieval, rely ONLY on the `run_structured_task()` methodology to force Socratic Self-Healing JSON parsing through a dedicated Pydantic model. If doing open-text generation, use `run_chat()`.</mandatory_pattern>
+        <banned_pattern>Directly calling OpenAI/VertexSDKs, relying on raw text outputs, parsing responses with Regex, or calling LLMClient methods directly for business logic.</banned_pattern>
+        <mandatory_pattern>You MUST initialize the execution via `LLMClient.from_strategy("strategy_name", repo)` and pass it to an injected `LLMTaskExecutor`. For data retrieval, rely ONLY on the `executor.execute_structured_task()` methodology to force Fail-Fast Pydantic parsing and centralized healing. If doing open-text generation, use `executor.execute_chat_task()`.</mandatory_pattern>
     </rule_block>
 
     <rule_block id="ui_driven_synthesis_boundary">

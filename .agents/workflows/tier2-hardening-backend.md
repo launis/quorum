@@ -42,7 +42,7 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
    - **`polymorphic_routing_o1`**: Käytä Discriminated Unioneita ja natiivia `match/case` syntaksia.
    - **`no_string_l10n`**: Ei kovakoodattuja näyttötekstejä. Enum-avaimet rajapintojen yli.
    - **`data_leak_prevention_firewall`**: `response_model` (periytyen `BaseResponseDTO`:sta) on PAKOLLINEN jokaiseen reittiin tietovuotojen estämiseksi.
-   - **`llm_structured_execution_mandate`**: LLM-kutsut vain `run_structured_task()` kautta.
+   - **`llm_structured_execution_mandate`**: LLM-kutsut vain `LLMTaskExecutor.execute_structured_task()` tai `execute_chat_task()` kautta (ei suoraa LLMClient-käyttöä).
    - **`ui_driven_synthesis_boundary`**: AI-raportointi suodatettava tiukasti UI-profiilin mukaan (ei token-räjähdyksiä).
    - **`tripartite_rendering_boundary`**: Ei kovakoodattuja markdown-taulukoita (esim. matriisiyhteenvedot) backendissä. Backend palauttaa vain DTO-dataa, ja UI (Flutter) + PDF (Jinja) vastaavat natiivista renderöinnistä.
    - **`strict_math_display_isolation`**: Pisteiden laskenta `computed_min` perusteella. UI `scale_min` on vain näytölle.

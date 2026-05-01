@@ -10,6 +10,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.models.view.sdui import AnySduiBlock
+from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 
 logger = logging.getLogger(__name__)
@@ -103,8 +104,10 @@ class ChunkWorker:
 
             if effective_mcp_tools:
                 try:
+                    executor = LLMTaskExecutor(prompt_compiler=compiler)
                     loop_res = await execute_tool_loop(
                         llm_client=bound_client,
+                        executor=executor,
                         messages=messages,
                         response_model=local_dynamic_schema,
                         allowed_tools=effective_mcp_tools,
@@ -136,24 +139,27 @@ class ChunkWorker:
                     ) from e
             else:
                 try:
+                    executor = LLMTaskExecutor(prompt_compiler=compiler)
                     if output_profile is not None:
-                        result, usage = await bound_client.run_structured_task(
+                        result, usage = await executor.execute_structured_task(
+                            client=bound_client,
                             messages=messages,
                             response_model=SduiResponseList,
                             mock_identity=step_id,
-                            max_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
+                            max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
                         )
                         chunk_final = {"blocks": result.model_dump(mode="json")}
                     else:
-                        result, usage = await bound_client.run_structured_task(
+                        result, usage = await executor.execute_structured_task(
+                            client=bound_client,
                             messages=messages,
                             response_model=local_dynamic_schema,
                             mock_identity=step_id,
-                            max_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
+                            max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
                         )
                         chunk_final = dict(result.model_dump(mode="json"))
 
-                    chunk_usage = dict(usage) if usage else None
+                    chunk_usage = usage.model_dump(mode="json") if usage else None
                 except Exception as e:
                     logger.error(
                         "Execution of structured LLM task failed.",

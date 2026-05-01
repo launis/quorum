@@ -171,6 +171,7 @@ def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dic
 
 async def execute_tool_loop[T: BaseModel](
     llm_client: Any,
+    executor: Any,
     messages: list[dict[str, Any]],
     response_model: type[T],
     allowed_tools: list[str],
@@ -186,6 +187,7 @@ async def execute_tool_loop[T: BaseModel](
 
     Args:
         llm_client: Bound LLMClient instance.
+        executor: Bound LLMTaskExecutor instance.
         messages: The compiled chat messages (system + user).
         response_model: Pydantic schema for structured output.
         allowed_tools: List of tool IDs allowed for this step.
@@ -202,7 +204,8 @@ async def execute_tool_loop[T: BaseModel](
 
     if not tool_declarations:
         # No valid tools — direct passthrough (zero overhead)
-        result, usage = await llm_client.run_structured_task(
+        result, usage = await executor.execute_structured_task(
+            client=llm_client,
             messages=messages,
             response_model=response_model,
             mock_identity=mock_identity,
@@ -210,7 +213,7 @@ async def execute_tool_loop[T: BaseModel](
         return MCPToolLoopResult(
             result_data=result.model_dump(mode="json"),
             audit_traces=[],
-            usage=usage,
+            usage=usage.model_dump(mode="json") if usage else {},
         )
 
     # --- PHASE 1: Probe with tool_choice="auto" ---
@@ -394,7 +397,8 @@ async def execute_tool_loop[T: BaseModel](
             final_messages.insert(0, {"role": "system", "content": formatting_msg})
 
     try:
-        result, usage = await llm_client.run_structured_task(
+        result, usage = await executor.execute_structured_task(
+            client=llm_client,
             messages=final_messages,
             response_model=response_model,
             mock_identity=mock_identity,
@@ -402,7 +406,7 @@ async def execute_tool_loop[T: BaseModel](
         return MCPToolLoopResult(
             result_data=result.model_dump(mode="json"),
             audit_traces=audit_traces,
-            usage=usage,
+            usage=usage.model_dump(mode="json") if usage else {},
         )
     except AppException:
         raise

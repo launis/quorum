@@ -79,6 +79,9 @@ class ChatParserService:
         try:
             # Note: The system model_registry must have a 'fast' (or alias) strategy defined.
             llm_client = await LLMClient.from_strategy("fast", repository=system_repo)
+            from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+            from backend_v2.services.llm_task_executor import LLMTaskExecutor
+            executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
         except ConfigurationError as e:
             error_code = ErrorCodes.CONFIGURATION_ERROR
             msg = f"Failed to initialize LLMClient for ChatParser: {e.message}"
@@ -97,7 +100,9 @@ class ChatParserService:
 
         try:
             # V2 Strict Output Generation
-            parsed_data, _ = await llm_client.run_structured_task(messages=messages, response_model=ChatHistoryDTO)
+            parsed_data, _ = await executor.execute_structured_task(
+                client=llm_client, messages=messages, response_model=ChatHistoryDTO
+            )
 
             if not parsed_data.conversation:
                 error_code = ErrorCodes.VALIDATION_FAILED

@@ -555,12 +555,16 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     # 4. LLM execution with telemetry
     # Fail-fast: Assuming the strategy for output formatting is named 'synthesis_strategy'
     client = await LLMClient.from_strategy("synthesis", repository=deps.system_repo)
+    from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+    from backend_v2.services.llm_task_executor import LLMTaskExecutor
+    executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
 
     allowed_tools = synthesis_cfg.allowed_mcp_tools
 
     with logfire.span("text_consolidation_hook") as span:
         tool_res = await execute_tool_loop(
             llm_client=client,
+            executor=executor,
             messages=messages,
             response_model=SynthesisOutputDTO,
             allowed_tools=allowed_tools,

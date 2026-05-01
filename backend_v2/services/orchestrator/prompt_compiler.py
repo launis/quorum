@@ -6,14 +6,18 @@ LLM payloads with system context, strictness calibration, and format enforcement
 
 from __future__ import annotations
 
+import datetime
+import json
 import logging
 from functools import lru_cache
-from typing import Any
+from typing import Any, Literal, cast
 
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.enums import EvaluationMandate
 from backend_v2.models.v2_core import PromptBlock
+from backend_v2.services.web_fetcher import WebFetcher
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +49,6 @@ class PromptCompiler:
         if hasattr(text_obj, "resolve"):
             return str(text_obj.resolve(target_locale))
 
-        from backend_v2.exceptions import ConfigurationError, ErrorCodes
-
         if isinstance(text_obj, str) or not isinstance(text_obj, dict):
             msg = (
                 f"Legacy string fallback detected or invalid type: '{text_obj}'. "
@@ -62,8 +64,6 @@ class PromptCompiler:
         # 1. Try Target Locale
         if target_locale in translations and translations[target_locale]:
             return str(translations[target_locale])
-
-        from backend_v2.exceptions import ConfigurationError, ErrorCodes
 
         # V2 MANDATE: NO FALLBACKS. If a translation is requested, it MUST exist.
         msg = f"Translation missing for required locale '{target_locale}'. Fallbacks are strictly forbidden."
@@ -158,8 +158,6 @@ class PromptCompiler:
 
     def _extract_value_from_state(self, path: str, state_data: dict[str, Any]) -> str:
         """Extract a value from workflow state using a path like '$inputs.history_text'."""
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         if not isinstance(path, str):
             msg = f"Variable reference path must be a string, got {type(path)}"
             logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -251,8 +249,6 @@ class PromptCompiler:
         if not url:
             return base_prompt
 
-        from backend_v2.services.web_fetcher import WebFetcher
-
         try:
             logger.info("[PromptCompiler] Fetching theory grounding from %s", url)
             # WebFetcher raises AppException locally on failure, satisfying Fail-Fast rules
@@ -297,8 +293,6 @@ class PromptCompiler:
         try:
             val = int(level)
         except (ValueError, TypeError) as e:
-            from backend_v2.exceptions import AppException, ErrorCodes
-
             logger.error("Failed to parse strictness level %s", level, exc_info=True)
             raise AppException(
                 message=f"Invalid strictness level: {level}",
@@ -346,8 +340,6 @@ class PromptCompiler:
         has_shuffled_atoms: bool = False,
         target_locale: str = "en",
     ) -> type[BaseModel]:
-        import json
-
         # P4: Prevent Pydantic compilation explosion on 200+ step DAGs by hashing criteria
         # and delegating to an LRU cached private method.
         # Epic 43: Serialize strictly typed PromptBlocks back to json for the cache key.
@@ -366,10 +358,6 @@ class PromptCompiler:
         target_locale: str,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs."""
-        import json
-
-        from pydantic import BaseModel, model_validator
-
         def make_micro_cot_base(_cid: str, _citation_ref: str | None = None) -> type[BaseModel]:
             class MicroCotBase(BaseModel):
                 @model_validator(mode="before")
@@ -416,8 +404,6 @@ class PromptCompiler:
 
         # Epic 20 Phase 7 Hybrid Fix: Inject AtomResponse mapping directly into dynamic schema!
         if has_shuffled_atoms:
-            from pydantic import ConfigDict
-
             class AtomResponse(BaseModel):
                 model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
                 atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")
@@ -445,8 +431,6 @@ class PromptCompiler:
                 _label_obj = crit["label"]
                 extensions = crit.get("output_extensions", [])
             except KeyError as e:
-                from backend_v2.exceptions import ConfigurationError, ErrorCodes
-
                 msg = f"PromptBlock '{crit_id}' is missing strict evaluation parameter: {str(e)}."
                 logger.error(
                     "PromptBlock structurally invalid.",
@@ -474,8 +458,6 @@ class PromptCompiler:
                 )
 
                 if citation_ref:
-                    from typing import Literal
-
                     sub_fields["step_1b_cited_source_id"] = (
                         Literal[citation_ref] | None,
                         Field(
@@ -589,8 +571,6 @@ class PromptCompiler:
                     ),
                 )
 
-            from pydantic import ConfigDict
-
             MicroCotBase = make_micro_cot_base(crit_id, citation_ref)
 
             NestedModel = create_model(  # type: ignore[call-overload]
@@ -609,10 +589,6 @@ class PromptCompiler:
             )
 
         try:
-            from typing import cast
-
-            from pydantic import ConfigDict
-
             DynamicModel = create_model(
                 schema_name, __config__=ConfigDict(extra="forbid", strict=True, frozen=True), **fields
             )
@@ -653,8 +629,6 @@ class PromptCompiler:
             if scales:
                 xml_blocks.append("    | Score | Label | Critical Directive |")
                 xml_blocks.append("    |---|---|---|")
-                from backend_v2.models.enums import EvaluationMandate
-
                 mandate_str = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
                 for s in scales:
                     s_val = s.score
@@ -740,8 +714,6 @@ class PromptCompiler:
                 label = self.resolve_i18n(block.label, target_locale)
                 desc = block.ai_description
                 if not desc:
-                    from backend_v2.exceptions import ConfigurationError
-
                     block_id = block.id
                     msg = f"PromptBlock '{block_id}' is missing mandatory 'ai_description'."
                     logger.error(
@@ -768,8 +740,6 @@ class PromptCompiler:
         Returns:
             A formatted string of all dynamic runtime instruction directives.
         """
-        import datetime
-
         now_utc = datetime.datetime.now(datetime.UTC)
         current_date_str = now_utc.strftime("%Y-%m-%d")
         dynamic_time_str = now_utc.strftime("%H:%M:%S UTC")
@@ -780,8 +750,6 @@ class PromptCompiler:
                 label = self.resolve_i18n(block.label, target_locale)
                 desc = block.ai_description
                 if not desc:
-                    from backend_v2.exceptions import ConfigurationError
-
                     block_id = block.id
                     msg = f"PromptBlock '{block_id}' is missing mandatory 'ai_description'."
                     logger.error(
@@ -813,8 +781,6 @@ class PromptCompiler:
 
     def build_blind_evaluation_schema(self, schema_name: str) -> type[BaseModel]:
         """Add a dedicated schema builder for the blind extraction."""
-        from pydantic import BaseModel, ConfigDict
-
         class AtomResponse(BaseModel):
             model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
             atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")
@@ -857,8 +823,6 @@ class PromptCompiler:
 
         Nests a target Payload schema inside a structurally strict chunk-array list.
         """
-        from pydantic import ConfigDict, Field, create_model
-
         ChunkRecordModel = create_model(
             f"{schema_name}Record",
             __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
@@ -882,4 +846,40 @@ class PromptCompiler:
             f"You are processing map-reduce chunk '{chunk_id}'.\n"
             "Evaluate ONLY the following payload mapping to the strict chunk_id structure:\n"
             f"<user_payload>\n{payload_text}\n</user_payload>"
+        )
+
+    @staticmethod
+    def get_schema_healing_prompt(error_msg: str, is_logical_error: bool, is_eof: bool) -> str:
+        """Generate a Self-Healing prompt for LLM execution recovery.
+
+        Args:
+            error_msg: The specific validation or logical error message.
+            is_logical_error: True if the failure was a semantic Domain validation, False if Pydantic syntax.
+            is_eof: True if the LLM output was cut off (e.g. max_tokens reached).
+
+        Returns:
+            A formatted prompt string commanding the LLM to fix its previous output.
+        """
+        if is_eof:
+            return (
+                "[SYSTEM: EOF DETECTED]\n"
+                "Your previous response was cut off abruptly before generating valid JSON. "
+                "Please regenerate the response from the beginning and ensure the JSON is fully closed."
+            )
+
+        if is_logical_error:
+            return (
+                "[SYSTEM: STRICT LOGICAL COMPLIANCE REQUIRED]\n"
+                "Your previous response was structurally valid JSON, but failed domain-specific logical validation:\n"
+                f"Error: {error_msg}\n\n"
+                "You MUST adhere strictly to the cognitive directives and logical constraints. "
+                "Regenerate your response ensuring all logical validations pass."
+            )
+
+        return (
+            "[SYSTEM: STRICT JSON SCHEMA VALIDATION FAILED]\n"
+            "Your previous response contained invalid JSON or failed Pydantic schema validation.\n"
+            f"Error details: {error_msg}\n\n"
+            "You MUST return ONLY valid JSON matching the exact schema requested. "
+            "Do not include markdown blocks, conversational text, or any explanations outside the JSON."
         )

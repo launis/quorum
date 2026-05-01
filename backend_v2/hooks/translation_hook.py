@@ -112,6 +112,9 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
     try:
         # Initialize LLM Client via Strategy Pattern (use 'fast' for translation)
         llm_client = await LLMClient.from_strategy("fast", repository=system_repo)
+        from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+        from backend_v2.services.llm_task_executor import LLMTaskExecutor
+        executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
     except ConfigurationError as e:
         logger.error(
             "[TranslationHook] %s: Failed to init LLM for translation: %s", ErrorCodes.CONFIGURATION_ERROR.name, e
@@ -140,7 +143,8 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         logger.info("[TranslationHook] Translating %s fields to '%s'...", len(payload_to_translate), target_language)
 
         # Enforce structured execution (No more string parsing duck-tape)
-        response_dto, _ = await llm_client.run_structured_task(
+        response_dto, _ = await executor.execute_structured_task(
+            client=llm_client,
             messages=messages,
             response_model=TranslationResponseDTO,
         )

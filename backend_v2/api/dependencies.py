@@ -34,6 +34,7 @@ from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.services.auth import AuthService
 from backend_v2.services.document_extraction import DocumentExtractionService
 from backend_v2.services.execution import ExecutionService
+from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.studio import StudioService
@@ -136,6 +137,20 @@ def get_current_admin_user() -> Any:
     return AuthService.require_role(UserRole.ADMIN)()
 
 
+def get_prompt_compiler() -> PromptCompiler:
+    return PromptCompiler()
+
+
+PromptCompilerDep = Annotated[PromptCompiler, Depends(get_prompt_compiler)]
+
+
+def get_llm_task_executor(compiler: PromptCompilerDep) -> LLMTaskExecutor:
+    return LLMTaskExecutor(prompt_compiler=compiler)
+
+
+LLMTaskExecutorDep = Annotated[LLMTaskExecutor, Depends(get_llm_task_executor)]
+
+
 async def get_dag_executor(
     exec_repo: ExecutionRepoDep,
     workflow_repo: WorkflowRepoDep,
@@ -143,8 +158,8 @@ async def get_dag_executor(
     identity_repo: IdentityRepoDep,
     audit_repo: AuditRepoDep,
     system_repo: SystemRepoDep,
+    prompt_compiler: PromptCompilerDep,
 ) -> DAGExecutor:
-    compiler = PromptCompiler()
     return DAGExecutor(
         exec_repo=exec_repo,
         workflow_repo=workflow_repo,
@@ -152,7 +167,7 @@ async def get_dag_executor(
         identity_repo=identity_repo,
         audit_repo=audit_repo,
         system_repo=system_repo,
-        prompt_compiler=compiler,
+        prompt_compiler=prompt_compiler,
     )
 
 
@@ -197,11 +212,11 @@ async def get_studio_service(
 StudioServiceDep = Annotated[StudioService, Depends(get_studio_service)]
 
 
-def get_llm_handler(repo: ComponentRepoDep) -> Any:
+def get_llm_handler(repo: ComponentRepoDep) -> LLMHandler:
     return LLMHandler(repo=repo)
 
 
-LLMHandlerDep = Annotated[Any, Depends(get_llm_handler)]
+LLMHandlerDep = Annotated[LLMHandler, Depends(get_llm_handler)]
 
 
 def get_arq_pool(request: Request) -> ArqRedis:
@@ -211,8 +226,8 @@ def get_arq_pool(request: Request) -> ArqRedis:
 ArqPoolDep = Annotated[ArqRedis, Depends(get_arq_pool)]
 
 
-def get_document_extraction_service() -> Any:
+def get_document_extraction_service() -> DocumentExtractionService:
     return DocumentExtractionService()
 
 
-DocumentExtractionServiceDep = Annotated[Any, Depends(get_document_extraction_service)]
+DocumentExtractionServiceDep = Annotated[DocumentExtractionService, Depends(get_document_extraction_service)]

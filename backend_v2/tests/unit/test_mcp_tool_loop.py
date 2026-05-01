@@ -26,7 +26,6 @@ class MockResponseModel(BaseModel):
 
 def _make_mock_llm_client(
     chat_returns: str | dict[str, Any] | None = None,
-    structured_returns: tuple[Any, dict[str, Any]] | None = None,
 ) -> MagicMock:
     """Build a mock LLMClient with configurable returns."""
     client = MagicMock()
@@ -37,24 +36,35 @@ def _make_mock_llm_client(
     else:
         client.run_chat = AsyncMock(return_value="Direct text response.")
 
-    # run_structured_task returns
+    return client
+
+
+def _make_mock_executor(
+    structured_returns: tuple[Any, Any] | None = None,
+) -> MagicMock:
+    from backend_v2.models.domain.usage import TokenUsage
+    executor = MagicMock()
     if structured_returns is not None:
-        client.run_structured_task = AsyncMock(return_value=structured_returns)
+        executor.execute_structured_task = AsyncMock(return_value=structured_returns)
     else:
         mock_result = MockResponseModel(score=4.5, reasoning="Well-supported claim.")
-        client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 100}))
+        usage = TokenUsage(total_tokens=100)
+        executor.execute_structured_task = AsyncMock(return_value=(mock_result, usage))
+    return executor
 
-    return client
 
 
 @pytest.mark.asyncio
 async def test_tool_loop_no_tools_passthrough() -> None:
     """Empty allowed_tools → direct structured output, zero overhead."""
+    from backend_v2.models.domain.usage import TokenUsage
     mock_result = MockResponseModel(score=3.0, reasoning="No tools needed.")
-    client = _make_mock_llm_client(structured_returns=(mock_result, {"total_tokens": 50}))
+    client = _make_mock_llm_client()
+    executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=50)))
 
     result = await execute_tool_loop(
         llm_client=client,
+        executor=executor,
         messages=[{"role": "user", "content": "test"}],
         response_model=MockResponseModel,
         allowed_tools=[],
@@ -66,7 +76,7 @@ async def test_tool_loop_no_tools_passthrough() -> None:
     assert len(result.audit_traces) == 0
     # run_chat should NOT be called when no tools
     client.run_chat.assert_not_called()
-    client.run_structured_task.assert_called_once()
+    executor.execute_structured_task.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -95,8 +105,9 @@ async def test_tool_loop_single_search() -> None:
         ]
     )
 
+    from backend_v2.models.domain.usage import TokenUsage
     mock_result = MockResponseModel(score=4.5, reasoning="Supported by search.")
-    mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 200}))
+    mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=200)))
 
     with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
         from datetime import datetime, timezone
@@ -115,6 +126,7 @@ async def test_tool_loop_single_search() -> None:
 
         result = await execute_tool_loop(
             llm_client=mock_client,
+            executor=mock_executor,
             messages=[{"role": "user", "content": "evaluate Finland"}],
             response_model=MockResponseModel,
             allowed_tools=["mcp_tavily_search"],
@@ -125,7 +137,7 @@ async def test_tool_loop_single_search() -> None:
     assert len(result.audit_traces) == 1
     assert result.audit_traces[0].query == "Finland population 2024"
     assert "https://example.com" in result.audit_traces[0].source_urls
-    mock_client.run_structured_task.assert_called_once()
+    mock_executor.execute_structured_task.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -147,8 +159,9 @@ async def test_tool_loop_max_calls_enforced() -> None:
     mock_client = _make_mock_llm_client()
     mock_client.run_chat = AsyncMock(return_value=tool_call_response)
 
+    from backend_v2.models.domain.usage import TokenUsage
     mock_result = MockResponseModel(score=2.0, reasoning="Limited evidence.")
-    mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 300}))
+    mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=300)))
 
     with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
         from datetime import datetime, timezone
@@ -167,6 +180,7 @@ async def test_tool_loop_max_calls_enforced() -> None:
 
         result = await execute_tool_loop(
             llm_client=mock_client,
+            executor=mock_executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
             allowed_tools=["mcp_tavily_search"],
@@ -203,8 +217,9 @@ async def test_tool_loop_tavily_failure_graceful() -> None:
         ]
     )
 
+    from backend_v2.models.domain.usage import TokenUsage
     mock_result = MockResponseModel(score=3.5, reasoning="Proceeded without evidence.")
-    mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 150}))
+    mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=150)))
 
     with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
         from datetime import datetime, timezone
@@ -224,6 +239,7 @@ async def test_tool_loop_tavily_failure_graceful() -> None:
 
         result = await execute_tool_loop(
             llm_client=mock_client,
+            executor=mock_executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
             allowed_tools=["mcp_tavily_search"],
@@ -273,8 +289,9 @@ async def test_tool_call_id_preserved_from_llm() -> None:
         ]
     )
 
+    from backend_v2.models.domain.usage import TokenUsage
     mock_result = MockResponseModel(score=5.0, reasoning="Regression test.")
-    mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 100}))
+    mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=100)))
 
     with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
         from datetime import datetime, timezone
@@ -293,6 +310,7 @@ async def test_tool_call_id_preserved_from_llm() -> None:
 
         result = await execute_tool_loop(
             llm_client=mock_client,
+            executor=mock_executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
             allowed_tools=["mcp_tavily_search"],
@@ -302,7 +320,7 @@ async def test_tool_call_id_preserved_from_llm() -> None:
     assert result.result_data["score"] == 5.0
 
     # Verify the structured task was called with messages containing the CORRECT tool_call_id
-    call_args = mock_client.run_structured_task.call_args
+    call_args = mock_executor.execute_structured_task.call_args
     final_messages = call_args.kwargs.get("messages", call_args.args[0] if call_args.args else [])
 
     # Find the tool response message in final_messages
@@ -391,8 +409,9 @@ async def test_phase2_messages_contain_tool_roles() -> None:
         ]
     )
 
+    from backend_v2.models.domain.usage import TokenUsage
     mock_result = MockResponseModel(score=4.0, reasoning="Phase 2 test.")
-    mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {"total_tokens": 150}))
+    mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=150)))
 
     with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
         from datetime import datetime, timezone
@@ -411,6 +430,7 @@ async def test_phase2_messages_contain_tool_roles() -> None:
 
         await execute_tool_loop(
             llm_client=mock_client,
+            executor=mock_executor,
             messages=[{"role": "system", "content": "You are a judge."}, {"role": "user", "content": "evaluate"}],
             response_model=MockResponseModel,
             allowed_tools=["mcp_tavily_search"],
@@ -418,7 +438,7 @@ async def test_phase2_messages_contain_tool_roles() -> None:
         )
 
     # Verify Phase 2 received messages with ALL roles (not just system+user)
-    call_args = mock_client.run_structured_task.call_args
+    call_args = mock_executor.execute_structured_task.call_args
     final_messages = call_args.kwargs.get("messages", call_args.args[0] if call_args.args else [])
     roles = [m.get("role") for m in final_messages]
 
@@ -549,10 +569,12 @@ async def test_tool_loop_malformed_json_fails_fast() -> None:
 
     mock_client = _make_mock_llm_client()
     mock_client.run_chat = AsyncMock(return_value=tool_call_response)
+    mock_executor = _make_mock_executor()
 
     with pytest.raises(AppException) as exc_info:
         await execute_tool_loop(
             llm_client=mock_client,
+            executor=mock_executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
             allowed_tools=["mcp_tavily_search"],

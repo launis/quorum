@@ -1,15 +1,24 @@
 import json
 import logging
-from typing import Any, TypeVar
+from typing import Any
 
+import pydantic
 from pydantic import BaseModel
 
-from backend_v2.exceptions import AgentExecutionError, AppException, ErrorCodes
+from backend_v2.exceptions import (
+    AgentExecutionError,
+    AppException,
+    ConfigurationError,
+    ErrorCodes,
+    LLMSchemaValidationError,
+)
 from backend_v2.llm.provider import LLMFactory
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.llm import LLMProviderConfig
+from backend_v2.models.v2_core import SystemConfigModelRegistry
+from backend_v2.utils.pydantic_utils import inflate
 
-T = TypeVar("T", bound=BaseModel)
 logger = logging.getLogger(__name__)
 
 
@@ -22,8 +31,6 @@ class LLMClient:
     def __init__(self, config: dict[str, Any] | LLMProviderConfig | None = None) -> None:
         self._config: LLMProviderConfig | None
         if isinstance(config, dict):
-            from backend_v2.models.llm import LLMProviderConfig
-
             self._config = LLMProviderConfig.model_validate(config)
         else:
             self._config = config
@@ -48,11 +55,6 @@ class LLMClient:
         Raises:
             ConfigurationError: If the Strategy does not exist.
         """
-        from backend_v2.exceptions import ConfigurationError
-        from backend_v2.models.llm import LLMProviderConfig
-        from backend_v2.models.v2_core import SystemConfigModelRegistry
-        from backend_v2.utils.pydantic_utils import inflate
-
         if not repository:
             # Fail Fast: Enforce strict dependency injection (Zero-Fallback)
             raise ConfigurationError("Repository dependency must be provided to LLMClient.from_strategy.")
@@ -136,29 +138,27 @@ class LLMClient:
 
         return cls(config=provider_config)
 
-    async def run_structured_task(
+    async def run_structured_task[T: BaseModel](
         self,
         messages: list[dict[str, Any]],
         response_model: type[T],
         model: str | None = None,
-        max_retries: int = 1,
         temperature: float | None = None,
         max_tokens: int | None = None,
         mock_identity: str | None = None,
-    ) -> tuple[T, dict[str, Any]]:
+    ) -> tuple[T, TokenUsage]:
         """Execute a structured LLM task enforcing a Pydantic schema using LLMProvider.
 
         Args:
             messages: List of chat messages (system, user, etc.)
             response_model: The Pydantic model class to valid output against.
             model: Optional direct model override. If omitted, uses Strategy-bound config.
-            max_retries: Number of self-healing retries on schema errors.
             temperature: Sampling temperature override.
             max_tokens: Max tokens override.
             mock_identity: Identity key for mock provider routing.
 
         Returns:
-            A tuple of (Validated Pydantic Model, Token Usage Dictionary).
+            A tuple of (Validated Pydantic Model, TokenUsage).
         """
         # 1. Evaluate Context Caching Requirements (Epic 5 Context Segregation)
         # We process the raw messages array dynamically before handing it to the provider.
@@ -244,143 +244,76 @@ class LLMClient:
         strict_timeout = SystemConcurrency.LLM_DEFAULT_TIMEOUT_SECONDS.value
 
         try:
-            import pydantic
+            response = None
+            try:
+                # 3. Generate with Structured Output (Caching tags active if final_messages manipulated)
+                response = await provider.generate(
+                    prompt=prompt,
+                    system_instruction=system_instruction,
+                    messages=final_messages,
+                    response_schema=response_model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    top_p=top_p,
+                    top_k=top_k,
+                    mock_identity=mock_identity,
+                    timeout=strict_timeout,
+                )
 
-            current_prompt = prompt
-            cumulative_usage: dict[str, float | int] = {
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "total_tokens": 0,
-                "cached_tokens": 0,
-                "reasoning_tokens": 0,
-                "cost_usd": 0.0,
-            }
+                # Extract usage securely into TokenUsage
+                usage_obj = response.token_usage if response else None
+                if usage_obj is None:
+                    logger.error(
+                        "Strict FinOps Mode: LLM Provider failed to return token_usage.",
+                        extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name},
+                    )
+                    raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL)
 
-            for attempt in range(max_retries):
-                response = None
                 try:
-                    # 3. Generate with Structured Output (Caching tags active if final_messages manipulated)
-                    response = await provider.generate(
-                        prompt=current_prompt,
-                        system_instruction=system_instruction,
-                        messages=final_messages,
-                        response_schema=response_model,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                        top_p=top_p,
-                        top_k=top_k,
-                        mock_identity=mock_identity,
-                        timeout=strict_timeout,
+                    token_usage = TokenUsage.model_validate(usage_obj)
+                except Exception as e:
+                    logger.error(
+                        "Strict FinOps Mode: Missing or invalid token metric from provider.",
+                        extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name, "detail": str(e)},
+                        exc_info=True,
                     )
+                    raise AgentExecutionError(
+                        detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                        original_error=e,
+                    ) from e
 
-                    # Extract usage securely into a simple dictionary from LLMResponse model
-                    usage_obj = response.token_usage if response else None
-                    if usage_obj is None:
-                        logger.error(
-                            "Strict FinOps Mode: LLM Provider failed to return token_usage.",
-                            extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name},
-                        )
-                        raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL)
+                # 4. Parse Result
+                raw_content = response.content.strip()
 
-                    try:
-                        cumulative_usage["prompt_tokens"] += int(usage_obj["prompt_tokens"])
-                        cumulative_usage["completion_tokens"] += int(usage_obj["completion_tokens"])
-                        cumulative_usage["total_tokens"] += int(usage_obj["total_tokens"])
-                    except KeyError as e:
-                        logger.error(
-                            "Strict FinOps Mode: Missing token metric from provider.",
-                            extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name, "detail": str(e)},
-                            exc_info=True,
-                        )
-                        raise AgentExecutionError(
-                            detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                            original_error=e,
-                        ) from e
+                # Defensively strip Markdown JSON blocks if the LLM hallucinates them
+                if raw_content.startswith("```json"):
+                    raw_content = raw_content[7:]
+                if raw_content.startswith("```"):
+                    raw_content = raw_content[3:]
+                if raw_content.endswith("```"):
+                    raw_content = raw_content[:-3]
+                raw_content = raw_content.strip()
 
-                    cumulative_usage["cached_tokens"] += int(usage_obj.get("cached_tokens", 0) or 0)
-                    cumulative_usage["reasoning_tokens"] += int(usage_obj.get("reasoning_tokens", 0) or 0)
-                    cumulative_usage["cost_usd"] += float(usage_obj.get("cost_usd", 0.0) or 0.0)
+                data = json.loads(raw_content)
+                validated_model = response_model.model_validate(data)
 
-                    # 4. Parse Result
-                    raw_content = response.content.strip()
+                return validated_model, token_usage
 
-                    # Defensively strip Markdown JSON blocks if the LLM hallucinates them
-                    if raw_content.startswith("```json"):
-                        raw_content = raw_content[7:]
-                    if raw_content.startswith("```"):
-                        raw_content = raw_content[3:]
-                    if raw_content.endswith("```"):
-                        raw_content = raw_content[:-3]
-                    raw_content = raw_content.strip()
+            except (json.JSONDecodeError, pydantic.ValidationError) as schema_err:
+                error_str = str(schema_err)
+                is_eof = "EOF while parsing" in error_str
+                error_msg = schema_err.json() if isinstance(schema_err, pydantic.ValidationError) else error_str
 
-                    data = json.loads(raw_content)
-                    validated_model = response_model.model_validate(data)
+                failed_content = response.content if response else "EMPTY_CONTENT"
 
-                    return validated_model, cumulative_usage
-
-                except (json.JSONDecodeError, pydantic.ValidationError) as schema_err:
-                    if attempt == max_retries - 1:
-                        logger.error(
-                            "Self-Healing failed after max attempts.",
-                            extra={
-                                "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
-                                "model": target_model_name,
-                                "detail": str(schema_err),
-                            },
-                        )
-                        raise AgentExecutionError(
-                            detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
-                            original_error=schema_err,
-                        ) from schema_err
-
-                    logger.warning(
-                        "[LLMClient] Schema Error on attempt %d/%d. Initiating Self-Healing.",
-                        attempt + 1,
-                        max_retries,
-                    )
-
-                    # 5. Epic 12: Semantic Self-Healing (Cognitive vs Structural)
-                    error_str = str(schema_err)
-                    is_logical_error = "CRITICAL LOGICAL ERROR" in error_str or "Value error" in error_str
-                    error_msg = schema_err.json() if isinstance(schema_err, pydantic.ValidationError) else error_str
-
-                    if is_logical_error:
-                        logger.warning("[LLMClient] Semantic Logic Error detected. Triggering Socratic Self-Healing.")
-                        correction_prompt = (
-                            f"\n\n[SYSTEM: STRICT LOGICAL COMPLIANCE REQUIRED]\n"
-                            f"Your JSON structure was correct, but your logic failed the architectural validation:\n"
-                            f"--- VALIDATION ERROR ---\n{error_msg}\n------------------------\n"
-                            f"ACTION: You MUST engage System 2 thinking. Correct your cognitive logic. "
-                            f"If you cannot provide empirical evidence, you MUST lower your score "
-                            f"to match reality. Do not guess."
-                        )
-                    else:
-                        logger.warning("[LLMClient] Structural Schema Error detected. Triggering Syntax Self-Healing.")
-
-                        eof_warning = ""
-                        if "EOF while parsing" in error_str:
-                            eof_warning = (
-                                "CRITICAL: Your previous response was truncated because it exceeded the maximum token limit. "  # noqa: E501
-                                "You MUST be significantly more concise in your reasoning_trace and evaluation_notes. "
-                            )
-
-                        correction_prompt = (
-                            f"\n\n[SYSTEM: SELF-HEALING CORRECTION - STRUCTURAL]\n"
-                            f"Validation errors:\n{error_msg}\n"
-                            f"{eof_warning}"
-                            f"ACTION: Please correct the JSON output to strictly match the requested schema types. Ensure the JSON object is completely closed and valid."  # noqa: E501
-                        )
-
-                    # Append the hallucinated response and the correction instruction to guide the next iteration
-                    failed_content = response.content if response else "EMPTY_CONTENT"
-                    current_prompt += f"\n\n{failed_content}{correction_prompt}"
-
-                    # Update messages array for Retry Pipeline
-                    final_messages.append({"role": "assistant", "content": failed_content})
-                    final_messages.append({"role": "user", "content": correction_prompt})
+                raise LLMSchemaValidationError(
+                    raw_llm_payload=failed_content,
+                    validation_error_msg=error_msg,
+                    is_eof=is_eof,
+                ) from schema_err
 
         except Exception as e:
-            if isinstance(e, AgentExecutionError):
+            if isinstance(e, (AgentExecutionError, LLMSchemaValidationError)):
                 raise
             logger.error(
                 "Execution of structured LLM task failed.",
@@ -402,8 +335,6 @@ class LLMClient:
                 detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
                 original_error=e,
             ) from e
-
-        raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL)
 
     async def run_chat(
         self,

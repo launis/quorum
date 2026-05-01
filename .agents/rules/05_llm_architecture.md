@@ -68,7 +68,7 @@
     
     <rule_block id="internal_utility_llm_execution">
         <banned_pattern>Building ad-hoc LLM instances or placing core parsing instructions into dynamic variables / database fields for backend utilities like `chat_parser.py` or `translation_hook.py`.</banned_pattern>
-        <mandatory_pattern>Non-workflow Internal LLM Utilities MUST execute as follows: 1) Load client via `await LLMClient.from_strategy("fast", repository=repo)`. 2) Define instructions as a file-level `_SYSTEM_INSTRUCTION` constant. 3) Pass strictly segregated messages to `run_chat(messages=...)` or `run_structured_task(messages=...)`.</mandatory_pattern>
+        <mandatory_pattern>Non-workflow Internal LLM Utilities MUST execute as follows: 1) Load client via `await LLMClient.from_strategy("fast", repository=repo)`. 2) Define instructions as a file-level `_SYSTEM_INSTRUCTION` constant. 3) Pass strictly segregated messages to `executor.execute_chat_task(client=...)` or `executor.execute_structured_task(client=...)`.</mandatory_pattern>
     </rule_block>
 
     <rule_block id="hybrid_prompting_mandate">
@@ -85,11 +85,11 @@
     </rule_block>
     
     <rule_block id="llm_structured_execution_mandate">
-        <banned_pattern>Asking LLM to "output valid JSON" in text and parsing it with Regex/json.loads.</banned_pattern>
-        <mandatory_pattern>Rely ONLY on `run_structured_task()` to force execution via API native Structural Constraining (e.g. OpenAI Structured Outputs).</mandatory_pattern>
+        <banned_pattern>Asking LLM to "output valid JSON" in text and parsing it with Regex/json.loads, or using LLMClient to handle validation retry loops directly.</banned_pattern>
+        <mandatory_pattern>Rely ONLY on `LLMTaskExecutor.execute_structured_task()` to force execution via API native Structural Constraining and centralized Fail-Fast Pydantic healing.</mandatory_pattern>
         <code_example>
             <anti_pattern>data = json.loads(await client.run_chat(prompt))</anti_pattern>
-            <pro_pattern>result: UserDTO = await client.run_structured_task(messages, response_model=UserDTO)</pro_pattern>
+            <pro_pattern>result, usage = await executor.execute_structured_task(client=client, messages=messages, response_model=UserDTO)</pro_pattern>
         </code_example>
     </rule_block>
 
