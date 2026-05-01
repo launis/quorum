@@ -26,6 +26,7 @@ class OutputProfileCreateDTO(BaseModel):
     )
     slug: str = Field(..., description="Human-readable routing identifier.")
     workflow_id: str = Field(..., description="References the execution DAG to scope Target Matrices.")
+    organization_id: str | None = Field(default=None, description="Tenant organization scope.")
     name: I18nText = Field(..., description="Localized name.")
     description: I18nText | None = Field(default=None, description="Localized description.")
     visible_metadata: list[str] = Field(

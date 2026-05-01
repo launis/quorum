@@ -684,6 +684,19 @@ class PromptCompiler:
         )
         xml_blocks.append(anti_sycophancy_mandate)
 
+        # Extension Anchoring Mandate: Prevent generic consulting jargon in dynamic extensions
+        extension_anchoring_mandate = (
+            "<EXTENSION_ANCHORING_MANDATE>\n"
+            "CRITICAL XAI RULE: Every generated extension field (e.g. coaching, falsification, "
+            "remediation, missing_context) MUST be explicitly anchored to the user's raw input "
+            "or the extracted evidence quote. Do NOT output generic theoretical advice, assumed "
+            "knowledge, or standard consultant jargon. If you offer a coaching tip, falsification, "
+            "or point out missing context, it MUST directly address a specific flaw or gap found "
+            "in the user's text.\n"
+            "</EXTENSION_ANCHORING_MANDATE>"
+        )
+        xml_blocks.append(extension_anchoring_mandate)
+
         # Anti-ID Mandate to prevent raw UUID/System-ID hallucination
         anti_id_mandate = (
             "<ANTI_ID_MANDATE>\n"
