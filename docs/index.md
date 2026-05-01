@@ -20,6 +20,8 @@ Järjestelmä rakentuu särkymättömän ydinarkkitehtuurin (The Strict Executio
 *   **[05. Datan Pysyvyys, CQRS ja The Seed Vault](architecture/05_data_persistence_and_seeding.md)**
 *   **[06. Esityskerros (Desktop-First Flutter) ja L10n](architecture/06_desktop_first_flutter_client.md)**
 *   **[07. Infrastruktuuri, Observability ja FinOps](architecture/07_infrastructure_and_observability.md)**
+*   **[08. Dynaaminen Tulostusmoottori ja Osiokohtainen Synteesi](architecture/08_dynamic_rendering_engine.md)**
+*   **[09. Kognitiivinen Arviointiarkkitehtuuri ja Pisteytys (DINA-malli)](architecture/09_evaluation_and_scoring.md)**
 
 ---
 
