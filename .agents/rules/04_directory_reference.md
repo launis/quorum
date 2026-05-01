@@ -10,7 +10,7 @@
             <file_rules>
                 <file path="execution/">Ajonhallinta ja historian haku (executions.py, workflows.py, scorecard.py).</file>
                 <file path="iam/">Identiteetti- ja tenant-hallinta (auth.py, organizations.py, users.py).</file>
-                <file path="studio/">Blueprint CRUD ja konfiguraatiot (prompt_blocks.py, steps.py, model_registry.py).</file>
+                <file path="studio/">Blueprint CRUD ja konfiguraatiot (prompt_blocks.py, steps.py, model_registry.py, mcp_gateways.py, system_configs.py, workflows.py).</file>
                 <file path="system/">Järjestelmän terveys ja telemetria (health.py, telemetry.py).</file>
                 <file path="output_profiles.py">Tulostusprofiilien ja näkymien (SDUI) reititys.</file>
             </file_rules>
@@ -22,7 +22,12 @@
                 <file path="registry.py">Kriittinen V2 Adapteri agenttien ja Pydantic-tehtävien välillä.</file>
             </file_rules>
         </directory>
-        <directory path="database/">The Unified Data Repository. Abstract Storage engines for local (TinyDB) and production (Firestore).</directory>
+        <directory path="database/">
+            <description>The Unified Data Repository. Abstract Storage engines for local (TinyDB) and production (Firestore).</description>
+            <file_rules>
+                <file path="repositories/">Decoupled interfaces enforcing the Interface Segregation Principle (ISP) (e.g., audit.py, execution.py).</file>
+            </file_rules>
+        </directory>
         <directory path="hooks/">Pure deterministic CPU-bound algorithmic logic files (Integrity, Reporting, Scoring filters, Security, Vertex Search).</directory>
         <directory path="llm/">
             <description>Standardized interface API proxies connecting internal systems to LLM SDKs (LiteLLM, GenAI).</description>
@@ -47,7 +52,11 @@
             </file_rules>
         </directory>
         <directory path="services/">
-            <description>Complex business orchestration processing logic routines. Subdivided into drivers, mcp, orchestrator (with strategies).</description>
+            <description>Complex business orchestration processing logic routines. Subdivided into drivers, mcp, and orchestrator.</description>
+            <file_rules>
+                <file path="llm_task_executor.py">Central orchestration point enforcing Fail-Fast structured execution for cognitive workflows.</file>
+                <file path="mcp/">Model Context Protocol loop execution directory for tool-based LLM routing.</file>
+            </file_rules>
         </directory>
         <directory path="scripts/">Backendin sisäiset aputyökalut, kuten OpenAPI-skeemojen automaattinen generointi.</directory>
         <directory path="templates/">Jinja2/HTML pohjat dynaamiselle PDF- ja tulostusraporttigeneroinnille (PDF Service).</directory>

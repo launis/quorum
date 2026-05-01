@@ -14,14 +14,15 @@ Cognitive Quorum on erikoistunut asiantuntijajärjestelmä (Specialized AI Orche
 
 ### 1. The "Zero-Compromise" Manifesto
 Quorum inhoaa "Mustia Laatikoita". Kaikki kognitio pakotetaan deterministiseen muotoon:
-*   **Strict Pydantic V2 (Rust-Core)**: Kaikki I/O kulkee Pydantic-mallien läpi `extra="forbid"` turvalla varustettuna.
+*   **Strict Pydantic V2 (Rust-Core) & Anti-TDD Trap**: Kaikki I/O kulkee Pydantic-mallien läpi `extra="forbid"` turvalla varustettuna. Olemme poistaneet koodikannasta (myös testikoodista) kaiken legacy-sanakirjapohjaisen (dict) parsinnan.
 *   **Fail-Fast & RFC 7807**: Järjestelmä ei koskaan "korjaa hiljaa" (SizedBox.shrink tai try-except pass). Virheet kaatavat yksittäiset solmut näkyvästi `AppException` (RFC 7807) virhekehyksillä pitäen muun prosessin pystyssä.
-*   **The Hook Layer**: Tekoälymallit eivät itse luo omien pyyntöjensä rakenteita sorkkimalla rajapintoja vapaasti. Järjestelmä kokoaa (Jinja2) työnkulut lennossa, ampuu LLM-kutsun asynkronisesti erillisen Client-abstraktion yli, ja puhdistaa vastaukset "Algorithmic Tyranny Kill Switch" mekanismin läpi estäen teorialaiskuuden.
+*   **The Hook Layer & LLMTaskExecutor**: Tekoälymallit eivät luo omien pyyntöjensä rakenteita vapaasti. Keskitetty `LLMTaskExecutor` -palvelu hallinnoi kaikkia strukturoituja pyyntöjä. Järjestelmä kokoaa (Jinja2) työnkulut lennossa, ampuu LLM-kutsut asynkronisesti ja puhdistaa vastaukset "Algorithmic Tyranny Kill Switch" mekanismin läpi.
 
 ### 2. Event Sourcing DAG Orchestrator
 Eroon perinteisistä peräkkäisistä purkkaliitos-putkista. Asynkroninen moottori `services/orchestrator/dag_executor.py`:
 *   **Event Sourcing**: Jokainen ajon vaihe (`TraceEvent`) tallentuu historiikkiin, mahdollistaen rehydration-tilat ("Kesken jääneet työt").
 *   **Storage Driver Pattern**: Järjestelmä ei sitoudu suoriin yksittäisiin tietokantoihin (Koodi tukee lennosta lokaalia `db_v2.json` TinyDB-ajuria tai pilven Firestorea). Uutena V2:ssa, yli 100 KB raskaat tekoälytulokset ohjataan automaattisesti Blob Storageen keventäen rajapintoja.
+*   **Model Context Protocol (MCP)**: Tekoälyn asiantuntijalaajennukset ja dynaamiset faktantarkistustyökalut (esim. Tavily Search) on eristetty tiukkaan Fail-Fast -luuppiin. Kaikki ulkoiset haut ja todistusaineistot tallentuvat rikkoutumattomina auditointijäljinä (Audit Trace) raporttiin.
 *   **Arq Worker (Redis)**: Raskaat API-puhelut LLM:lle lähetetään aina HTTP 202 Accepted -jonoon FastAPI-prosessin tukehtumisen estämiseksi.
 
 ### 3. Desktop-First Flutter (App)
