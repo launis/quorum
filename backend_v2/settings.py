@@ -230,10 +230,7 @@ class Settings(BaseSettings):
         if value == "LOCAL":
             return StorageBackend.LOCAL
 
-        msg = (
-            f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. "
-            "Must be LOCAL or FIRESTORE."
-        )
+        msg = f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. Must be LOCAL or FIRESTORE."
         logger.error("[Settings] %s", msg, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
         raise AppException(
             message=msg,

@@ -131,7 +131,7 @@ class LocalFileDriver(FileDriver):
                         raise AppException(
                             message=f"Tiedosto on auki toisessa ohjelmassa: {str(e)}",
                             status_code=409,
-                            details={"error_code": ErrorCodes.FILE_LOCKED_ERROR.value}
+                            details={"error_code": ErrorCodes.FILE_LOCKED_ERROR.value},
                         ) from e
                     logger.warning(
                         "[LocalFileDriver] WinError 5 on os.replace, retrying %d/%d for %s",
@@ -195,7 +195,7 @@ class LocalFileDriver(FileDriver):
             raise AppException(
                 message=f"Tiedosto on auki toisessa ohjelmassa: {str(e)}",
                 status_code=409,
-                details={"error_code": ErrorCodes.FILE_LOCKED_ERROR.value}
+                details={"error_code": ErrorCodes.FILE_LOCKED_ERROR.value},
             ) from e
         except Exception as e:
             logger.error(

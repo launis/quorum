@@ -133,7 +133,7 @@ async def test_translation_hook_role_segregation_and_success(
     assert "suomeksi (Finnish)" in messages[0]["content"]  # Embedded target language
 
     assert messages[1]["role"] == "user"
-    assert "SOURCE_JSON" in messages[1]["content"]
+    assert "source_data" in messages[1]["content"]
     assert "Example Title" in messages[1]["content"]
 
 

@@ -43,6 +43,7 @@ def _make_mock_executor(
     structured_returns: tuple[Any, Any] | None = None,
 ) -> MagicMock:
     from backend_v2.models.domain.usage import TokenUsage
+
     executor = MagicMock()
     if structured_returns is not None:
         executor.execute_structured_task = AsyncMock(return_value=structured_returns)
@@ -53,11 +54,11 @@ def _make_mock_executor(
     return executor
 
 
-
 @pytest.mark.asyncio
 async def test_tool_loop_no_tools_passthrough() -> None:
     """Empty allowed_tools → direct structured output, zero overhead."""
     from backend_v2.models.domain.usage import TokenUsage
+
     mock_result = MockResponseModel(score=3.0, reasoning="No tools needed.")
     client = _make_mock_llm_client()
     executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=50)))
@@ -106,6 +107,7 @@ async def test_tool_loop_single_search() -> None:
     )
 
     from backend_v2.models.domain.usage import TokenUsage
+
     mock_result = MockResponseModel(score=4.5, reasoning="Supported by search.")
     mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=200)))
 
@@ -160,6 +162,7 @@ async def test_tool_loop_max_calls_enforced() -> None:
     mock_client.run_chat = AsyncMock(return_value=tool_call_response)
 
     from backend_v2.models.domain.usage import TokenUsage
+
     mock_result = MockResponseModel(score=2.0, reasoning="Limited evidence.")
     mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=300)))
 
@@ -218,6 +221,7 @@ async def test_tool_loop_tavily_failure_graceful() -> None:
     )
 
     from backend_v2.models.domain.usage import TokenUsage
+
     mock_result = MockResponseModel(score=3.5, reasoning="Proceeded without evidence.")
     mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=150)))
 
@@ -290,6 +294,7 @@ async def test_tool_call_id_preserved_from_llm() -> None:
     )
 
     from backend_v2.models.domain.usage import TokenUsage
+
     mock_result = MockResponseModel(score=5.0, reasoning="Regression test.")
     mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=100)))
 
@@ -410,6 +415,7 @@ async def test_phase2_messages_contain_tool_roles() -> None:
     )
 
     from backend_v2.models.domain.usage import TokenUsage
+
     mock_result = MockResponseModel(score=4.0, reasoning="Phase 2 test.")
     mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=150)))
 

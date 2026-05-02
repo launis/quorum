@@ -131,9 +131,7 @@ async def test_synthesis_hook_success(
     assert "abc@example.com" not in user_msg.get("content", "")
 
     # Check if PII was masked (the email inside inputs should be [REDACTED EMAIL])
-    assert "GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be ~500 characters." in sys_msg.get(
-        "content", ""
-    )
+    assert "<global_length_constraint_chars>500</global_length_constraint_chars>" in sys_msg.get("content", "")
     assert "Always be concise." in sys_msg.get("content", "")
 
     assert delta["synthesized_markdown"] == "Synthesized [1]\n\n### BIBLIOGRAPHY_HEADER\n[1] source1"
@@ -244,10 +242,10 @@ async def test_synthesis_hook_multi_profile_routing(
     sys_msg: dict[str, Any] = next((m for m in call_args.kwargs.get("messages", []) if m["role"] == "system"), {})
 
     # Assert Prof B's constraints are found, NOT Prof A's
-    assert "900 characters" in sys_msg.get("content", "")
+    assert "<global_length_constraint_chars>900</global_length_constraint_chars>" in sys_msg.get("content", "")
     assert "Beta" in sys_msg.get("content", "")
     assert "Alpha" not in sys_msg.get("content", "")
-    assert "100 characters" not in sys_msg.get("content", "")
+    assert "<global_length_constraint_chars>100</global_length_constraint_chars>" not in sys_msg.get("content", "")
 
 
 @pytest.mark.asyncio

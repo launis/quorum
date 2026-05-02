@@ -1,6 +1,7 @@
-import pytest
 from typing import Any
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from backend_v2.seed.run_seed import _fail_fast, main
 
@@ -26,7 +27,7 @@ def test_main_runs_all(mock_seed_database: AsyncMock) -> None:
     """Test that main() correctly parses 'all' and executes seed_database for local and firestore."""
     main()
     assert mock_seed_database.call_count == 2
-    
+
     # Verify both targets were called (order doesn't matter since they come from a set)
     calls = [call.args[0] for call in mock_seed_database.call_args_list]
     assert "local" in calls
@@ -43,7 +44,7 @@ async def test_seed_database_local(
 ) -> None:
     """Test seed_database with local target."""
     from backend_v2.seed.run_seed import seed_database
-    
+
     mock_json_load.return_value = {"mock": "data"}
     await seed_database("local")
     mock_seed_tinydb.assert_called_once()
@@ -59,7 +60,7 @@ async def test_seed_database_firestore(
 ) -> None:
     """Test seed_database with firestore target."""
     from backend_v2.seed.run_seed import seed_database
-    
+
     mock_json_load.return_value = {"mock": "data"}
     await seed_database("firestore")
     mock_seed_firestore.assert_called_once()
@@ -71,7 +72,7 @@ async def test_seed_database_firestore(
 async def test_seed_database_no_file(mock_exit: Any, mock_exists: Any) -> None:
     """Test seed_database when file does not exist."""
     from backend_v2.seed.run_seed import seed_database
-    
+
     await seed_database("local")
     mock_exit.assert_called_once_with(1)
 
@@ -93,14 +94,14 @@ async def test_seed_tinydb_empty_data(
     mock_repo: Any,
     mock_driver: Any,
     mock_client: Any,
-    mock_tinydb: Any
+    mock_tinydb: Any,
 ) -> None:
     """Test _seed_tinydb initialization and empty data loop."""
     from backend_v2.seed.run_seed import _seed_tinydb
-    
+
     mock_db_instance = mock_tinydb.return_value
-    
+
     await _seed_tinydb("fake/path/db_v2.json", {}, "local")
-    
+
     mock_db_instance.drop_tables.assert_called_once()
     mock_tinydb.assert_called_once_with("fake/path/db_v2.json", encoding="utf-8")

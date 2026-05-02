@@ -14,6 +14,8 @@ from pydantic import ValidationError
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.v2_core import ChatHistoryDTO
+from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 logger = logging.getLogger(__name__)
 
@@ -79,8 +81,6 @@ class ChatParserService:
         try:
             # Note: The system model_registry must have a 'fast' (or alias) strategy defined.
             llm_client = await LLMClient.from_strategy("fast", repository=system_repo)
-            from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-            from backend_v2.services.llm_task_executor import LLMTaskExecutor
             executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
         except ConfigurationError as e:
             error_code = ErrorCodes.CONFIGURATION_ERROR
@@ -95,7 +95,13 @@ class ChatParserService:
         # Role Segregation: Isolated System Instruction prevents prompt injection
         messages = [
             {"role": "system", "content": _SYSTEM_INSTRUCTION},
-            {"role": "user", "content": f"Here is the raw text to process:\n<raw_text>\n{raw_paste}\n</raw_text>\n"},
+            {
+                "role": "user",
+                "content": (
+                    "<context>\nHere is the raw text to process:\n</context>\n"
+                    f"<source_data>\n{raw_paste}\n</source_data>\n"
+                ),
+            },
         ]
 
         try:

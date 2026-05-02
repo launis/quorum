@@ -469,8 +469,9 @@ class StepsController extends _$StepsController {
   /// Simulates a step on the backend without saving it.
   Future<Map<String, dynamic>> simulateStep(NodeStrategy payload) async {
     try {
+      final payloadData = {'step': payload.toJson(), 'mock_inputs': {}};
       final client = ref.read(studioClientProvider);
-      return await client.simulateStep(payload.toJson());
+      return await client.simulateStep(payloadData);
     } catch (e, st) {
       ref
           .read(loggerServiceProvider)

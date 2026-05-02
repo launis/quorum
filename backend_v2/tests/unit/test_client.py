@@ -1,9 +1,9 @@
-import pytest
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from pydantic import BaseModel
 
-from backend_v2.exceptions import AgentExecutionError, ErrorCodes, LLMSchemaValidationError
+from backend_v2.exceptions import LLMSchemaValidationError
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.llm import LLMProviderConfig
@@ -35,7 +35,7 @@ def mock_provider() -> AsyncMock:
 @pytest.mark.asyncio
 async def test_client_run_structured_task_success(mock_config: LLMProviderConfig, mock_provider: AsyncMock) -> None:
     client = LLMClient(config=mock_config)
-    
+
     mock_response = AsyncMock()
     mock_response.content = '{"value": "hello"}'
     mock_response.token_usage = {
@@ -44,16 +44,15 @@ async def test_client_run_structured_task_success(mock_config: LLMProviderConfig
         "total_tokens": 25,
         "cached_tokens": 0,
         "reasoning_tokens": 0,
-        "cost_usd": 0.0
+        "cost_usd": 0.0,
     }
     mock_provider.generate.return_value = mock_response
 
     with patch("backend_v2.llm.client.LLMFactory.create_provider", return_value=mock_provider):
         validated_model, usage = await client.run_structured_task(
-            messages=[{"role": "user", "content": "hi"}],
-            response_model=MockResponseSchema
+            messages=[{"role": "user", "content": "hi"}], response_model=MockResponseSchema
         )
-        
+
         assert validated_model.value == "hello"
         assert isinstance(usage, TokenUsage)
         assert usage.total_tokens == 25
@@ -63,7 +62,7 @@ async def test_client_run_structured_task_success(mock_config: LLMProviderConfig
 @pytest.mark.asyncio
 async def test_client_run_structured_task_json_error(mock_config: LLMProviderConfig, mock_provider: AsyncMock) -> None:
     client = LLMClient(config=mock_config)
-    
+
     mock_response = AsyncMock()
     mock_response.content = "not valid json"
     mock_response.token_usage = {
@@ -72,17 +71,16 @@ async def test_client_run_structured_task_json_error(mock_config: LLMProviderCon
         "total_tokens": 25,
         "cached_tokens": 0,
         "reasoning_tokens": 0,
-        "cost_usd": 0.0
+        "cost_usd": 0.0,
     }
     mock_provider.generate.return_value = mock_response
 
     with patch("backend_v2.llm.client.LLMFactory.create_provider", return_value=mock_provider):
         with pytest.raises(LLMSchemaValidationError) as exc_info:
             await client.run_structured_task(
-                messages=[{"role": "user", "content": "hi"}],
-                response_model=MockResponseSchema
+                messages=[{"role": "user", "content": "hi"}], response_model=MockResponseSchema
             )
-            
+
         assert exc_info.value.raw_llm_payload == "not valid json"
         assert exc_info.value.is_eof is False
 
@@ -90,7 +88,7 @@ async def test_client_run_structured_task_json_error(mock_config: LLMProviderCon
 @pytest.mark.asyncio
 async def test_client_run_chat(mock_config: LLMProviderConfig, mock_provider: AsyncMock) -> None:
     client = LLMClient(config=mock_config)
-    
+
     mock_response = AsyncMock()
     mock_response.content = "chat response"
     mock_response.tool_calls = None

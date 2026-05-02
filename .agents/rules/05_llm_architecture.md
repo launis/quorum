@@ -83,6 +83,12 @@
             </pro_pattern>
         </code_example>
     </rule_block>
+
+    <rule_block id="high_fidelity_prompting_and_caching">
+        <banned_pattern>Injecting dynamic execution variables (like length constraints or target languages) directly into rule sentences using Python f-strings, or using Markdown mixed with raw text for data structures.</banned_pattern>
+        <mandatory_pattern>Enforce **High-Fidelity Prompting & 100% Caching Efficiency**. All dynamic variables MUST be strictly isolated into an `<execution_parameters>` XML tag at the very beginning of the prompt. All rules and system directives must remain perfectly static. All input data must be rigidly wrapped in `<source_data>` or `<matrix_input>` tags. The usage of unstructured Markdown lists for dynamic data parsing is strictly forbidden.</mandatory_pattern>
+        <catastrophic_reason>Mixing dynamic parameters with static system instructions destroys the LLM's Prompt Caching capability. Isolating variables into `<execution_parameters>` ensures that 95%+ of the prompt remains cacheable, vastly reducing token costs and latency.</catastrophic_reason>
+    </rule_block>
     
     <rule_block id="llm_structured_execution_mandate">
         <banned_pattern>Asking LLM to "output valid JSON" in text and parsing it with Regex/json.loads, or using LLMClient to handle validation retry loops directly.</banned_pattern>

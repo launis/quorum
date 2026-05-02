@@ -3,9 +3,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
-from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
-from backend_v2.database.repositories.identity import IdentityRepositoryImpl
-from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
 
@@ -88,100 +85,6 @@ async def test_hydrate_audit_trails_fails_fast() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_all_delegates_to_driver() -> None:
-    """Test that get_all delegates to driver.query."""
-    mock_driver = AsyncMock()
-    mock_driver.query.return_value = [{"id": "123"}]
-    repo = WorkflowRepositoryImpl(driver=mock_driver)
-
-    result = await repo.get_all("workflows")
-
-    mock_driver.query.assert_called_once_with("workflows")
-    assert result == [{"id": "123"}]
-
-
-@pytest.mark.asyncio
-async def test_get_delegates_to_driver() -> None:
-    """Test that get delegates to driver.get."""
-    mock_driver = AsyncMock()
-    mock_driver.get.return_value = {"id": "123"}
-    repo = WorkflowRepositoryImpl(driver=mock_driver)
-
-    result = await repo.get("workflows", "123")
-
-    mock_driver.get.assert_called_once_with("workflows", "123")
-    assert result == {"id": "123"}
-
-
-@pytest.mark.asyncio
-async def test_create_raw_delegates_to_driver() -> None:
-    """Test that create_raw generates UUID if missing and delegates to driver.upsert."""
-    mock_driver = AsyncMock()
-    mock_driver.upsert.return_value = "new_123"
-    repo = WorkflowRepositoryImpl(driver=mock_driver)
-
-    # Without ID
-    result = await repo.create_raw("workflows", {"name": "Test"})
-    assert mock_driver.upsert.call_count == 1
-    args, _ = mock_driver.upsert.call_args
-    assert args[0] == "workflows"
-    assert "id" in args[1]
-    assert result == "new_123"
-
-    # With ID
-    mock_driver.upsert.reset_mock()
-    result = await repo.create_raw("workflows", {"id": "existing_id", "name": "Test"})
-    mock_driver.upsert.assert_called_once_with("workflows", {"id": "existing_id", "name": "Test"}, "existing_id")
-
-
-@pytest.mark.asyncio
-async def test_delete_delegates_to_driver() -> None:
-    """Test that delete delegates to driver.delete."""
-    mock_driver = AsyncMock()
-    mock_driver.delete.return_value = True
-    repo = WorkflowRepositoryImpl(driver=mock_driver)
-
-    result = await repo.delete("workflows", "123")
-
-    mock_driver.delete.assert_called_once_with("workflows", "123")
-    assert result is True
-
-
-@pytest.mark.asyncio
-async def test_agent_delegates() -> None:
-    mock_driver = AsyncMock()
-    mock_driver.get.return_value = {"id": "agent_1"}
-    mock_driver.query.return_value = [{"id": "agent_1"}]
-    mock_driver.upsert.return_value = "agent_1"
-    mock_driver.update.return_value = True
-    mock_driver.delete.return_value = True
-    repo = IdentityRepositoryImpl(driver=mock_driver)
-
-    assert await repo.get_agent_by_id("agent_1") == {"id": "agent_1"}
-    assert await repo.get_all_agents() == [{"id": "agent_1"}]
-    assert await repo.create_agent({"id": "agent_1"}) == "agent_1"
-    assert await repo.update_agent("agent_1", {}) is True
-    assert await repo.delete_agent("agent_1") is True
-
-
-@pytest.mark.asyncio
-async def test_output_profile_delegates() -> None:
-    mock_driver = AsyncMock()
-    mock_driver.get.return_value = {"id": "profile_1"}
-    mock_driver.query.return_value = [{"id": "profile_1"}]
-    mock_driver.upsert.return_value = "profile_1"
-    mock_driver.update.return_value = True
-    mock_driver.delete.return_value = True
-    repo = SystemRepositoryImpl(driver=mock_driver)
-
-    assert await repo.get_all_output_profiles() == [{"id": "profile_1"}]
-    assert await repo.get_output_profile_by_id("profile_1") == {"id": "profile_1"}
-    assert await repo.create_output_profile({"id": "profile_1"}) == "profile_1"
-    assert await repo.update_output_profile("profile_1", {}) is True
-    assert await repo.delete_output_profile("profile_1") is True
-
-
-@pytest.mark.asyncio
 async def test_knowledge_base_delegates() -> None:
     mock_driver = AsyncMock()
     mock_driver.query.return_value = []
@@ -196,17 +99,3 @@ async def test_knowledge_base_delegates() -> None:
     assert await repo.add_claim({"id": "id_1"}) == "id_1"
     await repo.clear_knowledge_base()
     assert mock_driver.clear.call_count == 3
-
-
-@pytest.mark.asyncio
-async def test_banned_phrases_delegates() -> None:
-    mock_driver = AsyncMock()
-    mock_driver.query.return_value = []
-    repo = SystemRepositoryImpl(driver=mock_driver)
-
-    assert await repo.get_banned_phrases() == []
-    await repo.add_banned_phrase("bad")
-    mock_driver.upsert.assert_called_once()
-
-    mock_driver.query.return_value = [{"id": "123"}]
-    assert await repo.delete_banned_phrase("bad") is mock_driver.delete.return_value

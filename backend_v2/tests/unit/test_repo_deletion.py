@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -20,14 +20,9 @@ async def test_delete_prompt_block_blocks_orphan_data(mock_driver: Any) -> None:
 
     # Mock get_prompt_block_by_id to simulate the block exists
     # Mock get_all_steps to simulate it is used in a Step
-    from unittest.mock import patch
-
-    with (
-        patch.object(repo, "get_prompt_block_by_id", new_callable=AsyncMock) as mock_get_pb,
-        patch.object(repo, "get_all_steps", new_callable=AsyncMock) as mock_get_steps,
-    ):
+    with patch.object(repo, "get_prompt_block_by_id", new_callable=AsyncMock) as mock_get_pb:
         mock_get_pb.return_value = {"id": "m1"}
-        mock_get_steps.return_value = [{"id": "step_1", "prompt_blocks": ["m1", "m2"]}]
+        mock_driver.query.return_value = [{"id": "step_1", "prompt_blocks": ["m1", "m2"]}]
 
         # Should raise AppException with RESOURCE_IN_USE
         with pytest.raises(AppException) as exc_info:

@@ -24,7 +24,9 @@ from backend_v2.models.dtos.synthesis import SynthesisOutputDTO
 from backend_v2.models.enums import HistoricalContextMode
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
+from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
+from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 logger = logging.getLogger(__name__)
 
@@ -184,27 +186,33 @@ def _build_section_instructions(layouts: list[Any], language: str, all_blocks: l
         target_blocks = layout.target_blocks or []
 
         instruction = (
-            f"LAYOUT ID: {l_id} | TITLE: {l_title}\n"
-            f"SECTION-SPECIFIC COGNITIVE BLUEPRINT:\n{str(l_system_prompt).strip()}\n"
+            f"<section_instruction>\n"
+            f"  <execution_parameters>\n"
+            f"    <layout_id>{l_id}</layout_id>\n"
+            f"    <title>{l_title}</title>\n"
         )
 
-        if target_blocks and "*" not in target_blocks:
-            instruction += ContextMapper.build_ordinal_mapping(target_blocks, all_blocks)
-        else:
-            instruction += "Target Data Filter: Synthesize all relevant information for this section.\n"
-
-        if l_preamble:
-            instruction += f"CRITICAL TONE/PREAMBLE FOR THIS SECTION: '{l_preamble}'\n"
+        if language:
+            instruction += f"    <target_language>{language}</target_language>\n"
 
         if l_synthesis.length_constraint:
-            instruction += f"LENGTH LIMIT: ~{l_synthesis.length_constraint} chars.\n"
+            instruction += f"    <length_constraint_chars>{l_synthesis.length_constraint}</length_constraint_chars>\n"
 
-        if language:
+        if l_preamble:
+            instruction += f"    <preamble_tone>{l_preamble}</preamble_tone>\n"
+
+        instruction += "  </execution_parameters>\n"
+        instruction += f"  <cognitive_blueprint>\n{str(l_system_prompt).strip()}\n  </cognitive_blueprint>\n"
+
+        if target_blocks and "*" not in target_blocks:
+            mapping = ContextMapper.build_ordinal_mapping(target_blocks, all_blocks)
+            instruction += f"  <target_data_filter>\n{mapping}\n  </target_data_filter>\n"
+        else:
             instruction += (
-                f"CRITICAL LANGUAGE MANDATE: You MUST generate this section's output strictly in the "
-                f"'{language}' language (ISO code), ignoring any previous instructions to output in "
-                f"English or another language.\n"
+                "  <target_data_filter>Synthesize all relevant information for this section.</target_data_filter>\n"
             )
+
+        instruction += "</section_instruction>"
 
         section_instructions.append(instruction)
 
@@ -466,7 +474,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         combined_text_parts.append(f"### Source: {step_title} (ID: {k})\n{v_str}")
 
     global_mapping = ContextMapper.build_global_mapping(workflow_data, layouts) if workflow_data else ""
-    raw_input_text = historical_context_text + global_mapping + "\n\n".join(combined_text_parts)
+    raw_input_text = (
+        f"<source_data>\n{historical_context_text}{global_mapping}\n{chr(10).join(combined_text_parts)}\n</source_data>"
+    )
 
     if enable_masking:
         raw_input_text, threats = sanitize_text(raw_input_text)
@@ -485,23 +495,39 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-    sys_prompt = f"<system_directive>\n<objective>\n{str(custom_sys_prompt).strip()}\n</objective>\n<rules>\n"
+    active_exts = active_profile_dto.visible_extensions
+    max_items = active_profile_dto.max_extension_items or 2
+
+    sys_prompt = "<system_directive>\n<execution_parameters>\n"
+    sys_prompt += f"  <target_language>{language}</target_language>\n"
+
+    if length_constraint:
+        sys_prompt += f"  <global_length_constraint_chars>{length_constraint}</global_length_constraint_chars>\n"
+    if preamble:
+        sys_prompt += f"  <global_preamble_tone>{preamble}</global_preamble_tone>\n"
+    if active_exts:
+        ext_list = ", ".join([x.value for x in active_exts]) if isinstance(active_exts, list) else str(active_exts)
+        sys_prompt += f"  <target_extensions_to_harvest>{ext_list}</target_extensions_to_harvest>\n"
+        sys_prompt += f"  <max_extension_items_per_category>{max_items}</max_extension_items_per_category>\n"
+
+    sys_prompt += "</execution_parameters>\n\n"
+
+    sys_prompt += f"<objective>\n{str(custom_sys_prompt).strip()}\n</objective>\n<rules>\n"
 
     sys_prompt += (
-        f"  <rule>CRITICAL LANGUAGE MANDATE: You must process the input and generate all your output text, "
-        f"reasoning, and source justifications exclusively in the '{language}' language, regardless of the language "
-        f"used in the instructions or source materials.</rule>\n"
+        "  <rule>CRITICAL LANGUAGE MANDATE: You must process the input and generate all your output text, "
+        "reasoning, and source justifications exclusively in the language specified in <target_language>.</rule>\n"
     )
 
     if length_constraint:
         sys_prompt += (
-            f"  <rule>GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be "
-            f"~{length_constraint} characters.</rule>\n"
+            "  <rule>GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be roughly the length "
+            "specified in <global_length_constraint_chars>.</rule>\n"
         )
     if preamble:
         sys_prompt += (
-            "  <rule>GLOBAL PREAMBLE INTRODUCTION: Start your global synthesis intuitively using the following "
-            f"preamble tone/context: '{preamble}'</rule>\n"
+            "  <rule>GLOBAL PREAMBLE INTRODUCTION: Start your global synthesis intuitively using the "
+            "preamble tone/context specified in <global_preamble_tone>.</rule>\n"
         )
 
     sys_prompt += (
@@ -531,33 +557,30 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         "dumps. If you mention internal findings, state them directly without using it.</rule>\n"
     )
 
-    active_exts = active_profile_dto.visible_extensions
-    max_items = active_profile_dto.max_extension_items or 2
-    exts_str = ", ".join([x.value for x in active_exts]) if isinstance(active_exts, list) else str(active_exts)
+    if active_exts:
+        sys_prompt += (
+            "  <rule>CRITICAL XAI EXTENSION SYNTHESIS MANDATE:\n"
+            "Your task is to act as the Chief Editor. Scan the flattened JSON outputs of the matrices for any "
+            "localized extensions they produced. In the V2 schema, these extensions are always appended as suffixes "
+            "to the matrix Stripe IDs (e.g., 'blk_22e3598e06414409_coaching', 'blk_80732a33fe1947ee_falsification').\n"
+            "You must HARVEST these fragmented, atomized insights and SYNTHESIZE them into the most critical, "
+            "high-impact global highlights per target extension category, limited to the count specified in "
+            "<max_extension_items_per_category>. "
+            "Do not simply copy-paste them blindly; elevate and merge overlapping insights to create a "
+            "coherent executive summary. "
+            "Output these items strictly into the `xai_highlights` array, "
+            "using the EXACT target extension name from <target_extensions_to_harvest> in `extension_type`. "
+            '(e.g. "coaching")\n'
+            "Provide ONLY the core text, omitting any internal titles like 'Vasta-argumentti 1:'.</rule>\n"
+        )
 
-    sys_prompt += (
-        "  <rule>CRITICAL XAI EXTENSION SYNTHESIS MANDATE:\n"
-        "Your task is to act as the Chief Editor. Scan the flattened JSON outputs of the matrices for any localized "
-        "extensions they produced. In the V2 schema, these extensions are always appended as suffixes "
-        "to the matrix Stripe IDs\n"
-        "(e.g., 'blk_22e3598e06414409_coaching', 'blk_80732a33fe1947ee_falsification').\n"
-        f"TARGET EXTENSIONS TO HARVEST: {exts_str}\n"
-        f"You must HARVEST these fragmented, atomized insights and SYNTHESIZE them into the TOP {max_items} most critical, "
-        "high-impact global highlights per target extension category. Do not simply copy-paste them blindly; elevate "
-        "and merge overlapping insights to create a coherent executive summary. "
-        "Output these items strictly into the `xai_highlights` array, "
-        'using the EXACT target extension name in `extension_type`. (e.g. "coaching")\n'
-        "Provide ONLY the core text, omitting any internal titles like 'Vasta-argumentti 1:'.</rule>\n"
-        "</rules>\n</system_directive>"
-    )
+    sys_prompt += "</rules>\n</system_directive>"
 
     messages = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": raw_input_text}]
 
     # 4. LLM execution with telemetry
     # Fail-fast: Assuming the strategy for output formatting is named 'synthesis_strategy'
     client = await LLMClient.from_strategy("synthesis", repository=deps.system_repo)
-    from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-    from backend_v2.services.llm_task_executor import LLMTaskExecutor
     executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
 
     allowed_tools = synthesis_cfg.allowed_mcp_tools

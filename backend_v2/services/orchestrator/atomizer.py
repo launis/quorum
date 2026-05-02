@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.v2_core import PromptBlock
+from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +51,6 @@ class PromptAtomizer:
         try:
             # We use 'fast' strategy. Using LLMClient.from_strategy ensures architectural compliance.
             client = await LLMClient.from_strategy("fast", repository=repository)
-            from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-            from backend_v2.services.llm_task_executor import LLMTaskExecutor
             executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
         except Exception as e:
             logger.error("[PromptAtomizer] Failed to initialize LLMClient or Executor: %s", e)
@@ -86,10 +86,12 @@ class PromptAtomizer:
 
                     text_to_atomize = claim.label.translations["en"]
                     user_prompt = (
-                        f"Score level: {scale.score}\n"
-                        f"AI Label: {scale.ai_label}\n"
-                        f"Original AI Description: {claim.ai_description}\n"
-                        f"Claim label to atomize:\n{text_to_atomize}"
+                        f"<context>\n"
+                        f"  <score_level>{scale.score}</score_level>\n"
+                        f"  <ai_label>{scale.ai_label}</ai_label>\n"
+                        f"  <original_ai_description>{claim.ai_description}</original_ai_description>\n"
+                        f"</context>\n"
+                        f"<claim>\n{text_to_atomize}\n</claim>"
                     )
 
                     messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
@@ -98,7 +100,10 @@ class PromptAtomizer:
 
                     try:
                         res, _ = await executor.execute_structured_task(
-                            client=client, messages=messages, response_model=AtomizationSchema, mock_identity=mock_identity
+                            client=client,
+                            messages=messages,
+                            response_model=AtomizationSchema,
+                            mock_identity=mock_identity,
                         )
                         atoms = res.micro_atoms
                         if len(atoms) != 15:

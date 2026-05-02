@@ -45,6 +45,7 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
    - **`llm_structured_execution_mandate`**: LLM-kutsut vain `LLMTaskExecutor.execute_structured_task()` tai `execute_chat_task()` kautta (ei suoraa LLMClient-käyttöä).
    - **`ui_driven_synthesis_boundary`**: AI-raportointi suodatettava tiukasti UI-profiilin mukaan (ei token-räjähdyksiä).
    - **`tripartite_rendering_boundary`**: Ei kovakoodattuja markdown-taulukoita (esim. matriisiyhteenvedot) backendissä. Backend palauttaa vain DTO-dataa, ja UI (Flutter) + PDF (Jinja) vastaavat natiivista renderöinnistä.
+   - **`high_fidelity_prompting`**: Kaikki promptien dynaamiset parametrit on eristetty `<execution_parameters>`-tagiin promptin alkuun. Prompti ei sisällä f-stringejä loogisten sääntöjen rakentamisessa.
    - **`strict_math_display_isolation`**: Pisteiden laskenta `computed_min` perusteella. UI `scale_min` on vain näytölle.
    - **`zero_orm_bleed`**: Tietokantakerros palauttaa vain puhtaita Pydantic-malleja, ei raakoja sanakirjoja.
    - **`strict_dependency_injection`**: Palvelut ladataan FastAPI:ssa `Depends()` kautta. Ei manuaalisia instansseja.

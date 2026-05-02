@@ -21,68 +21,39 @@ Tämä on perinteinen "ChatGPT-tyyppinen" ratkaisu. Luotamme siihen, että kun s
 
 ---
 
-## Malli 2: Skeema-ohjattu tiukkuus (Pydantic Fail-Fast)
+## Malli 2: Skeema-ohjattu tiukkuus (Pydantic Fail-Fast & Micro-CoT)
 
 **Merkitys:**  
-Quorum-arkkitehtuurin erikoisuus on dynaamiset Pydantic-skeemat. LLM:ää ei ohjata vain sanoilla, vaan sitä ohjataan ohjelmointikielen tietorakenteilla. Tässä mallissa muutamme tiukkuutta muuttamalla niitä fyysisiä ehtoja, jotka LLM:n palauttaman vastauksen on täytettävä, jotta järjestelmä ei kaadu.
+Quorum-arkkitehtuurin erikoisuus on dynaamiset Pydantic-skeemat. LLM:ää ei ohjata vain sanoilla, vaan sitä ohjataan ohjelmointikielen tietorakenteilla.
 
-**Toteutustapa koodissa:**
-Muutetaan `prompt_compiler.py`:n `build_dynamic_schema()` -metodia (jossa `AtomResponse` luodaan lennosta).
-1. **Lempeä ajo (Lenient):**
-   ```python
-   quote: str | None = Field(default=None, description="Vapaaehtoinen lainaus. Anna Null jos osuma on vain implisiittinen.")
-   boolean: bool = Field(..., description="True, jos teksti edes sivuaa aihetta. Oleta hyvä tarkoitus.")
-   ```
-2. **Tiukka ajo (Strict Auditor):**
-   ```python
-   quote: str = Field(..., description="PAKOLLINEN, täydellinen verbatim-lainaus lähdetekstistä.")
-   boolean: bool = Field(..., description="True VAIN JOS pakollinen lainaus todistaa asian absoluuttisesti.")
-   ```
+**Toteutustapa koodissa (`prompt_compiler.py`):**
+Atom-tason evaluaatiossa LLM pakotetaan vastaamaan tarkkaan `AtomResponse`-skeemaan, joka vaatii aina "Chain of Thought" -tyyppisen perustelun ennen Boolean-päätöstä:
+```python
+quote: str | None = Field(default=None, description="Pakotettu lainaus alkuperäisestä tekstistä Micro-CoT säännöllä. Null if no evidence.")
+reasoning: str = Field(..., description="Kognitiivinen kitka ja arvioinnin perustelu.")
+boolean: bool = Field(..., description="Puhdas True/False -osumapäätös.")
+```
+Järjestelmä luottaa "Zero-Trust Auditor" -promptaukseen yhdistettynä pakotettuun boolean-kenttään. LLM:n on itse tehtävä kova True/False -päätös seed-datan sääntöjen pohjalta.
 
 **Lopputulokset ja vaikutus:**
-- **Järjestelmälle:** 100% "Fail-Fast" suoja. Jos olemme "Tiukassa" tilassa, ja LLM yrittää antaa `True` mutta ei löydä sananmukaista lainausta (`quote`), Pydantic-skeema heittää välittömästi `ValidationError`. LLM pakotetaan korjaamaan virheensä ja vaihtamaan arvo `False`:ksi.
-- **Käyttäjälle:** Luotettava kokemus. Lempeä-asetus antaa reilusti "helpotusta", koska LLM uskaltaa antaa True-arvoja silloinkin, kun se päättelee asioita rivien välistä ilman suoria todisteita.
+- **Järjestelmälle:** Erittäin korkea determinismi. Emme laske kynnysarvoja ohjelmallisesti, vaan LLM kantaa vastuun kognitiivisesta päätöksestä. `quote` toimii auditoinnin maadoittimena, mutta sallii "Benefit of the doubt" -päätökset (`None`), jos tiukkuutta on laskettu Mallin 1 prompt-kalibroinnilla.
 
 ---
 
-## Malli 3: Hybridi (Numeerinen arvo + Pydantic Fail-Fast Maadoitus)
+## Malli 3 (Hylätty Visio): Numeerinen arvo + Backend-kynnys
 
-**Merkitys:**  
-Tämä on Quorumin asiantuntija-arkkitehtuurin todellinen kulmakivi, joka ottaa huomioon sekä "Code is Truth" -periaatteen että Googlen infrastruktuurin kovat reunaehdot (esim. 5 RPM maksimiraja). Pelkkä numeerinen arvio altistaisi tekoälyn hallusinoimaan kalibrointiharhan vuoksi ("pseudomatiikkaa"). Tässä mallissa tekoäly tuottaa numeerisen luottamusarvion, mutta se pakotetaan "maadoittamaan" se fyysisellä lainauksella Pydanticin nollahypoteesi-säännön kautta.
+*Huom: Tämä malli on Quorum V2 -arkkitehtuurissa hylätty ydinevaluaatiosta (Boolean-osumista), mutta sitä käytetään erillisissä `extension_confidence`-laajennuksissa.*
 
-**Toteutustapa koodissa:**
-1. **Skeeman muutos (`AtomResponse` tai matriisikohtainen laajennus):**
-   Lisätään float-arvon rinnalle lainaus, ja validoidaan se armottomasti `@model_validator` -koristeella.
-   ```python
-   confidence_score: float = Field(..., ge=0.0, le=100.0, description="Numeerinen arvio (0-100).")
-   quote: str | None = Field(default=None, description="Verbatim-lainaus lähteestä.")
+**Toteutustapa teoriassa:**
+LLM olisi palauttanut `confidence_score`-arvon (0-100), ja backendin Transformer olisi tehnyt päätöksen (`atom.is_hit = atom.confidence_score >= threshold`). 
 
-   @model_validator(mode="after")
-   def enforce_quote_for_high_confidence(self):
-       # FAIL-FAST ARKKITEHTUURI (Nollahypoteesi-mandaatti)
-       strictness_baseline = 50.0 
-       if self.confidence_score >= strictness_baseline and not self.quote:
-           raise ValueError(
-               "Fail-Fast Error: Confidence is high, but explicit verbatim quote is missing."
-           )
-       return self
-   ```
-2. **Backendin laskentalogiikka (esim. BlueprintTransformer / DINA-malli):**
-   ```python
-   # Kynnys voidaan määritellä dynaamisesti (esim. 30.0 = Lempeä, 85.0 = Tiukka)
-   threshold = execution.metadata.get("strictness_threshold", 50.0)
-   atom.is_hit = atom.confidence_score >= threshold
-   ```
-
-**Lopputulokset ja vaikutus:**
-- **Arkkitehtuurille ja Infrastruktuurille:** Täydellinen tasapaino luotettavuuden ja API-kustannusten/nopeuden välillä. Koska emme aja satoja erillisiä boolean-atomeja ristiinkuulusteluineen, emme törmää Googlen 5 RPM -rajoitteisiin. Saamme kerralla koko matriisin tai ryhmän arviot, minimoimalla erillisten LLM-kutsujen määrän (vrt. Karkaistu Malli 2).
-- **Hallusinaatioiden tappaminen (Grounding):** Pydantic-validaattori varmistaa lennosta, että "mututuntumalla" annettu korkea pistemäärä ei mene läpi ilman konkreettista näyttöä (lainaus).
-- **Mullistava etu (Jälkikäteen säätäminen DINA-mallilla!):** Koska LLM palautti "raakadatan" (numeerinen analyysi + lainaus), loppukäyttäjä voi säätää tiukkuutta käyttöliittymästä jälkikäteen ilman ainoatakaan uutta Vertex AI -kutsua. Raportti päivittyy lennosta näyttämään, mitkä kohdat putoavat punaiseksi ja mitkä pysyvät vihreinä.
+**Miksi tästä luovuttiin ydinarkkitehtuurissa:**
+Havaitsimme, että LLM:n kyky arvioida luottamustaan lineaarisella asteikolla on erittäin altis hallusinaatioille (pseudomatiikkaa). Oli huomattavasti luotettavampaa pakottaa LLM tekemään binaarinen (True/False) ratkaisu Pydanticin `boolean`-kentällä (Malli 2) ja hallita "lempeyttä" sanallisella kalibroinnilla (Malli 1).
 
 ---
 
-### Loppupäätelmä
-- Jos etsimme tieteisutooppista "Titanium Standardia" (Karkaistu Malli 2), jossa jokainen fakta tarkistetaan erikseen Pydantic Substring Matchilla ja Falsifier-agentilla, tuhoaisimme suorituskyvyn (kymmeniä minuutteja per raportti) ja törmäisimme jatkuvasti Googlen API-rajoihin (esim. 5 RPM).
-- Siksi **Hybridi Malli 3** on ainoa oikea, tuotantovalmis tie. Se sitoo yhteen Pydanticin Fail-Fast -luotettavuuden (maadoitus lainauksilla) ja dynaamisen matemaattisen raja-arvon (Zero-Math UI / DINA), tarjoten sekä turvallisuutta että äärimmäisen joustavan loppukäyttäjäkokemuksen kustannustehokkaasti.
+### Loppupäätelmä: Nykytila (V2 Tuotanto)
 
-Malli 1 tulisi hylätä liian epävarmana "mustana laatikkona".
+Tuotantovalmis Quorum V2 -arkkitehtuuri nojaa viime kädessä **Mallin 1 ja Mallin 2 yhdistelmään**. 
+
+Emme siirtäneet kynnysarvojen määrittelyä backendiin (Malli 3), koska se heikensi determinismiä ja etäännytti päätöksenteon alkuperäisestä tekstistä. Sen sijaan "Titanium Standard" on saavutettu antamalla LLM:lle staattinen Pydantic-skeema, joka vaatii puhtaan `boolean: bool` päätöksen ja pakotetun perustelun (`reasoning`). Tiukkuuden tasoa (0-100) säädetään yksinomaan `prompt_compiler.py`:n `calibrate_strictness()` -funktiolla, joka muuttaa asennetta ("Zero-Trust Auditor" vs "Absolute Leniency"), ennen kuin kova Boolean-päätös lukitaan Pydanticiin.

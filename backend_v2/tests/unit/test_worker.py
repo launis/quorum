@@ -15,7 +15,7 @@ async def test_health_check() -> None:
 
 @pytest.mark.asyncio
 async def test_startup() -> None:
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock) as mock_driver:
+    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo

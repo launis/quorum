@@ -130,18 +130,17 @@ class PromptCompiler:
                 meta = input_meta_map.get(source_path)
                 desc_text = ""
                 if meta:
-                    desc_text += "--- DOCUMENT METADATA ---\n"
-                    desc_text += f"DOCUMENT ID: {logical_name}\n"
+                    desc_text += "  <document_metadata>\n"
+                    desc_text += f"    <document_id>{logical_name}</document_id>\n"
                     if meta["label"]:
-                        desc_text += f"DOCUMENT NAME: {meta['label']}\n"
+                        desc_text += f"    <document_name>{meta['label']}</document_name>\n"
                     if meta["desc"]:
-                        desc_text += f"DOCUMENT DESCRIPTION: {meta['desc']}\n"
+                        desc_text += f"    <document_description>{meta['desc']}</document_description>\n"
                     if meta["ai_desc"]:
-                        desc_text += f"AI CONTEXT MANDATE: {meta['ai_desc']}\n"
-                    desc_text += "-------------------------\n"
+                        desc_text += f"    <ai_context_mandate>{meta['ai_desc']}</ai_context_mandate>\n"
+                    desc_text += "  </document_metadata>\n"
 
-                # E.g. <target_conversation> value </target_conversation>
-                xml_blocks.append(f"{desc_text}<{logical_name}>\n{value}\n</{logical_name}>")
+                xml_blocks.append(f'<matrix_input source_id="{logical_name}">\n{desc_text}{value}\n</matrix_input>')
 
         compiled = "\n\n".join(xml_blocks)
 
@@ -202,7 +201,7 @@ class PromptCompiler:
             # Epic 12: Flatten nested JSON into LLM-friendly Markdown (Attention Dilution patch)
             formatted = []
             for k, v in current.items():
-                formatted.append(f'<prior_step_context source="{str(k).upper()}">')
+                formatted.append(f'<matrix_input source="{str(k).upper()}">')
                 if isinstance(v, dict):
                     # Yritetään sukeltaa suoraan 'outputs' avaimeen jos se olemassa
                     target_dict = v.get("outputs", v) if "outputs" in v else v
@@ -213,7 +212,7 @@ class PromptCompiler:
                             continue
 
                         if isinstance(sub_v, dict):
-                            formatted.append(f"### {str(sub_k).upper()}")
+                            formatted.append(f"<{str(sub_k).upper()}>")
                             for micro_k, micro_v in sub_v.items():
                                 # Siivotaan kognitiiviset etuliitteet pois luettavuuden vuoksi
                                 clean_key = (
@@ -225,12 +224,16 @@ class PromptCompiler:
                                     .replace("_", " ")
                                     .title()
                                 )
-                                formatted.append(f"- **{clean_key}:** {micro_v}")
+                                formatted.append(
+                                    f"  <{clean_key.replace(' ', '_')}>{micro_v}</{clean_key.replace(' ', '_')}>"
+                                )
+                            formatted.append(f"</{str(sub_k).upper()}>")
                         else:
-                            formatted.append(f"- **{str(sub_k).title()}:** {sub_v}")
+                            clean_sub_k = str(sub_k).title().replace(" ", "_")
+                            formatted.append(f"<{clean_sub_k}>{sub_v}</{clean_sub_k}>")
                 else:
                     formatted.append(str(v))
-                formatted.append("</prior_step_context>")
+                formatted.append("</matrix_input>")
             return "\n".join(formatted).strip()
 
         return str(current)
@@ -358,6 +361,7 @@ class PromptCompiler:
         target_locale: str,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs."""
+
         def make_micro_cot_base(_cid: str, _citation_ref: str | None = None) -> type[BaseModel]:
             class MicroCotBase(BaseModel):
                 @model_validator(mode="before")
@@ -404,6 +408,7 @@ class PromptCompiler:
 
         # Epic 20 Phase 7 Hybrid Fix: Inject AtomResponse mapping directly into dynamic schema!
         if has_shuffled_atoms:
+
             class AtomResponse(BaseModel):
                 model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
                 atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")
@@ -627,8 +632,7 @@ class PromptCompiler:
 
             scales = crit.scales or []
             if scales:
-                xml_blocks.append("    | Score | Label | Critical Directive |")
-                xml_blocks.append("    |---|---|---|")
+                xml_blocks.append("    <SCALES>")
                 mandate_str = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
                 for s in scales:
                     s_val = s.score
@@ -641,7 +645,10 @@ class PromptCompiler:
                             claims_texts.append(f"{substance}{mandate_str}")
 
                     claims = " ".join(claims_texts)
-                    xml_blocks.append(f"    | {s_val} | {s_lbl} | {claims} |")
+                    xml_blocks.append(f'      <SCALE value="{s_val}" label="{s_lbl}">')
+                    xml_blocks.append(f"        <CRITICAL_DIRECTIVE>{claims}</CRITICAL_DIRECTIVE>")
+                    xml_blocks.append("      </SCALE>")
+                xml_blocks.append("    </SCALES>")
 
             xml_blocks.append("  </MATRIX>")
         xml_blocks.append("</EVALUATION_RUBRICS>")
@@ -781,6 +788,7 @@ class PromptCompiler:
 
     def build_blind_evaluation_schema(self, schema_name: str) -> type[BaseModel]:
         """Add a dedicated schema builder for the blind extraction."""
+
         class AtomResponse(BaseModel):
             model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
             atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")

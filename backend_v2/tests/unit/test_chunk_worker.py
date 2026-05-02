@@ -5,6 +5,7 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.chunking import Chunk
+from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker import ChunkWorker
 
 
@@ -23,7 +24,6 @@ async def test_chunk_worker_process_chunk_success() -> None:
 
     sem = asyncio.Semaphore(1)
     chunk = Chunk(parent_id="wf1", index=0, items=[{"atom_id": "a1", "text": "hello"}])
-    from backend_v2.models.v2_core import PromptBlock
 
     criteria_blocks = [
         PromptBlock.model_validate(
@@ -73,7 +73,9 @@ async def test_chunk_worker_process_chunk_success() -> None:
     )
 
     assert final == {"answer": "42"}
-    assert usage == {"prompt_tokens": 10, "completion_tokens": 5}
+    assert usage is not None
+    assert usage["prompt_tokens"] == 10
+    assert usage["completion_tokens"] == 5
     assert traces == []
 
     # Check compiler was called correctly

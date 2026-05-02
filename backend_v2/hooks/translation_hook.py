@@ -21,6 +21,8 @@ from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.dtos.state import HookStateMetadata, I18nStatePayload
+from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 logger = logging.getLogger(__name__)
 
@@ -112,8 +114,6 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
     try:
         # Initialize LLM Client via Strategy Pattern (use 'fast' for translation)
         llm_client = await LLMClient.from_strategy("fast", repository=system_repo)
-        from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-        from backend_v2.services.llm_task_executor import LLMTaskExecutor
         executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
     except ConfigurationError as e:
         logger.error(
@@ -135,7 +135,13 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
     target_lang_name = lang_map[target_language] if target_language in lang_map else target_language
 
     system_content = _SYSTEM_INSTRUCTION.replace("{target_language}", target_lang_name)
-    user_content = f"<SOURCE_JSON>\n{json.dumps(payload_to_translate, ensure_ascii=False)}\n</SOURCE_JSON>"
+    user_content = (
+        f"<context>\n"
+        f"  <source_language>en</source_language>\n"
+        f"  <target_language>{target_language}</target_language>\n"
+        f"</context>\n"
+        f"<source_data>\n{json.dumps(payload_to_translate, ensure_ascii=False)}\n</source_data>"
+    )
 
     messages = [{"role": "system", "content": system_content}, {"role": "user", "content": user_content}]
 
