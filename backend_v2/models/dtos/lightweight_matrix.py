@@ -1,4 +1,6 @@
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend_v2.models.enums import XaiExtensionType
 
@@ -23,39 +25,74 @@ class LightweightMatrixOutput(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
+    @model_validator(mode="before")
+    @classmethod
+    def hydrate_extension_keys(cls, data: Any) -> Any:
+        """Hydrates JSON string keys into XaiExtensionType instances before strict validation.
+        Also acts as the Zero-Legacy boundary, mapping flat LLM Micro-CoT keys into the structured V2 format.
+        """
+        if not isinstance(data, dict):
+            return data
 
-class MicroCotDTO(BaseModel):
-    """Strict schema interceptor for dynamic LLM Micro-CoT outputs."""
+        # Schema map for dynamic XAI Extension extraction
+        xai_field_map = {
+            "step_1_evidence_quote": XaiExtensionType.CITATION,
+            "step_1b_cited_source_id": XaiExtensionType.SOURCE_ID,
+            "step_2_falsification": XaiExtensionType.FALSIFICATION,
+            "extension_coaching": XaiExtensionType.COACHING,
+            "extension_theory_link": XaiExtensionType.THEORY_LINK,
+            "extension_emotional_sentiment": XaiExtensionType.EMOTIONAL_SENTIMENT,
+            "extension_remediation_steps": XaiExtensionType.REMEDIATION_STEPS,
+        }
 
-    step_4_final_score: float | None = None
-    waterfall_calculation_log: str | None = None
-    true_atoms: int | None = None
-    false_atoms: int | None = None
-    total_atoms: int | None = None
-    level_breakdown: dict[str, dict[str, int]] | None = None
+        # 1. Map flat LLM Micro-CoT keys to V2 structures
+        if "step_4_final_score" in data and "raw_score" not in data:
+            data["raw_score"] = float(data.pop("step_4_final_score"))
 
-    # Optional dynamic XAI fields
-    step_1_evidence_quote: str | None = None
-    step_1b_cited_source_id: str | None = None
-    step_1c_google_citation: str | None = None
-    step_2_falsification: str | None = None
-    extension_coaching: str | None = None
-    extension_theory_link: str | None = None
-    extension_emotional_sentiment: str | None = None
-    extension_remediation_steps: str | None = None
-    extension_confidence: float | None = None
-    extension_missing_context: str | None = None
-    extension_risk_flag: bool | None = None
-    evaluation_notes: str | None = None
-    step_3_logical_friction: str | None = None
+        if "raw_score" not in data:
+            data["raw_score"] = 0.0  # Fallback for text-only PromptBlocks
+            
+        if "normalized_score" not in data:
+            data["normalized_score"] = data["raw_score"]
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+        just_parts = []
+        if "evaluation_notes" in data:
+            just_parts.append(str(data.pop("evaluation_notes")))
+        if "step_3_logical_friction" in data:
+            just_parts.append(str(data.pop("step_3_logical_friction")))
+            
+        if just_parts and "justification" not in data:
+            data["justification"] = "\n\n".join(just_parts)
+            
+        if "justification" not in data:
+            data["justification"] = ""
 
+        if "evaluated_atoms" not in data:
+            data["evaluated_atoms"] = {}
 
-class StrictMatrixPayload(RootModel[MicroCotDTO]):
-    """Strict schema adapter enforcing modern Micro-CoT dicts. Legacy bare floats are explicitly banned."""
+        if "extensions" not in data:
+            data["extensions"] = {}
 
-    pass
+        # 2. Extract and hydrate XAI extensions from flat keys
+        for flat_key, enum_type in xai_field_map.items():
+            if flat_key in data:
+                data["extensions"][enum_type] = str(data.pop(flat_key))
+
+        # 3. Hydrate any string keys inside the extensions dict (for API JSON parsing)
+        exts = data["extensions"]
+        if isinstance(exts, dict):
+            hydrated: dict[Any, Any] = {}
+            for k, v in exts.items():
+                if isinstance(k, str):
+                    try:
+                        hydrated[XaiExtensionType(k)] = v
+                    except ValueError:
+                        hydrated[k] = v  # Invalid enum value, let strict validation catch it
+                else:
+                    hydrated[k] = v
+            data["extensions"] = hydrated
+
+        return data
 
 
 class AtomEvaluationItemDTO(BaseModel):

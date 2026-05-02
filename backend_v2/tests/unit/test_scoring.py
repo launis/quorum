@@ -75,7 +75,7 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
         step_id="test_step",
         task_blueprint="test_blueprint",
         metadata={},
-        inputs={"pb_1234567890123456": {"step_4_final_score": 5.0}},
+        inputs={"pb_1234567890123456": {"raw_score": 5.0, "normalized_score": 100.0, "justification": "", "evaluated_atoms": {}, "extensions": {}}},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -119,11 +119,11 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
         metadata={},
         inputs={
             "tb_1234567890123456": {
-                "evaluation_notes": "Tämä on perustelu",
-                "step_1_evidence_quote": "Ote lähteestä",
-                "step_2_falsification": "Vastalause",
-                "step_3_logical_friction": "Kitkaa on",
-                "step_4_final_score": 5.0,
+                "raw_score": 5.0,
+                "normalized_score": 100.0,
+                "justification": "Tämä on perustelu\n\nKitkaa on",
+                "evaluated_atoms": {},
+                "extensions": {"citation": "Ote lähteestä", "falsification": "Vastalause"},
             }
         },
         global_context_vars={},
@@ -268,8 +268,8 @@ async def test_waterfall_scoring_hook_pass_all() -> None:
     result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta["pb_1234567890123456"]["step_4_final_score"] == 5.0
-    assert "Level 5.0:** 1/1" in result.state_delta["pb_1234567890123456"]["waterfall_calculation_log"]
+    assert result.state_delta["pb_1234567890123456"]["raw_score"] == 5.0
+    assert "Level 5.0:** 1/1" in result.state_delta["pb_1234567890123456"]["justification"]
 
 
 @pytest.mark.asyncio
@@ -310,7 +310,7 @@ async def test_waterfall_scoring_hook_ceiling_cap() -> None:
     # Weighted math: (1*1 + 0*2 + 1*3 + 1*4 + 1*5) = 13 achieved weights. Max weights: 15. Proportional = 13/15.  # noqa: E501
     # Score = 1.0 + (13/15 * 4.0) = 1.0 + 3.46 = 4.46.
     # But Capped at Floor (1.0) + 1.0 = 2.0!
-    assert result.state_delta["pb_1234567890123456"]["step_4_final_score"] == 1.0
+    assert result.state_delta["pb_1234567890123456"]["raw_score"] == 1.0
 
 
 @pytest.mark.asyncio
@@ -351,7 +351,7 @@ async def test_waterfall_scoring_hook_graceful_missing() -> None:
     # Level 1 (100%), Level 2 (100%), Level 3 (0%) -> Floor 2.0.
     # Weighted: (1*1 + 1*2 + 0) / (1+2+3) = 3 / 6 = 50%.
     # Weighted Score: 1.0 + (0.5 * 4.0) = 3.0. Max cap: 2.0 + 1.0 = 3.0. So score is 3.0.
-    assert result.state_delta["pb_1234567890123456"]["step_4_final_score"] == 2.0
+    assert result.state_delta["pb_1234567890123456"]["raw_score"] == 2.0
 
 
 class MockRepoWaterfallSimulation:
@@ -470,9 +470,9 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
 
     assert result.success is True
     assert result.state_delta is not None
-    assert abs(result.state_delta["pb_1234567890123456"]["step_4_final_score"] - 3.207) < 0.01
+    assert abs(result.state_delta["pb_1234567890123456"]["raw_score"] - 3.207) < 0.01
 
-    log = result.state_delta["pb_1234567890123456"]["waterfall_calculation_log"]
+    log = result.state_delta["pb_1234567890123456"]["justification"]
     assert "Level 3.0:** 1/2" in log
     assert "Level 4.0:** 1/1" in log
     assert "Final CDM Score:** 3.21" in log

@@ -14,8 +14,6 @@ from backend_v2.models.domain.security import SanitizationResultDTO
 from backend_v2.models.dtos.lightweight_matrix import (
     AtomEvaluationItemDTO,
     LightweightMatrixOutput,
-    MicroCotDTO,
-    StrictMatrixPayload,
 )
 from backend_v2.models.enums import (
     CognitiveFlowStatus,
@@ -23,7 +21,6 @@ from backend_v2.models.enums import (
     EvaluationMandate,
     ScoringCalibrationThresholds,
     WaterfallThreshold,
-    XaiExtensionType,
 )
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import PromptBlock, Step
@@ -37,17 +34,6 @@ from backend_v2.utils.math_utils import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Schema map for dynamic XAI Extension extraction (DRY Refactor)
-XAI_FIELD_MAP = {
-    "step_1_evidence_quote": XaiExtensionType.CITATION,
-    "step_1b_cited_source_id": XaiExtensionType.SOURCE_ID,
-    "step_2_falsification": XaiExtensionType.FALSIFICATION,
-    "extension_coaching": XaiExtensionType.COACHING,
-    "extension_theory_link": XaiExtensionType.THEORY_LINK,
-    "extension_emotional_sentiment": XaiExtensionType.EMOTIONAL_SENTIMENT,
-    "extension_remediation_steps": XaiExtensionType.REMEDIATION_STEPS,
-}
 
 
 def _extract_payloads(data: dict[str, Any]) -> list[dict[str, Any]]:
@@ -736,41 +722,47 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
                 level_breakdown = {str(k): {"hits": v["hits"], "total": v["total"]} for k, v in stats.items()}
 
             # The Anti-TDD Trap & Zero-Compromise Pledge: We intercept the payload with a strict Pydantic adapter
-            # and guarantee all outputs are mapped into the strict MicroCotDTO, eliminating naked keys.
+            # and guarantee all outputs are mapped into the strict LightweightMatrixOutput, eliminating naked keys.
 
-            existing_val = new_payload.get(pb_id)
-            if existing_val is not None:
-                try:
-                    parsed_payload = StrictMatrixPayload.model_validate(existing_val).root
+            existing_val = new_payload.get(pb_id) or {}
+            if not isinstance(existing_val, dict):
+                existing_val = {}
 
-                except Exception as e:
-                    # Fail-Fast: If it's an unrecognized structure, crash the pipeline
-                    logger.error(
-                        "[ScoringHook] %s: Invalid matrix payload for '%s': %s",
-                        ErrorCodes.VALIDATION_FAILED.name,
-                        pb_id,
-                        e,
-                    )
+            # Inject the natively calculated fields into the payload BEFORE strict validation
+            existing_val["raw_score"] = float(dampening_score)
 
-                    raise AppException(
-                        message=f"Strict Fail-Fast: Invalid matrix payload for {pb_id}",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    ) from e
+            # Temporary normalization logic (e.g. 5-point scale to 0-100)
+            if dampening_score <= 5.0:
+                existing_val["normalized_score"] = float((dampening_score / 5.0) * 100.0)
             else:
-                parsed_payload = MicroCotDTO()
+                existing_val["normalized_score"] = float(dampening_score)
 
-            # Enforce the calculation injection inside the strict DTO (handling frozen models)
-            parsed_payload = parsed_payload.model_copy(
-                update={
-                    "step_4_final_score": float(dampening_score),
-                    "waterfall_calculation_log": calculation_log,
-                    "true_atoms": global_hits,
-                    "false_atoms": global_total - global_hits,
-                    "total_atoms": global_total,
-                    "level_breakdown": level_breakdown,
-                }
-            )
+            existing_val["level_breakdown"] = level_breakdown
+
+            if "justification" not in existing_val:
+                existing_val["justification"] = calculation_log
+            if "evaluated_atoms" not in existing_val:
+                existing_val["evaluated_atoms"] = {}
+            if "extensions" not in existing_val:
+                existing_val["extensions"] = {}
+
+            try:
+                parsed_payload = LightweightMatrixOutput.model_validate(existing_val)
+
+            except Exception as e:
+                # Fail-Fast: If it's an unrecognized structure, crash the pipeline
+                logger.error(
+                    "[ScoringHook] %s: Invalid matrix payload for '%s': %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    pb_id,
+                    e,
+                )
+
+                raise AppException(
+                    message=f"Strict Fail-Fast: Invalid matrix payload for {pb_id}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
 
             new_payload[pb_id] = parsed_payload.model_dump(exclude_none=True)
 
@@ -869,7 +861,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             raw_input_val = new_payload[pb_id]
 
             try:
-                parsed_payload = StrictMatrixPayload.model_validate(raw_input_val).root
+                parsed_payload = LightweightMatrixOutput.model_validate(raw_input_val)
             except Exception as e:
                 # Strictly fail-fast, Graceful Degradation is banned!
                 msg = f"Strict Fail-Fast Enforced: Invalid input for normalization at PromptBlock '{pb_id}': {e}"
@@ -880,40 +872,12 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 ) from e
 
-            extensions: dict[XaiExtensionType, str] = {}
-            justification = ""
-            level_breakdown: dict[str, Any] = {}
-            evaluated_atoms: dict[str, bool] = {}
+            extensions = parsed_payload.extensions
+            justification = parsed_payload.justification
+            level_breakdown = parsed_payload.level_breakdown
+            evaluated_atoms = parsed_payload.evaluated_atoms
 
-            # Strict Schema Mapping for XAI attributes via model_dump for DRY scalability
-            dumped_fields = parsed_payload.model_dump(exclude_none=True)
-            for field_name, ext_type in XAI_FIELD_MAP.items():
-                if field_name in dumped_fields:
-                    extensions[ext_type] = str(dumped_fields[field_name])
-
-            if parsed_payload.level_breakdown is not None:
-                level_breakdown = parsed_payload.level_breakdown
-
-            # The core reasoning and notes replace the global fallback, avoiding hardcoded markdown
-            just_parts = []
-            if parsed_payload.evaluation_notes:
-                just_parts.append(str(parsed_payload.evaluation_notes))
-            if parsed_payload.step_3_logical_friction:
-                just_parts.append(str(parsed_payload.step_3_logical_friction))
-
-            if just_parts:
-                justification = "\n\n".join(just_parts)
-                updates_made = True
-
-            if parsed_payload.step_4_final_score is not None:
-                raw_val = parsed_payload.step_4_final_score
-            else:
-                raw_val = None
-
-            if raw_val is None:
-                # String-only block, ensure justification is stored correctly inside LightweightMatrixOutput
-                raw_val = 0.0  # BARS/matrix always requires numeric score for scaling, text block uses 0.0
-                # We do not continue here, we must construct the LightweightMatrixOutput!
+            raw_val = parsed_payload.raw_score
 
             if not isinstance(raw_val, (int, float)):
                 continue
