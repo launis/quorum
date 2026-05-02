@@ -44,6 +44,7 @@ class NewExecutionController extends _$NewExecutionController {
     required Map<String, dynamic> collectedInputs,
     required String targetLocale,
     String? profileId,
+    int strictnessLevel = 50,
   }) async {
     state = const AsyncLoading();
     try {
@@ -56,6 +57,7 @@ class NewExecutionController extends _$NewExecutionController {
           'raw_inputs': collectedInputs,
           'target_locale': targetLocale,
           if (profileId != null) 'profile_id': profileId,
+          'strictness_level': strictnessLevel,
         },
       );
 
@@ -85,6 +87,7 @@ class NewExecutionView extends ConsumerStatefulWidget {
 class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   Map<String, dynamic>? _selectedWorkflow;
   String? _selectedProfileId;
+  int _selectedStrictnessLevel = 50;
   final Map<String, dynamic> _compiledInputs = {};
 
   // To keep track of filename for UI
@@ -217,6 +220,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             collectedInputs: _compiledInputs,
             targetLocale: localeCode,
             profileId: _selectedProfileId,
+            strictnessLevel: _selectedStrictnessLevel,
           );
 
       // Safe context routing using GoRouter Codegen
@@ -434,6 +438,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
           }),
 
           const Divider(height: 48),
+
+          _buildStrictnessSelector(),
+
+          const SizedBox(height: 24),
 
           _buildProfileSelector(),
 
@@ -763,6 +771,78 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                   );
                 }
                 return const SizedBox.shrink();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStrictnessSelector() {
+    final Map<int, String> strictnessOptions = {
+      0: AppLocalizations.of(context)!.strictnessAbsoluteLeniency,
+      15: AppLocalizations.of(context)!.strictnessLenient,
+      50: AppLocalizations.of(context)!.strictnessBalanced,
+      85: AppLocalizations.of(context)!.strictnessStrict,
+      100: AppLocalizations.of(context)!.strictnessAbsoluteStrictness,
+    };
+
+    return Card(
+      elevation: 0,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.balance,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  AppLocalizations.of(context)!.strictnessSelectorTitle,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              AppLocalizations.of(context)!.strictnessSelectorDescription,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<int>(
+              value: _selectedStrictnessLevel,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+                labelText: AppLocalizations.of(context)!.strictnessSelectorTitle,
+                border: const OutlineInputBorder(),
+              ),
+              items: strictnessOptions.entries.map((entry) {
+                return DropdownMenuItem<int>(
+                  value: entry.key,
+                  child: Text('${entry.value} (${entry.key})'),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() {
+                    _selectedStrictnessLevel = val;
+                  });
+                }
               },
             ),
           ],
