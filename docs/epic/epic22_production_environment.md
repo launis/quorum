@@ -1,17 +1,25 @@
 # EPIC 22: Tuotanto ja Tuotantoympäristö (Production Environment)
 
-Tämä on keräilydokumentti Epic 22 -kehityssyklille, joka keskittyy järjestelmän viemiseen ja skaalaamiseen tuotantoympäristössä (kuten Google Cloud Run ja Firestore). Tänne kerätään hajallaan olevia arkkitehtuurioivalluksia ja vaatimuksia tuotannon näkökulmasta sitä mukaa, kun niitä ilmenee.
+Tämä on keräilydokumentti Epic 22 -kehityssyklille, joka keskittyy järjestelmän viemiseen ja skaalaamiseen tuotantoympäristössä (Google Cloud Run ja Firestore). Tänne kerätään arkkitehtuurioivallukset ja vaatimukset tuotannon näkökulmasta sitä mukaa, kun niitä ilmenee.
 
 ---
 
-## 1. Build-Time Artifacts (Valmisteluvaiheen Välimuistit ja Artefaktit)
+## 1. Datan ja Tilan Eristäminen (Separation of State)
 
-Yksi tuotantoarkkitehtuurin tärkeimmistä säännöistä on datan irrotus koodista (Separation of State). Kehitysympäristössä kerääntyvät sadat paikalliset JSON-tiedostot tai konfiguraatiovälimuistit (kuten `atomization_cache.json`) eivät ole reaaliaikaisia tietokantoja. Tuotannossa nämä toimivat yksinomaan ns. **"Build-Time Artifacteina"**.
+Yksi tuotantoarkkitehtuurin (`StorageBackend.FIRESTORE`) tärkeimmistä säännöistä on lokaalin tilan irrotus koodista (Separation of State). 
 
-### Toimintaperiaate
-Kun järjestelmä pystytetään uuteen tuotantoympäristöön (Deployment) tai siinä suoritetaan tietokannan alustus (Initialization/Seeding), näillä artefakteilla on vain yksi lyhyt elämäntehtävä:
-1. **Lokaali asettelu:** Kehitys- ja CI/CD -putki (esim. GitHub Actions) pitää JSON-välimuistit mukanaan estääkseen turhat ja kalliit LLM-laskennat uutta kantaa pystyttäessä (esim. satojen kriteereiden atomisoinnin odottelu Vertex AI:lta).
-2. **Kova siirto pilveen (Seeding):** Tietokannan alustusskripti (Seeder) lukee nämä JSON-tiedostot ja puskee niiden datan natiivisti suoraan Firestore-tietokantaan (esim. kirjoittaen valmiit atomit `prompt_blocks` kokoelman dokumenteiksi).
-3. **Tuotantoajo (Runtime):** Tämän siemennyksen jälkeen lokaaleilla JSON-tiedostoilla ei ole enää mitään virkaa käynnissä olevassa ohjelmistossa. FastAPI-palvelin lukee kaiken konfiguraation, kriteeristöt ja arviointimallit yksinomaan Firestore-tietokannasta millisekuntitason NoSQL-hakuina, täysin eristettynä konttinsa fyysisestä lokaalista levytilasta.
+**Nykytilan ja Epicin Selvennys:** 
+Kehitysympäristössä (`StorageBackend.LOCAL`) käytämme NoSQL-tietokantana fyysistä `data/db_v2.json` -tiedostoa. Tuotannossa tätä tiedostoa **ei käytetä lainkaan**, sillä Cloud Run -kontit ovat tilattomia (stateless) ja skaalautuvat horisontaalisesti. Kaikki reaaliaikainen data elää yksinomaan Firestore-tietokannassa. Lokaalin ja tuotannon välinen rajanveto hoidetaan `backend_v2/settings.py` -tiedoston `StorageBackend`-enumilla.
 
-Tämä ratkaisu takaa nopean palautumisen ohjelmistokaatumisissa, säästää valtavasti Cloud LLM -API kustannuksissa ja eristää tuotantopalvelimen tila-anarkiasta.
+## 2. Build-Time Artifacts (Valmisteluvaiheen Välimuistit)
+
+Tuotanto-käyttöönoton (Deployment) yhteydessä lähdekoodin mukana kulkee JSON-tiedostoja (erityisesti `backend_v2/seed/seed_data.json` ja `backend_v2/seed/atomization_cache.json`). Näitä ei käytetä tuotannossa lennosta (Runtime), vaan ne toimivat yksinomaan **"Build-Time Artifacteina"** tietokannan siemennysvaiheessa.
+
+### Toimintaperiaate (The Seeding Pipeline)
+Kun järjestelmä pystytetään uuteen tuotantoympäristöön, näillä artefakteilla on tarkasti rajattu rooli:
+
+1. **Lokaali asettelu (CI/CD):** Kehitys- ja CI/CD -putki pitää `atomization_cache.json` -välimuistin mukanaan estääkseen turhat, hitaat ja kalliit LLM-laskennat uutta kantaa pystyttäessä (esim. raskaiden arviointikriteereiden purku `PromptAtomizerilla`). Tämä on kriittinen FinOps-mekanismi.
+2. **Kova siirto pilveen (Seeding):** Tietokannan alustusskripti (`run_seed.py`) lukee `seed_data.json` ja välimuistitiedostot, pureskelee ne Pydantic-malleiksi, ja puskee datan natiivisti suoraan Firestore-tietokantaan. Data reititetään `Unified Workflow Repositoryn` kautta oikeisiin kokoelmiin. Aiemmassa luonnoksessa puhuttu "prompt_blocks-kokoelma" ei ole kirjaimellinen totuus, sillä V2-arkkitehtuuri nojaa yhtenäistettyyn Repository-reititykseen.
+3. **Tuotantoajo (Runtime):** Tämän siemennyksen jälkeen lokaaleilla JSON-tiedostoilla (`seed_data.json`, `atomization_cache.json`, saatika `db_v2.json`) ei ole enää mitään virkaa käynnissä olevassa ohjelmistossa. FastAPI-palvelin lukee kaiken konfiguraation, kriteeristöt ja arviointimallit yksinomaan Firestoresta millisekuntitason NoSQL-hakuina, täysin eristettynä konttinsa fyysisestä levytilasta.
+
+Tämä ratkaisu takaa nopean palautumisen ohjelmistokaatumisissa, säästää valtavasti Cloud LLM -API kustannuksissa ja varmistaa, että tuotantopalvelimet voivat skaalautua vapaasti ilman tila-anarkiaa.
