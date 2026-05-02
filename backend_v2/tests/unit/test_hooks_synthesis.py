@@ -58,6 +58,7 @@ async def test_synthesis_hook_success(
             "id": "exe_1111111111111111",
             "workflow_id": "wf_1111111111111111",
             "status": "completed",
+            "strictness_level": 50,
             "output_profile_id": "prf_test",
         }
     )
@@ -172,6 +173,7 @@ async def test_synthesis_hook_multi_profile_routing(
             "id": "exe_1111111111111111",
             "workflow_id": "wf_1111111111111111",
             "status": "completed",
+            "strictness_level": 50,
             "output_profile_id": "prof_b",
         }
     )
@@ -260,6 +262,7 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
             "id": "exe_1111111111111111",
             "workflow_id": "wf_1111111111111111",
             "status": "completed",
+            "strictness_level": 50,
             "output_profile_id": "prof_a",
         }
     )
@@ -384,6 +387,7 @@ async def test_synthesis_hook_historical_context_mode(
             "id": "exe_1111111111111111",
             "workflow_id": "wf_1111111111111111",
             "status": "completed",
+            "strictness_level": 50,
             "output_profile_id": "prf_test",
         }
     )

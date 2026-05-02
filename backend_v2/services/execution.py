@@ -324,6 +324,7 @@ class ExecutionService:
         initial_record = ExecutionRecord(
             id=execution_id,
             workflow_id=workflow.id,
+            strictness_level=payload.strictness_level,
             status=ExecutionStatus.PENDING,
             raw_inputs=payload.raw_inputs,
             output_profile_id=resolved_profile_id,

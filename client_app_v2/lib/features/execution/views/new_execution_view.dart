@@ -274,64 +274,64 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   Widget _buildWorkflowSidebar() {
     final asyncWorkflows = ref.watch(availableWorkflowsProvider);
 
-    return asyncWorkflows.when(
-      data: (workflows) {
-        if (workflows.isEmpty) {
-          return Center(
-            child: Text(AppLocalizations.of(context)!.noWorkflowsAvailable),
-          );
-        }
-        return ListView.builder(
-          itemCount: workflows.length,
-          itemBuilder: (context, index) {
-            final wf = workflows[index];
-            final id = wf['id']?.toString() ?? '';
+    return switch (asyncWorkflows) {
+      AsyncData(:final value) =>
+        value.isEmpty
+            ? Center(
+                child: Text(AppLocalizations.of(context)!.noWorkflowsAvailable),
+              )
+            : ListView.builder(
+                itemCount: value.length,
+                itemBuilder: (context, index) {
+                  final wf = value[index];
+                  final id = wf['id']?.toString() ?? '';
 
-            final nmRaw = wf['name'];
-            final nameMap = nmRaw is Map ? nmRaw : {};
-            final titleStr = nameMap.isNotEmpty
-                ? (nameMap['translations']?[nameMap['default_locale']] ??
-                      nameMap['default_locale'] ??
-                      id)
-                : ((wf['name']?.toString() ?? '').isNotEmpty
-                      ? (wf['name']?.toString() ?? '')
-                      : id);
+                  final nmRaw = wf['name'];
+                  final nameMap = nmRaw is Map ? nmRaw : {};
+                  final titleStr = nameMap.isNotEmpty
+                      ? (nameMap['translations']?[nameMap['default_locale']] ??
+                            nameMap['default_locale'] ??
+                            id)
+                      : ((wf['name']?.toString() ?? '').isNotEmpty
+                            ? (wf['name']?.toString() ?? '')
+                            : id);
 
-            final descRaw = wf['description'];
-            final descMap = descRaw is Map ? descRaw : {};
-            final descStr = descMap.isNotEmpty
-                ? (descMap['translations']?[descMap['default_locale']] ??
-                      descMap['default_locale'] ??
-                      '')
-                : (wf['description']?.toString() ?? '');
+                  final descRaw = wf['description'];
+                  final descMap = descRaw is Map ? descRaw : {};
+                  final descStr = descMap.isNotEmpty
+                      ? (descMap['translations']?[descMap['default_locale']] ??
+                            descMap['default_locale'] ??
+                            '')
+                      : (wf['description']?.toString() ?? '');
 
-            final isSelected = _selectedWorkflow?['id'] == id;
+                  final isSelected = _selectedWorkflow?['id'] == id;
 
-            return ListTile(
-              title: Text(
-                titleStr,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                  return ListTile(
+                    title: Text(
+                      titleStr,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      descStr,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    selected: isSelected,
+                    selectedTileColor: Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer,
+                    onTap: () => _onWorkflowSelected(wf),
+                  );
+                },
               ),
-              subtitle: Text(
-                descStr,
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-              ),
-              selected: isSelected,
-              selectedTileColor: Theme.of(context).colorScheme.primaryContainer,
-              onTap: () => _onWorkflowSelected(wf),
-            );
-          },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => ErrorView(
-        error: e,
-        stackTrace: st,
+      AsyncError(:final error, :final stackTrace) => ErrorView(
+        error: error,
+        stackTrace: stackTrace,
         compact: true,
         onRetry: () => ref.invalidate(availableWorkflowsProvider),
       ),
-    );
+      _ => const Center(child: CircularProgressIndicator()),
+    };
   }
 
   Widget _buildDynamicForm(AsyncValue<void> state) {
@@ -602,13 +602,13 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   }
 
   Widget _buildProfileSelector() {
-    if (_selectedWorkflow == null) return const SizedBox.shrink();
+    if (_selectedWorkflow == null) return const SizedBox();
 
     final opRaw = _selectedWorkflow!['output_profiles'];
     final outputProfiles = opRaw is Map ? opRaw : {};
 
     if (outputProfiles.isEmpty) {
-      return const SizedBox.shrink();
+      return const SizedBox();
     }
 
     final locale = Localizations.localeOf(context).languageCode;
@@ -770,7 +770,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                     ),
                   );
                 }
-                return const SizedBox.shrink();
+                return const SizedBox();
               },
             ),
           ],
@@ -790,7 +790,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
     return Card(
       elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      color: Theme.of(
+        context,
+      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       shape: RoundedRectangleBorder(
         side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(12),
@@ -810,8 +812,8 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                 Text(
                   AppLocalizations.of(context)!.strictnessSelectorTitle,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -819,16 +821,18 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             Text(
               AppLocalizations.of(context)!.strictnessSelectorDescription,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<int>(
-              value: _selectedStrictnessLevel,
+              initialValue: _selectedStrictnessLevel,
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surface,
-                labelText: AppLocalizations.of(context)!.strictnessSelectorTitle,
+                labelText: AppLocalizations.of(
+                  context,
+                )!.strictnessSelectorTitle,
                 border: const OutlineInputBorder(),
               ),
               items: strictnessOptions.entries.map((entry) {

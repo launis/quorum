@@ -1,5 +1,3 @@
-import json
-import os
 from unittest.mock import MagicMock, mock_open, patch
 
 from backend_v2.database.exporter import export_db_to_files

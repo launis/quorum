@@ -2016,6 +2016,28 @@ class AppLocalizationsFi extends AppLocalizations {
       'Varoitus: Zero-Trust. Nolla pistettä, ellei ulkoisia viitteitä ja kovaa evidenssiä käytetä virheettömästi.';
 
   @override
+  String get strictnessAbsoluteLeniency => 'Täysi joustavuus (0)';
+
+  @override
+  String get strictnessLenient => 'Salliva (15)';
+
+  @override
+  String get strictnessBalanced => 'Tasapainoinen (50 - Oletus)';
+
+  @override
+  String get strictnessStrict => 'Tiukka (85)';
+
+  @override
+  String get strictnessAbsoluteStrictness => 'Ehdottomuus (100 - Zero-Trust)';
+
+  @override
+  String get strictnessSelectorTitle => 'Arvioinnin tiukkuus';
+
+  @override
+  String get strictnessSelectorDescription =>
+      'Määritä kuinka ankarasti tekoälyn tulee noudattaa sääntöjä ja vaatia todisteita.';
+
+  @override
   String get barsCompliance1 =>
       'Critically Misaligned - Täysin satunnainen prosessi';
 

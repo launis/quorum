@@ -29,6 +29,11 @@ from backend_v2.models.v2_core import (
     Workflow,
     WorkflowInputs,
 )
+from backend_v2.services.orchestrator.context_router import ContextRouter
+from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
+from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext
+from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
+from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +107,7 @@ class NodeExecutor:
         expected_inputs: list[Any] | None = None,
         frozen_ctx: FrozenContext | None = None,
         trace: list[TraceEvent] | None = None,
+        strictness_level: int = 50,
     ) -> list[TraceEvent]:
         try:
             blueprint_id = getattr(step, "task_blueprint", None)
@@ -121,8 +127,6 @@ class NodeExecutor:
                 )
 
             # Rule 3: Fail-Fast variable resolution & Orphaned Step prevention
-            from backend_v2.services.orchestrator.context_router import ContextRouter
-
             normalized_mappings = {}
             for logical_name, path in step.input_mappings.items():
                 normalized_path = ContextRouter.normalize_and_validate_variable(path, {"steps": projector.snapshot})
@@ -131,16 +135,13 @@ class NodeExecutor:
             # Immutable freeze via model_copy
             step = step.model_copy(update={"input_mappings": normalized_mappings})
 
-            from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext
-            from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
-            from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
-
             context = StrategyContext(
                 execution_id=execution_id,
                 workflow_id=workflow_id,
                 metadata=metadata,
                 expected_inputs=expected_inputs,
                 model_strategy=step_def.get("model_strategy"),
+                strictness_level=strictness_level,
             )
 
             strategy_impl: NodeStrategy
@@ -220,8 +221,6 @@ class DAGExecutor:
     ) -> ExecutionRecord:
         """Main entrypoint for Workflow Execution."""
         # Fast Fail validation
-        from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
-
         DAGCompilerService.validate_workflow(workflow)
 
         self.committer.execution_id = execution_id
@@ -240,9 +239,26 @@ class DAGExecutor:
                 exec_record.step_states = step_states
         else:
             inputs_obj = raw_inputs if isinstance(raw_inputs, WorkflowInputs) else WorkflowInputs(**raw_inputs)
+
+            # SYSTEM ARCHITECTURE MANDATE: Strictness level MUST be provided explicitly.
+            # No fallbacks allowed.
+            if isinstance(raw_inputs, dict) and "strictness_level" in raw_inputs:
+                sl = raw_inputs["strictness_level"]
+            elif hasattr(raw_inputs, "strictness_level"):
+                sl = raw_inputs.strictness_level
+            else:
+                msg = "SYSTEM ARCHITECTURE MANDATE: Missing 'strictness_level' in execution initialization."
+                logger.error("[DAGExecutor] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    status_code=400,
+                )
+
             exec_record = ExecutionRecord(
                 id=execution_id,
                 workflow_id=workflow.id,
+                strictness_level=sl,
                 status=ExecutionStatus.RUNNING,
                 raw_inputs=inputs_obj,
                 execution_trace=[],
@@ -338,6 +354,7 @@ class DAGExecutor:
                         expected_inputs=workflow.expected_inputs,
                         frozen_ctx=exec_record.frozen_context,
                         trace=exec_record.execution_trace,
+                        strictness_level=exec_record.strictness_level,
                     )
 
                     for e in events:

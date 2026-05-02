@@ -71,3 +71,15 @@ enum RoutingMode {
   @JsonValue('parallel_routing')
   parallelRouting,
 }
+
+/// Epic 42: Strictness evaluation evidence type
+@JsonEnum()
+enum EvidenceType {
+  @JsonValue('EXPLICIT_QUOTE')
+  explicitQuote,
+  @JsonValue('IMPLIED_INTENT')
+  impliedIntent,
+  @JsonValue('NO_EVIDENCE')
+  noEvidence,
+}
+

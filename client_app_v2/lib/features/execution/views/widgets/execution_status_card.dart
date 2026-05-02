@@ -57,8 +57,9 @@ class ExecutionStatusCard extends ConsumerWidget {
     AsyncValue<Map<String, dynamic>?> state,
     AppLocalizations l10n,
   ) {
-    return state.when(
-      data: (record) {
+    return switch (state) {
+      AsyncData(:final value) => () {
+        final record = value;
         if (record == null) {
           return Text(l10n.waitingToStart);
         }
@@ -149,16 +150,19 @@ class ExecutionStatusCard extends ConsumerWidget {
             ],
           ],
         );
-      },
-      loading: () => const Center(
+      }(),
+      AsyncError(:final error, :final stackTrace) => ErrorView(
+        error: error,
+        stackTrace: stackTrace,
+        compact: true,
+      ),
+      _ => const Center(
         child: Padding(
           padding: EdgeInsets.all(16.0),
           child: CircularProgressIndicator(),
         ),
       ),
-      error: (error, stackTrace) =>
-          ErrorView(error: error, stackTrace: stackTrace, compact: true),
-    );
+    };
   }
 
   Widget _buildActionButtons(

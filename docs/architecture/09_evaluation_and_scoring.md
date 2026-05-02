@@ -83,26 +83,47 @@ Asynkronisen moottorin suorittama datan jäsennys tapahtuu Zero-Compromise Pydan
 * **Laajennusten Tiukennus (`output_extensions`):** `PromptBlock` (blk_) `output_extensions` (kuten `scoring_matrix`, `micro_atoms`) luetaan tiukasti Pydantic-olioihin ajon aikana. Järjestelmä ei salli "graceful degradation" -tilaa: mikäli tekoäly palauttaa viallista dataa näiden laajennusten osalta, dataa ei hiljaisesti ohiteta `.get()` -purkalla tai pudoteta pois, vaan rajapinta nostaa virheen heti.
 * **Evaluations Dict Parsing:** Myös `evaluations`-vastausten jäsentely on ehdottoman tiukkaa. Järjestelmä ei hyväksy löysää parserointia. Pienikin poikkeama mallinnetuista `micro_atoms` -kentistä kaataa asynkronisen kerroksen (RFC 7807), eikä oletuksena yritetä tarjota "tyhjää dictiä `{}`" pelastamaan LLM:n rakenteellista hallusinaatiota. Tällä taataan, että jatkolaskenta ei koskaan operoi korruptoituneella aineistolla.
 
-## 3. Pisteytyslogiikka: Progressive Dampening (DINA-malli)
+## 3. Zero-Trust Pydantic Validation & Anti-Laziness Mandate (Epic 42)
 
-Pelkkä osumien aritmeettinen painotettu keskiarvo johtaisi "Sycophancy"-ongelmaan: Jos alimmat faktat (Taso 1) uupuvat kohdetekstistä, mutta malli kehuu keksittyjä strategioita vuolaasti (Taso 5), aritmeettinen keskiarvo antaa vaarallisen hyväksyvän lopputuloksen.
+Evaluointiarkkitehtuuri on kytketty "Zero-Trust" -kehikon taakse torjumaan LLM-mallien yleisimmät ongelmat: laiskuus, keksitty asiantuntijapuhe ja suorat hallusinaatiot.
 
-Järjestelmä hyödyntää ratkaisuna **Kognitiivista Diagnostiikkamallia (Cognitive Diagnostic Dampening - DINA)**.
+### A. Alphabetical Keys Hack (Micro-CoT)
+Tekoäly pyrkii usein luomaan päätöksen (`is_true: bool`) ensin, ja vasta sitten keksimään sille perustelut ("Post-Hoc Rationalization"). Tämä estetään arkkitehtuurissa pakottamalla LLM Pydantic `AtomResponse`-skeeman avulla tuottamaan päättelyketju tarkassa aakkosjärjestyksessä. Skeeman avaimet on nimetty fyysisesti numeerisin etuliittein:
+1. `step_1_evidence_type`: Tekoäly valitsee evidenssin tason (`EXPLICIT_QUOTE`, `IMPLIED_INTENT`, `NO_EVIDENCE`).
+2. `step_2_quote`: Suora, muokkaamaton lainaus materiaalista.
+3. `step_3_implicit_justification`: Implisiittinen asiantuntijapäättely, jos suoraa lainausta ei ole.
+4. `step_4_reasoning`: Vapaa asiantuntijaharkinta.
+5. `step_5_boolean`: Vasta viimeisenä lopullinen päätös `is_true`.
 
-### Matemaattinen Malli (Kognitiivinen Virta & Pehmennetty Hierarkia)
-Pisteytysmalli rakentuu jatkumoon, jossa alimmat tasot portinvartijoina määrittävät kognitiivisen virtauksen (*Cognitive Flow*) vahvuuden kerroin kerrokselta ylöspäin.
+Tämä "Alphabetical Keys" -mekanismi pakottaa automaattisen Attention-mekanismin lukemaan omat perustelunsa (step 1-4) ennen arvion (step 5) generoimista, mikä tutkitusti eliminoi laiskan oikaisun ja vahvistaa determinismiä.
 
-**Dynaaminen rajoitusten haku (Scale-Agnostic Boundaries):**
-Koko matemaattinen malli on täysin riippumaton kovakoodatuista numeroista (kuten 1–5). `waterfall_scoring_hook` lataa arvioinnin aluksi matriisikohtaisesti täsmälliset minimi- ja maksimirajat (`math_min`, `math_max`) suoraan alkuperäisestä PromptBlock-määrittelystä (`pb_dict["scales"]`). Näin algoritmi sietää virheettömästi mitä tahansa mielivaltaisia skaaloja (esim. 1–3, 1–6 tai 0–100) kunkin mitattavan komponentin yksilöllisten sääntöjen mukaisesti.
+### B. Anti-Laziness Pydantic Validations
+Kun LLM palauttaa vastauksen, Pydantic V2 `@model_validator(mode='after')` tekee ankaran ristitarkastuksen suoritetun työnkulun ankaruustason (`strictness_level`) ja `validation_context` -objektin avulla:
+* **Explicit Quote Check:** Jos `step_1_evidence_type` on `EXPLICIT_QUOTE`, järjestelmä vaatii, että `step_2_quote` on täytetty. Muutoin se hylkää vastauksen.
+* **Physical Word-Count Blocker:** Jos näyttö perustuu implisiittiseen päättelyyn (`IMPLIED_INTENT`), järjestelmä estää "konsulttipuheen" asettamalla fyysisen sanamäärärajan (esim. vähintään 20 sanaa). Jos selitys on laiska (esim. "Perustuu rivien välistä luettuun dataan"), Pydantic nostaa `ValueError` -virheen.
+* **Strictness Threshold (>= 70):** Mikäli työnkulun käyttäjä on asettanut ankaruustasoksi vähintään 70, `IMPLIED_INTENT` hylätään automaattisesti kokonaan. Tällöin vain `EXPLICIT_QUOTE` tai `NO_EVIDENCE` hyväksytään järjestelmään, mikä muuttaa koko tekoälyn laskennan armottoman faktapohjaiseksi auditointikoneeksi ilman tulkinnanvaraisuuksia.
 
-**V2 Optimal Math Model (Square Root Dampening):**
-Aiemmin järjestelmässä käytetty puhdas lineaarinen osumaprosentin kertoja (linear hit_rate multiplication) rankaisi tekstejä liian eksponentiaalisesti romahduttaen peruslaskennan lähelle nollaa, mikä pakotti ohjelmiston turvautumaan keinotekoisiin 30 % turvaverkkoihin (Epic 23 `DINA_FLOOR`). Arkkitehtuuri siirtyi Square Root (Neliöjuuri) -vaimennukseen, jolloin lineaarinen tuho eliminoituu automaattisesti:
-* Arvosana lähtee luodusta `math_min` -perusarvosta. Tason kognitiivinen virta (modifier) on tason osumaprosentin neliöjuuri (`math.sqrt(hit_rate)`), joka on huomattavasti pehmeämpi.
-* Ylemmillä tasoilla saavutettu atomi tuo pisteitä vain sen verran, minkä alapuolelta tuleva pehmennetty virta sallii (`achieved_score += step_value * hit_rate * modifier`).
-* Vaimennus itsessään kertautuu iteratiivisesti neliöjuurella (`modifier = modifier * math.sqrt(hit_rate)`).
-* Puhtaat Nollahypoteesin epäonnistumiset (esim. 0/45 atomia), joissa olemassaolevaa tietoa tai lähdedokumenttia ei löytynyt, putoavat neliöjuuren mukana takaisin absoluuttiseen todelliseen lukuunsa (`math_min` eli 1.0) ilman minkäänlaisia pakotettuja "Fail-Fast bypass"-haaroituksia.
+## 4. Pisteytyslogiikka: Waterfall Floor (Guttmanin asteikko) ja Kireystasot
 
-**Lopputulos:** Järjestelmä tuottaa elävän, todellisuutta vastaavan (luonnollisen Gaussin käyrän kaltaisen) matriisikohtaisen pistevarianssin, säilyttäen silti ankaran rakenteellisen vaatimuksen: on matemaattisesti mahdotonta saavuttaa huippupisteitä, mikäli perusargumentin T1- ja T2-tasot ontuvat. DINA-laskennan tulokset normalisoidaan täsmällisesti `scales.score` -rajoissa backend-kerroksessa.
+Aiemmin järjestelmä hyödynsi arvioinnissa Kognitiivista Diagnostiikkamallia (DINA) ja "Square Root Dampening" -vaimennusta, joka rankaisi huonosta perustasta, mutta antoi osapisteitä potentiaalista. 
+
+Epic 42 (Phase 9) -arkkitehtuurissa järjestelmä on siirtynyt puhtaaseen **Zero-Trust -malliin**, jossa pisteytys perustuu ehdottomaan **Vesiputousmalliin (Waterfall Floor / Guttman Scale)** yhdistettynä säädettäviin **Kireystasoihin (Strictness 0-100)**. Tämä erottaa matemaattisen auditoinnin tekoälyn datan keruusta.
+
+### Matemaattinen Malli: The Ceiling Cap (Rikkinäiset tikapuut)
+Laskenta (`waterfall_scoring_hook` & `calculate_waterfall_floor`) etenee tiukasti alimmalta skaalatasolta ylöspäin.
+* **Ehdoton kynnysarvo (Threshold):** Jotta taso hyväksytään, sen osumaprosentin (`hit_rate`) on ylitettävä kovakoodattu kynnys (vakiona 0.75).
+* **The Break Rule:** Jos yksikin alempi taso epäonnistuu kynnyksen ylittämisessä, koodi suorittaa absoluuttisen `break`-komennon. Se ei koskaan iteroi tai huomioi ylempiä tasoja.
+* **Lopputulos (Logical Integrity):** On matemaattisesti mahdotonta saada korkean tason strategisia pisteitä (esim. Taso 5), jos fundamentaaliset perustukset (esim. Taso 2) vuotavat. Pisteiden katto ("Ceiling Cap") lukittuu välittömästi alimpaan epäonnistuneeseen tasoon.
+
+### Kireystason Kalibrointi (Strictness Level 0–100)
+Matemaattinen vesiputous on armoton, mutta tekoälyn kykyä "löytää" osumia säädetään dynaamisesti Kireystasolla. Tämä määrittää, hyväksytäänkö Pydantic V2 -kerroksessa `IMPLIED_INTENT` vai vaaditaanko ehdotonta `EXPLICIT_QUOTE` -todistetta.
+* **0–40 (Sparraava Valmentaja):** Tekoäly saa lukea rivien välistä. Malli löytää osumia helposti, jolloin vesiputous virtaa huipulle asti tuottaen rohkaisevia, korkeita arvosanoja.
+* **50 (Objektiivinen Arvioija / Oletus):** Vaatii suoraa lainausta, mutta sallii rivien välistä lukemisen vähintään 20 sanan pakollista, loogista kirjallista perustelua vastaan. Säilyttää pariteetin vanhan DINA-mallin antamiin arvosanoihin.
+* **70–89 (Kylmä Tilintarkastaja):** Pydantic hylkää implisiittiset tulkinnat. Vain eksakti lainaus (`EXPLICIT_QUOTE`) kelpuutetaan. Pieni puute tekstissä laukaisee vesiputouksen `break`-komennon, ja arvosana romahtaa.
+* **90–100 (Lakisääteinen Tuomari):** Aktivoi `ANTI_SYCOPHANCY_MANDATE` -tilan. Malli etsii aktiivisesti loogisia ristiriitoja ja hylkää herkästi (Zero-Tolerance).
+
+> [!TIP]
+> **Hybridimahdollisuus (Dampening + Strictness):** Mikäli järjestelmää halutaan käyttää puhtaasti inhimilliseen valmennukseen siten, että se antaa osapisteitä korkean tason potentiaalista vaikka perusta vuotaisi, koodi mahdollistaa paluun `calculate_progressive_dampening_score` -funktioon. Yhdistämällä tämä vanha laskentamalli uusiin "Silmälaseihin" (Kireystasoihin), saavutetaan markkinoiden edistynein, säädettävä valmennustekoäly. Oletuksena kuitenkin käytetään tiukkaa Waterfall-auditointia.
 
 ### Rangaistusmekanismit (Penalty Logic)
 

@@ -1,6 +1,4 @@
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 from backend_v2.models.enums import XaiExtensionType
 
@@ -24,25 +22,6 @@ class LightweightMatrixOutput(BaseModel):
     extensions: dict[XaiExtensionType, str]
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
-    @model_validator(mode="before")
-    @classmethod
-    def parse_db_fields(cls, data: Any) -> Any:
-        if isinstance(data, dict) and "extensions" in data:
-            exts = data["extensions"]
-            if isinstance(exts, dict):
-                new_exts: dict[Any, Any] = {}
-                for k, v in exts.items():
-                    if isinstance(k, str):
-                        try:
-                            new_exts[XaiExtensionType(k)] = v
-                        except ValueError:
-                            # If it's an invalid enum value, let strict validation catch it later or ignore
-                            new_exts[k] = v
-                    else:
-                        new_exts[k] = v
-                data["extensions"] = new_exts
-        return data
 
 
 class MicroCotDTO(BaseModel):
@@ -83,8 +62,10 @@ class AtomEvaluationItemDTO(BaseModel):
     """Strict schema for individual atom evaluations in the waterfall pipeline."""
 
     atom_id: str
-    boolean: bool = False
-    reasoning: str = ""
-    quote: str | None = None
+    step_1_evidence_type: str | None = None
+    step_2_quote: str | None = None
+    step_3_implicit_justification: str | None = None
+    step_4_reasoning: str = ""
+    step_5_boolean: bool = False
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

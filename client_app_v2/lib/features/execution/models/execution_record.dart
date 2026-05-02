@@ -25,6 +25,7 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(fromJson: _statusFromJson) required String status,
     @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)
     String? traceVersion,
+    @JsonKey(name: 'strictness_level') int? strictnessLevel,
 
     /// The strictly typed DTO containing the presentation flat data.
     /// Replaces the legacy `results` Map.

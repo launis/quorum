@@ -89,6 +89,7 @@ def mock_repo_transformer() -> Any:
 @pytest.mark.asyncio
 async def test_build_report_dto_maps_correctly(mock_repo_transformer: Any) -> None:
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        strictness_level=50,
         id="exe_0000000000000001",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.COMPLETED,
@@ -129,6 +130,7 @@ async def test_build_report_dto_maps_correctly(mock_repo_transformer: Any) -> No
 @pytest.mark.asyncio
 async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -> None:
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        strictness_level=50,
         id="exe_0000000000000002",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.COMPLETED,
@@ -257,6 +259,7 @@ def mock_repo_microcot() -> Any:
 @pytest.mark.asyncio
 async def test_blueprint_crashes_on_naked_microcot_dict(mock_repo_microcot: Any) -> None:
     mock_repo_microcot.get_execution.return_value = ExecutionRecord(
+        strictness_level=50,
         id="exe_abcdef1234567890",
         workflow_id="wf_1234567890abcdef",
         status=ExecutionStatus.COMPLETED,
@@ -364,6 +367,7 @@ async def test_blueprint_zero_math_rounding(mock_repo_sdui: AsyncMock) -> None:
     )  # noqa: E501
 
     mock_execution = ExecutionRecord(
+        strictness_level=50,
         id="exe_1111111122222222",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.COMPLETED,
@@ -409,6 +413,7 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
     )  # noqa: E501
 
     mock_execution = ExecutionRecord(
+        strictness_level=50,
         id="exe_1111111122222222",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.COMPLETED,
@@ -455,6 +460,7 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
 async def test_xai_extraction_works_for_nested_dict(mock_repo_transformer: Any) -> None:
     """Phase 9: Verify XAI metadata is extracted from nested dicts."""
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        strictness_level=50,
         id="exe_0000000000000003",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.COMPLETED,
@@ -509,6 +515,7 @@ async def test_mcp_audit_deduplication_uses_strict_model_attrs(mock_repo_transfo
         ]
     )
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        strictness_level=50,
         id="exe_0000000000000004",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.COMPLETED,
@@ -549,6 +556,7 @@ async def test_mcp_audit_fails_fast_on_incomplete_data() -> None:
 
     with pytest.raises(ValidationError) as exc_info:
         ExecutionRecord(
+            strictness_level=50,
             id="exe_0000000000000005",
             workflow_id="wf_1234abcd1234abcd",
             status=ExecutionStatus.COMPLETED,

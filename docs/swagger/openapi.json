@@ -3445,6 +3445,11 @@
             "title": "Workflow Id",
             "description": "Workflow ID"
           },
+          "strictness_level": {
+            "type": "integer",
+            "title": "Strictness Level",
+            "description": "Strictness level of the evaluation (0-100)"
+          },
           "status": {
             "$ref": "#/components/schemas/ExecutionStatus",
             "description": "Current status of execution"
@@ -3638,6 +3643,7 @@
         "required": [
           "id",
           "workflow_id",
+          "strictness_level",
           "status"
         ],
         "title": "ExecutionRecord",

@@ -42,6 +42,7 @@
             <description>The Absolute SSOT (Single Source of Truth) schema configurations. Subdivided into domain, dtos, and view.</description>
             <file_rules>
                 <file path="enums.py">CENTRAL ENUM DEFINITIONS. The absolute source for system-wide constants and types enforcing the No-String Mandate.</file>
+                <file path="v2_core.py">Zero-Defaults AtomResponse ja DTO-skeemojen (Strictness Level) aukoton lähde. Määrittää tekoälyn "Alphabetical Keys" -säännöt.</file>
             </file_rules>
         </directory>
         <directory path="seed/">
@@ -56,7 +57,7 @@
         <directory path="services/">
             <description>Complex business orchestration processing logic routines. Subdivided into drivers, mcp, and orchestrator.</description>
             <file_rules>
-                <file path="llm_task_executor.py">Central orchestration point enforcing Fail-Fast structured execution for cognitive workflows.</file>
+                <file path="llm_task_executor.py">Central orchestration point enforcing Fail-Fast structured execution for cognitive workflows. Sisältää dynaamisen Pydantic-kontekstivalidoinnin (Validation Context).</file>
                 <file path="mcp/">Model Context Protocol loop execution directory for tool-based LLM routing.</file>
             </file_rules>
         </directory>
@@ -80,7 +81,7 @@
         <directory path="lib/features/">
             <description>Features divided vertically: auth, execution, settings, shell, studio. Implements dynamic BFF parsing.</description>
             <file_rules>
-                <file path="execution/views/">SDUI Execution and reporting views (dashboard_view.dart, execution_report_view.dart).</file>
+                <file path="execution/views/">SDUI Execution and reporting views (dashboard_view.dart, execution_report_view.dart). Sisältää Strictness UI -elementit ja Zero-Math SDUI -badget.</file>
                 <file path="studio/views/">Admin Studio workflows, SystemInspector infinite canvas, and PromptBlock editors.</file>
                 <file path="studio/views/widgets/xai/">SDUI komponentit XAI-matriisien rakenteelliseen esittämiseen ilman lokaalia matematiikkaa.</file>
             </file_rules>

@@ -19,7 +19,7 @@ class AtomMatrixTableWidget extends StatelessWidget {
         .where((m) => m.levelBreakdown != null && m.levelBreakdown!.isNotEmpty)
         .toList();
     if (tableMatrices.isEmpty) {
-      return const SizedBox.shrink();
+      return const SizedBox();
     }
 
     return LayoutBuilder(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/execution/models/scorecard_dto.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/models/enums.dart';
 
 class XAIAxisTelemetryGrid extends StatelessWidget {
   final MatrixScorecardRowDto axis;
@@ -17,7 +18,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (textDeliveryMode == 'none') {
-      return const SizedBox.shrink();
+      return const SizedBox();
     }
 
     return Column(
@@ -40,7 +41,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
         axis.citedSourceId != null && axis.citedSourceId!.isNotEmpty;
 
     if (!hasJustification && !hasQuote && !hasWebCitation && !hasSourceId) {
-      return const SizedBox.shrink();
+      return const SizedBox();
     }
 
     final l10n = AppLocalizations.of(context)!;
@@ -50,9 +51,22 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (hasJustification)
-          Text(
-            axis.justification,
-            style: const TextStyle(fontSize: 14, color: Colors.black87),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (axis.evidenceType != null) ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 2.0, right: 8.0),
+                  child: _buildEvidenceIcon(axis.evidenceType!),
+                ),
+              ],
+              Expanded(
+                child: Text(
+                  axis.justification,
+                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+              ),
+            ],
           ),
         if (hasQuote)
           Container(
@@ -125,7 +139,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
 
   Widget _buildTelemetryGrid(BuildContext context) {
     if (textDeliveryMode != 'full') {
-      return const SizedBox.shrink();
+      return const SizedBox();
     }
 
     final l10n = AppLocalizations.of(context)!;
@@ -171,7 +185,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
     }
 
     // Epic 10: Preserve in Payload, Hide in View.
-    // User Mandate: XAI extensions (Coaching, Falsification, etc.) are never rendered 
+    // User Mandate: XAI extensions (Coaching, Falsification, etc.) are never rendered
     // at the fragmented matrix level in the UI. They are strictly reserved for the global synthesis block.
     // The data remains intact within the ScorecardRow DTO for API JSON exports.
 
@@ -205,7 +219,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
     }
 
     if (boxes.isEmpty) {
-      return const SizedBox.shrink();
+      return const SizedBox();
     }
 
     return Column(
@@ -215,43 +229,23 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
     );
   }
 
-  Widget _buildBox({
-    required String title,
-    required String content,
-    required MaterialColor color,
-    Color? titleColor,
-    FontStyle? contentFontStyle,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12.0),
-      padding: const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        border: Border(left: BorderSide(color: color.shade700, width: 4)),
+  Widget _buildEvidenceIcon(EvidenceType type) {
+    return switch (type) {
+      EvidenceType.explicitQuote => const Icon(
+        Icons.check_circle,
+        color: Colors.green,
+        size: 16,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              color: titleColor ?? color.shade800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            content,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-              fontStyle: contentFontStyle,
-            ),
-          ),
-        ],
+      EvidenceType.impliedIntent => const Icon(
+        Icons.warning,
+        color: Colors.orange,
+        size: 16,
       ),
-    );
+      EvidenceType.noEvidence => const Icon(
+        Icons.cancel,
+        color: Colors.red,
+        size: 16,
+      ),
+    };
   }
 }

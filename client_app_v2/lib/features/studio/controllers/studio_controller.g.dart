@@ -435,7 +435,7 @@ final class StepsControllerProvider
   StepsController create() => StepsController();
 }
 
-String _$stepsControllerHash() => r'bac41a230d68c36191b4224ab0ce33a5c09f2435';
+String _$stepsControllerHash() => r'da0d6865ae79fb55261e6a24d868926afe99d8f2';
 
 /// Controller managing Studio Steps strictly using `NodeStrategy` mapping.
 /// Implements Optimistic UI principles where possible.

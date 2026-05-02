@@ -18,7 +18,11 @@ def test_flat_file_service_flatten_results() -> None:
 
     # We create a dummy ExecutionRecord
     record = ExecutionRecord(
-        id=execution_id, workflow_id="wf_test", status=ExecutionStatus.COMPLETED, execution_trace=[event1]
+        strictness_level=50,
+        id=execution_id,
+        workflow_id="wf_test",
+        status=ExecutionStatus.COMPLETED,
+        execution_trace=[event1],
     )
 
     flat_data = FlatFileService.flatten_results(record)
@@ -36,7 +40,9 @@ def test_flat_file_service_flatten_results() -> None:
 def test_flat_file_service_empty_results() -> None:
     """Test flat file service with no trace results."""
     execution_id = f"exe_{uuid.uuid4().hex}"
-    record = ExecutionRecord(id=execution_id, workflow_id="wf_empty", status=ExecutionStatus.FAILED, execution_trace=[])  # noqa: E501
+    record = ExecutionRecord(
+        strictness_level=50, id=execution_id, workflow_id="wf_empty", status=ExecutionStatus.FAILED, execution_trace=[]
+    )  # noqa: E501
 
     flat_data = FlatFileService.flatten_results(record)
 

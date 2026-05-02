@@ -261,3 +261,27 @@ class ReportContextDTO(BaseDTO):
     coaching_plan: CoachingPlanDTO | None = None
 
     model_config = ConfigDict(strict=True, extra="forbid")
+
+
+class TraceScoringPayloadDTO(BaseDTO):
+    """Strict hydration schema for extracting scoring results in BlueprintTransformer."""
+
+    total_score: float | None = None
+    normalized_score: float | None = None
+    penalties_applied: list[Any] | None = None
+
+    model_config = ConfigDict(strict=True, extra="ignore")
+
+
+class TraceMatrixPayloadDTO(BaseDTO):
+    """Strict hydration schema for extracting matrix payloads from the execution trace in BlueprintTransformer."""
+
+    raw_score: float | None = None
+    normalized_score: float | None = None
+    justification: str | None = None
+    
+    level_breakdown: dict[str, Any] | None = None
+    extensions: dict[str, Any] | None = None
+    evaluated_atoms: dict[str, bool] | None = None
+
+    model_config = ConfigDict(strict=True, extra="forbid")

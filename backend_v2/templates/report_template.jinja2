@@ -68,6 +68,9 @@
 
         <div class="header-card" style="text-align: left;">
             <h1 style="margin: 0 0 10px 0;">{{ workflow_name }} {% if report_data %}({{ report_data.profile_id }}){% endif %}</h1>
+            {% if report_data and report_data.strictness_level != None %}
+            <div style="background-color: #eee; border-radius: 4px; padding: 4px 8px; font-size: 10px; display: inline-block; margin-bottom: 12px; font-weight: bold; color: #555;">Strictness Level: {{ report_data.strictness_level }}</div>
+            {% endif %}
             
             <div style="font-size: 12px; color: #444; margin-bottom: 12px;">
                 {% if show_org %}
@@ -163,7 +166,17 @@
                             {{ axis.justification | md | safe }}
                         </div>
 
-
+                        {% if axis.evidence_type %}
+                            <div style="margin-top: 8px; font-size: 11px;">
+                                {% if axis.evidence_type == 'EXPLICIT_QUOTE' %}
+                                <span style="background-color: #e8f5e9; border: 1px solid #c8e6c9; color: #2e7d32; padding: 2px 6px; border-radius: 4px;">✅ Explicit Quote</span>
+                                {% elif axis.evidence_type == 'IMPLIED_INTENT' %}
+                                <span style="background-color: #fff3e0; border: 1px solid #ffe0b2; color: #ef6c00; padding: 2px 6px; border-radius: 4px;">⚠️ Implied Intent</span>
+                                {% else %}
+                                <span style="background-color: #e3f2fd; border: 1px solid #bbdefb; color: #1565c0; padding: 2px 6px; border-radius: 4px;">{{ axis.evidence_type }}</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
 
                         {% if axis.cited_text_quote %}
                             {% set norm_quote = axis.cited_text_quote|lower|trim %}

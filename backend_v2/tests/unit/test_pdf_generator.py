@@ -14,6 +14,7 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
 
     # Mock an execution record with strict V2 validations
     mock_execution = ExecutionRecord(
+        strictness_level=50,
         id="exe_aaaaaaaabbbbbbbb",
         workflow_id="test_wf",
         status=ExecutionStatus.COMPLETED,
@@ -27,7 +28,10 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
 
     # Empty layout (should not invoke chart rendering)
     dto = ReportDataDTO(
-        workflow_id="test_wf", profile_id="prf_test", layouts=[ReportLayoutDTO(preset_view="1d_metrics", axes=[])]
+        strictness_level=50,
+        workflow_id="test_wf",
+        profile_id="prf_test",
+        layouts=[ReportLayoutDTO(preset_view="1d_metrics", axes=[])],
     )
 
     pdf_bytes = await svc.generate_execution_pdf(execution_id="exe_aaaaaaaabbbbbbbb", report_dto=dto)
@@ -42,6 +46,7 @@ async def test_html_generator_chart_injection_failure_safe() -> None:
 
     # Mock an execution record with strict V2 validations
     mock_execution = ExecutionRecord(
+        strictness_level=50,
         id="exe_aaaaaaaabbbbbbbb",
         workflow_id="test_wf",
         status=ExecutionStatus.COMPLETED,
@@ -55,7 +60,10 @@ async def test_html_generator_chart_injection_failure_safe() -> None:
 
     # Empty layout (should not invoke chart rendering)
     dto = ReportDataDTO(
-        workflow_id="test_wf", profile_id="prf_test", layouts=[ReportLayoutDTO(preset_view="1d_metrics", axes=[])]
+        strictness_level=50,
+        workflow_id="test_wf",
+        profile_id="prf_test",
+        layouts=[ReportLayoutDTO(preset_view="1d_metrics", axes=[])],
     )
 
     html_string = await svc.generate_execution_html(execution_id="exe_aaaaaaaabbbbbbbb", report_dto=dto)

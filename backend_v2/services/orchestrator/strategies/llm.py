@@ -306,6 +306,7 @@ class LLMNodeStrategy(NodeStrategy):
                             target_locale=target_locale,
                             synthesis_instructions=state_data.get("synthesis_instructions"),
                             output_profile=None,
+                            strictness_level=context.strictness_level,
                         )
                     )
                 )

@@ -1,5 +1,6 @@
 // ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:client_app/core/models/enums.dart';
 
 part 'scorecard_dto.freezed.dart';
 part 'scorecard_dto.g.dart';
@@ -43,6 +44,8 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
     @JsonKey(name: 'cited_source_id') String? citedSourceId,
     @JsonKey(name: 'cited_text_quote') String? citedTextQuote,
     @JsonKey(name: 'cited_web_citation') String? citedWebCitation,
+
+    @JsonKey(name: 'evidence_type') EvidenceType? evidenceType,
 
     // Epic 6: XAI Output Extensions
     String? coaching,

@@ -21,6 +21,7 @@ def mock_repo() -> AsyncMock:
         "id": "exe_1111222233334444",
         "workflow_id": "wf_tg_test",
         "status": ExecutionStatus.PENDING,
+        "strictness_level": 50,
         "raw_inputs": {"log": "test"},
         "metadata": {},
     }

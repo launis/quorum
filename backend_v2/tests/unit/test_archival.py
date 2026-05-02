@@ -61,6 +61,7 @@ def create_mock_execution(
 
     if missing_updated_at:
         return ExecutionRecord.model_construct(
+            strictness_level=50,
             id=f"exe_{uuid.uuid4().hex[:16]}",
             workflow_id="wf_123",
             status=ExecutionStatus.COMPLETED,
@@ -71,6 +72,7 @@ def create_mock_execution(
         )
 
     record = ExecutionRecord(
+        strictness_level=50,
         id=f"exe_{uuid.uuid4().hex[:16]}",
         workflow_id="wf_123",
         status=ExecutionStatus.COMPLETED,

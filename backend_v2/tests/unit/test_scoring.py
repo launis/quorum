@@ -219,7 +219,7 @@ async def test_waterfall_scoring_hook_ignores_instructions() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": [{"atom_id": atom_hash, "boolean": True}]},
+        inputs={"evaluations": [{"atom_id": atom_hash, "step_5_boolean": True}]},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -245,7 +245,7 @@ async def test_waterfall_scoring_hook_pass_all() -> None:
     evaluations = []
     for i in range(1, 6):
         atom_hash = hashlib.md5(f"atom_{i}{mandate}".encode()).hexdigest()
-        evaluations.append({"atom_id": atom_hash, "boolean": True, "reasoning": "Hyväksytty"})
+        evaluations.append({"atom_id": atom_hash, "step_5_boolean": True, "step_4_reasoning": "Hyväksytty"})
 
     state = HookState(
         execution_id="t1",
@@ -283,7 +283,7 @@ async def test_waterfall_scoring_hook_ceiling_cap() -> None:
     for i in range(1, 6):
         atom_hash = hashlib.md5(f"atom_{i}{mandate}".encode()).hexdigest()
         is_hit = True if i != 2 else False
-        evaluations.append({"atom_id": atom_hash, "boolean": is_hit})
+        evaluations.append({"atom_id": atom_hash, "step_5_boolean": is_hit})
 
     state = HookState(
         execution_id="t2",
@@ -325,7 +325,7 @@ async def test_waterfall_scoring_hook_graceful_missing() -> None:
         atom_hash = hashlib.md5(f"atom_{i}{mandate}".encode()).hexdigest()
         is_hit = False if i == 3 else True
         reasoning = "Testivaste" if not is_hit else "OK"
-        evaluations.append({"atom_id": atom_hash, "boolean": is_hit, "reasoning": reasoning})
+        evaluations.append({"atom_id": atom_hash, "step_5_boolean": is_hit, "step_4_reasoning": reasoning})
 
     state = HookState(
         execution_id="t3",
@@ -384,29 +384,49 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
 
     # Taso 1 (100% osuma)
     evaluations.append(
-        {"atom_id": hashlib.md5(f"L1_A1{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}  # noqa: E501
+        {
+            "atom_id": hashlib.md5(f"L1_A1{mandate}".encode()).hexdigest(),
+            "step_5_boolean": True,
+            "step_4_reasoning": "Oikein",
+        }  # noqa: E501
     )
     evaluations.append(
-        {"atom_id": hashlib.md5(f"L1_A2{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}  # noqa: E501
+        {
+            "atom_id": hashlib.md5(f"L1_A2{mandate}".encode()).hexdigest(),
+            "step_5_boolean": True,
+            "step_4_reasoning": "Oikein",
+        }  # noqa: E501
     )
 
     # Taso 2 (100% osuma)
     evaluations.append(
-        {"atom_id": hashlib.md5(f"L2_A1{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}  # noqa: E501
+        {
+            "atom_id": hashlib.md5(f"L2_A1{mandate}".encode()).hexdigest(),
+            "step_5_boolean": True,
+            "step_4_reasoning": "Oikein",
+        }  # noqa: E501
     )
     evaluations.append(
-        {"atom_id": hashlib.md5(f"L2_A2{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}  # noqa: E501
+        {
+            "atom_id": hashlib.md5(f"L2_A2{mandate}".encode()).hexdigest(),
+            "step_5_boolean": True,
+            "step_4_reasoning": "Oikein",
+        }  # noqa: E501
     )
 
     # Taso 3 (50% osuma -> Hit Rate < 90% -> VESIPUTOUS PYSÄHTYY)
     evaluations.append(
-        {"atom_id": hashlib.md5(f"L3_A1{mandate}".encode()).hexdigest(), "boolean": True, "reasoning": "Oikein"}  # noqa: E501
+        {
+            "atom_id": hashlib.md5(f"L3_A1{mandate}".encode()).hexdigest(),
+            "step_5_boolean": True,
+            "step_4_reasoning": "Oikein",
+        }  # noqa: E501
     )
     evaluations.append(
         {
             "atom_id": hashlib.md5(f"L3_A2{mandate}".encode()).hexdigest(),
-            "boolean": False,
-            "reasoning": "Aihetodistetta EI esitetty.",
+            "step_5_boolean": False,
+            "step_4_reasoning": "Aihetodistetta EI esitetty.",
         }
     )
 
@@ -414,8 +434,8 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": hashlib.md5(f"L4_A1{mandate}".encode()).hexdigest(),
-            "boolean": True,
-            "reasoning": "Hieno oivallus!",
+            "step_5_boolean": True,
+            "step_4_reasoning": "Hieno oivallus!",
         }
     )
 
@@ -423,8 +443,8 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": hashlib.md5(f"L5_A1{mandate}".encode()).hexdigest(),
-            "boolean": False,
-            "reasoning": "Ei yltänyt tälle tasolle.",
+            "step_5_boolean": False,
+            "step_4_reasoning": "Ei yltänyt tälle tasolle.",
         }
     )
 

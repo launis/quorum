@@ -179,6 +179,7 @@ async def execute_tool_loop[T: BaseModel](
     mock_identity: str | None = None,
     target_language: str = "en",
     synthesis_instructions: dict[str, Any] | None = None,
+    validation_context: dict[str, Any] | None = None,
 ) -> MCPToolLoopResult:
     """Execute the MCP Tool Loop — 2-phase LLM execution with optional tool calling.
 
@@ -209,6 +210,7 @@ async def execute_tool_loop[T: BaseModel](
             messages=messages,
             response_model=response_model,
             mock_identity=mock_identity,
+            validation_context=validation_context,
         )
         return MCPToolLoopResult(
             result_data=result.model_dump(mode="json"),
@@ -402,6 +404,7 @@ async def execute_tool_loop[T: BaseModel](
             messages=final_messages,
             response_model=response_model,
             mock_identity=mock_identity,
+            validation_context=validation_context,
         )
         return MCPToolLoopResult(
             result_data=result.model_dump(mode="json"),

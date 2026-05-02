@@ -20,7 +20,7 @@ class DiagnosticScorecardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (evaluativeMatrices.isEmpty && informationalMatrices.isEmpty) {
-      return const SizedBox.shrink(); // Scorecard not applicable
+      return const SizedBox(); // Scorecard not applicable
     }
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);

@@ -168,19 +168,107 @@ def test_generate_mcp_instruction() -> None:
 
 
 def test_build_blind_evaluation_schema() -> None:
+    from backend_v2.services.orchestrator.prompt_compiler import EvidenceType, PromptCompiler
+
     compiler = PromptCompiler()
     DynamicSchema = compiler.build_blind_evaluation_schema("BlindTest")
     assert issubclass(DynamicSchema, BaseModel)
 
     llm_payload = {
         "evaluations": [
-            {"atom_id": "test_hash_123", "quote": "This is a test.", "reasoning": "Simple logic.", "boolean": True}
+            {
+                "atom_id": "test_hash_123",
+                "step_1_evidence_type": EvidenceType.EXPLICIT_QUOTE,
+                "step_2_quote": "This is a test.",
+                "step_4_reasoning": "Simple logic.",
+                "step_5_boolean": True,
+            }
         ]
     }
     parsed = DynamicSchema.model_validate(llm_payload)
     assert len(parsed.evaluations) == 1  # type: ignore[attr-defined]
     assert parsed.evaluations[0].atom_id == "test_hash_123"  # type: ignore[attr-defined]
-    assert parsed.evaluations[0].boolean is True  # type: ignore[attr-defined]
+    assert parsed.evaluations[0].step_5_boolean is True  # type: ignore[attr-defined]
+
+
+def test_atom_response_fail_fast_anti_laziness() -> None:
+    import pytest
+    from pydantic import ValidationError
+
+    from backend_v2.services.orchestrator.prompt_compiler import EvidenceType, PromptCompiler
+
+    compiler = PromptCompiler()
+    DynamicSchema = compiler.build_blind_evaluation_schema("BlindTest")
+
+    # EXPLICIT_QUOTE missing quote
+    with pytest.raises(ValidationError) as exc:
+        DynamicSchema.model_validate(
+            {
+                "evaluations": [
+                    {
+                        "atom_id": "1",
+                        "step_1_evidence_type": EvidenceType.EXPLICIT_QUOTE,
+                        "step_4_reasoning": "Reason",
+                        "step_5_boolean": True,
+                    }
+                ]
+            }
+        )
+    assert "Quote required for EXPLICIT_QUOTE" in str(exc.value)
+
+    # IMPLIED_INTENT short justification
+    with pytest.raises(ValidationError) as exc:
+        DynamicSchema.model_validate(
+            {
+                "evaluations": [
+                    {
+                        "atom_id": "1",
+                        "step_1_evidence_type": EvidenceType.IMPLIED_INTENT,
+                        "step_3_implicit_justification": "Too short.",
+                        "step_4_reasoning": "Reason",
+                        "step_5_boolean": True,
+                    }
+                ]
+            }
+        )
+    assert "Justification too short for IMPLIED_INTENT" in str(exc.value)
+
+    # NO_EVIDENCE with True boolean
+    with pytest.raises(ValidationError) as exc:
+        DynamicSchema.model_validate(
+            {
+                "evaluations": [
+                    {
+                        "atom_id": "1",
+                        "step_1_evidence_type": EvidenceType.NO_EVIDENCE,
+                        "step_4_reasoning": "Reason",
+                        "step_5_boolean": True,
+                    }
+                ]
+            }
+        )
+    assert "Cannot be True with NO_EVIDENCE" in str(exc.value)
+
+    # Valid IMPLIED_INTENT validation context > 70 strictness
+    with pytest.raises(ValidationError) as exc:
+        DynamicSchema.model_validate(
+            {
+                "evaluations": [
+                    {
+                        "atom_id": "1",
+                        "step_1_evidence_type": EvidenceType.IMPLIED_INTENT,
+                        "step_3_implicit_justification": (
+                            "This is a sufficiently long justification that has more than twenty "
+                            "words in it to satisfy the strict length requirement of the validator."
+                        ),
+                        "step_4_reasoning": "Reason",
+                        "step_5_boolean": True,
+                    }
+                ]
+            },
+            context={"strictness_level": 75},
+        )
+    assert "Strictness >= 70 ei salli implisiittistä logiikkaa" in str(exc.value)
 
 
 def test_compile_blind_system_instruction() -> None:

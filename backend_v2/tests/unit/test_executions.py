@@ -47,7 +47,9 @@ async def test_list_executions(mock_current_user, mock_execution_service) -> Non
 @pytest.mark.asyncio
 async def test_get_execution_status(mock_current_user, mock_execution_service) -> None:  # type: ignore
     """Test retrieving execution status by ID."""
-    mock_record = ExecutionRecord(id="exe_1234567890abcdef1234567890abcdef", status="completed", workflow_id="wf_1")
+    mock_record = ExecutionRecord(
+        strictness_level=50, id="exe_1234567890abcdef1234567890abcdef", status="completed", workflow_id="wf_1"
+    )
     mock_execution_service.get_execution.return_value = mock_record
 
     result = await get_execution_status(
@@ -65,9 +67,16 @@ async def test_get_execution_status(mock_current_user, mock_execution_service) -
 async def test_start_execution(mock_current_user, mock_execution_service, mock_doc_service, mock_arq_pool) -> None:  # type: ignore  # noqa: E501
     """Test starting an execution with eager document extraction."""
     mock_request = AsyncMock(spec=Request)
-    mock_request.json.return_value = {"workflow_id": "wf_1", "target_locale": "fi", "raw_inputs": {"file1": "test"}}
+    mock_request.json.return_value = {
+        "workflow_id": "wf_1",
+        "target_locale": "fi",
+        "raw_inputs": {"file1": "test"},
+        "strictness_level": 50,
+    }
 
-    mock_record = ExecutionRecord(id="exe_1234567890abcdef1234567890abcdef", status="pending", workflow_id="wf_1")
+    mock_record = ExecutionRecord(
+        strictness_level=50, id="exe_1234567890abcdef1234567890abcdef", status="pending", workflow_id="wf_1"
+    )
     mock_execution_service.start_execution.return_value = mock_record
 
     result = await start_execution(
@@ -99,7 +108,9 @@ async def test_delete_execution(mock_current_user, mock_execution_service) -> No
 @pytest.mark.asyncio
 async def test_resume_execution(mock_current_user, mock_execution_service, mock_arq_pool) -> None:  # type: ignore
     """Test resuming an execution."""
-    mock_record = ExecutionRecord(id="exe_1234567890abcdef1234567890abcdef", status="running", workflow_id="wf_1")
+    mock_record = ExecutionRecord(
+        strictness_level=50, id="exe_1234567890abcdef1234567890abcdef", status="running", workflow_id="wf_1"
+    )
     mock_execution_service.resume_execution.return_value = mock_record
 
     res = await resume_execution(

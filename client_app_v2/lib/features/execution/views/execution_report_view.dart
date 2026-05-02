@@ -206,36 +206,35 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
                 ),
         ],
       ),
-      body: reportAsync.when(
-        data: (payload) {
-          // Zero-math, logic-free static controller injection.
-          return ReportRendererWidget(
-            payload: payload,
-            executionId: widget.executionId,
-          );
-        },
-        error: (err, stack) {
-          final logger = ref.read(loggerServiceProvider);
-          logger.error(
-            'SDUI Builder',
-            'VALIDATION_FAILED: Failed to parse or fetch payload',
-            err,
-            stack,
-          );
-          return ErrorView(
-            error: err,
-            stackTrace: stack,
-            onRetry: () => ref.invalidate(
-              reportControllerProvider(
-                widget.executionId,
-                lang: locale,
-                variant: widget.variant,
+      body: switch (reportAsync) {
+        AsyncData(:final value) => ReportRendererWidget(
+          payload: value,
+          executionId: widget.executionId,
+        ),
+        AsyncError(:final error, :final stackTrace) => Builder(
+          builder: (ctx) {
+            final logger = ref.read(loggerServiceProvider);
+            logger.error(
+              'SDUI Builder',
+              'VALIDATION_FAILED: Failed to parse or fetch payload',
+              error,
+              stackTrace,
+            );
+            return ErrorView(
+              error: error,
+              stackTrace: stackTrace,
+              onRetry: () => ref.invalidate(
+                reportControllerProvider(
+                  widget.executionId,
+                  lang: locale,
+                  variant: widget.variant,
+                ),
               ),
-            ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-      ),
+            );
+          },
+        ),
+        _ => const Center(child: CircularProgressIndicator()),
+      },
     );
   }
 

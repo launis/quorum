@@ -5,6 +5,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/core/error/app_exception.dart';
 
 /// Renders the XAI Evidence Box — clickable source URLs from MCP Tool Loop searches.
 /// Follows Flat MVC (§5): Zero logic, pure data mapping from MCPToolAuditDTO.
@@ -16,7 +17,7 @@ class XAIEvidenceBox extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (auditTraces.isEmpty) return const SizedBox.shrink();
+    if (auditTraces.isEmpty) return const SizedBox();
 
     final l10n = AppLocalizations.of(context)!;
 
@@ -221,6 +222,9 @@ class XAIEvidenceBox extends ConsumerWidget {
       ref
           .read(loggerServiceProvider)
           .error('XAIEvidenceBox', 'URL launch error: $e', e, st);
+      throw AppException.network(
+        'URL launch error: $e',
+      ).copyWith(extensions: {'url': url});
     }
   }
 }

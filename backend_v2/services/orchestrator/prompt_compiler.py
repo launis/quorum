@@ -9,10 +9,11 @@ from __future__ import annotations
 import datetime
 import json
 import logging
+from enum import Enum
 from functools import lru_cache
 from typing import Any, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, create_model, model_validator
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.enums import EvaluationMandate
@@ -20,6 +21,12 @@ from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.web_fetcher import WebFetcher
 
 logger = logging.getLogger(__name__)
+
+
+class EvidenceType(str, Enum):
+    EXPLICIT_QUOTE = "EXPLICIT_QUOTE"
+    IMPLIED_INTENT = "IMPLIED_INTENT"
+    NO_EVIDENCE = "NO_EVIDENCE"
 
 
 class PromptCompiler:
@@ -101,20 +108,22 @@ class PromptCompiler:
                 if not key:
                     continue
 
-                # Safely extract translations using standard locale fallbacks
+                # Fail-Fast Mandatory I18n extraction
                 label_obj = getattr(ei, "label", None)
-                label_str = ""
-                if label_obj and hasattr(label_obj, "translations"):
-                    label_str = label_obj.translations.get(
-                        target_locale, label_obj.translations.get("en", label_obj.translations.get("fi", ""))
-                    )
+                label_dict = (
+                    label_obj.model_dump(mode="json")
+                    if label_obj is not None and hasattr(label_obj, "model_dump")
+                    else label_obj
+                )
+                label_str = self.resolve_i18n(label_dict, target_locale) if label_dict else ""
 
                 desc_obj = getattr(ei, "description", None)
-                desc_str = ""
-                if desc_obj and hasattr(desc_obj, "translations"):
-                    desc_str = desc_obj.translations.get(
-                        target_locale, desc_obj.translations.get("en", desc_obj.translations.get("fi", ""))
-                    )
+                desc_dict = (
+                    desc_obj.model_dump(mode="json")
+                    if desc_obj is not None and hasattr(desc_obj, "model_dump")
+                    else desc_obj
+                )
+                desc_str = self.resolve_i18n(desc_dict, target_locale) if desc_dict else ""
 
                 ai_desc = getattr(ei, "ai_description", None) or ""
 
@@ -412,12 +421,44 @@ class PromptCompiler:
             class AtomResponse(BaseModel):
                 model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
                 atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")
-                quote: str | None = Field(
-                    default=None,
-                    description="Pakotettu lainaus alkuperäisestä tekstistä Micro-CoT säännöllä. Null if no evidence.",
+                step_1_evidence_type: EvidenceType = Field(
+                    ..., description="CRITICAL: You MUST choose your strategy first."
                 )
-                reasoning: str = Field(..., description="Kognitiivinen kitka ja arvioinnin perustelu.")
-                boolean: bool = Field(..., description="Puhdas True/False -osumapäätös.")
+                step_2_quote: str | None = Field(
+                    default=None,
+                    description="Required if evidence_type is EXPLICIT_QUOTE. The exact verbatim quote.",
+                )
+                step_3_implicit_justification: str | None = Field(
+                    default=None,
+                    description=(
+                        "Required ONLY if evidence_type is IMPLIED_INTENT. "
+                        "Provide an exhaustive 20+ word justification to prove the implied intent."
+                    ),
+                )
+                step_4_reasoning: str = Field(..., description="Final cognitive friction and evaluation reasoning.")
+                step_5_boolean: bool = Field(..., description="The final True/False decision.")
+
+                @model_validator(mode="after")
+                def validate_evidence(self, info: ValidationInfo) -> Any:
+                    if self.step_1_evidence_type == EvidenceType.EXPLICIT_QUOTE:
+                        if not self.step_2_quote or not self.step_2_quote.strip():
+                            raise ValueError("ANTI-LAZINESS MANDATE: Quote required for EXPLICIT_QUOTE")
+                    elif self.step_1_evidence_type == EvidenceType.IMPLIED_INTENT:
+                        just_str = self.step_3_implicit_justification
+                        if not just_str or len(just_str.split()) < 20:
+                            raise ValueError(
+                                "ANTI-LAZINESS MANDATE: Justification too short for IMPLIED_INTENT (min 20 words)"
+                            )
+                        if info.context is None or "strictness_level" not in info.context:
+                            raise ValueError(
+                                "SYSTEM ARCHITECTURE MANDATE: Missing 'strictness_level' in validation context"
+                            )
+                        if info.context["strictness_level"] >= 70:
+                            raise ValueError("Strictness >= 70 ei salli implisiittistä logiikkaa")
+                    elif self.step_1_evidence_type == EvidenceType.NO_EVIDENCE:
+                        if self.step_5_boolean:
+                            raise ValueError("ANTI-LAZINESS MANDATE: Cannot be True with NO_EVIDENCE")
+                    return self
 
             fields["evaluations"] = (list[AtomResponse], Field(..., description="Array of blinded evaluations."))
 
@@ -792,12 +833,44 @@ class PromptCompiler:
         class AtomResponse(BaseModel):
             model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
             atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")
-            quote: str | None = Field(
-                default=None,
-                description="Pakotettu lainaus alkuperäisestä tekstistä Micro-CoT säännöllä. Null if no evidence.",
+            step_1_evidence_type: EvidenceType = Field(
+                ..., description="CRITICAL: You MUST choose your strategy first."
             )
-            reasoning: str = Field(..., description="Kognitiivinen kitka ja arvioinnin perustelu.")
-            boolean: bool = Field(..., description="Puhdas True/False -osumapäätös.")
+            step_2_quote: str | None = Field(
+                default=None,
+                description="Required if evidence_type is EXPLICIT_QUOTE. The exact verbatim quote.",
+            )
+            step_3_implicit_justification: str | None = Field(
+                default=None,
+                description=(
+                    "Required ONLY if evidence_type is IMPLIED_INTENT. "
+                    "Provide an exhaustive 20+ word justification to prove the implied intent."
+                ),
+            )
+            step_4_reasoning: str = Field(..., description="Final cognitive friction and evaluation reasoning.")
+            step_5_boolean: bool = Field(..., description="The final True/False decision.")
+
+            @model_validator(mode="after")
+            def validate_evidence(self, info: ValidationInfo) -> Any:
+                if self.step_1_evidence_type == EvidenceType.EXPLICIT_QUOTE:
+                    if not self.step_2_quote or not self.step_2_quote.strip():
+                        raise ValueError("ANTI-LAZINESS MANDATE: Quote required for EXPLICIT_QUOTE")
+                elif self.step_1_evidence_type == EvidenceType.IMPLIED_INTENT:
+                    just_str = self.step_3_implicit_justification
+                    if not just_str or len(just_str.split()) < 20:
+                        raise ValueError(
+                            "ANTI-LAZINESS MANDATE: Justification too short for IMPLIED_INTENT (min 20 words)"
+                        )
+                    if info.context is None or "strictness_level" not in info.context:
+                        raise ValueError(
+                            "SYSTEM ARCHITECTURE MANDATE: Missing 'strictness_level' in validation context"
+                        )
+                    if info.context["strictness_level"] >= 70:
+                        raise ValueError("Strictness >= 70 ei salli implisiittistä logiikkaa")
+                elif self.step_1_evidence_type == EvidenceType.NO_EVIDENCE:
+                    if self.step_5_boolean:
+                        raise ValueError("ANTI-LAZINESS MANDATE: Cannot be True with NO_EVIDENCE")
+                return self
 
         DynamicModel = create_model(
             schema_name,

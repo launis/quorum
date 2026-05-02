@@ -34,6 +34,7 @@ class StrategyContext(BaseModel):
     metadata: dict[str, Any]
     expected_inputs: list[ExpectedInput] | None = None
     model_strategy: str | None = None
+    strictness_level: int = 50
 
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
 

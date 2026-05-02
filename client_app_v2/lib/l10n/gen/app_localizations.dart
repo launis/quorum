@@ -3734,6 +3734,48 @@ abstract class AppLocalizations {
   /// **'Warning: Zero-Trust. Zero points unless external frameworks and hard evidence are used flawlessly.'**
   String get strictnessWarningLvl5;
 
+  /// No description provided for @strictnessAbsoluteLeniency.
+  ///
+  /// In en, this message translates to:
+  /// **'Absolute Leniency'**
+  String get strictnessAbsoluteLeniency;
+
+  /// No description provided for @strictnessLenient.
+  ///
+  /// In en, this message translates to:
+  /// **'Lenient'**
+  String get strictnessLenient;
+
+  /// No description provided for @strictnessBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced (Default)'**
+  String get strictnessBalanced;
+
+  /// No description provided for @strictnessStrict.
+  ///
+  /// In en, this message translates to:
+  /// **'Strict'**
+  String get strictnessStrict;
+
+  /// No description provided for @strictnessAbsoluteStrictness.
+  ///
+  /// In en, this message translates to:
+  /// **'Absolute Strictness (Zero-Trust)'**
+  String get strictnessAbsoluteStrictness;
+
+  /// No description provided for @strictnessSelectorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Evaluation Strictness'**
+  String get strictnessSelectorTitle;
+
+  /// No description provided for @strictnessSelectorDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Define how rigorously the AI must enforce rules and validate evidence.'**
+  String get strictnessSelectorDescription;
+
   /// No description provided for @barsCompliance1.
   ///
   /// In en, this message translates to:

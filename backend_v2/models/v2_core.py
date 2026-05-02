@@ -8,6 +8,7 @@ from typing import Any, Literal, cast
 
 from pydantic import BaseModel, Field, RootModel, computed_field, field_validator, model_validator
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
@@ -63,12 +64,6 @@ class I18nText(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_i18n(self) -> I18nText:
-        import logging
-
-        from backend_v2.exceptions import AppException, ErrorCodes
-
-        logger = logging.getLogger(__name__)
-
         # Enforce English-Only Mandate: 'en' translation must ALWAYS exist.
         en_trans = self.translations.get("en")
         if not en_trans or not en_trans.strip():
@@ -228,8 +223,6 @@ class PromptBlock(V2CoreBase):
     @model_validator(mode="after")
     def validate_block_consistency(self) -> PromptBlock:
         """Strict validation for PromptBlock relations and logical constraints."""
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         # Fail-fast: Cannot allow decimals on non-numeric types
         # string permitted for BARS format
         valid_numeric = [BlockDataType.FLOAT, BlockDataType.INT, BlockDataType.STRING]
@@ -364,9 +357,6 @@ class MCPAuditTrace(V2CoreBase):
                 try:
                     data["timestamp"] = datetime.fromisoformat(val)
                 except ValueError as e:
-                    import logging
-
-                    logger = logging.getLogger(__name__)
                     logger.error("Failed to parse MCPAuditTrace timestamp", exc_info=True)
                     raise ValueError(f"Input should be a valid datetime or ISO format for timestamp: {val}") from e
         return data
@@ -430,8 +420,6 @@ class Step(V2CoreBase):
     @model_validator(mode="after")
     def validate_step_consistency(self) -> Step:
         """Strict fail-fast validation to ensure Step is not purely empty."""
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         if self.type == "llm" and not self.model_strategy:
             msg = f"LLM Step '{self.slug}' must declare an explicit model_strategy (Zero-Fallback Rule)."
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400)
@@ -511,8 +499,6 @@ class ExpectedInput(V2CoreBase):
     @model_validator(mode="after")
     def validate_modes(self) -> ExpectedInput:
         """Strict validation for input modes."""
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         if not self.input_modes:
             msg = f"ExpectedInput '{self.input_key}' must have at least one input_mode."
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400)
@@ -566,6 +552,7 @@ class MatrixScorecardRowDTO(V2CoreBase):
     total_atoms: int | None = Field(default=None, description="Total atoms available to evaluate.")
 
     justification: str = Field(..., description="The one-sentence justification.")
+    evidence_type: str | None = Field(default=None, description="The EvidenceType extracted from AtomResponse")
 
     cited_source_id: str | None = None
     cited_text_quote: str | None = None
@@ -651,6 +638,7 @@ class ReportLayoutDTO(V2CoreBase):
 
 class ReportDataDTO(V2CoreBase):
     workflow_id: str
+    strictness_level: int = Field(...)
     profile_id: str
     profile_name: I18nText | None = Field(default=None)
     available_profiles: dict[str, I18nText] = Field(default_factory=dict)
@@ -705,9 +693,6 @@ class ReportDataDTO(V2CoreBase):
                         val = val.replace("Z", "+00:00")
                     data["created_at"] = datetime.fromisoformat(val)
                 except ValueError as e:
-                    import logging
-
-                    logger = logging.getLogger(__name__)
                     logger.error("Failed to parse ReportDataDTO created_at", exc_info=True)
                     raise ValueError(f"Input should be a valid datetime or ISO format for created_at: {val}") from e
         return data
@@ -795,8 +780,6 @@ class OutputProfile(V2CoreBase):
     @classmethod
     def coerce_xai_extensions(cls, v: Any) -> Any:
         if isinstance(v, list):
-            from backend_v2.models.enums import XaiExtensionType
-
             return [XaiExtensionType(x) if isinstance(x, str) else x for x in v]
         return v
 
@@ -835,8 +818,6 @@ class EmbeddedOutputProfile(V2CoreBase):
     @classmethod
     def coerce_xai_extensions(cls, v: Any) -> Any:
         if isinstance(v, list):
-            from backend_v2.models.enums import XaiExtensionType
-
             return [XaiExtensionType(x) if isinstance(x, str) else x for x in v]
         return v
 
@@ -866,8 +847,6 @@ class Workflow(V2CoreBase):
     @model_validator(mode="after")
     def validate_dag_integrity(self) -> Workflow:
         """Enforces Directed Acyclic Graph (DAG) structural integrity."""
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         step_ids = {step.id for step in self.steps}
         graph: dict[str, list[str]] = {step.id: [] for step in self.steps}
 
@@ -933,6 +912,7 @@ class ExecutionCreate(V2CoreBase):
     """Schema for initiating a new workflow execution."""
 
     workflow_id: str = Field(description="ID of the workflow to execute")
+    strictness_level: int = Field(..., ge=0, le=100, description="Strictness level of the evaluation (0-100)")
     target_locale: str = Field(
         description="Desired target locale for output generated by the workflow "
         "(e.g., 'fi'). Must be explicitly provided."
@@ -984,9 +964,6 @@ class RenderedSynthesisCache(V2CoreBase):
                         val = val.replace("Z", "+00:00")
                     data["created_at"] = datetime.fromisoformat(val)
                 except ValueError as e:
-                    import logging
-
-                    logger = logging.getLogger(__name__)
                     logger.error("Failed to parse RenderedSynthesisCache created_at", exc_info=True)
                     raise ValueError(f"Input should be a valid datetime or ISO format for created_at: {val}") from e
         return data
@@ -997,6 +974,7 @@ class ExecutionRecord(V2CoreBase):
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")
+    strictness_level: int = Field(..., description="Strictness level of the evaluation (0-100)")
     status: ExecutionStatus = Field(description="Current status of execution", strict=False)
     active_profile_id: str | None = Field(
         default=None, description="The ID of the output profile selected for formatting and printing."
@@ -1050,9 +1028,6 @@ class ExecutionRecord(V2CoreBase):
                             val = val.replace("Z", "+00:00")
                         data[field] = datetime.fromisoformat(val)
                     except ValueError as e:
-                        import logging
-
-                        logger = logging.getLogger(__name__)
                         logger.error("Failed to parse ExecutionRecord %s", field, exc_info=True)
                         raise ValueError(f"Input should be a valid datetime or ISO format for {field}: {val}") from e
         return data

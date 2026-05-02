@@ -30,6 +30,7 @@ def valid_execution_data_for_synthesis() -> dict[str, Any]:
         "organization_id": "org_00000000000000000000",
         "status": "running",
         "output_profile_id": "prof_00000000000000000000",
+        "strictness_level": 50,
     }
 
 

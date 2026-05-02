@@ -12,7 +12,7 @@ from typing import Any, cast
 
 import litellm
 from dotenv import load_dotenv
-from litellm import Router  # type: ignore
+from litellm import Router  # type: ignore[attr-defined] # LiteLLM ei eksplisiittisesti exporttaa Routeria
 from pydantic import BaseModel
 
 from backend_v2.exceptions import (
@@ -42,7 +42,7 @@ class LLMProvider(ABC):
     """
 
     @abstractmethod
-    async def generate(  # type: ignore
+    async def generate(
         self,
         prompt: str | None = None,
         system_instruction: str | None = None,
@@ -53,7 +53,8 @@ class LLMProvider(ABC):
         top_p: float | None = None,
         top_k: int | None = None,
         pass_reasoning_token: str | None = None,
-        **kwargs,
+        validation_context: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         """Generates content from the LLM.
 
@@ -167,7 +168,7 @@ class LiteLLMProvider(LLMProvider):
             # Save to class cache
             self.__class__._router_cache[cache_key] = self.router
 
-    async def generate(  # type: ignore
+    async def generate(
         self,
         prompt: str | None = None,
         system_instruction: str | None = None,
@@ -178,7 +179,8 @@ class LiteLLMProvider(LLMProvider):
         top_p: float | None = None,
         top_k: int | None = None,
         pass_reasoning_token: str | None = None,
-        **kwargs,
+        validation_context: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         """Generates content using LiteLLM.
 
@@ -430,40 +432,8 @@ class LiteLLMProvider(LLMProvider):
                         getattr(response.usage.completion_tokens_details, "reasoning_tokens", 0) or 0
                     )
 
-            # Handle Schema Parsing (Validation) - V2.5 Native Pydantic Parsing
             final_content = raw_content
-            parsed_obj = None
-
-            if response_schema:
-                try:
-                    # Expecting LiteLLM / Provider to have forced a JSON string into `message.content`
-                    # We just use Pydantic directly to validate it.
-                    if isinstance(response_schema, type) and issubclass(response_schema, BaseModel):
-                        parsed_obj = response_schema.model_validate_json(raw_content)
-                        # We dump it rigidly back to JSON to strip random extra hallucinatory whitespace
-                        final_content = parsed_obj.model_dump_json()
-                    elif isinstance(response_schema, dict):
-                        # Raw Dict Schema handling if needed
-                        parsed_obj = json.loads(raw_content)
-                except Exception as parse_err:
-                    error_str = str(parse_err)
-                    logger.error(
-                        "[LiteLLMProvider] Native JSON Parsing Failure: %s\nRaw Content: %s",
-                        error_str,
-                        raw_content[:200],
-                    )
-
-                    safety_hint = ""
-                    if finish_reason == "content_filter" or "safety" in error_str.lower():
-                        safety_hint = " The response was likely blocked by Provider Safety Filters."
-
-                    raise AppException(
-                        message=(f"LLM returned an invalid structured response. {safety_hint}"),
-                        status_code=500,
-                        details={"error_code": ErrorCodes.AGENT_RESPONSE_PARSING_FAILED, "raw_error": error_str},
-                    ) from parse_err
-
-            # --- ADVANCED TELEMETRY & METADATA ---
+            parsed_obj = None  # --- ADVANCED TELEMETRY & METADATA ---
             system_fingerprint = getattr(response, "system_fingerprint", None)
             if finish_reason in ["stop", "eos"]:
                 finish_reason = None
@@ -493,9 +463,10 @@ class LiteLLMProvider(LLMProvider):
                     ]
                     if urls:
                         provider_meta["grounding_urls"] = urls
-                        # Inject Grounding Citations directly into the markdown response!
-                        final_content += "\n\n**Lähteet (Google Search Grounding):**\n"
-                        final_content += "\n".join([f"- [{url}]({url})" for url in urls])
+                        if not response_schema:
+                            # Only inject raw markdown if we are NOT expecting a strictly structured JSON response.
+                            final_content += "\n\n**Lähteet (Google Search Grounding):**\n"
+                            final_content += "\n".join([f"- [{url}]({url})" for url in urls])
 
             # --- COST TRACKING ---
             cost = 0.0
@@ -699,17 +670,19 @@ class MockProvider(LLMProvider):
         self.usage_service = usage_service
         self.organization_id = organization_id or "UNKNOWN_ORG"
 
-    async def generate(  # type: ignore
+    async def generate(
         self,
-        prompt: str,
+        prompt: str | None = None,
         system_instruction: str | None = None,
+        messages: list[dict[str, Any]] | None = None,
         response_schema: type[BaseModel] | dict[str, Any] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
         top_p: float | None = None,
         top_k: int | None = None,
         pass_reasoning_token: str | None = None,
-        **kwargs,
+        validation_context: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         """Simulates generation by invoking the MockLLMService."""
         logger.info("[MockProvider] Calling Mock Service (Simulating Async)... %s", kwargs)
@@ -732,6 +705,8 @@ class MockProvider(LLMProvider):
                 with open(dump_file, "a", encoding="utf-8") as f:
                     f.write(f"\n\n--- [MockProvider] {self.model_name} ---\n")
                     f.write(f"PROMPT:\n{prompt}\n")
+                    if messages:
+                        f.write(f"MESSAGES:\n{messages}\n")
                     if system_instruction:
                         f.write(f"SYSTEM:\n{system_instruction}\n")
             except Exception as e:
@@ -740,13 +715,18 @@ class MockProvider(LLMProvider):
         # Simulate network delay for verification of async behavior
         await asyncio.sleep(0.5)
 
-        mock = MockLLMService()  # type: ignore
+        mock = MockLLMService()  # type: ignore[no-untyped-call] # MockLLMService on untyped legacy moduuli
 
         # Extract explicit identity if provided
         agent_identity = kwargs.get("mock_identity")
 
+        prompt_str = prompt or ""
+        if messages and not prompt_str:
+            # Fallback to serializing messages if prompt is empty
+            prompt_str = json.dumps(messages)
+
         result = mock.generate_content(
-            prompt,
+            prompt_str,
             system_instruction,
             agent_identity=agent_identity,
             response_schema=response_schema,
@@ -825,7 +805,7 @@ class LLMFactory:
     """Factory class to instantiate the appropriate LLMProvider based on configuration."""
 
     @staticmethod
-    def create_provider(  # type: ignore
+    def create_provider(
         provider_type: str,
         model_name: str,
         context: dict[str, Any] | Any | None = None,
@@ -834,7 +814,7 @@ class LLMFactory:
         limits: dict[str, int] | None = None,
         api_key: str | None = None,
         config: LLMProviderConfig | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> LLMProvider:
         """Factory method to create an LLM Provider instance.
 

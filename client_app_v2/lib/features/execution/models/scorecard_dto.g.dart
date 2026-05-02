@@ -101,6 +101,7 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
         'cited_source_id',
         'cited_text_quote',
         'cited_web_citation',
+        'evidence_type',
         'coaching',
         'confidence',
         'falsification',
@@ -140,6 +141,10 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
       citedWebCitation: $checkedConvert(
         'cited_web_citation',
         (v) => v as String?,
+      ),
+      evidenceType: $checkedConvert(
+        'evidence_type',
+        (v) => $enumDecodeNullable(_$EvidenceTypeEnumMap, v),
       ),
       coaching: $checkedConvert('coaching', (v) => v as String?),
       confidence: $checkedConvert('confidence', (v) => (v as num?)?.toDouble()),
@@ -193,6 +198,7 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
     'citedSourceId': 'cited_source_id',
     'citedTextQuote': 'cited_text_quote',
     'citedWebCitation': 'cited_web_citation',
+    'evidenceType': 'evidence_type',
     'missingContext': 'missing_context',
     'riskFlag': 'risk_flag',
     'remediationSteps': 'remediation_steps',
@@ -224,6 +230,7 @@ Map<String, dynamic> _$MatrixScorecardRowDtoToJson(
   'cited_source_id': instance.citedSourceId,
   'cited_text_quote': instance.citedTextQuote,
   'cited_web_citation': instance.citedWebCitation,
+  'evidence_type': _$EvidenceTypeEnumMap[instance.evidenceType],
   'coaching': instance.coaching,
   'confidence': instance.confidence,
   'falsification': instance.falsification,
@@ -237,4 +244,10 @@ Map<String, dynamic> _$MatrixScorecardRowDtoToJson(
   'ui_boundary_labels': instance.uiBoundaryLabels,
   'ui_plot_ratio': instance.uiPlotRatio,
   'is_evaluative': instance.isEvaluative,
+};
+
+const _$EvidenceTypeEnumMap = {
+  EvidenceType.explicitQuote: 'EXPLICIT_QUOTE',
+  EvidenceType.impliedIntent: 'IMPLIED_INTENT',
+  EvidenceType.noEvidence: 'NO_EVIDENCE',
 };

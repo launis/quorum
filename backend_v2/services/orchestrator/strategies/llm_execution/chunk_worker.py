@@ -46,6 +46,7 @@ class ChunkWorker:
         target_locale: str,
         synthesis_instructions: dict[str, Any] | None,
         output_profile: Any | None,
+        strictness_level: int = 50,
     ) -> tuple[dict[str, Any], dict[str, Any] | None, list[Any]]:
         """Processes a single execution chunk, mapping dynamic schemas and orchestrating tool loops."""
         async with sem:
@@ -93,9 +94,17 @@ class ChunkWorker:
                 target_locale=target_locale,
             )
 
+            strictness_instruction = compiler.calibrate_strictness(strictness_level)
+
+            user_msg = (
+                f"System Context & Reference Data:\n\n{local_payload}\n\n"
+                f"<execution_parameters>\n<STRICTNESS_CALIBRATION>\n"
+                f"{strictness_instruction}\n</STRICTNESS_CALIBRATION>\n</execution_parameters>"
+            )
+
             messages = [
-                {"role": "system", "content": f"System Context & Reference Data:\n\n{local_payload}"},
-                {"role": "user", "content": local_system_prompt},
+                {"role": "system", "content": local_system_prompt},
+                {"role": "user", "content": user_msg},
             ]
 
             chunk_final: dict[str, Any] = {}
@@ -115,6 +124,7 @@ class ChunkWorker:
                         mock_identity=step_id,
                         target_language=target_locale,
                         synthesis_instructions=synthesis_instructions,
+                        validation_context={"strictness_level": strictness_level},
                     )
                     chunk_final = dict(loop_res.result_data)
                     chunk_usage = dict(loop_res.usage) if loop_res.usage else None
@@ -147,6 +157,7 @@ class ChunkWorker:
                             response_model=SduiResponseList,
                             mock_identity=step_id,
                             max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
+                            validation_context={"strictness_level": strictness_level},
                         )
                         chunk_final = {"blocks": result.model_dump(mode="json")}
                     else:
@@ -156,6 +167,7 @@ class ChunkWorker:
                             response_model=local_dynamic_schema,
                             mock_identity=step_id,
                             max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
+                            validation_context={"strictness_level": strictness_level},
                         )
                         chunk_final = dict(result.model_dump(mode="json"))
 

@@ -19,7 +19,10 @@ async def test_worker_invokes_synthesis_hook(
     mock_repo_class.return_value = mock_repo
 
     mock_execution = ExecutionRecord(
-        id="exec_1234567812345678", workflow_id="wf_1234567812345678", status=ExecutionStatus.COMPLETED
+        strictness_level=50,
+        id="exec_1234567812345678",
+        workflow_id="wf_1234567812345678",
+        status=ExecutionStatus.COMPLETED,
     )
     mock_repo.get_execution.return_value = mock_execution
 

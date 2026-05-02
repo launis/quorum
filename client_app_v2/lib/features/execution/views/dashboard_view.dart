@@ -75,176 +75,174 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
         icon: const Icon(Icons.add),
         label: Text(AppLocalizations.of(context)!.newAnalysis),
       ),
-      body: asyncExecutions.when(
-        data: (executions) {
-          if (executions.isEmpty) {
-            return Center(
-              child: Text(AppLocalizations.of(context)!.noExecutions),
-            );
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: executions.length,
-            itemBuilder: (context, index) {
-              final exec = executions[index];
-              final id =
-                  exec['id']?.toString() ??
-                  (throw AppException.validation(
-                    'CRITICAL FAIL-FAST: Missing execution ID',
-                  ));
-              final status =
-                  exec['status']?.toString() ??
-                  (throw AppException.validation(
-                    'CRITICAL FAIL-FAST: Missing execution status',
-                  ));
-              final workflowId =
-                  exec['workflow_id']?.toString() ??
-                  (throw AppException.validation(
-                    'CRITICAL FAIL-FAST: Missing workflow_id',
-                  ));
-              final createdAt = exec['created_at']?.toString() ?? '';
+      body: switch (asyncExecutions) {
+        AsyncData(:final value) =>
+          value.isEmpty
+              ? Center(child: Text(AppLocalizations.of(context)!.noExecutions))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: value.length,
+                  itemBuilder: (context, index) {
+                    final exec = value[index];
+                    final id =
+                        exec['id']?.toString() ??
+                        (throw AppException.validation(
+                          'CRITICAL FAIL-FAST: Missing execution ID',
+                        ));
+                    final status =
+                        exec['status']?.toString() ??
+                        (throw AppException.validation(
+                          'CRITICAL FAIL-FAST: Missing execution status',
+                        ));
+                    final workflowId =
+                        exec['workflow_id']?.toString() ??
+                        (throw AppException.validation(
+                          'CRITICAL FAIL-FAST: Missing workflow_id',
+                        ));
+                    final createdAt = exec['created_at']?.toString() ?? '';
 
-              // Formatting date
-              String dateStr = createdAt;
-              if (createdAt.isNotEmpty) {
-                try {
-                  final dt = DateTime.parse(createdAt).toLocal();
-                  dateStr =
-                      '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-                } catch (e, st) {
-                  ref
-                      .read(loggerServiceProvider)
-                      .error(
-                        'DashboardView',
-                        'Failed to parse createdAt date: $createdAt',
-                        e,
-                        st,
-                      );
-                  throw AppException.validation(
-                    'Corrupted DateTime string in execution data: $createdAt',
-                  );
-                }
-              }
-
-              // Metrics
-              final costEstimate =
-                  (exec['cost_estimate'] as num?)?.toDouble() ?? 0.0;
-              final totalTokens = (exec['total_tokens'] as num?)?.toInt() ?? 0;
-
-              String metricsStr = '';
-              if (totalTokens > 0 || costEstimate > 0) {
-                final l10n = AppLocalizations.of(context)!;
-                metricsStr =
-                    '\n${l10n.executionCostEstimate(costEstimate.toStringAsFixed(6))} | ${l10n.tokensUsed(totalTokens)}';
-              }
-
-              // Resolve Workflow Name
-              String workflowDisplay = AppLocalizations.of(
-                context,
-              )!.workflowPrefixLabel(workflowId);
-              if (asyncWorkflows is AsyncData && asyncWorkflows.value != null) {
-                final workflows = asyncWorkflows.value!;
-                final wf = workflows
-                    .where((w) => w['id']?.toString() == workflowId)
-                    .firstOrNull;
-                if (wf != null) {
-                  final nameMapRaw = wf['name'];
-                  final nameMap = nameMapRaw is Map ? nameMapRaw : {};
-                  final titleStr = nameMap.isNotEmpty
-                      ? (nameMap['translations']?[nameMap['default_locale']] ??
-                            nameMap['default_locale'] ??
-                            (throw AppException.validation(
-                              'Fail-Fast: Missing required translation.',
-                            )))
-                      : ((wf['name']?.toString() ?? '').isNotEmpty
-                            ? wf['name']?.toString() ?? ''
-                            : (throw AppException.validation(
-                                'Fail-Fast: Missing required translation.',
-                              )));
-                  workflowDisplay = AppLocalizations.of(
-                    context,
-                  )!.workflowPrefixLabel(titleStr);
-                }
-              }
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  title: Text(
-                    workflowDisplay,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    '${AppLocalizations.of(context)!.executionIdLabel(id)}\n${AppLocalizations.of(context)!.created}: $dateStr$metricsStr',
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildStatusChip(status),
-                      const SizedBox(width: 8),
-                      if (status.toLowerCase() == 'completed') ...[
-                        IconButton(
-                          icon: Icon(
-                            Icons.print,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          tooltip: AppLocalizations.of(
-                            context,
-                          )!.printVariantSelectorTitle,
-                          onPressed: () => _showVariantSelector(
-                            context,
-                            id,
-                            workflowId,
-                            asyncWorkflows,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      IconButton(
-                        icon: Icon(
-                          Icons.replay,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        tooltip: AppLocalizations.of(
-                          context,
-                        )!.rerunExecutionTooltip,
-                        onPressed: () =>
-                            _cloneAndRunExecution(context, ref, id),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: Icon(
-                          Icons.delete,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        tooltip: AppLocalizations.of(
-                          context,
-                        )!.deleteExecutionTooltip,
-                        onPressed: () => _confirmDelete(context, ref, id),
-                      ),
-                    ],
-                  ),
-                  isThreeLine: true,
-                  onTap: () {
-                    // Navigate to details safely using GoRouter codegen
-                    if (status.toLowerCase() == 'completed') {
-                      ExecutionReportRoute(executionId: id).go(context);
-                    } else {
-                      ExecutionRoute(executionId: id).go(context);
+                    // Formatting date
+                    String dateStr = createdAt;
+                    if (createdAt.isNotEmpty) {
+                      try {
+                        final dt = DateTime.parse(createdAt).toLocal();
+                        dateStr =
+                            '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+                      } catch (e, st) {
+                        ref
+                            .read(loggerServiceProvider)
+                            .error(
+                              'DashboardView',
+                              'Failed to parse createdAt date: $createdAt',
+                              e,
+                              st,
+                            );
+                        throw AppException.validation(
+                          'Corrupted DateTime string in execution data: $createdAt',
+                        );
+                      }
                     }
+
+                    // Metrics
+                    final costEstimate =
+                        (exec['cost_estimate'] as num?)?.toDouble() ?? 0.0;
+                    final totalTokens =
+                        (exec['total_tokens'] as num?)?.toInt() ?? 0;
+
+                    String metricsStr = '';
+                    if (totalTokens > 0 || costEstimate > 0) {
+                      final l10n = AppLocalizations.of(context)!;
+                      metricsStr =
+                          '\n${l10n.executionCostEstimate(costEstimate.toStringAsFixed(6))} | ${l10n.tokensUsed(totalTokens)}';
+                    }
+
+                    // Resolve Workflow Name
+                    String workflowDisplay = AppLocalizations.of(
+                      context,
+                    )!.workflowPrefixLabel(workflowId);
+                    if (asyncWorkflows is AsyncData &&
+                        asyncWorkflows.value != null) {
+                      final workflows = asyncWorkflows.value!;
+                      final wf = workflows
+                          .where((w) => w['id']?.toString() == workflowId)
+                          .firstOrNull;
+                      if (wf != null) {
+                        final nameMapRaw = wf['name'];
+                        final nameMap = nameMapRaw is Map ? nameMapRaw : {};
+                        final titleStr = nameMap.isNotEmpty
+                            ? (nameMap['translations']?[nameMap['default_locale']] ??
+                                  nameMap['default_locale'] ??
+                                  (throw AppException.validation(
+                                    'Fail-Fast: Missing required translation.',
+                                  )))
+                            : ((wf['name']?.toString() ?? '').isNotEmpty
+                                  ? wf['name']?.toString() ?? ''
+                                  : (throw AppException.validation(
+                                      'Fail-Fast: Missing required translation.',
+                                    )));
+                        workflowDisplay = AppLocalizations.of(
+                          context,
+                        )!.workflowPrefixLabel(titleStr);
+                      }
+                    }
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        title: Text(
+                          workflowDisplay,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          '${AppLocalizations.of(context)!.executionIdLabel(id)}\n${AppLocalizations.of(context)!.created}: $dateStr$metricsStr',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildStatusChip(status),
+                            const SizedBox(width: 8),
+                            if (status.toLowerCase() == 'completed') ...[
+                              IconButton(
+                                icon: Icon(
+                                  Icons.print,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                tooltip: AppLocalizations.of(
+                                  context,
+                                )!.printVariantSelectorTitle,
+                                onPressed: () => _showVariantSelector(
+                                  context,
+                                  id,
+                                  workflowId,
+                                  asyncWorkflows,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            IconButton(
+                              icon: Icon(
+                                Icons.replay,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              tooltip: AppLocalizations.of(
+                                context,
+                              )!.rerunExecutionTooltip,
+                              onPressed: () =>
+                                  _cloneAndRunExecution(context, ref, id),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                              tooltip: AppLocalizations.of(
+                                context,
+                              )!.deleteExecutionTooltip,
+                              onPressed: () => _confirmDelete(context, ref, id),
+                            ),
+                          ],
+                        ),
+                        isThreeLine: true,
+                        onTap: () {
+                          // Navigate to details safely using GoRouter codegen
+                          if (status.toLowerCase() == 'completed') {
+                            ExecutionReportRoute(executionId: id).go(context);
+                          } else {
+                            ExecutionRoute(executionId: id).go(context);
+                          }
+                        },
+                      ),
+                    );
                   },
                 ),
-              );
-            },
-          );
-        },
-        error: (err, stack) => ErrorView(
-          error: err,
-          stackTrace: stack,
+        AsyncError(:final error, :final stackTrace) => ErrorView(
+          error: error,
+          stackTrace: stackTrace,
           onRetry: () => ref.invalidate(executionListProvider),
         ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-      ),
+        _ => const Center(child: CircularProgressIndicator()),
+      },
     );
   }
 

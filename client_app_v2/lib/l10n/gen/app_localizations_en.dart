@@ -2008,6 +2008,28 @@ class AppLocalizationsEn extends AppLocalizations {
       'Warning: Zero-Trust. Zero points unless external frameworks and hard evidence are used flawlessly.';
 
   @override
+  String get strictnessAbsoluteLeniency => 'Absolute Leniency';
+
+  @override
+  String get strictnessLenient => 'Lenient';
+
+  @override
+  String get strictnessBalanced => 'Balanced (Default)';
+
+  @override
+  String get strictnessStrict => 'Strict';
+
+  @override
+  String get strictnessAbsoluteStrictness => 'Absolute Strictness (Zero-Trust)';
+
+  @override
+  String get strictnessSelectorTitle => 'Evaluation Strictness';
+
+  @override
+  String get strictnessSelectorDescription =>
+      'Define how rigorously the AI must enforce rules and validate evidence.';
+
+  @override
   String get barsCompliance1 =>
       'Critically Misaligned - Completely random process';
 

@@ -18,6 +18,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(Map<String, dynamic> json) =>
             'workflow_id',
             'status',
             'trace_version',
+            'strictness_level',
             'report_data',
           ],
         );
@@ -32,6 +33,10 @@ _ExecutionRecord _$ExecutionRecordFromJson(Map<String, dynamic> json) =>
             'trace_version',
             (v) => _traceVersionFromJson(v),
           ),
+          strictnessLevel: $checkedConvert(
+            'strictness_level',
+            (v) => (v as num?)?.toInt(),
+          ),
           reportData: $checkedConvert(
             'report_data',
             (v) => v == null
@@ -44,6 +49,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(Map<String, dynamic> json) =>
       fieldKeyMap: const {
         'workflowId': 'workflow_id',
         'traceVersion': 'trace_version',
+        'strictnessLevel': 'strictness_level',
         'reportData': 'report_data',
       },
     );
@@ -54,5 +60,6 @@ Map<String, dynamic> _$ExecutionRecordToJson(_ExecutionRecord instance) =>
       'workflow_id': instance.workflowId,
       'status': instance.status,
       'trace_version': instance.traceVersion,
+      'strictness_level': instance.strictnessLevel,
       'report_data': instance.reportData?.toJson(),
     };

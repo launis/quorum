@@ -15,6 +15,7 @@ valid_execution_data = {
     "organization_id": "org_1",
     "status": "running",
     "output_profile_id": "prof_123",
+    "strictness_level": 50,
 }
 
 valid_workflow_data = {

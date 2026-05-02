@@ -619,8 +619,8 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
                 ) from e
 
             atom_id = ev_dto.atom_id
-            boolean_val = ev_dto.boolean
-            reasoning = ev_dto.reasoning
+            boolean_val = ev_dto.step_5_boolean
+            reasoning = ev_dto.step_4_reasoning
 
             if not atom_id:
                 continue

@@ -31,7 +31,7 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
    - **`fail_fast_hydration_mandate`**: Kaikki dict-muodossa kulkeva epävarma data (kuten komponentit/matriisit tietokannasta tai webhookista) on "hydratoitava" `.model_validate()` -metodilla VÄLITTÖMÄSTI ennen käsittelyä. Arvojen onkiminen `data.get("avain")` tyylillä on ehdottomasti kielletty logiikkakerroksessa.
    - **`opaque_stripe_id_mandate`**: Vain `usr_123` jne. Ei kokonaisluku-ID:itä (IDOR) tai slugeja relaatioissa.
    - **`python_314_modern_syntax`**: PEP 695 generics, modernit unionit (`| None`), ei `Optional[X]`.
-   - **`zero_legacy_fallback_hacks`**: Ei `@model_validator` -purkkakorjauksia vanhan V1 datan hyväksymiseksi.
+   - **`zero_legacy_fallback_hacks`**: Vanhoja asioita ei saa tukea! Tämä koskee KAIKKIA fallback-asioita (ei "or" ketjuja, ei `.get(key, default)`, ei puuttuvien arvojen paikkaamista tyhjillä). Ei `@model_validator` -purkkakorjauksia vanhan V1 datan hyväksymiseksi. Vanhat kentät ja oletusarvot pitää poistaa armotta. **(Tämä on auditoitava erillisenä Pass/Fail -rivinä taulukossa!)**
    - **`frozen_state_mutability`**: Domain-mallit muuttumattomia (`ConfigDict(frozen=True)`).
    - **`pydantic_native_field_priority`**: Suosi Pydanticin natiivia `Field(ge=0)` validaatiota manuaalisen field_validatorin sijaan.
    - **`zero_type_ignore_shortcuts`**: Ei `# type: ignore` merkintöjä ilman tarkkaa error codea ja perustelua.

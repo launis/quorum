@@ -34,31 +34,28 @@ class DynamicStartScreen extends HookConsumerWidget {
     final collectedInputs = useRef<Map<String, dynamic>>({});
     final formKey = useMemoized(() => GlobalKey<FormState>());
 
-    return schemaAsync.when(
-      data: (schema) {
-        final expectedRaw = schema['expected_inputs'];
-        final expectedInputs = (expectedRaw is List ? expectedRaw : [])
+    return switch (schemaAsync) {
+      AsyncData(:final value) => _buildContent(
+        context,
+        ref,
+        (value['expected_inputs'] is List
+                ? value['expected_inputs'] as List
+                : [])
             .map(
               (e) => e is Map ? e as Map<String, dynamic> : <String, dynamic>{},
             )
-            .toList();
-
-        return _buildContent(
+            .toList(),
+        collectedInputs.value,
+        formKey,
+      ),
+      AsyncError(:final error) => ErrorView(
+        error: AppLocalizations.of(
           context,
-          ref,
-          expectedInputs,
-          collectedInputs.value,
-          formKey,
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) {
-        return ErrorView(
-          error: AppLocalizations.of(context)!.failedToLoadSchema(e.toString()),
-          compact: true,
-        );
-      },
-    );
+        )!.failedToLoadSchema(error.toString()),
+        compact: true,
+      ),
+      _ => const Center(child: CircularProgressIndicator()),
+    };
   }
 
   void _onStart(

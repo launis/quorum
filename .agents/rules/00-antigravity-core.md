@@ -69,8 +69,8 @@
         <catastrophic_reason>Injecting "magic defaults" deeply in the controller/service logic bypasses the Pydantic/Dart structural audits, leading to untraceable shadow-states when the database or LLM behaves anomalously.</catastrophic_reason>
     </rule_block>
     <rule_block id="the_no_legacy_mandate">
-        <banned_pattern>Writing code that maintains "backwards compatibility" with old V1 structures, deprecated APIs, or legacy databases.</banned_pattern>
-        <mandatory_pattern>Obsolete code must be ruthlessly deleted and replaced with modern V2 Architecture.</mandatory_pattern>
+        <banned_pattern>Writing code that maintains "backwards compatibility" with old V1 structures, deprecated APIs, or legacy databases. ANY form of fallback logic (e.g., `new_field or old_field`, `.get('key', default)`, `.maybeWhen` in Flutter) designed to catch missing or old data structures.</banned_pattern>
+        <mandatory_pattern>Vanhoja asioita ei saa tukea. Tämä koskee KAIKKEA fallback-logiikkaa! Jos data puuttuu tai on väärän muotoista, järjestelmän tulee kaatua (Fail-Fast). Obsolete code, ALL fallback chains, and legacy test fixtures MUST be ruthlessly deleted.</mandatory_pattern>
     </rule_block>
     <rule_block id="database_schema_hallucination">
         <banned_pattern>Autonomously migrating relational SSOT arrays (like `output_profiles`) into embedded nested structures inside other objects (like `workflows`) within `seed_data.json` based on assumptions about Pydantic attributes.</banned_pattern>

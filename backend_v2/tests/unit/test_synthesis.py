@@ -31,6 +31,7 @@ def valid_execution_data() -> dict[str, Any]:
         "organization_id": "org_1",
         "status": "running",
         "output_profile_id": "prof_1234567890abcdef1234567890abcdef",
+        "strictness_level": 50,
     }
 
 

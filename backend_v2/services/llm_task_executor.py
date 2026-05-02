@@ -32,6 +32,7 @@ class LLMTaskExecutor:
         max_logical_retries: int = 1,
         validator_hook: Callable[[T], Awaitable[None]] | None = None,
         mock_identity: str | None = None,
+        validation_context: dict[str, Any] | None = None,
     ) -> tuple[T, TokenUsage]:
         """Execute a structured LLM task with Self-Healing, FinOps, and Strict Fail-Fast.
 
@@ -43,6 +44,7 @@ class LLMTaskExecutor:
             max_logical_retries: Semantic budget.
             validator_hook: Optional async domain validator hook.
             mock_identity: Test identifier.
+            validation_context: Optional context dict for Pydantic V2 validation (strictness_level, etc).
 
         Returns:
             Tuple of (Validated Pydantic Model, TokenUsage).
@@ -65,6 +67,7 @@ class LLMTaskExecutor:
                     messages=current_messages,
                     response_model=response_model,
                     mock_identity=mock_identity,
+                    validation_context=validation_context,
                 )
 
                 # FinOps Accumulation

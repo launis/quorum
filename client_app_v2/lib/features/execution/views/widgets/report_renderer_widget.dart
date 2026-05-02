@@ -236,6 +236,41 @@ class ReportRendererWidget extends ConsumerWidget {
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               ),
 
+            if (payload.strictnessLevel != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.shade50,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.indigo.shade200),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.balance,
+                        size: 14,
+                        color: Colors.indigo.shade700,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${l10n.strictnessSelectorTitle}: ${_getStrictnessName(context, payload.strictnessLevel!)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.indigo.shade800,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
             if (showCost || showTokens) const Divider(height: 24),
 
             // KUSTANNUKSET & KOGNITIIVINEN TYÖ
@@ -332,7 +367,7 @@ class ReportRendererWidget extends ConsumerWidget {
         PresetView.compare2d => _build2DCompare(context, layout),
         PresetView.matrix3d => _build3DComplex(context, layout),
         PresetView.complex3d => _build3DRadar(context, layout),
-        PresetView.textOnly => const SizedBox.shrink(),
+        PresetView.textOnly => const SizedBox(),
         _ => _build1DMetrics(context, layout),
       };
     } catch (e, st) {
@@ -674,5 +709,17 @@ class ReportRendererWidget extends ConsumerWidget {
         if (layout.textDeliveryMode != 'none') _build1DMetrics(context, layout),
       ],
     );
+  }
+
+  String _getStrictnessName(BuildContext context, int level) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (level) {
+      0 => l10n.strictnessAbsoluteLeniency,
+      15 => l10n.strictnessLenient,
+      50 => l10n.strictnessBalanced,
+      85 => l10n.strictnessStrict,
+      100 => l10n.strictnessAbsoluteStrictness,
+      _ => '$level',
+    };
   }
 }

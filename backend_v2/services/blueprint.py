@@ -15,6 +15,7 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import Organization
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.dtos.report import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
     MatrixScorecardRowDTO,
@@ -148,7 +149,17 @@ class BlueprintTransformer:
                 try:
                     blocks_by_id[b["id"]] = PromptBlock.model_validate(b)
                 except Exception as e:
-                    logger.warning("Failed to parse PromptBlock %s: %s", b["id"], e)
+                    logger.error(
+                        "[BlueprintTransformer] %s: Failed to parse PromptBlock %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        b.get("id"),
+                        exc_info=True,
+                    )
+                    raise AppException(
+                        message=f"Failed to parse PromptBlock {b.get('id')} from database",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from e
         layouts_list = []
         # Pre-fetch prompt blocks to enrich axis labels
         # (Blocks already fetched above for global aggregation)
@@ -209,11 +220,16 @@ class BlueprintTransformer:
         global_score = None
         penalties_applied: list[str] = []
         if isinstance(scoring_out, dict):
-            t_score = scoring_out.get("total_score")
-            global_score = float(round(float(t_score), 1)) if t_score is not None else None
-            raw_penalties = scoring_out.get("penalties_applied")
-            if isinstance(raw_penalties, list):
-                penalties_applied = [str(p) for p in raw_penalties]
+            # Enforce Fail-Fast Hydration Mandate
+            try:
+                score_dto = TraceScoringPayloadDTO.model_validate(scoring_out)
+                t_score = score_dto.total_score
+                global_score = float(round(float(t_score), 1)) if t_score is not None else None
+                raw_penalties = score_dto.penalties_applied
+                if isinstance(raw_penalties, list):
+                    penalties_applied = [str(p) for p in raw_penalties]
+            except Exception as e:
+                logger.debug("Scoring payload extraction failed: %s", e)
 
         evaluative_matrices: list[MatrixScorecardRowDTO] = []
         informational_matrices: list[MatrixScorecardRowDTO] = []
@@ -233,12 +249,19 @@ class BlueprintTransformer:
             if not pb_meta or pb_meta.category_id != "matrix":
                 continue
 
-            # Epic 39 / Phase 9 Extraction
-            raw_score = block_data.get("raw_score")
+            # Epic 39 / Phase 9 Extraction (Fail-Fast Hydration Mandate)
+            try:
+                matrix_payload = TraceMatrixPayloadDTO.model_validate(block_data)
+            except Exception as e:
+                logger.debug("Skipping block %s due to invalid matrix payload format: %s", b_id, e)
+                continue
+
+            raw_score = matrix_payload.raw_score
+
             if raw_score is None:
                 continue  # Valid Fail-Fast: Only include matrices that were actually scored
 
-            norm_score = block_data.get("normalized_score")
+            norm_score = matrix_payload.normalized_score
 
             # Extrema & Localization
             axis_name = pb_meta.label.resolve(locale) if pb_meta.label else b_id
@@ -314,7 +337,7 @@ class BlueprintTransformer:
                 display_scale_min = float(scale_min_val)
                 display_scale_max = float(scale_max_val)
 
-            target_val = block_data.get(active_score_key)
+            target_val = getattr(matrix_payload, active_score_key, None)
             if target_val is None:
                 target_val = raw_score
 
@@ -347,7 +370,7 @@ class BlueprintTransformer:
                     collision_counter += 1
 
             # Legacy justifications and extensions
-            justification = block_data.get("justification")
+            justification = matrix_payload.justification
             if not justification:
                 raise AppException(
                     message=f"Fail-Fast: Missing justification for matrix block '{b_id}'",
@@ -357,7 +380,7 @@ class BlueprintTransformer:
 
             # Breakdowns
             axis_level_breakdown = None
-            raw_breakdown = block_data.get("level_breakdown")
+            raw_breakdown = matrix_payload.level_breakdown
             if raw_breakdown and isinstance(raw_breakdown, dict):
                 clean_level_dict = {}
                 for lvl_key, lvl_data in raw_breakdown.items():
@@ -377,7 +400,13 @@ class BlueprintTransformer:
                             ) from v_err
                 axis_level_breakdown = clean_level_dict
 
-            ext_dict = block_data.get("extensions", {})
+            ext_dict = matrix_payload.extensions or {}
+
+            true_atoms = None
+            total_atoms = None
+            if matrix_payload.evaluated_atoms:
+                true_atoms = sum(1 for v in matrix_payload.evaluated_atoms.values() if v)
+                total_atoms = len(matrix_payload.evaluated_atoms)
 
             row_dto = MatrixScorecardRowDTO(
                 block_id=b_id,
@@ -389,9 +418,10 @@ class BlueprintTransformer:
                 scale_min=display_scale_min,
                 scale_max=display_scale_max,
                 normalized_score=float(norm_score) if norm_score is not None else None,
-                true_atoms=block_data.get("true_atoms"),
-                total_atoms=block_data.get("total_atoms"),
+                true_atoms=true_atoms,
+                total_atoms=total_atoms,
                 justification=_clean_hallucinated_numbers(justification),
+                evidence_type=ext_dict.get("evidence_type"),
                 missing_context=ext_dict.get("missing_context") or "",
                 cited_source_id=ext_dict.get("source_id"),
                 cited_text_quote=ext_dict.get("citation"),
@@ -638,6 +668,7 @@ class BlueprintTransformer:
                         informational_matrices.append(axis)
 
             report_dto = ReportDataDTO(
+                strictness_level=execution.strictness_level,
                 workflow_id=execution.workflow_id,
                 profile_id=resolved_pid,
                 profile_name=profile_name_dict,

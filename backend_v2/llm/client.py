@@ -141,6 +141,7 @@ class LLMClient:
         temperature: float | None = None,
         max_tokens: int | None = None,
         mock_identity: str | None = None,
+        validation_context: dict[str, Any] | None = None,
     ) -> tuple[T, TokenUsage]:
         """Execute a structured LLM task enforcing a Pydantic schema using LLMProvider.
 
@@ -151,6 +152,7 @@ class LLMClient:
             temperature: Sampling temperature override.
             max_tokens: Max tokens override.
             mock_identity: Identity key for mock provider routing.
+            validation_context: Optional context dictionary for strict Pydantic V2 parsing (e.g. strictness_level).
 
         Returns:
             A tuple of (Validated Pydantic Model, TokenUsage).
@@ -238,8 +240,8 @@ class LLMClient:
         # STRICT TIMEOUT PROTOCOL: Apply global Enum constraint to structured tasks as well
         strict_timeout = SystemConcurrency.LLM_DEFAULT_TIMEOUT_SECONDS.value
 
+        response = None
         try:
-            response = None
             try:
                 # 3. Generate with Structured Output (Caching tags active if final_messages manipulated)
                 response = await provider.generate(
@@ -253,6 +255,7 @@ class LLMClient:
                     top_k=top_k,
                     mock_identity=mock_identity,
                     timeout=strict_timeout,
+                    validation_context=validation_context,
                 )
 
                 # Extract usage securely into TokenUsage
@@ -289,8 +292,7 @@ class LLMClient:
                     raw_content = raw_content[:-3]
                 raw_content = raw_content.strip()
 
-                data = json.loads(raw_content)
-                validated_model = response_model.model_validate(data)
+                validated_model = response_model.model_validate_json(raw_content, context=validation_context)
 
                 return validated_model, token_usage
 
@@ -319,7 +321,7 @@ class LLMClient:
                 },
                 exc_info=True,
             )
-            err_response = locals().get("response")
+            err_response = response
             err_content = err_response.content if err_response else None
             if err_content:
                 logger.error(
