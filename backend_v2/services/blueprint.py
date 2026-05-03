@@ -669,6 +669,7 @@ class BlueprintTransformer:
 
             report_dto = ReportDataDTO(
                 strictness_level=execution.strictness_level,
+                scoring_strategy=execution.scoring_strategy.value,
                 workflow_id=execution.workflow_id,
                 profile_id=resolved_pid,
                 profile_name=profile_name_dict,

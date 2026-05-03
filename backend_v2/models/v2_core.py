@@ -614,6 +614,7 @@ class ReportLayoutDTO(V2CoreBase):
 class ReportDataDTO(V2CoreBase):
     workflow_id: str
     strictness_level: int = Field(...)
+    scoring_strategy: str | None = Field(default=None, description="The mathematical strategy used for scoring (e.g. WATERFALL_FLOOR)")
     profile_id: str
     profile_name: I18nText | None = Field(default=None)
     available_profiles: dict[str, I18nText] = Field(default_factory=dict)

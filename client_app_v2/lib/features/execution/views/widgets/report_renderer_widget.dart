@@ -236,38 +236,76 @@ class ReportRendererWidget extends ConsumerWidget {
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               ),
 
-            if (payload.strictnessLevel != null)
+            if (payload.strictnessLevel != null || payload.scoringStrategy != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.indigo.shade50,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: Colors.indigo.shade200),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.balance,
-                        size: 14,
-                        color: Colors.indigo.shade700,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${l10n.strictnessSelectorTitle}: ${_getStrictnessName(context, payload.strictnessLevel!)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.indigo.shade800,
-                          fontWeight: FontWeight.bold,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (payload.scoringStrategy != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.shade50,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.indigo.shade200),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.calculate,
+                              size: 14,
+                              color: Colors.indigo.shade700,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Scoring Engine: ${_getScoringEngineName(payload.scoringStrategy)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.indigo.shade800,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    if (payload.strictnessLevel != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.shade50,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.indigo.shade200),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.balance,
+                              size: 14,
+                              color: Colors.indigo.shade700,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${l10n.strictnessSelectorTitle}: ${_getStrictnessName(context, payload.strictnessLevel!)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.indigo.shade800,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
               ),
 
@@ -721,5 +759,21 @@ class ReportRendererWidget extends ConsumerWidget {
       100 => l10n.strictnessAbsoluteStrictness,
       _ => '$level',
     };
+  }
+
+  String _getScoringEngineName(String? strategy) {
+    if (strategy == null) return 'Unknown';
+    switch (strategy) {
+      case 'WATERFALL_FLOOR':
+        return 'Hybrid Waterfall';
+      case 'PROGRESSIVE_DAMPENING':
+        return 'Progressive Dampening';
+      case 'PURE_AVERAGE':
+        return 'Pure Average';
+      case 'WEIGHTED_AVERAGE':
+        return 'Weighted Average';
+      default:
+        return strategy;
+    }
   }
 }

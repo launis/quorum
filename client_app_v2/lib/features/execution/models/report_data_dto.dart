@@ -68,6 +68,7 @@ abstract class ReportDataDTO with _$ReportDataDTO {
     @JsonKey(name: 'created_at') String? createdAt,
     @JsonKey(name: 'org_name') String? orgName,
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
+    @JsonKey(name: 'scoring_strategy') String? scoringStrategy,
     @JsonKey(name: 'cost_estimate') double? costEstimate,
     @JsonKey(name: 'total_tokens') int? totalTokens,
     @JsonKey(name: 'prompt_tokens') int? promptTokens,
