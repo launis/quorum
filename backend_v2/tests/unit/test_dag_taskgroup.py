@@ -22,6 +22,7 @@ def mock_repo() -> AsyncMock:
         "workflow_id": "wf_tg_test",
         "status": ExecutionStatus.PENDING,
         "strictness_level": 50,
+        "scoring_strategy": "WATERFALL_FLOOR",
         "raw_inputs": {"log": "test"},
         "metadata": {},
     }

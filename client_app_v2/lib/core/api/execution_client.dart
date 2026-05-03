@@ -27,6 +27,7 @@ class ExecutionClient {
     required String workflowId,
     required Map<String, dynamic> rawInputs,
     int strictnessLevel = 50,
+    String scoringStrategy = 'WATERFALL_FLOOR',
   }) async {
     final response = await _dio.post(
       '/execution/executions/',
@@ -34,6 +35,7 @@ class ExecutionClient {
         'workflow_id': workflowId, 
         'raw_inputs': rawInputs,
         'strictness_level': strictnessLevel,
+        'scoring_strategy': scoringStrategy,
       },
     );
 

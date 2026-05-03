@@ -3378,6 +3378,8 @@
           },
           "step_name": {
             "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Step Name",
             "description": "Name of the step that generated this event.",
             "x-ui-label": "Step Name"
@@ -3449,6 +3451,10 @@
             "type": "integer",
             "title": "Strictness Level",
             "description": "Strictness level of the evaluation (0-100)"
+          },
+          "scoring_strategy": {
+            "$ref": "#/components/schemas/ScoringStrategy",
+            "description": "The mathematical engine used to calculate final scores."
           },
           "status": {
             "$ref": "#/components/schemas/ExecutionStatus",
@@ -3644,6 +3650,7 @@
           "id",
           "workflow_id",
           "strictness_level",
+          "scoring_strategy",
           "status"
         ],
         "title": "ExecutionRecord",
@@ -5147,6 +5154,30 @@
             ],
             "title": "Columns",
             "description": "Optional columns for grid matrices."
+          },
+          "computed_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Computed Min",
+            "description": "Dynamically computed absolute minimum score"
+          },
+          "computed_max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Computed Max",
+            "description": "Dynamically computed absolute maximum score"
           }
         },
         "additionalProperties": false,
@@ -5344,8 +5375,7 @@
               }
             ],
             "title": "Computed Min",
-            "description": "Dynamically computes the absolute minimum score from the scales array.",
-            "readOnly": true
+            "description": "Dynamically computed absolute minimum score"
           },
           "computed_max": {
             "anyOf": [
@@ -5357,8 +5387,7 @@
               }
             ],
             "title": "Computed Max",
-            "description": "Dynamically computes the absolute maximum score from the scales array.",
-            "readOnly": true
+            "description": "Dynamically computed absolute maximum score"
           }
         },
         "additionalProperties": false,
@@ -5369,9 +5398,7 @@
           "label",
           "description",
           "category_id",
-          "type",
-          "computed_min",
-          "computed_max"
+          "type"
         ],
         "title": "PromptBlockResponseDTO",
         "description": "API Response boundary for PromptBlock ensuring Data Sovereignty."
@@ -5430,11 +5457,15 @@
         "properties": {
           "thought_process": {
             "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Thought Process",
             "description": "The raw chain-of-thought or reasoning trace. MUST be written strictly in English to ensure cross-run determinism."
           },
           "conclusion": {
             "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Conclusion",
             "description": "The final conclusion derived from the reasoning. MUST be written strictly in English."
           },
@@ -5520,6 +5551,17 @@
         ],
         "title": "RenderedSynthesisCache",
         "description": "Cached synthesis results tied to a specific OutputProfile ID."
+      },
+      "ScoringStrategy": {
+        "type": "string",
+        "enum": [
+          "WATERFALL_FLOOR",
+          "PROGRESSIVE_DAMPENING",
+          "PURE_AVERAGE",
+          "WEIGHTED_AVERAGE"
+        ],
+        "title": "ScoringStrategy",
+        "description": "Selects the mathematical engine used to calculate final matrix scores."
       },
       "Step": {
         "properties": {
@@ -6172,6 +6214,8 @@
           },
           "step_name": {
             "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Step Name",
             "description": "Name of the step that generated this event.",
             "x-ui-label": "Step Name"
@@ -6242,6 +6286,8 @@
           },
           "step_name": {
             "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
             "title": "Step Name",
             "description": "Name of the step that generated this event.",
             "x-ui-label": "Step Name"

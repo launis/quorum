@@ -5,6 +5,7 @@ God object refactored into: DAGOrchestrator, NodeExecutor, ExecutionCommitter.
 """
 
 import asyncio
+import json
 import logging
 from typing import Any
 
@@ -233,7 +234,7 @@ class DAGExecutor:
         }
 
         if existing_record_dict:
-            exec_record = ExecutionRecord.model_validate(existing_record_dict)
+            exec_record = ExecutionRecord.model_validate(existing_record_dict, strict=False)
             exec_record.status = ExecutionStatus.RUNNING
             if not getattr(exec_record, "step_states", None) or not exec_record.step_states:
                 exec_record.step_states = step_states
@@ -244,8 +245,10 @@ class DAGExecutor:
             # No fallbacks allowed.
             if isinstance(raw_inputs, dict) and "strictness_level" in raw_inputs:
                 sl = raw_inputs["strictness_level"]
+                ss = raw_inputs.get("scoring_strategy", "WATERFALL_FLOOR")
             elif hasattr(raw_inputs, "strictness_level"):
                 sl = raw_inputs.strictness_level
+                ss = getattr(raw_inputs, "scoring_strategy", "WATERFALL_FLOOR")
             else:
                 msg = "SYSTEM ARCHITECTURE MANDATE: Missing 'strictness_level' in execution initialization."
                 logger.error("[DAGExecutor] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -259,6 +262,7 @@ class DAGExecutor:
                 id=execution_id,
                 workflow_id=workflow.id,
                 strictness_level=sl,
+                scoring_strategy=ss,
                 status=ExecutionStatus.RUNNING,
                 raw_inputs=inputs_obj,
                 execution_trace=[],

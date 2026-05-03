@@ -57,6 +57,24 @@ def _build_valid_step_dict(prompt_blocks: list[str]) -> dict[str, Any]:
         "prompt_blocks": prompt_blocks,
     }
 
+def _build_valid_execution_dict(execution_id: str, strategy: str = "WATERFALL_FLOOR") -> dict[str, Any]:
+    from datetime import datetime, timezone
+    return {
+        "id": execution_id,
+        "workflow_id": "wf_123",
+        "organization_id": "org_123",
+        "created_by": "usr_123",
+        "strictness_level": 50,
+        "scoring_strategy": strategy,
+        "status": "running",
+        "raw_inputs": {"steps": []},
+        "execution_trace": [],
+        "step_states": {},
+        "frozen_context": {},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
 
 class MockRepository:
     async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
@@ -65,17 +83,28 @@ class MockRepository:
     async def get_prompt_block_by_id(self, slug: str) -> dict[str, Any]:
         return _build_valid_pb_dict("pb_1234567890123456", [_build_valid_scale("not_a_number")])
 
+    async def get_execution(self, execution_id: str) -> dict[str, Any]:
+        return _build_valid_execution_dict(execution_id)
+
 
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
     """Test that setting a corrupted non-float scale in PromptBlocks causes a fail fast AppException."""
     state = HookState(
-        execution_id="test_exec",
+        execution_id="ex_1234567890abcdef",
         workflow_id="test_wf",
         step_id="test_step",
         task_blueprint="test_blueprint",
         metadata={},
-        inputs={"pb_1234567890123456": {"raw_score": 5.0, "normalized_score": 100.0, "justification": "", "evaluated_atoms": {}, "extensions": {}}},
+        inputs={
+            "pb_1234567890123456": {
+                "raw_score": 5.0,
+                "normalized_score": 100.0,
+                "justification": "",
+                "evaluated_atoms": {},
+                "extensions": {},
+            }
+        },
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -110,9 +139,12 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
                     _build_valid_scale(5, ["tapa_atom_5"]),
                 ],
             )
+            
+        async def get_execution(self, execution_id: str) -> dict[str, Any]:
+            return _build_valid_execution_dict(execution_id)
 
     state = HookState(
-        execution_id="test_exec",
+        execution_id="ex_1234567890abcdef",
         workflow_id="test_wf",
         step_id="test_step",
         task_blueprint="test_blueprint",
@@ -159,7 +191,7 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
 
 import hashlib
 
-from backend_v2.hooks.scoring import waterfall_scoring_hook
+from backend_v2.hooks.scoring import matrix_scoring_hook
 
 
 class MockRepoWaterfall:
@@ -180,6 +212,9 @@ class MockRepoWaterfall:
                 _build_valid_scale(5, ["atom_5"]),
             ],
         )
+
+    async def get_execution(self, execution_id: str) -> dict[str, Any]:
+        return _build_valid_execution_dict(execution_id)
 
 
 class MockRepoWaterfallMixed:
@@ -202,9 +237,12 @@ class MockRepoWaterfallMixed:
         else:
             return _build_valid_pb_dict(self.pb_instruction, [], pb_type="instruction", category_id="instruction")  # noqa: E501
 
+    async def get_execution(self, execution_id: str) -> dict[str, Any]:
+        return _build_valid_execution_dict(execution_id)
+
 
 @pytest.mark.asyncio
-async def test_waterfall_scoring_hook_ignores_instructions() -> None:
+async def test_matrix_scoring_hook_ignores_instructions() -> None:
     """Test that waterfall scoring gracefully skips instructional PromptBlocks without crashing."""
     import hashlib
 
@@ -214,7 +252,7 @@ async def test_waterfall_scoring_hook_ignores_instructions() -> None:
     atom_hash = hashlib.md5(f"atom_1{mandate}".encode()).hexdigest()
 
     state = HookState(
-        execution_id="t3",
+        execution_id="ex_3333333333333333",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -232,12 +270,12 @@ async def test_waterfall_scoring_hook_ignores_instructions() -> None:
     )  # noqa: E501
 
     # TDD RED: This should NOT raise AppException(Strict Fail-Fast Enforced: PromptBlock has no scales)
-    result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
 
 
 @pytest.mark.asyncio
-async def test_waterfall_scoring_hook_pass_all() -> None:
+async def test_matrix_scoring_hook_pass_all() -> None:
     """Test standard hybrid model when everything passes."""
     from backend_v2.models.enums import EvaluationMandate
 
@@ -248,7 +286,7 @@ async def test_waterfall_scoring_hook_pass_all() -> None:
         evaluations.append({"atom_id": atom_hash, "step_5_boolean": True, "step_4_reasoning": "Hyväksytty"})
 
     state = HookState(
-        execution_id="t1",
+        execution_id="ex_1111111111111111",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -265,7 +303,7 @@ async def test_waterfall_scoring_hook_pass_all() -> None:
         system_repo=cast(Any, MockRepoWaterfall()),
     )  # noqa: E501
 
-    result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
     assert result.state_delta is not None
     assert result.state_delta["pb_1234567890123456"]["raw_score"] == 5.0
@@ -273,7 +311,7 @@ async def test_waterfall_scoring_hook_pass_all() -> None:
 
 
 @pytest.mark.asyncio
-async def test_waterfall_scoring_hook_ceiling_cap() -> None:
+async def test_matrix_scoring_hook_ceiling_cap() -> None:
     """Test that the waterfall ceiling caps the final score despite high weighted score."""
     from backend_v2.models.enums import EvaluationMandate
 
@@ -286,7 +324,7 @@ async def test_waterfall_scoring_hook_ceiling_cap() -> None:
         evaluations.append({"atom_id": atom_hash, "step_5_boolean": is_hit})
 
     state = HookState(
-        execution_id="t2",
+        execution_id="ex_2222222222222222",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -302,7 +340,7 @@ async def test_waterfall_scoring_hook_ceiling_cap() -> None:
         audit_repo=cast(Any, MockRepoWaterfall()),
         system_repo=cast(Any, MockRepoWaterfall()),
     )  # noqa: E501
-    result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
     assert result.state_delta is not None
 
@@ -314,7 +352,7 @@ async def test_waterfall_scoring_hook_ceiling_cap() -> None:
 
 
 @pytest.mark.asyncio
-async def test_waterfall_scoring_hook_graceful_missing() -> None:
+async def test_matrix_scoring_hook_graceful_missing() -> None:
     """Test missing context formatting logic."""
     from backend_v2.models.enums import EvaluationMandate
 
@@ -328,7 +366,7 @@ async def test_waterfall_scoring_hook_graceful_missing() -> None:
         evaluations.append({"atom_id": atom_hash, "step_5_boolean": is_hit, "step_4_reasoning": reasoning})
 
     state = HookState(
-        execution_id="t3",
+        execution_id="ex_3333333333333333",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -344,7 +382,7 @@ async def test_waterfall_scoring_hook_graceful_missing() -> None:
         audit_repo=cast(Any, MockRepoWaterfall()),
         system_repo=cast(Any, MockRepoWaterfall()),
     )  # noqa: E501
-    result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
 
     assert result.success is True
     assert result.state_delta is not None
@@ -373,9 +411,12 @@ class MockRepoWaterfallSimulation:
             ],
         )
 
+    async def get_execution(self, execution_id: str) -> dict[str, Any]:
+        return _build_valid_execution_dict(execution_id, strategy="PROGRESSIVE_DAMPENING")
+
 
 @pytest.mark.asyncio
-async def test_waterfall_scoring_hook_full_simulation() -> None:
+async def test_matrix_scoring_hook_full_simulation() -> None:
     """Simulates a complex real-world evaluation trace to ensure mathematical perfection."""
     from backend_v2.models.enums import EvaluationMandate
 
@@ -449,11 +490,11 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
     )
 
     state = HookState(
-        execution_id="test_run",
+        execution_id="ex_9999999999999999",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata={},
+        metadata={"scoring_strategy": "PROGRESSIVE_DAMPENING"},
         inputs={"evaluations": evaluations},
         global_context_vars={},
     )
@@ -466,7 +507,7 @@ async def test_waterfall_scoring_hook_full_simulation() -> None:
         system_repo=cast(Any, MockRepoWaterfallSimulation()),
     )  # noqa: E501
 
-    result = await cast(Awaitable[HookResult], waterfall_scoring_hook(state, deps))
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
 
     assert result.success is True
     assert result.state_delta is not None

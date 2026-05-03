@@ -46,11 +46,17 @@ class LLMNodeStrategy(NodeStrategy):
     ) -> list[TraceEvent]:
         # Epic 43 Phase 2 Fail-Fast Parity: Re-inject 'inputs' and 'raw_inputs' DTO payloads into the root state
         # so legacy dot-notation mappings resolve properly without Naked Dict violations.
-        inputs_dto = next((d for d in projector.snapshot if getattr(d, "step_id", None) == "inputs"), None)
-        inputs_payload = getattr(inputs_dto, "payload", {}) if inputs_dto else {}
+        inputs_payload = {
+            getattr(d, "block_id", ""): getattr(d, "payload", None)
+            for d in projector.snapshot
+            if getattr(d, "step_id", None) == "inputs"
+        }
 
-        raw_inputs_dto = next((d for d in projector.snapshot if getattr(d, "step_id", None) == "raw_inputs"), None)
-        raw_inputs_payload = getattr(raw_inputs_dto, "payload", {}) if raw_inputs_dto else {}
+        raw_inputs_payload = {
+            getattr(d, "block_id", ""): getattr(d, "payload", None)
+            for d in projector.snapshot
+            if getattr(d, "step_id", None) == "raw_inputs"
+        }
 
         current_state: dict[str, Any] = {
             "steps": projector.snapshot,

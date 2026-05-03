@@ -101,12 +101,13 @@ class ExecutionRepositoryImpl(BaseRepository):
                     details={"error_code": ErrorCodes.DATA_CORRUPTION.value},
                 ) from e
 
-    async def get_execution(self, execution_id: str) -> ExecutionRecord | None:
+    async def get_execution(self, execution_id: str, hydrate: bool = True) -> ExecutionRecord | None:
         data = await self.driver.get("executions", execution_id)
         if data:
             try:
-                await self._hydrate_payloads(data)
-                return ExecutionRecord.model_validate(data)
+                if hydrate:
+                    await self._hydrate_payloads(data)
+                return ExecutionRecord.model_validate(data, strict=False)
             except AppException:
                 raise
             except Exception as e:
@@ -150,7 +151,7 @@ class ExecutionRepositoryImpl(BaseRepository):
         parsed_results = []
         for r in results:
             try:
-                parsed_results.append(ExecutionRecord.model_validate(r))
+                parsed_results.append(ExecutionRecord.model_validate(r, strict=False))
             except Exception as e:
                 logger.error(
                     "[ExecutionRepository] %s: Skipping corrupted execution %s: %s",
@@ -170,7 +171,7 @@ class ExecutionRepositoryImpl(BaseRepository):
         parsed_results = []
         for r in results:
             try:
-                parsed_results.append(ExecutionRecord.model_validate(r))
+                parsed_results.append(ExecutionRecord.model_validate(r, strict=False))
             except Exception as e:
                 logger.error(
                     "[ExecutionRepository] %s: Skipping corrupted execution %s: %s",

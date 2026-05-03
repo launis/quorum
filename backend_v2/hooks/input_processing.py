@@ -16,6 +16,7 @@ from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO
 from backend_v2.models.v2_core import Workflow
 from backend_v2.services.chat_parser import ChatParserService
 from backend_v2.services.storage import get_storage_driver
+from backend_v2.utils.paths import get_forensic_input_path
 
 logger = logging.getLogger(__name__)
 
@@ -40,9 +41,10 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     workflow_repo = deps.workflow_repo
     system_repo = deps.system_repo
     workflow_id = state.workflow_id
+    execution_id = state.execution_id
 
-    if not workflow_repo or not workflow_id:
-        logger.error("Missing repository or workflow_id in context.", extra={"error_code": "MISSING_EXECUTION_CONTEXT"})
+    if not workflow_repo or not workflow_id or not execution_id:
+        logger.error("Missing repository, workflow_id, or execution_id in context.", extra={"error_code": "MISSING_EXECUTION_CONTEXT"})
         raise AppException(
             message="Missing execution context for input processing.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -89,7 +91,14 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
             )
             try:
                 dto = GuidedReflectionInputDTO.model_validate(raw_val)
-                title_text = expected_input.label.resolve("en") or "Questionnaire"
+                title_text = expected_input.label.resolve("en")
+                if not title_text:
+                    logger.error("Missing English label for expected input.", extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key})
+                    raise AppException(
+                        message=f"System Configuration Error: Missing mandatory English label for '{key}' questionnaire.",
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
+                    )
                 resolved_text = dto.to_markdown(title_text)
             except ValidationError as e:
                 logger.error(
@@ -179,9 +188,8 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         # Save every processed input with injected prompts into the execution directory
         try:
             storage = get_storage_driver()
-            exe_id = state.execution_id or "unknown_exe"
-            safe_key = "".join(c for c in key if c.isalnum() or c in ("_", "-"))
-            forensic_path = f"executions/{exe_id}/inputs/input_{safe_key}.md"
+            exe_id = execution_id
+            forensic_path = get_forensic_input_path(exe_id, key)
 
             await storage.save(forensic_path, output_dict[key])
             logger.info("[InputProcessingHook] Forensic Input saved successfully: %s", forensic_path)

@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from backend_v2.core.hook_registry import HookResult
+from backend_v2.models.enums import ScoringStrategy
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
 from backend_v2.worker import generate_profile_synthesis_and_pdf_task
 
@@ -19,6 +20,7 @@ async def test_worker_invokes_synthesis_hook(
     mock_repo_class.return_value = mock_repo
 
     mock_execution = ExecutionRecord(
+        scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
         strictness_level=50,
         id="exec_1234567812345678",
         workflow_id="wf_1234567812345678",

@@ -10,8 +10,11 @@ from backend_v2.hooks.integrity import enforce_hypothesis_linking_hook, verify_c
 
 @pytest.fixture
 def mock_deps() -> HookDependencies:
+    exec_repo_mock = AsyncMock()
+    exec_repo_mock.get_execution.return_value = None
+    
     return HookDependencies(
-        exec_repo=AsyncMock(),
+        exec_repo=exec_repo_mock,
         workflow_repo=AsyncMock(),
         comp_repo=AsyncMock(),
         identity_repo=AsyncMock(),
@@ -24,12 +27,23 @@ def mock_deps() -> HookDependencies:
 @pytest.mark.asyncio
 async def test_verify_citation_integrity_hook_analyst_hallucination(mock_deps: HookDependencies) -> None:  # noqa: E501
     """Test that hallucinations in AnalystOutput quotes are stripped."""
+    from unittest.mock import MagicMock, patch
+
+    # Mock the ExecutionRecord so Fail-Fast doesn't trigger
+    exec_record_mock = MagicMock()
+    exec_record_mock.raw_inputs.model_dump.return_value = {"doc1": "content"}
+    mock_deps.exec_repo.get_execution.return_value = exec_record_mock
+
+    # Mock the Storage Driver so it returns our RAG context from disk
+    storage_mock = AsyncMock()
+    storage_mock.read.return_value = b"The quick brown fox jumps over the lazy dog."
+
     state = HookState(
         execution_id="exe_1",
         workflow_id="wf_1",
         step_id="step_analyst",
         metadata={},
-        global_context_vars={"inputs": {"doc1": "The quick brown fox jumps over the lazy dog."}},
+        global_context_vars={},
         inputs={
             "hypotheses": [
                 {
@@ -50,7 +64,9 @@ async def test_verify_citation_integrity_hook_analyst_hallucination(mock_deps: H
 
     from collections.abc import Awaitable
 
-    result = await cast(Awaitable[HookResult], verify_citation_integrity_hook(state, mock_deps))
+    with patch("backend_v2.hooks.integrity.get_storage_driver", return_value=storage_mock):
+        result = await cast(Awaitable[HookResult], verify_citation_integrity_hook(state, mock_deps))
+        
     assert result.success is True
     assert result.state_delta is not None
 

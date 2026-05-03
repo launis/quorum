@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+import shutil
 import uuid
 from pathlib import Path
 
@@ -204,6 +205,44 @@ class LocalFileDriver(FileDriver):
             )
             raise AppException(
                 message=f"Local Delete Failed: {str(e)}",
+                status_code=500,
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+            ) from e
+
+    async def delete_directory(self, prefix: str) -> bool:
+        """Deletes a directory and all its contents locally."""
+        full_path = self._validate_path(prefix)
+        if not full_path.exists():
+            msg = f"Cannot delete non-existent local directory: {prefix}"
+            logger.error("[LocalFileDriver] %s: %s", ErrorCodes.FILE_NOT_FOUND.name, msg)
+            raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.FILE_NOT_FOUND.value})
+
+        if not full_path.is_dir():
+            msg = f"Path is not a directory: {prefix}"
+            logger.error("[LocalFileDriver] %s: %s", ErrorCodes.FILESYSTEM_VIOLATION.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION.value},
+            )
+
+        try:
+            await asyncio.to_thread(shutil.rmtree, full_path)
+            return True
+        except PermissionError as e:
+            logger.error("[LocalFileDriver] Directory is locked: %s", e)
+            raise AppException(
+                message=f"Hakemisto on auki toisessa ohjelmassa: {str(e)}",
+                status_code=409,
+                details={"error_code": ErrorCodes.FILE_LOCKED_ERROR.value},
+            ) from e
+        except Exception as e:
+            logger.error(
+                f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to delete directory {prefix}: {e}",
+                exc_info=True,
+            )
+            raise AppException(
+                message=f"Local Directory Delete Failed: {str(e)}",
                 status_code=500,
                 details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             ) from e

@@ -544,7 +544,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         if data:
             try:
                 await self._hydrate_payloads(data)
-                return ExecutionRecord.model_validate(data)
+                return ExecutionRecord.model_validate(data, strict=False)
             except AppException:
                 # Re-raise so UI gets the true reason (e.g. data missing from disk)
                 raise
@@ -589,7 +589,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         parsed_results = []
         for r in results:
             try:
-                parsed_results.append(ExecutionRecord.model_validate(r))
+                parsed_results.append(ExecutionRecord.model_validate(r, strict=False))
             except Exception as e:
                 logger.error(
                     "[Repository] %s: Skipping corrupted execution %s: %s",
@@ -610,7 +610,7 @@ class UnifiedWorkflowRepository(AbstractWorkflowRepository):
         parsed_results = []
         for r in results:
             try:
-                parsed_results.append(ExecutionRecord.model_validate(r))
+                parsed_results.append(ExecutionRecord.model_validate(r, strict=False))
             except Exception as e:
                 logger.error(
                     "[Repository] %s: Skipping corrupted execution %s: %s",

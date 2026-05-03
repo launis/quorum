@@ -82,7 +82,7 @@ class PdfReportService:
 
             # Fetch Workflow Name for Header
             workflow_id = execution.workflow_id
-            workflow_name = "Dynamic Workflow Execution"
+            workflow_name = ""
 
             if report_dto and report_dto.profile_name:
                 workflow_name = report_dto.profile_name.resolve(target_locale)
@@ -91,9 +91,22 @@ class PdfReportService:
                 if workflow_dict:
                     workflow = Workflow.model_validate(workflow_dict)
                     if isinstance(workflow.name, str):
-                        workflow_name = workflow.name
-                    else:
-                        workflow_name = workflow.name.resolve(target_locale)
+                        msg = (
+                            f"Execution {execution_id} uses a legacy string workflow name, "
+                            "which is forbidden in Phase 9."
+                        )
+                        logger.error("[PdfReportService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        raise AppException(
+                            message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                        )
+                    workflow_name = workflow.name.resolve(target_locale)
+
+            if not workflow_name:
+                msg = f"Execution {execution_id} is missing a valid workflow name resolution."
+                logger.error("[PdfReportService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
 
             # 2. Extract context and results
             frozen_context = execution.frozen_context.model_dump() if execution.frozen_context else {}

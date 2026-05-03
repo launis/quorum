@@ -189,7 +189,7 @@ async def test_execute_success_path_structured_output(
     projector = MagicMock()
     from backend_v2.models.state import StepOutputDTO
 
-    projector.snapshot = [StepOutputDTO(step_id="path", block_id="to", data_type="dict", payload={"test": "value"})]
+    projector.snapshot = [StepOutputDTO(step_id="path", block_id="to", data_type="matrix", payload={"test": "value"})]
 
     context = MagicMock()
     context.execution_id = "exec_1"

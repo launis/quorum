@@ -1,70 +1,90 @@
 """Scoring Hook for evaluating agent performance and applying penalties."""
 
 import hashlib
+import json
 import logging
 from typing import Any
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.falsifier import FalsifierData
-from backend_v2.models.domain.scoring import StepFalsifierDTO, StepGuardDTO, StepPanelDTO
+from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import SanitizationResultDTO
 from backend_v2.models.dtos.lightweight_matrix import (
     AtomEvaluationItemDTO,
     LightweightMatrixOutput,
 )
 from backend_v2.models.enums import (
-    CognitiveFlowStatus,
-    CognitiveFlowThreshold,
     EvaluationMandate,
     ScoringCalibrationThresholds,
-    WaterfallThreshold,
 )
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import PromptBlock, Step
+from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step
 from backend_v2.settings import get_settings
 from backend_v2.utils.math_utils import (
-    calculate_progressive_dampening_score,
-    calculate_waterfall_floor,
-    calculate_weighted_score,
     normalize_score_to_100,
     scale_to_custom_range,
 )
+from backend_v2.utils.scoring import get_scoring_engine
 
 logger = logging.getLogger(__name__)
 
 
-def _extract_payloads(data: dict[str, Any]) -> list[dict[str, Any]]:
+class ScoringPayloadWrapper(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    sanitization_result: SanitizationResultDTO | None = None
+    step_falsifier: StepFalsifierDTO | None = None
+    step_panel: StepPanelDTO | None = None
+    evaluative_matrices: dict[str, float] | None = Field(default=None, alias="_evaluative_matrices")
+
+
+class StateInputWrapper(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    steps: list[StepOutputDTO] | None = None
+    inputs: dict[str, Any] | None = None
+    raw_inputs: dict[str, Any] | None = None
+
+
+def _extract_payloads(data: dict[str, Any]) -> list[ScoringPayloadWrapper]:
     """Strict Phase 9 Extractor. No V1 Fallbacks. No Naked Dict guessing."""
     payloads = []
 
-    steps = data.get("steps")
-    if not isinstance(steps, list):
-        # Strict Fail-Fast: The execution snapshot must be a valid array of StepOutputDTOs.
-        msg = "Strict Fail-Fast Enforced: Execution snapshot 'steps' missing or is not a list."
+    try:
+        hydrated_state = StateInputWrapper.model_validate(data)
+    except ValidationError as e:
+        msg = f"Strict Fail-Fast Enforced: Execution snapshot validation failed: {e}"
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+        ) from e
+
+    if hydrated_state.steps is None:
+        msg = "Strict Fail-Fast Enforced: Execution snapshot 'steps' missing."
         logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-    for dto_raw in steps:
-        try:
-            # Enforce strict Pydantic parsing instead of duck-typing `getattr(dto, "payload")`
-            valid_dto = StepOutputDTO.model_validate(dto_raw)
-            if isinstance(valid_dto.payload, dict):
-                payloads.append(valid_dto.payload)
-        except ValidationError as e:
-            msg = f"Strict Fail-Fast Enforced: Invalid StepOutputDTO in execution snapshot: {e}"
-            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(
-                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-            ) from e
+    for valid_dto in hydrated_state.steps:
+        if isinstance(valid_dto.payload, dict):
+            try:
+                wrapper = ScoringPayloadWrapper.model_validate(valid_dto.payload)
+                payloads.append(wrapper)
+            except ValidationError as e:
+                msg = f"Strict Fail-Fast Enforced: Invalid StepOutputDTO payload in execution snapshot: {e}"
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                ) from e
 
-    # Add any explicitly injected dict inputs (like 'inputs' or 'raw_inputs' from ContextBuilder)
-    for key in ["inputs", "raw_inputs"]:
-        val = data.get(key)
-        if isinstance(val, dict):
-            payloads.append(val)
+    # Add explicitly injected top-level dict inputs
+    for extra_dict in [hydrated_state.inputs, hydrated_state.raw_inputs]:
+        if isinstance(extra_dict, dict):
+            try:
+                wrapper = ScoringPayloadWrapper.model_validate(extra_dict)
+                payloads.append(wrapper)
+            except ValidationError:
+                pass
 
     return payloads
 
@@ -75,33 +95,9 @@ def _extract_guard_flag(data: dict[str, Any]) -> bool | None:
     Iterates over the V2 execution snapshot to find the sanitization_result.
     Silent Fallback is BANNED. If the data is malformed, we raise an exception.
     """
-    for step_output in _extract_payloads(data):
-        # 1. Check for legacy StepGuardDTO (if any V2 step still emits it)
-        guard_model = step_output.get("step_guard")
-        if guard_model:
-            try:
-                dto = StepGuardDTO.model_validate(guard_model)
-                return dto.security_check.threat_detected
-            except ValidationError as e:
-                msg = f"Strict Fail-Fast Enforced: step_guard validation failed in scoring hook: {e}"
-                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                ) from e
-
-        # 2. Check for V2 sanitization_result injected by Security Hook
-        sanitization_model = step_output.get("sanitization_result")
-        if sanitization_model:
-            # Enforce strict parsing of the new V2 security DTO which properly reports threats
-            try:
-                sanitization_dto = SanitizationResultDTO.model_validate(sanitization_model)
-                return sanitization_dto.threat_detected
-            except ValidationError as e:
-                msg = f"Strict Fail-Fast Enforced: sanitization_result validation failed in scoring hook: {e}"
-                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                ) from e
+    for wrapper in _extract_payloads(data):
+        if wrapper.sanitization_result:
+            return wrapper.sanitization_result.threat_detected
 
     logger.info("[ScoringHook] sanitization_result (Guard data) missing from state. Security step bypassed.")
     return None
@@ -112,26 +108,11 @@ def _extract_falsifier_data(data: dict[str, Any]) -> FalsifierData | None:
 
     Iterates over the V2 execution snapshot. Silent Fallback is BANNED.
     """
-    for step_output in _extract_payloads(data):
-        falsifier_model = step_output.get("step_falsifier")
-        panel_model = step_output.get("step_panel")
-
-        try:
-            if falsifier_model is not None:
-                falsifier_dto = StepFalsifierDTO.model_validate(falsifier_model)
-                if falsifier_dto.falsifier_data:
-                    return falsifier_dto.falsifier_data
-
-            if panel_model is not None:
-                panel_dto = StepPanelDTO.model_validate(panel_model)
-                if panel_dto.falsifier_data:
-                    return panel_dto.falsifier_data
-        except ValidationError as e:
-            msg = f"Strict Fail-Fast Enforced: Falsifier data extraction failed: {e}"
-            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(
-                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-            ) from e
+    for wrapper in _extract_payloads(data):
+        if wrapper.step_falsifier and wrapper.step_falsifier.falsifier_data:
+            return wrapper.step_falsifier.falsifier_data
+        if wrapper.step_panel and wrapper.step_panel.falsifier_data:
+            return wrapper.step_panel.falsifier_data
 
     logger.info("[ScoringHook] Falsifier data missing from state. Falsifier step bypassed.")
     return None
@@ -197,30 +178,32 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
 
     unique_matrices = {}
 
-    def _extract_scores(source: dict[str, Any]) -> None:
+    def _extract_scores(source: ScoringPayloadWrapper) -> None:
         # Epic 34: O(1) Map Pre-computation. Zero-Compromise Pledge enforces strict map parsing.
-        eval_map = source.get("_evaluative_matrices")
-        if eval_map:
-            for block_id, norm_val in eval_map.items():
+        if source.evaluative_matrices:
+            for block_id, norm_val in source.evaluative_matrices.items():
                 unique_matrices[block_id] = float(norm_val)
 
     for item in candidates:
         if isinstance(item, dict):
-            # In V2, lookup_ctx is _snapshot (a dictionary of step dictionaries or new 'steps' list)
-            for step_output in _extract_payloads(item):
-                _extract_scores(step_output)
+            for wrapper in _extract_payloads(item):
+                _extract_scores(wrapper)
 
             # Epic 43 Phase 2 Fix: Extract from hoisted StepOutputDTO list
-            steps = item.get("steps")
-            if isinstance(steps, list):
-                for dto_raw in steps:
-                    try:
-                        valid_dto = StepOutputDTO.model_validate(dto_raw)
-                        if valid_dto.block_id == "_evaluative_matrices" and isinstance(valid_dto.payload, dict):
-                            for block_id, norm_val in valid_dto.payload.items():
-                                unique_matrices[block_id] = float(norm_val)
-                    except ValidationError:
-                        pass
+            try:
+                hydrated_item = StateInputWrapper.model_validate(item)
+            except ValidationError as e:
+                msg = f"Strict Fail-Fast Enforced: Invalid State Input Wrapper Context: {e}"
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                ) from e
+
+            if hydrated_item.steps:
+                for valid_dto in hydrated_item.steps:
+                    if valid_dto.block_id == "_evaluative_matrices" and isinstance(valid_dto.payload, dict):
+                        for block_id, norm_val in valid_dto.payload.items():
+                            unique_matrices[block_id] = float(norm_val)
 
     for v_float in unique_matrices.values():
         total_score_accum += v_float
@@ -323,10 +306,6 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
         )
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
 
-    # V2 Architecture Isolation: Use the explicit execution context wrapper
-    global_vars = state.global_context_vars
-    lookup_ctx = global_vars if global_vars else state.inputs
-
     blueprint_id = state.task_blueprint or state.step_id
     if not blueprint_id:
         msg = "Strict Fail-Fast Enforced: No blueprint_id or step_id provided to enforce_passivity_penalty_hook."
@@ -364,14 +343,9 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
 
     judges_to_check = []
 
-    # 1. From context (legacy/global)
-    for judge_key in ["step_judge", "step_judge_cognitive"]:
-        if judge_key in lookup_ctx:
-            judges_to_check.append((judge_key, lookup_ctx.get(judge_key), False))
-
-    # 2. From V2 Isolation Fix (post-hook)
-    if blueprint_id in ["step_judge", "step_judge_cognitive"]:
-        judges_to_check.append((blueprint_id, state.inputs, True))
+    # V2 Architecture Isolation: Evaluate the exact output of the current execution node.
+    # Legacy context lookups and hardcoded DB IDs are explicitly banned.
+    judges_to_check.append((blueprint_id, state.inputs, True))
 
     for judge_key, judge_model, is_post_hook in judges_to_check:
         if not judge_model or not isinstance(judge_model, dict):
@@ -391,10 +365,10 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
         scale_min = 1.0  # Default BARS scale minimum
 
         matrix_keys = []
-        for k, v in judge_model.items():
-            if k in matrix_block_ids:
+        for k in matrix_block_ids:
+            if k in judge_model:
                 try:
-                    matrix_dto = LightweightMatrixOutput.model_validate(v)
+                    matrix_dto = LightweightMatrixOutput.model_validate(judge_model[k])
                     matrix_keys.append((k, matrix_dto))
                 except ValidationError as e:
                     msg = f"Strict Fail-Fast Enforced: Invalid LightweightMatrixOutput format for '{k}': {e}"
@@ -455,23 +429,23 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
     return HookResult(success=True, state_delta={})
 
 
-@hook_registry.register(name="waterfall_scoring_hook")
-async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> HookResult:
-    """Post-Hook to calculate Hybrid Waterfall scores from blind atom evaluations."""
-    logger.info("[ScoringHook] Running waterfall_scoring_hook...")
+@hook_registry.register(name="matrix_scoring_hook")
+async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookResult:
+    """Post-Hook to calculate Matrix scores from blind atom evaluations using the selected Mathematical Engine."""
+    logger.info("[ScoringHook] Running matrix_scoring_hook...")
 
     repository = deps.workflow_repo
     if not repository:
-        msg = "Strict Fail-Fast Enforced: No repository provided in HookDependencies for waterfall_scoring_hook."
+        msg = "Strict Fail-Fast Enforced: No repository provided in HookDependencies for matrix_scoring_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
 
     if not isinstance(state.inputs, dict):
-        msg = "Strict Fail-Fast Enforced: State inputs must be a dictionary in waterfall_scoring_hook."
+        msg = "Strict Fail-Fast Enforced: State inputs must be a dictionary in matrix_scoring_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     blueprint_id = state.task_blueprint or state.step_id
     if not blueprint_id:
-        msg = "Strict Fail-Fast Enforced: No blueprint_id or step_id provided to waterfall_scoring_hook."
+        msg = "Strict Fail-Fast Enforced: No blueprint_id or step_id provided to matrix_scoring_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     try:
@@ -512,6 +486,16 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
         if not matrix_blocks:
             logger.debug("[ScoringHook] Step '%s' contains no matrix blocks. Skipping waterfall scoring.", blueprint_id)
             return HookResult(success=True, state_delta={})
+
+        raw_exec_data = await deps.exec_repo.get_execution(state.execution_id)
+        if not raw_exec_data:
+            msg = f"Strict Fail-Fast Enforced: Execution {state.execution_id} missing from database."
+            logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+            raise AppException(
+                message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+            )
+
+        execution_data = ExecutionRecord.model_validate(raw_exec_data, strict=False)
 
         content_payload = state.inputs
         if "evaluations" not in content_payload:
@@ -658,68 +642,28 @@ async def waterfall_scoring_hook(state: HookState, deps: HookDependencies) -> Ho
                     math_min,
                 )
                 dampening_score = math_min
-                weighted_score = math_min
-                floor_score = math_min
                 calculation_log = (
                     "### Cognitive Diagnostic Model (CDM) Breakdown:\n\n"
                     f"No evaluations provided (total_atoms=0). Score defaults to math_min ({math_min})."
                 )
                 level_breakdown = {str(k): {"hits": v["hits"], "total": v["total"]} for k, v in stats.items()}
+                dampening_score = math_min
+                calculation_log = f"Empty Matrix. Default score: {math_min}"
             else:
-                # Shadow calculations for XAI logging
-                floor_score = calculate_waterfall_floor(stats, math_min, threshold=WaterfallThreshold.STANDARD.value)
-                weighted_score = calculate_weighted_score(stats, math_min, math_max)
+                # Dynamic Model Selection (Strategy Pattern)
+                raw_strategy = (
+                    execution_data.scoring_strategy.value if execution_data.scoring_strategy else "WATERFALL_FLOOR"
+                )
 
-                # --- DINA Progressive Dampening Calculation ---
-                # V2 Optimal Math Model: Square Root Dampening natively creates natural Gaussian variance
-                # without requiring an artificial safety net floor. DINA_FLOOR is completely removed.
-                dampening_score = calculate_progressive_dampening_score(stats, math_min, math_max)
-
-                # Formatting the calculation log (Cognitive Diagnostic Model)
-                log_lines = ["### Cognitive Diagnostic Model (CDM) Breakdown:"]
-                sorted_levels = sorted(stats.keys())
-
-                modifier = 1.0
-
-                for s_level in sorted_levels:
-                    level_data = stats[s_level]
-                    t_hits = level_data["hits"]
-                    t_total = level_data["total"]
-
-                    hit_rate = (t_hits / t_total) if t_total > 0 else 0.0
-                    pct = int(hit_rate * 100)
-
-                    if s_level == math_min:
-                        modifier = hit_rate
-                        log_lines.append(
-                            f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - Cognitive Flow: {modifier:.2f})"
-                        )
-                    else:
-                        if hit_rate >= CognitiveFlowThreshold.OPTIMAL.value:
-                            status = CognitiveFlowStatus.OPTIMAL.value
-                        elif hit_rate >= CognitiveFlowThreshold.ACCEPTABLE.value:
-                            status = f"{CognitiveFlowStatus.ACCEPTABLE.value} ({hit_rate:.2f})"
-                        else:
-                            status = f"{CognitiveFlowStatus.WEAK.value} ({hit_rate:.2f})"
-
-                        log_lines.append(f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - {status})")
-                        modifier = modifier * hit_rate
-
-                log_lines.append("")
-                log_lines.append("**Shadow Calculation Data:**")
-                log_lines.append(f"1. *Raw Weighted Average:* {weighted_score:.2f} (Linear hits)")
-                log_lines.append(f"2. *Legacy Waterfall Floor:* {floor_score:.1f} (Cutoff point)")
-
-                diff = weighted_score - dampening_score
-                if diff > CognitiveFlowThreshold.SIGNIFICANT_DROP_DIFF.value:
-                    log_lines.append(
-                        f"-> Deficiencies in foundation credibility dampen the final score significantly (-{diff:.2f})."
-                    )
-
-                log_lines.append(f"**Final CDM Score:** {dampening_score:.2f}")
-
-                calculation_log = "\n".join(log_lines)
-                level_breakdown = {str(k): {"hits": v["hits"], "total": v["total"]} for k, v in stats.items()}
+                try:
+                    engine = get_scoring_engine(raw_strategy)
+                    dampening_score, calculation_log, level_breakdown = engine.calculate(stats, math_min, math_max)
+                except Exception as strat_err:
+                    msg = f"Fatal error executing scoring strategy '{raw_strategy}': {str(strat_err)}"
+                    logger.error("[ScoringHook] %s", msg, exc_info=True)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.CALCULATION_FAILED.value}
+                    ) from strat_err
 
             # The Anti-TDD Trap & Zero-Compromise Pledge: We intercept the payload with a strict Pydantic adapter
             # and guarantee all outputs are mapped into the strict LightweightMatrixOutput, eliminating naked keys.

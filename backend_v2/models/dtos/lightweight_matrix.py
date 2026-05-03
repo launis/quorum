@@ -51,7 +51,7 @@ class LightweightMatrixOutput(BaseModel):
 
         if "raw_score" not in data:
             data["raw_score"] = 0.0  # Fallback for text-only PromptBlocks
-            
+
         if "normalized_score" not in data:
             data["normalized_score"] = data["raw_score"]
 
@@ -60,10 +60,10 @@ class LightweightMatrixOutput(BaseModel):
             just_parts.append(str(data.pop("evaluation_notes")))
         if "step_3_logical_friction" in data:
             just_parts.append(str(data.pop("step_3_logical_friction")))
-            
+
         if just_parts and "justification" not in data:
             data["justification"] = "\n\n".join(just_parts)
-            
+
         if "justification" not in data:
             data["justification"] = ""
 

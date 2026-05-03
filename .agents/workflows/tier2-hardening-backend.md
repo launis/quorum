@@ -53,6 +53,7 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
    - **`no_inline_imports`**: Ei inline importteja (esim. funktioiden sisällä). Kaikki importit tiedoston alussa.
    - **`cross_language_enum_parity`**: Pydantic Enum/Literal muuttujat täytyy olla pariteetissa Flutterin kanssa.
    - **`schema_driven_routing`**: Ei "Duck Typingiä" (sokeaa sanakirjojen muodon availua). Reititys aina tietokannasta tulevan schema_map:in perusteella.
+   - **`zero_db_hardcoding_mandate`**: Tietokannan ID:itä tai nimiä ei saa vertailla logiikassa (magic strings). Listojen alkioihin ei saa viitata kovakoodatuilla indekseillä olettaen palautusjärjestys.
    - **`prompt_compiler_immutability`**: Älä muokkaa `prompt_compiler.py` -tiedostoa.
    - **`Synthesis.py Standard`**: Funktiot "Pure Functions" muodossa. Sisäkkäisten looppien tilalla O(1) haut.
    - Käytä sarakkeita: `| Rule Block ID / Sääntö | Tila (Pass / Fail) | Löydökset & Perustelu |`.

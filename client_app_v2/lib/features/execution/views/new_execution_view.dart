@@ -45,6 +45,7 @@ class NewExecutionController extends _$NewExecutionController {
     required String targetLocale,
     String? profileId,
     int strictnessLevel = 50,
+    String scoringStrategy = 'WATERFALL_FLOOR',
   }) async {
     state = const AsyncLoading();
     try {
@@ -58,6 +59,7 @@ class NewExecutionController extends _$NewExecutionController {
           'target_locale': targetLocale,
           if (profileId != null) 'profile_id': profileId,
           'strictness_level': strictnessLevel,
+          'scoring_strategy': scoringStrategy,
         },
       );
 
@@ -88,6 +90,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   Map<String, dynamic>? _selectedWorkflow;
   String? _selectedProfileId;
   int _selectedStrictnessLevel = 50;
+  String _selectedScoringStrategy = 'WATERFALL_FLOOR';
   final Map<String, dynamic> _compiledInputs = {};
 
   // To keep track of filename for UI
@@ -221,6 +224,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             targetLocale: localeCode,
             profileId: _selectedProfileId,
             strictnessLevel: _selectedStrictnessLevel,
+            scoringStrategy: _selectedScoringStrategy,
           );
 
       // Safe context routing using GoRouter Codegen
@@ -440,6 +444,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
           const Divider(height: 48),
 
           _buildStrictnessSelector(),
+
+          const SizedBox(height: 24),
+
+          _buildScoringStrategySelector(),
 
           const SizedBox(height: 24),
 
@@ -845,6 +853,79 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                 if (val != null) {
                   setState(() {
                     _selectedStrictnessLevel = val;
+                  });
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScoringStrategySelector() {
+    final Map<String, String> strategyOptions = {
+      'WATERFALL_FLOOR': 'Hybrid Waterfall (Default)',
+      'PROGRESSIVE_DAMPENING': 'Progressive Dampening (DINA)',
+      'PURE_AVERAGE': 'Pure Average',
+      'WEIGHTED_AVERAGE': 'Weighted Average',
+    };
+
+    return Card(
+      elevation: 0,
+      color: Theme.of(
+        context,
+      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.calculate,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Scoring Engine', // Fallback hardcoded for epic 43 MVP
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Select the mathematical model used to synthesize evaluation scores.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: _selectedScoringStrategy,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+                labelText: 'Mathematical Engine',
+                border: const OutlineInputBorder(),
+              ),
+              items: strategyOptions.entries.map((entry) {
+                return DropdownMenuItem<String>(
+                  value: entry.key,
+                  child: Text(entry.value),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() {
+                    _selectedScoringStrategy = val;
                   });
                 }
               },

@@ -32,6 +32,7 @@ def valid_execution_data() -> dict[str, Any]:
         "status": "running",
         "output_profile_id": "prof_1234567890abcdef1234567890abcdef",
         "strictness_level": 50,
+        "scoring_strategy": "WATERFALL_FLOOR",
     }
 
 
@@ -87,7 +88,7 @@ async def test_synthesis_fails_fast_on_invalid_metadata(
     with pytest.raises(AppException) as exc_info:
         await cast(Awaitable[HookResult], text_consolidation_hook(state, deps))
 
-    assert exc_info.value.status_code == 400
+    assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert "Strict Fail-Fast Enforced" in exc_info.value.message
 
@@ -141,10 +142,10 @@ async def test_synthesis_empty_inputs_returns_early(
     state = HookState(
         execution_id="exe_1234567890abcdef1234567890abcdef",
         workflow_id=valid_workflow_data["id"],
-        inputs={},
+        inputs={"steps": []},
         metadata={
             "target_locale": "en",
-            "step_results": [{"step_id": "dummy_step", "block_id": "blk_1", "data_type": "json", "payload": {}}],
+            "step_results": [{"step_id": "dummy_step", "block_id": "blk_1", "data_type": "matrix", "payload": {}}],
         },  # noqa: E501
         global_context_vars={},
     )

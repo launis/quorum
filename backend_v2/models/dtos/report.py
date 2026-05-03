@@ -279,7 +279,7 @@ class TraceMatrixPayloadDTO(BaseDTO):
     raw_score: float | None = None
     normalized_score: float | None = None
     justification: str | None = None
-    
+
     level_breakdown: dict[str, Any] | None = None
     extensions: dict[str, Any] | None = None
     evaluated_atoms: dict[str, bool] | None = None

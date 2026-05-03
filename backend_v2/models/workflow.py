@@ -1,10 +1,8 @@
 import logging
 import uuid
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
-
-from backend_v2.exceptions import AppException, ErrorCodes
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +37,8 @@ class WorkflowStep(BaseModel):
     )
     task_key: str = Field(
         ...,
+        min_length=1,
+        pattern=r"\S",
         validation_alias=AliasChoices("task_key", "component"),
         description="Registry Task Name (matches @register_task name)",
         json_schema_extra={"x-ui-label": "Task Key"},
@@ -60,21 +60,14 @@ class WorkflowStep(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    @field_validator("id", "task_key")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[WorkflowModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
-        return v.strip()
-
 
 class ComponentScoringRule(BaseModel):
     """Defines how a specific component contributes to a score."""
 
     component_id: str = Field(
         ...,
+        min_length=1,
+        pattern=r"\S",
         description="ID of the component being scored",
         json_schema_extra={"x-ui-label": "Component ID"},
     )
@@ -85,20 +78,13 @@ class ComponentScoringRule(BaseModel):
     )
     metric_key: str = Field(
         ...,
+        min_length=1,
+        pattern=r"\S",
         description="Key of the metric to extract (e.g., 'compliance_score')",
         json_schema_extra={"x-ui-label": "Metric Key"},
     )
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
-    @field_validator("component_id", "metric_key")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[WorkflowModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
-        return v.strip()
 
 
 class ScoringLogic(BaseModel):
@@ -106,6 +92,8 @@ class ScoringLogic(BaseModel):
 
     label: str = Field(
         ...,
+        min_length=1,
+        pattern=r"\S",
         description="Display label for this scoring logic",
         json_schema_extra={"x-ui-label": "Label"},
     )
@@ -116,15 +104,6 @@ class ScoringLogic(BaseModel):
     )
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
-    @field_validator("label")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[WorkflowModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
-        return v.strip()
 
 
 class WorkflowDefinition(BaseModel):
@@ -147,6 +126,7 @@ class WorkflowDefinition(BaseModel):
     name: str = Field(
         "Untitled Workflow",
         min_length=3,
+        pattern=r"\S",
         description="Human-readable name for the workflow",
         json_schema_extra={
             "x-ui-widget": "text",
@@ -160,18 +140,19 @@ class WorkflowDefinition(BaseModel):
     )
     description: str = Field(
         ...,
+        min_length=1,
+        pattern=r"\S",
         description="Human-readable description of what this workflow does",
         json_schema_extra={
             "x-ui-widget": "textarea",
             "x-ui-label": "Description",
         },
     )
-    status: str = Field(
+    status: Literal["draft", "active", "deprecated", "archived"] = Field(
         "draft",
         description="Workflow lifecycle status",
         json_schema_extra={
             "x-ui-widget": "select",
-            "enum": ["draft", "active", "deprecated", "archived"],
             "x-ui-label": "Status",
         },
     )
@@ -201,15 +182,6 @@ class WorkflowDefinition(BaseModel):
     )
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
-    @field_validator("id", "name", "description")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[WorkflowModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
-        return v.strip()
 
 
 # --- EVALUATION MODELS (Imported from domain.evaluation) ---

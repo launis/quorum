@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Literal, cast
 
-from pydantic import BaseModel, Field, RootModel, computed_field, field_validator, model_validator
+from pydantic import BaseModel, Field, RootModel, field_validator, model_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -17,6 +17,7 @@ from backend_v2.models.enums import (
     ComponentType,
     ExecutionStatus,
     HistoricalContextMode,
+    ScoringStrategy,
     SystemConcurrency,
     XaiExtensionType,
 )
@@ -94,15 +95,19 @@ class I18nText(V2CoreBase):
         if self.default_locale in self.translations:
             return self.translations[self.default_locale]
 
-        return self.translations.get("en", "")
+        return self.translations["en"]
 
     def get(self, lang_code: str, fallback: str = "") -> str:
         """Extracts the localized string safely for templates (Jinja2) and programmatic access."""
+        if not self.translations:
+            return fallback
+
         if lang_code in self.translations and self.translations[lang_code].strip():
             return self.translations[lang_code]
         if self.default_locale in self.translations and self.translations[self.default_locale].strip():
             return self.translations[self.default_locale]
-        return self.translations.get("en", fallback)
+
+        return self.translations["en"]
 
 
 class TheoryGrounding(V2CoreBase):
@@ -194,35 +199,18 @@ class PromptBlock(V2CoreBase):
     rows: list[MatrixRow] | None = Field(default=None, description="Optional rows for grid matrices.")
     columns: list[I18nText] | None = Field(default=None, description="Optional columns for grid matrices.")
 
-    @model_validator(mode="before")
-    @classmethod
-    def _strip_computed_fields(cls, data: dict[str, Any]) -> dict[str, Any]:
-        if isinstance(data, dict):
-            # Strip computed properties that are serialized to the DB to prevent
-            # 'extra_forbidden' Pydantic crashes during load
-            data.pop("computed_min", None)
-            data.pop("computed_max", None)
-        return data
-
-    @computed_field  # type: ignore[prop-decorator] # MyPy does not support decorators on top of property, but Pydantic V2 requires it
-    @property
-    def computed_min(self) -> int | None:
-        """Dynamically computes the absolute minimum score from the scales array."""
-        if not self.scales:
-            return None
-        return min(s.score for s in self.scales)
-
-    @computed_field  # type: ignore[prop-decorator] # MyPy does not support decorators on top of property, but Pydantic V2 requires it
-    @property
-    def computed_max(self) -> int | None:
-        """Dynamically computes the absolute maximum score from the scales array."""
-        if not self.scales:
-            return None
-        return max(s.score for s in self.scales)
+    computed_min: int | None = Field(default=None, description="Dynamically computed absolute minimum score")
+    computed_max: int | None = Field(default=None, description="Dynamically computed absolute maximum score")
 
     @model_validator(mode="after")
     def validate_block_consistency(self) -> PromptBlock:
         """Strict validation for PromptBlock relations and logical constraints."""
+        if self.scales:
+            self.computed_min = min(s.score for s in self.scales)
+            self.computed_max = max(s.score for s in self.scales)
+        else:
+            self.computed_min = None
+            self.computed_max = None
         # Fail-fast: Cannot allow decimals on non-numeric types
         # string permitted for BARS format
         valid_numeric = [BlockDataType.FLOAT, BlockDataType.INT, BlockDataType.STRING]
@@ -619,19 +607,6 @@ class ReportLayoutDTO(V2CoreBase):
         default="full", description="Granularity of text output for this layout."
     )
 
-    @model_validator(mode="before")
-    @classmethod
-    def migrate_text_mode(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            if "text_delivery_mode" not in data:
-                show = data.get("show_text", True)
-                if "showText" in data and "show_text" not in data:
-                    show = data.get("showText", True)
-                data["text_delivery_mode"] = "full" if show else "none"
-            data.pop("show_text", None)
-            data.pop("showText", None)
-        return data
-
     synthesis: SynthesisConfigDTO | None = Field(default=None)
     synthesis_md: str | None = Field(default=None, description="The rendered synthesis text for this layout block")
 
@@ -714,19 +689,6 @@ class OutputLayoutBlock(V2CoreBase):
         default="full", description="Granularity of text output in PDF and UI grids."
     )
 
-    @model_validator(mode="before")
-    @classmethod
-    def migrate_text_mode(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            if "text_delivery_mode" not in data:
-                show = data.get("show_text", True)
-                if "showText" in data and "show_text" not in data:
-                    show = data.get("showText", True)
-                data["text_delivery_mode"] = "full" if show else "none"
-            data.pop("show_text", None)
-            data.pop("showText", None)
-        return data
-
     synthesis: SynthesisConfigDTO | None = Field(
         default=None, description="Optional Section-Level Synthesis configuration for this block."
     )
@@ -756,13 +718,6 @@ class OutputProfile(V2CoreBase):
         le=100,
         description="Max number of items to show per grouped XAI extension.",
     )
-
-    @model_validator(mode="before")
-    @classmethod
-    def migrate_max_extensions(cls, data: Any) -> Any:
-        if isinstance(data, dict) and data.get("max_extension_items") is None:
-            data["max_extension_items"] = 3
-        return data
 
     display_scale: Literal["original", "custom", "normalized_100"] = Field(
         default="original",
@@ -913,6 +868,9 @@ class ExecutionCreate(V2CoreBase):
 
     workflow_id: str = Field(description="ID of the workflow to execute")
     strictness_level: int = Field(..., ge=0, le=100, description="Strictness level of the evaluation (0-100)")
+    scoring_strategy: ScoringStrategy = Field(
+        ..., description="The mathematical engine used to calculate final scores.", strict=False
+    )
     target_locale: str = Field(
         description="Desired target locale for output generated by the workflow "
         "(e.g., 'fi'). Must be explicitly provided."
@@ -975,6 +933,9 @@ class ExecutionRecord(V2CoreBase):
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")
     strictness_level: int = Field(..., description="Strictness level of the evaluation (0-100)")
+    scoring_strategy: ScoringStrategy = Field(
+        ..., description="The mathematical engine used to calculate final scores.", strict=False
+    )
     status: ExecutionStatus = Field(description="Current status of execution", strict=False)
     active_profile_id: str | None = Field(
         default=None, description="The ID of the output profile selected for formatting and printing."
@@ -1015,22 +976,7 @@ class ExecutionRecord(V2CoreBase):
     created_by: str | None = Field(default=None, description="ID of the user who started the execution")
     organization_id: str | None = Field(default=None, description="ID of the organization for this execution")
 
-    @model_validator(mode="before")
-    @classmethod
-    def parse_db_fields(cls, data: Any) -> Any:
-        """Parses string fields from DB into proper types for Strict Mode."""
-        if isinstance(data, dict):
-            for field in ["created_at", "updated_at", "completed_at"]:
-                val = data.get(field)
-                if isinstance(val, str):
-                    try:
-                        if val.endswith("Z"):
-                            val = val.replace("Z", "+00:00")
-                        data[field] = datetime.fromisoformat(val)
-                    except ValueError as e:
-                        logger.error("Failed to parse ExecutionRecord %s", field, exc_info=True)
-                        raise ValueError(f"Input should be a valid datetime or ISO format for {field}: {val}") from e
-        return data
+
 
 
 class JobAcceptedDTO(BaseModel):

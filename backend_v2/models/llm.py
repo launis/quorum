@@ -6,7 +6,7 @@ advanced reasoning tokens and tool calls.
 """
 
 import logging
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -64,7 +64,7 @@ class LLMResponse(BaseModel):
         str | None, Field(description="System fingerprint identifying exact model weights used.")
     ] = None
 
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
     @field_validator("content")
     @classmethod
@@ -84,22 +84,34 @@ class LLMResponse(BaseModel):
 class LLMProviderConfig(BaseModel):
     """Configuration for an LLM Provider."""
 
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
     id: Annotated[
         str,
-        Field(..., description="Configuration ID (unique key).", json_schema_extra={"x-ui-hidden": True}),
+        Field(
+            ...,
+            min_length=1,
+            pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
+            description="Configuration ID (unique key).",
+            json_schema_extra={"x-ui-hidden": True},
+        ),
     ]
     provider: Annotated[
         str,
         Field(
-            ..., description="Provider type (e.g. 'openai', 'vertex_ai').", json_schema_extra={"x-ui-label": "Provider"}
+            ...,
+            min_length=1,
+            pattern=r"\S",
+            description="Provider type (e.g. 'openai', 'vertex_ai').",
+            json_schema_extra={"x-ui-label": "Provider"},
         ),
     ]
     model_name: Annotated[
         str,
         Field(
             ...,
+            min_length=1,
+            pattern=r"\S",
             description="Model identifier (e.g. 'gpt-4', 'gemini-pro').",
             json_schema_extra={"x-ui-label": "Model Name"},
         ),
@@ -203,60 +215,24 @@ class LLMProviderConfig(BaseModel):
         default_factory=dict
     )
 
-    @field_validator("id", "provider", "model_name")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[LLMModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
-
 
 class AdHocTestRequest(BaseModel):
     """Request payload for ephemeral LLM testing."""
 
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
-    provider: Annotated[str, Field(..., description="Provider identifier.")]
+    provider: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="Provider identifier.")]
     api_key: Annotated[str | None, Field(default=None, description="Optional API key for testing.")]
-    system_instruction: Annotated[str, Field(..., description="System prompt.")]
-    user_prompt: Annotated[str, Field(..., description="User prompt.")]
+    system_instruction: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="System prompt.")]
+    user_prompt: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="User prompt.")]
     model_params: Annotated[dict[str, Any], Field(default_factory=dict, description="Model parameters override.")]
-
-    @field_validator("provider", "system_instruction", "user_prompt")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[LLMModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
 
 
 class AdHocTestResponse(BaseModel):
     """Response for ephemeral LLM testing."""
 
-    content: Annotated[str, Field(..., description="Generated content.")]
-    latency_ms: Annotated[float, Field(..., description="Execution latency in milliseconds.")]
-    status: Annotated[str, Field(..., description="Status string (e.g. 'success', 'error').")]
+    content: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="Generated content.")]
+    latency_ms: Annotated[float, Field(..., ge=0.0, description="Execution latency in milliseconds.")]
+    status: Annotated[Literal["success", "error"], Field(..., description="Status string (e.g. 'success', 'error').")]
 
-    model_config = ConfigDict(extra="forbid", strict=True)
-
-    @field_validator("content", "status")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[LLMModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v.strip()
-
-    @field_validator("latency_ms")
-    @classmethod
-    def validate_non_negative(cls, v: float) -> float:
-        if v < 0:
-            msg = "Latency cannot be negative."
-            logger.error("[LLMModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return v
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)

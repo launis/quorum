@@ -72,6 +72,7 @@ class ExecutionController extends _$ExecutionController {
     String workflowId,
     Map<String, dynamic> inputs, {
     int strictnessLevel = 50,
+    String scoringStrategy = 'WATERFALL_FLOOR',
   }) async {
     state = const AsyncValue.loading();
     await _sseSubscription?.cancel();
@@ -82,6 +83,7 @@ class ExecutionController extends _$ExecutionController {
         workflowId: workflowId,
         rawInputs: inputs,
         strictnessLevel: strictnessLevel,
+        scoringStrategy: scoringStrategy,
       );
 
       final executionId = initialRecord['id'] as String;

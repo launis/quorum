@@ -68,10 +68,10 @@ async def _fetch_historical_context(
 
         best_cache = None
         if e.profile_syntheses:
-            try:
+            if profile_to_use in e.profile_syntheses:
                 best_cache = e.profile_syntheses[profile_to_use]
-            except KeyError:
-                best_cache = next(iter(e.profile_syntheses.values()))
+            else:
+                continue
 
         if not best_cache or not best_cache.synthesized_markdown:
             continue
@@ -248,8 +248,13 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
 
+    if not state.metadata:
+        msg = "Strict Fail-Fast Enforced: state.metadata is missing or None."
+        logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
     try:
-        hook_metadata_dto = SynthesisMetadataDTO.model_validate(state.metadata or {})
+        hook_metadata_dto = SynthesisMetadataDTO.model_validate(state.metadata)
         language = hook_metadata_dto.target_locale.strip().lower()
     except ValidationError as e:
         msg = f"Strict Fail-Fast Enforced: Execution metadata failed validation: {e}"
@@ -280,7 +285,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     workflow_data = Workflow.model_validate(raw_workflow_data)
 
     raw_exec_data = await deps.exec_repo.get_execution(state.execution_id)
-    execution_data = ExecutionRecord.model_validate(raw_exec_data) if raw_exec_data else None
+    execution_data = ExecutionRecord.model_validate(raw_exec_data, strict=False) if raw_exec_data else None
 
     output_profile_id = execution_data.output_profile_id if execution_data else None
 
@@ -369,7 +374,12 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     available_dtos: list[StepOutputDTO] = []
 
     # In V2, inputs.get("steps") is the definitive state source.
-    steps_list = inputs.get("steps", [])
+    if "steps" not in inputs:
+        msg = "Strict Fail-Fast Enforced: 'steps' key is missing from state inputs."
+        logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
+    steps_list = inputs["steps"]
     if isinstance(steps_list, list):
         for item in steps_list:
             if isinstance(item, StepOutputDTO):
@@ -377,8 +387,14 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             elif isinstance(item, dict):
                 try:
                     available_dtos.append(StepOutputDTO.model_validate(item))
-                except ValidationError:
-                    pass
+                except ValidationError as e:
+                    msg = f"Strict Fail-Fast Enforced: Invalid StepOutputDTO in inputs: {e}"
+                    logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from e
 
     # Merge metadata injection
     if hook_metadata_dto.step_results:
@@ -405,8 +421,14 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 step_dto = SynthesisStepDataDTO.model_validate(step_dict)
             else:
                 step_dict = {"_value": step_data}
-        except (ValidationError, TypeError, ValueError):
-            step_dict = {"_value": step_data}
+        except (ValidationError, TypeError, ValueError) as e:
+            msg = f"Strict Fail-Fast Enforced: Invalid synthesis step data for {uid}: {e}"
+            logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
 
         # O(1) Set intersection logic replacing nested loops
         inner_keys = set(step_dict.keys())
@@ -500,6 +522,14 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     sys_prompt = "<system_directive>\n<execution_parameters>\n"
     sys_prompt += f"  <target_language>{language}</target_language>\n"
+
+    if not execution_data or not execution_data.scoring_strategy:
+        msg = "Strict Fail-Fast Enforced: 'scoring_strategy' missing from execution data."
+        logger.error("[SynthesisHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
+
+    scoring_strategy = execution_data.scoring_strategy.value
+    sys_prompt += f"  <scoring_strategy>{scoring_strategy}</scoring_strategy>\n"
 
     if length_constraint:
         sys_prompt += f"  <global_length_constraint_chars>{length_constraint}</global_length_constraint_chars>\n"
@@ -632,10 +662,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
         # Synthesis is now natively generated in target_locale due to CRITICAL_LANGUAGE_MANDATE
         global_md = result.synthesized_markdown
-        if result.cited_sources:
-            bib_title = "\n\n### BIBLIOGRAPHY_HEADER\n"
-            bib_text = bib_title + "\n".join([f"[{i + 1}] {src}" for i, src in enumerate(result.cited_sources)])
-            global_md += bib_text
+        # Tripartite rendering boundary enforcement: Markdown bibliography generation delegated to UI/PDF layer
 
         raw_highlights = [h.model_dump() for h in result.xai_highlights] if result.xai_highlights else []
 

@@ -180,6 +180,37 @@ class GCSFileDriver(FileDriver):
                 details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             ) from e
 
+    async def delete_directory(self, prefix: str) -> bool:
+        def _sync_delete_directory() -> bool:
+            bucket = self._get_bucket()
+            prefix_with_slash = prefix if prefix.endswith("/") else f"{prefix}/"
+            blobs = list(bucket.list_blobs(prefix=prefix_with_slash))
+            if not blobs:
+                raise FileNotFoundError(f"Cannot delete non-existent GCS directory: {prefix}")
+
+            bucket.delete_blobs(blobs)
+            return True
+
+        try:
+            return await asyncio.to_thread(_sync_delete_directory)
+        except FileNotFoundError as e:
+            logger.error("[GCSFileDriver] %s: %s", ErrorCodes.FILE_NOT_FOUND.name, str(e))
+            raise AppException(
+                message=str(e), status_code=404, details={"error_code": ErrorCodes.FILE_NOT_FOUND.value}
+            ) from e
+        except AppException:
+            raise
+        except Exception as e:
+            logger.error(
+                f"[GCSFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to delete directory from GCS {prefix}: {e}",
+                exc_info=True,
+            )
+            raise AppException(
+                message=f"GCS Directory Delete Failed: {str(e)}",
+                status_code=500,
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+            ) from e
+
     async def exists(self, path: str) -> bool:
         def _sync_exists() -> bool:
             bucket = self._get_bucket()

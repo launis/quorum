@@ -393,7 +393,7 @@ class LLMHandler:
 
             # Construct strict config object
             provider_config = LLMProviderConfig(
-                id=f"{provider}/{mode}",
+                id=f"prov_{provider.replace('-', '').replace('_', '')}{mode.replace('-', '').replace('_', '')}00000000",
                 provider=provider,
                 model_name=model_name,
                 api_key=api_key,

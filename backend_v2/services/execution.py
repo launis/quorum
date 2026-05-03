@@ -101,64 +101,36 @@ class ExecutionService:
 
     async def delete_execution(self, initiator: TokenData, execution_id: str) -> bool:
         """Securely delete an execution."""
-        # 1. Raw fetch to bypass hydration (Fail-Fast ResourceNotFound / PermissionDenied).
-        # This allows deleting corrupted executions where blob files are missing.
-        # Since we decoupled, we just use the execution repo's getter directly
-        raw_data_record = await self.exec_repo.get_execution(execution_id)
-        raw_data = raw_data_record.model_dump() if raw_data_record else None
-        if not raw_data:
+        record = await self.exec_repo.get_execution(execution_id, hydrate=False)
+        if not record:
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
         # SSOT MANDATE: Tenant Isolation Check
         org_id = getattr(initiator, "organization_id", None)
-        if (
-            initiator.role != "ROOT"
-            and raw_data.get("organization_id") != org_id
-            and raw_data.get("created_by") != initiator.id
-        ):
+        if initiator.role != "ROOT" and record.organization_id != org_id and record.created_by != initiator.id:
             msg = "You do not have permission to delete this execution."
             raise PermissionDeniedError(msg)
 
         try:
-            # Clean up offloaded blobs if they exist
+            # Clean up all offloaded blobs and input files (Total Annihilation)
             storage = get_storage_driver()
-            for key in ["execution_trace_storage_path", "frozen_context_storage_path", "pdf_report_path"]:
-                if raw_data.get(key):
-                    try:
-                        await storage.delete(raw_data[key])
-                    except AppException as e:
-                        if e.status_code == 404:
-                            logger.warning(
-                                "[ExecutionService] Blob %s not found during cleanup, ignoring.", raw_data[key]
-                            )
-                            continue
-                        msg = f"Failed to clean up blob {raw_data[key]} during execution deletion."
-                        logger.error(
-                            "[ExecutionService] %s: %s",
-                            ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                            msg,
-                            exc_info=True,
-                            extra={"execution_id": execution_id},
-                        )
-                        raise AppException(
-                            message=msg,
-                            status_code=500,
-                            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                        ) from e
-                    except Exception as e:
-                        msg = f"Failed to clean up blob {raw_data[key]} during execution deletion."
-                        logger.error(
-                            "[ExecutionService] %s: %s",
-                            ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                            msg,
-                            exc_info=True,
-                            extra={"execution_id": execution_id},
-                        )
-                        raise AppException(
-                            message=msg,
-                            status_code=500,
-                            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                        ) from e
+            try:
+                await storage.delete_directory(f"executions/{execution_id}")
+            except AppException as e:
+                if e.status_code == 404:
+                    logger.warning("[ExecutionService] Execution directory not found during cleanup, ignoring.")
+                else:
+                    msg = f"Failed to clean up directory executions/{execution_id} during deletion."
+                    logger.error("[ExecutionService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                    ) from e
+            except Exception as e:
+                msg = f"Failed to clean up directory executions/{execution_id} during deletion."
+                logger.error("[ExecutionService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                ) from e
 
             return await self.exec_repo.delete_execution(execution_id)
         except Exception as e:
@@ -325,6 +297,7 @@ class ExecutionService:
             id=execution_id,
             workflow_id=workflow.id,
             strictness_level=payload.strictness_level,
+            scoring_strategy=payload.scoring_strategy,
             status=ExecutionStatus.PENDING,
             raw_inputs=payload.raw_inputs,
             output_profile_id=resolved_profile_id,
@@ -536,8 +509,15 @@ class ExecutionService:
             return dto.model_dump(mode="json"), "application/json", None
 
         elif fmt == "html":
-            if not accept_language and execution.metadata:
-                accept_language = execution.metadata.get("target_locale")
+            if not accept_language:
+                if "target_locale" not in execution.metadata:
+                    msg = "Strict Fail-Fast Enforced: 'target_locale' missing from execution metadata."
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+                accept_language = str(execution.metadata["target_locale"])
 
             transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
             dto = await transformer.build_report_dto(execution_id, resolved_pid, accept_language)
@@ -565,8 +545,15 @@ class ExecutionService:
                         message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
                     ) from strg_err
 
-            if not accept_language and execution.metadata:
-                accept_language = execution.metadata.get("target_locale")
+            if not accept_language:
+                if "target_locale" not in execution.metadata:
+                    msg = "Strict Fail-Fast Enforced: 'target_locale' missing from execution metadata."
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+                accept_language = str(execution.metadata["target_locale"])
 
             transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
             dto = await transformer.build_report_dto(execution_id, resolved_pid, accept_language)

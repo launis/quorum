@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -36,26 +36,21 @@ class ReasoningTrace(BaseModel):
     """Stores hidden Chain-of-Thought (preserves "Thinking Tokens")."""
 
     thought_process: str = Field(
+        min_length=1,
+        pattern=r"\S",
         description="The raw chain-of-thought or reasoning trace. "
-        "MUST be written strictly in English to ensure cross-run determinism."
+        "MUST be written strictly in English to ensure cross-run determinism.",
     )
     conclusion: str = Field(
-        description="The final conclusion derived from the reasoning. MUST be written strictly in English."
+        min_length=1,
+        pattern=r"\S",
+        description="The final conclusion derived from the reasoning. MUST be written strictly in English.",
     )
     confidence_score: float = Field(ge=0.0, le=1.0, description="Confidence in the conclusion.")
     model_name: str | None = Field(default=None, description="The model used for reasoning.")
     token_usage: dict[str, int] = Field(default_factory=dict, description="Token usage statistics.")
 
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
-
-    @field_validator("thought_process", "conclusion")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[StateModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
-        return v.strip()
 
 
 class TraceEvent(BaseModel):
@@ -66,7 +61,11 @@ class TraceEvent(BaseModel):
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Event timestamp.")
 
     step_name: str = Field(
-        ..., description="Name of the step that generated this event.", json_schema_extra={"x-ui-label": "Step Name"}
+        ...,
+        min_length=1,
+        pattern=r"\S",
+        description="Name of the step that generated this event.",
+        json_schema_extra={"x-ui-label": "Step Name"},
     )
 
     event_type: Literal["input", "reasoning", "decision", "error", "output", "tombstone"] = Field(
@@ -78,38 +77,6 @@ class TraceEvent(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata.")
 
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
-
-    @field_validator("step_name")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[StateModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
-        return v.strip()
-
-    @model_validator(mode="before")
-    @classmethod
-    def parse_db_fields(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            val_id = data.get("event_id")
-            if isinstance(val_id, str):
-                try:
-                    data["event_id"] = uuid.UUID(val_id)
-                except ValueError as e:
-                    logger.error("Failed to parse TraceEvent event_id", exc_info=True)
-                    raise ValueError(f"Input should be a valid UUID for event_id: {val_id}") from e
-
-            val_ts = data.get("timestamp")
-            if isinstance(val_ts, str):
-                try:
-                    if val_ts.endswith("Z"):
-                        val_ts = val_ts.replace("Z", "+00:00")
-                    data["timestamp"] = datetime.fromisoformat(val_ts)
-                except ValueError as e:
-                    logger.error("Failed to parse TraceEvent timestamp", exc_info=True)
-                    raise ValueError(f"Input should be a valid datetime or ISO format for timestamp: {val_ts}") from e
-        return data
 
 
 class ErrorTraceEvent(TraceEvent):
@@ -132,7 +99,9 @@ class StepOutputDTO(V2CoreBase):
 
     step_id: str = Field(description="The opaque DAG Step ID.")
     block_id: str = Field(description="The opaque PromptBlock ID.")
-    data_type: str = Field(description="Inferred or explicitly parsed data type (e.g. matrix, text).")
+    data_type: Literal["text", "matrix", "unknown"] = Field(
+        description="Inferred or explicitly parsed data type (e.g. matrix, text)."
+    )
     payload: Any = Field(description="The actual data payload.")
 
 
@@ -140,7 +109,12 @@ class WorkflowState(BaseModel):
     """Aggregate root containing the execution trace and current state."""
 
     execution_id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique execution identifier.")
-    workflow_id: str = Field(..., description="The ID of the workflow definition.")
+    workflow_id: str = Field(
+        ...,
+        min_length=1,
+        pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
+        description="The ID of the workflow definition.",
+    )
     trace_version: int = Field(default=0, description="Optimistic Concurrency Control version.")
 
     status: Literal["pending", "running", "completed", "failed"] = Field(
@@ -174,15 +148,6 @@ class WorkflowState(BaseModel):
         return self.context_variables.get("reasoning_context")
 
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
-
-    @field_validator("workflow_id")
-    @classmethod
-    def validate_non_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[StateModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
-        return v.strip()
 
     def add_event(self, event: TraceEvent) -> WorkflowState:
         """Returns a new WorkflowState with the added event (Functional style)."""
@@ -364,7 +329,7 @@ class StateProjector:
 
             for block_id, payload in step_output.items():
                 # Dynamic type inference for legacy logs to support Phase 3
-                data_type = "unknown"
+                data_type: Literal["text", "matrix", "unknown"] = "unknown"
                 if isinstance(payload, str):
                     data_type = "text"
                 elif isinstance(payload, dict):

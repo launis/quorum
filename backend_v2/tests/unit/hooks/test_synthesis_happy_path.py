@@ -31,6 +31,7 @@ def valid_execution_data_for_synthesis() -> dict[str, Any]:
         "status": "running",
         "output_profile_id": "prof_00000000000000000000",
         "strictness_level": 50,
+        "scoring_strategy": "WATERFALL_FLOOR",
     }
 
 

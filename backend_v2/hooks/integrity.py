@@ -2,9 +2,7 @@
 
 import asyncio
 import copy
-import json
 import logging
-import os
 import re
 from pathlib import Path
 
@@ -14,7 +12,9 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.evaluation import EvaluationResult
-from backend_v2.models.domain.integrity import CitationAudit, IntegrityGlobalInputsDTO, StepContext
+from backend_v2.models.domain.integrity import CitationAudit, StepContext
+from backend_v2.services.storage import get_storage_driver
+from backend_v2.utils.paths import get_forensic_input_path
 
 logger = logging.getLogger(__name__)
 
@@ -27,37 +27,32 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     with Option B (Graceful Degradation): hallucinated quotes are gracefully stripped.
     Option C: Bypass verification entirely if SKIP_CITATION_VERIFICATION is enabled.
     """
-    if os.getenv("SKIP_CITATION_VERIFICATION", "false").lower() == "true":
-        logger.info("[IntegrityHook] Citation verification bypassed (SKIP_CITATION_VERIFICATION=true).")
-        return HookResult(success=True, state_delta={})
-
-    global_vars = state.global_context_vars
-    actual_inputs = None
-    if "inputs" in global_vars:
-        actual_inputs = global_vars["inputs"]
-    elif "$inputs" in global_vars:
-        actual_inputs = global_vars["$inputs"]
-
     source_texts: list[str] = []
 
-    if actual_inputs is not None:
-        try:
-            if isinstance(actual_inputs, dict):
-                payload = IntegrityGlobalInputsDTO.model_validate(actual_inputs)
-            else:
-                payload = IntegrityGlobalInputsDTO.model_validate({"raw_inputs": actual_inputs})
-            source_texts = payload.extract_source_texts()
-        except ValidationError as e:
-            logger.error("Validation failed for inputs: %s", e)
-            raise AppException(
-                message="Data Integrity Violation: Invalid input structure.",
-                status_code=500,
-                details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name},
-            ) from e
+    exec_record = await deps.exec_repo.get_execution(state.execution_id)
+    if not exec_record or not exec_record.raw_inputs:
+        msg = f"Data Integrity Violation: Missing execution record for {state.execution_id}"
+        logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name})
+
+    inputs_dict = exec_record.raw_inputs.model_dump()
+    storage = get_storage_driver()
+
+    for key in inputs_dict.keys():
+        forensic_path = get_forensic_input_path(state.execution_id, key)
+
+        if await storage.exists(forensic_path):
+            data = await storage.read(forensic_path)
+            if data:
+                source_texts.append(data.decode("utf-8"))
+                logger.info("[IntegrityHook] Successfully loaded forensic input from disk: %s", forensic_path)
+
+    global_vars = state.global_context_vars
 
     if not source_texts:
-        logger.warning("[IntegrityHook] Verification bypassed: Missing input text in global_context.")
-        return HookResult(success=True, state_delta={})
+        msg = "Data Integrity Violation: Missing input text in disk."
+        logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name})
 
     # 1b. Gather Context (RAG)
     rag_text = ""
@@ -77,28 +72,25 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
             ) from e
 
     try:
-        seed_path = Path(__file__).parent.parent / "seed" / "seed_data.json"
         docs_dir = Path(__file__).parent.parent.parent / "docs"
 
-        def _read_seed_and_docs() -> str:
+        def _read_docs() -> str:
             local_rag = ""
-            if seed_path.exists():
-                with open(seed_path, encoding="utf-8") as f:
-                    seed_json = json.load(f)
-                    if "prompt_blocks" in seed_json:
-                        for pb in seed_json["prompt_blocks"]:
-                            if "theory_grounding" in pb:
-                                pass
-
             if docs_dir.exists():
                 for doc_file in docs_dir.glob("*.md"):
                     with open(doc_file, encoding="utf-8") as f:
                         local_rag += f.read() + "\n"
             return local_rag
 
-        rag_text += await asyncio.to_thread(_read_seed_and_docs)
-    except (OSError, json.JSONDecodeError) as e:
-        logger.warning("[IntegrityHook] Failed to load documents for citation checking: %s", e)
+        rag_text += await asyncio.to_thread(_read_docs)
+    except OSError as e:
+        msg = f"Data Integrity Violation: Failed to load local context documents. Error: {e}"
+        logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name},
+        ) from e
 
     source_corpus = ("\n".join(source_texts) + "\n" + rag_text).lower()
 
@@ -118,15 +110,12 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     total_count = 0
 
     # 2. V2 Schema Citation Verification (Zero-Compromise Pydantic Definitions)
-    # Mutates a deep copy of the LLM's output
-    delta = copy.deepcopy(state.inputs)
-
-    # Schema-Driven Routing: Check explicit keys instead of try/except guessing
-    if "hypotheses" in delta:
+    if "hypotheses" in state.inputs:
         try:
-            analyst_dto = AnalystOutput.model_validate(delta)
+            analyst_dto = AnalystOutput.model_validate(state.inputs)
             if analyst_dto and analyst_dto.hypotheses:
-                for h_idx, hyp in enumerate(analyst_dto.hypotheses):
+                new_hypotheses = []
+                for hyp in analyst_dto.hypotheses:
                     valid_quotes = []
                     for quote in hyp.quotes:
                         total_count += 1
@@ -136,7 +125,9 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
                         else:
                             valid_quotes.append(quote)
                             valid_count += 1
-                    delta["hypotheses"][h_idx]["quotes"] = valid_quotes
+                    new_hypotheses.append(hyp.model_copy(update={"quotes": valid_quotes}))
+                analyst_dto = analyst_dto.model_copy(update={"hypotheses": new_hypotheses})
+            delta = analyst_dto.model_dump(mode="json", exclude_none=True)
         except ValidationError as e:
             logger.error("Validation failed for AnalystOutput: %s", e)
             raise AppException(
@@ -145,9 +136,9 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
                 details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name},
             ) from e
 
-    elif "citation_snippets" in delta:
+    elif "citation_snippets" in state.inputs:
         try:
-            eval_dto = EvaluationResult.model_validate(delta)
+            eval_dto = EvaluationResult.model_validate(state.inputs)
             if eval_dto and eval_dto.citation_snippets:
                 valid_quotes = []
                 for quote in eval_dto.citation_snippets:
@@ -158,7 +149,8 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
                     else:
                         valid_quotes.append(quote)
                         valid_count += 1
-                delta["citation_snippets"] = valid_quotes
+                eval_dto = eval_dto.model_copy(update={"citation_snippets": valid_quotes})
+            delta = eval_dto.model_dump(mode="json", exclude_none=True)
         except ValidationError as e:
             logger.error("Validation failed for EvaluationResult: %s", e)
             raise AppException(
@@ -166,6 +158,8 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
                 status_code=500,
                 details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name},
             ) from e
+    else:
+        delta = copy.deepcopy(state.inputs)
 
     if total_count == 0:
         logger.warning("[IntegrityHook] No structured citations found to verify.")
@@ -203,25 +197,23 @@ def enforce_hypothesis_linking_hook(state: HookState, deps: HookDependencies) ->
 
     Ensure that Analyst Hypotheses have sequential, valid IDs (HYP-1, HYP-2...).
     """
-    payload = None
-    if "step_analyst" in state.global_context_vars:
-        payload = state.global_context_vars["step_analyst"]
-    else:
-        payload = state.inputs
+    payload = state.inputs
+
+    # Strict boundary check: Only process if payload is explicitly an AnalystOutput payload
+    if not isinstance(payload, dict) or "hypotheses" not in payload:
+        return HookResult(success=True, state_delta={})
 
     try:
         analyst_dto = AnalystOutput.model_validate(payload)
     except ValidationError as e:
-        if isinstance(payload, dict) and "hypotheses" in payload:
-            logger.error("Validation failed for AnalystOutput: %s", e)
-            raise AppException(
-                message="Data Integrity Violation: Invalid AnalystOutput.",
-                status_code=500,
-                details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name},
-            ) from e
-        return HookResult(success=True, state_delta={})
+        logger.error("Validation failed for AnalystOutput: %s", e)
+        raise AppException(
+            message="Data Integrity Violation: Invalid AnalystOutput.",
+            status_code=500,
+            details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name},
+        ) from e
 
-    hypotheses = analyst_dto.hypotheses if analyst_dto else []
+    hypotheses = analyst_dto.hypotheses
 
     if not hypotheses:
         return HookResult(success=True, state_delta={})

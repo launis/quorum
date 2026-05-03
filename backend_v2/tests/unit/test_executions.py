@@ -12,6 +12,7 @@ from backend_v2.api.routers.execution.executions import (
     start_execution,
 )
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.enums import ScoringStrategy
 from backend_v2.models.v2_core import ExecutionRecord
 
 
@@ -48,7 +49,11 @@ async def test_list_executions(mock_current_user, mock_execution_service) -> Non
 async def test_get_execution_status(mock_current_user, mock_execution_service) -> None:  # type: ignore
     """Test retrieving execution status by ID."""
     mock_record = ExecutionRecord(
-        strictness_level=50, id="exe_1234567890abcdef1234567890abcdef", status="completed", workflow_id="wf_1"
+        scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
+        strictness_level=50,
+        id="exe_1234567890abcdef1234567890abcdef",
+        status="completed",
+        workflow_id="wf_1",
     )
     mock_execution_service.get_execution.return_value = mock_record
 
@@ -72,10 +77,15 @@ async def test_start_execution(mock_current_user, mock_execution_service, mock_d
         "target_locale": "fi",
         "raw_inputs": {"file1": "test"},
         "strictness_level": 50,
+        "scoring_strategy": "WATERFALL_FLOOR",
     }
 
     mock_record = ExecutionRecord(
-        strictness_level=50, id="exe_1234567890abcdef1234567890abcdef", status="pending", workflow_id="wf_1"
+        scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
+        strictness_level=50,
+        id="exe_1234567890abcdef1234567890abcdef",
+        status="pending",
+        workflow_id="wf_1",
     )
     mock_execution_service.start_execution.return_value = mock_record
 
@@ -109,7 +119,11 @@ async def test_delete_execution(mock_current_user, mock_execution_service) -> No
 async def test_resume_execution(mock_current_user, mock_execution_service, mock_arq_pool) -> None:  # type: ignore
     """Test resuming an execution."""
     mock_record = ExecutionRecord(
-        strictness_level=50, id="exe_1234567890abcdef1234567890abcdef", status="running", workflow_id="wf_1"
+        scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
+        strictness_level=50,
+        id="exe_1234567890abcdef1234567890abcdef",
+        status="running",
+        workflow_id="wf_1",
     )
     mock_execution_service.resume_execution.return_value = mock_record
 

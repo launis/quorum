@@ -1,5 +1,6 @@
 import json
 import logging
+import uuid
 from typing import Any
 
 import pydantic
@@ -117,7 +118,7 @@ class LLMClient:
             )
 
         provider_config = LLMProviderConfig(
-            id=f"{target_provider}/{strategy_name}",
+            id=f"prv_{uuid.uuid4().hex}",
             provider=target_provider,
             model_name=target_strategy.model_name,
             api_key=target_strategy.api_key,
@@ -184,25 +185,6 @@ class LLMClient:
                         ]
                     break
 
-        # Fallback strings for Legacy Mock logic where string flattening is required
-        system_instruction = None
-        prompt = ""
-        for m in final_messages:
-            if m.get("role") == "system":
-                if isinstance(m.get("content"), str):
-                    s_cont = str(m.get("content", ""))
-                    if not system_instruction:
-                        system_instruction = m.get("content")
-                    else:
-                        system_instruction += "\n" + s_cont
-            elif m.get("role") == "user":
-                if isinstance(m.get("content"), str):
-                    u_cont = str(m.get("content", ""))
-                    if not prompt:
-                        prompt = u_cont
-                    else:
-                        prompt += "\n" + u_cont
-
         # 2. Resolve Configuration (SSOT Priority)
         # If client was bound via Strategy Factory, it has priority unless explicitly overridden.
         if model is None:
@@ -245,8 +227,6 @@ class LLMClient:
             try:
                 # 3. Generate with Structured Output (Caching tags active if final_messages manipulated)
                 response = await provider.generate(
-                    prompt=prompt,
-                    system_instruction=system_instruction,
                     messages=final_messages,
                     response_schema=response_model,
                     temperature=temperature,
@@ -386,31 +366,6 @@ class LLMClient:
         # STRICT TIMEOUT PROTOCOL: Never overridden by caller, always uses global Enum constraint.
         strict_timeout = SystemConcurrency.LLM_DEFAULT_TIMEOUT_SECONDS.value
 
-        # Parse Prompt — detect if this is a multi-turn tool conversation
-        # If messages contain roles other than system/user (e.g. assistant, tool),
-        # we MUST pass them as-is to generate(messages=...) for correct tool loop behavior.
-        has_tool_messages = any(msg.get("role") in ("assistant", "tool") for msg in messages)
-
-        if has_tool_messages:
-            # Multi-turn tool conversation: pass messages directly (no flattening)
-            system_instruction = None
-            prompt = None
-        else:
-            # Simple system+user: flatten as before (backward compatible)
-            system_instruction = None
-            prompt = ""
-
-            for msg in messages:
-                role = msg.get("role")
-                content = msg.get("content", "")
-                if role == "system":
-                    system_instruction = (system_instruction + "\n\n" + content) if system_instruction else content
-                elif role == "user":
-                    prompt = (prompt + "\n\n" + content) if prompt else content
-
-            if not prompt:
-                prompt = messages[-1]["content"] if messages else ""
-
         # Create Provider — pass self._config for TPM/RPM (Strict Mode compliance)
         provider = LLMFactory.create_provider(
             provider_type=target_provider_type,
@@ -420,30 +375,16 @@ class LLMClient:
 
         # Generate
         try:
-            if has_tool_messages:
-                # Pass full message array for tool conversations
-                response = await provider.generate(
-                    messages=messages,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    top_p=top_p,
-                    top_k=top_k,
-                    tools=tools,
-                    tool_choice=tool_choice,
-                    timeout=strict_timeout,
-                )
-            else:
-                response = await provider.generate(
-                    prompt=prompt,
-                    system_instruction=system_instruction,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    top_p=top_p,
-                    top_k=top_k,
-                    tools=tools,
-                    tool_choice=tool_choice,
-                    timeout=strict_timeout,
-                )
+            response = await provider.generate(
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                top_p=top_p,
+                top_k=top_k,
+                tools=tools,
+                tool_choice=tool_choice,
+                timeout=strict_timeout,
+            )
 
             # If LLM returned tool_calls, return as dict for Tool Loop processing
             if response.tool_calls:

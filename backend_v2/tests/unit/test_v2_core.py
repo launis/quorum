@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.enums import ScoringStrategy
 from backend_v2.models.v2_core import ExecutionCreate, ExecutionRecord, ReportDataDTO
 
 # Import existing tests so they are included in the coverage run for v2_core.py
@@ -12,7 +13,13 @@ def test_execution_create_strictness_level_validation() -> None:
     # Fail if missing
     with pytest.raises(ValidationError) as exc_info:
         ExecutionCreate.model_validate(
-            {"workflow_id": "wf_123", "target_locale": "fi", "matrix_sampling_strategy": 10, "raw_inputs": {}}
+            {
+                "workflow_id": "wf_123",
+                "target_locale": "fi",
+                "matrix_sampling_strategy": 10,
+                "raw_inputs": {},
+                "scoring_strategy": ScoringStrategy.WATERFALL_FLOOR,
+            }
         )
     assert "strictness_level" in str(exc_info.value)
 
@@ -23,6 +30,7 @@ def test_execution_create_strictness_level_validation() -> None:
                 "workflow_id": "wf_123",
                 "target_locale": "fi",
                 "strictness_level": -1,
+                "scoring_strategy": ScoringStrategy.WATERFALL_FLOOR,
                 "matrix_sampling_strategy": 10,
                 "raw_inputs": {},
             }
@@ -36,6 +44,7 @@ def test_execution_create_strictness_level_validation() -> None:
                 "workflow_id": "wf_123",
                 "target_locale": "fi",
                 "strictness_level": 101,
+                "scoring_strategy": ScoringStrategy.WATERFALL_FLOOR,
                 "matrix_sampling_strategy": 10,
                 "raw_inputs": {},
             }
@@ -48,6 +57,7 @@ def test_execution_create_strictness_level_validation() -> None:
             "workflow_id": "wf_123",
             "target_locale": "fi",
             "strictness_level": 50,
+            "scoring_strategy": ScoringStrategy.WATERFALL_FLOOR,
             "matrix_sampling_strategy": 10,
             "raw_inputs": {},
         }
@@ -58,12 +68,24 @@ def test_execution_create_strictness_level_validation() -> None:
 def test_execution_record_strictness_level_validation() -> None:
     with pytest.raises(ValidationError) as exc_info:
         ExecutionRecord.model_validate(
-            {"id": "exe_aaaaaaaaaaaaaaaa", "workflow_id": "wf_1", "status": "pending", "raw_inputs": {}}
+            {
+                "id": "exe_aaaaaaaaaaaaaaaa",
+                "workflow_id": "wf_1",
+                "status": "pending",
+                "raw_inputs": {},
+                "scoring_strategy": ScoringStrategy.WATERFALL_FLOOR,
+            }
         )
     assert "strictness_level" in str(exc_info.value)
 
 
 def test_report_data_dto_strictness_level_validation() -> None:
     with pytest.raises(ValidationError) as exc_info:
-        ReportDataDTO.model_validate({"workflow_id": "wf_1", "profile_id": "prof_1"})
+        ReportDataDTO.model_validate(
+            {
+                "workflow_id": "wf_1",
+                "profile_id": "prof_1",
+                "scoring_strategy": ScoringStrategy.WATERFALL_FLOOR,
+            }
+        )
     assert "strictness_level" in str(exc_info.value)

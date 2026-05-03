@@ -27,7 +27,7 @@ class MockResponseSchema(BaseModel):
 @pytest.fixture
 def mock_config() -> LLMProviderConfig:
     return LLMProviderConfig(
-        id="litellm/fast",
+        id="prv_1234567890abcdef",
         provider="litellm",
         model_name="gpt-4o-mini",
         temperature=0.0,

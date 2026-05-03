@@ -83,3 +83,15 @@ enum EvidenceType {
   noEvidence,
 }
 
+/// Epic 43: Multi-Engine Scoring Strategies
+@JsonEnum()
+enum ScoringStrategy {
+  @JsonValue('WATERFALL_FLOOR')
+  waterfallFloor,
+  @JsonValue('PROGRESSIVE_DAMPENING')
+  progressiveDampening,
+  @JsonValue('PURE_AVERAGE')
+  pureAverage,
+  @JsonValue('WEIGHTED_AVERAGE')
+  weightedAverage,
+}

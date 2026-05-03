@@ -59,6 +59,7 @@ async def test_synthesis_hook_success(
             "workflow_id": "wf_1111111111111111",
             "status": "completed",
             "strictness_level": 50,
+            "scoring_strategy": "WATERFALL_FLOOR",
             "output_profile_id": "prf_test",
         }
     )
@@ -174,6 +175,7 @@ async def test_synthesis_hook_multi_profile_routing(
             "workflow_id": "wf_1111111111111111",
             "status": "completed",
             "strictness_level": 50,
+            "scoring_strategy": "WATERFALL_FLOOR",
             "output_profile_id": "prof_b",
         }
     )
@@ -263,6 +265,7 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
             "workflow_id": "wf_1111111111111111",
             "status": "completed",
             "strictness_level": 50,
+            "scoring_strategy": "WATERFALL_FLOOR",
             "output_profile_id": "prof_a",
         }
     )
@@ -388,6 +391,7 @@ async def test_synthesis_hook_historical_context_mode(
             "workflow_id": "wf_1111111111111111",
             "status": "completed",
             "strictness_level": 50,
+            "scoring_strategy": "WATERFALL_FLOOR",
             "output_profile_id": "prf_test",
         }
     )

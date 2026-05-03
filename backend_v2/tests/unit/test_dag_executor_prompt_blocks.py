@@ -99,6 +99,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             "status": ExecutionStatus.RUNNING,
             "active_profile_id": "prof_dddd1111dddd1111",
             "strictness_level": 50,
+            "scoring_strategy": "WATERFALL_FLOOR",
             "raw_inputs": {"chat_log": "dGVzdA=="},
             "metadata": {"target_locale": "fi", "profile_id": "prof_dddd1111dddd1111"},
         }

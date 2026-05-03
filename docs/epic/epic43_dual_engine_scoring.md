@@ -26,11 +26,32 @@ Tavoitteena on mahdollistaa kahden täysin erillisen matemaattisen arviointimall
 - Päivitetään `text_consolidation_hook` -funktiota niin, että valittu `scoring_strategy` (Auditointi vs. Valmennus) injektoidaan LLM:n kontekstiin (esim. promptin `execution_parameters` -osioon).
 - Näin "Chief Editor" -tekoäly ymmärtää kontekstin ja osaa sanoittaa lopullisen raportin oikean viitekehyksen kautta (esim. "Tämä on kehittävä valmennusarvio..." vs. "Tämä on tiukka compliance-auditointi...").
 
+### 3.4. Matemaattiset Mallit (Scoring Engines)
+Kaikki laskentamallit hyödyntävät backendin `math_utils.py` -tiedoston natiiveja, täsmällisiä matemaattisia funktioita. Tapaa laskea palautetta ei muuteta, vaan arkkitehtuuri ainoastaan altistaa nämä moottorit dynaamisesti valittavaksi.
+
+- **WATERFALL_FLOOR (Auditointi):**
+  - **Funktio:** `calculate_waterfall_floor`
+  - **Logiikka:** Guttmanin asteikko (Guttman scale). Etsii absoluuttisen "lattian" iteroimalla alimmalta tasolta ylimmälle. Jos kriteerien osumaprosentti (`hit_rate`) ylittää määritellyn kynnyksen, taso läpäistään. Pysähtyy armottomasti heti, kun jokin taso epäonnistuu. Palauttaa sen tason arvon, joka viimeisenä läpäistiin.
+
+- **PROGRESSIVE_DAMPENING (Valmennus):**
+  - **Funktio:** `calculate_progressive_dampening_score`
+  - **Logiikka:** CDM (Cognitive Diagnostic Model) / DINA -malli. Guttman-giljotiinin sijaan jokainen taso toimii "vaimentimena" (dampener) ylemmille tasoille. Jos alatason osumaprosentti on heikko, se alentaa rangaistuskertoimella (`math.sqrt(hit_rate)`) kaikkia ylempien tasojen tuottamia pisteitä. Estää absoluuttiset nollapudotukset, mutta rakenteelliset puutteet vaimentavat silti lopputulosta.
+
+- **PURE_AVERAGE (Puhdas Keskiarvo / Testimalli):**
+  - **Funktio:** Käyttää `calculate_weighted_score` -funktiota (mutta kaikilla kriteereillä on automaattinen painoarvo 1).
+  - **Logiikka:** Laskee osumien matemaattisen suhteen maksimiin. Täysin lineaarinen malli ilman kerrannaisrangaistuksia virheistä. Esim. 3 osumaa 4:stä on 75 %. HUOM: Litistää BARS-matriisien tikapuulogiikan, jolloin ylin taso muuttuu samanarvoiseksi alimman tason kanssa.
+
+- **WEIGHTED_AVERAGE (Painotettu Keskiarvo / Testimalli):**
+  - **Funktio:** `calculate_weighted_score`
+  - **Logiikka:** Laskee kaikkien matriisin osumien globaalin painotetun keskiarvon (`achieved_weights += hits * level`). Pisteet skaalataan suhteellisesti maksimipistemäärään nähden. Voidaan käyttää "Pure Average" -mallina, jos kaikkien kriteerien painoarvo on 1.
+
 ## 4. Tekniset Vaatimukset (Frontend / Flutter)
 - **Käyttöliittymä (Työnkulun käynnistys):** Sama modal-ikkuna, missä valitaan Kireystaso (Slider 0-100), päivitetään sisältämään valintalista (Dropdown-valikko) matemaattisen mallin valitsemiseksi.
 - **Valintalistan vaihtoehdot:**
   - `Auditointi-laskenta (Waterfall - Vaatii ehdottoman loogisen ketjun)` (Oletus)
-  - `Valmennus-laskenta (Dampening - Palkitsee potentiaalista)`
+  - `Valmennus-laskenta (Progressive Dampening - Palkitsee osasuorituksista)`
+  - `Testaus: Puhdas Keskiarvo (Pure Average - Litistää BARS-tikapuut)`
+  - `Testaus: Painotettu Keskiarvo (Weighted Average)`
 - Valittu parametri lähetetään backendin `POST /executions` -rajapintaan.
 
 ## 5. Taaksepäin yhteensopivuus ja Migraatio

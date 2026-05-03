@@ -7,7 +7,7 @@ import pytest
 from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.archival import retrieve_precedent_hook
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import ExecutionStatus, ScoringStrategy
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord
 
@@ -61,6 +61,7 @@ def create_mock_execution(
 
     if missing_updated_at:
         return ExecutionRecord.model_construct(
+            scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
             strictness_level=50,
             id=f"exe_{uuid.uuid4().hex[:16]}",
             workflow_id="wf_123",
@@ -72,6 +73,7 @@ def create_mock_execution(
         )
 
     record = ExecutionRecord(
+        scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
         strictness_level=50,
         id=f"exe_{uuid.uuid4().hex[:16]}",
         workflow_id="wf_123",

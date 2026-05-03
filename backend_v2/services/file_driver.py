@@ -58,6 +58,20 @@ class FileDriver(Protocol):
         """
         ...
 
+    async def delete_directory(self, prefix: str) -> bool:
+        """Deletes a directory (or all files matching a prefix).
+
+        Args:
+            prefix: Relative path prefix (directory path).
+
+        Returns:
+            bool: True if deleted.
+
+        Raises:
+            AppException: If storage is inaccessible.
+        """
+        ...
+
     async def exists(self, path: str) -> bool:
         """Checks if file exists.
 

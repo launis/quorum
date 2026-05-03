@@ -127,6 +127,12 @@
         <catastrophic_reason>Failing to parse the exact backend Enum causes the Dart UI to silently fall back to defaults, hiding elements off-screen and subsequently wiping those fields from the live Database upon the next User Save.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="frontend_zero_db_hardcoding_mandate">
+        <banned_pattern>Hardcoding database IDs, specific node names, or fixed array indices in Flutter UI logic (e.g. `if (node.id == 'main_node')` or `final first = data.blocks[0]`).</banned_pattern>
+        <mandatory_pattern>Flutter UI MUST NOT know about or rely on specific database record identifiers. Rendering and logic must be driven entirely by the generic schema types (e.g. `block.type == BlockType.matrix`) or explicitly provided configuration lists. The layout must be purely SDUI (Server-Driven UI) compliant.</mandatory_pattern>
+        <catastrophic_reason>Coupling frontend rendering logic to specific database IDs permanently breaks the application when moving from Staging to Production, or when a user modifies their workflow configuration in the Admin Studio.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="tenant_data_isolation">
         <banned_pattern>Leaving old cached Master Data arrays visually intact memory-resident when switching tenant organization context.</banned_pattern>
         <mandatory_pattern>Upon User/Organization modification, the prior context state MUST be deliberately and safely invalidated (`ref.invalidate()`) protecting cross-tenant privacy leaks instantly.</mandatory_pattern>

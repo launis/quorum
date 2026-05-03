@@ -5581,7 +5581,7 @@
             "post_hooks": [
                 "verify_citation_integrity",
                 "enforce_hypothesis_linking",
-                "waterfall_scoring_hook",
+                "matrix_scoring_hook",
                 "normalize_matrix_scores"
             ],
             "allowed_mcp_tools": [],
@@ -5628,7 +5628,7 @@
                 "atom_flattening_hook"
             ],
             "post_hooks": [
-                "waterfall_scoring_hook",
+                "matrix_scoring_hook",
                 "normalize_matrix_scores"
             ],
             "allowed_mcp_tools": [],
@@ -5677,7 +5677,7 @@
                 "atom_flattening_hook"
             ],
             "post_hooks": [
-                "waterfall_scoring_hook",
+                "matrix_scoring_hook",
                 "normalize_matrix_scores"
             ],
             "allowed_mcp_tools": [],
@@ -5739,7 +5739,7 @@
                 "atom_flattening_hook"
             ],
             "post_hooks": [
-                "waterfall_scoring_hook",
+                "matrix_scoring_hook",
                 "normalize_matrix_scores"
             ],
             "allowed_mcp_tools": [],
@@ -5786,7 +5786,7 @@
                 "atom_flattening_hook"
             ],
             "post_hooks": [
-                "waterfall_scoring_hook",
+                "matrix_scoring_hook",
                 "normalize_matrix_scores"
             ],
             "allowed_mcp_tools": [],
@@ -5836,7 +5836,7 @@
             ],
             "post_hooks": [
                 "verify_citation_integrity",
-                "waterfall_scoring_hook",
+                "matrix_scoring_hook",
                 "normalize_matrix_scores"
             ],
             "allowed_mcp_tools": [],
@@ -5887,7 +5887,7 @@
                 "atom_flattening_hook"
             ],
             "post_hooks": [
-                "waterfall_scoring_hook",
+                "matrix_scoring_hook",
                 "normalize_matrix_scores"
             ],
             "allowed_mcp_tools": [],
@@ -5938,7 +5938,7 @@
             ],
             "post_hooks": [
                 "verify_citation_integrity",
-                "waterfall_scoring_hook",
+                "matrix_scoring_hook",
                 "enforce_passivity_penalty",
                 "normalize_matrix_scores"
             ],
@@ -5988,7 +5988,7 @@
                 "atom_flattening_hook"
             ],
             "post_hooks": [
-                "waterfall_scoring_hook",
+                "matrix_scoring_hook",
                 "normalize_matrix_scores"
             ],
             "allowed_mcp_tools": [],
@@ -6051,7 +6051,7 @@
                 "atom_flattening_hook"
             ],
             "post_hooks": [
-                "waterfall_scoring_hook",
+                "matrix_scoring_hook",
                 "normalize_matrix_scores"
             ],
             "allowed_mcp_tools": [],
@@ -6103,7 +6103,7 @@
                 "atom_flattening_hook"
             ],
             "post_hooks": [
-                "waterfall_scoring_hook",
+                "matrix_scoring_hook",
                 "normalize_matrix_scores"
             ],
             "allowed_mcp_tools": [],
@@ -6148,7 +6148,7 @@
                 "atom_flattening_hook"
             ],
             "post_hooks": [
-                "waterfall_scoring_hook",
+                "matrix_scoring_hook",
                 "normalize_matrix_scores"
             ],
             "allowed_mcp_tools": [],
@@ -6186,7 +6186,7 @@
                 "atom_flattening_hook"
             ],
             "post_hooks": [
-                "waterfall_scoring_hook",
+                "matrix_scoring_hook",
                 "normalize_matrix_scores"
             ],
             "allowed_mcp_tools": [

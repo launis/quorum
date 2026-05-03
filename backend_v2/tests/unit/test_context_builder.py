@@ -22,12 +22,12 @@ def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -
             StepOutputDTO(
                 step_id="eval_step",
                 block_id="blk_invalid",
-                data_type="dict",
+                data_type="matrix",
                 payload={"raw_score": "not_a_float", "missing_fields": "yes"},
             ),  # noqa: E501
-            StepOutputDTO(step_id="atom_step", block_id="atoms", data_type="list", payload=["a", "b", "c"]),
-            StepOutputDTO(step_id="raw_step", block_id="history_text", data_type="str", payload="huge string"),
-            StepOutputDTO(step_id="other_step", block_id="custom", data_type="str", payload="data"),
+            StepOutputDTO(step_id="atom_step", block_id="atoms", data_type="unknown", payload=["a", "b", "c"]),
+            StepOutputDTO(step_id="raw_step", block_id="history_text", data_type="text", payload="huge string"),
+            StepOutputDTO(step_id="other_step", block_id="custom", data_type="text", payload="data"),
         ]
     }
 
@@ -81,7 +81,7 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
             StepOutputDTO(
                 step_id="step1",
                 block_id="blk_123",
-                data_type="dict",
+                data_type="matrix",
                 payload={
                     "raw_score": 5.0,
                     "normalized_score": 0.8,
@@ -155,7 +155,7 @@ def test_context_builder_build_trace_pruning_fails_fast(monkeypatch: pytest.Monk
             StepOutputDTO(
                 step_id="step1",
                 block_id="blk_123",
-                data_type="dict",
+                data_type="matrix",
                 payload={
                     "raw_score": 5.0,
                     "normalized_score": 0.8,

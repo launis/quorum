@@ -4,6 +4,7 @@ Modernized for GraphEngine and TaskRegistry (V2.9).
 """
 
 import asyncio
+import json
 import logging
 import uuid
 from datetime import UTC, datetime
@@ -211,7 +212,7 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
 
         # V2 MANDATE: Strict Pydantic parsing at the boundary
         execution_record = (
-            ExecutionRecord.model_validate(execution_dict) if isinstance(execution_dict, dict) else execution_dict  # noqa: E501
+            ExecutionRecord.model_validate(execution_dict, strict=False) if isinstance(execution_dict, dict) else execution_dict  # noqa: E501
         )
 
         # 0b. Get explicit locale via Execution
@@ -295,7 +296,7 @@ async def generate_profile_synthesis_and_pdf_task(
 
         # V2 MANDATE: Strict Pydantic parsing at the boundary
         execution = (
-            ExecutionRecord.model_validate(execution_data) if isinstance(execution_data, dict) else execution_data  # noqa: E501
+            ExecutionRecord.model_validate(execution_data, strict=False) if isinstance(execution_data, dict) else execution_data  # noqa: E501
         )
 
         has_synthesis = profile_id in (execution.profile_syntheses or {})

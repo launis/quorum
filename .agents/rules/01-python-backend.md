@@ -52,6 +52,12 @@
         <catastrophic_reason>Writing fallback parsing logic pollutes the domain layer with historical technical debt, destroying the Fail-Fast architecture and silently allowing legacy structures to persist and mutate inside V2 pipelines.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="pydantic_pure_hydration_boundary">
+        <banned_pattern>Using `json.dumps(data, default=str)` hacks or temporarily stripping `strict=True` from the Pydantic model's `ConfigDict` just to parse raw database dictionaries containing mixed ISO strings and Python `datetime`/`UUID` objects.</banned_pattern>
+        <mandatory_pattern>Models MUST maintain `model_config = ConfigDict(strict=True)` to strictly firewall the FastAPI incoming API boundary. When hydrating data FROM the trusted internal database (Repository Layer), you MUST use `MyModel.model_validate(data, strict=False)`. This is the pure Pydantic V2 Best Practice, allowing native Rust coercion of strings to datetimes at the database boundary without the massive CPU overhead of double-serialization or permanently polluting the model's strictness configuration.</mandatory_pattern>
+        <catastrophic_reason>Using `json.dumps()` on fully-hydrated Python dicts causes `TypeError: Object of type datetime is not JSON serializable`. Stripping `strict=True` from the global model config breaks the Zero-Trust Fail-Fast architecture at the API layer, allowing malicious user payloads to bypass type safety.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="no_naked_dicts_in_state">
         <banned_pattern>Pushing parsed LLM outputs directly into `state_delta` or intermediate caches as naked dictionaries simply to appease TinyDB/JSON serialization constraints.</banned_pattern>
         <mandatory_pattern>ALWAYS intercept raw datastreams with `.model_validate()` immediately at the boundary. If the storage engine requires raw dicts, chain it explicitly: `MyModel.model_validate(data).model_dump(mode='json')`.</mandatory_pattern>
@@ -157,6 +163,12 @@
         <banned_pattern>Using "Duck Typing" or blind `try...except` Pydantic validation (e.g. `if "raw_score" in dict`) to guess the type of a payload during orchestration or parsing.</banned_pattern>
         <mandatory_pattern>ALWAYS look at the Database (UI configuration) first. Types and processing routes MUST be explicitly dictated by a `schema_map` derived from the database (e.g., Workflow or V2Step definitions). If a payload needs to be processed as a MATRIX block, the orchestrator must know it is a MATRIX block *before* parsing, based purely on the database's map, never by guessing based on JSON keys.</mandatory_pattern>
         <catastrophic_reason>Duck typing breaks the "Single Source of Truth / De-Generator" architecture. If the UI defines an entity as a TEXT block, but it happens to coincidentally contain a `raw_score` key, duck typing will silently hijack it, bypassing the UI's explicit sovereignty and causing untraceable Fail-Fast violations down the line.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="zero_db_hardcoding_mandate">
+        <banned_pattern>Comparing logical conditions against hardcoded specific database IDs, strings, or names (e.g., `if node.id == "usr_123":` or `if block.slug == "main_matrix":`). Extracting elements from lists by assuming a hardcoded sort order (e.g., `first_block = db_result[0]`).</banned_pattern>
+        <mandatory_pattern>Logic MUST always be based on the abstract attributes, schema types (via Pydantic Discriminators like `isinstance(block, MatrixBlockDTO)`), or dynamically injected configuration values. Database-driven entity processing must be purely polymorphic, without reliance on magic strings.</mandatory_pattern>
+        <catastrophic_reason>Hardcoding database keys inside the backend architecture breaks isolation. When environments (e.g., Staging vs Production) drift or database schemas evolve, hardcoded keys result in immediate catastrophic logic failures and make tests impossible without massive data mocking.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="prompt_compiler_immutability">
