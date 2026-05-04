@@ -43,6 +43,13 @@ class MCPToolLoopResult(V2CoreBase):
     usage: TokenUsage = Field(default_factory=TokenUsage, description="Cumulative token usage.")
 
 
+class MCPSynthesisInstructionsDTO(V2CoreBase):
+    """Execution parameters injected into the tool loop for formatting/synthesis constraints."""
+
+    synthesis_preamble: str | None = None
+    synthesis_length_limit: int | None = None
+
+
 class TavilyApiResultItemDTO(V2CoreBase):
     title: str = Field(default="")
     url: str = Field(default="")

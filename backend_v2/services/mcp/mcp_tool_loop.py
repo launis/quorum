@@ -14,16 +14,16 @@ import time
 from datetime import datetime, timezone
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel
 
-from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.mcp import (
+    MCPSynthesisInstructionsDTO,
     MCPToolLoopResult,
     OpenAIProbeResponseDTO,
-    OpenAIToolCallDTO,
     TavilyToolArgsDTO,
 )
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.mcp.tavily_search_client import tavily_search
 
@@ -131,13 +131,13 @@ def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dic
         return {
             "role": "tool",
             "tool_call_id": tool_call_id,
-            "content": "<tool_response><info>Search returned no results. Proceed with your evaluation using available context only.</info></tool_response>",
+            "content": (
+                "<tool_response><info>Search returned no results. "
+                "Proceed with your evaluation using available context only.</info></tool_response>"
+            ),
         }
 
-    content = (
-        "<tool_response>\n"
-        f"  <query>{audit.query}</query>\n"
-    )
+    content = f"<tool_response>\n  <query>{audit.query}</query>\n"
     if audit.response_summary:
         content += f"  <summary>{audit.response_summary}</summary>\n"
     if audit.source_urls:
@@ -221,10 +221,10 @@ async def execute_tool_loop[T: BaseModel](
                 tools=tool_declarations,
                 tool_choice=current_tool_choice,
             )
-            
+
             if isinstance(probe_response_raw, str):
                 break
-                
+
             probe_response = OpenAIProbeResponseDTO.model_validate(probe_response_raw)
         except Exception as e:
             msg = f"Phase 1 LLM probing failed or returned invalid structure for step '{step_name}'."
@@ -348,7 +348,8 @@ async def execute_tool_loop[T: BaseModel](
                     "<system_instruction>\n"
                     "  <objective>EVIDENCE INJECTION COMPLETE</objective>\n"
                     "  <rule>You now have external search evidence above.</rule>\n"
-                    "  <rule>Complete the evaluation matrix using both the original context AND the search evidence.</rule>\n"
+                    "  <rule>Complete the evaluation matrix using both the original context AND "
+                    "the search evidence.</rule>\n"
                     "  <rule>Output your response strictly in the required JSON schema format.</rule>\n"
                     "</system_instruction>"
                 ),
@@ -357,13 +358,8 @@ async def execute_tool_loop[T: BaseModel](
 
     # EPIC 13: Dynamically inject runtime parameters from OutputProfile via hook extraction
     if synthesis_instructions:
-        class SynthesisInstructionsDTO(BaseModel):
-            synthesis_preamble: str | None = None
-            synthesis_length_limit: int | None = None
-            model_config = ConfigDict(frozen=True, extra="ignore")
-
         try:
-            instructions = SynthesisInstructionsDTO.model_validate(synthesis_instructions)
+            instructions = MCPSynthesisInstructionsDTO.model_validate(synthesis_instructions)
         except Exception as e:
             msg = "Failed to validate synthesis_instructions."
             logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
@@ -371,22 +367,17 @@ async def execute_tool_loop[T: BaseModel](
                 message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
             ) from e
 
-        formatting_msg = (
-            "<execution_parameters>\n"
-            "  <output_profile_formatting_constraints>\n"
-        )
+        formatting_msg = "<execution_parameters>\n  <output_profile_formatting_constraints>\n"
         if instructions.synthesis_preamble:
             formatting_msg += f"    <synthesis_preamble>{instructions.synthesis_preamble}</synthesis_preamble>\n"
         if instructions.synthesis_length_limit:
-            formatting_msg += f"    <synthesis_length_limit>{instructions.synthesis_length_limit}</synthesis_length_limit>\n"
-        formatting_msg += (
-            "  </output_profile_formatting_constraints>\n"
-            "</execution_parameters>\n\n"
-        )
+            limit = instructions.synthesis_length_limit
+            formatting_msg += f"    <synthesis_length_limit>{limit}</synthesis_length_limit>\n"
+        formatting_msg += "  </output_profile_formatting_constraints>\n</execution_parameters>\n\n"
 
         # Prevent "Alternate Roles" strictly by patching the system prompt (index 0)
-        if final_messages and final_messages[0].get("role") == "system":
-            original = final_messages[0].get("content", "")
+        if final_messages and "role" in final_messages[0] and final_messages[0]["role"] == "system":
+            original = final_messages[0]["content"]
             final_messages[0]["content"] = f"{formatting_msg}{original}"
         else:
             final_messages.insert(0, {"role": "system", "content": formatting_msg})
