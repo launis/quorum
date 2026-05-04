@@ -56,7 +56,7 @@ def _is_transient_llm_error(e: BaseException) -> bool:
     """Check if the LiteLLM/asyncio exception is a transient rate limit or timeout."""
     return (
         isinstance(e, asyncio.TimeoutError)
-        or (hasattr(e, "status_code") and getattr(e, "status_code", 0) in (429, 502, 503, 504))
+        or (hasattr(e, "status_code") and e.status_code in (429, 502, 503, 504))
         or isinstance(e, getattr(litellm, "RateLimitError", type(None)))
         or isinstance(e, getattr(litellm, "Timeout", type(None)))
         or isinstance(e, getattr(litellm, "ServiceUnavailableError", type(None)))
@@ -257,7 +257,7 @@ class LiteLLMProvider(LLMProvider):
             try:
                 schema_name = "dict"
                 if isinstance(response_schema, type):
-                    schema_name = getattr(response_schema, "__name__", "dict")
+                    schema_name = response_schema.__name__ if hasattr(response_schema, "__name__") else "dict"
 
                 logger.info("[LiteLLM] Enabling Structured Output for schema: %s", schema_name)
                 response_format = response_schema
@@ -385,7 +385,7 @@ class LiteLLMProvider(LLMProvider):
             choice = response.choices[0]
             message = choice.message
             raw_content = message.content or ""
-            finish_reason = getattr(choice, "finish_reason", None)
+            finish_reason = choice.finish_reason if hasattr(choice, "finish_reason") else None
 
             # Extract Reasoning Token (Gemini 3 / GPT-5.1)
             reasoning_token = None
@@ -405,7 +405,6 @@ class LiteLLMProvider(LLMProvider):
                 me = response.model_extra
                 reasoning_token = me["thought_signature"] if "thought_signature" in me else None
 
-            # Extract Usage
             usage: dict[str, Any] = {
                 "prompt_tokens": 0,
                 "completion_tokens": 0,
@@ -414,21 +413,26 @@ class LiteLLMProvider(LLMProvider):
                 "reasoning_tokens": 0,
             }
             if hasattr(response, "usage") and response.usage:
-                usage["prompt_tokens"] = getattr(response.usage, "prompt_tokens", 0) or 0
-                usage["completion_tokens"] = getattr(response.usage, "completion_tokens", 0) or 0
-                usage["total_tokens"] = getattr(response.usage, "total_tokens", 0) or 0
+                if hasattr(response.usage, "prompt_tokens") and response.usage.prompt_tokens is not None:
+                    usage["prompt_tokens"] = response.usage.prompt_tokens
+                if hasattr(response.usage, "completion_tokens") and response.usage.completion_tokens is not None:
+                    usage["completion_tokens"] = response.usage.completion_tokens
+                if hasattr(response.usage, "total_tokens") and response.usage.total_tokens is not None:
+                    usage["total_tokens"] = response.usage.total_tokens
 
                 if hasattr(response.usage, "prompt_tokens_details") and response.usage.prompt_tokens_details:
-                    usage["cached_tokens"] = getattr(response.usage.prompt_tokens_details, "cached_tokens", 0) or 0
+                    details = response.usage.prompt_tokens_details
+                    if hasattr(details, "cached_tokens") and details.cached_tokens is not None:
+                        usage["cached_tokens"] = details.cached_tokens
 
                 if hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details:
-                    usage["reasoning_tokens"] = (
-                        getattr(response.usage.completion_tokens_details, "reasoning_tokens", 0) or 0
-                    )
+                    details = response.usage.completion_tokens_details
+                    if hasattr(details, "reasoning_tokens") and details.reasoning_tokens is not None:
+                        usage["reasoning_tokens"] = details.reasoning_tokens
 
             final_content = raw_content
             parsed_obj = None  # --- ADVANCED TELEMETRY & METADATA ---
-            system_fingerprint = getattr(response, "system_fingerprint", None)
+            system_fingerprint = response.system_fingerprint if hasattr(response, "system_fingerprint") else None
             if finish_reason in ["stop", "eos"]:
                 finish_reason = None
 
@@ -547,7 +551,7 @@ class LiteLLMProvider(LLMProvider):
             # 429s are natively handled in the inner retry loop! If they bubble here, retries were exhausted.
             if (
                 isinstance(e, getattr(litellm, "RateLimitError", type(None)))
-                or (hasattr(e, "status_code") and getattr(e, "status_code", 0) == 429)
+                or (hasattr(e, "status_code") and e.status_code == 429)
                 or "Resource exhausted" in error_msg
             ):
                 logger.error(
@@ -576,7 +580,7 @@ class LiteLLMProvider(LLMProvider):
             # 2. AUTHENTICATION ALERTS (Security/Config)
             elif (
                 isinstance(e, getattr(litellm, "AuthenticationError", type(None)))
-                or (hasattr(e, "status_code") and getattr(e, "status_code", 0) == 401)
+                or (hasattr(e, "status_code") and e.status_code == 401)
                 or "invalid_api_key" in error_msg
             ):
                 logger.critical(
@@ -593,7 +597,7 @@ class LiteLLMProvider(LLMProvider):
             # 3. CONTEXT WINDOW (Data/Prompt Engineering)
             elif isinstance(e, getattr(litellm, "ContextWindowExceededError", type(None))) or (
                 hasattr(e, "status_code")
-                and getattr(e, "status_code", 0) == 400
+                and e.status_code == 400
                 and ("context" in error_msg.lower() or "token" in error_msg.lower())
             ):
                 logger.error(
@@ -604,7 +608,7 @@ class LiteLLMProvider(LLMProvider):
                 raise AgentExecutionError(
                     detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name=self.model_name
                 ) from e
-            elif hasattr(e, "status_code") and getattr(e, "status_code", 0) == 400:
+            elif hasattr(e, "status_code") and e.status_code == 400:
                 logger.error("[LiteLLM] %s: BAD REQUEST (400): %s", ErrorCodes.AGENT_RESPONSE_MALFORMED.name, error_msg)
                 raise AgentExecutionError(
                     detail=ErrorCodes.AGENT_RESPONSE_MALFORMED, original_error=e, agent_name=self.model_name
@@ -615,7 +619,7 @@ class LiteLLMProvider(LLMProvider):
                 isinstance(e, getattr(litellm, "ServiceUnavailableError", type(None)))
                 or isinstance(e, getattr(litellm, "Timeout", type(None)))
                 or isinstance(e, asyncio.TimeoutError)
-                or (hasattr(e, "status_code") and getattr(e, "status_code", 0) in (500, 502, 503, 504))
+                or (hasattr(e, "status_code") and e.status_code in (500, 502, 503, 504))
             ):
                 logger.error(
                     "[LiteLLM] %s: SERVICE UNAVAILABLE (Upstream/Timeout): %s",
@@ -742,7 +746,7 @@ class MockProvider(LLMProvider):
         content_str = ""
         parsed_result = None
 
-        if isinstance(result, dict) and "message" in result and result.get("message") == "Mock data not found for key":
+        if isinstance(result, dict) and "message" in result and result["message"] == "Mock data not found for key":
             # STRICT MANDATE: No mock hydration fallbacks. If seed missing, crash properly.
             raise ConfigurationError(
                 message=(
