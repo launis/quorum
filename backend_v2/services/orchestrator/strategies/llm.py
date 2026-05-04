@@ -7,6 +7,7 @@ from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.chunking import ChunkingRequest
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import FrozenContext, PromptBlock, StepRule, Workflow
@@ -46,17 +47,9 @@ class LLMNodeStrategy(NodeStrategy):
     ) -> list[TraceEvent]:
         # Epic 43 Phase 2 Fail-Fast Parity: Re-inject 'inputs' and 'raw_inputs' DTO payloads into the root state
         # so legacy dot-notation mappings resolve properly without Naked Dict violations.
-        inputs_payload = {
-            getattr(d, "block_id", ""): getattr(d, "payload", None)
-            for d in projector.snapshot
-            if getattr(d, "step_id", None) == "inputs"
-        }
+        inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "inputs"}
 
-        raw_inputs_payload = {
-            getattr(d, "block_id", ""): getattr(d, "payload", None)
-            for d in projector.snapshot
-            if getattr(d, "step_id", None) == "raw_inputs"
-        }
+        raw_inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "raw_inputs"}
 
         current_state: dict[str, Any] = {
             "steps": projector.snapshot,
@@ -136,10 +129,10 @@ class LLMNodeStrategy(NodeStrategy):
 
         block_map = {b.id: b for b in all_prompt_blocks if b.id}
 
-        target_profile = context.metadata.get("profile_id")
-        if not target_profile:
+        if "profile_id" not in context.metadata or not context.metadata["profile_id"]:
             msg = f"Execution metadata missing mandatory 'profile_id' for workflow {context.workflow_id}."
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
+        target_profile = context.metadata["profile_id"]
 
         criteria_blocks_models = []
         for m_id in step_obj.prompt_blocks:
@@ -157,11 +150,10 @@ class LLMNodeStrategy(NodeStrategy):
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
-        target_locale = context.metadata.get("target_locale")
-        if not target_locale:
+        if "target_locale" not in context.metadata or not context.metadata["target_locale"]:
             msg = f"Execution metadata missing mandatory 'target_locale' for workflow {context.workflow_id}."
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
-        target_locale = str(target_locale)
+        target_locale = str(context.metadata["target_locale"])
         effective_mcp_tools = step_obj.allowed_mcp_tools
 
         # StepRule.input_mappings has default_factory=dict — always present, no guard needed.
@@ -172,7 +164,8 @@ class LLMNodeStrategy(NodeStrategy):
         schema_map = {}
         if workflow_def:
             workflow_obj = Workflow.model_validate(workflow_def)
-            output_profile = workflow_obj.output_profiles.get(target_profile)
+            if target_profile in workflow_obj.output_profiles:
+                output_profile = workflow_obj.output_profiles[target_profile]
 
             for s in workflow_obj.steps:
                 is_matrix = False
@@ -294,6 +287,7 @@ class LLMNodeStrategy(NodeStrategy):
         tasks = []
         async with asyncio.TaskGroup() as tg:
             for c in chunks_list:
+                syn_instr = state_data["synthesis_instructions"] if "synthesis_instructions" in state_data else None
                 tasks.append(
                     tg.create_task(
                         ChunkWorker.process_chunk(
@@ -310,7 +304,7 @@ class LLMNodeStrategy(NodeStrategy):
                             bound_client=bound_client,
                             step_id=step.id,
                             target_locale=target_locale,
-                            synthesis_instructions=state_data.get("synthesis_instructions"),
+                            synthesis_instructions=syn_instr,
                             output_profile=None,
                             strictness_level=context.strictness_level,
                         )
@@ -321,7 +315,7 @@ class LLMNodeStrategy(NodeStrategy):
 
         # Step 5 - Accumulation & Hooks
         accumulator = ChunkAccumulator()
-        usage_dict: dict[str, Any] = {}
+        usage_agg = TokenUsage()
 
         for t in tasks:
             c_final, c_usage, c_traces = t.result()
@@ -329,8 +323,7 @@ class LLMNodeStrategy(NodeStrategy):
             accumulator.add(c_final)
 
             if c_usage is not None:
-                for k, v in c_usage.items():
-                    usage_dict[k] = usage_dict.get(k, 0) + v
+                usage_agg = usage_agg + c_usage
 
             if frozen_ctx and c_traces:
                 existing_hashes = {f"{a.tool_id}::{a.query}" for a in frozen_ctx.mcp_tool_audit}
@@ -363,10 +356,10 @@ class LLMNodeStrategy(NodeStrategy):
             if key in state_data:
                 final_dict[key] = state_data[key]
 
-        if usage_dict:
+        if usage_agg.total_tokens > 0 or usage_agg.cost_usd > 0.0:
             if "_step_metadata" not in final_dict:
                 final_dict["_step_metadata"] = {}
-            final_dict["_step_metadata"]["token_usage"] = usage_dict
+            final_dict["_step_metadata"]["token_usage"] = usage_agg.model_dump()
 
         return [
             TraceEvent(

@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, RootModel
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.enums import SystemConcurrency
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -47,7 +48,7 @@ class ChunkWorker:
         synthesis_instructions: dict[str, Any] | None,
         output_profile: Any | None,
         strictness_level: int = 50,
-    ) -> tuple[dict[str, Any], dict[str, Any] | None, list[Any]]:
+    ) -> tuple[dict[str, Any], TokenUsage | None, list[Any]]:
         """Processes a single execution chunk, mapping dynamic schemas and orchestrating tool loops."""
         async with sem:
             local_payload = user_payload
@@ -108,7 +109,7 @@ class ChunkWorker:
             ]
 
             chunk_final: dict[str, Any] = {}
-            chunk_usage: dict[str, Any] | None = None
+            chunk_usage: TokenUsage | None = None
             chunk_traces: list[Any] = []
 
             if effective_mcp_tools:
@@ -127,7 +128,7 @@ class ChunkWorker:
                         validation_context={"strictness_level": strictness_level},
                     )
                     chunk_final = dict(loop_res.result_data)
-                    chunk_usage = dict(loop_res.usage) if loop_res.usage else None
+                    chunk_usage = loop_res.usage if loop_res.usage else None
                     if loop_res.audit_traces:
                         chunk_traces.extend(loop_res.audit_traces)
                 except Exception as e:
@@ -171,7 +172,7 @@ class ChunkWorker:
                         )
                         chunk_final = dict(result.model_dump(mode="json"))
 
-                    chunk_usage = usage.model_dump(mode="json") if usage else None
+                    chunk_usage = usage if usage else None
                 except Exception as e:
                     logger.error(
                         "Execution of structured LLM task failed.",
