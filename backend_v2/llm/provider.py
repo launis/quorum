@@ -4,16 +4,16 @@ import asyncio
 import json
 import logging
 import os
-import random
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import litellm
 from dotenv import load_dotenv
 from litellm import Router  # type: ignore[attr-defined] # LiteLLM ei eksplisiittisesti exporttaa Routeria
 from pydantic import BaseModel
+from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_combine, wait_fixed, wait_random
 
 from backend_v2.exceptions import (
     AgentExecutionError,
@@ -24,6 +24,7 @@ from backend_v2.exceptions import (
     ServiceUnavailableError,
 )
 from backend_v2.llm.mock import MockLLMService
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.llm import LLMProviderConfig, LLMResponse
 from backend_v2.services.usage_service import UsageService
@@ -33,6 +34,34 @@ from backend_v2.settings import get_settings
 logger = logging.getLogger(__name__)
 
 _settings = get_settings()
+
+# Ensure env is loaded from project root for LLM secrets
+_root_dir = Path(__file__).resolve().parent.parent.parent
+_env_path = _root_dir / ".env"
+load_dotenv(dotenv_path=_env_path)
+
+
+def _sync_diagnostic_dump(dump_file: str, model_name: str, payload_str: str) -> None:
+    """Synchronous file writing for diagnostic dumps to prevent blocking the async event loop."""
+    try:
+        with open(dump_file, "a", encoding="utf-8") as f:
+            f.write(f"\n\n--- {model_name} ---\n")
+            f.write(payload_str)
+            f.write("\n")
+    except Exception as e:
+        logger.error("Failed to dump prompt: %s", e)
+
+
+def _is_transient_llm_error(e: BaseException) -> bool:
+    """Check if the LiteLLM/asyncio exception is a transient rate limit or timeout."""
+    return (
+        isinstance(e, asyncio.TimeoutError)
+        or (hasattr(e, "status_code") and getattr(e, "status_code", 0) in (429, 502, 503, 504))
+        or isinstance(e, getattr(litellm, "RateLimitError", type(None)))
+        or isinstance(e, getattr(litellm, "Timeout", type(None)))
+        or isinstance(e, getattr(litellm, "ServiceUnavailableError", type(None)))
+        or isinstance(e, getattr(litellm, "APIConnectionError", type(None)))
+    )
 
 
 class LLMProvider(ABC):
@@ -131,8 +160,8 @@ class LiteLLMProvider(LLMProvider):
             logger.error("[LiteLLMProvider] %s", msg)
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
 
-        tpm = limits.get("tpm")
-        rpm = limits.get("rpm")
+        tpm = limits["tpm"] if "tpm" in limits else None
+        rpm = limits["rpm"] if "rpm" in limits else None
 
         if tpm is None or rpm is None:
             msg = "Strict Mode: Both TPM and RPM must be defined in limits config."
@@ -233,7 +262,11 @@ class LiteLLMProvider(LLMProvider):
                 logger.info("[LiteLLM] Enabling Structured Output for schema: %s", schema_name)
                 response_format = response_schema
             except Exception as schema_err:
-                logger.debug("[LiteLLM] Could not resolve schema name: %s", schema_err)
+                logger.error("[LiteLLM] Could not resolve schema name: %s", schema_err)
+                raise ConfigurationError(
+                    message=f"Schema resolution failed: {schema_err}",
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                ) from schema_err
 
         try:
             # --- LOGGING ---
@@ -242,16 +275,10 @@ class LiteLLMProvider(LLMProvider):
                     logger.info("[LiteLLM] [%s]: <empty>", label)
                     return
 
-                # Format for log
-                # User Mandate (Jan 2026): Single-line compact debug log
-                content_preview = text[:50].replace("\n", "\\n")
-                suffix = text[-50:].replace("\n", "\\n") if len(text) > 50 else ""
                 logger.info(
-                    "[LiteLLM] [%s]: Length=%d chars | Content='%s...%s'",
+                    "[LiteLLM] [%s]: Length=%d chars | Content=[REDACTED_FOR_SECURITY]",
                     label,
                     len(text),
-                    content_preview,
-                    suffix,
                 )
 
             if system_instruction:
@@ -275,7 +302,7 @@ class LiteLLMProvider(LLMProvider):
                 "api_key": self.api_key,
                 "drop_params": True,
                 # STRICT NETWORK TIMEOUT: Fail fast instead of hanging forever.
-                "timeout": kwargs.get("timeout", self.settings.llm_default_timeout),
+                "timeout": kwargs["timeout"] if "timeout" in kwargs else self.settings.llm_default_timeout,
                 # SAFETY FILTERS (Auditing Requirement):
                 # We must be able to process "unsafe" content (e.g. Hate Speech in logs) without blocking.
                 # Therefore, we disable safety filters for the Analyzer.
@@ -287,15 +314,6 @@ class LiteLLMProvider(LLMProvider):
 
             # Explicitly force Vertex Location (Fixes 403 default-to-us-central1 issue)
             # Robustly resolve location (Settings attr or Env Var)
-
-            # Ensure env is loaded from project root
-            # provider.py is at backend/llm/provider.py
-            # Go up 3 levels to reach project root
-            root_dir = Path(__file__).resolve().parent.parent.parent
-            env_path = root_dir / ".env"
-
-            load_dotenv(dotenv_path=env_path)
-
             v_loc = None
             if self.settings and hasattr(self.settings, "vertex_location"):
                 v_loc = self.settings.vertex_location
@@ -306,10 +324,10 @@ class LiteLLMProvider(LLMProvider):
             # STRICT MODE: No defaults. Fail if missing.
             if not v_loc:
                 logger.error(
-                    "[LiteLLMProvider] Env load failed. Tried path: %s, Exists: %s", env_path, env_path.exists()
+                    "[LiteLLMProvider] Critical Error: VERTEX_LOCATION not found in settings or environment variables."
                 )
                 raise ValueError(
-                    f"[LiteLLMProvider] Critical Error: VERTEX_LOCATION not found in settings or .env ({env_path}). "
+                    "[LiteLLMProvider] Critical Error: VERTEX_LOCATION not found in settings or environment. "
                     "Cannot proceed."
                 )
 
@@ -320,11 +338,14 @@ class LiteLLMProvider(LLMProvider):
             dump_file = os.getenv("DUMP_PROMPTS_FILE")
             if dump_file:
                 try:
-                    with open(dump_file, "a", encoding="utf-8") as f:
-                        f.write(f"\n\n--- [LiteLLM] {self.model_name} ---\n")
-                        f.write(json.dumps(messages, indent=2, ensure_ascii=False))
+                    payload = json.dumps(messages, indent=2, ensure_ascii=False)
+                    await asyncio.to_thread(_sync_diagnostic_dump, dump_file, f"[LiteLLM] {self.model_name}", payload)
                 except Exception as e:
-                    logger.warning("Failed to dump prompt: %s", e)
+                    logger.error("Failed to schedule diagnostic dump: %s", e)
+                    raise ConfigurationError(
+                        message=f"Diagnostic dump dispatch failed: {e}",
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                    ) from e
 
             start_time = time.perf_counter()
 
@@ -335,57 +356,25 @@ class LiteLLMProvider(LLMProvider):
             max_rate_limit_retries = SystemConcurrency.LLM_MAX_RETRIES.value
             response = None
 
-            for attempt in range(max_rate_limit_retries):
-                try:
-                    _timeout = call_kwargs.get("timeout", 300)
+            async for attempt in AsyncRetrying(
+                stop=stop_after_attempt(max_rate_limit_retries),
+                wait=wait_combine(
+                    wait_fixed(SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value),
+                    wait_random(1, 15),
+                ),
+                retry=retry_if_exception(_is_transient_llm_error),
+                reraise=True,
+                before_sleep=lambda rs: logger.warning(
+                    "[LiteLLMProvider] Transient Error or Quota Exhausted (Attempt %s/%s). "
+                    "Initiating cooldown before automatic retry... | Error: %s",
+                    rs.attempt_number,
+                    max_rate_limit_retries,
+                    type(rs.outcome.exception()).__name__ if rs.outcome and rs.outcome.failed else "Unknown",
+                ),
+            ):
+                with attempt:
+                    _timeout = call_kwargs["timeout"]
                     response = await asyncio.wait_for(self.router.acompletion(**call_kwargs), timeout=float(_timeout))
-                    break  # Success, exit the retry loop
-                except Exception as e:
-                    error_msg = str(e)
-                    error_type = type(e).__name__
-
-                    is_transient_error = (
-                        isinstance(e, asyncio.TimeoutError)
-                        or (hasattr(e, "status_code") and e.status_code in (429, 502, 503, 504))
-                        or "RateLimitError" in error_type
-                        or "429" in error_msg
-                        or "Resource exhausted" in error_msg
-                        or "APIConnectionError" in error_type
-                        or "TimeoutError" in error_type
-                        or "Timeout" in error_type
-                        or "Server disconnected" in error_msg
-                        or "ReadError" in error_type
-                    )
-
-                    if is_transient_error:
-                        if attempt < max_rate_limit_retries - 1:
-                            base_cooldown = SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value
-                            jitter = random.uniform(1, 15)
-                            actual_cooldown = base_cooldown + jitter
-
-                            logger.warning(
-                                "[LiteLLMProvider] Vertex AI Transient Error or Quota Exhausted (Attempt %s/%s). "
-                                "Initiating %.1fs cooldown (including jitter) before automatic retry... | Error: %s",
-                                attempt + 1,
-                                max_rate_limit_retries,
-                                actual_cooldown,
-                                error_type,
-                            )
-
-                            await asyncio.sleep(actual_cooldown)
-                            continue  # Retry the exact same request
-                        else:
-                            logger.error(
-                                "[LiteLLM] %s: RESOURCE EXHAUSTED OR CONNECTION FAILED (Maximum retries reached): %s",
-                                ErrorCodes.RATE_LIMIT_EXCEEDED.name,
-                                error_msg,
-                            )
-                            raise ServiceUnavailableError(
-                                message="Model provider rate limit or connection limit exceeded after maximum retries.",
-                                details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED, "original_error": error_msg},
-                            ) from e
-                    else:
-                        raise e  # Not a transient issue, bubble up immediately
 
             if response is None:
                 raise ServiceUnavailableError("Failed to get a response from the model provider.")
@@ -403,13 +392,18 @@ class LiteLLMProvider(LLMProvider):
 
             # Check standard LiteLLM extra fields
             if hasattr(message, "provider_specific_fields") and message.provider_specific_fields:
-                reasoning_token = message.provider_specific_fields.get(
-                    "thought_signature"
-                ) or message.provider_specific_fields.get("reasoning_blob")
+                psf = message.provider_specific_fields
+                if "thought_signature" in psf:
+                    reasoning_token = psf["thought_signature"]
+                elif "reasoning_blob" in psf:
+                    reasoning_token = psf["reasoning_blob"]
+                else:
+                    reasoning_token = None
 
             # Fallback: Check top level attributes
             if not reasoning_token and hasattr(response, "model_extra"):
-                reasoning_token = response.model_extra.get("thought_signature")
+                me = response.model_extra
+                reasoning_token = me["thought_signature"] if "thought_signature" in me else None
 
             # Extract Usage
             usage: dict[str, Any] = {
@@ -442,9 +436,10 @@ class LiteLLMProvider(LLMProvider):
 
             # Rate limits
             if hasattr(response, "_hidden_params") and isinstance(response._hidden_params, dict):
-                headers = response._hidden_params.get("headers", {})
-                if hasattr(headers, "get"):
-                    rem_reqs = headers.get("x-ratelimit-remaining-requests")
+                headers = response._hidden_params["headers"] if "headers" in response._hidden_params else {}
+                if isinstance(headers, dict):
+                    ratelimit_key = "x-ratelimit-remaining-requests"
+                    rem_reqs = headers[ratelimit_key] if ratelimit_key in headers else None
                     if rem_reqs:
                         provider_meta["rate_limit_remaining"] = rem_reqs
                         if str(rem_reqs).isdigit() and int(rem_reqs) < 10:
@@ -454,7 +449,7 @@ class LiteLLMProvider(LLMProvider):
             if hasattr(response, "model_extra") and isinstance(response.model_extra, dict):
                 if "safety_ratings" in response.model_extra:
                     provider_meta["safety_ratings"] = response.model_extra["safety_ratings"]
-                gm = response.model_extra.get("grounding_metadata", {})
+                gm = response.model_extra["grounding_metadata"] if "grounding_metadata" in response.model_extra else {}
                 if isinstance(gm, dict) and "grounding_chunks" in gm:
                     urls = [
                         chunk["web"]["uri"]
@@ -475,30 +470,40 @@ class LiteLLMProvider(LLMProvider):
                 base_model_name = self.model_name.split("/")[-1] if "/" in self.model_name else self.model_name
                 cost = litellm.completion_cost(completion_response=response, model=base_model_name)
             except Exception as e:
-                logger.warning("[LiteLLMProvider] Cost Calculation Failed: %s", e)
+                logger.error("[LiteLLMProvider] Cost Calculation Failed: %s", e)
+                raise AgentExecutionError(
+                    detail=ErrorCodes.UNKNOWN_ERROR, original_error=e, agent_name=self.model_name
+                ) from e
 
             if self.usage_service:
                 try:
                     # Resolve IDs from kwargs (execution config) or provider instance
-                    target_org = kwargs.get("organization_id") or self.organization_id
-                    target_user = kwargs.get("user_id") or "system_agent"
+                    t_org = kwargs["organization_id"] if "organization_id" in kwargs else None
+                    target_org = t_org or self.organization_id
+                    t_usr = kwargs["user_id"] if "user_id" in kwargs else None
+                    target_user = t_usr or "system_agent"
 
                     # Track usage asynchronously (fire and forget for now, or await)
                     await self.usage_service.track_usage(
                         org_id=target_org,
                         user_id=target_user,
                         model=self.model_name,
-                        input_tokens=int(usage.get("prompt_tokens", 0)),
-                        output_tokens=int(usage.get("completion_tokens", 0)),
-                        cached_tokens=int(usage.get("cached_tokens", 0)),
-                        reasoning_tokens=int(usage.get("reasoning_tokens", 0)),
+                        input_tokens=int(usage["prompt_tokens"] if "prompt_tokens" in usage else 0),
+                        output_tokens=int(usage["completion_tokens"] if "completion_tokens" in usage else 0),
+                        cached_tokens=int(usage["cached_tokens"] if "cached_tokens" in usage else 0),
+                        reasoning_tokens=int(usage["reasoning_tokens"] if "reasoning_tokens" in usage else 0),
                         latency_ms=latency_ms,
                         finish_reason=str(finish_reason) if finish_reason else None,
                         system_fingerprint=system_fingerprint,
                         cost_usd=cost,
                     )
                 except Exception as e:
-                    logger.warning("[LiteLLMProvider] Usage Tracking Failed: %s", e)
+                    logger.error("[LiteLLMProvider] Usage Tracking Failed: %s", e)
+                    raise AppException(
+                        message=f"Usage Tracking Failed: {e}",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.UNKNOWN_ERROR.value},
+                    ) from e
 
             # Inject cost into usage dict so BaseAgent can pick it up
             usage["cost_usd"] = cost
@@ -514,7 +519,7 @@ class LiteLLMProvider(LLMProvider):
                 content=final_content,
                 parsed_content=parsed_obj if response_schema else None,
                 reasoning_token=reasoning_token,
-                token_usage=cast(dict[str, float | int], usage),
+                token_usage=TokenUsage.model_validate(usage),
                 provider_metadata=provider_meta,
                 system_fingerprint=system_fingerprint,
                 tool_calls=extracted_tool_calls if extracted_tool_calls else [],
@@ -531,7 +536,7 @@ class LiteLLMProvider(LLMProvider):
 
             # 0. DIRECT PASS-THROUGH (Network Errors for BaseAgent)
             if (
-                "APIConnectionError" in error_type
+                isinstance(e, getattr(litellm, "APIConnectionError", type(None)))
                 or "NameResolutionError" in error_type
                 or "ConnectTimeout" in error_type
                 or "gaierror" in error_type
@@ -541,9 +546,8 @@ class LiteLLMProvider(LLMProvider):
             # 1. RATE LIMITS & QUOTA (Critical Infra)
             # 429s are natively handled in the inner retry loop! If they bubble here, retries were exhausted.
             if (
-                (hasattr(e, "status_code") and e.status_code == 429)
-                or "RateLimitError" in error_type
-                or "429" in error_msg
+                isinstance(e, getattr(litellm, "RateLimitError", type(None)))
+                or (hasattr(e, "status_code") and getattr(e, "status_code", 0) == 429)
                 or "Resource exhausted" in error_msg
             ):
                 logger.error(
@@ -570,7 +574,11 @@ class LiteLLMProvider(LLMProvider):
                 ) from e
 
             # 2. AUTHENTICATION ALERTS (Security/Config)
-            elif "AuthenticationError" in error_type or "401" in error_msg or "invalid_api_key" in error_msg:
+            elif (
+                isinstance(e, getattr(litellm, "AuthenticationError", type(None)))
+                or (hasattr(e, "status_code") and getattr(e, "status_code", 0) == 401)
+                or "invalid_api_key" in error_msg
+            ):
                 logger.critical(
                     "[LiteLLM] %s: AUTH FAILED (Check API Keys): %s", ErrorCodes.CONFIGURATION_ERROR.name, error_msg
                 )
@@ -583,35 +591,31 @@ class LiteLLMProvider(LLMProvider):
                 ) from e
 
             # 3. CONTEXT WINDOW (Data/Prompt Engineering)
-            elif (
-                "ContextWindowExceededError" in error_type
-                or "context_length_exceeded" in error_msg
-                or "400" in error_msg
+            elif isinstance(e, getattr(litellm, "ContextWindowExceededError", type(None))) or (
+                hasattr(e, "status_code")
+                and getattr(e, "status_code", 0) == 400
+                and ("context" in error_msg.lower() or "token" in error_msg.lower())
             ):
-                # Often 400 is generic, but combined with length/context keywords matches this.
-                if "context" in error_msg.lower() or "token" in error_msg.lower():
-                    logger.error(
-                        "[LiteLLM] %s: CONTEXT EXCEEDED (Prompt too long): %s",
-                        ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
-                        error_msg,
-                    )
-                    raise AgentExecutionError(
-                        detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name=self.model_name
-                    ) from e
-                else:
-                    logger.error(
-                        "[LiteLLM] %s: BAD REQUEST (400): %s", ErrorCodes.AGENT_RESPONSE_MALFORMED.name, error_msg
-                    )
-                    raise AgentExecutionError(
-                        detail=ErrorCodes.AGENT_RESPONSE_MALFORMED, original_error=e, agent_name=self.model_name
-                    ) from e
+                logger.error(
+                    "[LiteLLM] %s: CONTEXT EXCEEDED (Prompt too long): %s",
+                    ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
+                    error_msg,
+                )
+                raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name=self.model_name
+                ) from e
+            elif hasattr(e, "status_code") and getattr(e, "status_code", 0) == 400:
+                logger.error("[LiteLLM] %s: BAD REQUEST (400): %s", ErrorCodes.AGENT_RESPONSE_MALFORMED.name, error_msg)
+                raise AgentExecutionError(
+                    detail=ErrorCodes.AGENT_RESPONSE_MALFORMED, original_error=e, agent_name=self.model_name
+                ) from e
 
             # 4. SERVICE INSTABILITY (Infra)
             elif (
-                "ServiceUnavailableError" in error_type
-                or "503" in error_msg
-                or "500" in error_msg
-                or "Timeout" in error_type
+                isinstance(e, getattr(litellm, "ServiceUnavailableError", type(None)))
+                or isinstance(e, getattr(litellm, "Timeout", type(None)))
+                or isinstance(e, asyncio.TimeoutError)
+                or (hasattr(e, "status_code") and getattr(e, "status_code", 0) in (500, 502, 503, 504))
             ):
                 logger.error(
                     "[LiteLLM] %s: SERVICE UNAVAILABLE (Upstream/Timeout): %s",
@@ -702,23 +706,25 @@ class MockProvider(LLMProvider):
         dump_file = os.getenv("DUMP_PROMPTS_FILE")
         if dump_file:
             try:
-                with open(dump_file, "a", encoding="utf-8") as f:
-                    f.write(f"\n\n--- [MockProvider] {self.model_name} ---\n")
-                    f.write(f"PROMPT:\n{prompt}\n")
-                    if messages:
-                        f.write(f"MESSAGES:\n{messages}\n")
-                    if system_instruction:
-                        f.write(f"SYSTEM:\n{system_instruction}\n")
+                payload_parts = []
+                if prompt:
+                    payload_parts.append(f"PROMPT:\n{prompt}")
+                if messages:
+                    payload_parts.append(f"MESSAGES:\n{messages}")
+                if system_instruction:
+                    payload_parts.append(f"SYSTEM:\n{system_instruction}")
+                payload = "\n".join(payload_parts)
+                await asyncio.to_thread(_sync_diagnostic_dump, dump_file, f"[MockProvider] {self.model_name}", payload)
             except Exception as e:
-                logger.warning("Failed to dump prompt: %s", e)
+                logger.warning("Failed to schedule diagnostic dump: %s", e)
 
         # Simulate network delay for verification of async behavior
         await asyncio.sleep(0.5)
 
-        mock = MockLLMService()  # type: ignore[no-untyped-call] # MockLLMService on untyped legacy moduuli
+        mock = MockLLMService()  # MockLLMService on untyped legacy moduuli
 
         # Extract explicit identity if provided
-        agent_identity = kwargs.get("mock_identity")
+        agent_identity = kwargs["mock_identity"] if "mock_identity" in kwargs else None
 
         prompt_str = prompt or ""
         if messages and not prompt_str:
@@ -756,9 +762,12 @@ class MockProvider(LLMProvider):
                 content_str = str(result)
                 try:
                     parsed_result = json.loads(content_str)
-                except Exception:
-                    # If it's not JSON, it's just text
-                    parsed_result = None
+                except Exception as parse_err:
+                    raise AppException(
+                        message=f"Mock response parsing failed: {parse_err}",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.AGENT_RESPONSE_PARSING_FAILED.value},
+                    ) from parse_err
 
         # Simulated Usage
 
@@ -773,8 +782,8 @@ class MockProvider(LLMProvider):
         # --- COST TRACKING (Mock) ---
         if self.usage_service:
             try:
-                target_org = kwargs.get("organization_id") or self.organization_id
-                target_user = kwargs.get("user_id") or "system_agent"
+                target_org = kwargs["organization_id"] if "organization_id" in kwargs else None or self.organization_id
+                target_user = kwargs["user_id"] if "user_id" in kwargs else None or "system_agent"
 
                 await self.usage_service.track_usage(
                     org_id=target_org,
@@ -785,13 +794,23 @@ class MockProvider(LLMProvider):
                     cost_usd=usage_data["total_cost"],
                 )
             except Exception as e:
-                logger.warning("[MockProvider] Usage Tracking Failed: %s", e)
+                logger.error("[MockProvider] Usage Tracking Failed: %s", e)
+                raise AppException(
+                    message=f"Usage Tracking Failed: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.UNKNOWN_ERROR.value},
+                ) from e
 
         return LLMResponse(
             content=content_str,
             parsed_content=parsed_result,
             reasoning_token="mock_thought_signature_123456",
-            token_usage=usage_data,
+            token_usage=TokenUsage(
+                prompt_tokens=int(usage_data["prompt_tokens"]),
+                completion_tokens=int(usage_data["completion_tokens"]),
+                total_tokens=int(usage_data["total_tokens"]),
+                cost_usd=float(usage_data["total_cost"]),
+            ),
             tool_calls=[],
             provider_metadata={},
             messages=[
@@ -867,8 +886,8 @@ class LLMFactory:
             # Check Grounding Capability (Strict Mode: Fail Fast)
             # If caller requests grounding, but config says NO, we RAISE ERROR.
             # We do NOT fallback to non-grounded generation.
-            tools = kwargs.get("tools", [])
-            enable_grounding = kwargs.get("enable_grounding", False)
+            tools = kwargs["tools"] if "tools" in kwargs else []
+            enable_grounding = kwargs["enable_grounding"] if "enable_grounding" in kwargs else False
 
             # Check for Google Search tool or explicit flag
             has_search_intent = enable_grounding or (tools and any("google_search" in str(t) for t in tools))

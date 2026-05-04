@@ -16,7 +16,14 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.mcp import (
+    MCPToolLoopResult,
+    OpenAIProbeResponseDTO,
+    OpenAIToolCallDTO,
+    TavilyToolArgsDTO,
+)
 from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.mcp.tavily_search_client import tavily_search
 
@@ -52,34 +59,6 @@ TAVILY_TOOL_DECLARATION: dict[str, Any] = {
         },
     },
 }
-
-
-class OpenAIFunctionCallDTO(BaseModel):
-    name: str
-    arguments: str | dict[str, Any]
-    model_config = ConfigDict(frozen=True, extra="ignore")
-
-
-class OpenAIToolCallDTO(BaseModel):
-    id: str
-    type: str = "function"
-    function: OpenAIFunctionCallDTO
-    model_config = ConfigDict(frozen=True, extra="ignore")
-
-
-class TavilyToolArgsDTO(BaseModel):
-    query: str
-    model_config = ConfigDict(frozen=True, extra="ignore")
-
-
-class MCPToolLoopResult(BaseModel):
-    """Result from the Tool Loop — structured output + audit trail."""
-
-    model_config = ConfigDict(frozen=True, strict=True)
-
-    result_data: dict[str, Any] = Field(description="Final structured output dict.")
-    audit_traces: list[MCPAuditTrace] = Field(default_factory=list, description="Audit log of all tool invocations.")
-    usage: dict[str, Any] = Field(default_factory=dict, description="Cumulative token usage.")
 
 
 def _build_tool_declarations(allowed_tools: list[str]) -> list[dict[str, Any]]:
@@ -152,15 +131,21 @@ def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dic
         return {
             "role": "tool",
             "tool_call_id": tool_call_id,
-            "content": "[Search returned no results. Proceed with your evaluation using available context only.]",
+            "content": "<tool_response><info>Search returned no results. Proceed with your evaluation using available context only.</info></tool_response>",
         }
 
-    sources = "\n".join(f"- {url}" for url in audit.source_urls)
-    content = f"Search Results for: '{audit.query}'\n\n"
+    content = (
+        "<tool_response>\n"
+        f"  <query>{audit.query}</query>\n"
+    )
     if audit.response_summary:
-        content += f"Summary: {audit.response_summary}\n\n"
-    if sources:
-        content += f"Sources:\n{sources}"
+        content += f"  <summary>{audit.response_summary}</summary>\n"
+    if audit.source_urls:
+        content += "  <sources>\n"
+        for url in audit.source_urls:
+            content += f"    <url>{url}</url>\n"
+        content += "  </sources>\n"
+    content += "</tool_response>"
 
     return {
         "role": "tool",
@@ -215,7 +200,7 @@ async def execute_tool_loop[T: BaseModel](
         return MCPToolLoopResult(
             result_data=result.model_dump(mode="json"),
             audit_traces=[],
-            usage=usage.model_dump(mode="json") if usage else {},
+            usage=usage if usage else TokenUsage(),
         )
 
     # --- PHASE 1: Probe with tool_choice="auto" ---
@@ -230,13 +215,19 @@ async def execute_tool_loop[T: BaseModel](
         # Forcing 'required' when the LLM has nothing to search causes empty query hallucinations.
         current_tool_choice = "auto"
         try:
-            probe_response = await llm_client.run_chat(
+            probe_response_raw = await executor.execute_chat_task(
+                client=llm_client,
                 messages=probe_messages,
                 tools=tool_declarations,
                 tool_choice=current_tool_choice,
             )
+            
+            if isinstance(probe_response_raw, str):
+                break
+                
+            probe_response = OpenAIProbeResponseDTO.model_validate(probe_response_raw)
         except Exception as e:
-            msg = f"Phase 1 LLM probing failed for step '{step_name}'."
+            msg = f"Phase 1 LLM probing failed or returned invalid structure for step '{step_name}'."
             logger.error("[MCPToolLoop] %s: %s", ErrorCodes.FETCH_FAILED.name, msg, exc_info=True)
             if isinstance(e, AppException):
                 raise
@@ -244,18 +235,12 @@ async def execute_tool_loop[T: BaseModel](
                 message=msg, status_code=502, details={"error_code": ErrorCodes.FETCH_FAILED.value}
             ) from e
 
-        # Check if LLM returned tool calls
-        if not isinstance(probe_response, dict) or "tool_calls" not in probe_response:
-            # LLM decided no search needed — proceed directly to Phase 2
-            break
-
-        response_tool_calls = probe_response.get("tool_calls", [])
-        if not response_tool_calls:
+        if not probe_response.tool_calls:
             break
 
         # Process each tool call
         invalid_tools_detected = False
-        for tc in response_tool_calls:
+        for tc_dto in probe_response.tool_calls:
             if tool_call_count >= effective_max_calls:
                 logger.warning(
                     "Max tool calls reached for step. Forcing completion.",
@@ -266,17 +251,6 @@ async def execute_tool_loop[T: BaseModel](
                 )
                 break
 
-            try:
-                tc_dto = OpenAIToolCallDTO.model_validate(tc)
-            except Exception as e:
-                msg = f"LLM returned malformed tool call structure: {e}"
-                logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(
-                    message=msg,
-                    status_code=400,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
-
             tool_name = tc_dto.function.name
             tool_args_raw = tc_dto.function.arguments
 
@@ -284,7 +258,7 @@ async def execute_tool_loop[T: BaseModel](
                 try:
                     tool_args = json.loads(tool_args_raw)
                 except Exception as e:
-                    msg = f"LLM returned malformed JSON for tool arguments: {tool_args_raw}"
+                    msg = "LLM returned malformed JSON for tool arguments."
                     logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise AppException(
                         message=msg,
@@ -299,7 +273,6 @@ async def execute_tool_loop[T: BaseModel](
                     "LLM hallucinated unknown tool — skipping.",
                     extra={
                         "error_code": ErrorCodes.VALIDATION_FAILED.name,
-                        "tool_name": tool_name,
                     },
                 )
                 invalid_tools_detected = True
@@ -308,27 +281,28 @@ async def execute_tool_loop[T: BaseModel](
             try:
                 tavily_args = TavilyToolArgsDTO.model_validate(tool_args)
                 query = tavily_args.query
-            except Exception:
-                logger.warning(
-                    "LLM returned invalid query for Tavily, skipping.",
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
-                )
-                invalid_tools_detected = True
-                continue
+            except Exception as e:
+                msg = "LLM returned invalid arguments for Tavily."
+                logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
 
             if not query.strip():
-                logger.warning(
-                    "LLM returned empty query for Tavily, skipping.",
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                msg = "LLM returned empty query for Tavily."
+                logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
-                invalid_tools_detected = True
-                continue
 
             logger.info(
                 "Executing Tavily search",
                 extra={
                     "step_name": step_name,
-                    "query": query,
                 },
             )
 
@@ -345,7 +319,7 @@ async def execute_tool_loop[T: BaseModel](
                 {
                     "role": "assistant",
                     "content": None,
-                    "tool_calls": [tc],
+                    "tool_calls": [tc_dto.model_dump(mode="json", exclude_none=True)],
                 }
             )
             probe_messages.append(evidence_msg)
@@ -371,30 +345,49 @@ async def execute_tool_loop[T: BaseModel](
             {
                 "role": "user",
                 "content": (
-                    "[SYSTEM: EVIDENCE INJECTION COMPLETE] "
-                    "You now have external search evidence above. "
-                    "Complete the evaluation matrix using both the original context "
-                    "AND the search evidence. Output your response strictly in the "
-                    "required JSON schema format."
+                    "<system_instruction>\n"
+                    "  <objective>EVIDENCE INJECTION COMPLETE</objective>\n"
+                    "  <rule>You now have external search evidence above.</rule>\n"
+                    "  <rule>Complete the evaluation matrix using both the original context AND the search evidence.</rule>\n"
+                    "  <rule>Output your response strictly in the required JSON schema format.</rule>\n"
+                    "</system_instruction>"
                 ),
             }
         )
 
     # EPIC 13: Dynamically inject runtime parameters from OutputProfile via hook extraction
     if synthesis_instructions:
-        formatting_msg = "[SYSTEM: OUTPUT_PROFILE FORMATTING CONSTRAINTS]\nStrictly adhere to the following:\n"
-        if "synthesis_preamble" in synthesis_instructions:
-            _pre = synthesis_instructions["synthesis_preamble"]
-            formatting_msg += f"- PREAMBLE REQUIRED: Begin your response with: '{_pre}'\n"
-        if "synthesis_length_limit" in synthesis_instructions:
-            limit = synthesis_instructions["synthesis_length_limit"]
-            if limit:
-                formatting_msg += f"- LENGTH LIMIT: Restrict total output to roughly {limit} words/characters.\n"
+        class SynthesisInstructionsDTO(BaseModel):
+            synthesis_preamble: str | None = None
+            synthesis_length_limit: int | None = None
+            model_config = ConfigDict(frozen=True, extra="ignore")
+
+        try:
+            instructions = SynthesisInstructionsDTO.model_validate(synthesis_instructions)
+        except Exception as e:
+            msg = "Failed to validate synthesis_instructions."
+            logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+            ) from e
+
+        formatting_msg = (
+            "<execution_parameters>\n"
+            "  <output_profile_formatting_constraints>\n"
+        )
+        if instructions.synthesis_preamble:
+            formatting_msg += f"    <synthesis_preamble>{instructions.synthesis_preamble}</synthesis_preamble>\n"
+        if instructions.synthesis_length_limit:
+            formatting_msg += f"    <synthesis_length_limit>{instructions.synthesis_length_limit}</synthesis_length_limit>\n"
+        formatting_msg += (
+            "  </output_profile_formatting_constraints>\n"
+            "</execution_parameters>\n\n"
+        )
 
         # Prevent "Alternate Roles" strictly by patching the system prompt (index 0)
         if final_messages and final_messages[0].get("role") == "system":
             original = final_messages[0].get("content", "")
-            final_messages[0]["content"] = f"{original}\n\n{formatting_msg}"
+            final_messages[0]["content"] = f"{formatting_msg}{original}"
         else:
             final_messages.insert(0, {"role": "system", "content": formatting_msg})
 
@@ -409,7 +402,7 @@ async def execute_tool_loop[T: BaseModel](
         return MCPToolLoopResult(
             result_data=result.model_dump(mode="json"),
             audit_traces=audit_traces,
-            usage=usage.model_dump(mode="json") if usage else {},
+            usage=usage if usage else TokenUsage(),
         )
     except AppException:
         raise

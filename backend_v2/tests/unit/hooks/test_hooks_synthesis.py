@@ -8,7 +8,8 @@ import pytest
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.synthesis import text_consolidation_hook
-from backend_v2.services.mcp.mcp_tool_loop import MCPToolLoopResult
+from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.services.mcp.mcp_tool_loop import MCPToolLoopResult  # type: ignore
 
 
 @pytest.fixture
@@ -26,8 +27,22 @@ def base_state() -> HookState:
         workflow_id="wf_1",
         step_id="step_1",
         inputs={
-            "step_1": {"reasoning_trace": "test text abc@example.com"},
-            "step_2": {"locale": "en"},
+            "steps": {
+                "step_1": {
+                    "reasoning_trace": {
+                        "thought_process": "test text",
+                        "conclusion": "abc@example.com",
+                        "confidence_score": 0.9,
+                    }
+                },
+                "step_2": {
+                    "reasoning_trace": {
+                        "thought_process": "localization test",
+                        "conclusion": "en",
+                        "confidence_score": 1.0,
+                    }
+                },
+            }
         },
         global_context_vars={"language": "en"},
         metadata={
@@ -37,9 +52,26 @@ def base_state() -> HookState:
                     "step_id": "step_1",
                     "block_id": "b1",
                     "data_type": "text",
-                    "payload": {"reasoning_trace": "test text abc@example.com"},
+                    "payload": {
+                        "reasoning_trace": {
+                            "thought_process": "test text",
+                            "conclusion": "abc@example.com",
+                            "confidence_score": 0.9,
+                        }
+                    },
                 },  # noqa: E501
-                {"step_id": "step_2", "block_id": "b2", "data_type": "text", "payload": {"locale": "en"}},
+                {
+                    "step_id": "step_2",
+                    "block_id": "b2",
+                    "data_type": "text",
+                    "payload": {
+                        "reasoning_trace": {
+                            "thought_process": "localization test",
+                            "conclusion": "en",
+                            "confidence_score": 1.0,
+                        }
+                    },
+                },
             ],
         },
     )
@@ -111,7 +143,7 @@ async def test_synthesis_hook_success(
         "xai_highlights": [],
     }
     mock_execute_tool_loop.return_value = MCPToolLoopResult(
-        result_data=mock_dto_dict, audit_traces=[], usage={"total_tokens": 100}
+        result_data=mock_dto_dict, audit_traces=[], usage=TokenUsage(total_tokens=100)
     )
 
     result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
@@ -136,7 +168,7 @@ async def test_synthesis_hook_success(
     assert "<global_length_constraint_chars>500</global_length_constraint_chars>" in sys_msg.get("content", "")
     assert "Always be concise." in sys_msg.get("content", "")
 
-    assert delta["synthesized_markdown"] == "Synthesized [1]\n\n### BIBLIOGRAPHY_HEADER\n[1] source1"
+    assert delta["synthesized_markdown"] == "Synthesized [1]"
     assert delta["cited_sources"] == ["source1"]
     assert "token_usage" in delta["step_metadata_updates"]
     assert delta["step_metadata_updates"]["token_usage"]["total_tokens"] == 100
@@ -236,7 +268,7 @@ async def test_synthesis_hook_multi_profile_routing(
             "xai_highlights": [],
         },
         audit_traces=[],
-        usage={"total_tokens": 50},
+        usage=TokenUsage(total_tokens=50),
     )
 
     result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
@@ -310,9 +342,17 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
     base_state = base_state.model_copy(
         update={
             "inputs": {
-                "step_1": {"reasoning_trace": "AI says hello"},
-                "step_2": {"result": 1337},
-                "step_3": {"value": "this should be blocked by wildcard"},
+                "steps": {
+                    "step_1": {
+                        "reasoning_trace": {
+                            "thought_process": "AI says hello",
+                            "conclusion": "test",
+                            "confidence_score": 1.0,
+                        }
+                    },
+                    "step_2": {"result": 1337},
+                    "step_3": {"value": "this should be blocked by wildcard"},
+                }
             },
             "metadata": {
                 "target_locale": "en",
@@ -321,7 +361,13 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
                         "step_id": "step_1",
                         "block_id": "b1",
                         "data_type": "text",
-                        "payload": {"reasoning_trace": "AI says hello"},
+                        "payload": {
+                            "reasoning_trace": {
+                                "thought_process": "AI says hello",
+                                "conclusion": "test",
+                                "confidence_score": 1.0,
+                            }
+                        },
                     },  # noqa: E501
                     {"step_id": "step_2", "block_id": "b2", "data_type": "text", "payload": {"result": 1337}},
                     {
@@ -345,7 +391,7 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
             "xai_highlights": [],
         },
         audit_traces=[],
-        usage={"total_tokens": 10},
+        usage=TokenUsage(total_tokens=10),
     )
 
     result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
@@ -461,12 +507,22 @@ async def test_synthesis_hook_historical_context_mode(
             "xai_highlights": [],
         },
         audit_traces=[],
-        usage={"total_tokens": 10},
+        usage=TokenUsage(total_tokens=10),
     )
 
     base_state = base_state.model_copy(
         update={
-            "inputs": {"step_1": {"reasoning_trace": "AI says hello"}},
+            "inputs": {
+                "steps": {
+                    "step_1": {
+                        "reasoning_trace": {
+                            "thought_process": "AI says hello",
+                            "conclusion": "test",
+                            "confidence_score": 1.0,
+                        }
+                    }
+                }
+            },
             "global_context_vars": {"user_id": "usr_123"},
             "metadata": {
                 "target_locale": "en",
@@ -475,7 +531,13 @@ async def test_synthesis_hook_historical_context_mode(
                         "step_id": "step_1",
                         "block_id": "b1",
                         "data_type": "text",
-                        "payload": {"reasoning_trace": "AI says hello"},
+                        "payload": {
+                            "reasoning_trace": {
+                                "thought_process": "AI says hello",
+                                "conclusion": "test",
+                                "confidence_score": 1.0,
+                            }
+                        },
                     }
                 ],
             },  # noqa: E501

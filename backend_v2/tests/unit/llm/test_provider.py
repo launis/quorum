@@ -95,6 +95,8 @@ async def test_litellm_generate_success(mock_getenv: MagicMock) -> None:
     mock_response.system_fingerprint = None
     mock_response.model_extra = {}
     mock_response.model_dump.return_value = {}
+    
+    mock_response.usage = {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
 
     provider.router.acompletion.return_value = mock_response
 
