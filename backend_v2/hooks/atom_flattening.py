@@ -6,7 +6,6 @@ applies Stratified Random Sampling using `MatrixSamplingStrategy` to mitigate
 LLM context fatigue and JSON token explosion.
 """
 
-import hashlib
 import logging
 import random
 
@@ -16,6 +15,7 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import EvaluationMandate
 from backend_v2.models.v2_core import PromptBlock, Step
+from backend_v2.utils.hashing import generate_atom_hash
 
 logger = logging.getLogger(__name__)
 
@@ -97,9 +97,11 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
         try:
             block = PromptBlock.model_validate(raw_block)
         except Exception as e:
-            # Skip invalid legacy models safely. Active models must strictly pass Pydantic validation.
-            logger.warning("[AtomFlatteningHook] Skipping malformed raw block: %s", e)
-            continue
+            msg = f"Strict Fail-Fast Enforced: Invalid legacy block format: {e}"
+            logger.error("[AtomFlatteningHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+            ) from e
 
         if block.id in prompt_block_ids:
             if block.category_id == "matrix":
@@ -120,7 +122,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
 
                     for claim in scale.claims:
                         if claim.micro_atoms and len(claim.micro_atoms) > 0:
-                            scale_atoms.extend([f"{ma.strip()}{mandate}" for ma in claim.micro_atoms])
+                            scale_atoms.extend([ma.strip() for ma in claim.micro_atoms])
                         else:
                             msg = f"PromptBlock '{block.id}' claim is missing mandatory 'micro_atoms' during runtime."
                             logger.error("[%s] %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -149,7 +151,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
 
                 # Calculate immutable MD5 IDs for safe bridging to subsequent math logic
                 for text in matrix_collected_atoms:
-                    atom_id = hashlib.md5(text.encode("utf-8")).hexdigest()
+                    atom_id = generate_atom_hash(text, mandate)
                     if atom_id not in unique_atoms:
                         unique_atoms[atom_id] = text
 

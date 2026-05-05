@@ -7,83 +7,47 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.base import ReasoningTrace
+from backend_v2.models.domain.integrity import CitationAudit
+from backend_v2.models.domain.judge import DimensionResultItem, JudgeScoreCard
 
 logger = logging.getLogger(__name__)
 
-from backend_v2.models.domain.base import ReasoningTrace
-from backend_v2.models.domain.judge import DimensionResultItem, JudgeScoreCard
 
-
-class EvaluationCriterion(BaseModel):
+class EvaluationCriterion(V2CoreBase):
     """A single criterion in an evaluation matrix."""
 
-    id: str
-    label: str
+    id: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1)
     description: str | None = None
     instruction: str | None = None
     anchors: dict[str, str] | None = None
-    weight: float = 1.0
-
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
-    @field_validator("id", "label")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return str(v).strip()
-
-    @field_validator("weight")
-    @classmethod
-    def validate_positive(cls, v: float) -> float:
-        if v < 0:
-            msg = "Weight cannot be negative."
-            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return v
+    weight: float = Field(default=1.0, ge=0.0)
 
 
-class EvaluationMatrixConfig(BaseModel):
+class EvaluationMatrixConfig(V2CoreBase):
     """Configuration for an Evaluation Matrix."""
 
-    id: str
-    name: str
+    id: str = Field(..., min_length=1)
+    name: str = Field(..., min_length=1)
     description: str | None = None
-    criteria: list[EvaluationCriterion] = Field(..., json_schema_extra={"x-ui-group": "Evaluation Criteria"})
-
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
-    @model_validator(mode="after")
-    def validate_criteria_exist(self) -> EvaluationMatrixConfig:
-        if not self.criteria:
-            msg = "EvaluationMatrixConfig must have at least one criterion. Zero-Compromise Fail-Fast enforced."
-            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return self
-
-    @field_validator("id", "name")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return str(v).strip()
+    criteria: list[EvaluationCriterion] = Field(
+        ..., min_length=1, json_schema_extra={"x-ui-group": "Evaluation Criteria"}
+    )
 
 
 class EvaluationResult(ReasoningTrace):
     """Generic container for evaluation results."""
 
-    matrix_id: str
+    matrix_id: str = Field(..., min_length=1)
     timestamp: datetime
     total_score: float = Field(..., description="Total score.")
-    final_verdict: str = Field(..., description="Final verdict.")
-    dimensions: list[DimensionResultItem] = Field(..., description="Evaluation dimensions.")
+    final_verdict: str = Field(..., min_length=1, description="Final verdict.")
+    dimensions: list[DimensionResultItem] = Field(..., min_length=1, description="Evaluation dimensions.")
 
     # Scale Metadata (Added for XAI/BFF Compatibility)
     scale_min: float = Field(..., description="Minimum possible score.")
@@ -106,6 +70,12 @@ class EvaluationResult(ReasoningTrace):
         default_factory=list, description="List of penalty keys applied.", json_schema_extra={"x-ui-label": "Penalties"}
     )
 
+    integrity_audit: CitationAudit | None = Field(
+        default=None,
+        description="Integrity audit results for citations.",
+        json_schema_extra={"x-ui-label": "Integrity Audit"},
+    )
+
     @field_validator("timestamp", mode="before")
     @classmethod
     def parse_datetime(cls, v: Any) -> Any:
@@ -114,42 +84,16 @@ class EvaluationResult(ReasoningTrace):
             return datetime.fromisoformat(v.replace("Z", "+00:00"))
         return v
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
-    @field_validator("dimensions")
-    @classmethod
-    def validate_dimensions_not_empty(cls, v: list[DimensionResultItem]) -> list[DimensionResultItem]:
-        if not v:
-            msg = "EvaluationResult must have at least one dimension. Zero-Compromise Fail-Fast enforced."
-            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return v
-
-    @field_validator("matrix_id", "final_verdict")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return str(v).strip()
-
     @model_validator(mode="after")
     def validate_scores_range(self) -> EvaluationResult:
         if self.scale_min >= self.scale_max:
             msg = "scale_min must be strictly less than scale_max."
             logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-
-        if not (self.scale_min <= self.total_score <= self.scale_max):
-            msg = f"Score {self.total_score} is out of valid range [{self.scale_min}, {self.scale_max}]."
-            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-
+            raise ValueError(msg)
         return self
 
 
-class ValidationResult(BaseModel):
+class ValidationResult(V2CoreBase):
     """Result of the structure verification (Hook)."""
 
     is_valid: bool = Field(..., description="Is the structure valid?", json_schema_extra={"x-ui-label": "Is Valid"})
@@ -157,12 +101,10 @@ class ValidationResult(BaseModel):
         default_factory=list, description="Validation errors.", json_schema_extra={"x-ui-label": "Errors"}
     )
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
     @model_validator(mode="after")
     def validate_logic(self) -> ValidationResult:
         if not self.is_valid and not self.errors:
             msg = "Invalid result must have errors."
             logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+            raise ValueError(msg)
         return self

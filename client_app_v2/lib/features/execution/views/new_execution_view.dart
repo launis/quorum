@@ -55,7 +55,9 @@ class NewExecutionController extends _$NewExecutionController {
         '/execution/executions/',
         data: {
           'workflow_id': workflowId,
-          'raw_inputs': collectedInputs,
+          'raw_inputs': {
+            'dynamic_inputs': collectedInputs,
+          },
           'target_locale': targetLocale,
           if (profileId != null) 'profile_id': profileId,
           'strictness_level': strictnessLevel,

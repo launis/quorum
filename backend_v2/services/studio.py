@@ -80,9 +80,7 @@ class StudioService:
                 raise PermissionDeniedError("Only ROOT can modify system resources.")
             if data_org_id != org_id:
                 logger.error(
-                    "[StudioService] %s: ",
-                    ErrorCodes.PERMISSION_DENIED.name,
-                    "Cannot modify resources outside your organization.",
+                    f"[StudioService] {ErrorCodes.PERMISSION_DENIED.value}: Cannot modify resources outside your organization."
                 )
                 raise PermissionDeniedError("Cannot modify resources outside your organization.")
 
@@ -479,6 +477,34 @@ class StudioService:
         return await self.save_prompt_block(initiator, new_id, cloned_obj)
 
     # --- System Configs (ROOT Only usually) ---
+
+    def get_available_models(self, initiator: TokenData, llm_handler: Any) -> list[str]:
+        """Fetches and flattens available models using the LLM Handler. Enforces ADMIN/ROOT."""
+        if initiator.role not in [UserRole.ROOT, UserRole.ADMIN, "ROOT", "ADMIN"]:
+            logger.error(
+                "[StudioService] %s: User %s (Role: %s) attempted to fetch available models without ROOT or ADMIN.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                initiator.role,
+                extra={
+                    "error_code": ErrorCodes.PERMISSION_DENIED.value,
+                    "user_id": initiator.id,
+                    "user_role": getattr(initiator.role, "value", initiator.role),
+                },
+            )
+            raise PermissionDeniedError("Only ROOT or ADMIN can fetch available models.")
+            
+        result = llm_handler.fetch_all_available_models()
+
+        flat_list: list[str] = []
+        for models in result.values():
+            if isinstance(models, list):
+                flat_list.extend(models)
+            elif isinstance(models, str):
+                flat_list.append(models)
+
+        return sorted(list(set(flat_list)))
+
 
     async def get_all_system_configs(self, initiator: TokenData) -> list[SystemConfigModelRegistry]:
         if initiator.role == "ROOT":

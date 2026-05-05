@@ -99,7 +99,7 @@ from backend_v2.models.domain.xai import (
     XAIReporterInput,
     XAIScoreItem,
 )
-from backend_v2.models.dtos.pdf_context import ReportContext
+from backend_v2.models.dtos.report import ReportContextDTO as ReportContext
 
 # --- REGISTRY ---
 DOMAIN_REGISTRY = {
@@ -150,8 +150,6 @@ __all__ = [
     "Hypothesis",
     "SearchResult",
     "SearchResultItem",
-    "ContextData",
-    "Precedent",
     "ProfilerInput",
     "ProfilerDTO",
     "ProfilerOutput",

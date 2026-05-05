@@ -7,46 +7,37 @@ including precedent analysis and compliance checks.
 import logging
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
 logger = logging.getLogger(__name__)
 
-from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
+
+class ArchiveCase(V2CoreBase):
+    """A past case retrieved by the Archivist."""
+
+    case_id: str = Field(..., min_length=1, description="ID of the past case.")
+    similarity_score: float = Field(..., description="Similarity to current case.")
+    verdict: str = Field(..., min_length=1, description="Verdict of the past case.")
+    summary: str = Field(..., min_length=1, description="Summary of the past case.")
 
 
-class ArchivistInput(BaseModel):
+class ArchivistInput(V2CoreBase):
     """Strict input schema for ArchivistAgent.
 
-    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are encapsulated dynamically.
     """
 
     chat_log: str = Field(..., description="Mandatory chatlog to analyze.")
-    archivist_precedents: list[dict[str, Any]] | None = Field(None, description="Retrieved precedents.")
+    archivist_precedents: list[ArchiveCase] | None = Field(None, description="Retrieved precedents.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
-    model_config = ConfigDict(frozen=True, extra="allow")
-
-
-class ArchiveCase(BaseModel):
-    """A past case retrieved by the Archivist."""
-
-    case_id: str = Field(..., description="ID of the past case.")
-    similarity_score: float = Field(..., description="Similarity to current case.")
-    verdict: str = Field(..., description="Verdict of the past case.")
-    summary: str = Field(..., description="Summary of the past case.")
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    @field_validator("case_id", "verdict", "summary")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[ArchivistModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return str(v).strip()
+    dynamic_inputs: dict[str, Any] = Field(
+        default_factory=dict, description="Structured dictionary for dynamic inputs."
+    )
 
 
 class ArchivistOutputDTO(ReasoningTraceDTO):
@@ -54,11 +45,13 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
 
     relevant_cases: list[ArchiveCase] = Field(
         ...,
+        min_length=1,
         description="Relevant past cases.",
         json_schema_extra={"x-ui-label": "Relevant Cases"},
     )
     consistency_analysis: str = Field(
         ...,
+        min_length=1,
         description="Analysis of consistency with precedents.",
         json_schema_extra={"x-ui-label": "Consistency Analysis"},
     )
@@ -81,20 +74,12 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
     )
     description_key: str = Field(
         default="compliance_desc",
+        min_length=1,
         description="Localization key.",
     )
     description: str = Field(
         default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"}
     )
-
-    @field_validator("consistency_analysis", "description_key")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[ArchivistModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return str(v).strip()
 
     @model_validator(mode="before")
     @classmethod
@@ -115,19 +100,15 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
                 # STRICT VALIDATION: No fallback allowed.
                 msg = f"Invalid compliance_analysis: {val}. Must be one of {list(mapping.keys())}"
                 logger.error("[ArchivistModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                )
+                raise ValueError(msg)
 
             if val and "compliance_score" not in data:
                 data["compliance_score"] = mapping[val]
 
         return data
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
 
 class ArchivistOutput(ArchivistOutputDTO, ReasoningTrace):
     """Domain model for Archivist Agent (Content + Metadata)."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    pass

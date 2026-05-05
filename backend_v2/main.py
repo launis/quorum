@@ -9,23 +9,45 @@ Adheres to V2.9 Architecture:
 
 import logging
 import os
+import typing
 import uuid
 from contextlib import asynccontextmanager
 from typing import Any
 
+try:
+    import logfire
+
+    _logfire: typing.Any = logfire
+except ImportError:
+    _logfire = None
+
+from arq.connections import RedisSettings, create_pool
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
+
+import backend_v2.hooks  # noqa: F401
+from backend_v2.api.routers.execution import router as execution_router
+from backend_v2.api.routers.iam import router as iam_router
+from backend_v2.api.routers.output_profiles import router as output_profiles_router
+from backend_v2.api.routers.studio import router as studio_router
+from backend_v2.api.routers.system import router as system_router
 
 # from backend_v2.api.auth_router import router as auth_router
 # from backend_v2.api.v2.core_router import router as core_router
 # from backend_v2.api.v2.system_router import router as system_router
 from backend_v2.context import set_request_context
+from backend_v2.core.rate_limit import rate_limit_exceeded_handler
+from backend_v2.exceptions import AppException, ErrorCodes, format_validation_error
 from backend_v2.logging_config import configure_logfire, setup_logging
+from backend_v2.services.localization import set_language
 from backend_v2.settings import get_settings
+from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 
 # --- 1. Lifespan Management ---
 
@@ -47,7 +69,7 @@ async def lifespan(app: FastAPI) -> Any:
 
     try:
         # A. Initialize Task Registry / Hook Registry (Trigger Decorators)
-        import backend_v2.hooks  # noqa: F401
+        # Hooks imported at module level
 
         # B. Load Workflows (Mock/File-based seeding for now)
         # In a real app, this might sync to DB.
@@ -59,12 +81,10 @@ async def lifespan(app: FastAPI) -> Any:
 
         # C. Initialize Arq Redis Pool
         # We attempt to connect to the configured Redis instance, otherwise fallback to in-memory fake redis.
-        from arq.connections import RedisSettings, create_pool
 
         if "PYTEST_CURRENT_TEST" in os.environ:
             # Bypass slow timeouts during unit tests to avoid spamming backend_debug.log
             logger.info("Test environment detected. Forcing FakeRedis.")
-            from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 
             app.state.arq_pool = get_patched_fakeredis_pool()
         else:
@@ -75,10 +95,8 @@ async def lifespan(app: FastAPI) -> Any:
                 )  # noqa: E501
                 logger.info(f"Connected to Arq Redis at {settings.redis_host}:{settings.redis_port}")
             except Exception as redis_err:
-                logger.warning(f"Failed to connect to real Redis: {redis_err}. Falling back to FakeRedis.")
-                from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
-
-                app.state.arq_pool = get_patched_fakeredis_pool()
+                logger.critical(f"Failed to connect to real Redis: {redis_err}. Crashing system (Fail-Fast).")
+                raise
 
         yield
 
@@ -118,15 +136,14 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-try:
-    import logfire
-
-    logfire.instrument_fastapi(app)
-except ImportError:
+if _logfire:
+    try:
+        _logfire.instrument_fastapi(app)
+    except Exception:
+        logging.getLogger("backend.main").error("Failed to instrument FastAPI with Logfire.", exc_info=True)
+        raise
+else:
     logging.getLogger("backend.main").info("Logfire not installed. Skipping FastAPI telemetry instrumentation.")
-except Exception:
-    logging.getLogger("backend.main").error("Failed to instrument FastAPI with Logfire.", exc_info=True)
-    raise
 
 # (duplicate validation handler removed)
 
@@ -144,7 +161,7 @@ app.add_middleware(
 class RequestIdMiddleware(BaseHTTPMiddleware):
     """Middleware to inject Request ID into context."""
 
-    async def dispatch(self, request: Request, call_next):  # type: ignore
+    async def dispatch(self, request: Request, call_next: Any) -> Any:
         """Process the request."""
         # Trust upstream ID or generate new one
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
@@ -169,9 +186,7 @@ app.add_middleware(RequestIdMiddleware)
 class LocalizationMiddleware(BaseHTTPMiddleware):
     """Middleware to inject Accept-Language into context."""
 
-    async def dispatch(self, request: Request, call_next):  # type: ignore
-        from backend_v2.services.localization import set_language
-
+    async def dispatch(self, request: Request, call_next: Any) -> Any:
         # Extract Accept-Language header (e.g., "fi,en;q=0.9")
         # For simplicity, we take the first preferred language.
         accept_language = request.headers.get("Accept-Language", "en")
@@ -191,8 +206,6 @@ app.add_middleware(LocalizationMiddleware)
 
 
 # --- 4. Global Error Handlers (RFC 7807 Problem Details) ---
-
-from backend_v2.exceptions import AppException, ErrorCodes, format_validation_error
 
 
 @app.exception_handler(AppException)
@@ -254,18 +267,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
-from slowapi.errors import RateLimitExceeded
-
-from backend_v2.core.rate_limit import rate_limit_exceeded_handler
-
-
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_exception_handler(request: Request, exc: RateLimitExceeded) -> Any:
     """Catches RateLimitExceeded and delegates to the strict handler."""
     return rate_limit_exceeded_handler(request, exc)
-
-
-from starlette.exceptions import HTTPException as StarletteHTTPException
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -332,13 +337,6 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 
 # --- 5. Routers ---
-
-# ...
-from backend_v2.api.routers.execution import router as execution_router
-from backend_v2.api.routers.iam import router as iam_router
-from backend_v2.api.routers.output_profiles import router as output_profiles_router
-from backend_v2.api.routers.studio import router as studio_router
-from backend_v2.api.routers.system import router as system_router
 
 app.include_router(iam_router, prefix="/api/v2")
 app.include_router(system_router, prefix="/api/v2")

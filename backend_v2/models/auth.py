@@ -10,9 +10,11 @@ from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from pydantic import ConfigDict, EmailStr, Field, field_validator, model_validator
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 
 logger = logging.getLogger(__name__)
 
@@ -52,10 +54,13 @@ class SystemOrganizations(str, Enum):
     ROOT_SYSTEM = "org_system000000"
 
 
+LaxUserRole = Annotated[UserRole, Field(strict=False)]
+LaxSubscriptionStatus = Annotated[SubscriptionStatus, Field(strict=False)]
+
 # --- Base Models ---
 
 
-class Organization(BaseModel):
+class Organization(V2CoreBase):
     """Represents a tenant or customer organization.
 
     Attributes:
@@ -87,12 +92,10 @@ class Organization(BaseModel):
 
     # Billing & SaaS Fields (Phase 4)
     billing_id: Annotated[str | None, Field(description="External Billing ID (Stripe/etc)")] = None
-    subscription_status: Annotated[SubscriptionStatus, Field(description="Current billing status")]
+    subscription_status: Annotated[LaxSubscriptionStatus, Field(description="Current billing status")]
     quota_limit: Annotated[float, Field(ge=0.0, description="Monthly API call quota (USD)")]
     tpm_limit: Annotated[int, Field(ge=1000, description="Tokens Per Minute Limit")]
     rpm_limit: Annotated[int, Field(ge=1, description="Requests Per Minute Limit")]
-
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("id", "name")
     @classmethod
@@ -100,7 +103,7 @@ class Organization(BaseModel):
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise ValueError(msg)
         return v.strip()
 
     @field_validator("contact_email", "billing_id")
@@ -109,38 +112,13 @@ class Organization(BaseModel):
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise ValueError(msg)
         return v.strip() if v else v
 
-    @model_validator(mode="before")
-    @classmethod
-    def parse_db_fields(cls, data: Any) -> Any:
-        """Parses string fields from DB into proper types for Strict Mode."""
-        if isinstance(data, dict):
-            # 1. created_at (str -> datetime)
-            if "created_at" in data and isinstance(data["created_at"], str):
-                try:
-                    # Handle typical ISO strings
-                    data["created_at"] = datetime.fromisoformat(data["created_at"])
-                except ValueError as e:
-                    msg = f"Organization parsing failed: Invalid datetime '{data['created_at']}'."
-                    logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                    raise AppException(message=msg, status_code=422, details=err_details) from e
-
-            # 2. subscription_status (str -> Enum)
-            if "subscription_status" in data and isinstance(data["subscription_status"], str):
-                try:
-                    data["subscription_status"] = SubscriptionStatus(data["subscription_status"])
-                except ValueError as e:
-                    msg = f"Organization parsing failed: Invalid subscription status '{data['subscription_status']}'."
-                    logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                    raise AppException(message=msg, status_code=422, details=err_details) from e
-        return data
 
 
-class UserBase(BaseModel):
+
+class UserBase(V2CoreBase):
     """Base Pydantic model for User data, distinguishing shared fields.
 
     Attributes:
@@ -153,13 +131,11 @@ class UserBase(BaseModel):
 
     email: Annotated[EmailStr, Field(description="User email address")]
     display_name: Annotated[str | None, Field(description="User display name")] = None
-    role: Annotated[UserRole, Field(description="Assigned permission role")]
+    role: Annotated[LaxUserRole, Field(description="Assigned permission role")]
     organization_id: Annotated[str | None, Field(description="ID of the organization this user belongs to")] = None
     is_active: Annotated[bool, Field(description="Is the account active?")]
     language: Annotated[Literal["fi", "en", "sv"], Field(description="Preferred UI language")]
     theme_mode: Annotated[Literal["system", "light", "dark"], Field(description="Preferred Theme Mode")]
-
-    model_config = ConfigDict(extra="forbid", strict=True)
 
     @field_validator("display_name", "organization_id")
     @classmethod
@@ -167,7 +143,7 @@ class UserBase(BaseModel):
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise ValueError(msg)
         return v.strip() if v else v
 
 
@@ -196,15 +172,13 @@ class User(UserBase):
     created_at: Annotated[datetime, Field(description="ISO 8601 Timestamp")]
     created_by: Annotated[str | None, Field(description="UID of the creator")] = None
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
     @field_validator("id")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise ValueError(msg)
         return v.strip()
 
     @field_validator("created_by")
@@ -213,34 +187,10 @@ class User(UserBase):
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise ValueError(msg)
         return v.strip() if v else v
 
-    @model_validator(mode="before")
-    @classmethod
-    def parse_db_fields(cls, data: Any) -> Any:
-        """Parses string fields from DB into proper types for Strict Mode."""
-        if isinstance(data, dict):
-            # 1. created_at (str -> datetime)
-            if "created_at" in data and isinstance(data["created_at"], str):
-                try:
-                    data["created_at"] = datetime.fromisoformat(data["created_at"])
-                except ValueError as e:
-                    msg = f"User parsing failed: Invalid datetime '{data['created_at']}'."
-                    logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                    raise AppException(message=msg, status_code=422, details=err_details) from e
 
-            # 2. role (str -> Enum) - From UserBase
-            if "role" in data and isinstance(data["role"], str):
-                try:
-                    data["role"] = UserRole(data["role"])
-                except ValueError as e:
-                    msg = f"User parsing failed: Invalid role '{data['role']}'."
-                    logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                    raise AppException(message=msg, status_code=422, details=err_details) from e
-        return data
 
 
 class UserAdminView(UserBase):
@@ -262,7 +212,7 @@ class UserAdminView(UserBase):
     last_login_at: datetime | None = None
     execution_count: int = 0
 
-    model_config = ConfigDict(from_attributes=True, extra="forbid")
+    model_config = ConfigDict(from_attributes=True, extra="forbid", frozen=True, strict=True)
 
 
 # --- Creation Models ---
@@ -280,7 +230,7 @@ class UserCreate(UserBase):
     created_by: Annotated[str | None, Field(description="UID of the admin creating this user")] = None
 
 
-class OrganizationCreate(BaseModel):
+class OrganizationCreate(BaseDTO):
     """Payload for creating a new organization.
 
     Attributes:
@@ -305,11 +255,11 @@ class OrganizationCreate(BaseModel):
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise ValueError(msg)
         return v.strip()
 
 
-class UserUpdate(BaseModel):
+class UserUpdate(BaseDTO):
     """Payload for updating an existing user.
 
     Attributes:
@@ -327,11 +277,13 @@ class UserUpdate(BaseModel):
     theme_mode: str | None = None
     organization_id: str | None = None
 
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
 
 # --- Auth Fragments ---
 
 
-class TokenData(BaseModel):
+class TokenData(V2CoreBase):
     """Structure for JWT token payload data.
 
     Attributes:
@@ -342,11 +294,9 @@ class TokenData(BaseModel):
     """
 
     id: str
-    role: UserRole
+    role: LaxUserRole
     organization_id: str | None = None
     email: str | None = None
-
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("id")
     @classmethod
@@ -354,7 +304,7 @@ class TokenData(BaseModel):
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise ValueError(msg)
         return v.strip()
 
     @field_validator("organization_id", "email")
@@ -363,12 +313,58 @@ class TokenData(BaseModel):
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise ValueError(msg)
         return v.strip() if v else v
 
 
-class UserDeleteResponse(BaseModel):
+class UserDeleteResponse(BaseResponseDTO):
     """Payload response for deleting a user."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     status: str
     id: str
+
+
+class TokenPayload(BaseDTO):
+    """Payload for token verification."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    token: str
+
+
+class LoginResponse(BaseResponseDTO):
+    """Response model for successful login."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    user: User
+    token_valid: bool
+    debug_msg: str | None = None
+
+
+class ImpersonationRequest(BaseDTO):
+    """Request payload for impersonation."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    target_id: str
+
+
+class ImpersonationResponse(BaseResponseDTO):
+    """Response containing the impersonation token."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    access_token: str
+    token_type: str = "bearer"
+
+
+class OrganizationDeleteResponse(BaseResponseDTO):
+    """Payload response for deleting an organization."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    status: str
+    deleted_id: str

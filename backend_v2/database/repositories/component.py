@@ -3,6 +3,8 @@ from typing import Any
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.v2_core import PromptBlock
 
 
 class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
@@ -89,6 +91,24 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
 
     async def get_all_prompt_blocks(self) -> list[dict[str, Any]]:
         return await self.driver.query("prompt_blocks")
+
+    async def get_all_prompt_blocks_models(self) -> list[PromptBlock]:
+        data = await self.get_all_prompt_blocks()
+        models = []
+        for b in data:
+            try:
+                models.append(PromptBlock.model_validate(b, strict=False))
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error("Failed to parse PromptBlock %s: %s", b.get("id"), e, exc_info=True)
+                from backend_v2.exceptions import AppException, ErrorCodes
+                raise AppException(
+                    message=f"Failed to parse PromptBlock {b.get('id')} from database",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
+        return models
 
     async def create_prompt_block(self, block_data: dict[str, Any]) -> str:
         doc_id = block_data["id"]
@@ -213,6 +233,24 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
 
     async def get_all_output_profiles(self) -> list[dict[str, Any]]:
         return await self.driver.query("output_profiles")
+
+    async def get_all_output_profiles_models(self) -> list[OutputProfile]:
+        data = await self.get_all_output_profiles()
+        models = []
+        for pd in data:
+            try:
+                models.append(OutputProfile.model_validate(pd, strict=False))
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error("Failed to parse OutputProfile %s: %s", pd.get("id"), e, exc_info=True)
+                from backend_v2.exceptions import AppException, ErrorCodes
+                raise AppException(
+                    message="Failed to parse profile from database",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
+        return models
 
     async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any] | None:
         return await self.driver.get("output_profiles", profile_id)

@@ -44,7 +44,10 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     execution_id = state.execution_id
 
     if not workflow_repo or not workflow_id or not execution_id:
-        logger.error("Missing repository, workflow_id, or execution_id in context.", extra={"error_code": "MISSING_EXECUTION_CONTEXT"})
+        logger.error(
+            "Missing repository, workflow_id, or execution_id in context.",
+            extra={"error_code": "MISSING_EXECUTION_CONTEXT"},
+        )
         raise AppException(
             message="Missing execution context for input processing.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -71,10 +74,18 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
 
         # 1. Check state.inputs
         raw_val = None
+        dynamic_inputs = state.inputs.get("dynamic_inputs", {})
+
         for k, v in state.inputs.items():
             if k.lower() == key_lower:
                 raw_val = v
                 break
+
+        if raw_val is None:
+            for k, v in dynamic_inputs.items():
+                if k.lower() == key_lower:
+                    raw_val = v
+                    break
 
         # 2. Check state.global_context_vars
         if raw_val is None:
@@ -93,9 +104,14 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 dto = GuidedReflectionInputDTO.model_validate(raw_val)
                 title_text = expected_input.label.resolve("en")
                 if not title_text:
-                    logger.error("Missing English label for expected input.", extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key})
+                    logger.error(
+                        "Missing English label for expected input.",
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
+                    )
                     raise AppException(
-                        message=f"System Configuration Error: Missing mandatory English label for '{key}' questionnaire.",
+                        message=(
+                            f"System Configuration Error: Missing mandatory English label for '{key}' questionnaire."
+                        ),
                         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
                     )

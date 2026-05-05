@@ -86,8 +86,14 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
                 message=f"Invalid inputs schema: {e}", status_code=400, details={"error_code": error_code.value}
             ) from e
 
+        if state.global_context_vars is None:
+            error_code = ErrorCodes.VALIDATION_FAILED
+            msg = "state.global_context_vars is strictly required but missing."
+            logger.error("[ReferenceHook] %s: %s", error_code.name, msg)
+            raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+
         try:
-            parsed_context = ReferencesContextDTO.model_validate(state.global_context_vars or {})
+            parsed_context = ReferencesContextDTO.model_validate(state.global_context_vars)
         except ValidationError as e:
             error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
             logger.error("[ReferenceHook] %s: Invalid context schema: %s", error_code.name, e)
@@ -114,7 +120,7 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
         logger.debug("[ReferenceHook] Generated %s references.", len(generated_references))
         delta: dict[str, Any] = {"bibliography_result": result_dto.model_dump()}
 
-        if "knowledge_base" not in (state.global_context_vars or {}):
+        if "knowledge_base" not in state.global_context_vars:
             delta["knowledge_base"] = knowledge_base
 
         return HookResult(success=True, state_delta=delta)

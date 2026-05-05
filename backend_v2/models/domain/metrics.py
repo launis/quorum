@@ -6,7 +6,7 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, RootModel
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 
 class MetricsPayloadDTO(RootModel[dict[str, Any]]):
@@ -17,45 +17,45 @@ class MetricsPayloadDTO(RootModel[dict[str, Any]]):
     satisfying the Phase 9 Zero-Compromise mandate.
     """  # noqa: W293
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(strict=True, frozen=True)
 
 
 class TextMetricsDTO(BaseModel):
     """Core text metrics."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    word_count: int
-    sentence_count: int
-    avg_sentence_length: float
-    lexical_diversity: float
-    capitalization_ratio: float
-    control_ratio: float
+    word_count: int = Field(ge=0)
+    sentence_count: int = Field(ge=0)
+    avg_sentence_length: float = Field(ge=0.0)
+    lexical_diversity: float = Field(ge=0.0)
+    capitalization_ratio: float = Field(ge=0.0)
+    control_ratio: float = Field(ge=0.0)
 
 
 class BehavioralMetricsDTO(BaseModel):
     """Behavioral heuristics."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    say_do_gap: float
-    automation_bias: float
-    illusion_of_competence: float
-    imperative_command_count: int
+    say_do_gap: float = Field(ge=0.0)
+    automation_bias: float = Field(ge=0.0)
+    illusion_of_competence: float = Field(ge=0.0)
+    imperative_command_count: int = Field(ge=0)
 
 
 class ProfilerMetricsDTO(BaseModel):
     """Combined metrics for profiler state injection."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    word_count: int
-    sentence_count: int
-    avg_sentence_length: float
-    lexical_diversity: float
-    capitalization_ratio: float
-    control_ratio: float
-    say_do_gap: float
-    automation_bias: float
-    illusion_of_competence: float
-    imperative_command_count: int
+    word_count: int = Field(ge=0)
+    sentence_count: int = Field(ge=0)
+    avg_sentence_length: float = Field(ge=0.0)
+    lexical_diversity: float = Field(ge=0.0)
+    capitalization_ratio: float = Field(ge=0.0)
+    control_ratio: float = Field(ge=0.0)
+    say_do_gap: float = Field(ge=0.0)
+    automation_bias: float = Field(ge=0.0)
+    illusion_of_competence: float = Field(ge=0.0)
+    imperative_command_count: int = Field(ge=0)

@@ -67,7 +67,7 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
                 raise AppException(
                     message=f"Sanitization failed for field '{field}': {e}",
                     status_code=500,
-                    details={"error_code": error_code},
+                    details={"error_code": error_code.value},
                 ) from e
         else:
             sanitized_inputs[field] = original
@@ -86,7 +86,7 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
         raise AppException(
             message=f"Failed to create SanitizationResult: {e}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code},
+            details={"error_code": error_code.value},
         ) from e
 
     if threats_summary:

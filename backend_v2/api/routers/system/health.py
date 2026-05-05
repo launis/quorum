@@ -1,29 +1,23 @@
 """System router for exposing backend registry and configuration."""
 
-from typing import Annotated
+import logging
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, ConfigDict
 
 from backend_v2.api.dependencies import get_current_admin_user
 from backend_v2.core.hook_registry import hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import TokenData
+from backend_v2.models.dtos.system import HookListResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/system", tags=["System"])
 
 
-class HookListResponse(BaseModel):
-    """Schema for returning available configured hooks."""
-
-    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
-
-    hooks: list[str]
-
-
 @router.get("/hooks", response_model=HookListResponse)
 async def get_system_hooks(
-    current_user: Annotated[TokenData, Depends(get_current_admin_user)],
+    current_user: TokenData = Depends(get_current_admin_user),
 ) -> HookListResponse:
     """Get all registered hooks available for dynamic assignment.
 
@@ -33,15 +27,9 @@ async def get_system_hooks(
         HookListResponse: List of all registered hook names.
     """
     try:
-        import logging
-
-        logger = logging.getLogger(__name__)
         available_hooks = hook_registry.get_all_hooks()
         return HookListResponse(hooks=sorted(available_hooks))
     except Exception as e:
-        import logging
-
-        logger = logging.getLogger(__name__)
         if isinstance(e, AppException):
             raise
         logger.error(

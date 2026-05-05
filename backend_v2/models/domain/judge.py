@@ -7,32 +7,36 @@ including scorecards and dimension results.
 import logging
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
-from backend_v2.exceptions import AppException, ErrorCodes
-
-logger = logging.getLogger(__name__)
-
+from backend_v2.exceptions import ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.archivist import ArchivistOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.domain.causal import CausalOutput
 from backend_v2.models.domain.falsifier import FalsifierOutput
+from backend_v2.models.domain.guard import GuardOutput
 from backend_v2.models.domain.logician import LogicianOutput
 from backend_v2.models.domain.overseer import OverseerOutput
 from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.profiler import ProfilerOutput
 
+logger = logging.getLogger(__name__)
 
-class JudgeInput(BaseModel):
+
+class JudgeInput(V2CoreBase):
     """Strict Input Schema for Judge Agent (Phase 8).
 
-    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are encapsulated dynamically.
     """
 
     # Context / inputs
     chat_log: str = Field(
-        ..., description="The mandatory conversation history to evaluate.", json_schema_extra={"x-ui-label": "Chatlog"}
+        ...,
+        min_length=1,
+        description="The mandatory conversation history to evaluate.",
+        json_schema_extra={"x-ui-label": "Chatlog"},
     )
 
     # Preceding Agents (Critics) - Strictly Typed via Forward Refs
@@ -45,18 +49,20 @@ class JudgeInput(BaseModel):
     step_detector: PerformativityOutput | None = Field(None, description="Detector Output.")
     step_overseer: OverseerOutput | None = Field(None, description="Overseer Output.")
 
-    # Legacy/Flexible inputs (for now, until all are strictly mapped)
-    step_guard: dict[str, Any] | None = Field(None, description="Guard Output.")
+    step_guard: GuardOutput | None = Field(None, description="Guard Output.")
     last_reasoning_trace: str | None = Field(None, description="Previous reasoning trace.")
 
-    model_config = ConfigDict(frozen=True, extra="allow")
+    dynamic_inputs: dict[str, Any] = Field(
+        default_factory=dict, description="Structured dictionary for dynamic inputs."
+    )
 
 
-class DimensionResultItem(BaseModel):
+class DimensionResultItem(V2CoreBase):
     """Result for a single dimension."""
 
     dimension_id: str = Field(
         ...,
+        min_length=1,
         description="ID of the dimension (e.g., 'analysis').",
         json_schema_extra={"x-ui-label": "Dimension ID"},
     )
@@ -67,41 +73,24 @@ class DimensionResultItem(BaseModel):
     )
     score: int | float = Field(
         ...,
+        ge=0,
         description="Numerical score.",
         json_schema_extra={"x-ui-label": "Score"},
     )
     reasoning: str = Field(
         ...,
+        min_length=1,
         description="Justification for the score.",
         json_schema_extra={"x-ui-label": "Reasoning"},
     )
 
-    model_config = ConfigDict(extra="forbid")
 
-    @field_validator("dimension_id", "dimension_label", "reasoning")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return str(v).strip()
-
-    @field_validator("score")
-    @classmethod
-    def validate_score(cls, v: int | float) -> int | float:
-        if v < 0:
-            msg = "Score cannot be negative."
-            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return v
-
-
-class JudgeScoreCard(BaseModel):
+class JudgeScoreCard(V2CoreBase):
     """Summary of a single judgment step."""
 
     agent_name: str = Field(
         ...,
+        min_length=1,
         description="Name of the judge (e.g. 'Standard Judge').",
         json_schema_extra={"x-ui-label": "Judge"},
     )
@@ -117,11 +106,13 @@ class JudgeScoreCard(BaseModel):
     )
     verdict: str = Field(
         ...,
+        min_length=1,
         description="Short verdict or summary.",
         json_schema_extra={"x-ui-label": "Verdict"},
     )
     dimensions: list[DimensionResultItem] = Field(
         ...,
+        min_length=1,
         description="Radar chart data.",
         json_schema_extra={"x-ui-label": "Dimensions"},
     )
@@ -136,39 +127,18 @@ class JudgeScoreCard(BaseModel):
         json_schema_extra={"x-ui-label": "Scale Max"},
     )
 
-    @field_validator("agent_name", "verdict")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return str(v).strip()
-
-    @field_validator("dimensions")
-    @classmethod
-    def validate_dimensions_not_empty(cls, v: list[DimensionResultItem]) -> list[DimensionResultItem]:
-        if not v:
-            msg = "JudgeScoreCard dimensions cannot be empty. Zero-Compromise Fail-Fast enforced."
-            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return v
-
     @model_validator(mode="after")
     def validate_scores(self) -> JudgeScoreCard:
         if self.scale_min >= self.scale_max:
             msg = "scale_min must be less than scale_max."
             logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+            raise ValueError(msg)
 
         if not (self.scale_min <= self.total_score <= self.scale_max):
-            # Allow small floating point epsilon if needed, but strict is better for now.
             msg = f"total_score {self.total_score} is out of range [{self.scale_min}, {self.scale_max}]."
             logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+            raise ValueError(msg)
         return self
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
 
 
 class JudgeDTO(ReasoningTraceDTO):
@@ -199,16 +169,13 @@ class JudgeDTO(ReasoningTraceDTO):
         description="Critical issues identified.",
         json_schema_extra={"x-ui-label": "Critical Findings"},
     )
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
 class JudgeOutput(JudgeDTO, ReasoningTrace):
     """Output schema for the Judge Agent."""
 
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
-
-class ScoringResult(BaseModel):
+class ScoringResult(V2CoreBase):
     """Result of the scoring logic (Hook)."""
 
     total_score: float = Field(
@@ -217,18 +184,9 @@ class ScoringResult(BaseModel):
     calculated_average: float = Field(
         ..., description="Calculated average.", json_schema_extra={"x-ui-label": "Average Score"}
     )
-    score_summary: str = Field(..., description="Summary text.", json_schema_extra={"x-ui-label": "Summary"})
+    score_summary: str = Field(
+        ..., min_length=1, description="Summary text.", json_schema_extra={"x-ui-label": "Summary"}
+    )
     penalties_applied: list[str] = Field(
         default_factory=list, description="List of penalties applied.", json_schema_extra={"x-ui-label": "Penalties"}
     )
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    @field_validator("score_summary")
-    @classmethod
-    def validate_summary(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "Score summary cannot be empty."
-            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return str(v).strip()

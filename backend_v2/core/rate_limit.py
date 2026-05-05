@@ -5,6 +5,7 @@ between main.py and router modules.
 """
 
 import logging
+from typing import Any
 
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
@@ -30,13 +31,16 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Res
     msg = f"Rate limit exceeded: {exc.detail}"
     logger.warning("[RateLimit] %s: %s", ErrorCodes.RATE_LIMIT_EXCEEDED.name, msg)
 
+    details: dict[str, Any] = {
+        "error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value,
+    }
+    if exc.detail:
+        details["retry_after"] = str(exc.detail).split(" ")[0]
+
     error = AppException(
         message=msg,
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-        details={
-            "error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value,
-            "retry_after": str(exc.detail).split(" ")[0] if exc.detail else "unknown",
-        },
+        details=details,
     )
 
     return JSONResponse(

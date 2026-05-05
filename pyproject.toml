@@ -42,6 +42,7 @@ dependencies = [
     "presidio-analyzer",
     "presidio-anonymizer",
     "bleach>=6.2.0",
+    "rapidfuzz>=3.14.5",
 ]
 
 [dependency-groups]

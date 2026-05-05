@@ -1,7 +1,6 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException
 from backend_v2.models.enums import BlockDataType
 from backend_v2.models.v2_core import I18nText, PromptBlock, Step
 
@@ -25,7 +24,7 @@ def test_prompt_block_allow_decimals_requires_numeric() -> None:
     assert valid_block.allow_decimals is True
 
     # Should raise error for allow_decimals=True with incompatible type
-    with pytest.raises(AppException) as exc_info:
+    with pytest.raises(ValidationError) as exc_info:
         PromptBlock(
             id="blk_ffff1111ffff1111",
             slug="invalid_slug",
@@ -53,7 +52,7 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
     assert valid_blueprint.slug == "task_bp_valid"
 
     # Fails: Nothing defined
-    with pytest.raises(AppException) as exc_info:
+    with pytest.raises(ValidationError) as exc_info:
         Step(
             id="step_ffff1111ffff1111",
             slug="task_bp_err",

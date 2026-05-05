@@ -36,18 +36,21 @@ async def start_execution(
     try:
         data = await request.json()
     except Exception as e:
+        logger.error("[ExecutionRouter] Failed to parse JSON payload", exc_info=True)
         raise AppException(
             message="Invalid JSON payload",
             status_code=status.HTTP_400_BAD_REQUEST,
             details={"error_code": "VALIDATION_FAILED"},
         ) from e
 
-    raw_inputs = data.get("raw_inputs", {})
-    await doc_service.process_raw_inputs(raw_inputs)
+    # EAGER EXTRACTION MUST HAPPEN HERE BEFORE PYDANTIC VALIDATION
+    if isinstance(data, dict) and "raw_inputs" in data:
+        await doc_service.process_raw_inputs(data["raw_inputs"])
 
     try:
         payload = ExecutionCreate.model_validate(data)
     except ValidationError as e:
+        logger.error("[ExecutionRouter] Payload validation failed", exc_info=True)
         raise AppException(
             message=f"Payload validation failed: {str(e)}",
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -149,7 +152,7 @@ async def render_execution(
     profile_id: str | None = Query(None, description="The output profile to render"),
 ) -> Response:
     """Omni-channel render endpoint for an execution."""
-    accept_language = request.headers.get("accept-language", None)
+    accept_language = request.headers.get("accept-language")
 
     content, media_type, filename = await execution_service.render_execution(
         initiator=current_user,
@@ -165,7 +168,7 @@ async def render_execution(
         headers["Content-Disposition"] = f'attachment; filename="{filename}"'
 
     if isinstance(content, (dict, list)):
-        if isinstance(content, dict) and content.get("status") == "pending":
+        if isinstance(content, dict) and "status" in content and content["status"] == "pending":
             return JSONResponse(content=content, status_code=status.HTTP_202_ACCEPTED)
         return JSONResponse(content=content)
 

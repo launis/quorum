@@ -12,7 +12,7 @@ from backend_v2.hooks.integrity import enforce_hypothesis_linking_hook, verify_c
 def mock_deps() -> HookDependencies:
     exec_repo_mock = AsyncMock()
     exec_repo_mock.get_execution.return_value = None
-    
+
     return HookDependencies(
         exec_repo=exec_repo_mock,
         workflow_repo=AsyncMock(),
@@ -31,8 +31,8 @@ async def test_verify_citation_integrity_hook_analyst_hallucination(mock_deps: H
 
     # Mock the ExecutionRecord so Fail-Fast doesn't trigger
     exec_record_mock = MagicMock()
-    exec_record_mock.raw_inputs.model_dump.return_value = {"doc1": "content"}
-    mock_deps.exec_repo.get_execution.return_value = exec_record_mock
+    exec_record_mock.raw_inputs.model_dump.return_value = {"dynamic_inputs": {"doc1": "content"}}
+    mock_deps.exec_repo.get_execution.return_value = exec_record_mock  # type: ignore
 
     # Mock the Storage Driver so it returns our RAG context from disk
     storage_mock = AsyncMock()
@@ -66,7 +66,7 @@ async def test_verify_citation_integrity_hook_analyst_hallucination(mock_deps: H
 
     with patch("backend_v2.hooks.integrity.get_storage_driver", return_value=storage_mock):
         result = await cast(Awaitable[HookResult], verify_citation_integrity_hook(state, mock_deps))
-        
+
     assert result.success is True
     assert result.state_delta is not None
 
@@ -156,3 +156,39 @@ def test_enforce_hypothesis_linking_duplicate_fails(mock_deps: HookDependencies)
 
     assert exc.value.status_code == 500
     assert "Duplicate Hypothesis ID found" in exc.value.message
+
+
+def test_integrity_models_strictness() -> None:
+    """Test that all integrity domain models strictly forbid extra fields."""
+    from pydantic import ValidationError
+
+    from backend_v2.models.domain.integrity import CitationAudit, IntegrityGlobalInputsDTO, KnowledgeItem, StepContext
+
+    with pytest.raises(ValidationError):
+        KnowledgeItem(term="Test", definition="Def", extra="no")  # type: ignore
+
+    with pytest.raises(ValidationError):
+        StepContext(precedents="abc", extra_field=123)  # type: ignore
+
+    with pytest.raises(ValidationError):
+        CitationAudit(valid_citations=1, extra_x="bad")  # type: ignore
+
+    with pytest.raises(ValidationError):
+        IntegrityGlobalInputsDTO(raw_inputs={"a": 1}, extra="no")  # type: ignore
+
+
+def test_integrity_global_inputs_dto_extraction() -> None:
+    """Test extract_source_texts safely extracts strings without legacy fallbacks."""
+    from backend_v2.models.domain.integrity import IntegrityGlobalInputsDTO
+
+    # Valid string extraction
+    dto = IntegrityGlobalInputsDTO(raw_inputs={"key1": "text1", "key2": "text2", "key3": None})
+    texts = dto.extract_source_texts()
+    assert "text1" in texts
+    assert "text2" in texts
+    assert None not in texts
+    assert len(texts) == 2
+
+    # Empty inputs
+    dto_empty = IntegrityGlobalInputsDTO()
+    assert dto_empty.extract_source_texts() == []

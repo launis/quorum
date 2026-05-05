@@ -1,16 +1,11 @@
 import logging
 
 from fastapi import APIRouter
-from pydantic import BaseModel
 
 from backend_v2.api.dependencies import CurrentUserDep, LLMHandlerDep, StudioServiceDep
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.studio import ModelRegistryDeleteResponse
 from backend_v2.models.v2_core import SystemConfigModelRegistry
-
-
-class ModelRegistryDeleteResponse(BaseModel):
-    status: str
-    deleted_id: str
-
 
 logger = logging.getLogger(__name__)
 
@@ -18,35 +13,11 @@ router = APIRouter(prefix="/model-registry", tags=["Admin Studio V2 - Model Regi
 
 
 @router.get("/available-models", response_model=list[str])
-def get_available_models(current_user: CurrentUserDep, llm_handler: LLMHandlerDep) -> list[str]:
+def get_available_models(
+    current_user: CurrentUserDep, llm_handler: LLMHandlerDep, studio_service: StudioServiceDep
+) -> list[str]:
     """Retrieve all available LLM models discovered by the LLM Handler."""
-    if current_user.role != "ROOT" and current_user.role != "ADMIN":
-        from backend_v2.exceptions import ErrorCodes, PermissionDeniedError
-
-        msg = "User %s (Role: %s) attempted to fetch available models without ROOT or ADMIN."
-        logger.error(
-            "[ModelRegistry] %s: " + msg,
-            ErrorCodes.PERMISSION_DENIED.name,
-            current_user.id,
-            current_user.role,
-            extra={
-                "error_code": ErrorCodes.PERMISSION_DENIED.value,
-                "user_id": current_user.id,
-                "user_role": getattr(current_user.role, "value", current_user.role),
-            },
-        )
-        raise PermissionDeniedError("Only ROOT or ADMIN can fetch available models.")
-    result = llm_handler.fetch_all_available_models()
-
-    # Flatten dict[str, list[str] | str] into list[str]
-    flat_list: list[str] = []
-    for models in result.values():
-        if isinstance(models, list):
-            flat_list.extend(models)
-        elif isinstance(models, str):
-            flat_list.append(models)
-
-    return sorted(list(set(flat_list)))
+    return studio_service.get_available_models(current_user, llm_handler)
 
 
 @router.get("/", response_model=list[SystemConfigModelRegistry])
@@ -95,8 +66,6 @@ async def delete_model_registry(
         await studio_service.delete_system_config(current_user, registry_id)
         return ModelRegistryDeleteResponse(status="success", deleted_id=registry_id)
     except Exception as e:
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         if isinstance(e, AppException):
             raise
         logger.error(

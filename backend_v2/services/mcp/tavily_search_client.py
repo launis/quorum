@@ -10,9 +10,12 @@ import time
 from typing import Any
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.domain.mcp import (
+    TavilyApiResponseDTO,
+    TavilySearchResult,
+)
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -23,30 +26,6 @@ TAVILY_TIMEOUT_SECONDS = 15
 TAVILY_API_URL = "https://api.tavily.com/search"
 MAX_RESULTS = 5
 CONTENT_CHAR_LIMIT = 8000
-
-
-class TavilyApiResultItemDTO(BaseModel):
-    url: str = Field(default="")
-    content: str = Field(default="")
-    model_config = ConfigDict(frozen=True, extra="ignore")
-
-
-class TavilyApiResponseDTO(BaseModel):
-    answer: str | None = Field(default="")
-    results: list[TavilyApiResultItemDTO] = Field(description="Search results list from Tavily.")
-    model_config = ConfigDict(frozen=True, extra="ignore")
-
-
-class TavilySearchResult(BaseModel):
-    """Parsed Tavily response for downstream consumption."""
-
-    model_config = ConfigDict(frozen=True, strict=True)
-
-    query: str = Field(description="Echo of the original search query.")
-    answer: str = Field(default="", description="AI-generated summary from Tavily.")
-    source_urls: list[str] = Field(default_factory=list, description="Deduplicated source URLs.")
-    raw_content: str = Field(default="", description="Concatenated source texts (truncated).")
-    duration_ms: int = Field(default=0, description="Round-trip latency in milliseconds.")
 
 
 def _sanitize_text(text: str) -> str:
@@ -100,7 +79,7 @@ async def tavily_search(query: str) -> TavilySearchResult:
         elapsed_ms = int(time.monotonic() * 1000) - start_ms
 
         if response.status_code != 200:
-            msg = f"Tavily returned HTTP {response.status_code} for query: {query}"
+            msg = f"Tavily returned HTTP {response.status_code}."
             logger.error(
                 f"[TavilyClient] {ErrorCodes.FETCH_FAILED.name}: {msg}",
                 exc_info=True,
@@ -108,7 +87,7 @@ async def tavily_search(query: str) -> TavilySearchResult:
             raise AppException(
                 message=msg,
                 status_code=502,
-                details={"error_code": ErrorCodes.FETCH_FAILED.value, "query": query},
+                details={"error_code": ErrorCodes.FETCH_FAILED.value},
             )
 
         try:
@@ -116,15 +95,15 @@ async def tavily_search(query: str) -> TavilySearchResult:
             # Pydantic Zero-Compromise Check
             parsed_data = TavilyApiResponseDTO.model_validate(data)
         except Exception as e:
-            msg = f"Tavily returned malformed JSON or failed validation for query: {query}"
+            msg = "Tavily returned malformed JSON or failed validation."
             logger.error(
-                f"[TavilyClient] {ErrorCodes.VALIDATION_FAILED.name}: {msg}: {e}",
+                f"[TavilyClient] {ErrorCodes.VALIDATION_FAILED.name}: {msg}",
                 exc_info=True,
             )
             raise AppException(
                 message=msg,
                 status_code=502,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "query": query},
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
 
         # Parse response — Zero-Compromise Fail-Fast, no empty result fallbacks
@@ -132,12 +111,12 @@ async def tavily_search(query: str) -> TavilySearchResult:
         results_list = parsed_data.results
 
         if not results_list and not answer.strip():
-            msg = f"Tavily search returned zero results for query: '{query}'. Zero-Compromise Fail-Fast enforced."
+            msg = "Tavily search returned zero results. Zero-Compromise Fail-Fast enforced."
             logger.error("[TavilyClient] %s: %s", ErrorCodes.FETCH_FAILED.name, msg)
             raise AppException(
                 message=msg,
                 status_code=404,
-                details={"error_code": ErrorCodes.FETCH_FAILED.value, "query": query},
+                details={"error_code": ErrorCodes.FETCH_FAILED.value},
             )
 
         source_urls: list[str] = []
@@ -157,9 +136,12 @@ async def tavily_search(query: str) -> TavilySearchResult:
         raw_content = "\n\n".join(content_parts)[:CONTENT_CHAR_LIMIT]
 
         logger.info(
-            f"[TavilyClient] Search completed: query='{query}', "
-            f"results={len(results_list)}, urls={len(source_urls)}, "
-            f"duration={elapsed_ms}ms"
+            "[TavilyClient] Search completed.",
+            extra={
+                "results": len(results_list),
+                "urls": len(source_urls),
+                "duration_ms": elapsed_ms,
+            },
         )
 
         return TavilySearchResult(
@@ -173,24 +155,24 @@ async def tavily_search(query: str) -> TavilySearchResult:
     except AppException:
         raise
     except httpx.TimeoutException as e:
-        msg = f"Tavily search timed out for query: {query}"
+        msg = "Tavily search timed out."
         logger.error(
-            f"[TavilyClient] {ErrorCodes.FETCH_FAILED.name}: {msg}: {e}",
+            f"[TavilyClient] {ErrorCodes.FETCH_FAILED.name}: {msg}",
             exc_info=True,
         )
         raise AppException(
             message=msg,
             status_code=502,
-            details={"error_code": ErrorCodes.FETCH_FAILED.value, "query": query},
+            details={"error_code": ErrorCodes.FETCH_FAILED.value},
         ) from e
     except httpx.HTTPError as e:
-        msg = f"Tavily network error for query: {query}"
+        msg = "Tavily network error."
         logger.error(
-            f"[TavilyClient] {ErrorCodes.FETCH_FAILED.name}: {msg}: {e}",
+            f"[TavilyClient] {ErrorCodes.FETCH_FAILED.name}: {msg}",
             exc_info=True,
         )
         raise AppException(
             message=msg,
             status_code=502,
-            details={"error_code": ErrorCodes.FETCH_FAILED.value, "query": query},
+            details={"error_code": ErrorCodes.FETCH_FAILED.value},
         ) from e

@@ -29,7 +29,6 @@ def mock_repo_transformer() -> Any:
                         "preset_view": "1d_metrics",
                         "title": {"default_locale": "en", "translations": {"en": "Title"}},
                         "target_blocks": ["*"],
-                        "show_text": True,
                     }
                 ],
             }
@@ -46,7 +45,6 @@ def mock_repo_transformer() -> Any:
                     "preset_view": "1d_metrics",
                     "title": {"default_locale": "en", "translations": {"en": "Title"}},
                     "target_blocks": ["*"],
-                    "show_text": True,
                 }
             ],
         }
@@ -77,8 +75,8 @@ def mock_repo_transformer() -> Any:
                     ],
                 },
             ],
-            "computed_min": 0.0,
-            "computed_max": 100.0,
+            "computed_min": 0,
+            "computed_max": 100,
             "scale_min": 0,
             "scale_max": 100,
         }
@@ -171,7 +169,6 @@ def mock_repo_microcot() -> Any:
                         "preset_view": "2d_compare",
                         "title": {"default_locale": "en", "translations": {"en": "Micro-CoT Map"}},
                         "target_blocks": ["*"],
-                        "show_text": True,
                     }
                 ],
             }
@@ -188,7 +185,6 @@ def mock_repo_microcot() -> Any:
                     "preset_view": "2d_compare",
                     "title": {"default_locale": "en", "translations": {"en": "Micro-CoT Map"}},
                     "target_blocks": ["*"],
-                    "show_text": True,
                 }
             ],
         }
@@ -219,8 +215,8 @@ def mock_repo_microcot() -> Any:
                     ],
                 },
             ],
-            "computed_min": 0.0,
-            "computed_max": 3.0,
+            "computed_min": 0,
+            "computed_max": 3,
             "scale_min": 0,
             "scale_max": 3,
         },
@@ -249,8 +245,8 @@ def mock_repo_microcot() -> Any:
                     ],
                 },
             ],
-            "computed_min": 0.0,
-            "computed_max": 5.0,
+            "computed_min": 0,
+            "computed_max": 5,
             "scale_min": 0,
             "scale_max": 5,
         },
@@ -323,7 +319,6 @@ def mock_repo_sdui() -> AsyncMock:
                     "title": {"default_locale": "en", "translations": {"en": "Metrics"}},
                     "steps": [],
                     "target_blocks": ["*"],
-                    "show_text": True,
                 }
             ],
         }
@@ -336,8 +331,8 @@ def mock_repo_sdui() -> AsyncMock:
             "type": "float",
             "description": {"default_locale": "en", "translations": {"en": "Description"}},
             "label": {"default_locale": "en", "translations": {"en": "Metric Category"}},
-            "computed_min": 0.0,
-            "computed_max": 5.0,
+            "computed_min": 0,
+            "computed_max": 5,
             "scale_min": 0,
             "scale_max": 5,
             "scales": [

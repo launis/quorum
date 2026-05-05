@@ -2,7 +2,6 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from backend_v2.exceptions import AppException
 from backend_v2.models.enums import BlockDataType
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, PromptBlock
 from backend_v2.services.orchestrator.atomizer import AtomizationSchema, PromptAtomizer
@@ -64,10 +63,11 @@ async def test_atomize_prompt_block_missing_en_translation(
     mock_llm_client_class.from_strategy = AsyncMock()
     # Emulate missing translation but bypass Pydantic initial validation to test atomizer logic directly
     assert sample_block.scales is not None
-    sample_block.scales[0].claims[0].label.translations = {"fi": "Finnish Text"}
+    sample_dict = sample_block.model_dump()
+    sample_dict["scales"][0]["claims"][0]["label"]["translations"] = {"fi": "Finnish Text"}
+    from pydantic import ValidationError
 
-    with pytest.raises(AppException) as exc_info:
-        await PromptAtomizer.atomize_prompt_block(sample_block, is_test=True)
+    with pytest.raises(ValidationError) as exc_info:
+        PromptBlock.model_validate(sample_dict)
 
-    assert exc_info.value.status_code == 500
-    assert "missing mandatory 'en' translation" in exc_info.value.message
+    assert "I18nText must contain a valid English ('en') translation" in str(exc_info.value)

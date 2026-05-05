@@ -1,5 +1,7 @@
 """XAI Agent Domain Models.
 
+from __future__ import annotations
+
 This module contains the schemas for the XAI Reporter Agent,
 including the final report output and context for report generation.
 """
@@ -7,20 +9,24 @@ including the final report output and context for report generation.
 import logging
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import Field
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import XaiExtensionType
 
 logger = logging.getLogger(__name__)
 
+from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
+from backend_v2.models.domain.causal import CausalOutput
+from backend_v2.models.domain.falsifier import FalsifierOutput
 from backend_v2.models.domain.judge import JudgeOutput, JudgeScoreCard
-from backend_v2.models.dtos.pdf_context import ReportContext
-from backend_v2.models.dtos.report import XAIFlatReportDTO
+from backend_v2.models.domain.logician import LogicianOutput
+from backend_v2.models.domain.profiler import ProfilerOutput
+from backend_v2.models.domain.profiler import ProfilerOutput
 
 
-class XAIReporterInput(BaseModel):
+class XAIReporterInput(V2CoreBase):
     """Strict input schema for XAIReporterAgent.
 
     V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
@@ -34,113 +40,91 @@ class XAIReporterInput(BaseModel):
     step_judge_cognitive: JudgeOutput | None = Field(default=None, description="Cognitive Judge output.")
 
     # --- Universal Routing Inputs ---
-    step_analyst: Any | None = Field(default=None, description="Analyst hypotheses and RAG data.")
-    step_profiler: Any | None = Field(default=None, description="Profiler cognitive bias data.")
-    step_falsifier: Any | None = Field(default=None, description="Falsifier critical distance data.")
-    step_logician: Any | None = Field(default=None, description="Logician Toulmin analysis data.")
-    step_causal_analyst: Any | None = Field(
+    step_analyst: AnalystOutput | None = Field(default=None, description="Analyst hypotheses and RAG data.")
+    step_profiler: ProfilerOutput | None = Field(default=None, description="Profiler cognitive bias data.")
+    step_falsifier: FalsifierOutput | None = Field(default=None, description="Falsifier critical distance data.")
+    step_logician: LogicianOutput | None = Field(default=None, description="Logician Toulmin analysis data.")
+    step_causal_analyst: CausalOutput | None = Field(
         default=None, description="Causal Analyst post-hoc and counterfactual data."
     )
-
-    model_config = ConfigDict(frozen=True, extra="allow")
-
-    @model_validator(mode="after")
-    def check_judges(self) -> XAIReporterInput:
-        # The Agent execute still has Fail Fast, but we can do a quick check here too if desired.
-        return self
+    dynamic_inputs: dict[str, Any] = Field(default_factory=dict, description="Dynamically passed variables.")
 
 
-class XAIScoreItem(BaseModel):
+class XAIScoreItem(V2CoreBase):
     """A single score item for the scorecard."""
 
-    label: str = Field(..., description="Label for the score item.")
+    label: str = Field(..., min_length=1, description="Label for the score item.")
     score: float = Field(..., description="Score value.")
     reasoning: str | None = Field(default=None, description="Reasoning for the score.")
     weight: float = Field(default=1.0, description="Weight of this item.")
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    @field_validator("label")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[XAIModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return str(v).strip()
-
-
-class CitationExtension(BaseModel):
+class CitationExtension(V2CoreBase):
     extension_type: Literal[XaiExtensionType.CITATION] = XaiExtensionType.CITATION
     source_id: str
     snippet: str
     url: str | None = None
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
-class JustificationExtension(BaseModel):
+class JustificationExtension(V2CoreBase):
     extension_type: Literal[XaiExtensionType.JUSTIFICATION] = XaiExtensionType.JUSTIFICATION
     reasoning: str
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
-class FalsificationExtension(BaseModel):
+class FalsificationExtension(V2CoreBase):
     extension_type: Literal[XaiExtensionType.FALSIFICATION] = XaiExtensionType.FALSIFICATION
     counter_argument: str
     vulnerabilities: list[str]
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
-class TheoryLinkExtension(BaseModel):
+class TheoryLinkExtension(V2CoreBase):
     extension_type: Literal[XaiExtensionType.THEORY_LINK] = XaiExtensionType.THEORY_LINK
     theory_name: str
     relevance: str
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
-class RiskFlagExtension(BaseModel):
+class RiskFlagExtension(V2CoreBase):
     extension_type: Literal[XaiExtensionType.RISK_FLAG] = XaiExtensionType.RISK_FLAG
     risk_level: str
     description: str
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
-class CoachingExtension(BaseModel):
+class CoachingExtension(V2CoreBase):
     extension_type: Literal[XaiExtensionType.COACHING] = XaiExtensionType.COACHING
     actionable_steps: list[str]
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
-class MissingContextExtension(BaseModel):
+class MissingContextExtension(V2CoreBase):
     extension_type: Literal[XaiExtensionType.MISSING_CONTEXT] = XaiExtensionType.MISSING_CONTEXT
     context_needed: str
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
-class RemediationStepsExtension(BaseModel):
+class RemediationStepsExtension(V2CoreBase):
     extension_type: Literal[XaiExtensionType.REMEDIATION_STEPS] = XaiExtensionType.REMEDIATION_STEPS
     steps: list[str]
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
-class EmotionalSentimentExtension(BaseModel):
+class EmotionalSentimentExtension(V2CoreBase):
     extension_type: Literal[XaiExtensionType.EMOTIONAL_SENTIMENT] = XaiExtensionType.EMOTIONAL_SENTIMENT
     sentiment: str
     intensity: float
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
-class ConfidenceExtension(BaseModel):
+class ConfidenceExtension(V2CoreBase):
     extension_type: Literal[XaiExtensionType.CONFIDENCE] = XaiExtensionType.CONFIDENCE
     confidence_score: float
     rationale: str
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
-class SourceIDExtension(BaseModel):
+class SourceIDExtension(V2CoreBase):
     extension_type: Literal[XaiExtensionType.SOURCE_ID] = XaiExtensionType.SOURCE_ID
     source_id: str
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+
+class ComparisonDataDTO(V2CoreBase):
+    baseline_score: float | None = None
+    delta: float | None = None
+    trend: str | None = None
 
 
 XAIExtension = Annotated[
@@ -159,13 +143,6 @@ XAIExtension = Annotated[
 ]
 
 
-class ComparisonDataDTO(BaseModel):
-    baseline_score: float | None = None
-    delta: float | None = None
-    trend: str | None = None
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
-
 class XAIOutputDTO(ReasoningTraceDTO):
     """Data Transfer Object for XAI Reporter Agent (Content Only)."""
 
@@ -181,51 +158,62 @@ class XAIOutputDTO(ReasoningTraceDTO):
 
     executive_summary: str = Field(
         ...,
+        min_length=1,
         description="High-level summary.",
         json_schema_extra={"x-ui-label": "Executive Summary"},
     )
     verified_facts: str = Field(
         ...,
+        min_length=1,
         description="Synthesis of facts.",
         json_schema_extra={"x-ui-label": "Verified Facts"},
     )
     cognitive_behavior: str = Field(
         ...,
+        min_length=1,
         description="Synthesis of Profiler and Falsifier findings.",
         json_schema_extra={"x-ui-label": "Cognitive Behavior"},
     )
     causal_chain: str = Field(
         ...,
+        min_length=1,
         description="Synthesis of Causal and Logician findings.",
         json_schema_extra={"x-ui-label": "Causal Chain"},
     )
     analysis_strengths: str = Field(
         ...,
+        min_length=1,
         description="Strengths identified.",
         json_schema_extra={"x-ui-label": "Strengths"},
     )
     analysis_weaknesses: str = Field(
         ...,
+        min_length=1,
         description="Weaknesses identified.",
         json_schema_extra={"x-ui-label": "Weaknesses"},
     )
     analysis_opportunities: str = Field(
         ...,
+        min_length=1,
         description="Opportunities identified.",
         json_schema_extra={"x-ui-label": "Opportunities"},
     )
     analysis_recommendations: str = Field(
         ...,
+        min_length=1,
         description="Recommendations.",
         json_schema_extra={"x-ui-label": "Recommendations"},
     )
     final_verdict: str = Field(
         ...,
+        min_length=1,
         description="Final conclusion.",
         json_schema_extra={"x-ui-label": "Verdict"},
     )
     confidence_score: float = Field(
         ...,
+        ge=0.0,
+        le=1.0,
         description="Confidence score (0.0-1.0).",
         json_schema_extra={"x-ui-label": "Confidence"},
     )
@@ -234,36 +222,6 @@ class XAIOutputDTO(ReasoningTraceDTO):
         description="Markdown formatted report.",
         json_schema_extra={"x-ui-label": "Formatted Report"},
     )
-
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
-    @field_validator(
-        "executive_summary",
-        "verified_facts",
-        "cognitive_behavior",
-        "causal_chain",
-        "analysis_strengths",
-        "analysis_weaknesses",
-        "analysis_opportunities",
-        "analysis_recommendations",
-        "final_verdict",
-    )
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[XAIModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return str(v).strip()
-
-    @field_validator("confidence_score")
-    @classmethod
-    def validate_score(cls, v: float) -> float:
-        if not (0.0 <= v <= 1.0):
-            msg = "Confidence score must be between 0.0 and 1.0."
-            logger.error("[XAIModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return v
 
 
 class XAIOutput(XAIOutputDTO, ReasoningTrace):
@@ -280,27 +238,25 @@ class XAIOutput(XAIOutputDTO, ReasoningTrace):
         json_schema_extra={"x-ui-label": "Flat Report"},
     )
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class ReportResult(BaseModel):
+class ReportResult(V2CoreBase):
     """Result of the report generation (Hook)."""
 
     report_content: str = Field(
-        ..., description="The generated Markdown report.", json_schema_extra={"x-ui-label": "Report Content"}
+        ...,
+        min_length=1,
+        description="The generated Markdown report.",
+        json_schema_extra={"x-ui-label": "Report Content"},
     )
-    format: str = Field(default="markdown", description="Report format.", json_schema_extra={"x-ui-label": "Format"})
-    data: ReportContext | None = Field(
+    format: str = Field(
+        default="markdown",
+        min_length=1,
+        description="Report format.",
+        json_schema_extra={"x-ui-label": "Format"},
+    )
+    data: ReportContextDTO | None = Field(
         default=None, description="The structured data used to generate the report (SSOT)."
     )
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    @field_validator("report_content")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "Report content cannot be empty."
-            logger.error("[XAIModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return v
+from backend_v2.models.dtos.report import ReportContextDTO, XAIFlatReportDTO

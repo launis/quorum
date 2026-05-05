@@ -6,42 +6,49 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import ConfigDict, Field, TypeAdapter
+
+from backend_v2.models.core_base import V2CoreBase
+
+_dict_adapter = TypeAdapter(dict[str, Any])
 
 
-class ValidationHookPayloadDTO(RootModel[dict[str, Any]]):
+class ValidationHookPayloadDTO:
     """Strict schema for inputs destined for structural validation.
 
-    By utilizing RootModel, we strictly enforce that the incoming state
-    payload is explicitly a dictionary before any iterative logic executes,
-    satisfying the Phase 9 Zero-Compromise mandate.
+    By utilizing a TypeAdapter wrapper (RootModel is broken in Python 3.14),
+    we strictly enforce that the incoming state payload is explicitly a dictionary
+    before any iterative logic executes, satisfying the Phase 9 Zero-Compromise mandate.
     """  # noqa: W293
 
-    model_config = ConfigDict(frozen=True)
+    def __init__(self, root: dict[str, Any]) -> None:
+        self.root = root
+
+    @classmethod
+    def model_validate(cls, data: Any) -> ValidationHookPayloadDTO:
+        """Validate using strict Pydantic TypeAdapter."""
+        validated = _dict_adapter.validate_python(data)
+        return cls(root=validated)
 
 
-class ValidationWarningDTO(BaseModel):
+class ValidationWarningDTO(V2CoreBase):
     """Strict schema for RFC 7807 style validation warnings."""
 
-    type: str
-    title: str
-    error_code: str
-    detail: str
+    type: str = Field(..., min_length=1)
+    title: str = Field(..., min_length=1)
+    error_code: str = Field(..., min_length=1)
+    detail: str = Field(..., min_length=1)
     meta: dict[str, Any] = Field(default_factory=dict)
 
-    model_config = ConfigDict(frozen=True)
 
-
-class ValidationResultDTO(BaseModel):
+class ValidationResultDTO(V2CoreBase):
     """Result payload for structural validation."""
 
-    is_valid: bool
-    errors: list[ValidationWarningDTO]
-
-    model_config = ConfigDict(frozen=True)
+    is_valid: bool = Field(...)
+    errors: list[ValidationWarningDTO] = Field(...)
 
 
-class SystemWarningsStateDTO(BaseModel):
+class SystemWarningsStateDTO(V2CoreBase):
     """Strict schema to safely read _system_warnings from state without naked .get() fallbacks."""
 
     system_warnings: list[ValidationWarningDTO] = Field(default_factory=list, alias="_system_warnings")

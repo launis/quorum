@@ -27,8 +27,8 @@ def test_inject_step_metadata_empty_state() -> None:
     assert result.state_delta == {}
 
 
-def test_inject_step_metadata_defaults() -> None:
-    """Test metadata injection when no IDs or initiator are provided."""
+def test_inject_step_metadata_missing_ids_fails() -> None:
+    """Test metadata injection fails fast when no IDs are provided."""
     state = HookState(execution_id="", workflow_id="", step_id="", inputs={}, global_context_vars={}, metadata={})
     deps = HookDependencies(
         exec_repo=MagicMock(),
@@ -39,27 +39,12 @@ def test_inject_step_metadata_defaults() -> None:
         system_repo=MagicMock(),
     )
 
-    from typing import cast
+    with pytest.raises(AppException) as exc_info:
+        inject_step_metadata(state, deps)
 
-    from backend_v2.core.hook_registry import HookResult
-
-    result = cast(HookResult, inject_step_metadata(state, deps))
-
-    assert result.success is True
-    assert result.state_delta is not None
-    assert "step_metadata" in result.state_delta
-    assert "_audit_signature" in result.state_delta
-
-    meta = result.state_delta["step_metadata"]
-    assert meta["execution_id"] == "unknown_execution"
-    assert meta["workflow_id"] == "unknown_workflow"
-    assert meta["step_id"] == "unknown_step"
-    assert meta["initiator_id"] == "system"
-    assert meta["v2_engine"] is True
-
-    # Audit signature should be formatted correctly
-    audit_sig = result.state_delta["_audit_signature"]
-    assert audit_sig.startswith("unknown_step:unknown_execution:")
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "strictly required" in exc_info.value.message
 
 
 def test_inject_step_metadata_custom_values() -> None:

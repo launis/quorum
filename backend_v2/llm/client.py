@@ -1,5 +1,7 @@
+import copy
 import json
 import logging
+import re
 import uuid
 from typing import Any
 
@@ -76,7 +78,7 @@ class LLMClient:
                 extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "detail": str(e)},
                 exc_info=True,
             )
-            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR}) from e
+            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}) from e
 
         if not registry or not registry.models:
             raise ConfigurationError(f"ModelRegistry is severely corrupted or empty: {registry}")
@@ -104,17 +106,17 @@ class LLMClient:
             raise ConfigurationError(
                 f"Strict Mode: Strategy '{strategy_name}' is missing required 'tpm_limit' "
                 "or 'rpm_limit' in Model Registry.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
         if target_strategy.temperature is None:
             raise ConfigurationError(
                 f"Strict Mode: Strategy '{strategy_name}' is missing required 'temperature' in Model Registry.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
         if target_strategy.max_tokens is None:
             raise ConfigurationError(
                 f"Strict Mode: Strategy '{strategy_name}' is missing required 'max_tokens' in Model Registry.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
         provider_config = LLMProviderConfig(
@@ -167,8 +169,8 @@ class LLMClient:
 
         final_messages = []
         for msg in messages:
-            # Create a shallow copy to prevent mutating the original Orchestrator payload
-            final_messages.append(dict(msg))
+            # Create a deep copy to prevent mutating the original Orchestrator payload
+            final_messages.append(copy.deepcopy(msg))
 
         if has_ephemeral_caching:
             # For providers supporting explicit ephemeral tagging (e.g. Anthropic/LiteLLM standard),
@@ -176,8 +178,8 @@ class LLMClient:
             # In our architecture, the System Head contains all static matrices and instructions.
             for msg in reversed(final_messages):
                 if msg.get("role") == "system":
-                    # Convert simple string content to Anthropic's block format
-                    original_text = msg.get("content", "")
+                    # Convert simple string content to Anthropic's block format (Fail-Fast on missing content)
+                    original_text = msg["content"]
                     # Ensure content is a string before wrapping it
                     if isinstance(original_text, str):
                         msg["content"] = [
@@ -192,7 +194,7 @@ class LLMClient:
                 raise AppException(
                     message="Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
                     status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
             # Use Strategy Config
             target_model_name = self._config.model_name
@@ -247,6 +249,7 @@ class LLMClient:
                     )
                     raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL)
 
+                token_usage = None
                 try:
                     token_usage = TokenUsage.model_validate(usage_obj)
                 except Exception as e:
@@ -263,13 +266,22 @@ class LLMClient:
                 # 4. Parse Result
                 raw_content = response.content.strip()
 
-                # Defensively strip Markdown JSON blocks if the LLM hallucinates them
-                if raw_content.startswith("```json"):
-                    raw_content = raw_content[7:]
-                if raw_content.startswith("```"):
-                    raw_content = raw_content[3:]
-                if raw_content.endswith("```"):
-                    raw_content = raw_content[:-3]
+                # Defensively extract JSON if the LLM hallucinates markdown blocks or conversational text
+                json_match = re.search(r"```(?:json)?\s*(.*?)\s*```", raw_content, re.DOTALL | re.IGNORECASE)
+                if json_match:
+                    raw_content = json_match.group(1)
+
+                # Strip conversational prefix/suffix by finding the outermost JSON structure
+                start_obj, start_arr = raw_content.find("{"), raw_content.find("[")
+                valid_starts = [i for i in (start_obj, start_arr) if i != -1]
+                start_idx = min(valid_starts) if valid_starts else -1
+
+                if start_idx != -1:
+                    end_obj, end_arr = raw_content.rfind("}"), raw_content.rfind("]")
+                    end_idx = max(end_obj, end_arr)
+                    if end_idx > start_idx:
+                        raw_content = raw_content[start_idx : end_idx + 1]
+
                 raw_content = raw_content.strip()
 
                 validated_model = response_model.model_validate_json(raw_content, context=validation_context)
@@ -287,6 +299,7 @@ class LLMClient:
                     raw_llm_payload=failed_content,
                     validation_error_msg=error_msg,
                     is_eof=is_eof,
+                    token_usage=token_usage,
                 ) from schema_err
 
         except Exception as e:
@@ -343,7 +356,7 @@ class LLMClient:
                 raise AppException(
                     message="Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
                     status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
             # Use Strategy Config
             target_model_name = self._config.model_name

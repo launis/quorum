@@ -1,10 +1,17 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from pydantic import Field
 
+if TYPE_CHECKING:
+    from backend_v2.models.domain.analyst import SearchResult
+    from backend_v2.models.domain.archivist import ArchivistOutputDTO
+    from backend_v2.models.domain.coach import BibliographyResult, CoachingPlanDTO
 from backend_v2.models.dtos.base import BaseDTO
+from backend_v2.models.view.sdui import ReferenceItem
 
 
 class XAIFlatReportDTO(BaseDTO):
@@ -33,17 +40,9 @@ class XAIFlatReportDTO(BaseDTO):
 
 # Epic 34: Global Hooks Zero-Compromise Hardening - Schema-First Templating
 
-from pydantic import ConfigDict
-
-from backend_v2.models.domain.analyst import SearchResult
-from backend_v2.models.domain.archivist import ArchivistOutputDTO
-from backend_v2.models.domain.coach import BibliographyResult, CoachingPlanDTO
-from backend_v2.models.view.sdui import ReferenceItem
-
 
 class MatrixFieldsMixin(BaseDTO):
     justification: str | None = None
-    raw_result: str | None = None
     normalized_score: float | None = None
     raw_score: float | None = None
     evaluated_atoms: dict[str, bool] | None = None
@@ -54,63 +53,51 @@ class MatrixFieldsMixin(BaseDTO):
 class XaiReportData(MatrixFieldsMixin):
     executive_summary: str | None = None
     evaluation_notes: str | None = None
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class JudgeReportData(MatrixFieldsMixin):
     critical_findings: list[str] = Field(default_factory=list)
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class OverseerData(BaseDTO):
     ethical_issues: list[str] = Field(default_factory=list)
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class OverseerReportData(MatrixFieldsMixin):
     overseer_data: OverseerData | None = None
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class LogicianScheme(BaseDTO):
     critical_questions: list[str] = Field(default_factory=list)
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class LogicianData(BaseDTO):
     walton_scheme: LogicianScheme | None = None
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class LogicianReportData(MatrixFieldsMixin):
     logician_data: LogicianData | None = None
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class PerformativityAnalysis(BaseDTO):
     pre_mortem_analysis: str | None = None
     weak_signals: list[str] = Field(default_factory=list)
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class PerformativityReportData(MatrixFieldsMixin):
     performativity_analysis: PerformativityAnalysis | None = None
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class AnalystReportData(MatrixFieldsMixin):
     rag_evidence: list[str] = Field(default_factory=list)
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class FalsifierData(BaseDTO):
     vulnerabilities: list[str] = Field(default_factory=list)
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class CausalAnalysisData(BaseDTO):
     counterfactuals: list[str] = Field(default_factory=list)
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class PanelReportData(MatrixFieldsMixin):
@@ -119,47 +106,39 @@ class PanelReportData(MatrixFieldsMixin):
     performativity_analysis: PerformativityAnalysis | None = None
     falsifier_data: FalsifierData | None = None
     causal_analysis: CausalAnalysisData | None = None
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class ProfilerMetrics(BaseDTO):
     word_count: int = 0
     control_ratio: float = 0.0
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class ProfilerReportData(MatrixFieldsMixin):
     metrics: ProfilerMetrics | None = None
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class PenaltyData(BaseDTO):
     penalty_type: str
     impact: float
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class ScoreSummaryData(BaseDTO):
     total_score: float = 0.0
     normalized_score: float = 0.0
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class ScoringReportData(MatrixFieldsMixin):
     penalties_applied: list[PenaltyData] | None = None
     score_summary: ScoreSummaryData | None = None
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class ValidationWarningData(BaseDTO):
     warning_type: str
     message: str
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class ValidationReportData(MatrixFieldsMixin):
     warnings: list[ValidationWarningData] | None = None
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class GlobalContextVarsDTO(BaseDTO):
@@ -180,14 +159,10 @@ class GlobalContextVarsDTO(BaseDTO):
     bibliography_result: BibliographyResult | list[BibliographyResult] | None = None
     search_result: SearchResult | list[SearchResult] | None = None
 
-    model_config = ConfigDict(strict=True, extra="forbid")
-
 
 class MatrixObservabilityItem(BaseDTO):
     normalized_score: float = 0.0
-    raw_result: str = ""
     justification: str = ""
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class MatrixObservabilityDTO(BaseDTO):
@@ -198,7 +173,6 @@ class MatrixObservabilityDTO(BaseDTO):
     matrices: dict[str, MatrixObservabilityItem] = Field(default_factory=dict)
 
     # Strictly enforce Fail-Fast Pydantic V2 validations to prevent orphaned state.
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class ReportSynthesisDTO(BaseDTO):
@@ -207,20 +181,16 @@ class ReportSynthesisDTO(BaseDTO):
     inputs: MatrixObservabilityDTO
     global_context_vars: GlobalContextVarsDTO
 
-    model_config = ConfigDict(strict=True, extra="forbid")
-
 
 class AuditQuestionItem(BaseDTO):
     question: str
     status: str
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class ScoreItem(BaseDTO):
     score: float
     reasoning: str
     label: str
-    model_config = ConfigDict(strict=True, extra="forbid")
 
 
 class ReportContextDTO(BaseDTO):
@@ -242,11 +212,11 @@ class ReportContextDTO(BaseDTO):
     references: list[ReferenceItem] = Field(default_factory=list)
 
     # Specialist Data (passthrough for templates)
-    logician_data: dict[str, Any] | None = None
-    overseer_data: dict[str, Any] | None = None
+    logician_data: LogicianData | None = None
+    overseer_data: OverseerData | None = None
     falsifier_data: FalsifierData | None = None
     causal_analysis: CausalAnalysisData | None = None
-    performativity_analysis: dict[str, Any] | None = None
+    performativity_analysis: PerformativityAnalysis | None = None
 
     # Enrichment
     word_count: int | None = None
@@ -260,7 +230,10 @@ class ReportContextDTO(BaseDTO):
     structural_warnings: list[ValidationWarningData] | None = None
     coaching_plan: CoachingPlanDTO | None = None
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+
+from backend_v2.models.domain.analyst import SearchResult
+from backend_v2.models.domain.archivist import ArchivistOutputDTO
+from backend_v2.models.domain.coach import BibliographyResult, CoachingPlanDTO
 
 
 class TraceScoringPayloadDTO(BaseDTO):
@@ -269,8 +242,6 @@ class TraceScoringPayloadDTO(BaseDTO):
     total_score: float | None = None
     normalized_score: float | None = None
     penalties_applied: list[Any] | None = None
-
-    model_config = ConfigDict(strict=True, extra="ignore")
 
 
 class TraceMatrixPayloadDTO(BaseDTO):
@@ -283,5 +254,3 @@ class TraceMatrixPayloadDTO(BaseDTO):
     level_breakdown: dict[str, Any] | None = None
     extensions: dict[str, Any] | None = None
     evaluated_atoms: dict[str, bool] | None = None
-
-    model_config = ConfigDict(strict=True, extra="forbid")

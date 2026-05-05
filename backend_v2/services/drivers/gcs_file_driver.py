@@ -202,7 +202,8 @@ class GCSFileDriver(FileDriver):
             raise
         except Exception as e:
             logger.error(
-                f"[GCSFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: Failed to delete directory from GCS {prefix}: {e}",
+                f"[GCSFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: "
+                f"Failed to delete directory from GCS {prefix}: {e}",
                 exc_info=True,
             )
             raise AppException(

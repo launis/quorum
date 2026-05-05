@@ -19,7 +19,7 @@ from backend_v2.models.v2_core import (
 class MockRepository:
     """A minimal repository mock for testing atomization hooks."""
 
-    def __init__(self, step: Step, blocks: list[PromptBlock]):
+    def __init__(self, step: Step, blocks: list[PromptBlock]) -> None:
         self._step = step
         self._blocks = blocks
 

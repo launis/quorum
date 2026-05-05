@@ -4,11 +4,11 @@ Implements dynamic, append-only, and I18N-capable models according to V2 specs.
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Literal, cast
+from typing import Annotated, Any, Literal, cast
 
-from pydantic import BaseModel, Field, RootModel, field_validator, model_validator
+from pydantic import Field, RootModel, model_validator
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
@@ -17,9 +17,14 @@ from backend_v2.models.enums import (
     ComponentType,
     ExecutionStatus,
     HistoricalContextMode,
+    LaxBlockDataType,
+    LaxComponentType,
+    LaxHistoricalContextMode,
+    LaxXaiExtensionType,
+    LaxExecutionStatus,
+    LaxScoringStrategy,
     ScoringStrategy,
     SystemConcurrency,
-    XaiExtensionType,
 )
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
@@ -72,7 +77,7 @@ class I18nText(V2CoreBase):
                 "I18nText must contain a valid English ('en') translation due to the "
                 f"English-Only Mandate. Payload: {self.translations}"
             )
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400)
+            raise ValueError(msg)
 
         if self.default_locale not in self.translations or not self.translations.get(self.default_locale):
             logger.warning(
@@ -176,7 +181,7 @@ class PromptBlock(V2CoreBase):
         default=True,
         description="Whether this matrix is mathematically commensurate and contributes to the global average score.",
     )
-    type: BlockDataType = Field(description="Data type of the expected extracted value.", strict=False)
+    type: LaxBlockDataType = Field(description="Data type of the expected extracted value.")
     allow_decimals: bool = Field(default=False, description="Whether float types allow decimals in validation.")
     output_extensions: list[str] = Field(
         default_factory=list,
@@ -205,18 +210,18 @@ class PromptBlock(V2CoreBase):
     @model_validator(mode="after")
     def validate_block_consistency(self) -> PromptBlock:
         """Strict validation for PromptBlock relations and logical constraints."""
+        new_min = None
+        new_max = None
         if self.scales:
-            self.computed_min = min(s.score for s in self.scales)
-            self.computed_max = max(s.score for s in self.scales)
-        else:
-            self.computed_min = None
-            self.computed_max = None
+            new_min = min(s.score for s in self.scales)
+            new_max = max(s.score for s in self.scales)
+
         # Fail-fast: Cannot allow decimals on non-numeric types
         # string permitted for BARS format
         valid_numeric = [BlockDataType.FLOAT, BlockDataType.INT, BlockDataType.STRING]
         if self.allow_decimals and self.type not in valid_numeric:
             msg = f"PromptBlock '{self.id}': allow_decimals is only valid for numeric logic."
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400)
+            raise ValueError(msg)
 
         # Strict Business Logic Constraints from user rules
         if self.scales is not None:
@@ -225,25 +230,19 @@ class PromptBlock(V2CoreBase):
                     f"PromptBlock '{self.id}': Jos scales on valittu käyttöön, "
                     "scale_min ja scale_max on oltava määriteltynä."
                 )
-                raise AppException(
-                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
-                )
+                raise ValueError(msg)
             if self.scale_max <= self.scale_min:
                 msg = (
                     f"PromptBlock '{self.id}': scale_max ({self.scale_max}) "
                     f"on oltava suurempi kuin scale_min ({self.scale_min})."
                 )
-                raise AppException(
-                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
-                )
+                raise ValueError(msg)
             if len(self.scales) == 0:
                 msg = (
                     f"PromptBlock '{self.id}': Jos scales on valittu käyttöön, "
                     "siellä on pakko olla vähintään yksi MatrixScale (len > 0)."
                 )
-                raise AppException(
-                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
-                )
+                raise ValueError(msg)
             for scale in self.scales:
                 if not scale.claims or len(scale.claims) == 0:
                     msg = (
@@ -251,9 +250,9 @@ class PromptBlock(V2CoreBase):
                         "Jokaisella scorella pitää olla vähintään yksi claim."
                     )
                     logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    raise AppException(
-                        message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
-                    )
+                    raise ValueError(msg)
+        if new_min != self.computed_min or new_max != self.computed_max:
+            return self.model_copy(update={"computed_min": new_min, "computed_max": new_max})
         return self
 
 
@@ -274,7 +273,7 @@ class DataDictionaryField(V2CoreBase):
     """UI Hints mapping for dynamic form generation (SDUI)."""
 
     field_id: str
-    component_type: ComponentType = Field(description="E.g., 'slider', 'text_input', 'dropdown'", strict=False)
+    component_type: LaxComponentType = Field(description="E.g., 'slider', 'text_input', 'dropdown'")
     options: list[dict[str, Any]] | None = None
     validation_rules: dict[str, Any] | None = None
 
@@ -336,18 +335,7 @@ class MCPAuditTrace(V2CoreBase):
     )
     duration_ms: int = Field(default=0, description="Round-trip latency in milliseconds.")
 
-    @model_validator(mode="before")
-    @classmethod
-    def parse_db_fields(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            val = data.get("timestamp")
-            if isinstance(val, str):
-                try:
-                    data["timestamp"] = datetime.fromisoformat(val)
-                except ValueError as e:
-                    logger.error("Failed to parse MCPAuditTrace timestamp", exc_info=True)
-                    raise ValueError(f"Input should be a valid datetime or ISO format for timestamp: {val}") from e
-        return data
+
 
 
 class SystemConfigMCPGateways(V2CoreBase):
@@ -410,13 +398,13 @@ class Step(V2CoreBase):
         """Strict fail-fast validation to ensure Step is not purely empty."""
         if self.type == "llm" and not self.model_strategy:
             msg = f"LLM Step '{self.slug}' must declare an explicit model_strategy (Zero-Fallback Rule)."
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400)
+            raise ValueError(msg)
         if self.type == "llm" and not self.prompt_blocks:
             msg = f"LLM Step '{self.slug}' must define at least one prompt_block."
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400)
+            raise ValueError(msg)
         if self.type == "logic" and not self.hook:
             msg = f"Logic Step '{self.slug}' must define a native 'hook' execution target."
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400)
+            raise ValueError(msg)
         return self
 
 
@@ -489,33 +477,25 @@ class ExpectedInput(V2CoreBase):
         """Strict validation for input modes."""
         if not self.input_modes:
             msg = f"ExpectedInput '{self.input_key}' must have at least one input_mode."
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400)
+            raise ValueError(msg)
 
         if "questionnaire" in self.input_modes:
             if self.is_chat_history:
                 msg = f"ExpectedInput '{self.input_key}' cannot use 'questionnaire' mode when flagged as chat history."
-                raise AppException(
-                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
-                )
+                raise ValueError(msg)
             if len(self.input_modes) > 1:
                 msg = f"ExpectedInput '{self.input_key}' cannot mix 'questionnaire' with other input modes."
-                raise AppException(
-                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
-                )
+                raise ValueError(msg)
             if not self.questionnaire_definition:
                 msg = f"ExpectedInput '{self.input_key}' uses 'questionnaire' mode but lacks definitions."
-                raise AppException(
-                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
-                )
+                raise ValueError(msg)
         else:
             if self.questionnaire_definition:
                 msg = (
                     f"ExpectedInput '{self.input_key}' cannot have questionnaire_definition "
                     "when 'questionnaire' mode is not active."
                 )
-                raise AppException(
-                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=400
-                )
+                raise ValueError(msg)
 
         return self
 
@@ -584,8 +564,8 @@ class SynthesisConfigDTO(V2CoreBase):
     preamble_text: I18nText | None = Field(
         default=None, description="Multilingual preamble text added before synthesis."
     )
-    historical_context_mode: HistoricalContextMode = Field(
-        default=HistoricalContextMode.DISABLED, description="Mode for fetching historical context.", strict=False
+    historical_context_mode: LaxHistoricalContextMode = Field(
+        default=HistoricalContextMode.DISABLED, description="Mode for fetching historical context."
     )
     enable_pii_masking: bool = Field(default=False, description="Flag to enable algorithmic PII redaction.")
     allowed_exports: list[Literal["pdf", "docx", "raw_json"]] = Field(
@@ -614,7 +594,9 @@ class ReportLayoutDTO(V2CoreBase):
 class ReportDataDTO(V2CoreBase):
     workflow_id: str
     strictness_level: int = Field(...)
-    scoring_strategy: str | None = Field(default=None, description="The mathematical strategy used for scoring (e.g. WATERFALL_FLOOR)")
+    scoring_strategy: str | None = Field(
+        default=None, description="The mathematical strategy used for scoring (e.g. WATERFALL_FLOOR)"
+    )
     profile_id: str
     profile_name: I18nText | None = Field(default=None)
     available_profiles: dict[str, I18nText] = Field(default_factory=dict)
@@ -658,20 +640,7 @@ class ReportDataDTO(V2CoreBase):
         default_factory=list, description="List of penalty warnings formatted for print."
     )
 
-    @model_validator(mode="before")
-    @classmethod
-    def parse_db_fields(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            val = data.get("created_at")
-            if isinstance(val, str):
-                try:
-                    if val.endswith("Z"):
-                        val = val.replace("Z", "+00:00")
-                    data["created_at"] = datetime.fromisoformat(val)
-                except ValueError as e:
-                    logger.error("Failed to parse ReportDataDTO created_at", exc_info=True)
-                    raise ValueError(f"Input should be a valid datetime or ISO format for created_at: {val}") from e
-        return data
+
 
 
 class OutputLayoutBlock(V2CoreBase):
@@ -709,7 +678,7 @@ class OutputProfile(V2CoreBase):
         default_factory=lambda: ["date", "organization"],
         description="List of metadata fields visible on the UI and PDF cover header.",
     )
-    visible_extensions: list[XaiExtensionType] = Field(
+    visible_extensions: list[LaxXaiExtensionType] = Field(
         default_factory=list,
         description="List of XAI extensions visible at the end of the report.",
     )
@@ -732,13 +701,6 @@ class OutputProfile(V2CoreBase):
     )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
 
-    @field_validator("visible_extensions", mode="before")
-    @classmethod
-    def coerce_xai_extensions(cls, v: Any) -> Any:
-        if isinstance(v, list):
-            return [XaiExtensionType(x) if isinstance(x, str) else x for x in v]
-        return v
-
 
 class EmbeddedOutputProfile(V2CoreBase):
     """Embedded configuration mapping for workflow output profiles."""
@@ -749,7 +711,7 @@ class EmbeddedOutputProfile(V2CoreBase):
         default_factory=lambda: ["date", "organization"],
         description="List of metadata fields visible on the UI and PDF cover header.",
     )
-    visible_extensions: list[XaiExtensionType] = Field(
+    visible_extensions: list[LaxXaiExtensionType] = Field(
         default_factory=list,
         description="List of XAI extensions visible at the end of the report.",
     )
@@ -769,13 +731,6 @@ class EmbeddedOutputProfile(V2CoreBase):
         default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
     )
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
-
-    @field_validator("visible_extensions", mode="before")
-    @classmethod
-    def coerce_xai_extensions(cls, v: Any) -> Any:
-        if isinstance(v, list):
-            return [XaiExtensionType(x) if isinstance(x, str) else x for x in v]
-        return v
 
 
 class Workflow(V2CoreBase):
@@ -812,9 +767,7 @@ class Workflow(V2CoreBase):
                 if dep not in step_ids:
                     msg = f"Step '{step.id}' depends on '{dep}', which does not exist in this workflow."
                     logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                    raise AppException(
-                        message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=422
-                    )
+                    raise ValueError(msg)
                 graph[step.id].append(dep)
 
         # 2. Cycle Detection (DFS)
@@ -843,9 +796,7 @@ class Workflow(V2CoreBase):
                         "Workflows must be strict Directed Acyclic Graphs (DAG)."
                     )
                     logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                    raise AppException(
-                        message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}, status_code=422
-                    )
+                    raise ValueError(msg)
 
         return self
 
@@ -912,20 +863,7 @@ class RenderedSynthesisCache(V2CoreBase):
     xai_highlights: list[XaiHighlightItem] = Field(default_factory=list, description="Generated XAI highlight boxes")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    @model_validator(mode="before")
-    @classmethod
-    def parse_db_fields(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            val = data.get("created_at")
-            if isinstance(val, str):
-                try:
-                    if val.endswith("Z"):
-                        val = val.replace("Z", "+00:00")
-                    data["created_at"] = datetime.fromisoformat(val)
-                except ValueError as e:
-                    logger.error("Failed to parse RenderedSynthesisCache created_at", exc_info=True)
-                    raise ValueError(f"Input should be a valid datetime or ISO format for created_at: {val}") from e
-        return data
+
 
 
 class ExecutionRecord(V2CoreBase):
@@ -934,10 +872,10 @@ class ExecutionRecord(V2CoreBase):
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")
     strictness_level: int = Field(..., description="Strictness level of the evaluation (0-100)")
-    scoring_strategy: ScoringStrategy = Field(
-        ..., description="The mathematical engine used to calculate final scores.", strict=False
-    )
-    status: ExecutionStatus = Field(description="Current status of execution", strict=False)
+    scoring_strategy: Annotated[LaxScoringStrategy, Field(
+        ..., description="The mathematical engine used to calculate final scores."
+    )]
+    status: Annotated[LaxExecutionStatus, Field(description="Current status of execution")]
     active_profile_id: str | None = Field(
         default=None, description="The ID of the output profile selected for formatting and printing."
     )
@@ -978,9 +916,7 @@ class ExecutionRecord(V2CoreBase):
     organization_id: str | None = Field(default=None, description="ID of the organization for this execution")
 
 
-
-
-class JobAcceptedDTO(BaseModel):
+class JobAcceptedDTO(V2CoreBase):
     """Omni-channel render endpoint accepted response."""
 
     status: str

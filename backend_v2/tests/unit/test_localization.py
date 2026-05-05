@@ -12,7 +12,7 @@ from backend_v2.services.localization import (
 
 
 @pytest.fixture(autouse=True)
-def reset_localization_service():  # type: ignore
+def reset_localization_service() -> None:  # type: ignore
     """Reset the service state before each test."""
     original_dir = LocalizationService.L10N_DIR
     LocalizationService._loaded = False

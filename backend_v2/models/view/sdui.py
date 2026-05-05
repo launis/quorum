@@ -1,7 +1,9 @@
 from enum import Enum
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import Field, StringConstraints
+
+from backend_v2.models.core_base import V2CoreBase
 
 StrictStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -50,7 +52,7 @@ class ReferenceIntent(str, Enum):
     INTERNAL_KB = "INTERNAL_KB"
 
 
-class ReferenceItem(BaseModel):
+class ReferenceItem(V2CoreBase):
     """Strict View Model for a single Contextual Citation."""
 
     id: StrictStr = Field(..., description="Citation ID, e.g., H-1, F-1")
@@ -59,10 +61,8 @@ class ReferenceItem(BaseModel):
     snippet: StrictStr = Field(..., description="Extracted content, relevance, or reasoning")
     url: str | None = Field(default=None, description="Link to the source if available")
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class EvidenceItem(BaseModel):
+class EvidenceItem(V2CoreBase):
     """Strict View Model for a single piece of Evidence."""
 
     id: StrictStr
@@ -71,18 +71,14 @@ class EvidenceItem(BaseModel):
     score: float | None
     type: StrictStr  # "precedent" | "regulation" | "concept"
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class MarkdownBlockDisplay(BaseModel):
+class MarkdownBlockDisplay(V2CoreBase):
     """Server-Driven UI Data for Markdown Content."""
 
     content: StrictStr
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class HighlightBoxDisplay(BaseModel):
+class HighlightBoxDisplay(V2CoreBase):
     """Server-Driven UI Data for a highlighted XAI extension box."""
 
     content: StrictStr
@@ -91,19 +87,15 @@ class HighlightBoxDisplay(BaseModel):
     )
     icon_name: str | None = Field(default=None, description="e.g. 'shield', 'warning', 'psychology'")
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class EvidenceList(BaseModel):
+class EvidenceList(V2CoreBase):
     """Server-Driven UI Data for Evidence List."""
 
     items: list[EvidenceItem]
     total_count: int
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class UiSection(BaseModel):
+class UiSection(V2CoreBase):
     """Abstract UI Section.
     Frontend renders the component based on 'type'.
     """
@@ -115,20 +107,16 @@ class UiSection(BaseModel):
         default_factory=dict, description="Flexible payload specific to the section type (dict or Pydantic Model)"
     )
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class SystemNotification(BaseModel):
+class SystemNotification(V2CoreBase):
     """Server-Driven Notification for the Report Header."""
 
     title: StrictStr
     message: StrictStr
     level: StrictStr = "info"  # info, warning, danger
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class ReportView(BaseModel):
+class ReportView(V2CoreBase):
     """Top-level View Model for the Execution Report.
     This replaces the raw 'Execution' object for frontend consumption.
     """
@@ -141,20 +129,16 @@ class ReportView(BaseModel):
     system_notification: SystemNotification | None = Field(default=None, description="Global notification/warning")
     references: list[ReferenceItem] = Field(default_factory=list, description="Global bibliography and references")
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class StepProgressItem(BaseModel):
+class StepProgressItem(V2CoreBase):
     """Progress indicator for a single step (BFF)."""
 
     id: StrictStr = Field(..., description="Step ID (e.g. step_guard)")
     label: StrictStr = Field(..., description="Human-readable label")
     status: StrictStr = Field(..., description="Status: pending, running, completed, failed")
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class AssessmentView(BaseModel):
+class AssessmentView(V2CoreBase):
     """BFF View Model for the Execution Monitor.
 
     Strictly typed for Server-Driven UI rendering.
@@ -170,10 +154,8 @@ class AssessmentView(BaseModel):
     steps: list[StepProgressItem] = Field(default_factory=list, description="Ordered list of steps with status")
     finalScore: int | None = Field(default=None, description="Final score if available")
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class ToulminDisplay(BaseModel):
+class ToulminDisplay(V2CoreBase):
     """Strict View Model for Toulmin Arguments."""
 
     claim: StrictStr
@@ -183,10 +165,8 @@ class ToulminDisplay(BaseModel):
     rebuttal: str | None = None
     qualifier: str | None = None
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class LogicAnalysisDisplay(BaseModel):
+class LogicAnalysisDisplay(V2CoreBase):
     """Server-Driven UI Data for Logic Analysis Section.
     Hoists presentation logic (quadrants, percentages, colors) from client to backend.
     """
@@ -218,20 +198,16 @@ class LogicAnalysisDisplay(BaseModel):
     strategic_depth_raw: str | None
     arguments: list[ToulminDisplay]
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class HeuristicDisplay(BaseModel):
+class HeuristicDisplay(V2CoreBase):
     """Strict View Model for a single Heuristic."""
 
     name: StrictStr
     flag: bool
     color: StrictStr  # 'red' | 'green'
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class PerformativityDisplay(BaseModel):
+class PerformativityDisplay(V2CoreBase):
     """Server-Driven UI Data for Performativity Check."""
 
     authenticity_score: float | None
@@ -241,10 +217,8 @@ class PerformativityDisplay(BaseModel):
 
     heuristics: list[HeuristicDisplay]
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class CausalDisplay(BaseModel):
+class CausalDisplay(V2CoreBase):
     """Server-Driven UI Data for Causal Analysis."""
 
     # Abductive
@@ -272,10 +246,8 @@ class CausalDisplay(BaseModel):
     score: float | None = None
     verdict: str | None = None
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class VerifiedFactDisplay(BaseModel):
+class VerifiedFactDisplay(V2CoreBase):
     """Strict View Model for a Verified Fact."""
 
     claim: str | None
@@ -286,10 +258,8 @@ class VerifiedFactDisplay(BaseModel):
     verification_result: str | None
     is_verified: bool | None
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class EthicalIssueDisplay(BaseModel):
+class EthicalIssueDisplay(V2CoreBase):
     """Strict View Model for an Ethical Issue."""
 
     issue_type: str | None
@@ -300,19 +270,15 @@ class EthicalIssueDisplay(BaseModel):
     is_critical: bool
     severity: str | None
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class FactCheckDisplay(BaseModel):
+class FactCheckDisplay(V2CoreBase):
     """Server-Driven UI Data for Fact & Ethics Check."""
 
     fact_checks: list[VerifiedFactDisplay]
     ethical_issues: list[EthicalIssueDisplay]
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class SecurityDisplay(BaseModel):
+class SecurityDisplay(V2CoreBase):
     """Server-Driven UI Data for Security Check."""
 
     threat_detected: bool
@@ -329,10 +295,8 @@ class SecurityDisplay(BaseModel):
 
     findings: list[str]
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class StressFindingDisplay(BaseModel):
+class StressFindingDisplay(V2CoreBase):
     """Single finding for Stress Test."""
 
     question: StrictStr
@@ -342,10 +306,8 @@ class StressFindingDisplay(BaseModel):
     text_class: StrictStr  # "text-held" / "text-broken"
     observation: StrictStr
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class FidelityAudit(BaseModel):
+class FidelityAudit(V2CoreBase):
     """Strict View Model for Fidelity Audit."""
 
     fidelity_score_display: str
@@ -354,10 +316,8 @@ class FidelityAudit(BaseModel):
     post_hoc_rationalization_suspected: bool
     reasoning: str
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class StressTestDisplay(BaseModel):
+class StressTestDisplay(V2CoreBase):
     """Server-Driven UI Data for Stress Test / Falsifier."""
 
     fidelity_audit: FidelityAudit | None
@@ -380,10 +340,8 @@ class StressTestDisplay(BaseModel):
     # Findings (Hoisted Logic)
     findings: list[StressFindingDisplay]
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class ProfilerDisplay(BaseModel):
+class ProfilerDisplay(V2CoreBase):
     """Server-Driven UI for Profiler Analysis."""
 
     # Control Ratio
@@ -415,10 +373,8 @@ class ProfilerDisplay(BaseModel):
     psychological_profile: str | None
     intent_analysis: str | None
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class ArchivistDisplay(BaseModel):
+class ArchivistDisplay(V2CoreBase):
     """Server-Driven UI for Archivist Check."""
 
     compliance_score: float | None
@@ -427,10 +383,8 @@ class ArchivistDisplay(BaseModel):
     compliance_help: str | None
     recommendations: list[str]
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class DimensionDisplay(BaseModel):
+class DimensionDisplay(V2CoreBase):
     """Strict View Model for a single Scoring Dimension."""
 
     dimension_id: str
@@ -440,10 +394,8 @@ class DimensionDisplay(BaseModel):
     weight: float
     reasoning: str
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class ScoreCardDisplay(BaseModel):
+class ScoreCardDisplay(V2CoreBase):
     """Server-Driven UI Data for Judge Score Card."""
 
     agent_name: str
@@ -453,10 +405,8 @@ class ScoreCardDisplay(BaseModel):
     verdict: str
     dimensions: list[DimensionDisplay] = Field(default_factory=list)
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class DriverProfileDisplay(BaseModel):
+class DriverProfileDisplay(V2CoreBase):
     """Server-Driven UI for Driver Profile."""
 
     role_classification: str
@@ -465,23 +415,17 @@ class DriverProfileDisplay(BaseModel):
     strategy: str
     input_control_ratio: float | None = None
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class SduiBlockBase(BaseModel):
+class SduiBlockBase(V2CoreBase):
     """Base schema for SDUI Polymorphic Blocks."""
 
     block_type: str
-
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class HeroInsightBlock(SduiBlockBase):
     """Specific block for Hero Insights."""
 
     block_type: Literal["hero_insight"]
-
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 AnySduiBlock = Annotated[HeroInsightBlock, Field(discriminator="block_type")]

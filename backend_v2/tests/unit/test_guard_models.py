@@ -1,20 +1,24 @@
 import pytest
+from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException
 from backend_v2.models.domain.guard import SecurityCheck
 
 
 def test_guard_fails_fast_on_invalid_risk_level() -> None:
     data = {"threat_detected": True, "risk_level": "APOCALYPSE", "simulation_score": 1.0, "anonymized": False}
-    with pytest.raises(AppException) as exc_info:
+    with pytest.raises(ValidationError) as exc_info:
         SecurityCheck.model_validate(data)
-    assert "Invalid RiskLevel 'APOCALYPSE'" in exc_info.value.message
-    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    assert "Input should be an instance of RiskLevel" in str(exc_info.value)
 
 
 def test_guard_fails_fast_on_invalid_simulation_type() -> None:
-    data = {"threat_detected": False, "risk_score": 1.0, "simulation_result": "GHOST_IN_THE_SHELL", "anonymized": True}
-    with pytest.raises(AppException) as exc_info:
+    data = {
+        "threat_detected": False,
+        "risk_level": "LOW",
+        "simulation_score": 1.0,
+        "simulation_result": "GHOST_IN_THE_SHELL",
+        "anonymized": True,
+    }
+    with pytest.raises(ValidationError) as exc_info:
         SecurityCheck.model_validate(data)
-    assert "Invalid SimulationType 'GHOST_IN_THE_SHELL'" in exc_info.value.message
-    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    assert "Input should be an instance of SimulationType" in str(exc_info.value)

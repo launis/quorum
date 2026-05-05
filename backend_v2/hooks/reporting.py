@@ -2,17 +2,16 @@
 
 import logging
 from datetime import datetime
-from pathlib import Path
 
 from fastapi import status
 from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.report import (
     AuditQuestionItem,
     GlobalContextVarsDTO,
+    MatrixObservabilityDTO,
     ReportContextDTO,
     ReportSynthesisDTO,
     ScoreItem,
@@ -47,52 +46,38 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
         msg = "Strict Fail-Fast Enforced: Missing HookState in generate_report_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-    # 1. TEMPLATE VALIDATION (Fail Fast)
-    template_dir = Path("backend/templates")
-    # Adjust path relative to CWD
-    if not template_dir.exists():
-        template_dir = Path(__file__).parent.parent.parent.parent / "backend/templates"
-
-    if not template_dir.exists():
-        error_code = ErrorCodes.CONFIGURATION_ERROR
-        msg = f"Template directory not found at {template_dir}."
-        logger.error("[ReportingHook] %s: %s", error_code.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": error_code})
-
     # 2. GATHER CONTEXT
     inputs = state.inputs
 
+    if not inputs:
+        error_code = ErrorCodes.EMPTY_INPUT
+        status_code = status.HTTP_400_BAD_REQUEST
+        msg = "Missing or empty 'inputs' in data."
+    elif not isinstance(inputs, dict):
+        error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
+        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        msg = "Invalid 'inputs' in data. Expected dict."
+
     if not inputs or not isinstance(inputs, dict):
-        error_code = ErrorCodes.EMPTY_INPUT if inputs is None else ErrorCodes.INVALID_OUTPUT_SCHEMA
-        msg = "Missing or invalid 'inputs' in data. Expected dict."
-        status_code = status.HTTP_400_BAD_REQUEST if inputs is None else status.HTTP_500_INTERNAL_SERVER_ERROR
         logger.error("[ReportingHook] %s: %s", error_code.name, msg)
         raise AppException(
             message=msg,
             status_code=status_code,
-            details={"error_code": error_code},
+            details={"error_code": error_code.value},
         )
 
-    # 3. ENFORCE PARSING WITH DTO (Explicit Routing to satisfy extra="forbid")
-    matrices_dict = {}
-    for k, v in inputs.items():
-        if isinstance(v, dict) and "normalized_score" in v and "justification" in v:
-            try:
-                # We can safely parse it because scoring hook provides evaluated_atoms
-                matrix_dto = LightweightMatrixOutput.model_validate(v)
-                matrices_dict[k] = {
-                    "normalized_score": matrix_dto.normalized_score,
-                    "raw_result": v.get("raw_result", ""),
-                    "justification": matrix_dto.justification,
-                }
-            except ValidationError:
-                continue
-
-    observability_inputs = {
-        "true_atoms_count": inputs.get("true_atoms_count", 0),
-        "false_atoms_count": inputs.get("false_atoms_count", 0),
-        "matrices": matrices_dict,
-    }
+    # 3. ENFORCE PARSING WITH DTO
+    try:
+        observability_inputs = MatrixObservabilityDTO.model_validate(inputs)
+    except ValidationError as e:
+        error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
+        msg = f"Failed to strictly validate reporting observability inputs: {e}"
+        logger.error("[ReportingHook] %s: %s", error_code.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": error_code.value},
+        ) from e
 
     filtered_gvars = {}
     for k, v in state.global_context_vars.items():
@@ -122,7 +107,7 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
     causal_data = gvars.step_panel.causal_analysis if gvars.step_panel else None
 
     # Summary (From XAI)
-    summary = "No Executive Summary available (XAI Role did not run or failed)."
+    summary = "UI_REPORT_SUMMARY_NOT_AVAILABLE"
     if gvars.step_xai and gvars.step_xai.executive_summary:
         summary = gvars.step_xai.executive_summary
 
@@ -152,26 +137,20 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
     total_score_sum = 0.0
     count = 0
 
-    # We iterate the raw inputs because ReportSynthesisDTO securely drops matrix keys to prevent token explosion.
-    for k, v in inputs.items():
-        if isinstance(v, dict) and "normalized_score" in v and "justification" in v:
-            try:
-                matrix_dto = LightweightMatrixOutput.model_validate(v)
-                scores_dict[k] = ScoreItem(
-                    score=matrix_dto.normalized_score,
-                    reasoning=matrix_dto.justification,
-                    label=k,  # UI Localization handles dimension resolving
-                )
-                total_score_sum += matrix_dto.normalized_score
-                count += 1
-            except ValidationError:
-                continue
+    # Use strictly validated DTO instead of raw inputs to prevent duct tape exceptions
+    for k, matrix_obs in dto.inputs.matrices.items():
+        scores_dict[k] = ScoreItem(
+            score=matrix_obs.normalized_score,
+            reasoning=matrix_obs.justification,
+            label=k,  # UI Localization handles dimension resolving
+        )
+        total_score_sum += matrix_obs.normalized_score
+        count += 1
 
-    # Use the precise centralized average from score_summary if available
+    # Use the precise centralized average from score_summary (Fail-Fast enforces its presence or default 0.0)
+    average_score = 0.0
     if gvars.step_scoreengine1 and gvars.step_scoreengine1.score_summary:
         average_score = gvars.step_scoreengine1.score_summary.normalized_score
-    else:
-        average_score = (total_score_sum / count) if count > 0 else 0.0
 
     # Human In The Loop?
     hitl_required = average_score < 2.5
@@ -204,7 +183,7 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
                     ReferenceItem(
                         id=f"[H-{counters['SEARCH']}]",
                         intent=ReferenceIntent.SEARCH,
-                        title="SEARCH_RESULT_FALLBACK",
+                        title="UI_SEARCH_RESULT_FALLBACK",
                         snippet=snippet,
                         url=None,
                     )
@@ -223,7 +202,7 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
                         ReferenceItem(
                             id=f"[H-{counters['SEARCH']}]",
                             intent=ReferenceIntent.SEARCH,
-                            title=result_item.title or "SEARCH_RESULT_FALLBACK",
+                            title=result_item.title or "UI_SEARCH_RESULT_FALLBACK",
                             snippet=snippet,
                             url=result_item.link,
                         )
@@ -232,7 +211,7 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
 
     # INTERNAL KB
     for bib_item in extracted_bibliography:
-        title = bib_item.title or "KNOWLEDGE_BASE_FALLBACK"
+        title = bib_item.title or "UI_KNOWLEDGE_BASE_FALLBACK"
         snippet = bib_item.snippet or ""
         url = bib_item.url
 
@@ -266,11 +245,11 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
         uncertainty=uncertainty,
         bibliography=bibliography,
         references=references,
-        logician_data=logician_data.model_dump() if logician_data else None,
-        overseer_data=overseer_data.model_dump() if overseer_data else None,
+        logician_data=logician_data,
+        overseer_data=overseer_data,
         falsifier_data=falsifier_data,
         causal_analysis=causal_data,
-        performativity_analysis=perf_data.model_dump() if perf_data else None,
+        performativity_analysis=perf_data,
         word_count=prof_metrics.word_count if prof_metrics else None,
         input_control_ratio=prof_metrics.control_ratio if prof_metrics else None,
         google_search_results=[],

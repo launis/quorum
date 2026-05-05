@@ -47,20 +47,23 @@ if hasattr(sys.stdout, 'reconfigure'):
 def run_tests_with_strict_coverage(target):
     print("🚀 Verifying Strict 30% TDD Coverage...")
     
-    # Use directory for pytest-cov to harvest data without PyO3 collision/path bugs
-    cov_target = os.path.dirname(target) if target.endswith(".py") else target
-    if not cov_target: cov_target = target
+    # Convert file path to dotted module path for accurate coverage (e.g. backend_v2/services/execution.py -> backend_v2.services.execution)
+    if target.endswith(".py"):
+        cov_target = target.replace("\\", "/").replace(".py", "").replace("/", ".")
+    else:
+        cov_target = target
     
     if target.endswith(".py"):
         parts = target.replace("\\", "/").split("/")
         parts[-1] = "test_" + parts[-1]
         if parts[0] == "backend_v2":
-            test_path = "backend_v2/tests/unit/" + parts[-1]
+            test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
         else:
             test_path = "tests/" + "/".join(parts)
         
         # 1. Ajetaan Pytest ja kerätään kattavuusdata (ei kaatumista fail-underiin vielä)
-        cmd = ["uv", "run", "pytest", test_path, "-v", "--tb=short", f"--cov={cov_target}"]
+        cmd = ["uv", "run", "pytest", test_path, "-v", "--tb=short", f"--cov={cov_target}", "--cov-fail-under=0"]
+        print("Executing:", " ".join(cmd))
         result = subprocess.run(cmd)
         
         # 2. Ajetaan Coverage Report, joka filtteröi laatuportin vaatimuksen KOSKEMAAN VAIN tätä kyseistä tiedostoa

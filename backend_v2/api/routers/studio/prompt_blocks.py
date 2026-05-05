@@ -1,31 +1,20 @@
 import logging
-from typing import Any
 
 from fastapi import APIRouter
-from pydantic import BaseModel, RootModel
-
-
-class PromptBlockSimulationResponse(RootModel[dict[str, Any]]):
-    pass
-
-
-class PromptBlockDeleteResponse(BaseModel):
-    status: str
-    deleted_id: str
-
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
-from backend_v2.models.dtos.studio import PromptBlockResponseDTO
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.studio import (
+    PromptBlockDeleteResponse,
+    PromptBlockResponseDTO,
+    PromptBlockSimulationRequest,
+    PromptBlockSimulationResponse,
+)
 from backend_v2.models.v2_core import PromptBlock
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/prompt-blocks", tags=["Admin Studio V2 - Prompt Blocks"])
-
-
-class PromptBlockSimulationRequest(BaseModel):
-    block: PromptBlock
-    mock_inputs: dict[str, Any] = {}
 
 
 @router.post("/simulate", response_model=PromptBlockSimulationResponse)
@@ -36,7 +25,7 @@ async def simulate_prompt_block(
 ) -> PromptBlockSimulationResponse:
     """Dry-run and validate a PromptBlock template rendering."""
     result = await studio_service.simulate_prompt_block(current_user, data.block, data.mock_inputs)
-    return PromptBlockSimulationResponse(result)
+    return PromptBlockSimulationResponse(**result)
 
 
 @router.get("/", response_model=list[PromptBlockResponseDTO])
@@ -90,8 +79,6 @@ async def delete_prompt_block(
         await studio_service.delete_prompt_block(current_user, id, force_delete=force_delete)
         return PromptBlockDeleteResponse(status="success", deleted_id=id)
     except Exception as e:
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         if isinstance(e, AppException):
             raise
         logger.error(

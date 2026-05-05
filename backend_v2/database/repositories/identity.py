@@ -2,7 +2,7 @@ from typing import Any
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
-from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.auth import Organization, SystemOrganizations
 
 
 class IdentityRepositoryImpl(BaseRepository):
@@ -13,6 +13,12 @@ class IdentityRepositoryImpl(BaseRepository):
 
     async def get_organization(self, org_id: str) -> dict[str, Any] | None:
         return await self.driver.get("organizations", org_id)
+
+    async def get_organization_model(self, org_id: str) -> Organization | None:
+        data = await self.get_organization(org_id)
+        if data:
+            return Organization.model_validate(data, strict=False)
+        return None
 
     async def create_organization(self, org_data: dict[str, Any]) -> str:
         doc_id = org_data["id"]

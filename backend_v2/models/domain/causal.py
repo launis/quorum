@@ -6,35 +6,24 @@ including counterfactual testing and abductive reasoning.
 
 from __future__ import annotations
 
-import logging
-from typing import Any
+from pydantic import Field
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-
-from backend_v2.exceptions import AppException, ErrorCodes
-
-logger = logging.getLogger(__name__)
-
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.domain.logician import LogicianOutput
 from backend_v2.models.enums import AbductiveConclusion, PlausibilityLevel
 
 
-class CausalInput(BaseModel):
-    """Strict input schema for CausalAnalystAgent.
+class CausalInput(V2CoreBase):
+    """Strict input schema for CausalAnalystAgent."""
 
-    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
-    """
-
-    chat_log: str = Field(..., description="Mandatory chatlog to analyze.")
+    chat_log: str = Field(..., min_length=1, description="Mandatory chatlog to analyze.")
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
-    model_config = ConfigDict(frozen=True, extra="allow")
 
-
-class CausalAnalysisData(BaseModel):
+class CausalAnalysisData(V2CoreBase):
     """Data from Causal Audit."""
 
     timeline_valid: bool = Field(
@@ -44,22 +33,13 @@ class CausalAnalysisData(BaseModel):
     )
     observation: str = Field(
         ...,
+        min_length=1,
         description="General observations.",
         json_schema_extra={"x-ui-label": "Observations"},
     )
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
-    @field_validator("observation")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[CausalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return str(v).strip()
 
 
-class CounterfactualTest(BaseModel):
+class CounterfactualTest(V2CoreBase):
     """Counterfactual test result."""
 
     plausibility_score: PlausibilityLevel = Field(
@@ -78,54 +58,14 @@ class CounterfactualTest(BaseModel):
         json_schema_extra={"x-ui-label": "Plausibility Numeric"},
     )
     actual_scenario: str = Field(
-        ..., description="Actual outcome.", json_schema_extra={"x-ui-label": "Actual Scenario"}
+        ..., min_length=1, description="Actual outcome.", json_schema_extra={"x-ui-label": "Actual Scenario"}
     )
     simulation_result: str = Field(
-        ..., description="Simulation outcome.", json_schema_extra={"x-ui-label": "Simulation Result"}
+        ..., min_length=1, description="Simulation outcome.", json_schema_extra={"x-ui-label": "Simulation Result"}
     )
 
-    @field_validator("actual_scenario", "simulation_result")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[CausalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return str(v).strip()
 
-    @model_validator(mode="before")
-    @classmethod
-    def calc_plausibility(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            mapping = {PlausibilityLevel.IMPOSSIBLE: 1.0, PlausibilityLevel.PLAUSIBLE: 2.0, PlausibilityLevel.HIGH: 3.0}
-            val = data.get("plausibility_score")
-            if val:
-                try:
-                    enum_val = val if isinstance(val, PlausibilityLevel) else PlausibilityLevel(val)
-                    data["plausibility_score"] = enum_val
-
-                    if data.get("plausibility_numeric") is None and enum_val in mapping:
-                        data["plausibility_numeric"] = mapping[enum_val]
-                except ValueError as e:
-                    msg = f"Invalid Plausibility Score: {val}. Allowed: IMPOSSIBLE, PLAUSIBLE, HIGH."
-                    logger.error(
-                        "[CausalModel] %s: %s - %s",
-                        ErrorCodes.VALIDATION_FAILED.name,
-                        msg,
-                        str(e),
-                        exc_info=True,
-                    )
-                    raise AppException(
-                        message=msg,
-                        status_code=422,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "original_error": str(e)},
-                    ) from e
-        return data
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-
-class CausalAnalysis(BaseModel):
+class CausalAnalysis(V2CoreBase):
     """Causal analysis result."""
 
     abductive_conclusion: AbductiveConclusion = Field(
@@ -148,52 +88,12 @@ class CausalAnalysis(BaseModel):
         description="Counterfactual analysis.",
         json_schema_extra={"x-ui-label": "Counterfactual Test"},
     )
-    observation: str = Field(..., description="Observation.", json_schema_extra={"x-ui-label": "Observation"})
-    hypothesis: str = Field(..., description="Hypothesis.", json_schema_extra={"x-ui-label": "Hypothesis"})
-
-    @field_validator("observation", "hypothesis")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[CausalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return str(v).strip()
-
-    @model_validator(mode="before")
-    @classmethod
-    def calc_abductive(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            mapping = {
-                AbductiveConclusion.POST_HOC: 1.0,
-                AbductiveConclusion.UNCERTAIN: 2.0,
-                AbductiveConclusion.GENUINE: 3.0,
-            }
-            val = data.get("abductive_conclusion")
-            if val:
-                try:
-                    enum_val = val if isinstance(val, AbductiveConclusion) else AbductiveConclusion(val)
-                    data["abductive_conclusion"] = enum_val
-
-                    if data.get("abductive_score") is None and enum_val in mapping:
-                        data["abductive_score"] = mapping[enum_val]
-                except ValueError as e:
-                    msg = f"Invalid Abductive Conclusion: {val}. Allowed: POST_HOC, UNCERTAIN, GENUINE."
-                    logger.error(
-                        "[CausalModel] %s: %s - %s",
-                        ErrorCodes.VALIDATION_FAILED.name,
-                        msg,
-                        str(e),
-                        exc_info=True,
-                    )
-                    raise AppException(
-                        message=msg,
-                        status_code=422,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "original_error": str(e)},
-                    ) from e
-        return data
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    observation: str = Field(
+        ..., min_length=1, description="Observation.", json_schema_extra={"x-ui-label": "Observation"}
+    )
+    hypothesis: str = Field(
+        ..., min_length=1, description="Hypothesis.", json_schema_extra={"x-ui-label": "Hypothesis"}
+    )
 
 
 class CausalDTO(ReasoningTraceDTO):
@@ -204,10 +104,7 @@ class CausalDTO(ReasoningTraceDTO):
         description="Causal audit result.",
         json_schema_extra={"x-ui-label": "Causal Audit"},
     )
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
 class CausalOutput(CausalDTO, ReasoningTrace):
     """Output schema for the Causal Agent."""
-
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")

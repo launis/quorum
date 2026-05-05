@@ -49,7 +49,13 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     # We no longer rely on 'step.config' (which violated SSOT).
     # Instead, we look up the target strategy from the workflow's default_model_mapping,
     # or fallback to the system's global default.
-    step_id = state.step_id or "unknown_agent"
+    if not state.step_id:
+        error_code = ErrorCodes.VALIDATION_FAILED
+        msg = "state.step_id is strictly required for LLM context configuration."
+        logger.error("[LLMHook] %s: %s", error_code.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+
+    step_id = state.step_id
 
     # Since hooks don't easily have 'repository' injected via parameters,
     # we can try to find workflow mapping in state or resolve using registry singleton in real time.
@@ -59,10 +65,16 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
 
     # We resolve the strategy. If a workflow default_model_mapping was injected into ctx, we could use it.
     # But for strict SSOT, we just use the system default unless explicitly overridden in the execution context.
-    model_strategy = settings.default_model_strategy or "fast"
+    if not settings.default_model_strategy:
+        error_code = ErrorCodes.CONFIGURATION_ERROR
+        msg = "settings.default_model_strategy is strictly required but missing."
+        logger.error("[LLMHook] %s: %s", error_code.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+
+    model_strategy = settings.default_model_strategy
 
     # Future SSOT enhancement: If we need step-specific overrides, the Engine should pass the
-    # WorkflowDefinition's 'default_model_mapping' dictionary into 'state.context_variables'
+    # Workflow's 'default_model_mapping' dictionary into 'state.context_variables'
     # so we can do: model_strategy = ctx.get("workflow_model_mapping", {}).get(step_id, model_strategy)
 
     if "workflow_model_mapping" in ctx and isinstance(ctx["workflow_model_mapping"], dict):
@@ -114,13 +126,22 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
 
+        if target_strategy.tpm_limit is None or target_strategy.rpm_limit is None:
+            raise ConfigurationError(
+                message=(
+                    f"Model Profile for strategy '{model_strategy}' must explicitly define "
+                    "tpm_limit and rpm_limit. Use 0 for unlimited."
+                ),
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+
         config_data: dict[str, Any] = {
             "id": f"llm_{uuid.uuid4().hex[:8]}",
             "provider": target_strategy.provider,
             "model_name": target_strategy.model_name,
             "api_key": target_strategy.api_key,
-            "tpm_limit": target_strategy.tpm_limit if target_strategy.tpm_limit is not None else 0,
-            "rpm_limit": target_strategy.rpm_limit if target_strategy.rpm_limit is not None else 0,
+            "tpm_limit": target_strategy.tpm_limit,
+            "rpm_limit": target_strategy.rpm_limit,
             "default_max_tokens": target_strategy.max_tokens,
             "supports_grounding": target_strategy.supports_grounding,
         }

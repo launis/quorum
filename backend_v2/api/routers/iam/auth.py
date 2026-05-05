@@ -7,7 +7,6 @@ profile management, and organization administration.
 import logging
 
 from fastapi import APIRouter, Request
-from pydantic import BaseModel
 
 from backend_v2.api.dependencies import AuthServiceDep, CurrentUserDep
 from backend_v2.core.rate_limit import limiter
@@ -19,50 +18,23 @@ from backend_v2.exceptions import (
     PermissionDeniedError,
     ResourceNotFoundError,
 )
-from backend_v2.models.auth import User, UserCreate, UserDeleteResponse, UserRole, UserUpdate
+from backend_v2.models.auth import (
+    ImpersonationRequest,
+    ImpersonationResponse,
+    LoginResponse,
+    TokenPayload,
+    User,
+    UserCreate,
+    UserDeleteResponse,
+    UserRole,
+    UserUpdate,
+)
 
 # --- Local Imports ---
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication & Users"])
-
-
-class TokenPayload(BaseModel):
-    """Payload for token verification.
-
-    Attributes:
-        token (str): The Firebase or Mock ID Token.
-    """
-
-    token: str
-
-
-class LoginResponse(BaseModel):
-    """Response model for successful login.
-
-    Attributes:
-        user (User): The full user profile.
-        token_valid (bool): Confirmation of token validity.
-        debug_msg (Optional[str]): Debug information (mock vs real).
-    """
-
-    user: User
-    token_valid: bool
-    debug_msg: str | None = None
-
-
-class ImpersonationRequest(BaseModel):
-    """Request payload for impersonation."""
-
-    target_id: str
-
-
-class ImpersonationResponse(BaseModel):
-    """Response containing the impersonation token."""
-
-    access_token: str
-    token_type: str = "bearer"
 
 
 # CurrentUserDep imported from dependencies now

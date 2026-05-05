@@ -1,16 +1,11 @@
 import logging
 
 from fastapi import APIRouter
-from pydantic import BaseModel
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.studio import MCPGatewayDeleteResponse
 from backend_v2.models.v2_core import SystemConfigMCPGateways
-
-
-class MCPGatewayDeleteResponse(BaseModel):
-    status: str
-    deleted_id: str
-
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +58,6 @@ async def delete_mcp_gateway(
         await studio_service.delete_system_config(current_user, gateway_id)
         return MCPGatewayDeleteResponse(status="success", deleted_id=gateway_id)
     except Exception as e:
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         if isinstance(e, AppException):
             raise
         logger.error(

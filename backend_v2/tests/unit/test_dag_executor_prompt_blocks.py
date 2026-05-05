@@ -100,7 +100,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             "active_profile_id": "prof_dddd1111dddd1111",
             "strictness_level": 50,
             "scoring_strategy": "WATERFALL_FLOOR",
-            "raw_inputs": {"chat_log": "dGVzdA=="},
+            "raw_inputs": {"dynamic_inputs": {"chat_log": "dGVzdA=="}},
             "metadata": {"target_locale": "fi", "profile_id": "prof_dddd1111dddd1111"},
         }
 
@@ -111,7 +111,9 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             )
 
             record = await executor.execute_workflow(
-                execution_id="exe_1231231231231231", workflow=workflow, raw_inputs={"chat_log": "dGVzdA=="}
+                execution_id="exe_1231231231231231",
+                workflow=workflow,
+                raw_inputs={"dynamic_inputs": {"chat_log": "dGVzdA=="}},
             )
 
     # Assert repo called new method instead of get_all_matrices

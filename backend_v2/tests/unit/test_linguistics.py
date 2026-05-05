@@ -24,15 +24,15 @@ def mock_deps() -> HookDependencies:
 def test_linguistics_payload_dto() -> None:
     """Test safe extraction logic inside LinguisticsPayloadDTO."""
     # Language in global vars
-    dto1 = LinguisticsPayloadDTO.model_validate({})
+    dto1 = LinguisticsPayloadDTO(dynamic_inputs={})
     assert dto1.extract_language({"language": "fi"}) == "fi"
 
     # Language in inputs (root)
-    dto2 = LinguisticsPayloadDTO.model_validate({"language": "es-ES"})
+    dto2 = LinguisticsPayloadDTO(language="es-ES", dynamic_inputs={})
     assert dto2.extract_language({}) == "es"
 
     # Language missing entirely defaults to en
-    dto3 = LinguisticsPayloadDTO.model_validate({"foo": "bar"})
+    dto3 = LinguisticsPayloadDTO(dynamic_inputs={"foo": "bar"})
     assert dto3.extract_language({}) == "en"
 
     # Text concatenates properly

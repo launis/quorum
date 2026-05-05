@@ -62,7 +62,7 @@ class OrganizationRepository:
     async def get_by_id(self, org_id: str) -> Organization | None:
         data = await self.repo.get_organization(org_id)
         if data:
-            return Organization.model_validate(data)
+            return Organization.model_validate(data, strict=False)
         return None
 
     async def create(self, org: Organization) -> Organization:
@@ -72,7 +72,7 @@ class OrganizationRepository:
     async def list_all(self) -> list[Organization]:
         results = []
         for o in await self.repo.list_organizations():
-            results.append(Organization.model_validate(o))
+            results.append(Organization.model_validate(o, strict=False))
         return results
 
 
@@ -86,12 +86,12 @@ class UserRepository:
     async def get_by_id(self, id: str) -> User | None:
         data = await self.repo.get_user(id)
 
-        return User.model_validate(data) if data else None
+        return User.model_validate(data, strict=False) if data else None
 
     async def get_by_email(self, email: str) -> User | None:
         data = await self.repo.get_user_by_email(email)
 
-        return User.model_validate(data) if data else None
+        return User.model_validate(data, strict=False) if data else None
 
     async def create(self, user: User) -> User:
         if await self.get_by_id(user.id):
@@ -115,13 +115,13 @@ class UserRepository:
         return await self.get_by_id(id)
 
     async def list_all(self) -> list[User]:
-        return [User.model_validate(u) for u in await self.repo.list_users()]
+        return [User.model_validate(u, strict=False) for u in await self.repo.list_users()]
 
     async def delete(self, id: str) -> bool:
         return await self.repo.delete_user(id)
 
     async def get_by_organization(self, org_id: str) -> list[User]:
-        return [User.model_validate(u) for u in await self.repo.list_users(org_id)]
+        return [User.model_validate(u, strict=False) for u in await self.repo.list_users(org_id)]
 
 
 # --- Service Layer ---

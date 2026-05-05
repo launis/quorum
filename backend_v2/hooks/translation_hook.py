@@ -11,7 +11,6 @@ localized strings for AI-generated content.
 
 import json
 import logging
-from typing import Any
 
 from pydantic import BaseModel
 
@@ -19,16 +18,11 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.database.interfaces import IComponentRepository
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
-from backend_v2.models.dtos.base import BaseDTO
-from backend_v2.models.dtos.state import HookStateMetadata, I18nStatePayload
+from backend_v2.models.dtos.state import HookStateMetadata, I18nStatePayload, TranslationResponseDTO
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 logger = logging.getLogger(__name__)
-
-
-class TranslationResponseDTO(BaseDTO):
-    translated_data: dict[str, Any]
 
 
 _SYSTEM_INSTRUCTION = """<system_directive>
@@ -65,12 +59,14 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
 
     try:
         # Explicit routing to satisfy extra="forbid" Zero-Compromise Pydantic V2 rule
-        i18n_meta = (
-            {"target_locale": state.metadata.get("target_locale")}
-            if state.metadata and "target_locale" in state.metadata
-            else {}
-        )
-        meta = HookStateMetadata.model_validate(i18n_meta)  # noqa: F841
+        i18n_meta = {}
+        if state.metadata:
+            if "target_locale" in state.metadata:
+                i18n_meta["target_locale"] = state.metadata["target_locale"]
+            if "fields_to_translate" in state.metadata:
+                i18n_meta["fields_to_translate"] = state.metadata["fields_to_translate"]
+
+        meta = HookStateMetadata.model_validate(i18n_meta)
 
         # Explicit routing for inputs
         i18n_inputs = {"language": state.inputs.get("language")} if "language" in state.inputs else {}
@@ -98,15 +94,20 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
     # 1. Isolate the actual payload that needs translation.
-    # We don't want to translate system keys starting with '_' or known metadata fields.
+    # We strictly translate ONLY the fields explicitly defined in the schema.
     payload_to_translate = {}
     preserved_fields = {}
 
+    target_fields = set(meta.fields_to_translate)
+    if not target_fields:
+        logger.debug("[TranslationHook] No fields_to_translate specified in metadata. Skipping translation.")
+        return HookResult(success=True, state_delta={})
+
     for k, v in state.inputs.items():
-        if k.startswith("_") or k in ("language", "repository", "inputs", "node_id", "workflow_id"):
-            preserved_fields[k] = v
-        else:
+        if k in target_fields:
             payload_to_translate[k] = v
+        else:
+            preserved_fields[k] = v
 
     if not payload_to_translate:
         return HookResult(success=True, state_delta={})
@@ -176,70 +177,14 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         ) from e
 
 
-# A deterministic dictionary for translating English SDUI string fields into Finnish.
-# Used by translate_sdui_payload to avoid the latency of an LLM call for static SDUI elements.
-_SDUI_DICT = {
-    "coaching": "COACHING",
-    "falsification": "FALSIFICATION",
-    "falsification audit": "FALSIFICATION_AUDIT",
-    "missing_context": "MISSING_CONTEXT",
-    "remediation_steps": "REMEDIATION_STEPS",
-    "emotional_sentiment": "EMOTIONAL_SENTIMENT",
-    "theory_link": "THEORY_LINK",
-    "risk_flag": "RISK_FLAG",
-    "confidence": "CONFIDENCE",
-    "justification": "JUSTIFICATION",
-    "score": "SCORE",
-    "normalized": "NORMALIZED",
-    "scaled": "SCALED",
-}
-
-
 async def translate_sdui_payload[TModel: BaseModel](
     obj: TModel, target_language: str, repo: IComponentRepository
 ) -> TModel:
     """Epic 35: API Pipeline Splicing Translation Hook.
 
-    Translates English SDUI string fields into the target UI language adhering to frozen Pydantic models.
+    Delegates UI translation to the Frontend 'No-String Mandate' (.arb files).
+    This acts as a transparent pass-through to maintain strict Pydantic integrity.
     """
-    if not target_language or target_language.lower() == "en":
-        return obj
-
-    # 1. Parse to dict (model_dump is used per Epic)
-    raw = obj.model_dump(mode="json")
-
-    # 2. Recursively translate string values (utilizing deterministic dictionary)
-    def _recursive_translate(data: Any) -> Any:
-        if isinstance(data, dict):
-            new_dict = {}
-            for k, v in data.items():
-                if isinstance(v, str):
-                    # Translate if we find a match (case-insensitive for keys/values common in SDUI)
-                    lower_v = v.lower().strip()
-                    if lower_v in _SDUI_DICT:
-                        new_dict[k] = _SDUI_DICT[lower_v]
-                    elif k.lower() in _SDUI_DICT and v == k:
-                        new_dict[k] = _SDUI_DICT[k.lower()]
-                    else:
-                        new_dict[k] = v
-                else:
-                    new_dict[k] = _recursive_translate(v)
-            return new_dict
-        elif isinstance(data, list):
-            return [_recursive_translate(item) for item in data]
-        else:
-            return data
-
-    translated_raw = _recursive_translate(raw)
-
-    try:
-        # 3. Rehydrate: model_validate(raw)
-        # Using type(obj) dynamically supports any BaseModel like ReportDataDTO or SduiBlockBase
-        return type(obj).model_validate(translated_raw)
-    except Exception as e:
-        logger.error("[TranslationHook] Failed to rehydrate translated SDUI model: %s", e, exc_info=True)
-        raise AppException(
-            message="Failed to rehydrate translated SDUI model.",
-            status_code=500,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-        ) from e
+    # UI localization is now strictly the responsibility of the Flutter client
+    # via .arb localized files. The backend simply passes the raw string tags.
+    return obj

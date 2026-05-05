@@ -20,13 +20,37 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
     if not state:
         return HookResult(success=True, state_delta={})
 
-    execution_id = state.execution_id or "unknown_execution"
-    step_id = state.step_id or "unknown_step"
-    workflow_id = state.workflow_id or "unknown_workflow"
+    if not state.execution_id:
+        error_code = ErrorCodes.VALIDATION_FAILED
+        msg = "state.execution_id is strictly required for metadata injection."
+        logger.error("[MetadataHook] %s: %s", error_code.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+
+    if not state.step_id:
+        error_code = ErrorCodes.VALIDATION_FAILED
+        msg = "state.step_id is strictly required for metadata injection."
+        logger.error("[MetadataHook] %s: %s", error_code.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+
+    if not state.workflow_id:
+        error_code = ErrorCodes.VALIDATION_FAILED
+        msg = "state.workflow_id is strictly required for metadata injection."
+        logger.error("[MetadataHook] %s: %s", error_code.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+
+    if state.global_context_vars is None:
+        error_code = ErrorCodes.VALIDATION_FAILED
+        msg = "state.global_context_vars is strictly required but missing."
+        logger.error("[MetadataHook] %s: %s", error_code.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+
+    execution_id = state.execution_id
+    step_id = state.step_id
+    workflow_id = state.workflow_id
 
     # Strict Validation via DTO inflation
     try:
-        payload = MetadataHookPayloadDTO.model_validate(state.global_context_vars or {})
+        payload = MetadataHookPayloadDTO.model_validate(state.global_context_vars)
     except Exception as e:
         error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
         msg = f"Failed to strictly validate global context for metadata: {e}"

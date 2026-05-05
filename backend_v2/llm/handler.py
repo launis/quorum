@@ -1,7 +1,6 @@
 """LLM Handler module for managing model discovery and configuration."""
 
 import logging
-import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
@@ -133,13 +132,18 @@ class LLMHandler:
             try:
                 # 1. Discovery (Source of Truth: LiteLLM / "West" equivalent)
                 # We log the source region for auditability.
-                source_region = settings.discovery_location or "us-west1"
+                source_region = settings.discovery_location
+                if not source_region:
+                    raise ConfigurationError(
+                        message="Strict Fail-Fast: 'discovery_location' is required in settings.",
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                    )
                 logger.debug("[LLMHandler] Initiating Model Discovery (Source: %s)...", source_region)
 
                 if not GOOGLE_DEPS_AVAILABLE:
                     raise ConfigurationError(
                         message="Missing required dependencies for Google discovery.",
-                        details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING},
+                        details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
                     )
 
                 # Get all candidates
@@ -161,16 +165,16 @@ class LLMHandler:
 
                 # Setup Auth (once)
                 try:
-                    credentials, project = google.auth.default(  # type: ignore
+                    credentials, project = google.auth.default(  # type: ignore[no-untyped-call]
                         scopes=["https://www.googleapis.com/auth/cloud-platform"]
                     )
-                    credentials.refresh(GRequest())  # type: ignore
+                    credentials.refresh(GRequest())  # type: ignore[no-untyped-call]
                     token = credentials.token
                 except Exception as auth_err:
                     # Fail Fast: If we can't authenticate, we can't discover or use models.
                     raise ConfigurationError(
                         message="Google Authentication failed during discovery.",
-                        details={"error_code": ErrorCodes.AUTHENTICATION_FAILED, "original_error": str(auth_err)},
+                        details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value, "original_error": str(auth_err)},
                     ) from auth_err
 
                 headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
@@ -246,7 +250,7 @@ class LLMHandler:
                 # STRICT: Do not return error strings. Raise.
                 raise ServiceUnavailableError(
                     message=f"Google Model Discovery Failed: {e}",
-                    details={"error_code": ErrorCodes.MODEL_LIST_FAILED, "original_error": str(e)},
+                    details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
                 ) from e
 
         # --- OPENAI ---
@@ -255,7 +259,7 @@ class LLMHandler:
                 if self._cached_openai_models:
                     models["openai"] = self._cached_openai_models
                 else:
-                    api_key = os.getenv("OPENAI_API_KEY") or settings.openai_api_key
+                    api_key = settings.openai_api_key
                     if api_key:
                         openai_client = openai.OpenAI(api_key=api_key)
                         for m in openai_client.models.list():
@@ -265,7 +269,7 @@ class LLMHandler:
                     else:
                         raise ConfigurationError(
                             message="OPENAI_API_KEY not found in environment or settings.",
-                            details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING},
+                            details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
                         )
             except Exception as e:
                 if isinstance(e, AppException):
@@ -279,7 +283,7 @@ class LLMHandler:
                 )
                 raise ServiceUnavailableError(
                     message=f"OpenAI Model Discovery Failed: {e}",
-                    details={"error_code": ErrorCodes.MODEL_LIST_FAILED, "original_error": str(e)},
+                    details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
                 ) from e
 
         return models
@@ -297,7 +301,7 @@ class LLMHandler:
             if not isinstance(parsed, SystemConfigModelRegistry):
                 raise ValueError("Parsed registry is not a valid SystemConfigModelRegistry")
             dump = parsed.model_dump()
-            models: dict[str, Any] = dump.get("models", {})
+            models: dict[str, Any] = dump["models"]
             return models
         except Exception as e:
             logger.error(
@@ -307,7 +311,7 @@ class LLMHandler:
                 exc_info=True,
             )
             raise ConfigurationError(
-                message=f"Model Registry is corrupt: {e}", details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
+                message=f"Model Registry is corrupt: {e}", details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
             ) from e
 
     async def get_model_config(self, provider: str, mode: str) -> dict[str, Any] | None:
@@ -362,8 +366,10 @@ class LLMHandler:
         # Ensure the configured model name actually exists in the target region.
         # This prevents "blind" 404s from the provider.
         if provider == "google" and mode != "mock":
-            available_models_map = self.fetch_all_available_models(providers=[provider])
-            valid_models = available_models_map.get(provider, [])
+            import asyncio
+
+            available_models_map = await asyncio.to_thread(self.fetch_all_available_models, providers=[provider])
+            valid_models = available_models_map[provider] if provider in available_models_map else []
 
             # DB stores "vertex_ai/foo", discovery returns "vertex_ai/foo"
             if model_name not in valid_models:
@@ -378,7 +384,9 @@ class LLMHandler:
                         f"Available models: {valid_models[:5]}..."
                     )
                     logger.error("[LLMHandler] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, error_msg)
-                    raise ConfigurationError(message=error_msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
+                    raise ConfigurationError(
+                        message=error_msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                    )
 
         # Create Provider via Factory (Unified Logic)
         try:
@@ -412,7 +420,7 @@ class LLMHandler:
             if not provider_config.is_active:
                 raise ServiceUnavailableError(
                     message=f"Model Strategy '{provider}/{mode}' is deactivated.",
-                    details={"error_code": ErrorCodes.SERVICE_DISABLED},
+                    details={"error_code": ErrorCodes.SERVICE_DISABLED.value},
                 )
 
             # Pass config object to factory
@@ -442,5 +450,5 @@ class LLMHandler:
                 raise e
             logger.error("[LLMHandler] %s: Unified Call Failed: %s", ErrorCodes.UNKNOWN_ERROR.name, e, exc_info=True)
             raise ServiceUnavailableError(
-                message=f"LLM Handler Unified Call Failed: {e}", details={"error_code": ErrorCodes.UNKNOWN_ERROR}
+                message=f"LLM Handler Unified Call Failed: {e}", details={"error_code": ErrorCodes.UNKNOWN_ERROR.value}
             ) from e

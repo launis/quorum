@@ -11,7 +11,7 @@ class DampeningScoringEngine(ScoringEngineBase):
     """
 
     def calculate(
-        self, stats: dict[float, dict[str, int]], math_min: float, math_max: float
+        self, stats: dict[float, dict[str, int]], math_min: float, math_max: float, strictness_level: int = 50
     ) -> tuple[float, str, dict[str, dict[str, int]]]:
         dampening_score = calculate_progressive_dampening_score(stats, math_min, math_max)
 

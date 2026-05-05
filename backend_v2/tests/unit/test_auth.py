@@ -251,3 +251,30 @@ async def test_auth_service_tenant_isolation(mock_repo: Any) -> None:
 
     with pytest.raises(PermissionDeniedError):
         await service.get_user(initiator_wrong_org, "usr_target12")
+
+
+# --- Auth Router Tests ---
+
+from backend_v2.api.routers.iam.auth import get_my_profile, list_available_roles, list_users
+
+
+@pytest.mark.asyncio
+async def test_auth_router_list_roles() -> None:
+    roles = await list_available_roles()
+    assert "ROOT" in roles
+
+
+@pytest.mark.asyncio
+async def test_auth_router_get_my_profile() -> None:
+    mock_service = AsyncMock()
+    mock_service.repo.get_by_id.return_value = "mocked_user"
+    user = await get_my_profile(current_user=TokenData(id="usr_123", role=UserRole.MEMBER), auth_service=mock_service)
+    assert user == "mocked_user"  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_auth_router_list_users() -> None:
+    mock_service = AsyncMock()
+    mock_service.list_users.return_value = []
+    users = await list_users(current_user=TokenData(id="usr_123", role=UserRole.MEMBER), auth_service=mock_service)
+    assert users == []

@@ -177,6 +177,12 @@ class Settings(BaseSettings):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
+    def docs_dir(self) -> str:
+        """Returns the path to the static docs directory."""
+        return os.path.join(os.path.dirname(self.base_dir), "docs")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def db_dir(self) -> str:
         """Returns the path to the database directory."""
         return os.path.join(self.base_dir, "database")
@@ -235,7 +241,7 @@ class Settings(BaseSettings):
         raise AppException(
             message=msg,
             status_code=500,
-            details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
     @computed_field  # type: ignore[prop-decorator]
@@ -289,13 +295,8 @@ class Settings(BaseSettings):
                 raise AppException(
                     message=msg,
                     status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
-
-        if self.storage_backend == "FIRESTORE":
-            pass
-        else:
-            pass
 
     @computed_field  # type: ignore[prop-decorator]
     @property

@@ -1,31 +1,20 @@
 import logging
-from typing import Any
 
 from fastapi import APIRouter
-from pydantic import BaseModel, RootModel
-
-
-class StepSimulationResponse(RootModel[dict[str, Any]]):
-    pass
-
-
-class StepDeleteResponse(BaseModel):
-    status: str
-    deleted_id: str
-
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
-from backend_v2.models.dtos.studio import StepResponseDTO
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.studio import (
+    StepDeleteResponse,
+    StepResponseDTO,
+    StepSimulationRequest,
+    StepSimulationResponse,
+)
 from backend_v2.models.v2_core import Step
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/steps", tags=["Admin Studio V2 - Steps"])
-
-
-class StepSimulationRequest(BaseModel):
-    step: Step
-    mock_inputs: dict[str, Any] = {}
 
 
 @router.post("/simulate", response_model=StepSimulationResponse)
@@ -36,7 +25,7 @@ async def simulate_step(
 ) -> StepSimulationResponse:
     """Dry-run and validate a Step (TaskBlueprint) by compiling its prompt blocks."""
     result = await studio_service.simulate_step(current_user, data.step, data.mock_inputs)
-    return StepSimulationResponse(result)
+    return StepSimulationResponse(**result)
 
 
 @router.get("/", response_model=list[StepResponseDTO])
@@ -72,8 +61,6 @@ async def delete_step(
         await studio_service.delete_step(current_user, id, force_delete=force_delete)
         return StepDeleteResponse(status="success", deleted_id=id)
     except Exception as e:
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         if isinstance(e, AppException):
             raise
         logger.error(

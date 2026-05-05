@@ -21,35 +21,36 @@ def mock_deps() -> HookDependencies:
 
 
 def test_hydration_payload_dto_filtering() -> None:
-    """Test that the HydrationInputSourceDTO correctly filters and extracts only strings."""
-    # Test top-level string extraction
-    dto1 = HydrationInputSourceDTO.model_validate(
-        {
-            "agent_type": "InputProcessorAgent",
-            "valid_string": "extracted",
-            "invalid_int": 123,
-            "invalid_dict": {"foo": "bar"},
-        }
-    )
-    assert dto1.is_valid_source() is True
-    updates1 = dto1.extract_hydrated_inputs()
-    assert "valid_string" in updates1
-    assert "invalid_int" not in updates1
-    assert "invalid_dict" not in updates1
+    """Test that the HydrationInputSourceDTO correctly enforces strict V2 schemas."""
+    from pydantic import ValidationError
 
     # Test strict inputs dictionary extraction
-    dto2 = HydrationInputSourceDTO.model_validate(
+    dto = HydrationInputSourceDTO.model_validate(
         {
-            "agent_type": "InputProcessorAgent",
             "inputs": {"key1": "value1", "key2": "value2"},
-            "ignored_top_level": "will_be_ignored",
         }
     )
-    assert dto2.is_valid_source() is True
-    updates2 = dto2.extract_hydrated_inputs()
-    assert "key1" in updates2
-    assert "key2" in updates2
-    assert "ignored_top_level" not in updates2
+    assert dto.is_valid_source() is True
+    updates = dto.extract_hydrated_inputs()
+    assert "key1" in updates
+    assert "key2" in updates
+
+    # Legacy formats should raise validation error
+    with pytest.raises(ValidationError):
+        HydrationInputSourceDTO.model_validate(
+            {
+                "agent_type": "InputProcessorAgent",
+                "valid_string": "extracted",
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        HydrationInputSourceDTO.model_validate(
+            {
+                "inputs": {"key1": "value1", "key2": "value2"},
+                "ignored_top_level": "will_fail",
+            }
+        )
 
 
 def test_hydrate_global_inputs_hook_with_inputs_dict(mock_deps: HookDependencies) -> None:
@@ -61,7 +62,7 @@ def test_hydrate_global_inputs_hook_with_inputs_dict(mock_deps: HookDependencies
         metadata={},
         inputs={"existing_key": "existing_value"},
         global_context_vars={
-            "step_input": {"agent_type": "InputProcessorAgent", "inputs": {"new_key": "new_value"}},
+            "step_input": {"inputs": {"new_key": "new_value"}},
             "unrelated_step": {"some": "data"},
         },
     )
@@ -83,7 +84,7 @@ def test_hydrate_global_inputs_hook_with_inputs_dict(mock_deps: HookDependencies
 
 
 def test_hydrate_global_inputs_hook_with_top_level_strings(mock_deps: HookDependencies) -> None:
-    """Test hook successfully hydrates from top-level strings."""
+    """Test hook ignores legacy top-level strings due to strict validation."""
     state = HookState(
         execution_id="exe_123",
         workflow_id="wf_123",
@@ -107,13 +108,7 @@ def test_hydrate_global_inputs_hook_with_top_level_strings(mock_deps: HookDepend
     result = cast(HookResult, hydrate_global_inputs_hook(state, mock_deps))
 
     assert result.success is True
-    assert result.state_delta is not None
-    assert "inputs" in result.state_delta
-
-    hydrated_inputs = result.state_delta["inputs"]
-    assert "q1" in hydrated_inputs
-    assert "q2" in hydrated_inputs
-    assert "score" not in hydrated_inputs
+    assert result.state_delta == {}
 
 
 def test_hydrate_global_inputs_hook_no_source(mock_deps: HookDependencies) -> None:

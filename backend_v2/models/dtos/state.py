@@ -1,17 +1,22 @@
-from pydantic import BaseModel, ConfigDict
+from typing import Any
+
+from backend_v2.models.core_base import V2CoreBase
 
 
-class HookStateMetadata(BaseModel):
+class HookStateMetadata(V2CoreBase):
     """Strictly typed metadata for hook execution."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
-
     target_locale: str
+    fields_to_translate: list[str] = []
 
 
-class I18nStatePayload(BaseModel):
+class I18nStatePayload(V2CoreBase):
     """Strictly typed payload for I18n state inputs."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
-
     language: str
+
+
+class TranslationResponseDTO(V2CoreBase):
+    """Strictly typed response payload for the dynamic LLM translation hook."""
+
+    translated_data: dict[str, Any]

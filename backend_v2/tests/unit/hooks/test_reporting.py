@@ -1,5 +1,5 @@
-from typing import Any, cast
-from unittest.mock import AsyncMock, patch
+from typing import cast
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -31,8 +31,7 @@ valid_workflow_data = {
 }
 
 
-@patch("backend_v2.hooks.reporting.Path.exists", return_value=True)
-def test_reporting_hook_fail_fast_on_invalid_inputs(mock_exists: Any) -> None:
+def test_reporting_hook_fail_fast_on_invalid_inputs() -> None:
     """Fail-fast testing: The hook should crash if state.inputs is missing or invalid."""
     state = HookState.model_construct(
         execution_id=uuid4().hex,
@@ -66,11 +65,10 @@ def test_reporting_hook_fail_fast_on_invalid_inputs(mock_exists: Any) -> None:
         generate_report_hook(state, deps)
 
     assert exc.value.status_code == status.HTTP_400_BAD_REQUEST
-    assert "Missing or invalid 'inputs'" in exc.value.message
+    assert "Missing or empty 'inputs' in data." in exc.value.message
 
 
-@patch("backend_v2.hooks.reporting.Path.exists", return_value=True)
-def test_reporting_hook_fail_fast_on_invalid_pydantic_schema(mock_exists: Any) -> None:
+def test_reporting_hook_fail_fast_on_invalid_pydantic_schema() -> None:
     """Fail-fast testing: The hook should crash if Pydantic parsing fails."""
     # We pass malformed data that violates the strict schemas defined in GlobalContextVarsDTO
     state = HookState(
@@ -79,7 +77,7 @@ def test_reporting_hook_fail_fast_on_invalid_pydantic_schema(mock_exists: Any) -
         step_id="step_123",
         task_blueprint="bp_123",
         metadata={},
-        inputs={"valid": "input"},
+        inputs={"true_atoms_count": 5},
         global_context_vars={
             "step_xai": {
                 # Invalid schema: expecting 'executive_summary' as string, but passing a list
@@ -113,8 +111,7 @@ def test_reporting_hook_fail_fast_on_invalid_pydantic_schema(mock_exists: Any) -
     assert "Report Context Validation Failed." in exc.value.message
 
 
-@patch("backend_v2.hooks.reporting.Path.exists", return_value=True)
-def test_reporting_hook_success_with_valid_schema(mock_exists: Any) -> None:
+def test_reporting_hook_success_with_valid_schema() -> None:
     """Test successful validation and parsing using the strict DTO."""
     state = HookState(
         execution_id=uuid4().hex,
@@ -158,8 +155,7 @@ def test_reporting_hook_success_with_valid_schema(mock_exists: Any) -> None:
     )
     # AsyncMock())
 
-    with patch("backend_v2.hooks.reporting.Path.exists", return_value=True):
-        result = cast(HookResult, generate_report_hook(state, deps))
+    result = cast(HookResult, generate_report_hook(state, deps))
 
     assert result.success is True
     assert result.state_delta is not None

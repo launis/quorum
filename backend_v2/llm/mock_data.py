@@ -45,9 +45,13 @@ from backend_v2.models.enums import (
     AuthenticityLevel,
     BloomLevel,
     FidelityLevel,
+    InteractionStrategy,
     PlausibilityLevel,
     RiskLevel,
+    RoleClassification,
     StrategicDepth,
+    VerificationResult,
+    EthicalSeverity,
 )
 
 # 0. Shared Metadata
@@ -64,7 +68,7 @@ MOCK_ANALYST_OUTPUT = AnalystOutput(
     metadata=MOCK_METADATA.model_copy(update={"agentti": "AnalystAgent", "vaihe": 2}),
     hypotheses=[
         Hypothesis(
-            id="hyp-1", claim_text="Mock Claim 1", evidence_found=True, search_query="mock query", quotes=["quote 1"]
+            id="hyp_1", claim_text="Mock Claim 1", evidence_found=True, search_query="mock query", quotes=["quote 1"]
         )
     ],
     rag_evidence=["Evidence 1"],
@@ -98,7 +102,6 @@ MOCK_FALSIFIER_DATA = FalsifierData(
         WaltonStressTest(question="Stress Question 1", evidence_held=True, observation="Observed pass")
     ],
     fidelity_audit=ReasoningFidelity(
-        is_post_hoc=False,
         justification="Sound reasoning",
         fidelity_score=FidelityLevel.HIGH,
         fidelity_numeric=3.0,
@@ -151,9 +154,9 @@ MOCK_PERFORMATIVITY_OUTPUT = PerformativityOutput(
 
 MOCK_OVERSEER_DATA = OverseerData(
     fact_checks=[
-        FactCheckRFI(claim="Fact Check Claim 1", verification_result="Verified", source_or_reasoning="Source 1")
+        FactCheckRFI(claim="Fact Check Claim 1", verification_result=VerificationResult.VERIFIED, source_or_reasoning="Source 1")
     ],
-    ethical_issues=[EthicalObservation(issue_type="Bias", severity="None", description="No issues")],
+    ethical_issues=[EthicalObservation(issue_type="Bias", severity=EthicalSeverity.NONE, description="No issues")],
 )
 
 MOCK_OVERSEER_OUTPUT = OverseerOutput(
@@ -196,10 +199,10 @@ MOCK_INTERACTION_OUTPUT = InteractionAnalysis(
     conclusion="Clear roles defined.",
     confidence_score=0.9,
     metadata=MOCK_METADATA.model_copy(update={"agentti": "InteractionAgent"}),
-    role_classification="Architect",
+    role_classification=RoleClassification.ARCHITECT,
     high_dependency=False,
     imperative_command_count=2,
-    strategy="Chain-of-Thought",
+    strategy=InteractionStrategy.CHAIN_OF_THOUGHT,
 )
 
 MOCK_PROFILER_OUTPUT = ProfilerOutput(
@@ -335,4 +338,5 @@ def get_fallback_data(key: str) -> dict[str, Any]:
     elif key == "atomize_mock":
         return {"micro_atoms": ["atom" + str(i) for i in range(1, 16)], "rubric_cot": "Mocked CoT for testing"}
 
-    return {"message": "Mock data not found for key", "key": key}
+    # STRICT FAIL-FAST: No silent dictionary fallbacks
+    raise ValueError(f"Strict Mock Data Error: Mock data not found for key '{key}'")

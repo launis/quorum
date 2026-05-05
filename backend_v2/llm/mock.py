@@ -6,6 +6,7 @@ import random
 import re
 from typing import Any
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.mock_data import AGENT_CLASS_TO_MOCK_KEY, MOCK_REGISTRY, get_fallback_data
 from backend_v2.settings import get_settings
 
@@ -18,7 +19,7 @@ class MockLLMService:
     Intercepts calls and returns pre-defined JSON responses based on agent identity or prompt heuristics.
     """
 
-    def __init__(self):  # type: ignore
+    def __init__(self) -> None:
         """Initializes the Mock Service."""
         if not get_settings().use_mock_llm:
             raise RuntimeError(
@@ -56,27 +57,25 @@ class MockLLMService:
         if response_schema and response_schema in MOCK_REGISTRY:
             logger.info("[MockLLM] Registry Hit: Returning mock data for schema '%s'.", response_schema.__name__)
             mock_obj = MOCK_REGISTRY[response_schema]
-            # Use model_dump_json for Pydantic v2 consistency
-            return mock_obj.model_dump_json()  # type: ignore
+            return str(mock_obj.model_dump_json())
 
         # 1. Determine Identity
         key = None
 
         # A) Explicit Identity (Robust)
         if agent_identity:
-            key = self.agent_identity_map.get(
-                agent_identity, agent_identity
-            )  # Fallback to identity itself if not in map
+            if agent_identity in self.agent_identity_map:
+                key = self.agent_identity_map[agent_identity]
+            else:
+                key = agent_identity
             logger.info("[MockLLM] Identified agent via explicit identity: '%s' -> '%s'", agent_identity, key)
         else:
-            from backend_v2.exceptions import AppException, ErrorCodes
-
             msg = (
                 "STRICT FAIL-FAST: Mock service was called without an explicit 'agent_identity'. "
                 "Keyword heuristics are DEPRECATED."
             )
             logger.error("[MockLLM] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         # Replaced manual file write with logger.debug to use standard logging infrastructure
         logger.debug("--- NEW CALL ---\nAgent Identity: %s\nResolved Key: %s", agent_identity, key)
@@ -127,13 +126,18 @@ class MockLLMService:
                         }
                     data["pisteet"] = dynamic_scores
             except Exception as e:
-                logger.warning("[MockLLM] Failed hydration: %s", e)
+                logger.error("[MockLLM] Failed hydration: %s", e)
+                raise AppException(
+                    message=f"Mock Hydration Failed: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
 
         # Assuming get_fallback_data returns a dict; we need to stringify it for the 'LLM response'
         # Fix: Handle datetime objects (e.g. from MOCK_METADATA) using a custom default handler.
-        def _json_serial(obj):  # type: ignore
+        def _json_serial(obj: Any) -> str:
             if hasattr(obj, "isoformat"):
-                return obj.isoformat()
+                return str(obj.isoformat())
             raise TypeError(f"Type {type(obj)} not serializable")
 
         return json.dumps(data, ensure_ascii=False, default=_json_serial)

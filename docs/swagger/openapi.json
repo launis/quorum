@@ -3958,6 +3958,7 @@
             "title": "Target Id"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "target_id"
@@ -3977,6 +3978,7 @@
             "default": "bearer"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "access_token"
@@ -3999,6 +4001,7 @@
             "title": "Execution Id"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "status",
@@ -4029,13 +4032,14 @@
             "title": "Debug Msg"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "user",
           "token_valid"
         ],
         "title": "LoginResponse",
-        "description": "Response model for successful login.\n\nAttributes:\n    user (User): The full user profile.\n    token_valid (bool): Confirmation of token validity.\n    debug_msg (Optional[str]): Debug information (mock vs real)."
+        "description": "Response model for successful login."
       },
       "MCPAuditTrace": {
         "properties": {
@@ -4114,6 +4118,7 @@
             "title": "Deleted Id"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "status",
@@ -4421,6 +4426,7 @@
             "title": "Deleted Id"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "status",
@@ -4589,12 +4595,14 @@
             "title": "Deleted Id"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "status",
           "deleted_id"
         ],
-        "title": "OrganizationDeleteResponse"
+        "title": "OrganizationDeleteResponse",
+        "description": "Payload response for deleting an organization."
       },
       "OutputLayoutBlock-Input": {
         "properties": {
@@ -5204,6 +5212,7 @@
             "title": "Deleted Id"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "status",
@@ -5411,10 +5420,10 @@
           "mock_inputs": {
             "additionalProperties": true,
             "type": "object",
-            "title": "Mock Inputs",
-            "default": {}
+            "title": "Mock Inputs"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "block"
@@ -5422,7 +5431,14 @@
         "title": "PromptBlockSimulationRequest"
       },
       "PromptBlockSimulationResponse": {
-        "additionalProperties": true,
+        "properties": {
+          "trace": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Trace"
+          }
+        },
+        "additionalProperties": false,
         "type": "object",
         "title": "PromptBlockSimulationResponse"
       },
@@ -5489,11 +5505,7 @@
             "description": "The model used for reasoning."
           },
           "token_usage": {
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "type": "object",
-            "title": "Token Usage",
+            "$ref": "#/components/schemas/TokenUsage",
             "description": "Token usage statistics."
           }
         },
@@ -5722,6 +5734,7 @@
             "title": "Deleted Id"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "status",
@@ -5937,10 +5950,10 @@
           "mock_inputs": {
             "additionalProperties": true,
             "type": "object",
-            "title": "Mock Inputs",
-            "default": {}
+            "title": "Mock Inputs"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "step"
@@ -5948,7 +5961,14 @@
         "title": "StepSimulationRequest"
       },
       "StepSimulationResponse": {
-        "additionalProperties": true,
+        "properties": {
+          "trace": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Trace"
+          }
+        },
+        "additionalProperties": false,
         "type": "object",
         "title": "StepSimulationResponse"
       },
@@ -6185,12 +6205,65 @@
             "title": "Token"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "token"
         ],
         "title": "TokenPayload",
-        "description": "Payload for token verification.\n\nAttributes:\n    token (str): The Firebase or Mock ID Token."
+        "description": "Payload for token verification."
+      },
+      "TokenUsage": {
+        "properties": {
+          "prompt_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Prompt Tokens",
+            "description": "Tokens used in the prompt.",
+            "default": 0
+          },
+          "completion_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Completion Tokens",
+            "description": "Tokens generated by the model.",
+            "default": 0
+          },
+          "total_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Tokens",
+            "description": "Total tokens used.",
+            "default": 0
+          },
+          "cached_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Cached Tokens",
+            "description": "Tokens retrieved from cache.",
+            "default": 0,
+            "x-ui-label": "Cached Tokens"
+          },
+          "reasoning_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Reasoning Tokens",
+            "description": "Tokens used for reasoning/thought generation.",
+            "default": 0,
+            "x-ui-label": "Reasoning Tokens"
+          },
+          "cost_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Cost Usd",
+            "description": "Estimated cost in USD.",
+            "default": 0.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "TokenUsage",
+        "description": "Strictly typed token usage statistics."
       },
       "TombstoneEvent": {
         "properties": {
@@ -6560,6 +6633,7 @@
             "title": "Id"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "status",
@@ -6659,6 +6733,7 @@
             "title": "Organization Id"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "title": "UserUpdate",
         "description": "Payload for updating an existing user.\n\nAttributes:\n    display_name (Optional[str]): New display name.\n    role (Optional[UserRole]): New role assignment.\n    is_active (Optional[bool]): New active status.\n    password (Optional[str]): New password (only for admin resets)."
@@ -6813,6 +6888,7 @@
             "title": "Deleted Id"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "status",
@@ -6822,26 +6898,11 @@
       },
       "WorkflowInputs": {
         "properties": {
-          "chat_log": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Chat Log",
-            "description": "Optional legacy chat log or Base64 payload."
-          },
           "organization_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "minLength": 1
               },
               {
                 "type": "null"
@@ -6853,7 +6914,8 @@
           "user_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "minLength": 1
               },
               {
                 "type": "null"
@@ -6870,12 +6932,19 @@
           },
           "language": {
             "type": "string",
+            "minLength": 1,
             "title": "Language",
             "description": "Target language code (e.g., 'en', 'fi').",
             "default": "en"
+          },
+          "dynamic_inputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Dynamic Inputs",
+            "description": "Structured dictionary for dynamic workflow inputs."
           }
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
         "type": "object",
         "title": "WorkflowInputs",
         "description": "Strict input payload for the workflow (Content).\n\nThis model defines the DATA content that the workflow processes.\nIt does NOT include configuration (model parameters, API keys), which belong in StepConfig."
@@ -6993,7 +7062,14 @@
         "title": "WorkflowSchemaResponse"
       },
       "WorkflowSimulationResponse": {
-        "additionalProperties": true,
+        "properties": {
+          "trace": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Trace"
+          }
+        },
+        "additionalProperties": false,
         "type": "object",
         "title": "WorkflowSimulationResponse"
       },
@@ -7028,6 +7104,7 @@
             "description": "The synthesized, deduplicated insight or tip. Max 2 sentences."
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "extension_type",

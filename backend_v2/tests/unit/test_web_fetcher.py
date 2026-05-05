@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 import httpx
@@ -9,21 +10,21 @@ from backend_v2.services.web_fetcher import WebFetcher
 
 def test_fetch_text_success() -> None:
     class MockResponse:
-        def __init__(self):  # type: ignore
+        def __init__(self) -> None:
             self.content = b"<html><body>Hello <script>ignore</script>World</body></html>"
 
-        def raise_for_status(self):  # type: ignore
+        def raise_for_status(self) -> None:
             pass
 
     class MockClient:
-        def __enter__(self):  # type: ignore
+        def __enter__(self) -> MockClient:
             return self
 
-        def __exit__(self, exc_type, exc_val, exc_tb):  # type: ignore
+        def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
             pass
 
-        def get(self, url):  # type: ignore
-            return MockResponse()  # type: ignore
+        def get(self, url: str) -> MockResponse:
+            return MockResponse()
 
     with patch("backend_v2.services.web_fetcher.httpx.Client", return_value=MockClient()):
         result = WebFetcher.fetch_text("https://example.com")
@@ -39,13 +40,13 @@ def test_fetch_text_invalid_url() -> None:
 
 def test_fetch_text_network_error() -> None:
     class MockClient:
-        def __enter__(self):  # type: ignore
+        def __enter__(self) -> MockClient:
             return self
 
-        def __exit__(self, exc_type, exc_val, exc_tb):  # type: ignore
+        def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
             pass
 
-        def get(self, url):  # type: ignore
+        def get(self, url: str) -> None:
             raise httpx.RequestError("Mocked timeout", request=None)
 
     with patch("backend_v2.services.web_fetcher.httpx.Client", return_value=MockClient()):
@@ -54,23 +55,23 @@ def test_fetch_text_network_error() -> None:
         assert excinfo.value.status_code == 502
 
 
-def test_fetch_text_paywall_warning(caplog) -> None:  # type: ignore
+def test_fetch_text_paywall_warning(caplog: Any) -> None:
     class MockResponse:
-        def __init__(self):  # type: ignore
+        def __init__(self) -> None:
             self.content = b"<html><body>Please verify you are a human to continue reading this long text that bypasses the length limit.......................................................................................................................................................</body></html>"  # noqa: E501
 
-        def raise_for_status(self):  # type: ignore
+        def raise_for_status(self) -> None:
             pass
 
     class MockClient:
-        def __enter__(self):  # type: ignore
+        def __enter__(self) -> MockClient:
             return self
 
-        def __exit__(self, exc_type, exc_val, exc_tb):  # type: ignore
+        def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
             pass
 
-        def get(self, url):  # type: ignore
-            return MockResponse()  # type: ignore
+        def get(self, url: str) -> MockResponse:
+            return MockResponse()
 
     with patch("backend_v2.services.web_fetcher.httpx.Client", return_value=MockClient()):
         result = WebFetcher.fetch_text("https://example.com")

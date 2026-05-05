@@ -7,11 +7,10 @@ including stress tests and fidelity audits.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import Field
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
 
 logger = logging.getLogger(__name__)
 
@@ -21,24 +20,20 @@ from backend_v2.models.domain.logician import LogicianOutput
 from backend_v2.models.enums import FidelityLevel
 
 
-class FalsifierInput(BaseModel):
-    """Strict input schema for LogicalFalsifierAgent.
+class FalsifierInput(V2CoreBase):
+    """Strict input schema for LogicalFalsifierAgent."""
 
-    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
-    """
-
-    chat_log: str = Field(..., description="Mandatory chatlog to analyze.")
+    chat_log: str = Field(..., min_length=1, description="Mandatory chatlog to analyze.")
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
-    model_config = ConfigDict(frozen=True, extra="allow")
 
-
-class WaltonStressTest(BaseModel):
+class WaltonStressTest(V2CoreBase):
     """Stress test using Walton's critical questions."""
 
     question: str = Field(
         ...,
+        min_length=1,
         description="The critical question asked.",
         json_schema_extra={"x-ui-label": "Question"},
     )
@@ -49,26 +44,13 @@ class WaltonStressTest(BaseModel):
     )
     observation: str = Field(
         ...,
+        min_length=1,
         description="Observation notes.",
         json_schema_extra={"x-ui-label": "Observation"},
     )
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("question", "observation", mode="before")
-    @classmethod
-    def validate_non_empty(cls, v: Any) -> Any:
-        if v is None:
-            return v
-        if isinstance(v, str) and not v.strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            from backend_v2.exceptions import AppException
-
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return v
 
 
-class ReasoningFidelity(BaseModel):
+class ReasoningFidelity(V2CoreBase):
     """Fidelity of reasoning."""
 
     fidelity_score: FidelityLevel = Field(
@@ -106,98 +88,25 @@ class ReasoningFidelity(BaseModel):
         ),
         json_schema_extra={"x-ui-label": "Plausibility Score"},
     )
-    justification: str = Field(..., description="Justification.", json_schema_extra={"x-ui-label": "Justification"})
-    quote: str | None = Field(default=None, description="Direct quote.", json_schema_extra={"x-ui-label": "Quote"})
+    justification: str = Field(
+        ..., min_length=1, description="Justification.", json_schema_extra={"x-ui-label": "Justification"}
+    )
+    quote: str | None = Field(
+        default=None, min_length=1, description="Direct quote.", json_schema_extra={"x-ui-label": "Quote"}
+    )
     post_hoc_rationalization: bool = Field(
         default=False,
         description="Was reasoning constructed after the fact?",
         json_schema_extra={"x-ui-label": "Post-Hoc Rationalization"},
     )
-    is_post_hoc: bool = Field(
-        default=False,
-        description="Legacy flag for post-hoc rationalization (Validation Mirror).",
-    )
-
-    @field_validator("justification", mode="before")
-    @classmethod
-    def validate_non_empty(cls, v: Any) -> Any:
-        if v is None:
-            return v
-        if isinstance(v, str) and not v.strip():
-            msg = "Field cannot be empty or whitespace only."
-            logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            from backend_v2.exceptions import AppException
-
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return v
-
-    @field_validator("fidelity_numeric", "abductive_score", "plausibility_score")
-    @classmethod
-    def validate_falsifier_scores(cls, v: float) -> float:
-        if not (1.0 <= v <= 3.0):
-            msg = "Score must be between 1.0 and 3.0."
-            logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return v
-
-    @field_validator("quote", mode="before")
-    @classmethod
-    def validate_quote(cls, v: Any) -> Any:
-        if v is None:
-            return v
-        if isinstance(v, str) and not v.strip():
-            msg = "Quote cannot be empty string if provided."
-            logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            from backend_v2.exceptions import AppException
-
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return v
-
-    @model_validator(mode="before")
-    @classmethod
-    def calc_fidelity(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            mapping = {FidelityLevel.WEAK: 1.0, FidelityLevel.UNCERTAIN: 2.0, FidelityLevel.HIGH: 3.0}
-
-            val = data.get("fidelity_score")
-
-            # Robust Enum Parsing (Handle "High", "high", "FIDELITY_HIGH")
-            if val and isinstance(val, str):
-                val_upper = val.upper()
-                if not val_upper.startswith("FIDELITY_"):
-                    # Try to map simple term to full enum
-                    if val_upper == "WEAK":
-                        data["fidelity_score"] = FidelityLevel.WEAK
-                    elif val_upper == "UNCERTAIN":
-                        data["fidelity_score"] = FidelityLevel.UNCERTAIN
-                    elif val_upper == "HIGH":
-                        data["fidelity_score"] = FidelityLevel.HIGH
-
-            # Re-fetch potentially updated value
-            val = data.get("fidelity_score")
-
-            # Only calc if numeric missing
-            if data.get("fidelity_numeric") is None and val:
-                # Handle both Enum and String input
-                try:
-                    enum_val = val if isinstance(val, FidelityLevel) else FidelityLevel(val)
-                    if enum_val in mapping:
-                        data["fidelity_numeric"] = mapping[enum_val]
-                except ValueError as e:
-                    msg = f"Falsifier parsing failed: Invalid FidelityLevel '{val}'."
-                    logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    err_details = {"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                    raise AppException(message=msg, status_code=422, details=err_details) from e
-        return data
-
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
-class FalsifierData(BaseModel):
+class FalsifierData(V2CoreBase):
     """Output from the Falsifier component."""
 
     stress_test_findings: list[WaltonStressTest] = Field(
         ...,
+        min_length=1,
         description="Stress test results.",
         json_schema_extra={"x-ui-label": "Stress Test"},
     )
@@ -206,20 +115,6 @@ class FalsifierData(BaseModel):
         description="Fidelity audit.",
         json_schema_extra={"x-ui-label": "Fidelity Audit"},
     )
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
-
-    @field_validator("stress_test_findings", mode="before")
-    @classmethod
-    def validate_list_not_empty(cls, v: Any) -> Any:
-        if v is None:
-            return v
-        if isinstance(v, list) and not v:
-            msg = "Stress test findings list cannot be empty. Zero-Compromise Fail-Fast enforced."
-            logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            from backend_v2.exceptions import AppException
-
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return v
 
 
 class FalsifierDTO(ReasoningTraceDTO):
@@ -230,10 +125,7 @@ class FalsifierDTO(ReasoningTraceDTO):
         description="Falsification audit result.",
         json_schema_extra={"x-ui-label": "Falsification Audit"},
     )
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")
 
 
 class FalsifierOutput(FalsifierDTO, ReasoningTrace):
     """Output schema for the Falsifier Agent."""
-
-    model_config = ConfigDict(frozen=True, strict=False, extra="forbid")

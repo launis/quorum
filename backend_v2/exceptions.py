@@ -711,6 +711,7 @@ class LLMSchemaValidationError(AppException):
         raw_llm_payload: str,
         validation_error_msg: str,
         is_eof: bool = False,
+        token_usage: Any | None = None,
     ):
         """Initialize the exception."""
         details = {
@@ -727,6 +728,7 @@ class LLMSchemaValidationError(AppException):
         self.raw_llm_payload = raw_llm_payload
         self.validation_error_msg = validation_error_msg
         self.is_eof = is_eof
+        self.token_usage = token_usage
 
 
 class LogicalValidationError(AppException):

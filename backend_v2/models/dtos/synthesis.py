@@ -3,22 +3,24 @@
 Strict Pydantic V2 definitions for the SSOT.
 """
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
+
+from backend_v2.models.core_base import V2CoreBase
 
 
-class SynthesisSectionDTO(BaseModel):
+class SynthesisSectionDTO(V2CoreBase):
     layout_id: str = Field(..., description="The EXACT layout ID provided in the section instructions")
     synthesized_markdown: str = Field(..., description="The synthesized markdown content for this section")
 
 
-class XaiHighlightItem(BaseModel):
+class XaiHighlightItem(V2CoreBase):
     extension_type: str = Field(
         ..., description="Category of the insight (e.g. 'falsification', 'coaching', 'remediation', 'risk_flag')"
     )
     content: str = Field(..., description="The synthesized, deduplicated insight or tip. Max 2 sentences.")
 
 
-class SynthesisOutputDTO(BaseModel):
+class SynthesisOutputDTO(V2CoreBase):
     """Structured output expected from the Synthesis LLM."""
 
     synthesized_markdown: str = Field(..., description="The fully synthesized and deduplicated markdown content.")
@@ -29,5 +31,3 @@ class SynthesisOutputDTO(BaseModel):
     xai_highlights: list[XaiHighlightItem] = Field(
         default_factory=list, description="Top 3 deduplicated items per extension category across all steps."
     )
-
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

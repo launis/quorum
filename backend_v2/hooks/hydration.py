@@ -6,7 +6,6 @@ from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.models.domain.hydration import HydrationInputSourceDTO
-from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +28,13 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
     hydration_source: HydrationInputSourceDTO | None = None
 
     for _key, result in state.global_context_vars.items():
+        if not isinstance(result, dict):
+            continue
+            
         try:
-            # Strict inflation attempts to parse the result into the DTO sieve
-            candidate = inflate(result, HydrationInputSourceDTO)
-            if candidate and candidate.is_valid_source():
+            # Strict validation attempts to parse the result into the DTO sieve directly
+            candidate = HydrationInputSourceDTO.model_validate(result)
+            if candidate.is_valid_source():
                 hydration_source = candidate
                 break
         except ValidationError:

@@ -4,7 +4,6 @@ Modernized for GraphEngine and TaskRegistry (V2.9).
 """
 
 import asyncio
-import json
 import logging
 import uuid
 from datetime import UTC, datetime
@@ -22,7 +21,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.state import StateProjector
-from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache, Workflow
+from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache, Workflow, WorkflowInputs
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -84,6 +83,9 @@ async def execute_workflow_job(
         # Retrieve Repository (for loading definition)
         repository = ctx["repository"]
 
+        # V2 Strict Context Execution Engine
+        exec_id = execution_id or f"exe_{uuid.uuid4().hex}"
+
         try:
             # Load Definition
             # We must load the definition to pass it to the engine.
@@ -97,9 +99,31 @@ async def execute_workflow_job(
 
             start_time = datetime.now(UTC)
 
-            # V2 Strict Context Execution Engine
-            exec_id = execution_id or f"exe_{uuid.uuid4().hex}"
-            await engine.execute_workflow(execution_id=exec_id, workflow=workflow_def, raw_inputs=inputs)
+            inputs_obj = WorkflowInputs.model_validate(inputs)
+
+            # Retrieve dynamic strictness level from DB (No Hardcoding)
+            execution_data = await repository.get_execution(exec_id)
+            if not execution_data:
+                msg = f"Execution {exec_id} not found in DB before execution! Cannot resolve dynamic strictness."
+                logger.error("[Job] %s", msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+                )
+
+            # Enforce schema validation
+            if isinstance(execution_data, dict):
+                exec_record = ExecutionRecord.model_validate(execution_data, strict=False)
+            else:
+                exec_record = execution_data
+
+            strictness_level = exec_record.strictness_level
+
+            await engine.execute_workflow(
+                execution_id=exec_id,
+                workflow=workflow_def,
+                raw_inputs=inputs_obj,
+                strictness_level=strictness_level,
+            )
 
             # Final Status Update (Completed)
             if exec_id:
@@ -146,11 +170,10 @@ async def execute_workflow_job(
                 )
 
             # Final Status Update (Failed)
-            local_exec_id = locals().get("exec_id", execution_id)
-            if local_exec_id:
+            if exec_id:
                 try:
                     await repository.update_execution(
-                        local_exec_id,
+                        exec_id,
                         {"status": "failed", "error": str(e), "completed_at": datetime.now(UTC).isoformat()},
                     )
                 except Exception as update_err:
@@ -163,12 +186,11 @@ async def execute_workflow_job(
                     )
             raise e
         except asyncio.CancelledError:
-            local_exec_id = locals().get("exec_id", execution_id)
-            logger.warning(f"[Job] Workflow {workflow_id} CANCELLED (Timeout/Shutdown). Execution ID: {local_exec_id}")  # noqa: E501
-            if local_exec_id:
+            logger.warning(f"[Job] Workflow {workflow_id} CANCELLED (Timeout/Shutdown). Execution ID: {exec_id}")  # noqa: E501
+            if exec_id:
                 try:
                     await repository.update_execution(
-                        local_exec_id,
+                        exec_id,
                         {
                             "status": "failed",
                             "error": "Task execution was cancelled or timed out.",
@@ -212,7 +234,9 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
 
         # V2 MANDATE: Strict Pydantic parsing at the boundary
         execution_record = (
-            ExecutionRecord.model_validate(execution_dict, strict=False) if isinstance(execution_dict, dict) else execution_dict  # noqa: E501
+            ExecutionRecord.model_validate(execution_dict, strict=False)
+            if isinstance(execution_dict, dict)
+            else execution_dict  # noqa: E501
         )
 
         # 0b. Get explicit locale via Execution
@@ -296,10 +320,13 @@ async def generate_profile_synthesis_and_pdf_task(
 
         # V2 MANDATE: Strict Pydantic parsing at the boundary
         execution = (
-            ExecutionRecord.model_validate(execution_data, strict=False) if isinstance(execution_data, dict) else execution_data  # noqa: E501
+            ExecutionRecord.model_validate(execution_data, strict=False)
+            if isinstance(execution_data, dict)
+            else execution_data  # noqa: E501
         )
 
-        has_synthesis = profile_id in (execution.profile_syntheses or {})
+        syntheses = execution.profile_syntheses if execution.profile_syntheses is not None else {}
+        has_synthesis = profile_id in syntheses
         if has_synthesis:
             logger.info(f"[Task] Synthesis already exists for profile {profile_id}. Proceeding to PDF generation.")  # noqa: E501
             if redis:
@@ -316,7 +343,7 @@ async def generate_profile_synthesis_and_pdf_task(
         final_inputs = projector.snapshot
 
         # 0b. Get explicit locale via Execution
-        metadata = execution.metadata or {}
+        metadata = dict(execution.metadata) if execution.metadata is not None else {}
         loc = metadata.get("target_locale")
         if loc and not accept_language:
             accept_language = loc
@@ -345,18 +372,42 @@ async def generate_profile_synthesis_and_pdf_task(
         hook_res = await hook_registry.execute("text_consolidation_hook", state, deps)
 
         if hook_res.success and hook_res.state_delta:
-            cache = RenderedSynthesisCache(
-                synthesized_markdown=hook_res.state_delta.get("synthesized_markdown", ""),
-                section_syntheses=hook_res.state_delta.get("section_syntheses", {}),
-                cited_sources=hook_res.state_delta.get("cited_sources", []),
-                xai_highlights=hook_res.state_delta.get("xai_highlights", []),
-            )
+            delta = dict(hook_res.state_delta)
+            # Remove V2 engine metrics that are not part of the Cache schema
+            step_metadata_updates = delta.pop("step_metadata_updates", None)
+            mcp_tool_audit = delta.pop("mcp_tool_audit", None)
+
+            # Enforce Fail-Fast Hydration (No Naked Dict Extraction)
+            cache = RenderedSynthesisCache.model_validate(delta)
+
             # Add new synthesis to record
-            current_syntheses = execution.profile_syntheses or {}
+            current_syntheses = dict(execution.profile_syntheses) if execution.profile_syntheses is not None else {}
             current_syntheses[profile_id] = cache
             dict_syntheses = {k: v.model_dump(mode="json") for k, v in current_syntheses.items()}
             update_payload = {"profile_syntheses": dict_syntheses}
+
+            # Epic 6/14: Safely append LLM token usage and pricing back into ExecutionRecord metadata
+            if step_metadata_updates and "token_usage" in step_metadata_updates:
+                usage = step_metadata_updates["token_usage"]
+                if usage:
+                    meta = dict(execution.metadata) if execution.metadata else {}
+                    meta["total_tokens"] = meta.get("total_tokens", 0) + usage.get("total_tokens", 0)
+                    meta["prompt_tokens"] = meta.get("prompt_tokens", 0) + usage.get("prompt_tokens", 0)
+                    meta["completion_tokens"] = meta.get("completion_tokens", 0) + usage.get("completion_tokens", 0)
+                    meta["cost_estimate"] = meta.get("cost_estimate", 0.0) + usage.get("cost_estimate", 0.0)
+                    update_payload["metadata"] = meta
+
             await repo.update_execution(execution_id, update_payload)
+
+            # Epic 6: Save MCP tool audits directly to the driver's subcollection to avoid overwriting blobs
+            if mcp_tool_audit and isinstance(mcp_tool_audit, list):
+                coll_path = f"executions/{execution_id}/audit_trails"
+                for item in mcp_tool_audit:
+                    import uuid
+                    item_id = item.get("id") or str(uuid.uuid4())
+                    item["id"] = item_id
+                    await driver.upsert(coll_path, item, item_id)
+
             logger.info(f"[Task] Synthesis cached for {execution_id} (Profile: {profile_id})")
 
         # Now trigger the statically cached PDF job based on our newly cached synthesis

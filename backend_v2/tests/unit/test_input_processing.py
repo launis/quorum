@@ -51,11 +51,11 @@ class MockRepository:
 def test_guided_reflection_dto_valid_dict() -> None:
     """Test that a valid flat dictionary is correctly mapped to the strict schema."""
     raw_data = {
-        "q0": "What is the primary challenge?",
-        "a0": "Scaling the database.",
-        "q1": "How are we solving it?",
-        "a1": "Sharding.",
-        "session_id": "xyz-123",
+        "pairs": [
+            {"question": "What is the primary challenge?", "answer": "Scaling the database."},
+            {"question": "How are we solving it?", "answer": "Sharding."},
+        ],
+        "metadata": {"session_id": "xyz-123"},
     }
 
     dto = GuidedReflectionInputDTO.model_validate(raw_data)
@@ -78,7 +78,7 @@ def test_guided_reflection_dto_invalid_empty() -> None:
     with pytest.raises(ValidationError) as exc:
         GuidedReflectionInputDTO.model_validate(raw_data)
 
-    assert "at least one question-answer pair" in str(exc.value).lower()
+    assert "field required" in str(exc.value).lower()
 
 
 def test_guided_reflection_dto_to_markdown() -> None:
@@ -108,7 +108,13 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
         task_blueprint="test_blueprint",
         metadata={},
         inputs={
-            "QUESTIONNAIRE": {"q0": "How are you?", "a0": "I am fine.", "q1": "Why?", "a1": "Just because."},
+            "QUESTIONNAIRE": {
+                "pairs": [
+                    {"question": "How are you?", "answer": "I am fine."},
+                    {"question": "Why?", "answer": "Just because."},
+                ],
+                "metadata": {},
+            },
             "DOCUMENT_TEXT": "Plain text input.",
         },
         global_context_vars={},

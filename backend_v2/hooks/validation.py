@@ -54,7 +54,7 @@ def verify_structure(state: HookState, deps: HookDependencies) -> HookResult:
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": ErrorCodes.EMPTY_INPUT},
+            details={"error_code": ErrorCodes.EMPTY_INPUT.value},
         )
 
     try:
@@ -66,7 +66,7 @@ def verify_structure(state: HookState, deps: HookDependencies) -> HookResult:
         raise AppException(
             message=msg,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA},
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         ) from e
 
     inputs_dict = payload.root
@@ -128,7 +128,11 @@ def verify_structure(state: HookState, deps: HookDependencies) -> HookResult:
         # Pydantic validation failure -> System Error
         error_code = ErrorCodes.INTERNAL_SERVER_ERROR
         logger.error("[ValidationHook] Failed to create ValidationResult: %s", e)
-        raise AppException(message=f"System Error: {e}", status_code=500, details={"error_code": error_code}) from e
+        raise AppException(
+            message=f"System Error: {e}",
+            status_code=500,
+            details={"error_code": error_code.value},
+        ) from e
 
     if not result_dto.is_valid:
         msg = f"Structural Validation Failed: {[w.model_dump() for w in warnings]}"
@@ -138,7 +142,7 @@ def verify_structure(state: HookState, deps: HookDependencies) -> HookResult:
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": ErrorCodes.VALIDATION_FAILED, "warnings": [w.model_dump() for w in warnings]},
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "warnings": [w.model_dump() for w in warnings]},
         )
     else:
         logger.debug("[ValidationHook] Checks passed.")
@@ -221,7 +225,7 @@ def verify_output_language(state: HookState, deps: HookDependencies) -> HookResu
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA},
+                details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
             ) from e
 
         new_warning = ValidationWarningDTO(

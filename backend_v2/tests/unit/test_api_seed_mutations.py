@@ -170,7 +170,7 @@ def test_seed_workflow_illegal_input_contradiction(client_admin: Any, mock_studi
     if response.status_code == 404:
         response = client_admin.put(f"/studio/workflows/{wf['id']}", json=wf)
 
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert "cannot use 'questionnaire' mode when flagged as chat history" in response.text
 
 

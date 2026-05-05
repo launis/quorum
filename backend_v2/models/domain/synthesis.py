@@ -4,27 +4,29 @@ Provides strict Pydantic V2 validation schemas for the synthesis pipeline
 to eliminate legacy dictionary-based parsing.
 """
 
-from typing import Any
+from pydantic import ConfigDict, Field
 
-from pydantic import BaseModel, ConfigDict, Field
+from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.base import ReasoningTrace
+from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.state import StepExecutionEnvelope, StepOutputDTO
 
-from backend_v2.models.state import StepOutputDTO
 
-
-class SynthesisMetadataDTO(BaseModel):
+class SynthesisMetadataDTO(V2CoreBase):
     """Strict schema for execution metadata used during synthesis."""
 
-    target_locale: str
-    token_usage: dict[str, int] = Field(default_factory=dict)
+    target_locale: str = Field(..., min_length=1)
+    token_usage: TokenUsage = Field(default_factory=TokenUsage)
     step_results: list[StepOutputDTO] = Field(default_factory=list)
+    profile_id: str | None = Field(default=None)
+    target_profile_id: str | None = Field(default=None)
+    matrix_sampling_strategy: int | None = Field(default=None)
 
-    # Allow extra fields for safety in metadata, as other hooks may inject telemetry
-    model_config = ConfigDict(extra="ignore", frozen=True)
 
-
-class SynthesisStepDataDTO(BaseModel):
+class SynthesisStepDataDTO(StepExecutionEnvelope):
     """Schema to safely extract required synthesis flags from generic step outputs."""
 
-    reasoning_trace: Any | None = Field(default=None)
-
     model_config = ConfigDict(extra="ignore", frozen=True)
+
+    reasoning_trace: ReasoningTrace | None = Field(default=None)
+    token_usage: TokenUsage = Field(default_factory=TokenUsage)

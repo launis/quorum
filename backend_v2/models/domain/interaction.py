@@ -5,44 +5,40 @@ including user role classification and input quality assessment.
 """
 
 import logging
-from typing import Literal
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import Field
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
+from backend_v2.models.enums import InteractionStrategy, RoleClassification
 
 logger = logging.getLogger(__name__)
 
-from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
-
-class InteractionInput(BaseModel):
+class InteractionInput(V2CoreBase):
     """Strict input schema for InteractionAnalystAgent.
 
-    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    V2 Dynamic: 'chatlog' is mandatory, but other inputs are encapsulated dynamically.
     """
 
     chat_log: str = Field(
-        ..., description="The mandatory conversation history to analyze.", json_schema_extra={"x-ui-label": "Chatlog"}
+        ...,
+        min_length=1,
+        description="The mandatory conversation history to analyze.",
+        json_schema_extra={"x-ui-label": "Chatlog"},
     )
     last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
 
-    model_config = ConfigDict(frozen=True, extra="allow")
-
-    @field_validator("chat_log")
-    @classmethod
-    def validate_non_empty(cls, v: str | None) -> str:
-        if not v or not str(v).strip():
-            msg = "chat_log cannot be empty or whitespace only."
-            logger.error("[InteractionModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return str(v).strip()
+    dynamic_inputs: dict[str, Any] = Field(
+        default_factory=dict, description="Structured dictionary for dynamic inputs."
+    )
 
 
 class InteractionAnalysisDTO(ReasoningTraceDTO):
     """Data Transfer Object for Interaction Agent (Content Only)."""
 
-    role_classification: Literal["Passenger", "Navigator", "Driver", "Architect"] = Field(
+    role_classification: RoleClassification = Field(
         ...,
         description="User role classification.",
         json_schema_extra={"x-ui-label": "Role"},
@@ -54,28 +50,16 @@ class InteractionAnalysisDTO(ReasoningTraceDTO):
     )
     imperative_command_count: int = Field(
         ...,
+        ge=0,
         description="Number of direct commands given by user.",
         json_schema_extra={"x-ui-label": "Commands"},
     )
-    strategy: Literal["Zero-shot", "Few-shot", "Chain-of-Thought"] = Field(
+    strategy: InteractionStrategy = Field(
         ...,
         description="Identified prompting strategy.",
         json_schema_extra={"x-ui-label": "Strategy"},
     )
 
-    @field_validator("imperative_command_count")
-    @classmethod
-    def validate_positive_count(cls, v: int) -> int:
-        if v < 0:
-            msg = "imperative_command_count cannot be negative."
-            logger.error("[InteractionModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        return v
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
 
 class InteractionAnalysis(InteractionAnalysisDTO, ReasoningTrace):
     """Output schema for the Interaction Agent (Domain Model with Metadata)."""
-
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")

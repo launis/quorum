@@ -1,4 +1,4 @@
-import hashlib
+from backend_v2.utils.hashing import generate_atom_hash
 import logging
 from dataclasses import dataclass
 from typing import Any
@@ -62,12 +62,15 @@ class PromptFactory:
                 if not b_id:
                     continue
                 for scale in block_model.scales:
-                    scale_atoms: list[str] = []
                     for claim in scale.claims:
                         mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
                         micro_atoms = claim.micro_atoms
                         if micro_atoms and len(micro_atoms) > 0:
-                            scale_atoms.extend([f"{ma.strip()}{mandate}" for ma in micro_atoms])
+                            for ma in micro_atoms:
+                                aid = generate_atom_hash(ma, mandate)
+                                if aid not in atom_to_block_ids:
+                                    atom_to_block_ids[aid] = set()
+                                atom_to_block_ids[aid].add(b_id)
                         else:
                             msg = f"PromptBlock '{b_id}' claim is missing mandatory 'micro_atoms' during runtime."
                             logger.error("[%s] %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -76,12 +79,6 @@ class PromptFactory:
                                 status_code=500,
                                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                             )
-
-                        for text in scale_atoms:
-                            aid = hashlib.md5(text.encode("utf-8")).hexdigest()
-                            if aid not in atom_to_block_ids:
-                                atom_to_block_ids[aid] = set()
-                            atom_to_block_ids[aid].add(b_id)
 
         return PromptPayload(
             base_system_prompt=base_system_prompt,

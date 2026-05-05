@@ -241,3 +241,53 @@ async def test_retrieve_precedent_hook_invalid_judge_output(mock_deps: HookDepen
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_archival_precedent_dto_valid() -> None:
+    """Test valid ArchivalPrecedentDTO."""
+    from backend_v2.models.domain.archival import ArchivalPrecedentDTO
+
+    data = {
+        "id": "usr_123_exec_456",
+        "date": "2026-05-03T10:00:00Z",
+        "scores": "95/100",
+        "verdict": "Pass",
+    }
+    model = ArchivalPrecedentDTO.model_validate(data)
+    assert model.id == "usr_123_exec_456"
+    assert model.date == "2026-05-03T10:00:00Z"
+    assert model.scores == "95/100"
+    assert model.verdict == "Pass"
+
+
+def test_archival_precedent_dto_min_length() -> None:
+    """Test ArchivalPrecedentDTO strings min_length validation."""
+    from pydantic import ValidationError
+
+    from backend_v2.models.domain.archival import ArchivalPrecedentDTO
+
+    data = {
+        "id": "",
+        "date": "2026-05-03T10:00:00Z",
+        "scores": "95/100",
+        "verdict": "Pass",
+    }
+    with pytest.raises(ValidationError):
+        ArchivalPrecedentDTO.model_validate(data)
+
+
+def test_archival_precedent_dto_extra_forbidden() -> None:
+    """Test ArchivalPrecedentDTO forbids extra fields."""
+    from pydantic import ValidationError
+
+    from backend_v2.models.domain.archival import ArchivalPrecedentDTO
+
+    data = {
+        "id": "usr_123",
+        "date": "2026-05-03T10:00:00Z",
+        "scores": "95/100",
+        "verdict": "Pass",
+        "extra_field": "invalid",
+    }
+    with pytest.raises(ValidationError):
+        ArchivalPrecedentDTO.model_validate(data)

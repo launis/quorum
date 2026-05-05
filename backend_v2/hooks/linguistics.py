@@ -109,7 +109,10 @@ def detect_performative_patterns(state: HookState, deps: HookDependencies) -> Ho
 
     # Strict Validation via DTO inflation
     try:
-        payload = LinguisticsPayloadDTO.model_validate(state.inputs)
+        payload_data = {"dynamic_inputs": state.inputs}
+        if "language" in state.inputs:
+            payload_data["language"] = state.inputs["language"]
+        payload = LinguisticsPayloadDTO.model_validate(payload_data)
     except Exception as e:
         error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
         msg = f"Failed to strictly validate inputs for linguistics: {e}"

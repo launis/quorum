@@ -10,7 +10,7 @@ class ScoringEngineBase(ABC):
 
     @abstractmethod
     def calculate(
-        self, stats: dict[float, dict[str, int]], math_min: float, math_max: float
+        self, stats: dict[float, dict[str, int]], math_min: float, math_max: float, strictness_level: int = 50
     ) -> tuple[float, str, dict[str, dict[str, int]]]:
         """Calculates the final score and generates XAI justification log.
 

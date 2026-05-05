@@ -1,22 +1,11 @@
 import logging
-from typing import Any
 
 from fastapi import APIRouter
-from pydantic import BaseModel, RootModel
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
-from backend_v2.models.dtos.studio import WorkflowResponseDTO
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.studio import WorkflowDeleteResponse, WorkflowResponseDTO, WorkflowSimulationResponse
 from backend_v2.models.v2_core import Workflow
-
-
-class WorkflowSimulationResponse(RootModel[dict[str, Any]]):
-    pass
-
-
-class WorkflowDeleteResponse(BaseModel):
-    status: str
-    deleted_id: str
-
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +36,7 @@ async def simulate_workflow(
 ) -> WorkflowSimulationResponse:
     """Dry-run and validate a workflow DAG topology before saving."""
     result = await studio_service.simulate_workflow(current_user, data)
-    return WorkflowSimulationResponse(result)
+    return WorkflowSimulationResponse(**result)
 
 
 @router.post("/{id}/clone", response_model=WorkflowResponseDTO)
@@ -73,8 +62,6 @@ async def delete_workflow(
         await studio_service.delete_workflow(current_user, id)
         return WorkflowDeleteResponse(status="success", deleted_id=id)
     except Exception as e:
-        from backend_v2.exceptions import AppException, ErrorCodes
-
         if isinstance(e, AppException):
             raise
         logger.error(

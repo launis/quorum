@@ -3,6 +3,9 @@ Strict definition of allowed types to enforce the No-String Mandate.
 """
 
 from enum import Enum
+from typing import Annotated
+
+from pydantic import Field
 
 
 class EvaluationMandate(str, Enum):
@@ -69,9 +72,9 @@ class WaterfallThreshold(float, Enum):
     Defines the hit rate percentage required to pass a scale level.
     """
 
-    STRICT = 1.00
-    STANDARD = 0.90
-    LENIENT = 0.75
+    STRICT = 0.70    # Requires ~70% consensus (Tiukka 85)
+    STANDARD = 0.40  # Requires ~40% consensus (Tasapainoinen 50)
+    LENIENT = 0.15   # Requires ~15% consensus (Salliva 15)
 
 
 class CognitiveFlowThreshold(float, Enum):
@@ -95,6 +98,18 @@ class ScoringCalibrationThresholds(float, Enum):
 
     DINA_FLOOR = 0.30
     PENALTY_CAP = 0.25
+    BENEFIT_OF_DOUBT_BONUS = 0.15
+
+
+class EvaluationCategory(str, Enum):
+    """Broad categorization for component classification."""
+
+    MATHEMATICAL = "MATHEMATICAL"
+    SEMANTIC = "SEMANTIC"
+    LINGUISTIC = "LINGUISTIC"
+    LOGICAL = "LOGICAL"
+    BEHAVIORAL = "BEHAVIORAL"
+    UNKNOWN = "UNKNOWN"
 
 
 class ExecutionStatus(str, Enum):
@@ -120,7 +135,7 @@ class SystemConcurrency(int, Enum):
     MAX_CONCURRENT_LLM_STEPS = 2
     LLM_MAX_RETRIES = 8
     LLM_MAX_CHUNK_SIZE = 60
-    MATRIX_SAMPLING_LIMIT = 3
+    MATRIX_SAMPLING_LIMIT = 25
     LLM_DEFAULT_TIMEOUT_SECONDS = 600
     RATE_LIMIT_COOLDOWN_SECONDS = 65
     MAX_SAFE_TOKENS = 1000000
@@ -188,9 +203,27 @@ class RoleClassification(str, Enum):
     ARCHITECT = "ROLE_ARCHITECT"
 
 
+class InteractionStrategy(str, Enum):
+    ZERO_SHOT = "STRATEGY_ZERO_SHOT"
+    FEW_SHOT = "STRATEGY_FEW_SHOT"
+    CHAIN_OF_THOUGHT = "STRATEGY_CHAIN_OF_THOUGHT"
+
+
 class ScoringPenalty(str, Enum):
     SECURITY_THREAT = "PENALTY_SECURITY_THREAT"
     POST_HOC = "PENALTY_POST_HOC"
+
+
+class VerificationResult(str, Enum):
+    VERIFIED = "RESULT_VERIFIED"
+    DEBUNKED = "RESULT_DEBUNKED"
+    UNVERIFIED = "RESULT_UNVERIFIED"
+
+
+class EthicalSeverity(str, Enum):
+    NONE = "SEVERITY_NONE"
+    WARNING = "SEVERITY_WARNING"
+    CRITICAL = "SEVERITY_CRITICAL"
 
 
 class HelpTextKey(str, Enum):
@@ -293,3 +326,17 @@ class ScoringStrategy(str, Enum):
     PROGRESSIVE_DAMPENING = "PROGRESSIVE_DAMPENING"
     PURE_AVERAGE = "PURE_AVERAGE"
     WEIGHTED_AVERAGE = "WEIGHTED_AVERAGE"
+
+
+# --- Lax Type Aliases (Pydantic V2) ---
+LaxXaiExtensionType = Annotated[XaiExtensionType, Field(strict=False)]
+LaxAuthenticityLevel = Annotated[AuthenticityLevel, Field(strict=False)]
+LaxBloomLevel = Annotated[BloomLevel, Field(strict=False)]
+LaxStrategicDepth = Annotated[StrategicDepth, Field(strict=False)]
+LaxVerificationResult = Annotated[VerificationResult, Field(strict=False)]
+LaxEthicalSeverity = Annotated[EthicalSeverity, Field(strict=False)]
+LaxExecutionStatus = Annotated[ExecutionStatus, Field(strict=False)]
+LaxBlockDataType = Annotated[BlockDataType, Field(strict=False)]
+LaxComponentType = Annotated[ComponentType, Field(strict=False)]
+LaxHistoricalContextMode = Annotated[HistoricalContextMode, Field(strict=False)]
+LaxScoringStrategy = Annotated[ScoringStrategy, Field(strict=False)]

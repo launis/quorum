@@ -1,11 +1,18 @@
 """Logging configuration module."""
 
+import json
 import logging
 import os
+import re
 import sys
 from typing import Any
 
 from backend_v2.settings import get_settings
+
+try:
+    import litellm
+except ImportError:
+    litellm = None  # type: ignore[assignment]
 
 # Force UTF-8 on Windows to prevent Logfire/Rich box-drawing crashes (cp1252 to undefined)
 if sys.platform == "win32":
@@ -25,7 +32,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 try:
     import logfire
 except ImportError:
-    logfire: Any = None  # type: ignore
+    logfire = None  # type: ignore[assignment]
     logging.getLogger(__name__).info("Logfire module not found. Cloud observability will be disabled.")
 except Exception as e:
     logging.getLogger(__name__).error("Unexpected error importing logfire.", exc_info=True)
@@ -93,10 +100,9 @@ def configure_logfire() -> None:
         logfire.instrument_httpx()
         # logfire.instrument_redis() # Spams the console with Arq queue polling (ZRANGEBYSCORE/ZCARD) every 0.5s
 
-        import litellm
-
-        litellm.success_callback = ["logfire"]  # Instrument LLM Calls
-        litellm.failure_callback = ["logfire"]
+        if litellm is not None:
+            litellm.success_callback = ["logfire"]  # Instrument LLM Calls
+            litellm.failure_callback = ["logfire"]
     except Exception as e:
         msg = f"[LoggingConfig] Logfire validation failed: {e}. Observability disabled."
         logging.getLogger(__name__).warning(
@@ -206,18 +212,17 @@ def setup_logging(log_level: int = logging.INFO) -> None:
         llm_logger.propagate = True
         llm_logger.setLevel(logging.INFO)
 
-    try:
-        import litellm
-
-        litellm.set_verbose = False  # type: ignore[attr-defined]
-        litellm.suppress_debug_info = True  # Suppress print statements
-    except ImportError:
+    if litellm is not None:
+        try:
+            litellm.set_verbose = False  # type: ignore[attr-defined]
+            litellm.suppress_debug_info = True  # Suppress print statements
+        except Exception as e:
+            logging.getLogger(__name__).error("Unexpected error configuring LiteLLM.", exc_info=True)
+            raise AppException(
+                message="Failed to configure LiteLLM logging.", details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+            ) from e
+    else:
         logging.getLogger(__name__).info("LiteLLM module not found. Skipping LiteLLM debug configuration.")
-    except Exception as e:
-        logging.getLogger(__name__).error("Unexpected error configuring LiteLLM.", exc_info=True)
-        raise AppException(
-            message="Failed to configure LiteLLM logging.", details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
-        ) from e
 
     logging.info(f"Logging configured. Writing to: {log_file_path}")
 
@@ -245,8 +250,6 @@ class JSONFormatter(logging.Formatter):
         if hasattr(record, "details"):
             log_record["details"] = record.details
 
-        import json
-
         return json.dumps(log_record)
 
 
@@ -256,8 +259,6 @@ def log_error(logger: logging.Logger, exc: Exception, message: str = "An error o
     Extracts error_code and details from the exception if available,
     aligning the log output with the APIError schema.
     """
-    import re
-
     error_code = "INTERNAL_ERROR"
     details = None
 

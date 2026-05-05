@@ -1,8 +1,12 @@
 import os
 import socket
+import sys
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
+
+# Removed global mock of backend_v2.llm.client to allow unit tests to run.
 
 os.environ["DISABLE_LOGFIRE"] = "true"
 

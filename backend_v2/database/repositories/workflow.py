@@ -9,7 +9,7 @@ from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import SystemOrganizations
-from backend_v2.models.v2_core import Workflow as WorkflowDefinition
+from backend_v2.models.v2_core import Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
     """Repository implementation for Workflows and Steps."""
 
-    async def get_workflow_definition(self, workflow_id: str) -> WorkflowDefinition | None:
+    async def get_workflow_definition(self, workflow_id: str) -> Workflow | None:
         data = await self.driver.get("workflows", workflow_id)
 
         if not data:
@@ -38,9 +38,9 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
             else:
                 return None
 
-        return WorkflowDefinition(**data)
+        return Workflow(**data)
 
-    async def get_workflow(self, workflow_id: str) -> WorkflowDefinition | None:
+    async def get_workflow(self, workflow_id: str) -> Workflow | None:
         return await self.get_workflow_definition(workflow_id)
 
     async def get_all_workflows(

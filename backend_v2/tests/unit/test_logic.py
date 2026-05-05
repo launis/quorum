@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -7,10 +7,10 @@ from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 
 
 @pytest.mark.asyncio
-async def test_logic_strategy_missing_blueprint() -> None:
+async def _test_logic_strategy_missing_blueprint() -> None:
     repo = MagicMock()
     compiler = MagicMock()
-    strategy = LogicNodeStrategy(
+    _strategy = LogicNodeStrategy(
         exec_repo=repo,
         workflow_repo=repo,
         comp_repo=repo,
@@ -27,17 +27,9 @@ async def test_logic_strategy_missing_blueprint() -> None:
     projector = MagicMock()
     projector.snapshot = {}
 
-    context = MagicMock()
-
-from unittest.mock import MagicMock
-
-import pytest
-
-from backend_v2.exceptions import AppException
-from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
+    _context = MagicMock()
 
 
-@pytest.mark.asyncio
 async def test_logic_strategy_missing_blueprint() -> None:
     repo = MagicMock()
     compiler = MagicMock()
@@ -70,12 +62,11 @@ async def test_logic_strategy_missing_blueprint() -> None:
 async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
     from backend_v2.models.state import StepOutputDTO
     from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
-    from unittest.mock import AsyncMock
 
     repo = AsyncMock()
     # Mock get_step_by_id to return a valid step def
     repo.get_step_by_id.return_value = {"id": "st_1234567890123456"}
-    
+
     compiler = MagicMock()
     strategy = LogicNodeStrategy(
         exec_repo=repo,
@@ -106,23 +97,23 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
     context.metadata = {}
 
     # Mock the hook registry so it doesn't actually try to execute "some_hook"
-    from backend_v2.core.hook_registry import hook_registry, HookResult
-    hook_registry.execute = AsyncMock(return_value=HookResult(success=True, state_delta={}))
+    from backend_v2.core.hook_registry import HookResult
 
-    # Mock V2Step.model_validate
-    from backend_v2.models.v2_core import Step as V2Step
     v2_step_mock = MagicMock()
     v2_step_mock.hook = "some_hook"
-    V2Step.model_validate = MagicMock(return_value=v2_step_mock)
 
-    # We expect `strategy.execute` to correctly extract `raw_inputs` as a DICTIONARY:
-    # {"chat_log": "**Gemini Chat**...", "organization_id": "org-123"}
-    # Because of the bug, it will just extract the string "**Gemini Chat**...".
-    
-    await strategy.execute(step, projector, context, None, [])
-    
-    # Verify what was passed to the hook registry
-    hook_state = hook_registry.execute.call_args[0][1]
-    
-    assert isinstance(hook_state.inputs["raw_inputs"], dict), f"Bug! raw_inputs is {type(hook_state.inputs['raw_inputs'])} instead of dict"
+    with (
+        patch(
+            "backend_v2.core.hook_registry.hook_registry.execute",
+            new_callable=AsyncMock,
+            return_value=HookResult(success=True, state_delta={}),
+        ) as mock_hook,
+        patch("backend_v2.models.v2_core.Step.model_validate", return_value=v2_step_mock),
+    ):
+        await strategy.execute(step, projector, context, None, [])
+        hook_state = mock_hook.call_args[0][1]
+
+    assert isinstance(hook_state.inputs["raw_inputs"], dict), (
+        f"Bug! raw_inputs is {type(hook_state.inputs['raw_inputs'])} instead of dict"
+    )
     assert hook_state.inputs["raw_inputs"]["chat_log"] == "**Gemini Chat**..."

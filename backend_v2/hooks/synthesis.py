@@ -344,17 +344,34 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         for w_step in workflow_data.steps:
             try:
                 target_step = step_def_map[str(w_step.task_blueprint)]
-            except KeyError:
-                target_step = None
+            except KeyError as e:
+                msg = (
+                    f"Data integrity failure: Workflow Step '{w_step.id}' references "
+                    f"missing Step (TaskBlueprint) '{w_step.task_blueprint}'."
+                )
+                logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
 
-            if target_step and target_step.prompt_blocks:
+            if target_step.prompt_blocks:
                 for b_id in target_step.prompt_blocks:
                     try:
                         p_block = block_map[str(b_id)]
-                    except KeyError:
-                        p_block = None
+                    except KeyError as e:
+                        msg = (
+                            f"Data integrity failure: Step '{target_step.id}' references missing PromptBlock '{b_id}'."
+                        )
+                        logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        raise AppException(
+                            message=msg,
+                            status_code=400,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        ) from e
 
-                    if p_block and p_block.category_id == "matrix":
+                    if p_block.category_id == "matrix":
                         matrix_step_ids.add(str(w_step.id))
                         break
 
@@ -631,14 +648,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         audit_traces = tool_res.audit_traces
 
         span.set_attribute("synthesized_markdown_length", len(result.synthesized_markdown))
-        span.set_attribute("synthesis_token_usage", json.dumps(token_usage))
+        span.set_attribute("synthesis_token_usage", token_usage.model_dump_json())
 
-        current_usage = dict(hook_metadata_dto.token_usage)
-        for k, v in token_usage.items():
-            try:
-                current_usage[k] = current_usage[k] + v
-            except KeyError:
-                current_usage[k] = v
+        updated_usage = hook_metadata_dto.token_usage + token_usage
 
         raw_audits = [a.model_dump(mode="json") for a in audit_traces] if audit_traces else []
 
@@ -674,7 +686,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 "section_syntheses": section_dict,
                 "cited_sources": result.cited_sources,
                 "xai_highlights": raw_highlights,
-                "step_metadata_updates": {"token_usage": current_usage},
+                "step_metadata_updates": {"token_usage": updated_usage.model_dump()},
                 "mcp_tool_audit": raw_audits,
             },
         )

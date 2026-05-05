@@ -23,7 +23,7 @@ def mock_repo() -> AsyncMock:
         "status": ExecutionStatus.PENDING,
         "strictness_level": 50,
         "scoring_strategy": "WATERFALL_FLOOR",
-        "raw_inputs": {"log": "test"},
+        "raw_inputs": {"dynamic_inputs": {"log": "test"}},
         "metadata": {},
     }
     return repo
@@ -94,7 +94,9 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
         with patch.object(executor.node_executor, "execute", side_effect=mock_execute):
             with pytest.raises(AppException) as exc_info:
                 await executor.execute_workflow(
-                    execution_id="exe_1111222233334444", workflow=workflow, raw_inputs={"log": "test"}
+                    execution_id="exe_1111222233334444",
+                    workflow=workflow,
+                    raw_inputs={"dynamic_inputs": {"log": "test"}},
                 )
 
             # The failure from the first step should unwrap gracefully

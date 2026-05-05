@@ -15,7 +15,7 @@ Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus
 * **ERIKOISSÄÄNTÖ YKSITTÄISILLE TIEDOSTOILLE:** Jos käyttäjä antaa komennossaan tarkan tiedoston tai tiedostoja (esim. `backend_v2/services/execution.py`), kartoita lista **Vain näistä yksittäisistä tiedostoista**. Älä laajenna auditointia koko hakemistoon.
 * **EHDOTON KIELTO (Sivuutettavat tiedostot):** Sivuuta analyysissä täysin `__pycache__` -kansiot, virtuaaliympäristöt (`venv`, `.venv`), alembic-migraatioiden versiotiedostot (`alembic/versions`) ja täysin tyhjät `__init__.py` -tiedostot. Älä lue, auditoi tai yritä muokata niitä säästääksesi resursseja ja kontekstia.
 * **SÄÄNTÖ:** Rakenna havainnoistasi chattiin tulostettava virtuaalinen Markdown-tarkistuslista (`task_backend.md`). Jaa lista niin hienojakoiseksi, että **JOKAINEN alin alihakemisto (leaf directory) TAI annettujen yksittäisten tiedostojen tapauksessa JOKAINEN yksittäinen tiedosto on oma erillinen kohtansa listalla**. Hakemistoja ei saa niputtaa.
-* **STATE PERSISTENCE & CONTEXT RENEWAL:** Jos käyttäjän komennossa on `--resume` tai tiedosto `c:\src\quorum\tmp\hardening_state.json` on olemassa, lue se. Jätä listalta pois kaikki hakemistot, jotka on siellä merkitty tilaan "DONE". Tuo lista vain tekemättömistä hakemistoista. Aseta samalla lokaali tavoite: "Käsittelen maksimissaan 10 tiedostoa tässä sessiossa estääkseni kontekstin hajoamisen."
+* **STATE PERSISTENCE & CONTEXT RENEWAL:** Jos käyttäjän komennossa on `--resume` tai tiedosto `c:\src\quorum\tmp\hardening_state.json` on olemassa, lue se. Jätä listalta pois kaikki hakemistot, jotka on siellä merkitty tilaan "DONE". Tuo lista vain tekemättömistä hakemistoista. Aseta samalla lokaali tavoite: "Käsittelen maksimissaan 5 tiedostoa tässä sessiossa estääkseni kontekstin hajoamisen."
 * **KIELTO:** ÄLÄ tee koodimuutoksia tässä vaiheessa. Päätä vastauksesi aina sanoihin: *"Lista valmis. Odotan PROCEED-komentoa."*
     </phase>
     <phase id="2" name="Auditing (Systemaattinen Auditointi, One Subdirectory At A Time)">
@@ -56,11 +56,20 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
    - **`zero_db_hardcoding_mandate`**: Tietokannan ID:itä tai nimiä ei saa vertailla logiikassa (magic strings). Listojen alkioihin ei saa viitata kovakoodatuilla indekseillä olettaen palautusjärjestys.
    - **`prompt_compiler_immutability`**: Älä muokkaa `prompt_compiler.py` -tiedostoa.
    - **`Synthesis.py Standard`**: Funktiot "Pure Functions" muodossa. Sisäkkäisten looppien tilalla O(1) haut.
-   - Käytä sarakkeita: `| Rule Block ID / Sääntö | Tila (Pass / Fail) | Löydökset & Perustelu |`.
+   - **`single_source_of_truth_mandate`**: Makrotason tarkistus (Migration Code Smell). Koodikannassa ei saa olla V1- ja V2-malleja tai päällekkäistä hydrataatiologiikkaa rinnakkain samalle asialle (esim. vanha `WorkflowDefinition` vs uusi `Workflow`, tai lokaalit `strict=False` -määrittelyt hajautettuna DTO-malleissa). Kaiken on ohjauduttava yhteen keskitettyyn lähteeseen (esim. V2CoreBase tai `enums.py` Lax-aliakset). Jos auditoitava malli, tiedosto tai tyyppimäärittely on vanhentunut tai toisteinen rinnakkaisversio uudemmasta keskitetystä arkkitehtuurista, se on merkittävä FAIL-tilaan ja deletoitava/refaktoroitava armotta.
+   - **`annotated_hydration_mandate`**: Merkkijonojen ja Enumien välinen konversio ulkoisesta datasta (hydration) on EHDOTTOMASTI tehtävä Pydanticin natiivilla `Annotated[Enum, Field(strict=False)]` -mekanismilla. Manuaalisten arvojen parsinta (esim. try-except silmukat Enum-arvojen "arvaamiseksi") on kielletty. Kaikkien DTO-mallien on tuotava valmiit Lax-aliakset suoraan `enums.py` -tiedostosta, eikä DTO-malli saa koskaan yrittää ohittaa tiukkaa tyypitystä paikallisilla määrittelyillä.
+   - Käytä sarakkeita: `| Nro | Rule Block ID / Sääntö | Tila (Pass / Fail) | Löydökset & Perustelu |`.
    - Varmista, että todella käyt läpi koodista säännösten <banned_pattern> ja <mandatory_pattern> asiat kohta kohdalta. Tämä poistaa hallusinaatiot ja ohitukset.
+
+    <critical_anti_laziness_mandate>
+      KIELTO: Audit Matrixin tiivistäminen, rivien yhdistäminen tai sääntöjen pois jättäminen on ANKARASTI KIELLETTY (Anti-Laziness Mandate). 
+      Sinun on PAKKO tulostaa taulukkoon tasan 35 numeroitua riviä (1-35) joka ikinen kerta, vaikka 34 niistä olisi "Pass". 
+      Jos tulostat taulukkoon alle 35 riviä, rikot suoraan järjestelmän pääarkkitehtuurin sääntöjä. Jokainen Phase 9 -sääntö on käytävä läpi eksplisiittisesti, jotta pakotat oman huomiomekanismisi (attention mechanism) tarkistamaan koodin tuon säännön osalta.
+    </critical_anti_laziness_mandate>
+
 4. Pysähdy taulukon tulostamisen jälkeen. Odotan sen näkemistä. Jää odottamaan komentoa "FIX" (jos asioita on korjattavana / Fail) tai komentoa "NEXT" (jos kaikki säännöt olivat puhtaasti Pass).
 5. **STATE PERSISTENCE (TALLENNUS):** Kun kansio on valmis (eli sait komennon korjata ja korjasit, TAI se oli heti puhdas), päivitä VÄLITTÖMÄSTI `c:\src\quorum\tmp\hardening_state.json` ja merkkaa tämä alihakemisto tilaan "DONE". Pidä lukua tässä sessiossa auditoimiesi tiedostojen yhteismäärästä.
-6. **SESSION LIMIT**: Jos olet käsitellyt (auditoinut) yhteensä 10 tiedostoa TÄSSÄ sessiossa, LOPETA välittömästi kansion valmistuttua. Älä siirry seuraavaan. Tulosta käyttäjälle: *"Sessioraja (10 tiedostoa) saavutettu. Avaa uusi chat-ikkuna ja anna komento `/tier2-hardening-backend --resume` jatkaaksesi laatuporttia turvallisesti."*  
+6. **SESSION LIMIT**: Jos olet käsitellyt (auditoinut) yhteensä 5 tiedostoa TÄSSÄ sessiossa, LOPETA välittömästi kansion valmistuttua. Älä siirry seuraavaan. Tulosta käyttäjälle: *"Sessioraja (5 tiedostoa) saavutettu. Avaa uusi chat-ikkuna ja anna komento `/tier2-hardening-backend --resume` jatkaaksesi laatuporttia turvallisesti."*  
     </phase>
     <critical_remediation_protocol name="STEP 3 - FIX (Korjausvaihe)">
 Tämä on kriittinen suoritusprotokolla. Kun annan komennon **"FIX"**, sinun on välittömästi korjattava listaamasi kansion virheet 2026-mandaatin tiukkojen sääntöjen mukaisesti. Sinun on noudatettava alla olevia rajoitteita poikkeuksetta:

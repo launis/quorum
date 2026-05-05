@@ -65,7 +65,6 @@ class ContextBuilder:
                         if "evaluated_atoms" in pruned_dict:
                             del pruned_dict["evaluated_atoms"]
 
-                        pruned_dict["raw_result"] = f"{matrix_dto.raw_score} / {len(matrix_dto.evaluated_atoms)}"
                         pruned_step_output[key] = pruned_dict
                     except Exception as e:
                         msg = f"ContextRouter trace pruning failed for block {key}: {e}"

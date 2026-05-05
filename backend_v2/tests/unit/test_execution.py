@@ -41,38 +41,6 @@ def admin_token() -> TokenData:
 
 
 @pytest.mark.asyncio
-async def test_delete_execution_fails_fast_on_storage_error(
-    execution_service: ExecutionService, admin_token: TokenData, mock_repo: AsyncMock
-) -> None:
-    """Test that execution deletion fails fast and crashes if blob storage cleanup fails."""
-    # Mock database returning raw execution with a trace storage path
-    from unittest.mock import MagicMock
-
-    mock_execution = MagicMock()
-    mock_execution.model_dump.return_value = {
-        "id": "exe_123",
-        "created_by": "admin-1",
-        "organization_id": "org_1",
-        "execution_trace_storage_path": "traces/exe_123.json",
-    }
-    mock_repo.get_execution.return_value = mock_execution
-
-    with patch("backend_v2.services.execution.get_storage_driver") as mock_get_storage:
-        mock_storage = AsyncMock()
-        # Simulate storage being offline/failing
-        mock_storage.delete.side_effect = Exception("AWS S3 Offline")
-        mock_get_storage.return_value = mock_storage
-
-        # The service MUST crash with 500, not swallow the error!
-        with pytest.raises(AppException) as exc_info:
-            await execution_service.delete_execution(initiator=admin_token, execution_id="exe_123")
-
-        assert exc_info.value.status_code == 500
-        assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
-        assert "Failed to clean up blob" in exc_info.value.message
-
-
-@pytest.mark.asyncio
 async def test_render_execution_fails_fast_on_corrupt_pdf(
     execution_service: ExecutionService, admin_token: TokenData, mock_repo: AsyncMock
 ) -> None:

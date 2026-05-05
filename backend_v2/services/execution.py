@@ -22,7 +22,6 @@ from backend_v2.exceptions import (
     PermissionDeniedError,
     ResourceNotFoundError,
 )
-from backend_v2.hooks.translation_hook import translate_sdui_payload
 from backend_v2.models.auth import SystemOrganizations, TokenData
 from backend_v2.models.v2_core import (
     ComponentType,
@@ -170,10 +169,14 @@ class ExecutionService:
 
         # V2 MANDATE: Strict Fail-Fast Validation of required inputs synchronously
         raw_inputs_dict = payload.raw_inputs.model_dump(exclude_unset=True)
+        dynamic_inputs = raw_inputs_dict.get("dynamic_inputs", {})
         missing_fields = []
         for expected in workflow.expected_inputs:
             if expected.required:
                 val = raw_inputs_dict.get(expected.input_key)
+                if val is None:
+                    val = dynamic_inputs.get(expected.input_key)
+
                 if val is None:
                     missing_fields.append(expected.input_key)
                 elif isinstance(val, str) and not val.strip():
@@ -351,7 +354,7 @@ class ExecutionService:
                     details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value},
                 )
 
-        record.status = ExecutionStatus.RUNNING
+        record = record.model_copy(update={"status": ExecutionStatus.RUNNING})
         await self.exec_repo.update_execution(execution_id, {"status": "running"})
 
         # 2. Fire Async Process into durable Redis Queue using original raw inputs
@@ -393,8 +396,10 @@ class ExecutionService:
         """Removes the synthesized data for a specific profile to force re-render via LLM Hook."""
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
 
-        if profile_id in execution.profile_syntheses:
-            del execution.profile_syntheses[profile_id]
+        if execution.profile_syntheses and profile_id in execution.profile_syntheses:
+            new_syntheses = dict(execution.profile_syntheses)
+            del new_syntheses[profile_id]
+            execution = execution.model_copy(update={"profile_syntheses": new_syntheses})
 
         workflow_data = await self.workflow_repo.get_workflow_by_id(execution.workflow_id)
         if not workflow_data:
@@ -500,11 +505,6 @@ class ExecutionService:
         if fmt == "json":
             transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
             dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
-
-            # API Pipeline Splicing (Epic 35)
-            # Apply immutable translation hook before dumping to dictionary
-            if accept_language and accept_language.lower() != "en":
-                dto = await translate_sdui_payload(dto, accept_language, self.comp_repo)
 
             return dto.model_dump(mode="json"), "application/json", None
 

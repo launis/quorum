@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -27,12 +27,25 @@ from backend_v2.models.domain.overseer import OverseerOutput
 from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.profiler import ProfilerOutput
 from backend_v2.models.domain.xai import XAIOutput
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
 
 
-class ReasoningTrace(BaseModel):
+class StepExecutionEnvelope(V2CoreBase):
+    """Base envelope for execution traces to prevent repetition and enforce DRY architecture."""
+
+    execution_id: str | None = Field(default=None)
+    workflow_id: str | None = Field(default=None)
+    step_id: str | None = Field(default=None)
+    initiator_id: str | None = Field(default=None)
+    timestamp_isot: str | None = Field(default=None)
+    unix_time: int | None = Field(default=None)
+    v2_engine: bool | None = Field(default=None)
+
+
+class ReasoningTrace(V2CoreBase):
     """Stores hidden Chain-of-Thought (preserves "Thinking Tokens")."""
 
     thought_process: str = Field(
@@ -48,12 +61,10 @@ class ReasoningTrace(BaseModel):
     )
     confidence_score: float = Field(ge=0.0, le=1.0, description="Confidence in the conclusion.")
     model_name: str | None = Field(default=None, description="The model used for reasoning.")
-    token_usage: dict[str, int] = Field(default_factory=dict, description="Token usage statistics.")
-
-    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
+    token_usage: TokenUsage = Field(default_factory=TokenUsage, description="Token usage statistics.")
 
 
-class TraceEvent(BaseModel):
+class TraceEvent(V2CoreBase):
     """Immutable event log item representing a distinct step or state change."""
 
     event_id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique event identifier.")
@@ -75,8 +86,6 @@ class TraceEvent(BaseModel):
     content: dict[str, Any] = Field(default_factory=dict, description="Structured content of the event.")
     reasoning: ReasoningTrace | None = Field(default=None, description="Associated reasoning trace.")
     metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata.")
-
-    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
 
 class ErrorTraceEvent(TraceEvent):
@@ -105,7 +114,7 @@ class StepOutputDTO(V2CoreBase):
     payload: Any = Field(description="The actual data payload.")
 
 
-class WorkflowState(BaseModel):
+class WorkflowState(V2CoreBase):
     """Aggregate root containing the execution trace and current state."""
 
     execution_id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique execution identifier.")
@@ -141,13 +150,6 @@ class WorkflowState(BaseModel):
     @property
     def start_time(self) -> datetime:
         return self.created_at
-
-    @property
-    def reasoning_context(self) -> Any | None:
-        """Legacy accessor for reasoning context (now largely superseded by step_analyst)."""
-        return self.context_variables.get("reasoning_context")
-
-    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
     def add_event(self, event: TraceEvent) -> WorkflowState:
         """Returns a new WorkflowState with the added event (Functional style)."""
@@ -325,17 +327,13 @@ class StateProjector:
                     "Zero-Compromise Pledge forbids unstructured data."
                 )
                 logger.error("[StateProjector] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=500)
+
+                raise AppException(
+                    status_code=500, message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.name}
+                )
 
             for block_id, payload in step_output.items():
-                # Dynamic type inference for legacy logs to support Phase 3
-                data_type: Literal["text", "matrix", "unknown"] = "unknown"
-                if isinstance(payload, str):
-                    data_type = "text"
-                elif isinstance(payload, dict):
-                    data_type = "matrix"
-
-                output.append(StepOutputDTO(step_id=step_id, block_id=block_id, data_type=data_type, payload=payload))
+                output.append(StepOutputDTO(step_id=step_id, block_id=block_id, data_type="unknown", payload=payload))
         return output
 
     def apply_delta(self, event: TraceEvent) -> None:

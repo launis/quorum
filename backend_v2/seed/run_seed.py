@@ -88,7 +88,8 @@ async def _atomize_with_cache(
 
     if cache_key in cache_data and cache_data[cache_key]:
         print(f"[Seeder V2] CACHE HIT for matrix ({current_matrix}/{total_matrices}): '{label_en}'...")
-        validated.scales = [MatrixScale.model_validate(s) for s in cache_data[cache_key]]
+        scales = [MatrixScale.model_validate(s) for s in cache_data[cache_key]]
+        validated = validated.model_copy(update={"scales": scales})
     else:
         print(f"[Seeder V2] Atomizing matrix ({current_matrix}/{total_matrices}): '{label_en}'...")
 

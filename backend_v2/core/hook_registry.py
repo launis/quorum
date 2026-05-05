@@ -13,11 +13,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 from fastapi import status
-from pydantic import BaseModel, ConfigDict, Field
-
-from backend_v2.exceptions import AppException, ErrorCodes
-
-logger = logging.getLogger(__name__)
+from pydantic import Field
 
 from backend_v2.database.interfaces import (
     IAuditRepository,
@@ -27,6 +23,10 @@ from backend_v2.database.interfaces import (
     ISystemRepository,
     IWorkflowRepository,
 )
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
+
+logger = logging.getLogger(__name__)
 
 
 class ISearchClient(Protocol):
@@ -48,12 +48,11 @@ class HookDependencies:
     search_client: ISearchClient | None = None
 
 
-class HookState(BaseModel):
+class HookState(V2CoreBase):
     """Immutable cognitive data model for hook execution.
     Enforces rules: Fail-Fast, Zero Side-Effects (frozen=True).
     """
 
-    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
     execution_id: str
     workflow_id: str
     step_id: str | None = None
@@ -63,10 +62,8 @@ class HookState(BaseModel):
     inputs: dict[str, Any]
 
 
-class HookResult(BaseModel):
+class HookResult(V2CoreBase):
     """Explicit state delta returned by Hooks for deep merging."""
-
-    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     success: bool
     state_delta: dict[str, Any] | None = Field(...)

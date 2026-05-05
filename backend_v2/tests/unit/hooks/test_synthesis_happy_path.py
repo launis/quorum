@@ -86,7 +86,18 @@ async def test_synthesis_happy_path(
     state = HookState(
         execution_id="exe_00000000000000000000",
         workflow_id="wf_00000000000000000000",
-        inputs={"step_1": {"reasoning_trace": "Some logic"}},
+        inputs={
+            "steps": {
+                "step_1": {
+                    "text_response": "Some text",
+                    "reasoning_trace": {
+                        "thought_process": "Some thought",
+                        "conclusion": "Some conclusion",
+                        "confidence_score": 0.9,
+                    },
+                }
+            }
+        },
         metadata={
             "target_locale": "en",
             "step_results": [
@@ -94,7 +105,14 @@ async def test_synthesis_happy_path(
                     "step_id": "step_1",
                     "block_id": "b",
                     "data_type": "text",
-                    "payload": {"reasoning_trace": "Some logic"},
+                    "payload": {
+                        "text_response": "Some text",
+                        "reasoning_trace": {
+                            "thought_process": "Some thought",
+                            "conclusion": "Some conclusion",
+                            "confidence_score": 0.9,
+                        },
+                    },
                 }
             ],
         },  # noqa: E501

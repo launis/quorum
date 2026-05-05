@@ -1,14 +1,15 @@
 import logging
 import uuid
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import Field, field_validator
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
 
 logger = logging.getLogger(__name__)
 
 
-class Chunk[T](BaseModel):
+class Chunk[T](V2CoreBase):
     """Represents a chunk of a larger array, tracked by an Opaque Stripe ID."""
 
     id: str = Field(
@@ -30,10 +31,8 @@ class Chunk[T](BaseModel):
         description="The actual chunked payload elements.",
     )
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-
-class ChunkingRequest[T](BaseModel):
+class ChunkingRequest[T](V2CoreBase):
     """Payload to request chunking operation."""
 
     parent_id: str | None = Field(
@@ -50,13 +49,11 @@ class ChunkingRequest[T](BaseModel):
         description="Maximum number of items per chunk.",
     )
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
     @field_validator("items")
     @classmethod
     def validate_items_not_empty(cls, v: list[T]) -> list[T]:
         if not v:
             msg = "Cannot chunk an empty list. Items must contain at least one element."
             logger.error("[Chunking] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+            raise ValueError(msg)
         return v

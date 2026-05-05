@@ -42,7 +42,7 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
         error_code = ErrorCodes.CONFIGURATION_ERROR
         msg = "Repository not injected. Cannot retrieve precedents."
         logger.error(f"[ArchivalHook] {error_code.name}: {msg}")
-        raise AppException(message=msg, status_code=500, details={"error_code": error_code})
+        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
 
     try:
         # 1. Use Repository to get recent completed executions
@@ -53,7 +53,7 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
             error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
             msg = "Repository returned dicts instead of Pydantic Models. Strict Pydantic Enforcement Violation."
             logger.error(f"[ArchivalHook] {error_code.name}: {msg}")
-            raise AppException(message=msg, status_code=500, details={"error_code": error_code})
+            raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
 
         # 2. Filter and Format
         precedents = []
@@ -98,9 +98,6 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
                                 .replace("_", " ")
                                 .title()
                             )
-                            if label == "Standard":
-                                label = "Standard"  # Keep simple
-
                             judge_outputs[label] = judge_candidate
                     except Exception as e:
                         error_code = ErrorCodes.VALIDATION_FAILED

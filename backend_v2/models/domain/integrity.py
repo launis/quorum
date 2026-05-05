@@ -6,26 +6,26 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
+
+from backend_v2.models.core_base import V2CoreBase
 
 
-class KnowledgeItem(BaseModel):
+class KnowledgeItem(V2CoreBase):
     """Knowledge item structure."""
 
     term: str
     definition: str
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
-class StepContext(BaseModel):
+class StepContext(V2CoreBase):
     """Step context structure."""
 
     precedents: str | None = None
     knowledge_items: list[KnowledgeItem] = Field(default_factory=list)
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
-class CitationAudit(BaseModel):
+class CitationAudit(V2CoreBase):
     """Audit result for citation integrity."""
 
     valid_citations: int = Field(default=0, description="Count of valid, verified citations.")
@@ -33,26 +33,21 @@ class CitationAudit(BaseModel):
         default_factory=list, description="List of hallucinations (citations not found in text)."
     )
     integrity_score: float = Field(default=1.0, description="Ratio of valid citations (0.0 - 1.0).")
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
-class IntegrityGlobalInputsDTO(BaseModel):
-    """Strict schema to safely extract nested source texts from global context vars
-    without using hasattr() or isinstance().
+class IntegrityGlobalInputsDTO(V2CoreBase):
+    """Strict schema to safely extract nested source texts from global context vars.
+
+    Enforces Zero-Compromise Pydantic V2 schema without duck-typing.
     """
 
     raw_inputs: dict[str, Any] | None = Field(default=None)
-    model_config = ConfigDict(frozen=True, extra="allow")
 
     def extract_source_texts(self) -> list[str]:
         """Extracts source text securely from strictly parsed properties."""
         texts = []
         if self.raw_inputs:
             for v in self.raw_inputs.values():
-                if v:
-                    texts.append(str(v))
-        elif self.model_extra:
-            for v in self.model_extra.values():
                 if v:
                     texts.append(str(v))
         return texts

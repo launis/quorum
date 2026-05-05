@@ -32,7 +32,11 @@ async def test_lite_llm_rate_limit_cooldown(mock_settings: Any, monkeypatch: Any
     async def mock_acompletion(*args: Any, **kwargs: Any) -> Any:
         call_count["count"] += 1
         if call_count["count"] == 1:
-            raise Exception("litellm.RateLimitError: 429 Resource exhausted")
+
+            class MockRateLimit(Exception):
+                status_code = 429
+
+            raise MockRateLimit("litellm.RateLimitError: 429 Resource exhausted")
 
         # Second call succeeds
         class MockChoice:

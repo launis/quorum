@@ -54,8 +54,8 @@ class BlueprintTransformer:
             logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
             raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND})
 
-        workflow_data = await self.workflow_repo.get_workflow_by_id(execution.workflow_id)
-        if not workflow_data:
+        workflow_obj = await self.workflow_repo.get_workflow(execution.workflow_id)
+        if not workflow_obj:
             msg = f"Executing workflow {execution.workflow_id} not found."
             logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED})
@@ -91,8 +91,6 @@ class BlueprintTransformer:
 
             return " ".join(cleaned).strip()
 
-        workflow_obj = Workflow.model_validate(workflow_data)
-
         # Fetch the selected output profile from repository
         default_profile_ref = workflow_obj.default_profile_id
 
@@ -100,22 +98,7 @@ class BlueprintTransformer:
         resolved_pid_request = profile_id if profile_id and profile_id != "default" else default_profile_ref
 
         # Pre-fetch all profiles for relation resolution and UI dropdown mapping
-        all_profiles_data = await self.comp_repo.get_all_output_profiles()
-        all_profiles = []
-        for pd in all_profiles_data:
-            try:
-                all_profiles.append(OutputProfile.model_validate(pd))
-            except Exception as e:
-                logger.error(
-                    "[BlueprintTransformer] VALIDATION_FAILED: Failed to parse profile: %s",
-                    e,
-                    exc_info=True,
-                )
-                raise AppException(
-                    message="Failed to parse profile from database",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                ) from e
+        all_profiles = await self.comp_repo.get_all_output_profiles_models()
 
         # 1. Try to resolve by Exact Opaque ID
         profile = next((p for p in all_profiles if p.id == resolved_pid_request), None)
@@ -142,24 +125,11 @@ class BlueprintTransformer:
         grouped_extensions: dict[str, list[Any]] = {ext: [] for ext in visible_extensions}
 
         # We must pre-fetch blocks early for resolving axis_label
-        all_blocks = await self.comp_repo.get_all_prompt_blocks()
+        all_blocks_models = await self.comp_repo.get_all_prompt_blocks_models()
         blocks_by_id: dict[str, PromptBlock] = {}
-        for b in all_blocks:
-            if "id" in b:
-                try:
-                    blocks_by_id[b["id"]] = PromptBlock.model_validate(b)
-                except Exception as e:
-                    logger.error(
-                        "[BlueprintTransformer] %s: Failed to parse PromptBlock %s",
-                        ErrorCodes.VALIDATION_FAILED.name,
-                        b.get("id"),
-                        exc_info=True,
-                    )
-                    raise AppException(
-                        message=f"Failed to parse PromptBlock {b.get('id')} from database",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    ) from e
+        for b in all_blocks_models:
+            if b.id:
+                blocks_by_id[b.id] = b
         layouts_list = []
         # Pre-fetch prompt blocks to enrich axis labels
         # (Blocks already fetched above for global aggregation)
@@ -222,7 +192,7 @@ class BlueprintTransformer:
         if isinstance(scoring_out, dict):
             # Enforce Fail-Fast Hydration Mandate
             try:
-                score_dto = TraceScoringPayloadDTO.model_validate(scoring_out)
+                score_dto = TraceScoringPayloadDTO.model_validate(scoring_out, strict=False)
                 t_score = score_dto.total_score
                 global_score = float(round(float(t_score), 1)) if t_score is not None else None
                 raw_penalties = score_dto.penalties_applied
@@ -251,7 +221,7 @@ class BlueprintTransformer:
 
             # Epic 39 / Phase 9 Extraction (Fail-Fast Hydration Mandate)
             try:
-                matrix_payload = TraceMatrixPayloadDTO.model_validate(block_data)
+                matrix_payload = TraceMatrixPayloadDTO.model_validate(block_data, strict=False)
             except Exception as e:
                 logger.debug("Skipping block %s due to invalid matrix payload format: %s", b_id, e)
                 continue
@@ -595,9 +565,8 @@ class BlueprintTransformer:
         if execution.organization_id:
             try:
                 # Need to lookup organisation if possible
-                org_data = await self.identity_repo.get_organization(execution.organization_id)
-                if org_data:
-                    org = Organization.model_validate(org_data)
+                org = await self.identity_repo.get_organization_model(execution.organization_id)
+                if org:
                     org_name = org.name
             except Exception as org_err:
                 logger.error(

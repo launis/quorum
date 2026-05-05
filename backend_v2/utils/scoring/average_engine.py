@@ -10,7 +10,7 @@ class PureAverageScoringEngine(ScoringEngineBase):
     """
 
     def calculate(
-        self, stats: dict[float, dict[str, int]], math_min: float, math_max: float
+        self, stats: dict[float, dict[str, int]], math_min: float, math_max: float, strictness_level: int = 50
     ) -> tuple[float, str, dict[str, dict[str, int]]]:
         # Flattens the weights to 1.0 for all levels
         flattened_stats = {
@@ -49,7 +49,7 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
     """
 
     def calculate(
-        self, stats: dict[float, dict[str, int]], math_min: float, math_max: float
+        self, stats: dict[float, dict[str, int]], math_min: float, math_max: float, strictness_level: int = 50
     ) -> tuple[float, str, dict[str, dict[str, int]]]:
         weighted_score = calculate_weighted_score(stats, math_min, math_max)
 
