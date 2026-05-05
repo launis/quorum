@@ -87,26 +87,64 @@ def scale_to_custom_range(score: float, raw_min: float, raw_max: float, target_m
     return max(actual_min, min(actual_max, scaled))
 
 
-def calculate_waterfall_floor(
-    level_stats: dict[float, dict[str, int]], scale_min: float, threshold: float = WaterfallThreshold.STANDARD.value
-) -> float:
-    """Calculate the absolute waterfall floor score (Guttman scale).
+def convert_strictness_to_forgiveness(strictness_level: int) -> float:
+    """Convert UI strictness level (0-100) to a forgiveness multiplier (0.0 - 1.0).
 
-    Iterates sequentially from lowest to highest scale.
-    If the hit rate (hits/total) is >= threshold, the level passes.
-    Stops immediately if a level fails.
+    0 (Täysi joustavuus): 1.0
+    15 (Salliva): 0.60
+    50 (Tasapainoinen): 0.30
+    85 (Tiukka): 0.10
+    100 (Ehdottomuus): 0.00
+    """
+    if strictness_level <= 0:
+        return 1.0
+    elif strictness_level <= 15:
+        return 1.0 - ((strictness_level - 0) / 15.0) * (1.0 - 0.60)
+    elif strictness_level <= 50:
+        return 0.60 - ((strictness_level - 15) / 35.0) * (0.60 - 0.30)
+    elif strictness_level <= 85:
+        return 0.30 - ((strictness_level - 50) / 35.0) * (0.30 - 0.10)
+    elif strictness_level < 100:
+        return 0.10 - ((strictness_level - 85) / 15.0) * (0.10 - 0.00)
+    else:
+        return 0.00
+
+
+def calculate_soft_waterfall_score(
+    level_stats: dict[float, dict[str, int]],
+    scale_min: float,
+    scale_max: float,
+    threshold: float = WaterfallThreshold.STANDARD.value,
+    base_forgiveness: float = 0.0,
+) -> float:
+    """Calculate a soft waterfall score (Benefit of the Doubt).
+
+    Instead of completely halting at the first failure, a failure reduces the value
+    of all subsequent higher levels based on a penalty multiplier directly derived
+    from base_forgiveness.
 
     Args:
         level_stats: Dictionary mapping scale_level -> {"hits": X, "total": Y}
-        scale_min: The minimum floor to fall back on if nothing passes.
+        scale_min: The minimum floor.
+        scale_max: The maximum ceiling.
         threshold: The passage fraction (default 0.75).
+        base_forgiveness: The joustokerroin (0.0 - 1.0) defining how much of the remaining points pass through.
 
     Returns:
-        float: The locked floor score.
+        float: The calculated soft waterfall score.
     """
-    achieved_floor = float(scale_min)
-    if not level_stats:
-        return achieved_floor
+    if scale_min >= scale_max:
+        msg = f"Invalid scale definition: scale_min ({scale_min}) >= scale_max ({scale_max})."
+        logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+        )
+
+    achieved_score = float(scale_min)
+    current_multiplier = 1.0
+    prev_level = float(scale_min)
 
     sorted_levels = sorted(level_stats.keys())
     for level in sorted_levels:
@@ -114,29 +152,34 @@ def calculate_waterfall_floor(
         total = stats.get("total", 0)
         hits = stats.get("hits", 0)
 
-        if total <= 0:
-            break
-
-        hit_rate = hits / total
+        hit_rate = (hits / total) if total > 0 else 0.0
+        step_value = level - prev_level
 
         if hit_rate >= threshold:
-            achieved_floor = level
+            achieved_score += step_value * current_multiplier
         else:
-            break
+            achieved_score += step_value * hit_rate * current_multiplier
+            current_multiplier *= base_forgiveness
 
-    return achieved_floor
+        prev_level = level
+
+    return float(max(scale_min, min(scale_max, achieved_score)))
 
 
-def calculate_weighted_score(level_stats: dict[float, dict[str, int]], scale_min: float, scale_max: float) -> float:
+def calculate_weighted_score(
+    level_stats: dict[float, dict[str, int]], scale_min: float, scale_max: float, exponent: float = 1.0
+) -> float:
     """Calculate the global weighted average of all matrix atoms.
 
     Score is mapped proportionally to the scale based on the absolute ratio of achieved
-    weighted points versus the maximum possible weighted points.
+    weighted points versus the maximum possible weighted points. An exponent can be applied
+    for non-linear curve scaling based on strictness.
 
     Args:
         level_stats: Dictionary mapping scale_level -> {"hits": X, "total": Y}
         scale_min: The minimum value of the scale (e.g. 1.0).
         scale_max: The maximum value of the scale (e.g. 5.0).
+        exponent: Non-linear exponent to apply to the proportional fraction.
 
     Returns:
         float: The exact weighted score.
@@ -165,13 +208,14 @@ def calculate_weighted_score(level_stats: dict[float, dict[str, int]], scale_min
         return float(scale_min)
 
     proportional_fraction = achieved_weights / max_weights
+    proportional_fraction = proportional_fraction ** exponent
     scaled_val = scale_min + (proportional_fraction * (scale_max - scale_min))
 
-    return max(scale_min, min(scale_max, scaled_val))
+    return float(max(scale_min, min(scale_max, scaled_val)))
 
 
 def calculate_progressive_dampening_score(
-    level_stats: dict[float, dict[str, int]], scale_min: float, scale_max: float
+    level_stats: dict[float, dict[str, int]], scale_min: float, scale_max: float, base_forgiveness: float = 0.0
 ) -> float:
     """Calculate the CDM (Cognitive Diagnostic Model) / DINA score using Progressive Dampening.
 
@@ -183,6 +227,7 @@ def calculate_progressive_dampening_score(
         level_stats: Dictionary mapping scale_level -> {"hits": X, "total": Y}
         scale_min: The minimum value of the scale.
         scale_max: The maximum value of the scale.
+        base_forgiveness: Base forgiveness derived from strictness level.
 
     Returns:
         float: The progressive dampening score clamped to scale bounds.
@@ -210,10 +255,11 @@ def calculate_progressive_dampening_score(
         hits = stats.get("hits", 0)
 
         hit_rate = (hits / total) if total > 0 else 0.0
+        effective_hit_rate = max(hit_rate, base_forgiveness)
 
         if level == scale_min:
             # Foundation level sets the initial current flow (modifier) with Square Root softness
-            modifier = math.sqrt(hit_rate)
+            modifier = math.sqrt(effective_hit_rate)
         else:
             # How much points this level represents
             step_value = level - prev_level
@@ -222,7 +268,7 @@ def calculate_progressive_dampening_score(
             achieved_score += step_value * hit_rate * modifier
 
             # The modifier is progressively dampened using Square Root to prevent absolute cliff-drop
-            modifier = modifier * math.sqrt(hit_rate)
+            modifier = modifier * math.sqrt(effective_hit_rate)
 
         prev_level = level
 

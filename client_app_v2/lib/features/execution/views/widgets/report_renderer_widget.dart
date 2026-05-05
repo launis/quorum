@@ -751,13 +751,13 @@ class ReportRendererWidget extends ConsumerWidget {
 
   String _getStrictnessName(BuildContext context, int level) {
     final l10n = AppLocalizations.of(context)!;
-    return switch (level) {
-      0 => l10n.strictnessAbsoluteLeniency,
-      15 => l10n.strictnessLenient,
-      50 => l10n.strictnessBalanced,
-      85 => l10n.strictnessStrict,
-      100 => l10n.strictnessAbsoluteStrictness,
-      _ => '$level',
+    final strictness = StrictnessLevelExtension.fromInt(level);
+    return switch (strictness) {
+      StrictnessLevel.fullFlexibility => l10n.strictnessFullFlex,
+      StrictnessLevel.lenient => l10n.strictnessLenient,
+      StrictnessLevel.balanced => l10n.strictnessBalanced,
+      StrictnessLevel.strict => l10n.strictnessStrict,
+      StrictnessLevel.absolute => l10n.strictnessAbsolute,
     };
   }
 

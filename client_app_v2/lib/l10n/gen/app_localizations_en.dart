@@ -2008,19 +2008,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Warning: Zero-Trust. Zero points unless external frameworks and hard evidence are used flawlessly.';
 
   @override
-  String get strictnessAbsoluteLeniency => 'Absolute Leniency';
+  String get strictnessFullFlex => 'Full Flexibility (0)';
 
   @override
-  String get strictnessLenient => 'Lenient';
+  String get strictnessLenient => 'Lenient (15)';
 
   @override
-  String get strictnessBalanced => 'Balanced (Default)';
+  String get strictnessBalanced => 'Balanced (50 - Default)';
 
   @override
-  String get strictnessStrict => 'Strict';
+  String get strictnessStrict => 'Strict (85)';
 
   @override
-  String get strictnessAbsoluteStrictness => 'Absolute Strictness (Zero-Trust)';
+  String get strictnessAbsolute => 'Absolute Strictness (100)';
 
   @override
   String get strictnessSelectorTitle => 'Evaluation Strictness';

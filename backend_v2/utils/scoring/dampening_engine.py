@@ -1,5 +1,5 @@
 from backend_v2.models.enums import CognitiveFlowStatus, CognitiveFlowThreshold
-from backend_v2.utils.math_utils import calculate_progressive_dampening_score
+from backend_v2.utils.math_utils import calculate_progressive_dampening_score, convert_strictness_to_forgiveness
 from backend_v2.utils.scoring.base_engine import ScoringEngineBase
 
 
@@ -13,7 +13,8 @@ class DampeningScoringEngine(ScoringEngineBase):
     def calculate(
         self, stats: dict[float, dict[str, int]], math_min: float, math_max: float, strictness_level: int = 50
     ) -> tuple[float, str, dict[str, dict[str, int]]]:
-        dampening_score = calculate_progressive_dampening_score(stats, math_min, math_max)
+        base_forgiveness = convert_strictness_to_forgiveness(strictness_level)
+        dampening_score = calculate_progressive_dampening_score(stats, math_min, math_max, base_forgiveness)
 
         log_lines = ["### Cognitive Diagnostic Model (CDM) Breakdown:"]
         sorted_levels = sorted(stats.keys())
@@ -27,20 +28,37 @@ class DampeningScoringEngine(ScoringEngineBase):
 
             hit_rate = (t_hits / t_total) if t_total > 0 else 0.0
             pct = int(hit_rate * 100)
+            effective_hit_rate = max(hit_rate, base_forgiveness)
 
             if s_level == math_min:
-                modifier = hit_rate
-                log_lines.append(f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - Cognitive Flow: {modifier:.2f})")
+                modifier = effective_hit_rate
+                if hit_rate == 0.0:
+                    log_lines.append(
+                        f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - Tasolta {s_level} saatiin 0 osumaa. "
+                        f"Käytetään Strictness {strictness_level}:n mukaista joustokerrointa "
+                        f"({base_forgiveness:.2f}), joten pisteitä vaimennettiin pehmeästi.)"
+                    )
+                else:
+                    log_lines.append(
+                        f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - Cognitive Flow: {modifier:.2f})"
+                    )
             else:
                 if hit_rate >= CognitiveFlowThreshold.OPTIMAL.value:
                     status = CognitiveFlowStatus.OPTIMAL.value
                 elif hit_rate >= CognitiveFlowThreshold.ACCEPTABLE.value:
                     status = f"{CognitiveFlowStatus.ACCEPTABLE.value} ({hit_rate:.2f})"
                 else:
-                    status = f"{CognitiveFlowStatus.WEAK.value} ({hit_rate:.2f})"
+                    if hit_rate == 0.0:
+                        status = (
+                            f"Tasolta {s_level} saatiin 0 osumaa. Käytetään Strictness {strictness_level}:n "
+                            f"mukaista joustokerrointa ({base_forgiveness:.2f}), "
+                            "joten pisteitä vaimennettiin pehmeästi."
+                        )
+                    else:
+                        status = f"{CognitiveFlowStatus.WEAK.value} ({hit_rate:.2f})"
 
                 log_lines.append(f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - {status})")
-                modifier = modifier * hit_rate
+                modifier = modifier * effective_hit_rate
 
         log_lines.append("")
         log_lines.append(f"**Final CDM Score:** {dampening_score:.2f} (Progressively dampened)")
@@ -48,3 +66,4 @@ class DampeningScoringEngine(ScoringEngineBase):
         level_breakdown = {str(k): {"hits": v["hits"], "total": v["total"]} for k, v in stats.items()}
 
         return float(dampening_score), "\n".join(log_lines), level_breakdown
+

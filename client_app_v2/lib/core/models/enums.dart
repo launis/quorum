@@ -95,3 +95,44 @@ enum ScoringStrategy {
   @JsonValue('WEIGHTED_AVERAGE')
   weightedAverage,
 }
+
+/// Epic 46: Strictness Level Enums
+@JsonEnum()
+enum StrictnessLevel {
+  @JsonValue(0)
+  fullFlexibility,
+  @JsonValue(15)
+  lenient,
+  @JsonValue(50)
+  balanced,
+  @JsonValue(85)
+  strict,
+  @JsonValue(100)
+  absolute,
+}
+
+extension StrictnessLevelExtension on StrictnessLevel {
+  int get value {
+    switch (this) {
+      case StrictnessLevel.fullFlexibility:
+        return 0;
+      case StrictnessLevel.lenient:
+        return 15;
+      case StrictnessLevel.balanced:
+        return 50;
+      case StrictnessLevel.strict:
+        return 85;
+      case StrictnessLevel.absolute:
+        return 100;
+    }
+  }
+
+  static StrictnessLevel fromInt(int value) {
+    return StrictnessLevel.values.firstWhere(
+      (e) => e.value == value,
+      orElse: () => StrictnessLevel.balanced,
+    );
+  }
+}
+
+

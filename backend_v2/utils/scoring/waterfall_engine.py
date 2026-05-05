@@ -1,13 +1,14 @@
 from backend_v2.models.enums import WaterfallThreshold
-from backend_v2.utils.math_utils import calculate_waterfall_floor
+from backend_v2.utils.math_utils import calculate_soft_waterfall_score, convert_strictness_to_forgiveness
 from backend_v2.utils.scoring.base_engine import ScoringEngineBase
 
 
 class WaterfallScoringEngine(ScoringEngineBase):
-    """Guttman scale (Waterfall Floor) implementation.
+    """Guttman scale (Waterfall Floor) implementation with Soft Scaling.
 
     Finds the highest floor where all criteria pass the threshold.
-    Stops immediately upon the first failure.
+    If a failure occurs, applies a progressive penalty to higher levels
+    based on the strictness level instead of stopping entirely.
     """
 
     def calculate(
@@ -20,12 +21,13 @@ class WaterfallScoringEngine(ScoringEngineBase):
         else:
             target_threshold = WaterfallThreshold.STANDARD.value
 
-        floor_score = calculate_waterfall_floor(stats, math_min, threshold=target_threshold)
+        base_forgiveness = convert_strictness_to_forgiveness(strictness_level)
+        floor_score = calculate_soft_waterfall_score(stats, math_min, math_max, target_threshold, base_forgiveness)
 
-        log_lines = ["### Waterfall Evaluation (Guttman Scale) Breakdown:"]
+        log_lines = ["### Waterfall Evaluation (Soft Benefit of the Doubt) Breakdown:"]
         sorted_levels = sorted(stats.keys())
 
-        failed_at = None
+        current_multiplier = 1.0
 
         for s_level in sorted_levels:
             level_data = stats[s_level]
@@ -35,19 +37,22 @@ class WaterfallScoringEngine(ScoringEngineBase):
             hit_rate = (t_hits / t_total) if t_total > 0 else 0.0
             pct = int(hit_rate * 100)
 
-            status = "PASSED" if hit_rate >= target_threshold else "FAILED"
-
-            if failed_at is not None:
+            if hit_rate >= target_threshold:
                 log_lines.append(
-                    f"- **Level {s_level}:** {t_hits}/{t_total} (SKIPPED - Blocked by failure at Level {failed_at})"
+                    f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - PASSED) "
+                    f"[Multiplier applied: {current_multiplier:.2f}]"
                 )
             else:
-                log_lines.append(f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - {status})")
-                if status == "FAILED":
-                    failed_at = s_level
+                next_multiplier = current_multiplier * base_forgiveness
+                log_lines.append(
+                    f"- **Level {s_level}:** {t_hits}/{t_total} ({pct}% - FAILED) "
+                    f"[Partial points: {hit_rate:.2f}. "
+                    f"Subsequent multiplier reduced to {next_multiplier:.2f} due to strictness {strictness_level}]"
+                )
+                current_multiplier = next_multiplier
 
         log_lines.append("")
-        log_lines.append(f"**Final Waterfall Score:** {floor_score:.2f} (Absolute floor)")
+        log_lines.append(f"**Final Soft Waterfall Score:** {floor_score:.2f} (Penalty applied deterministically)")
 
         level_breakdown = {str(k): {"hits": v["hits"], "total": v["total"]} for k, v in stats.items()}
 

@@ -15,6 +15,7 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
+import 'package:client_app/core/models/enums.dart';
 
 part 'new_execution_view.g.dart';
 
@@ -91,7 +92,7 @@ class NewExecutionView extends ConsumerStatefulWidget {
 class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   Map<String, dynamic>? _selectedWorkflow;
   String? _selectedProfileId;
-  int _selectedStrictnessLevel = 50;
+  StrictnessLevel _selectedStrictnessLevel = StrictnessLevel.balanced;
   String _selectedScoringStrategy = 'WATERFALL_FLOOR';
   final Map<String, dynamic> _compiledInputs = {};
 
@@ -225,7 +226,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             collectedInputs: _compiledInputs,
             targetLocale: localeCode,
             profileId: _selectedProfileId,
-            strictnessLevel: _selectedStrictnessLevel,
+            strictnessLevel: _selectedStrictnessLevel.value,
             scoringStrategy: _selectedScoringStrategy,
           );
 
@@ -790,12 +791,12 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   }
 
   Widget _buildStrictnessSelector() {
-    final Map<int, String> strictnessOptions = {
-      0: AppLocalizations.of(context)!.strictnessAbsoluteLeniency,
-      15: AppLocalizations.of(context)!.strictnessLenient,
-      50: AppLocalizations.of(context)!.strictnessBalanced,
-      85: AppLocalizations.of(context)!.strictnessStrict,
-      100: AppLocalizations.of(context)!.strictnessAbsoluteStrictness,
+    final Map<StrictnessLevel, String> strictnessOptions = {
+      StrictnessLevel.fullFlexibility: AppLocalizations.of(context)!.strictnessFullFlex,
+      StrictnessLevel.lenient: AppLocalizations.of(context)!.strictnessLenient,
+      StrictnessLevel.balanced: AppLocalizations.of(context)!.strictnessBalanced,
+      StrictnessLevel.strict: AppLocalizations.of(context)!.strictnessStrict,
+      StrictnessLevel.absolute: AppLocalizations.of(context)!.strictnessAbsolute,
     };
 
     return Card(
@@ -835,7 +836,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
               ),
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<int>(
+            DropdownButtonFormField<StrictnessLevel>(
               initialValue: _selectedStrictnessLevel,
               decoration: InputDecoration(
                 filled: true,
@@ -846,9 +847,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                 border: const OutlineInputBorder(),
               ),
               items: strictnessOptions.entries.map((entry) {
-                return DropdownMenuItem<int>(
+                return DropdownMenuItem<StrictnessLevel>(
                   value: entry.key,
-                  child: Text('${entry.value} (${entry.key})'),
+                  child: Text(entry.value),
                 );
               }).toList(),
               onChanged: (val) {

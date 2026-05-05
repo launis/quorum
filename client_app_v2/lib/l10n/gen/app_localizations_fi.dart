@@ -2016,7 +2016,7 @@ class AppLocalizationsFi extends AppLocalizations {
       'Varoitus: Zero-Trust. Nolla pistettä, ellei ulkoisia viitteitä ja kovaa evidenssiä käytetä virheettömästi.';
 
   @override
-  String get strictnessAbsoluteLeniency => 'Täysi joustavuus (0)';
+  String get strictnessFullFlex => 'Täysi joustavuus (0)';
 
   @override
   String get strictnessLenient => 'Salliva (15)';
@@ -2028,7 +2028,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get strictnessStrict => 'Tiukka (85)';
 
   @override
-  String get strictnessAbsoluteStrictness => 'Ehdottomuus (100 - Zero-Trust)';
+  String get strictnessAbsolute => 'Ehdottomuus (100)';
 
   @override
   String get strictnessSelectorTitle => 'Arvioinnin tiukkuus';

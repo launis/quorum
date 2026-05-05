@@ -3734,35 +3734,35 @@ abstract class AppLocalizations {
   /// **'Warning: Zero-Trust. Zero points unless external frameworks and hard evidence are used flawlessly.'**
   String get strictnessWarningLvl5;
 
-  /// No description provided for @strictnessAbsoluteLeniency.
+  /// No description provided for @strictnessFullFlex.
   ///
   /// In en, this message translates to:
-  /// **'Absolute Leniency'**
-  String get strictnessAbsoluteLeniency;
+  /// **'Full Flexibility (0)'**
+  String get strictnessFullFlex;
 
   /// No description provided for @strictnessLenient.
   ///
   /// In en, this message translates to:
-  /// **'Lenient'**
+  /// **'Lenient (15)'**
   String get strictnessLenient;
 
   /// No description provided for @strictnessBalanced.
   ///
   /// In en, this message translates to:
-  /// **'Balanced (Default)'**
+  /// **'Balanced (50 - Default)'**
   String get strictnessBalanced;
 
   /// No description provided for @strictnessStrict.
   ///
   /// In en, this message translates to:
-  /// **'Strict'**
+  /// **'Strict (85)'**
   String get strictnessStrict;
 
-  /// No description provided for @strictnessAbsoluteStrictness.
+  /// No description provided for @strictnessAbsolute.
   ///
   /// In en, this message translates to:
-  /// **'Absolute Strictness (Zero-Trust)'**
-  String get strictnessAbsoluteStrictness;
+  /// **'Absolute Strictness (100)'**
+  String get strictnessAbsolute;
 
   /// No description provided for @strictnessSelectorTitle.
   ///
