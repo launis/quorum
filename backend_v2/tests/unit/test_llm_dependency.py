@@ -1,14 +1,12 @@
+from typing import Annotated, Any
+
 import pytest
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
 from backend_v2.api.dependencies import get_llm_handler
 
 app = FastAPI()
-
-from typing import Annotated, Any
-
-from fastapi import Depends
 
 
 @app.get("/test-llm-dep")
@@ -26,6 +24,7 @@ async def test_llm_handler_dependency_injection() -> None:
     mock_repo._db = "mock_db_instance"
 
     from backend_v2.api.dependencies import get_db_driver
+
     app.dependency_overrides[get_db_driver] = lambda: mock_repo
 
     with TestClient(app) as client:
