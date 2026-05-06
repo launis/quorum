@@ -9,6 +9,8 @@ Tavoitteena on luoda **yleinen Arq-työnkulkujen (tausta-ajojen) hallinta- ja vi
 
 Lisäksi tämä Epic ratkaisee B2B SaaS LLM -tuotteen kriittisimmät haasteet arvioinnin osalta: kovat matemaattiset "seinät" poistuvat. Pehmeä pisteytys (Lerp, Sigmoid, suhteelliset kaskadit) varmistaa, että osoitettu osaaminen palkitaan aina. Optimaalisilla asetuksilla (esim. Syväarvostelu + Strictness 50) luodaan tieteellisesti pätevä, jatkuva jakauma.
 
+**Dokumentaation päivitys:** `c:\src\quorum\docs\architecture` -hakemiston arkkitehtuuridokumentaatiota on täydennettävä uusilla ominaisuuksilla sitä mukaa, kun kukin Epicin osa valmistuu.
+
 ## 2. Arkkitehtoniset Taustat ja Haasteet
 
 ### 2.1. Kuiluefekti (Cliff Effect) ja Nollahypoteesi
