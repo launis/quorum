@@ -236,7 +236,8 @@ class ReportRendererWidget extends ConsumerWidget {
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               ),
 
-            if (payload.strictnessLevel != null || payload.scoringStrategy != null)
+            if (payload.strictnessLevel != null ||
+                payload.scoringStrategy != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
                 child: Wrap(
@@ -264,7 +265,7 @@ class ReportRendererWidget extends ConsumerWidget {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Scoring Engine: ${_getScoringEngineName(payload.scoringStrategy)}',
+                              'Scoring Engine: ${_getScoringEngineName(context, payload.scoringStrategy)}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.indigo.shade800,
@@ -609,10 +610,10 @@ class ReportRendererWidget extends ConsumerWidget {
                         axis.score == null
                             ? '-'
                             : (axis.scaleMax != null &&
-                                    axis.scaleMin != null &&
-                                    axis.scaleMax! > axis.scaleMin!
-                                ? '${axis.score} / ${axis.scaleMax}'
-                                : '${axis.score}'),
+                                      axis.scaleMin != null &&
+                                      axis.scaleMax! > axis.scaleMin!
+                                  ? '${axis.score} / ${axis.scaleMax}'
+                                  : '${axis.score}'),
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -763,19 +764,17 @@ class ReportRendererWidget extends ConsumerWidget {
     };
   }
 
-  String _getScoringEngineName(String? strategy) {
+  String _getScoringEngineName(
+    BuildContext context,
+    ScoringStrategy? strategy,
+  ) {
     if (strategy == null) return 'Unknown';
-    switch (strategy) {
-      case 'WATERFALL_FLOOR':
-        return 'Hybrid Waterfall';
-      case 'PROGRESSIVE_DAMPENING':
-        return 'Progressive Dampening';
-      case 'PURE_AVERAGE':
-        return 'Pure Average';
-      case 'WEIGHTED_AVERAGE':
-        return 'Weighted Average';
-      default:
-        return strategy;
-    }
+    final l10n = AppLocalizations.of(context)!;
+    return switch (strategy) {
+      ScoringStrategy.koearvostelu => l10n.strategyKoearvostelu,
+      ScoringStrategy.syvaarvostelu => l10n.strategySyvaarvostelu,
+      ScoringStrategy.lineaarinenKeskiarvo => l10n.strategyLineaarinenKeskiarvo,
+      ScoringStrategy.painotettuKeskiarvo => l10n.strategyPainotettuKeskiarvo,
+    };
   }
 }

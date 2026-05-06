@@ -46,7 +46,7 @@ class NewExecutionController extends _$NewExecutionController {
     required String targetLocale,
     String? profileId,
     int strictnessLevel = 50,
-    String scoringStrategy = 'WATERFALL_FLOOR',
+    String scoringStrategy = 'KOEARVOSTELU',
   }) async {
     state = const AsyncLoading();
     try {
@@ -56,9 +56,7 @@ class NewExecutionController extends _$NewExecutionController {
         '/execution/executions/',
         data: {
           'workflow_id': workflowId,
-          'raw_inputs': {
-            'dynamic_inputs': collectedInputs,
-          },
+          'raw_inputs': {'dynamic_inputs': collectedInputs},
           'target_locale': targetLocale,
           if (profileId != null) 'profile_id': profileId,
           'strictness_level': strictnessLevel,
@@ -93,7 +91,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   Map<String, dynamic>? _selectedWorkflow;
   String? _selectedProfileId;
   StrictnessLevel _selectedStrictnessLevel = StrictnessLevel.balanced;
-  String _selectedScoringStrategy = 'WATERFALL_FLOOR';
+  ScoringStrategy _selectedScoringStrategy = ScoringStrategy.koearvostelu;
   final Map<String, dynamic> _compiledInputs = {};
 
   // To keep track of filename for UI
@@ -227,7 +225,12 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             targetLocale: localeCode,
             profileId: _selectedProfileId,
             strictnessLevel: _selectedStrictnessLevel.value,
-            scoringStrategy: _selectedScoringStrategy,
+            scoringStrategy: switch (_selectedScoringStrategy) {
+              ScoringStrategy.koearvostelu => 'KOEARVOSTELU',
+              ScoringStrategy.syvaarvostelu => 'SYVAARVOSTELU',
+              ScoringStrategy.lineaarinenKeskiarvo => 'LINEAARINEN_KESKIARVO',
+              ScoringStrategy.painotettuKeskiarvo => 'PAINOTETTU_KESKIARVO',
+            },
           );
 
       // Safe context routing using GoRouter Codegen
@@ -792,11 +795,17 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
   Widget _buildStrictnessSelector() {
     final Map<StrictnessLevel, String> strictnessOptions = {
-      StrictnessLevel.fullFlexibility: AppLocalizations.of(context)!.strictnessFullFlex,
+      StrictnessLevel.fullFlexibility: AppLocalizations.of(
+        context,
+      )!.strictnessFullFlex,
       StrictnessLevel.lenient: AppLocalizations.of(context)!.strictnessLenient,
-      StrictnessLevel.balanced: AppLocalizations.of(context)!.strictnessBalanced,
+      StrictnessLevel.balanced: AppLocalizations.of(
+        context,
+      )!.strictnessBalanced,
       StrictnessLevel.strict: AppLocalizations.of(context)!.strictnessStrict,
-      StrictnessLevel.absolute: AppLocalizations.of(context)!.strictnessAbsolute,
+      StrictnessLevel.absolute: AppLocalizations.of(
+        context,
+      )!.strictnessAbsolute,
     };
 
     return Card(
@@ -867,13 +876,6 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   }
 
   Widget _buildScoringStrategySelector() {
-    final Map<String, String> strategyOptions = {
-      'WATERFALL_FLOOR': 'Hybrid Waterfall (Default)',
-      'PROGRESSIVE_DAMPENING': 'Progressive Dampening (DINA)',
-      'PURE_AVERAGE': 'Pure Average',
-      'WEIGHTED_AVERAGE': 'Weighted Average',
-    };
-
     return Card(
       elevation: 0,
       color: Theme.of(
@@ -896,33 +898,47 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Scoring Engine', // Fallback hardcoded for epic 43 MVP
+                  AppLocalizations.of(context)!.analysisLevelLabel,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
-              'Select the mathematical model used to synthesize evaluation scores.',
+              AppLocalizations.of(context)!.analysisLevelHelper,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
+            DropdownButtonFormField<ScoringStrategy>(
               initialValue: _selectedScoringStrategy,
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surface,
-                labelText: 'Mathematical Engine',
+                labelText: AppLocalizations.of(context)!.analysisLevelLabel,
                 border: const OutlineInputBorder(),
               ),
-              items: strategyOptions.entries.map((entry) {
-                return DropdownMenuItem<String>(
-                  value: entry.key,
-                  child: Text(entry.value),
+              items: ScoringStrategy.values.map((strategy) {
+                final label = switch (strategy) {
+                  ScoringStrategy.koearvostelu => AppLocalizations.of(
+                    context,
+                  )!.strategyKoearvostelu,
+                  ScoringStrategy.syvaarvostelu => AppLocalizations.of(
+                    context,
+                  )!.strategySyvaarvostelu,
+                  ScoringStrategy.lineaarinenKeskiarvo => AppLocalizations.of(
+                    context,
+                  )!.strategyLineaarinenKeskiarvo,
+                  ScoringStrategy.painotettuKeskiarvo => AppLocalizations.of(
+                    context,
+                  )!.strategyPainotettuKeskiarvo,
+                };
+                return DropdownMenuItem<ScoringStrategy>(
+                  value: strategy,
+                  child: Text(label),
                 );
               }).toList(),
               onChanged: (val) {

@@ -64,9 +64,15 @@
         <directory path="scripts/">Backendin sisäiset aputyökalut, kuten OpenAPI-skeemojen automaattinen generointi.</directory>
         <directory path="templates/">Jinja2/HTML pohjat dynaamiselle PDF- ja tulostusraporttigeneroinnille (PDF Service).</directory>
         <directory path="tests/">Automaattisen laatuportin (Pytest) yksikkö- ja integraatiotestit.</directory>
-        <directory path="utils/">Uudelleenkäytettävät apufunktiot, graafiset piirtotyökalut (kuten rader/scatter_chart) ja muut apuohjelmat.</directory>
+        <directory path="utils/">
+            <description>Uudelleenkäytettävät apufunktiot, matemaattinen ydin ja graafiset piirtotyökalut.</description>
+            <file_rules>
+                <file path="math_utils.py">Core Mathematical Utilities. Sisältää keskitetyt StrictnessConfig-määritykset, Sigmoid- ja Lerp-skaalaukset sekä Score Clamping -turvamekanismit.</file>
+                <file path="scoring/">Soft Scoring V3 -laskentamoottorit (Koearvostelu/Waterfall, Syväarvostelu/Dampening, Lineaarinen/MAD Outlier Rejection, Painotettu/Sigmoid). Suoritetaan asynkronisesti eristettynä DAG-ajosta tulostusprofiilien kireystasojen (strictness_level) perusteella.</file>
+            </file_rules>
+        </directory>
         <file path="main.py">FastAPI framework server execution point instantiating web boundaries and hook registries.</file>
-        <file path="worker.py">ARQ Worker loop driving automated DAG task resolutions concurrently.</file>
+        <file path="worker.py">ARQ Worker loop driving automated DAG task resolutions concurrently. Vastaa myös Virtuaalisten Järjestelmäaskeleiden (Virtual System Steps, esim. sys_render_) suorittamisesta matemaattisen pisteytyksen irrottamiseksi alkuperäisestä työnkulusta (Decoupled Scoring).</file>
     </layer>
 
     <layer id="frontend" path="client_app_v2/">
@@ -81,7 +87,7 @@
         <directory path="lib/features/">
             <description>Features divided vertically: auth, execution, settings, shell, studio. Implements dynamic BFF parsing.</description>
             <file_rules>
-                <file path="execution/views/">SDUI Execution and reporting views (dashboard_view.dart, execution_report_view.dart). Sisältää Strictness UI -elementit ja Zero-Math SDUI -badget.</file>
+                <file path="execution/views/">SDUI Execution and reporting views (dashboard_view.dart, execution_report_view.dart). Sisältää Strictness UI -elementit, Zero-Math SDUI -badget sekä Virtual System Steps -näkyvyyden yhtenäisessä askellistassa (StepCard).</file>
                 <file path="studio/views/">Admin Studio workflows, SystemInspector infinite canvas, and PromptBlock editors.</file>
                 <file path="studio/views/widgets/xai/">SDUI komponentit XAI-matriisien rakenteelliseen esittämiseen ilman lokaalia matematiikkaa.</file>
             </file_rules>

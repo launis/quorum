@@ -29,7 +29,7 @@ class LogicRadarChart extends StatelessWidget {
         entryRadius: 4,
         dataEntries: axes.map((a) {
           final val = a.score;
-          return RadarEntry(value: val);
+          return RadarEntry(value: val ?? 0.0);
         }).toList(),
         borderWidth: 2,
       ),
@@ -63,7 +63,7 @@ class LogicRadarChart extends StatelessWidget {
           radarShape: RadarShape.polygon,
           getTitle: (index, angle) {
             final axisName = axes[index].name;
-            final scoreStr = axes[index].score.toStringAsFixed(1);
+            final scoreStr = axes[index].score?.toStringAsFixed(1) ?? '-';
 
             // Re-use logic to chunk title lines like PDF
             final wrappedTitle = axisName.split(' ').join('\n');

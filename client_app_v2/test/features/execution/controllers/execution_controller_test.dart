@@ -11,6 +11,8 @@ class MockExecutionClient implements ExecutionClient {
   Future<Map<String, dynamic>> startExecution({
     required String workflowId,
     required Map<String, dynamic> rawInputs,
+    int? strictnessLevel,
+    String? scoringStrategy,
   }) async {
     return {'id': 'test_exec', 'status': 'running'};
   }

@@ -86,14 +86,14 @@ enum EvidenceType {
 /// Epic 43: Multi-Engine Scoring Strategies
 @JsonEnum()
 enum ScoringStrategy {
-  @JsonValue('WATERFALL_FLOOR')
-  waterfallFloor,
-  @JsonValue('PROGRESSIVE_DAMPENING')
-  progressiveDampening,
-  @JsonValue('PURE_AVERAGE')
-  pureAverage,
-  @JsonValue('WEIGHTED_AVERAGE')
-  weightedAverage,
+  @JsonValue('KOEARVOSTELU')
+  koearvostelu,
+  @JsonValue('SYVAARVOSTELU')
+  syvaarvostelu,
+  @JsonValue('LINEAARINEN_KESKIARVO')
+  lineaarinenKeskiarvo,
+  @JsonValue('PAINOTETTU_KESKIARVO')
+  painotettuKeskiarvo,
 }
 
 /// Epic 46: Strictness Level Enums
@@ -134,5 +134,3 @@ extension StrictnessLevelExtension on StrictnessLevel {
     );
   }
 }
-
-
