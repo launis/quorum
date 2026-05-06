@@ -123,7 +123,7 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
       labelFi: $checkedConvert('label_fi', (v) => v as String),
       labelEn: $checkedConvert('label_en', (v) => v as String),
       description: $checkedConvert('description', (v) => v as String?),
-      score: $checkedConvert('score', (v) => (v as num).toDouble()),
+      score: $checkedConvert('score', (v) => (v as num?)?.toDouble()),
       scaleMin: $checkedConvert('scale_min', (v) => (v as num?)?.toDouble()),
       scaleMax: $checkedConvert('scale_max', (v) => (v as num?)?.toDouble()),
       normalizedScore: $checkedConvert(

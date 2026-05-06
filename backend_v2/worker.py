@@ -147,6 +147,22 @@ async def execute_workflow_job(
                     default_profile = getattr(workflow_def, "default_profile_id", "default")
                     if not default_profile:
                         default_profile = "default"
+                    
+                    v_step_id = f"sys_render_{default_profile}"
+                    from backend_v2.models.v2_core import ExecutionStepState
+                    v_step = ExecutionStepState(
+                        id=v_step_id,
+                        label="Generating Output Report",
+                        status="running"
+                    )
+                    await repository.update_execution(
+                        exec_id,
+                        {
+                            "status": "running", # keep execution running until PDF is done
+                            f"step_states.{v_step_id}": v_step.model_dump()
+                        }
+                    )
+
                     await redis.enqueue_job("render_profile_job", exec_id, profile_id=default_profile)
                     logger.info(f"[Job] Enqueued render_profile_job for {exec_id} with profile {default_profile}")
                 else:
@@ -262,7 +278,15 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
         saved_path = await storage.save(output_path_rel, pdf_bytes)
 
         # 4. Save path to DB so frontend can fetch it
-        await repo.update_execution(execution_id, {"pdf_report_path": saved_path})
+        v_step_id = f"sys_render_{profile_id}"
+        await repo.update_execution(
+            execution_id, 
+            {
+                "pdf_report_path": saved_path,
+                "status": "completed",
+                f"step_states.{v_step_id}.status": "completed"
+            }
+        )
         logger.info(f"[Task] PDF generated successfully and path saved: {saved_path}")
 
     except Exception as e:
@@ -276,12 +300,15 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
         try:
             driver = await get_driver(get_settings())
             repo = UnifiedWorkflowRepository(driver)
+            v_step_id = f"sys_render_{profile_id}"
             await repo.update_execution(
                 execution_id,
                 {
                     "status": "failed",
                     "error": f"PDF Generation failed: {str(e)}",
                     "completed_at": datetime.now(UTC).isoformat(),
+                    f"step_states.{v_step_id}.status": "failed",
+                    f"step_states.{v_step_id}.last_error": str(e)
                 },
             )
         except Exception:
@@ -347,6 +374,71 @@ async def generate_profile_synthesis_and_pdf_task(
         loc = metadata.get("target_locale")
         if loc and not accept_language:
             accept_language = loc
+
+        # Fetch output profile to resolve dynamic strictness & strategy
+        from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
+        p_dict = await repo.get_output_profile_by_id(profile_id)
+        active_profile_dto = OutputProfileResponseDTO.model_validate(p_dict) if p_dict else None
+        
+        w_dict = await repo.get_workflow_by_id(execution.workflow_id)
+        workflow_def = Workflow.model_validate(w_dict) if w_dict else None
+
+        strictness_level = 50
+        scoring_strategy_val = "PURE_AVERAGE"
+        if active_profile_dto:
+            if active_profile_dto.strictness_level is not None:
+                strictness_level = active_profile_dto.strictness_level
+            elif workflow_def:
+                strictness_level = workflow_def.default_strictness_level
+                
+            if active_profile_dto.scoring_strategy is not None:
+                scoring_strategy_val = active_profile_dto.scoring_strategy.value if hasattr(active_profile_dto.scoring_strategy, "value") else active_profile_dto.scoring_strategy
+            elif workflow_def:
+                scoring_strategy_val = workflow_def.default_scoring_strategy.value if hasattr(workflow_def.default_scoring_strategy, "value") else workflow_def.default_scoring_strategy
+        else:
+            if workflow_def:
+                strictness_level = workflow_def.default_strictness_level
+                scoring_strategy_val = workflow_def.default_scoring_strategy.value if hasattr(workflow_def.default_scoring_strategy, "value") else workflow_def.default_scoring_strategy
+
+        # Calculate scores dynamically for all matrices
+        from backend_v2.models.v2_core import PromptBlock
+        from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, XAILogDto
+        from backend_v2.utils.scoring.factory import get_scoring_engine
+        
+        engine = get_scoring_engine(scoring_strategy_val)
+        
+        # Pre-fetch block metadata for math_min/math_max
+        all_blocks_raw = await repo.get_all_prompt_blocks()
+        blocks_meta = {}
+        for rb in all_blocks_raw:
+            pb = PromptBlock.model_validate(rb)
+            if pb.scales:
+                s_vals = [float(s.score) for s in pb.scales]
+                if s_vals:
+                    blocks_meta[pb.id] = {"math_min": min(s_vals), "math_max": max(s_vals)}
+
+        for step_dto in final_inputs:
+            payload = step_dto.payload
+            for pb_id, data in payload.items():
+                if isinstance(data, dict) and "level_breakdown" in data:
+                    try:
+                        lw_matrix = LightweightMatrixOutput.model_validate(data)
+                        if lw_matrix.level_breakdown:
+                            stats = {float(k): v for k, v in lw_matrix.level_breakdown.items()}
+                            b_meta = blocks_meta.get(pb_id)
+                            if b_meta:
+                                math_min = b_meta["math_min"]
+                                math_max = b_meta["math_max"]
+                                dampening_score, xai_log_dto, _ = engine.calculate(
+                                    stats, math_min, math_max, strictness_level=strictness_level
+                                )
+                                lw_matrix.raw_score = float(dampening_score)
+                                norm_val = (dampening_score / 5.0) * 100.0 if dampening_score <= 5.0 else dampening_score
+                                lw_matrix.normalized_score = float(norm_val)
+                                lw_matrix.xai_log = xai_log_dto
+                                payload[pb_id] = lw_matrix.model_dump(exclude_none=True)
+                    except Exception as e:
+                        logger.warning(f"Failed to calculate dynamic score for {pb_id}: {e}")
 
         # Temporarily inject target_profile_id and language into metadata to guide hook correctly
         metadata["target_profile_id"] = profile_id
@@ -425,12 +517,15 @@ async def generate_profile_synthesis_and_pdf_task(
         try:
             driver = await get_driver(get_settings())
             repo = UnifiedWorkflowRepository(driver)
+            v_step_id = f"sys_render_{profile_id}"
             await repo.update_execution(
                 execution_id,
                 {
                     "status": "failed",
                     "error": f"Text Synthesis failed: {str(e)}",
                     "completed_at": datetime.now(UTC).isoformat(),
+                    f"step_states.{v_step_id}.status": "failed",
+                    f"step_states.{v_step_id}.last_error": str(e)
                 },
             )
         except Exception:

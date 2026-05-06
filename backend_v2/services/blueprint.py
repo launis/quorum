@@ -311,14 +311,16 @@ class BlueprintTransformer:
             if target_val is None:
                 target_val = raw_score
 
-            score_float = float(round(float(target_val), 1)) if target_val is not None else 0.0
-            if display_scale == "normalized_100":
+            score_float = float(round(float(target_val), 1)) if target_val is not None else None
+            if display_scale == "normalized_100" and score_float is not None:
                 score_float = float(round(score_float))
 
             # Plot ratio ALWAYS uses raw mathematical extrema, not display scale
             # Fail-Fast logic guarantees scale_max > scale_min and raw_score is present
-            ratio = (float(raw_score) - scale_min) / (scale_max - scale_min)
-            ui_plot_ratio = float(max(0.0, min(1.0, ratio)))
+            ui_plot_ratio = None
+            if raw_score is not None:
+                ratio = (float(raw_score) - scale_min) / (scale_max - scale_min)
+                ui_plot_ratio = float(max(0.0, min(1.0, ratio)))
 
             # Collision Avoidance
             original_axis_name = axis_name

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class ExecutionTimeline extends StatelessWidget {
   final List<Map<String, dynamic>> steps;
@@ -40,7 +41,7 @@ class ExecutionTimeline extends StatelessWidget {
           if (isRunning) labelColor = Theme.of(context).primaryColor;
           if (isFailed) labelColor = Theme.of(context).colorScheme.error;
 
-          final stepId = step['step_id']?.toString() ?? '';
+          final stepId = step['step_id']?.toString() ?? step['id']?.toString() ?? '';
           final stepResult = results != null && results!.containsKey(stepId)
               ? (results![stepId] as Map<String, dynamic>?) ?? {}
               : {};
@@ -49,6 +50,28 @@ class ExecutionTimeline extends StatelessWidget {
           final hasWarnings = warningsList != null && warningsList.isNotEmpty;
 
           final lastError = step['last_error']?.toString();
+          final messageCode = step['message_code']?.toString();
+
+          Widget? subtitleWidget;
+          if (isFailed && lastError != null && lastError.isNotEmpty) {
+            subtitleWidget = Text(
+              lastError,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 12,
+              ),
+            );
+          } else if ((isRunning || stepStatus == 'processing') &&
+              messageCode == 'event_llm_anomaly_retry') {
+            subtitleWidget = Text(
+              AppLocalizations.of(context)!.eventLlmAnomalyRetry,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            );
+          }
 
           return ListTile(
             dense: true,
@@ -69,15 +92,7 @@ class ExecutionTimeline extends StatelessWidget {
                 color: labelColor,
               ),
             ),
-            subtitle: (isFailed && lastError != null && lastError.isNotEmpty)
-                ? Text(
-                    lastError,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontSize: 12,
-                    ),
-                  )
-                : null,
+            subtitle: subtitleWidget,
             trailing: isRunning
                 ? const SizedBox(
                     width: 12,

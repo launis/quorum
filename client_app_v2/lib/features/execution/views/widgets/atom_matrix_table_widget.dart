@@ -142,7 +142,9 @@ class AtomMatrixTableWidget extends StatelessWidget {
                     Expanded(
                       flex: 1,
                       child: Text(
-                        '${m.score.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
+                        m.score == null
+                            ? '-'
+                            : '${m.score!.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -220,7 +222,9 @@ class AtomMatrixTableWidget extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${l10n.score}: ${m.score.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
+                m.score == null
+                    ? '${l10n.score}: -'
+                    : '${l10n.score}: ${m.score!.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
               ),
               if (m.normalizedScore != null)
                 Text(

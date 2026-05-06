@@ -33,7 +33,7 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
     @JsonKey(name: 'label_fi') required String labelFi,
     @JsonKey(name: 'label_en') required String labelEn,
     String? description,
-    required double score,
+    double? score,
     @JsonKey(name: 'scale_min') double? scaleMin,
     @JsonKey(name: 'scale_max') double? scaleMax,
     @JsonKey(name: 'normalized_score') double? normalizedScore,

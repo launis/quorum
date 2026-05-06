@@ -606,11 +606,13 @@ class ReportRendererWidget extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        axis.scaleMax != null &&
-                                axis.scaleMin != null &&
-                                axis.scaleMax! > axis.scaleMin!
-                            ? '${axis.score} / ${axis.scaleMax}'
-                            : '${axis.score}',
+                        axis.score == null
+                            ? '-'
+                            : (axis.scaleMax != null &&
+                                    axis.scaleMin != null &&
+                                    axis.scaleMax! > axis.scaleMin!
+                                ? '${axis.score} / ${axis.scaleMax}'
+                                : '${axis.score}'),
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,

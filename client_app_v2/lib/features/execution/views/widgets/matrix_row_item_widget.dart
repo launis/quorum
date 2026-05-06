@@ -73,7 +73,9 @@ class MatrixRowItemWidget extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                '${matrix.score.toStringAsFixed(1)} / ${matrix.scaleMax?.toStringAsFixed(1) ?? '-'}',
+                matrix.score == null
+                    ? '-'
+                    : '${matrix.score!.toStringAsFixed(1)} / ${matrix.scaleMax?.toStringAsFixed(1) ?? '-'}',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),

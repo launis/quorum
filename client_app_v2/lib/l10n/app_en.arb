@@ -9,6 +9,7 @@
   "errorNotFound": "Resource not found.",
   "errorValidation": "Validation failed.",
   "errorValidationEmpty": "Inputs cannot be empty.",
+  "eventLlmAnomalyRetry": "LLM Provider timeout, retrying...",
   "errorValidationMissing": "Missing required fields: {fields}",
   "@errorValidationMissing": {
     "placeholders": {
@@ -1768,5 +1769,9 @@
       }
     }
   },
-  "matrixEvaluativeAsteriskLegend": "* = Evaluative Matrix (Impacts global score)"
+  "matrixEvaluativeAsteriskLegend": "* = Evaluative Matrix (Impacts global score)",
+  "eventLlmAnomalyRetry": "Quality Assurance: The AI detected an inconsistency and is verifying its reasoning (Attempt 2)...",
+  "@eventLlmAnomalyRetry": {
+    "description": "Message shown when the AI self-correction circuit breaker triggers"
+  }
 }
