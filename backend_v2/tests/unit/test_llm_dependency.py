@@ -26,7 +26,8 @@ async def test_llm_handler_dependency_injection() -> None:
     mock_repo = MagicMock(spec=Any)
     mock_repo._db = "mock_db_instance"
 
-    app.dependency_overrides[get_driver] = lambda: mock_repo
+    from backend_v2.api.dependencies import get_db_driver
+    app.dependency_overrides[get_db_driver] = lambda: mock_repo
 
     with TestClient(app) as client:
         response = client.get("/test-llm-dep")

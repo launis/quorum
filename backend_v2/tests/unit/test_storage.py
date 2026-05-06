@@ -21,7 +21,7 @@ def clear_lru_cache() -> Generator[None]:
 
 def test_get_storage_driver_local() -> None:
     """Test that LOCAL backend returns LocalFileDriver."""
-    with patch.dict("os.environ", {"STORAGE_BACKEND": "LOCAL"}):
+    with patch.dict("os.environ", {"STORAGE_BACKEND": "LOCAL", "GOOGLE_API_KEY": "fake-key"}):
         driver = get_storage_driver()
         assert isinstance(driver, LocalFileDriver)
 

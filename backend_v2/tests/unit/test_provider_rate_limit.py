@@ -11,6 +11,7 @@ def mock_settings() -> Any:
     class Settings:
         llm_default_timeout = 60
         default_safety_settings: list[Any] = []
+        vertex_location = "europe-north1"
 
     return Settings()
 

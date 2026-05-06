@@ -233,7 +233,7 @@ class Settings(BaseSettings):
         value = self.storage_backend.upper()
         if value == "FIRESTORE":
             return StorageBackend.FIRESTORE
-        if value == "LOCAL":
+        if value in ("LOCAL", "TINYDB"):
             return StorageBackend.LOCAL
 
         msg = f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. Must be LOCAL or FIRESTORE."
