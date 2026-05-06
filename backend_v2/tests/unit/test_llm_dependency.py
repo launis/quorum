@@ -3,7 +3,6 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from backend_v2.api.dependencies import get_llm_handler
-from backend_v2.database.factory import get_driver
 
 app = FastAPI()
 
