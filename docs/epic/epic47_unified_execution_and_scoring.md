@@ -24,7 +24,7 @@ Ratkaisuksi irrotamme "tilaseurannan" ja "DAG-suorituksen" toisistaan. Injektoim
 ---
 
 ## 3. Antigravity-komentolista (Backend Tasks)
-Seuraavat tehtävät on muotoiltu suoraan tekoälyagenteille syötettäviksi prompteiksi. Ne sisältävät tiukat arkkitehtuuriset suojamekanismit ja analyysiraportissa sovitut uudet käytännöt. **HUOM:** Toteutetaan ehdottomasti `[/tier2-hardening-backend]` -sääntöjen läpi.
+Seuraavat tehtävät on muotoiltu suoraan tekoälyagenteille syötettäviksi prompteiksi. Koko backend-toteutuksessa on noudatettava ehdottomasti **c:\src\quorum\.agents\rules\00-antigravity-core.md** (Zero-Compromise Pledge) ja **c:\src\quorum\.agents\rules\01-python-backend.md** (Pydantic V2, The Duct Tape Ban) laatuportteja. Toteutetaan `[/tier2-hardening-backend]` -työnkululla.
 
 ### Task 1: DINA-moottori (Syväarvostelu) - Lerp ja matemaattinen turvallisuus
 ```text
@@ -39,6 +39,7 @@ New logic requirements:
 3. Math Safety: Safely handle edge cases like `0.0 ** exponent` to avoid `FloatingPointError`. Ensure `dynamic_exponent` is explicitly clamped within reasonable bounds (e.g., 0.2 to 3.0) to prevent overflow/underflow.
 4. Apply the exponent: `modifier = modifier * (effective_hit_rate ** dynamic_exponent)`.
 5. Ensure strict monotonicity: a higher raw hit rate must ALWAYS result in a higher or equal effective modifier.
+6. **Agent Rule Compliance**: Strictly adhere to `c:\src\quorum\.agents\rules\01-python-backend.md` (Math Safety & The Duct Tape Ban). Do not use generic `except Exception: pass` to catch floating point errors; handle them explicitly.
 ```
 
 ### Task 2: Vesiputousmoottori (Koearvostelu) - Liukuva rangaistuskerroin ja kaskadointi
@@ -73,13 +74,14 @@ New logic requirements:
 ```text
 Target file: backend_v2/utils/scoring/average_engine.py
 
-Refactor `PureAverageScoringEngine` (Now called: "Lineaarinen Keskiarvo") to implement a statistically sound 'Outlier Rejection' mechanism.
+Refactor `PureAverageScoringEngine` (Now called: "Lineaarinen Keskiarvo") to implement a statistically sound 'Outlier Rejection' mechanism utilizing the robust MAD (Median Absolute Deviation) method.
 
 New logic requirements:
 1. Before flattening stats, calculate the `hit_rate` for each level.
-2. Use standard Python `statistics.mean` and `statistics.stdev`. 
-3. Define a concrete heuristic for an anomaly: `hit_rate < (mean - 1.5 * stdev) AND hit_rate < 0.20`.
-4. If an anomaly is found, mitigate it by multiplying that specific outlier level's total weight by `0.25` before calculating the final pure average.
+2. Calculate the Median of the hit rates. Then calculate the absolute deviations from this median, and find the median of those deviations (this is the MAD). Use standard Python `statistics.median`.
+3. Edge case: If MAD is 0.0, fallback to a minimum MAD of `0.05` to prevent overly aggressive rejection in nearly uniform datasets.
+4. Define a concrete heuristic for an anomaly: `hit_rate < (median - 3.0 * MAD) AND hit_rate < 0.30`.
+5. If an anomaly is found, mitigate it by multiplying that specific outlier level's total weight by `0.25` before calculating the final pure average.
 ```
 
 ### Task 5: Backend - Keskitetty Strictness-konfiguraatio (Score Clamping)
@@ -93,6 +95,7 @@ New logic requirements:
 2. Implement a pure function `get_strictness_config(level: int)` returning an object/dict with `base_forgiveness`, `sigmoid_midpoint`, and `dynamic_exponent`.
 3. Replace all hardcoded strictness logic inside engines with calls to this centralized mapper.
 4. Implement `clamp_score(score: float, math_min: float, math_max: float) -> float`. Every single scoring engine MUST pass its final numerical result through this clamp before returning it.
+5. **Agent Rule Compliance**: Enforce `c:\src\quorum\.agents\rules\01-python-backend.md` (Strict Pydantic V2 & Mutability). New domain models (e.g., for strictness config) must use `ConfigDict(frozen=True)` and strict validations. Enum conversion must use `Annotated[Enum, Field(strict=False)]`.
 ```
 
 ### Task 6: Arkkitehtuuri - LLM-virheiden korjaus (Anomaly Hook & Circuit Breaker)
@@ -106,6 +109,7 @@ New logic requirements:
 2. Implement the Circuit Breaker explicitly: Store `retry_count` in the Orchestrator's internal node state (NO global variables). 
 3. Set the maximum retries to 2.
 4. If max retries are exceeded, swallow the anomaly, set `anomaly_unresolved=True` in the state payload, and proceed gracefully to mathematical scoring without crashing the workflow.
+5. **Agent Rule Compliance**: Must comply with `c:\src\quorum\.agents\rules\05_llm_architecture.md` for Circuit Breaker implementation and `c:\src\quorum\.agents\rules\01-python-backend.md` for the Duct Tape Ban (all retry loops and LLM failures must be explicitly logged, never silently swallowed with god blocks).
 ```
 
 ### Task 7: UX/XAI - Asynkroninen UX-palaute (SSE)
@@ -131,6 +135,7 @@ New logic requirements:
 2. Refactor the `calculation_log` into a structured DTO: `XAILogDto` with two fields: `pedagogical_key: str` and `engine_debug_trace: dict`.
 3. Return ONLY translation keys (e.g., `xai_soft_waterfall_penalty`) to the frontend for the pedagogical explanation.
 4. Place raw math details, thresholds, and multipliers strictly inside the `engine_debug_trace` dictionary for admins and developers.
+5. **Agent Rule Compliance**: Must adhere to `c:\src\quorum\.agents\rules\01-python-backend.md` (Schema-Driven Routing). No natural language magic strings allowed in Python code.
 ```
 
 ### Task 9: Backend - Yleinen Arq-työnkulkujen Hallintamenetelmä (Virtual Steps) & Tulostemallikohtainen Matematiikka
@@ -146,6 +151,7 @@ New logic requirements:
 4. Report Generation Phase (Inside Arq): The Arq-worker (`render_profile_job`) takes over. It loads the `Frozen Context` raw atoms, dynamically runs the math (`get_scoring_engine`) using the selected Output Profile's `strictness_level` and `scoring_strategy`, feeds the scores to LLM synthesis, and caches the `ReportDataDTO`.
 5. Arq Background Method - Completion: On success (`status="completed"`) or failure (`status="failed"`), update the `sys_render_<profile>` step state in the DB. In both cases, ensure the overall `ExecutionRecord` status is returned to `COMPLETED`.
 6. Taaksepäin Yhteensopivuus ja Zero-Trust: Uudet virtuaaliset askeleet tunnistetaan selkeästi `sys_` -etuliitteellä, jotta ne erotetaan aidoista AI-arviointiasteleista. SSOT säilyy tietokannassa. Kaikkien päivitysten on tapahduttava keskitetysti `repository.update_execution()` -metodin kautta atomisesti.
+7. **Agent Rule Compliance**: CRITICAL. Enforce `c:\src\quorum\.agents\rules\01-python-backend.md` (Fail-Fast Hydration Mandate). Parse dictionary data into `OutputProfile` immediately using `.model_validate()`. Follow `c:\src\quorum\.agents\rules\00-antigravity-core.md` Zero-Legacy standard (no `dict.get(key, default)` hacks in logic layers).
 ```
 
 ### Task 10: Laadunvarmistus - Matemaattisen Monotonisuuden Testiautomaatio
@@ -158,12 +164,13 @@ New logic requirements:
 1. Boundary Tests: Test absolute 0.0 and 1.0 hit rates across all strictness levels. Assert values strictly clamp between `math_min` and `math_max`.
 2. Monotonicity Tests: Programmatically loop through hit rates from 0.0 to 1.0 in 0.01 increments. Assert that `f(x) <= f(x + 0.01)` is ALWAYS true for all engines. The score must never flatline or decrease when the raw hit rate increases.
 3. Outlier Mitigation Tests: Pass an array `[1.0, 1.0, 0.0, 1.0]` to the Lineaarinen Keskiarvo Engine and assert the `0.0` value's weight is significantly reduced compared to a standard mean calculation.
+4. **Hardening Verification**: The implementing agent MUST execute the `[/tier2-hardening-backend]` workflow rules upon completion. Explicitly run `ruff check .`, `ruff format .`, `mypy .`, and `pytest tests/backend_v2/utils/scoring/` to ensure zero errors. If any error occurs, fix it immediately before concluding the task.
 ```
 
 ---
 
 ## 4. Antigravity-komentolista (Frontend Tasks)
-**HUOM:** Toteutetaan ehdottomasti `[/tier2-hardening-frontend]` -sääntöjen läpi.
+Kaikissa UI-tehtävissä on ehdottomasti noudatettava **c:\src\quorum\.agents\rules\02_flutter_desktop.md** vaatimuksia. Toteutetaan `[/tier2-hardening-frontend]` -työnkululla.
 
 ### Task 11: Frontend Hardening - Tyhjentävä käsittely (Dart 3 Exhaustive Switches)
 ```text
@@ -178,6 +185,7 @@ New logic requirements:
 4. Enforce Dart 3 EXHAUSTIVE switch expressions for enums (NO `default:` branch allowed).
 5. For Freezed unions, strictly use `.map()` or `.when()`. Do not use `.maybeWhen()` or `??` fallbacks.
 6. Instruct the AI to run `dart run build_runner build --delete-conflicting-outputs` after updating frontend DTOs.
+7. **Agent Rule Compliance**: Enforce `c:\src\quorum\.agents\rules\02_flutter_desktop.md` (Zero-Compromise UI & Zero DB Hardcoding Mandate). No UI component may assume specific database IDs or magic strings.
 ```
 
 ### Task 12: Tulostemallikohtaiset Kontrollit (UI)
@@ -188,6 +196,7 @@ Expose the new Dynamic Profile Scoring controls in the Flutter UI.
 
 New logic requirements:
 1. Profile Editor: Add "Arvostelumoottori" (Scoring Strategy) and "Ankaruustaso" (Strictness Level) dropdowns to the "Muokkaa tulostusprofiilia" view. Ensure these bind to the updated OutputProfile DTOs.
+2. **Agent Rule Compliance**: Follow `c:\src\quorum\.agents\rules\02_flutter_desktop.md` for Strongly Typed State. The UI layer must use Riverpod generators and strictly typed DTO models without dynamic `Map` recycling.
 ```
 
 ### Task 13: Yhtenäinen Askel-UI (Virtual Steps Visualization)
@@ -200,31 +209,12 @@ New logic requirements:
 3. Käyttäjän ei pidä visuaalisesti erottaa, onko kyseessä tekoälyn suorittama solmu vai Arq-taustatyö (kuten "Scoring Engine" tai "PDF Generointi"). Kaikki askeleet näkyvät yhtenäisenä, alaspäin rakentuvana listana.
 4. Yksittäiset tulostukset (On-Demand): Kun käyttäjä painaa UI:ssa myöhemmin "Luo uusi raportti" tai vaihtaa tulostemallia jo valmiissa ajossa (Execution Dashboardin "Valitse tulostemalli" popup), olemassa olevaan askeleiden listaan on ilmestyttävä lennosta uusi virtuaalinen askel pyörivällä spinnerillä ja backendin uusi laskenta käynnistyy.
 5. Testaus: Varmistettava, että käyttöliittymän "Kokonaisedistyminen" (Progress Bar) ymmärtää lennosta dynaamisesti kasvavan askelmäärän (Total Steps = AI-askeleet + Virtuaaliaskeleet) eikä sekoa prosenttilaskennassaan 100 % yli.
+6. **Hardening Verification**: The implementing agent MUST execute the `[/tier2-hardening-frontend]` workflow rules upon completion. Explicitly run `dart format .`, `flutter analyze`, and `flutter test` to ensure zero errors. If the analyzer or tests fail, fix them immediately before concluding the task.
 ```
 
 ---
 
-## 5. Toteutuksen Sääntö: Phase 9 Hardening Mandates
-
-Tämän Epicin toteutus **EI OLE** normaali ominaisuuskehityspyrähdys. Koska kyseessä on järjestelmän ytimeen (V2 Core) kajoava arkkitehtuuripäivitys, **KAIKKI** yllä olevat Taskit (1-13) on EHDOTTOMASTI toteutettava ja katselmoitava noudattaen tiukimpia arkkitehtuurisääntöjä.
-
-Seuraavat vaatimukset on upotettu ehdottomina kriteereinä jokaiseen koodimuutokseen:
-
-### Backendin Vaatimukset (Arkkitehtuurin Laatuportti)
-*   **The Zero-Compromise Pledge & Zero Legacy:** Vanhoja V1-rakenteita, "or" -ketjuja tai `.get(key, default)` -varmistuksia ei suvaita. Jos data puuttuu, Pydantic-validaation on annettava kaatua (Fail-Fast).
-*   **Fail-Fast Hydration Mandate:** Kaikki dict-muodossa kulkeva epävarma data on hydratoitava (esim. `OutputProfile.model_validate()`) VÄLITTÖMÄSTI ennen käsittelyä. Arvojen onkiminen sanakirjoista on logiikkakerroksessa täysin kielletty.
-*   **Strict Pydantic V2 & Mutability:** Käytetään aina `.model_validate()` ja `extra='forbid'`. Domain-mallit, kuten uudet arvostelu- ja profiili-DTO:t, on pidettävä muuttumattomina (`ConfigDict(frozen=True)`).
-*   **Annotated Hydration & Schema-Driven Routing:** Enumien konversio tehdään Pydanticin natiivilla `Annotated[Enum, Field(strict=False)]` mekanismilla. Reititys ja datan parsinta tehdään aina skeeema-pohjaisesti (ei koskaan "Duck Typingiä" eli sanakirjan avainten arvailua).
-*   **The Duct Tape Ban:** "God Blockeja" (`except Exception: pass`) ei saa lisätä minnekään. Kaikki arviointi- ja tilavirheet lokitetaan eksplisiittisesti ja nostetaan ylemmäs.
-
-### Frontendin Vaatimukset (Flutter UI Laatuportti)
-*   **Frontend Zero DB Hardcoding Mandate:** Mikään UI-komponentti (esim. tulostemallin valinta Dashboardilla tai Editorissa) ei saa olettaa tiettyjen tietokantataulujen ID-tunnisteita, indeksijärjestyksiä tai taikamerkkijonoja (magic strings). Kaikki ohjataan dynaamisesti backendin palauttamien Enum- ja DTO-rakenteiden kautta.
-*   **Zero-Compromise UI:** Dartin null-coalescing -oikoteitä (`?? 'default'`) tai `.maybeWhen()` -fallbackeja ei sallita piilottamaan rakenteellisia puutteita tilanhallinnassa. Kytkimet (`switch`) on tehtävä aina tyhjentävästi (Exhaustive handling).
-*   **Strongly Typed State:** Koko UI-kerroksen (esim. arvostelumoottorin valinta) on käytettävä Riverpod-generaattoreita ja tiukasti tyypitettyjä DTO-malleja ilman dynaamisia `Map`-kierrätyksiä.
-
----
-
-## 6. Kokonaisarvio: Epic 47:n liiketoiminta-arvo (Maturity Leap)
+## 5. Kokonaisarvio: Epic 47:n liiketoiminta-arvo (Maturity Leap)
 
 Kun tämä Epic on suoritettu, järjestelmä ottaa merkittävän kypsyysloikan Enterprise-tasolle:
 

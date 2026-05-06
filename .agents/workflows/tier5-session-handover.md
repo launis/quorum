@@ -8,9 +8,10 @@ description: Tier 5 (Session Handover Export) - Generates a context-transition c
   <execution_protocol>
     <step id="1">Scan the entire current session to identify all modified production and test files.</step>
     <step id="2">Identify the current active target document: Are we working on an Epic (`docs/epic/`) or executing an Implementation Plan (`implementation_plan.md`)?</step>
-    <step id="3">Summarize the achieved business logic (`--done`) and deduce the logical NEXT step in the plan/epic (`--next`).</step>
-    <step id="4">Analyze the current context and determine WHICH specific rules from `.agents/rules/` and WHICH architecture documents from `docs/architecture/` are strictly relevant for the next step. Do not list everything, only the essential files.</step>
-    <step id="5">Output exactly this Markdown bash block:
+    <step id="3">STATE PERSISTENCE MANDATE (CRITICAL): Before generating the handover, you MUST physically modify the current target `.md` plan file on the disk using your file editing tools. Ensure that all completed tasks/steps are explicitly marked with `[x]` and incomplete tasks are left as `[ ]`. The markdown file MUST be the Single Source of Truth for the next session. Do NOT skip this physical edit.</step>
+    <step id="4">Summarize the achieved business logic (`--done`) and deduce the logical NEXT step in the plan/epic (`--next`).</step>
+    <step id="5">Analyze the current context and determine WHICH specific rules from `.agents/rules/` and WHICH architecture documents from `docs/architecture/` are strictly relevant for the next step. Do not list everything, only the essential files.</step>
+    <step id="6">Output exactly this Markdown bash block:
 ```bash
 # 1. ATOMIC GIT SAVE (Tallenna työsi)
 git add [file_path_1] [test_path_1]
