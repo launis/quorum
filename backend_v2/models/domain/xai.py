@@ -23,7 +23,6 @@ from backend_v2.models.domain.falsifier import FalsifierOutput
 from backend_v2.models.domain.judge import JudgeOutput, JudgeScoreCard
 from backend_v2.models.domain.logician import LogicianOutput
 from backend_v2.models.domain.profiler import ProfilerOutput
-from backend_v2.models.domain.profiler import ProfilerOutput
 
 
 class XAIReporterInput(V2CoreBase):
@@ -232,7 +231,7 @@ class XAIOutput(XAIOutputDTO, ReasoningTrace):
         description="Aggregated scores from all judges.",
         json_schema_extra={"x-ui-label": "Scorecards"},
     )
-    flat_report: XAIFlatReportDTO | None = Field(
+    flat_report: dict[str, Any] | None = Field(
         default=None,
         description="Flattened, machine-readable report summary.",
         json_schema_extra={"x-ui-label": "Flat Report"},
@@ -254,9 +253,6 @@ class ReportResult(V2CoreBase):
         description="Report format.",
         json_schema_extra={"x-ui-label": "Format"},
     )
-    data: ReportContextDTO | None = Field(
+    data: dict[str, Any] | None = Field(
         default=None, description="The structured data used to generate the report (SSOT)."
     )
-
-
-from backend_v2.models.dtos.report import ReportContextDTO, XAIFlatReportDTO

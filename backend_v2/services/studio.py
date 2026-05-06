@@ -79,10 +79,9 @@ class StudioService:
                 )
                 raise PermissionDeniedError("Only ROOT can modify system resources.")
             if data_org_id != org_id:
-                logger.error(
-                    f"[StudioService] {ErrorCodes.PERMISSION_DENIED.value}: Cannot modify resources outside your organization."
-                )
-                raise PermissionDeniedError("Cannot modify resources outside your organization.")
+                msg = "Cannot modify resources outside your organization."
+                logger.error(f"[StudioService] {ErrorCodes.PERMISSION_DENIED.value}: {msg}")
+                raise PermissionDeniedError(msg)
 
     async def _stitch_profiles_to_workflows(self, workflows: list[Workflow]) -> list[Workflow]:
         """Dynamically attach standalone output profiles to the workflow dict for backward compatibility.
@@ -493,7 +492,7 @@ class StudioService:
                 },
             )
             raise PermissionDeniedError("Only ROOT or ADMIN can fetch available models.")
-            
+
         result = llm_handler.fetch_all_available_models()
 
         flat_list: list[str] = []
@@ -504,7 +503,6 @@ class StudioService:
                 flat_list.append(models)
 
         return sorted(list(set(flat_list)))
-
 
     async def get_all_system_configs(self, initiator: TokenData) -> list[SystemConfigModelRegistry]:
         if initiator.role == "ROOT":

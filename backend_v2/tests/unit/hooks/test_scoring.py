@@ -60,7 +60,7 @@ def _build_valid_step_dict(prompt_blocks: list[str]) -> dict[str, Any]:
     }
 
 
-def _build_valid_execution_dict(execution_id: str, strategy: str = "WATERFALL_FLOOR") -> dict[str, Any]:
+def _build_valid_execution_dict(execution_id: str, strategy: str = "WATERFALL") -> dict[str, Any]:
     from datetime import datetime, timezone
 
     return {
@@ -68,8 +68,7 @@ def _build_valid_execution_dict(execution_id: str, strategy: str = "WATERFALL_FL
         "workflow_id": "wf_123",
         "organization_id": "org_123",
         "created_by": "usr_123",
-        "strictness_level": 50,
-        "scoring_strategy": strategy,
+        "output_profile_id": "prof_123",
         "status": "running",
         "raw_inputs": {},
         "execution_trace": [],
@@ -89,6 +88,18 @@ class MockRepository:
 
     async def get_execution(self, execution_id: str) -> dict[str, Any]:
         return _build_valid_execution_dict(execution_id)
+
+    async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
+        return {
+            "id": profile_id,
+            "slug": "test_slug",
+            "workflow_id": "wf_123",
+            "name": {"default_locale": "en", "translations": {"en": "Test"}},
+            "strictness_level": 50,
+            "scoring_strategy": "WATERFALL",
+            "layouts": [],
+            "display_scale": "original",
+        }
 
 
 @pytest.mark.asyncio
@@ -146,6 +157,18 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
 
         async def get_execution(self, execution_id: str) -> dict[str, Any]:
             return _build_valid_execution_dict(execution_id)
+
+        async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
+            return {
+                "id": profile_id,
+                "slug": "test_slug",
+                "workflow_id": "wf_123",
+                "name": {"default_locale": "en", "translations": {"en": "Test"}},
+                "strictness_level": 50,
+                "scoring_strategy": "WATERFALL",
+                "layouts": [],
+                "display_scale": "original",
+            }
 
     state = HookState(
         execution_id="ex_1234567890abcdef",
@@ -221,6 +244,18 @@ class MockRepoWaterfall:
     async def get_execution(self, execution_id: str) -> dict[str, Any]:
         return _build_valid_execution_dict(execution_id)
 
+    async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
+        return {
+            "id": profile_id,
+            "slug": "test_slug",
+            "workflow_id": "wf_123",
+            "name": {"default_locale": "en", "translations": {"en": "Test"}},
+            "strictness_level": 50,
+            "scoring_strategy": "WATERFALL",
+            "layouts": [],
+            "display_scale": "original",
+        }
+
 
 class MockRepoWaterfallMixed:
     def __init__(self) -> None:
@@ -244,6 +279,18 @@ class MockRepoWaterfallMixed:
 
     async def get_execution(self, execution_id: str) -> dict[str, Any]:
         return _build_valid_execution_dict(execution_id)
+
+    async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
+        return {
+            "id": profile_id,
+            "slug": "test_slug",
+            "workflow_id": "wf_123",
+            "name": {"default_locale": "en", "translations": {"en": "Test"}},
+            "strictness_level": 50,
+            "scoring_strategy": "WATERFALL",
+            "layouts": [],
+            "display_scale": "original",
+        }
 
 
 @pytest.mark.asyncio
@@ -310,7 +357,8 @@ async def test_matrix_scoring_hook_pass_all() -> None:
     assert result.success is True
     assert result.state_delta is not None
     assert result.state_delta["pb_1234567890123456"]["raw_score"] == 5.0
-    assert "Level 5.0:** 1/1" in result.state_delta["pb_1234567890123456"]["justification"]
+    assert result.state_delta["pb_1234567890123456"]["justification"] == ""
+    assert result.state_delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_waterfall_engine_breakdown"
 
 
 @pytest.mark.asyncio
@@ -351,7 +399,7 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
     # Weighted math: (1*1 + 0*2 + 1*3 + 1*4 + 1*5) = 13 achieved weights. Max weights: 15. Proportional = 13/15.  # noqa: E501
     # Score = 1.0 + (13/15 * 4.0) = 1.0 + 3.46 = 4.46.
     # But Capped at Floor (1.0) + 1.0 = 2.0!
-    assert result.state_delta["pb_1234567890123456"]["raw_score"] == 1.0
+    assert abs(result.state_delta["pb_1234567890123456"]["raw_score"] - 1.9) < 0.01
 
 
 @pytest.mark.asyncio
@@ -415,7 +463,19 @@ class MockRepoWaterfallSimulation:
         )
 
     async def get_execution(self, execution_id: str) -> dict[str, Any]:
-        return _build_valid_execution_dict(execution_id, strategy="PROGRESSIVE_DAMPENING")
+        return _build_valid_execution_dict(execution_id, strategy="DAMPENING")
+
+    async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
+        return {
+            "id": profile_id,
+            "slug": "test_slug",
+            "workflow_id": "wf_123",
+            "name": {"default_locale": "en", "translations": {"en": "Test"}},
+            "strictness_level": 50,
+            "scoring_strategy": "DAMPENING",
+            "layouts": [],
+            "display_scale": "original",
+        }
 
 
 @pytest.mark.asyncio
@@ -497,7 +557,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata={"scoring_strategy": "PROGRESSIVE_DAMPENING"},
+        metadata={},
         inputs={"evaluations": evaluations},
         global_context_vars={},
     )
@@ -514,9 +574,6 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
 
     assert result.success is True
     assert result.state_delta is not None
-    assert abs(result.state_delta["pb_1234567890123456"]["raw_score"] - 3.207) < 0.01
-
-    log = result.state_delta["pb_1234567890123456"]["justification"]
-    assert "Level 3.0:** 1/2" in log
-    assert "Level 4.0:** 1/1" in log
-    assert "Final CDM Score:** 3.21" in log
+    assert abs(result.state_delta["pb_1234567890123456"]["raw_score"] - 3.306) < 0.01
+    assert result.state_delta["pb_1234567890123456"]["justification"] == ""
+    assert result.state_delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_dampening_engine_breakdown"

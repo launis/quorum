@@ -13,11 +13,13 @@ from backend_v2.models.enums import StrictnessAnchor, WaterfallThreshold
 
 logger = logging.getLogger(__name__)
 
+
 class StrictnessConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
     base_forgiveness: float = Field(ge=0.0, le=1.0)
     sigmoid_midpoint: float = Field(ge=0.0, le=1.0)
     dynamic_exponent: float = Field(ge=0.2, le=3.0)
+
 
 STRICTNESS_ANCHOR_CONFIGS = {
     StrictnessAnchor.FLEXIBLE: StrictnessConfig(base_forgiveness=1.0, sigmoid_midpoint=0.1, dynamic_exponent=0.2),
@@ -27,30 +29,33 @@ STRICTNESS_ANCHOR_CONFIGS = {
     StrictnessAnchor.ABSOLUTE: StrictnessConfig(base_forgiveness=0.00, sigmoid_midpoint=0.9, dynamic_exponent=3.0),
 }
 
+
 def get_strictness_config(strictness_level: int) -> StrictnessConfig:
     """Hakee joko suoran ankkurin tai laskee tarkan Linear Interpolationin ankkurien väliltä."""
     level = max(0, min(100, strictness_level))
-    
-    if level in STRICTNESS_ANCHOR_CONFIGS:
-        return STRICTNESS_ANCHOR_CONFIGS[level]
-        
+
+    for anchor, config in STRICTNESS_ANCHOR_CONFIGS.items():
+        if anchor.value == level:
+            return config
+
     anchors = sorted(STRICTNESS_ANCHOR_CONFIGS.keys())
     lower_anchor = max([a for a in anchors if a < level])
     upper_anchor = min([a for a in anchors if a > level])
-    
+
     lower_cfg = STRICTNESS_ANCHOR_CONFIGS[lower_anchor]
     upper_cfg = STRICTNESS_ANCHOR_CONFIGS[upper_anchor]
-    
+
     t = (level - lower_anchor) / (upper_anchor - lower_anchor)
-    
+
     def lerp(start: float, end: float, t: float) -> float:
         return start + (end - start) * t
-        
+
     return StrictnessConfig(
         base_forgiveness=lerp(lower_cfg.base_forgiveness, upper_cfg.base_forgiveness, t),
         sigmoid_midpoint=lerp(lower_cfg.sigmoid_midpoint, upper_cfg.sigmoid_midpoint, t),
-        dynamic_exponent=lerp(lower_cfg.dynamic_exponent, upper_cfg.dynamic_exponent, t)
+        dynamic_exponent=lerp(lower_cfg.dynamic_exponent, upper_cfg.dynamic_exponent, t),
     )
+
 
 def clamp_score(score: float, math_min: float, math_max: float) -> float:
     """Ensure the score is strictly within the mathematical bounds."""
@@ -92,10 +97,10 @@ def normalize_score_to_100(score: float, math_min: float, math_max: float) -> fl
     return max(0.0, min(100.0, normalized))
 
 
-def calculate_scaled_score(score: float, number_of_options: int, scale_min: float, scale_max: float) -> float:
+def calculate_scaled_score(score: float, number_of_options: int, math_min: float, math_max: float) -> float:
     """Calculate the absolute scaled position mathematically from raw output to configured scale."""
-    if scale_min >= scale_max:
-        msg = f"Invalid scale definition: scale_min ({scale_min}) >= scale_max ({scale_max})."
+    if math_min >= math_max:
+        msg = f"Invalid scale definition: math_min ({math_min}) >= math_max ({math_max})."
         logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
@@ -103,10 +108,10 @@ def calculate_scaled_score(score: float, number_of_options: int, scale_min: floa
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
 
-    # In V2, the score is mathematically ALREADY expected to be on the `scale_min` to `scale_max` scale!
+    # In V2, the score is mathematically ALREADY expected to be on the `math_min` to `math_max` scale!
     # Especially if it comes from waterfall_scoring_hook.
     # Therefore, we simply clamp it into bounds.
-    return float(max(scale_min, min(scale_max, score)))
+    return float(max(math_min, min(math_max, score)))
 
 
 def scale_to_custom_range(score: float, raw_min: float, raw_max: float, target_min: float, target_max: float) -> float:
@@ -149,8 +154,8 @@ def convert_strictness_to_forgiveness(strictness_level: int) -> float:
 
 def calculate_soft_waterfall_score(
     level_stats: dict[float, dict[str, int]],
-    scale_min: float,
-    scale_max: float,
+    math_min: float,
+    math_max: float,
     threshold: float = WaterfallThreshold.STANDARD.value,
     base_forgiveness: float = 0.0,
 ) -> float:
@@ -162,16 +167,16 @@ def calculate_soft_waterfall_score(
 
     Args:
         level_stats: Dictionary mapping scale_level -> {"hits": X, "total": Y}
-        scale_min: The minimum floor.
-        scale_max: The maximum ceiling.
+        math_min: The minimum floor.
+        math_max: The maximum ceiling.
         threshold: The passage fraction (default 0.75).
         base_forgiveness: The joustokerroin (0.0 - 1.0) defining how much of the remaining points pass through.
 
     Returns:
         float: The calculated soft waterfall score.
     """
-    if scale_min >= scale_max:
-        msg = f"Invalid scale definition: scale_min ({scale_min}) >= scale_max ({scale_max})."
+    if math_min >= math_max:
+        msg = f"Invalid scale definition: math_min ({math_min}) >= math_max ({math_max})."
         logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
@@ -179,9 +184,9 @@ def calculate_soft_waterfall_score(
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
 
-    achieved_score = float(scale_min)
+    achieved_score = float(math_min)
     current_multiplier = 1.0
-    prev_level = float(scale_min)
+    prev_level = float(math_min)
 
     sorted_levels = sorted(level_stats.keys())
     for level in sorted_levels:
@@ -195,16 +200,25 @@ def calculate_soft_waterfall_score(
         if hit_rate >= threshold:
             achieved_score += step_value * current_multiplier
         else:
+            if threshold == 0.0:
+                shortfall = 0.0
+            else:
+                shortfall = (threshold - hit_rate) / threshold
+
+            sliding_penalty = 1.0 - (shortfall * (1.0 - base_forgiveness))
+
             achieved_score += step_value * hit_rate * current_multiplier
-            current_multiplier *= base_forgiveness
+            current_multiplier *= sliding_penalty
 
         prev_level = level
 
-    return float(max(scale_min, min(scale_max, achieved_score)))
+    from backend_v2.utils.math_utils import clamp_score
+
+    return clamp_score(achieved_score, math_min, math_max)
 
 
-def calculate_weighted_score(
-    level_stats: dict[float, dict[str, int]], scale_min: float, scale_max: float, exponent: float = 1.0
+def calculate_linear_ratio_score(
+    level_stats: dict[float, dict[str, float | int]], math_min: float, math_max: float, exponent: float = 1.0
 ) -> float:
     """Calculate the global weighted average of all matrix atoms.
 
@@ -214,15 +228,15 @@ def calculate_weighted_score(
 
     Args:
         level_stats: Dictionary mapping scale_level -> {"hits": X, "total": Y}
-        scale_min: The minimum value of the scale (e.g. 1.0).
-        scale_max: The maximum value of the scale (e.g. 5.0).
+        math_min: The minimum value of the scale (e.g. 1.0).
+        math_max: The maximum value of the scale (e.g. 5.0).
         exponent: Non-linear exponent to apply to the proportional fraction.
 
     Returns:
         float: The exact weighted score.
     """
-    if scale_min >= scale_max:
-        msg = f"Invalid scale definition: scale_min ({scale_min}) >= scale_max ({scale_max})."
+    if math_min >= math_max:
+        msg = f"Invalid scale definition: math_min ({math_min}) >= math_max ({math_max})."
         logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
@@ -242,17 +256,79 @@ def calculate_weighted_score(
         max_weights += total * level
 
     if max_weights <= 0:
-        return float(scale_min)
+        return float(math_min)
 
     proportional_fraction = achieved_weights / max_weights
-    proportional_fraction = proportional_fraction ** exponent
-    scaled_val = scale_min + (proportional_fraction * (scale_max - scale_min))
+    proportional_fraction = proportional_fraction**exponent
+    scaled_val = math_min + (proportional_fraction * (math_max - math_min))
 
-    return float(max(scale_min, min(scale_max, scaled_val)))
+    return float(max(math_min, min(math_max, scaled_val)))
+
+
+def calculate_sigmoid_weighted_score(
+    level_stats: dict[float, dict[str, int]], math_min: float, math_max: float, strictness_config: StrictnessConfig
+) -> float:
+    """Calculate the global weighted average using a Sigmoid (logistic) scaling curve.
+
+    Args:
+        level_stats: Dictionary mapping scale_level -> {"hits": X, "total": Y}
+        math_min: The minimum value of the scale.
+        math_max: The maximum value of the scale.
+        strictness_config: Configuration containing sigmoid midpoint and steepness.
+
+    Returns:
+        float: The exact sigmoid weighted score.
+    """
+    if math_min >= math_max:
+        msg = f"Invalid scale definition: math_min ({math_min}) >= math_max ({math_max})."
+        logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+        )
+
+    achieved_weights = 0.0
+    max_weights = 0.0
+
+    for level, stats in level_stats.items():
+        total = stats.get("total", 0)
+        hits = stats.get("hits", 0)
+
+        achieved_weights += hits * level
+        max_weights += total * level
+
+    hit_rate = (achieved_weights / max_weights) if max_weights > 0 else 0.0
+
+    steepness = strictness_config.dynamic_exponent * 10.0
+    midpoint = strictness_config.sigmoid_midpoint
+
+    import math
+
+    def sigmoid(x: float) -> float:
+        try:
+            return 1.0 / (1.0 + math.exp(-steepness * (x - midpoint)))
+        except OverflowError:
+            return 0.0 if x < midpoint else 1.0
+
+    raw_sigmoid = sigmoid(hit_rate)
+    min_sigmoid = sigmoid(0.0)
+    max_sigmoid = sigmoid(1.0)
+
+    if max_sigmoid == min_sigmoid:
+        normalized = 0.0
+    else:
+        normalized = (raw_sigmoid - min_sigmoid) / (max_sigmoid - min_sigmoid)
+
+    scaled_val = math_min + (normalized * (math_max - math_min))
+
+    from backend_v2.utils.math_utils import clamp_score
+
+    return clamp_score(scaled_val, math_min, math_max)
 
 
 def calculate_progressive_dampening_score(
-    level_stats: dict[float, dict[str, int]], scale_min: float, scale_max: float, strictness_config: StrictnessConfig
+    level_stats: dict[float, dict[str, int]], math_min: float, math_max: float, strictness_config: StrictnessConfig
 ) -> float:
     """Calculate the CDM (Cognitive Diagnostic Model) / DINA score using Progressive Dampening.
 
@@ -262,15 +338,15 @@ def calculate_progressive_dampening_score(
 
     Args:
         level_stats: Dictionary mapping scale_level -> {"hits": X, "total": Y}
-        scale_min: The minimum value of the scale.
-        scale_max: The maximum value of the scale.
+        math_min: The minimum value of the scale.
+        math_max: The maximum value of the scale.
         strictness_config: StrictnessConfig derived from UI strictness level.
 
     Returns:
         float: The progressive dampening score clamped to scale bounds.
     """
-    if scale_min >= scale_max:
-        msg = f"Invalid scale definition: scale_min ({scale_min}) >= scale_max ({scale_max})."
+    if math_min >= math_max:
+        msg = f"Invalid scale definition: math_min ({math_min}) >= math_max ({math_max})."
         logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
@@ -278,12 +354,12 @@ def calculate_progressive_dampening_score(
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
 
-    achieved_score = float(scale_min)
+    achieved_score = float(math_min)
     modifier = 1.0
-    prev_level = float(scale_min)
+    prev_level = float(math_min)
 
     sorted_levels = sorted(level_stats.keys())
-    
+
     safe_exponent = max(0.2, min(3.0, strictness_config.dynamic_exponent))
 
     for level in sorted_levels:
@@ -292,19 +368,20 @@ def calculate_progressive_dampening_score(
         hits = stats.get("hits", 0)
 
         hit_rate = (hits / total) if total > 0 else 0.0
-        
+
         # 1. Lerp instead of max
-        effective_hit_rate = strictness_config.base_forgiveness + (hit_rate * (1.0 - strictness_config.base_forgiveness))
+        forgiveness = strictness_config.base_forgiveness
+        effective_hit_rate = forgiveness + (hit_rate * (1.0 - forgiveness))
         if effective_hit_rate <= 0.0:
             effective_hit_rate = 0.0
 
         try:
-            modifier_factor = effective_hit_rate ** safe_exponent
+            modifier_factor = effective_hit_rate**safe_exponent
         except (ValueError, OverflowError, ZeroDivisionError) as e:
             logger.error("Math error in progressive dampening score: %s", e)
             modifier_factor = 0.0
 
-        if level == scale_min:
+        if level == math_min:
             # Foundation level sets the initial current flow (modifier) with dynamic exponent
             modifier = modifier_factor
         else:
@@ -319,5 +396,4 @@ def calculate_progressive_dampening_score(
 
         prev_level = level
 
-    return clamp_score(achieved_score, scale_min, scale_max)
-
+    return clamp_score(achieved_score, math_min, math_max)

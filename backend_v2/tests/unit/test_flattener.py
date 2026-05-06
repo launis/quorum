@@ -2,7 +2,7 @@
 
 import uuid
 
-from backend_v2.models.enums import ExecutionStatus, ScoringStrategy
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord
 from backend_v2.services.flattener import FlatFileService
@@ -18,8 +18,6 @@ def test_flat_file_service_flatten_results() -> None:
 
     # We create a dummy ExecutionRecord
     record = ExecutionRecord(
-        scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
-        strictness_level=50,
         id=execution_id,
         workflow_id="wf_test",
         status=ExecutionStatus.COMPLETED,
@@ -42,8 +40,6 @@ def test_flat_file_service_empty_results() -> None:
     """Test flat file service with no trace results."""
     execution_id = f"exe_{uuid.uuid4().hex}"
     record = ExecutionRecord(
-        scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
-        strictness_level=50,
         id=execution_id,
         workflow_id="wf_empty",
         status=ExecutionStatus.FAILED,

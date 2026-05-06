@@ -25,7 +25,7 @@ Implement anomaly hooks, real-time UX feedback (SSE), robust XAI i18n, and Arq V
 - **Rule 4: Schema-Driven Routing:** No natural language magic strings allowed in Python code. 
 - **Rule 5: No Naked Dicts:** State payloads must use structured envelopes.
 
-## Task 6: Arkkitehtuuri - LLM-virheiden korjaus (Anomaly Hook & Circuit Breaker)
+## [x] Task 6: Arkkitehtuuri - LLM-virheiden korjaus (Anomaly Hook & Circuit Breaker)
 Target files: `backend_v2/hooks/validation.py`, `backend_v2/services/orchestrator/`
 
 Implement a pre-scoring `LLMAnomalyDetectionHook` to catch Guttman logic failures (e.g., L1=0%, L3=100%).
@@ -37,7 +37,7 @@ New logic requirements:
 4. If max retries are exceeded, swallow the anomaly, set `anomaly_unresolved=True` in the state payload, and proceed gracefully to mathematical scoring without crashing the workflow.
 5. **Agent Rule Compliance**: Must comply with `c:\src\quorum\.agents\rules\05_llm_architecture.md` for Circuit Breaker implementation and `c:\src\quorum\.agents\rules\01-python-backend.md` for the Duct Tape Ban (all retry loops and LLM failures must be explicitly logged, never silently swallowed with god blocks).
 
-## Task 7 (Backend): UX/XAI - Asynkroninen UX-palaute (SSE)
+## [x] Task 7 (Backend): UX/XAI - Asynkroninen UX-palaute (SSE)
 Target files: `backend_v2/api/routers/system/telemetry.py`
 
 Implement a real-time UX feedback mechanism for the LLM Anomaly Retry loop.
@@ -45,7 +45,7 @@ Implement a real-time UX feedback mechanism for the LLM Anomaly Retry loop.
 New logic requirements:
 1. Backend: When the Orchestrator triggers an anomaly retry, dispatch a specific Server-Sent Event (SSE) to the client: `{"status": "processing", "message_code": "event_llm_anomaly_retry"}`.
 
-## Task 8: XAI:n Inhimillistäminen (Strict i18n & Debug Erottelu)
+## [x] Task 8: XAI:n Inhimillistäminen (Strict i18n & Debug Erottelu)
 Target files: `backend_v2/utils/scoring/*_engine.py`, `backend_v2/models/dtos/`
 
 Refactor XAI logging to support global localization and maintain developer debuggability.
@@ -71,7 +71,7 @@ New logic requirements:
 6. Taaksepäin Yhteensopivuus ja Zero-Trust: Uudet virtuaaliset askeleet tunnistetaan selkeästi `sys_` -etuliitteellä, jotta ne erotetaan aidoista AI-arviointiasteleista. SSOT säilyy tietokannassa. Kaikkien päivitysten on tapahduttava keskitetysti `repository.update_execution()` -metodin kautta atomisesti.
 7. **Agent Rule Compliance**: CRITICAL. Enforce `c:\src\quorum\.agents\rules\01-python-backend.md` (Fail-Fast Hydration Mandate). Parse dictionary data into `OutputProfile` immediately using `.model_validate()`. Follow `c:\src\quorum\.agents\rules\00-antigravity-core.md` Zero-Legacy standard (no `dict.get(key, default)` hacks in logic layers).
 
-## Documentation Update
+## [x] Documentation Update
 Update `c:\src\quorum\docs\architecture\` detailing Virtual System Steps and strict decoupled scoring models.
 Täydennä myös `c:\src\quorum\.agents\rules\04_directory_reference.md` tiedostoa tehtyjen muutosten osalta.
 

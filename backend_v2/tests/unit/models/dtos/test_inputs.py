@@ -13,14 +13,15 @@ def test_question_answer_pair_strictness() -> None:
     with pytest.raises(ValidationError, match="Instance is frozen"):
         pair.question = "Why?"  # type: ignore[misc]
 
-    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-        QuestionAnswerPair(question="What?", answer="Yes.", extra="not allowed")
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted|Extra inputs are not permitted"):
+        # We test that extra fields fail, but without passing them explicitly in kwargs, which mypy hates
+        QuestionAnswerPair.model_validate({"question": "What?", "answer": "Yes.", "extra": "not allowed"})
 
 
 def test_guided_reflection_input_dto_strictness() -> None:
     """Test GuidedReflectionInputDTO strictness and min_length constraints."""
     pair = QuestionAnswerPair(question="Q1", answer="A1")
-    
+
     # Valid instantiation
     dto = GuidedReflectionInputDTO(pairs=[pair], metadata={"topic": "Test"})
     assert len(dto.pairs) == 1
@@ -29,10 +30,12 @@ def test_guided_reflection_input_dto_strictness() -> None:
     # Must have at least 1 pair
     with pytest.raises(ValidationError, match="List should have at least 1 item after validation, not 0"):
         GuidedReflectionInputDTO(pairs=[])
-        
+
     # Extra fields forbidden
-    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-        GuidedReflectionInputDTO(pairs=[pair], metadata={}, invalid_field="boom")
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted|Extra inputs are not permitted"):
+        GuidedReflectionInputDTO.model_validate(
+            {"pairs": [{"question": "Q1", "answer": "A1"}], "metadata": {}, "invalid_field": "boom"}
+        )
 
 
 def test_guided_reflection_to_markdown() -> None:
@@ -42,11 +45,11 @@ def test_guided_reflection_to_markdown() -> None:
             QuestionAnswerPair(question="First Q", answer="First A"),
             QuestionAnswerPair(question="Second Q", answer="Second A"),
         ],
-        metadata={"b_key": "b_value", "a_key": "a_value"}  # Unsorted keys
+        metadata={"b_key": "b_value", "a_key": "a_value"},  # Unsorted keys
     )
-    
+
     md_output = dto.to_markdown(title="My Form")
-    
+
     expected = (
         "# My Form\n\n"
         "**a_key:** a_value\n\n"
@@ -56,5 +59,5 @@ def test_guided_reflection_to_markdown() -> None:
         "### Q: Second Q\n"
         "> **A:** Second A"
     )
-    
+
     assert md_output == expected

@@ -13,9 +13,8 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import Organization
-from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.report import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
+from backend_v2.models.enums import SystemLocale, VirtualSystemStepID
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
     MatrixScorecardRowDTO,
@@ -23,7 +22,6 @@ from backend_v2.models.v2_core import (
     PromptBlock,
     ReportDataDTO,
     ReportLayoutDTO,
-    Workflow,
 )
 
 logger = logging.getLogger(__name__)
@@ -63,14 +61,21 @@ class BlueprintTransformer:
         projector = StateProjector()
         results = projector.fold_trace(execution.execution_trace)
 
-        locale = accept_language or execution.metadata.get("target_locale") or "en"
+        locale = accept_language or (
+            execution.metadata["target_locale"]
+            if "target_locale" in execution.metadata and execution.metadata["target_locale"]
+            else SystemLocale.EN.value
+        )
 
         def _resolve_i18n_str(val: dict[str, Any] | None, lang: str, fallback: str) -> str:
             """Ensure payload extracts the localized string for axis titles."""
             if val and isinstance(val, dict):
-                translations = val.get("translations") or val
+                translations = val["translations"] if "translations" in val and val["translations"] else val
                 if isinstance(translations, dict):
-                    return str(translations.get(lang) or translations.get("en") or fallback)
+                    if lang in translations and translations[lang]:
+                        return str(translations[lang])
+                    if SystemLocale.EN.value in translations and translations[SystemLocale.EN.value]:
+                        return str(translations[SystemLocale.EN.value])
             return fallback
 
         def _clean_hallucinated_numbers(text: str) -> str:
@@ -118,7 +123,7 @@ class BlueprintTransformer:
 
         profile_name_dict = profile.name
         layout_defs = profile.layouts
-        display_scale = getattr(profile, "display_scale", "original")
+        display_scale = profile.display_scale
 
         # Epic: XAI Output Extensions
         visible_extensions = [v.value for v in getattr(profile, "visible_extensions", [])]
@@ -144,11 +149,11 @@ class BlueprintTransformer:
         scoring_out = None
 
         for dto in results:
-            if dto.block_id == "scoring_result" and isinstance(dto.payload, dict):
+            if dto.block_id == VirtualSystemStepID.SCORING_RESULT.value and isinstance(dto.payload, dict):
                 scoring_out = dto.payload
-            if dto.block_id == "has_warning" and dto.payload:
+            if dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload:
                 has_warning = True
-            if dto.block_id == "synthesized_markdown" and dto.payload:
+            if dto.block_id == VirtualSystemStepID.SYNTHESIZED_MARKDOWN.value and dto.payload:
                 synthesis_md = dto.payload
 
         profile_cache = execution.profile_syntheses.get(resolved_pid)
@@ -156,10 +161,22 @@ class BlueprintTransformer:
         section_syntheses: dict[str, str] = {}
         xai_highlights_cache: list[Any] = []
         if profile_cache:
-            section_syntheses = getattr(profile_cache, "section_syntheses", {})
-            val = getattr(profile_cache, "synthesized_markdown", original_synthesis_md)
+            section_syntheses = (
+                profile_cache.section_syntheses
+                if hasattr(profile_cache, "section_syntheses") and profile_cache.section_syntheses
+                else {}
+            )
+            val = (
+                profile_cache.synthesized_markdown
+                if hasattr(profile_cache, "synthesized_markdown") and profile_cache.synthesized_markdown
+                else original_synthesis_md
+            )
             synthesis_md = val or original_synthesis_md
-            xai_highlights_cache = getattr(profile_cache, "xai_highlights", [])
+            xai_highlights_cache = (
+                profile_cache.xai_highlights
+                if hasattr(profile_cache, "xai_highlights") and profile_cache.xai_highlights
+                else []
+            )
         else:
             synthesis_md = original_synthesis_md
 
@@ -184,7 +201,7 @@ class BlueprintTransformer:
                 {group_key: highlight.content, "content": highlight.content, "_score": -999.0, "_is_synthesized": True}
             )
 
-        if any(dto.block_id == "has_warning" and dto.payload for dto in results):
+        if any(dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload for dto in results):
             has_warning = True
 
         global_score = None
@@ -192,14 +209,24 @@ class BlueprintTransformer:
         if isinstance(scoring_out, dict):
             # Enforce Fail-Fast Hydration Mandate
             try:
-                score_dto = TraceScoringPayloadDTO.model_validate(scoring_out, strict=False)
+                score_dto = TraceScoringPayloadDTO.model_validate(scoring_out)
                 t_score = score_dto.total_score
                 global_score = float(round(float(t_score), 1)) if t_score is not None else None
                 raw_penalties = score_dto.penalties_applied
                 if isinstance(raw_penalties, list):
                     penalties_applied = [str(p) for p in raw_penalties]
             except Exception as e:
-                logger.debug("Scoring payload extraction failed: %s", e)
+                logger.error(
+                    "[BlueprintTransformer] %s: Scoring payload extraction failed: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    e,
+                    exc_info=True,
+                )
+                raise AppException(
+                    message=f"Scoring payload extraction failed: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
 
         evaluative_matrices: list[MatrixScorecardRowDTO] = []
         informational_matrices: list[MatrixScorecardRowDTO] = []
@@ -221,10 +248,13 @@ class BlueprintTransformer:
 
             # Epic 39 / Phase 9 Extraction (Fail-Fast Hydration Mandate)
             try:
-                matrix_payload = TraceMatrixPayloadDTO.model_validate(block_data, strict=False)
+                matrix_payload = TraceMatrixPayloadDTO.model_validate(block_data)
             except Exception as e:
-                logger.debug("Skipping block %s due to invalid matrix payload format: %s", b_id, e)
-                continue
+                msg = f"Strict Fail-Fast: Invalid matrix payload format for '{b_id}': {e}"
+                logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                ) from e
 
             raw_score = matrix_payload.raw_score
 
@@ -250,8 +280,10 @@ class BlueprintTransformer:
                     status_code=500,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
-            scale_min = float(pb_meta.computed_min)
-            scale_max = float(pb_meta.computed_max)
+
+            # Mathematical Extrema (from the scale definitions)
+            math_min = float(pb_meta.computed_min)
+            math_max = float(pb_meta.computed_max)
 
             scales_def = pb_meta.scales
             if not scales_def:
@@ -279,14 +311,14 @@ class BlueprintTransformer:
                 if float_str != int_str:
                     level_names[float_str] = s_label
 
-                if s_score == scale_min:
+                if s_score == math_min:
                     ui_boundary_labels["0.0"] = s_label
-                if s_score == scale_max:
+                if s_score == math_max:
                     ui_boundary_labels["1.0"] = s_label
 
             # Output override logic
-            display_scale_min = scale_min
-            display_scale_max = scale_max
+            display_scale_min = math_min
+            display_scale_max = math_max
 
             active_score_key = "raw_score"
             if display_scale == "normalized_100":
@@ -316,10 +348,10 @@ class BlueprintTransformer:
                 score_float = float(round(score_float))
 
             # Plot ratio ALWAYS uses raw mathematical extrema, not display scale
-            # Fail-Fast logic guarantees scale_max > scale_min and raw_score is present
+            # Fail-Fast logic guarantees math_max > math_min and raw_score is present
             ui_plot_ratio = None
             if raw_score is not None:
-                ratio = (float(raw_score) - scale_min) / (scale_max - scale_min)
+                ratio = (float(raw_score) - math_min) / (math_max - math_min)
                 ui_plot_ratio = float(max(0.0, min(1.0, ratio)))
 
             # Collision Avoidance
@@ -341,14 +373,8 @@ class BlueprintTransformer:
                     axis_name = f"{original_axis_name} ({step_title} {collision_counter})"
                     collision_counter += 1
 
-            # Legacy justifications and extensions
-            justification = matrix_payload.justification
-            if not justification:
-                raise AppException(
-                    message=f"Fail-Fast: Missing justification for matrix block '{b_id}'",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
+            # Epic 47 Phase 9: Allow missing justification for virtual/mathematical matrices
+            justification = matrix_payload.justification or ""
 
             # Breakdowns
             axis_level_breakdown = None
@@ -393,18 +419,20 @@ class BlueprintTransformer:
                 true_atoms=true_atoms,
                 total_atoms=total_atoms,
                 justification=_clean_hallucinated_numbers(justification),
-                evidence_type=ext_dict.get("evidence_type"),
-                missing_context=ext_dict.get("missing_context") or "",
-                cited_source_id=ext_dict.get("source_id"),
-                cited_text_quote=ext_dict.get("citation"),
-                cited_web_citation=ext_dict.get("google_citation"),
-                coaching=ext_dict.get("coaching"),
-                confidence=ext_dict.get("confidence"),
-                falsification=ext_dict.get("falsification"),
-                risk_flag=ext_dict.get("risk_flag"),
-                remediation_steps=ext_dict.get("remediation_steps"),
-                emotional_sentiment=ext_dict.get("emotional_sentiment"),
-                theory_link=ext_dict.get("theory_link"),
+                evidence_type=ext_dict["evidence_type"] if "evidence_type" in ext_dict else None,
+                missing_context=(
+                    ext_dict["missing_context"] if "missing_context" in ext_dict and ext_dict["missing_context"] else ""
+                ),
+                cited_source_id=ext_dict["source_id"] if "source_id" in ext_dict else None,
+                cited_text_quote=ext_dict["citation"] if "citation" in ext_dict else None,
+                cited_web_citation=ext_dict["google_citation"] if "google_citation" in ext_dict else None,
+                coaching=ext_dict["coaching"] if "coaching" in ext_dict else None,
+                confidence=ext_dict["confidence"] if "confidence" in ext_dict else None,
+                falsification=ext_dict["falsification"] if "falsification" in ext_dict else None,
+                risk_flag=ext_dict["risk_flag"] if "risk_flag" in ext_dict else None,
+                remediation_steps=ext_dict["remediation_steps"] if "remediation_steps" in ext_dict else None,
+                emotional_sentiment=ext_dict["emotional_sentiment"] if "emotional_sentiment" in ext_dict else None,
+                theory_link=ext_dict["theory_link"] if "theory_link" in ext_dict else None,
                 level_breakdown=axis_level_breakdown,
                 level_names=level_names,
                 ui_boundary_labels=ui_boundary_labels,
@@ -592,14 +620,28 @@ class BlueprintTransformer:
 
             if execution.execution_trace:
                 for dto in results:
-                    if dto.block_id == "_step_metadata" and isinstance(dto.payload, dict):
-                        usage = dto.payload.get("token_usage")
+                    if dto.block_id == VirtualSystemStepID.STEP_METADATA.value and isinstance(dto.payload, dict):
+                        usage = dto.payload["token_usage"] if "token_usage" in dto.payload else None
                         if isinstance(usage, dict):
-                            p_tokens += int(usage["prompt_tokens"]) if "prompt_tokens" in usage else 0
-                            c_tokens += int(usage["completion_tokens"]) if "completion_tokens" in usage else 0
-                            r_tokens += int(usage["reasoning_tokens"]) if "reasoning_tokens" in usage else 0
-                            t_tokens += int(usage["total_tokens"]) if "total_tokens" in usage else 0
-                            cost += float(usage["cost_usd"]) if "cost_usd" in usage else 0.0
+                            p_tokens += (
+                                int(usage["prompt_tokens"])
+                                if "prompt_tokens" in usage and usage["prompt_tokens"]
+                                else 0
+                            )
+                            c_tokens += (
+                                int(usage["completion_tokens"])
+                                if "completion_tokens" in usage and usage["completion_tokens"]
+                                else 0
+                            )
+                            r_tokens += (
+                                int(usage["reasoning_tokens"])
+                                if "reasoning_tokens" in usage and usage["reasoning_tokens"]
+                                else 0
+                            )
+                            t_tokens += (
+                                int(usage["total_tokens"]) if "total_tokens" in usage and usage["total_tokens"] else 0
+                            )
+                            cost += float(usage["cost_usd"]) if "cost_usd" in usage and usage["cost_usd"] else 0.0
 
             # --- V3 SANITY CHECK / HEALTH ALERTS ---
             if t_tokens == 0 and execution.execution_trace:
@@ -638,9 +680,15 @@ class BlueprintTransformer:
                     else:
                         informational_matrices.append(axis)
 
+            p_strict = profile.strictness_level if hasattr(profile, "strictness_level") else None
+            strictness_level = p_strict if p_strict is not None else workflow_obj.default_strictness_level
+
+            p_score = profile.scoring_strategy if hasattr(profile, "scoring_strategy") else None
+            scoring_strategy = (p_score if p_score is not None else workflow_obj.default_scoring_strategy).value
+
             report_dto = ReportDataDTO(
-                strictness_level=execution.strictness_level,
-                scoring_strategy=execution.scoring_strategy.value,
+                strictness_level=strictness_level,
+                scoring_strategy=scoring_strategy,
                 workflow_id=execution.workflow_id,
                 profile_id=resolved_pid,
                 profile_name=profile_name_dict,

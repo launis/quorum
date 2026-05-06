@@ -587,3 +587,35 @@ class ExecutionService:
         else:
             msg = f"Unsupported format: {format_type}"
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
+    async def enqueue_pdf_generation(
+        self,
+        initiator: TokenData,
+        execution_id: str,
+        accept_language: str | None,
+        profile_id: str,
+        arq_pool: ArqRedis,
+    ) -> None:
+        """Securely enqueue a PDF generation job and inject a Virtual Step into the trace."""
+        # 1. Authorize connection first via Security Dependency
+        await self.get_execution(initiator=initiator, execution_id=execution_id)
+
+        # 2. Inject Virtual Step
+        v_step_id = f"sys_render_{profile_id}"
+        v_step = ExecutionStepState(id=v_step_id, label=v_step_id, status="running")
+
+        exec_record_local = await self.exec_repo.get_execution(execution_id, hydrate=False)
+        if exec_record_local:
+            exec_record_local.step_states[v_step_id] = v_step
+            await self.exec_repo.update_execution(
+                execution_id,
+                {
+                    "status": "running",
+                    "step_states": {k: v.model_dump() for k, v in exec_record_local.step_states.items()},
+                },
+            )
+
+        # 3. Queue the background task into Redis
+        await arq_pool.enqueue_job(
+            "generate_pdf_job", execution_id=execution_id, accept_language=accept_language, profile_id=profile_id
+        )

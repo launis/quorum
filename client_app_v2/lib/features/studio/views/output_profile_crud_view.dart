@@ -367,6 +367,93 @@ class OutputProfileCrudView extends HookConsumerWidget {
               ),
               const SizedBox(height: 24),
               Text(
+                'Arviointimoottori ja Ankaruustaso',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              InputDecorator(
+                decoration: InputDecoration(
+                  labelText: l10n.strictnessSelectorTitle,
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int?>(
+                    value: payload.strictnessLevel,
+                    isDense: true,
+                    isExpanded: true,
+                    items: [
+                      DropdownMenuItem<int?>(
+                        value: null,
+                        child: Text(
+                          l10n.noneDefaultLabel,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      ...StrictnessLevel.values.map((lvl) {
+                        return DropdownMenuItem<int?>(
+                          value: lvl.value,
+                          child: Text(switch (lvl) {
+                            StrictnessLevel.fullFlexibility =>
+                              l10n.strictnessFullFlex,
+                            StrictnessLevel.lenient => l10n.strictnessLenient,
+                            StrictnessLevel.balanced => l10n.strictnessBalanced,
+                            StrictnessLevel.strict => l10n.strictnessStrict,
+                            StrictnessLevel.absolute => l10n.strictnessAbsolute,
+                          }, overflow: TextOverflow.ellipsis),
+                        );
+                      }),
+                    ],
+                    onChanged: (val) {
+                      updatePayload(payload.copyWith(strictnessLevel: val));
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              InputDecorator(
+                decoration: InputDecoration(
+                  labelText: l10n.analysisLevelLabel,
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<ScoringStrategy?>(
+                    value: payload.scoringStrategy,
+                    isDense: true,
+                    isExpanded: true,
+                    items: [
+                      DropdownMenuItem<ScoringStrategy?>(
+                        value: null,
+                        child: Text(
+                          l10n.noneDefaultLabel,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      ...ScoringStrategy.values.map((strategy) {
+                        return DropdownMenuItem<ScoringStrategy?>(
+                          value: strategy,
+                          child: Text(switch (strategy) {
+                            ScoringStrategy.waterfall =>
+                              l10n.strategyKoearvostelu,
+                            ScoringStrategy.dampening =>
+                              l10n.strategySyvaarvostelu,
+                            ScoringStrategy.average =>
+                              l10n.strategyLineaarinenKeskiarvo,
+                            ScoringStrategy.weightedAverage =>
+                              l10n.strategyPainotettuKeskiarvo,
+                          }, overflow: TextOverflow.ellipsis),
+                        );
+                      }),
+                    ],
+                    onChanged: (val) {
+                      updatePayload(payload.copyWith(scoringStrategy: val));
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
                 'Kannen metatiedot (Identity Metadata)',
                 style: Theme.of(context).textTheme.titleSmall,
               ),

@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.state import StateProjector, TombstoneEvent, TraceEvent, StepExecutionEnvelope
+from backend_v2.models.state import StateProjector, StepExecutionEnvelope, TombstoneEvent, TraceEvent
 
 
 def test_state_projector_fold_trace_happy_path() -> None:

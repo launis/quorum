@@ -771,10 +771,10 @@ class ReportRendererWidget extends ConsumerWidget {
     if (strategy == null) return 'Unknown';
     final l10n = AppLocalizations.of(context)!;
     return switch (strategy) {
-      ScoringStrategy.koearvostelu => l10n.strategyKoearvostelu,
-      ScoringStrategy.syvaarvostelu => l10n.strategySyvaarvostelu,
-      ScoringStrategy.lineaarinenKeskiarvo => l10n.strategyLineaarinenKeskiarvo,
-      ScoringStrategy.painotettuKeskiarvo => l10n.strategyPainotettuKeskiarvo,
+      ScoringStrategy.waterfall => l10n.strategyKoearvostelu,
+      ScoringStrategy.dampening => l10n.strategySyvaarvostelu,
+      ScoringStrategy.average => l10n.strategyLineaarinenKeskiarvo,
+      ScoringStrategy.weightedAverage => l10n.strategyPainotettuKeskiarvo,
     };
   }
 }

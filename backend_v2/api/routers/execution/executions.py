@@ -185,38 +185,15 @@ async def generate_pdf_async(
     profile_id: str | None = Query(None),
 ) -> JobAcceptedDTO:
     """Omni-channel render endpoint for asynchronous PDF Generation via BackgroundWorker."""
-    # 1. Authorize connection first via Security Dependency
-    await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
-
-    # 2. Extract locale
     accept_language = request.headers.get("accept-language", None)
-
     prof_id = profile_id or "default"
-    
-    # Inject Virtual Step
-    v_step_id = f"sys_render_{prof_id}"
-    from backend_v2.models.v2_core import ExecutionStepState
-    v_step = ExecutionStepState(
-         id=v_step_id,
-         label="Generating Output Report",
-         status="running"
-    )
-    
-    # We must access the repository directly or add a method.
-    # execution_service.update_execution does not exist, but we can use get_execution 
-    # to authorize, then use the driver. But wait, we can just use the repository from the service.
-    if hasattr(execution_service, "repository"):
-        await execution_service.repository.update_execution(
-            execution_id,
-            {
-                "status": "running",
-                f"step_states.{v_step_id}": v_step.model_dump()
-            }
-        )
 
-    # 3. Queue the background task into Redis
-    await arq_pool.enqueue_job(
-        "generate_pdf_job", execution_id=execution_id, accept_language=accept_language, profile_id=prof_id
+    await execution_service.enqueue_pdf_generation(
+        initiator=current_user,
+        execution_id=execution_id,
+        accept_language=accept_language,
+        profile_id=prof_id,
+        arq_pool=arq_pool,
     )
 
     # 4. Return 202 Accepted Fast

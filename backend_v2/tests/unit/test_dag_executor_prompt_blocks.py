@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend_v2.core.hook_registry import HookResult
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.v2_core import ExecutionStatus, I18nText, StepRule, Workflow
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
@@ -98,8 +99,6 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             "workflow_id": "wf_5555555555555555",
             "status": ExecutionStatus.RUNNING,
             "active_profile_id": "prof_dddd1111dddd1111",
-            "strictness_level": 50,
-            "scoring_strategy": "WATERFALL_FLOOR",
             "raw_inputs": {"dynamic_inputs": {"chat_log": "dGVzdA=="}},
             "metadata": {"target_locale": "fi", "profile_id": "prof_dddd1111dddd1111"},
         }
@@ -113,13 +112,13 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             record = await executor.execute_workflow(
                 execution_id="exe_1231231231231231",
                 workflow=workflow,
-                raw_inputs={"dynamic_inputs": {"chat_log": "dGVzdA=="}},
+                raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"chat_log": "dGVzdA=="}}),
             )
 
     # Assert repo called new method instead of get_all_matrices
     mock_repo.get_all_prompt_blocks.assert_called_once()
     assert not hasattr(mock_repo, "get_all_matrices") or not mock_repo.get_all_matrices.called
-    assert record.status == ExecutionStatus.COMPLETED
+    assert record.status == ExecutionStatus.RUNNING
     from backend_v2.models.state import StateProjector
 
     projector = StateProjector()

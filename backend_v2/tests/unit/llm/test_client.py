@@ -17,8 +17,6 @@ class DummyConfig(BaseModel):
     is_active: bool = True
     tpm_limit: int = 10000
     rpm_limit: int = 1000
-    temperature: float = 0.0
-    default_max_tokens: int = 1000
     caching_strategy: str = "none"
     top_p: float | None = None
     top_k: int | None = None
@@ -26,6 +24,7 @@ class DummyConfig(BaseModel):
 
 class DummyStrictModel(BaseModel):
     """Epic 12: Micro-CoT validation test model."""
+
     step_1_evidence_quote: str | None = Field(default=None)
     step_4_final_score: int
 
@@ -45,6 +44,7 @@ class DummyStrictModel(BaseModel):
 async def test_finops_circuit_breaker_missing_usage(mock_create_provider: MagicMock) -> None:
     """Epic 12 Phase 3: Assert missing token usage crashes the Node securely."""
     mock_provider = AsyncMock()
+    mock_provider.generate = AsyncMock()
     mock_create_provider.return_value = mock_provider
 
     # LLM Provider responds but "forgets" FinOps token metrics
@@ -59,8 +59,7 @@ async def test_finops_circuit_breaker_missing_usage(mock_create_provider: MagicM
     # Circuit Breaker must trigger AgentExecutionError (CRITICAL)
     with pytest.raises(AgentExecutionError) as exc:
         await client.run_structured_task(
-            messages=[{"role": "user", "content": "Test"}],
-            response_model=DummyStrictModel
+            messages=[{"role": "user", "content": "Test"}], response_model=DummyStrictModel
         )
 
     # Check for the correct 7807 Error Code inside the exception representation
@@ -72,6 +71,7 @@ async def test_finops_circuit_breaker_missing_usage(mock_create_provider: MagicM
 async def test_semantic_self_healing_retry(mock_create_provider: MagicMock) -> None:
     """Epic 12 Phase 3: Assert Socratic prompt injection on logical validation errors."""
     mock_provider = AsyncMock()
+    mock_provider.generate = AsyncMock()
     mock_create_provider.return_value = mock_provider
 
     usage = {
@@ -80,7 +80,7 @@ async def test_semantic_self_healing_retry(mock_create_provider: MagicMock) -> N
         "total_tokens": 15,
         "cached_tokens": 0,
         "reasoning_tokens": 0,
-        "cost_usd": 0.01
+        "cost_usd": 0.01,
     }
 
     # First Generation: LLM Hallucinates a high score without evidence
@@ -105,11 +105,7 @@ async def test_semantic_self_healing_retry(mock_create_provider: MagicMock) -> N
     executor = LLMTaskExecutor(prompt_compiler=compiler)
 
     result_model, total_usage = await executor.execute_structured_task(
-        client=client,
-        messages=messages,
-        response_model=DummyStrictModel,
-        max_schema_retries=2,
-        max_logical_retries=2
+        client=client, messages=messages, response_model=DummyStrictModel, max_schema_retries=2, max_logical_retries=2
     )
 
     # 1. Structural Assertions

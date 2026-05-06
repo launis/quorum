@@ -19,15 +19,28 @@ from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+
+# --- Phase 9 Imports ---
+from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.state import StateProjector
-from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache, Workflow, WorkflowInputs
+from backend_v2.models.v2_core import (
+    ExecutionRecord,
+    ExecutionStepState,
+    PromptBlock,
+    RenderedSynthesisCache,
+    Workflow,
+    WorkflowInputs,
+)
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
+from backend_v2.utils.math_utils import normalize_score_to_100
+from backend_v2.utils.scoring import get_scoring_engine
 
 # Initialize settings
 settings = get_settings()
@@ -116,9 +129,31 @@ async def execute_workflow_job(
             else:
                 exec_record = execution_data
 
-            strictness_level = exec_record.strictness_level
+            # Epic 47 Phase 2: Dynamic Strictness Level resolution
+            profile_id = exec_record.output_profile_id
+            if not profile_id and hasattr(workflow_def, "default_profile_id"):
+                profile_id = workflow_def.default_profile_id
 
-            await engine.execute_workflow(
+            p_dict = await repository.get_output_profile_by_id(profile_id) if profile_id else None
+            active_profile_dto = OutputProfileResponseDTO.model_validate(p_dict) if p_dict else None
+
+            strictness_level = None
+            if active_profile_dto and active_profile_dto.strictness_level is not None:
+                strictness_level = active_profile_dto.strictness_level
+            elif workflow_def:
+                strictness_level = workflow_def.default_strictness_level
+
+            if strictness_level is None:
+                msg = (
+                    "Strict Fail-Fast Enforced: Missing mandatory "
+                    f"strictness_level configuration for workflow '{workflow_def.id}'."
+                )
+                logger.error("[Worker] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                )
+
+            updated_exec_record = await engine.execute_workflow(
                 execution_id=exec_id,
                 workflow=workflow_def,
                 raw_inputs=inputs_obj,
@@ -130,43 +165,47 @@ async def execute_workflow_job(
                 models_used: dict[str, int] = {}
                 duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
 
-                await repository.update_execution(
-                    exec_id,
-                    {
-                        "status": "completed",
-                        "completed_at": datetime.now(UTC).isoformat(),
-                        "duration_ms": duration_ms,
-                        "models_used": models_used,
-                    },
-                )
-
                 # TRIGGER ASYNC RENDER JOB (Epic 14 M4)
                 redis = ctx.get("redis")
                 if redis:
                     # Enqueue job to generate Synthesis cache and Static PDF
-                    default_profile = getattr(workflow_def, "default_profile_id", "default")
-                    if not default_profile:
-                        default_profile = "default"
-                    
-                    v_step_id = f"sys_render_{default_profile}"
-                    from backend_v2.models.v2_core import ExecutionStepState
-                    v_step = ExecutionStepState(
-                        id=v_step_id,
-                        label="Generating Output Report",
-                        status="running"
-                    )
+                    has_profile = hasattr(updated_exec_record, "output_profile_id")
+                    has_val = has_profile and updated_exec_record.output_profile_id
+                    profile_id = updated_exec_record.output_profile_id if has_val else None
+                    if not profile_id and hasattr(workflow_def, "default_profile_id"):
+                        profile_id = workflow_def.default_profile_id
+
+                    v_step_id = f"sys_render_{profile_id}"
+                    v_step = ExecutionStepState(id=v_step_id, label="Generating Output Report", status="running")
+
+                    new_states = dict(updated_exec_record.step_states)
+                    new_states[v_step_id] = v_step
+                    updated_exec_record = updated_exec_record.model_copy(update={"step_states": new_states})
+                    step_states_dict = {k: v.model_dump() for k, v in updated_exec_record.step_states.items()}
+
                     await repository.update_execution(
                         exec_id,
                         {
-                            "status": "running", # keep execution running until PDF is done
-                            f"step_states.{v_step_id}": v_step.model_dump()
-                        }
+                            "status": "running",  # keep execution running until PDF is done
+                            "step_states": step_states_dict,
+                            "duration_ms": duration_ms,
+                            "models_used": models_used,
+                        },
                     )
 
-                    await redis.enqueue_job("render_profile_job", exec_id, profile_id=default_profile)
-                    logger.info(f"[Job] Enqueued render_profile_job for {exec_id} with profile {default_profile}")
+                    await redis.enqueue_job("render_profile_job", exec_id, profile_id=profile_id)
+                    logger.info(f"[Job] Enqueued render_profile_job for {exec_id} with profile {profile_id}")
                 else:
                     logger.warning(f"[Job] Redis context missing. Could not enqueue render_profile_job for {exec_id}")
+                    await repository.update_execution(
+                        exec_id,
+                        {
+                            "status": "completed",
+                            "completed_at": datetime.now(UTC).isoformat(),
+                            "duration_ms": duration_ms,
+                            "models_used": models_used,
+                        },
+                    )
 
             return {
                 "status": "COMPLETED",
@@ -225,14 +264,16 @@ async def execute_workflow_job(
 
 
 async def generate_pdf_job(
-    ctx: Any, execution_id: str, accept_language: str | None = None, profile_id: str = "default"
+    ctx: Any, execution_id: str, accept_language: str | None = None, profile_id: str | None = None
 ) -> str:
     """Invoked by Arq Worker to ensure background PDF compilation resilience."""
     await generate_pdf_task(execution_id, accept_language, profile_id)
     return f"PDF Generated for {execution_id}"
 
 
-async def generate_pdf_task(execution_id: str, accept_language: str | None = None, profile_id: str = "default") -> None:  # noqa: E501
+async def generate_pdf_task(
+    execution_id: str, accept_language: str | None = None, profile_id: str | None = None
+) -> None:  # noqa: E501
     """Background Task. Assembles the SDUI JSON via Transformer and passes to PDF generator.
     Called by Arq worker for resilient PDF background compilation.
     """
@@ -279,14 +320,21 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
 
         # 4. Save path to DB so frontend can fetch it
         v_step_id = f"sys_render_{profile_id}"
-        await repo.update_execution(
-            execution_id, 
-            {
-                "pdf_report_path": saved_path,
-                "status": "completed",
-                f"step_states.{v_step_id}.status": "completed"
-            }
-        )
+
+        updates: dict[str, Any] = {}
+        updates["pdf_report_path"] = saved_path
+        updates["status"] = "completed"
+
+        exec_record_local = await repo.get_execution(execution_id, hydrate=False)
+        if exec_record_local:
+            if v_step_id in exec_record_local.step_states:
+                old_state = exec_record_local.step_states[v_step_id]
+                new_states = dict(exec_record_local.step_states)
+                new_states[v_step_id] = old_state.model_copy(update={"status": "completed"})
+                exec_record_local = exec_record_local.model_copy(update={"step_states": new_states})
+            updates["step_states"] = {k: v.model_dump() for k, v in exec_record_local.step_states.items()}
+
+        await repo.update_execution(execution_id, updates)
         logger.info(f"[Task] PDF generated successfully and path saved: {saved_path}")
 
     except Exception as e:
@@ -301,16 +349,20 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
             driver = await get_driver(get_settings())
             repo = UnifiedWorkflowRepository(driver)
             v_step_id = f"sys_render_{profile_id}"
-            await repo.update_execution(
-                execution_id,
-                {
-                    "status": "failed",
-                    "error": f"PDF Generation failed: {str(e)}",
-                    "completed_at": datetime.now(UTC).isoformat(),
-                    f"step_states.{v_step_id}.status": "failed",
-                    f"step_states.{v_step_id}.last_error": str(e)
-                },
-            )
+            updates = {}
+            updates["status"] = "failed"
+            updates["error"] = f"PDF Generation failed: {str(e)}"
+            updates["completed_at"] = datetime.now(UTC).isoformat()
+            exec_record_local = await repo.get_execution(execution_id, hydrate=False)
+            if exec_record_local:
+                if v_step_id in exec_record_local.step_states:
+                    old_state = exec_record_local.step_states[v_step_id]
+                    new_states = dict(exec_record_local.step_states)
+                    new_states[v_step_id] = old_state.model_copy(update={"status": "failed", "last_error": str(e)})
+                    exec_record_local = exec_record_local.model_copy(update={"step_states": new_states})
+                updates["step_states"] = {k: v.model_dump() for k, v in exec_record_local.step_states.items()}
+
+            await repo.update_execution(execution_id, updates)
         except Exception:
             logger.error(
                 "[Task] Failed to update execution failure status",
@@ -321,7 +373,7 @@ async def generate_pdf_task(execution_id: str, accept_language: str | None = Non
 
 
 async def render_profile_job(
-    ctx: Any, execution_id: str, accept_language: str | None = None, profile_id: str = "default"
+    ctx: Any, execution_id: str, accept_language: str | None = None, profile_id: str | None = None
 ) -> str:
     """Invoked by Arq Worker to ensure background synthesis & PDF compilation resilience."""
     await generate_profile_synthesis_and_pdf_task(execution_id, accept_language, profile_id, ctx.get("redis"))  # noqa: E501
@@ -331,7 +383,7 @@ async def render_profile_job(
 async def generate_profile_synthesis_and_pdf_task(
     execution_id: str,
     accept_language: str | None = None,
-    profile_id: str = "default",
+    profile_id: str | None = None,
     redis: Any | None = None,  # noqa: E501
 ) -> None:
     """Background Task. Synthesizes Markdown and enqueues PDF generation. Epic 14 M4."""
@@ -371,42 +423,40 @@ async def generate_profile_synthesis_and_pdf_task(
 
         # 0b. Get explicit locale via Execution
         metadata = dict(execution.metadata) if execution.metadata is not None else {}
-        loc = metadata.get("target_locale")
+        loc = metadata["target_locale"] if "target_locale" in metadata else None
         if loc and not accept_language:
             accept_language = loc
 
         # Fetch output profile to resolve dynamic strictness & strategy
-        from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
-        p_dict = await repo.get_output_profile_by_id(profile_id)
+        p_dict = await repo.get_output_profile_by_id(profile_id) if profile_id else None
         active_profile_dto = OutputProfileResponseDTO.model_validate(p_dict) if p_dict else None
-        
+
         w_dict = await repo.get_workflow_by_id(execution.workflow_id)
         workflow_def = Workflow.model_validate(w_dict) if w_dict else None
 
         strictness_level = 50
-        scoring_strategy_val = "PURE_AVERAGE"
+        scoring_strategy_val = "AVERAGE"
         if active_profile_dto:
             if active_profile_dto.strictness_level is not None:
                 strictness_level = active_profile_dto.strictness_level
             elif workflow_def:
                 strictness_level = workflow_def.default_strictness_level
-                
+
             if active_profile_dto.scoring_strategy is not None:
-                scoring_strategy_val = active_profile_dto.scoring_strategy.value if hasattr(active_profile_dto.scoring_strategy, "value") else active_profile_dto.scoring_strategy
+                prof_strat = active_profile_dto.scoring_strategy
+                scoring_strategy_val = prof_strat.value if hasattr(prof_strat, "value") else prof_strat
             elif workflow_def:
-                scoring_strategy_val = workflow_def.default_scoring_strategy.value if hasattr(workflow_def.default_scoring_strategy, "value") else workflow_def.default_scoring_strategy
+                wf_strat = workflow_def.default_scoring_strategy
+                scoring_strategy_val = wf_strat.value if hasattr(wf_strat, "value") else wf_strat
         else:
             if workflow_def:
                 strictness_level = workflow_def.default_strictness_level
-                scoring_strategy_val = workflow_def.default_scoring_strategy.value if hasattr(workflow_def.default_scoring_strategy, "value") else workflow_def.default_scoring_strategy
+                wf_strat = workflow_def.default_scoring_strategy
+                scoring_strategy_val = wf_strat.value if hasattr(wf_strat, "value") else wf_strat
 
         # Calculate scores dynamically for all matrices
-        from backend_v2.models.v2_core import PromptBlock
-        from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, XAILogDto
-        from backend_v2.utils.scoring.factory import get_scoring_engine
-        
         engine = get_scoring_engine(scoring_strategy_val)
-        
+
         # Pre-fetch block metadata for math_min/math_max
         all_blocks_raw = await repo.get_all_prompt_blocks()
         blocks_meta = {}
@@ -417,28 +467,48 @@ async def generate_profile_synthesis_and_pdf_task(
                 if s_vals:
                     blocks_meta[pb.id] = {"math_min": min(s_vals), "math_max": max(s_vals)}
 
-        for step_dto in final_inputs:
-            payload = step_dto.payload
-            for pb_id, data in payload.items():
-                if isinstance(data, dict) and "level_breakdown" in data:
-                    try:
-                        lw_matrix = LightweightMatrixOutput.model_validate(data)
-                        if lw_matrix.level_breakdown:
-                            stats = {float(k): v for k, v in lw_matrix.level_breakdown.items()}
-                            b_meta = blocks_meta.get(pb_id)
-                            if b_meta:
-                                math_min = b_meta["math_min"]
-                                math_max = b_meta["math_max"]
-                                dampening_score, xai_log_dto, _ = engine.calculate(
-                                    stats, math_min, math_max, strictness_level=strictness_level
-                                )
-                                lw_matrix.raw_score = float(dampening_score)
-                                norm_val = (dampening_score / 5.0) * 100.0 if dampening_score <= 5.0 else dampening_score
-                                lw_matrix.normalized_score = float(norm_val)
-                                lw_matrix.xai_log = xai_log_dto
-                                payload[pb_id] = lw_matrix.model_dump(exclude_none=True)
-                    except Exception as e:
-                        logger.warning(f"Failed to calculate dynamic score for {pb_id}: {e}")
+        for i, step_dto in enumerate(final_inputs):
+            pb_id = step_dto.block_id
+            data = step_dto.payload
+            if pb_id in blocks_meta:
+                try:
+                    lw_matrix = LightweightMatrixOutput.model_validate(data, strict=False)
+                    if lw_matrix.level_breakdown:
+                        stats = {float(k): v for k, v in lw_matrix.level_breakdown.items()}
+                        b_meta = blocks_meta.get(pb_id)
+                        if b_meta:
+                            math_min = b_meta["math_min"]
+                            math_max = b_meta["math_max"]
+                            dampening_score, xai_log_dto, _ = engine.calculate(
+                                stats, math_min, math_max, strictness_level=strictness_level
+                            )
+                            norm_val = normalize_score_to_100(
+                                score=dampening_score,
+                                math_min=b_meta["math_min"],
+                                math_max=b_meta["math_max"],
+                            )
+                            lw_matrix = lw_matrix.model_copy(
+                                update={
+                                    "raw_score": float(dampening_score),
+                                    "normalized_score": float(norm_val),
+                                    "xai_log": xai_log_dto,
+                                }
+                            )
+
+                            new_payload = lw_matrix.model_dump(exclude_none=True)
+
+                            # V2 Frozen Model update
+                            final_inputs[i] = step_dto.model_copy(update={"payload": new_payload})
+
+                            # Persist the dynamic score back to the execution trace so blueprint.py can find it
+                            for trace_evt in execution.execution_trace:
+                                valid_event = trace_evt.event_type in ["output", "input"]
+                                if valid_event and trace_evt.step_name == step_dto.step_id:
+                                    if pb_id in trace_evt.content:
+                                        trace_evt.content[pb_id] = new_payload
+                                        break
+                except Exception as e:
+                    logger.warning(f"Failed to calculate dynamic score for {pb_id}: {e}")
 
         # Temporarily inject target_profile_id and language into metadata to guide hook correctly
         metadata["target_profile_id"] = profile_id
@@ -474,20 +544,36 @@ async def generate_profile_synthesis_and_pdf_task(
 
             # Add new synthesis to record
             current_syntheses = dict(execution.profile_syntheses) if execution.profile_syntheses is not None else {}
-            current_syntheses[profile_id] = cache
+            pid: str = profile_id if profile_id is not None else "default"
+            current_syntheses[pid] = cache
             dict_syntheses = {k: v.model_dump(mode="json") for k, v in current_syntheses.items()}
-            update_payload = {"profile_syntheses": dict_syntheses}
+            update_payload: dict[str, Any] = {}
+            update_payload["profile_syntheses"] = dict_syntheses
 
             # Epic 6/14: Safely append LLM token usage and pricing back into ExecutionRecord metadata
             if step_metadata_updates and "token_usage" in step_metadata_updates:
                 usage = step_metadata_updates["token_usage"]
                 if usage:
                     meta = dict(execution.metadata) if execution.metadata else {}
-                    meta["total_tokens"] = meta.get("total_tokens", 0) + usage.get("total_tokens", 0)
-                    meta["prompt_tokens"] = meta.get("prompt_tokens", 0) + usage.get("prompt_tokens", 0)
-                    meta["completion_tokens"] = meta.get("completion_tokens", 0) + usage.get("completion_tokens", 0)
-                    meta["cost_estimate"] = meta.get("cost_estimate", 0.0) + usage.get("cost_estimate", 0.0)
+                    t_tokens = meta["total_tokens"] if "total_tokens" in meta else 0
+                    t_tokens += usage["total_tokens"] if "total_tokens" in usage else 0
+                    meta["total_tokens"] = t_tokens
+
+                    p_tokens = meta["prompt_tokens"] if "prompt_tokens" in meta else 0
+                    p_tokens += usage["prompt_tokens"] if "prompt_tokens" in usage else 0
+                    meta["prompt_tokens"] = p_tokens
+
+                    c_tokens = meta["completion_tokens"] if "completion_tokens" in meta else 0
+                    c_tokens += usage["completion_tokens"] if "completion_tokens" in usage else 0
+                    meta["completion_tokens"] = c_tokens
+
+                    c_est = meta["cost_estimate"] if "cost_estimate" in meta else 0.0
+                    c_est += usage["cost_estimate"] if "cost_estimate" in usage else 0.0
+                    meta["cost_estimate"] = c_est
                     update_payload["metadata"] = meta
+
+            # Save the updated trace with dynamically calculated matrix scores
+            update_payload["execution_trace"] = [evt.model_dump(mode="json") for evt in execution.execution_trace]
 
             await repo.update_execution(execution_id, update_payload)
 
@@ -495,8 +581,7 @@ async def generate_profile_synthesis_and_pdf_task(
             if mcp_tool_audit and isinstance(mcp_tool_audit, list):
                 coll_path = f"executions/{execution_id}/audit_trails"
                 for item in mcp_tool_audit:
-                    import uuid
-                    item_id = item.get("id") or str(uuid.uuid4())
+                    item_id = item["id"] if "id" in item and item["id"] else str(uuid.uuid4())
                     item["id"] = item_id
                     await driver.upsert(coll_path, item, item_id)
 
@@ -518,16 +603,21 @@ async def generate_profile_synthesis_and_pdf_task(
             driver = await get_driver(get_settings())
             repo = UnifiedWorkflowRepository(driver)
             v_step_id = f"sys_render_{profile_id}"
-            await repo.update_execution(
-                execution_id,
-                {
-                    "status": "failed",
-                    "error": f"Text Synthesis failed: {str(e)}",
-                    "completed_at": datetime.now(UTC).isoformat(),
-                    f"step_states.{v_step_id}.status": "failed",
-                    f"step_states.{v_step_id}.last_error": str(e)
-                },
-            )
+            updates: dict[str, Any] = {}
+            updates["status"] = "failed"
+            updates["error"] = f"Text Synthesis failed: {str(e)}"
+            updates["completed_at"] = datetime.now(UTC).isoformat()
+            exec_record_local = await repo.get_execution(execution_id, hydrate=False)
+            if exec_record_local:
+                if v_step_id in exec_record_local.step_states:
+                    old_state = exec_record_local.step_states[v_step_id]
+                    updated_state = old_state.model_copy(update={"status": "failed", "last_error": str(e)})
+                    new_step_states = dict(exec_record_local.step_states)
+                    new_step_states[v_step_id] = updated_state
+                    exec_record_local = exec_record_local.model_copy(update={"step_states": new_step_states})
+                updates["step_states"] = {k: v.model_dump() for k, v in exec_record_local.step_states.items()}
+
+            await repo.update_execution(execution_id, updates)
         except Exception:
             logger.error(
                 "[Task] Failed to update execution failure status",

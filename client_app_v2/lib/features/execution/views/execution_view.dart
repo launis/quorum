@@ -11,7 +11,6 @@ import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/execution/views/widgets/report_renderer_widget.dart';
 import 'package:client_app/features/execution/models/report_data_dto.dart';
 
-import 'package:client_app/router/router.dart';
 import 'dart:convert';
 
 /// **Live Execution SDUI Screen**
@@ -58,18 +57,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
     // Watch the live stream
     final executionState = ref.watch(executionControllerProvider);
 
-    // Auto-navigate to Report when Completed
-    ref.listen<AsyncValue<Map<String, dynamic>?>>(executionControllerProvider, (
-      previous,
-      next,
-    ) {
-      if (next is AsyncData && next.value != null) {
-        final status = next.value!['status']?.toString().toLowerCase();
-        if (status == 'completed') {
-          ExecutionReportRoute(executionId: widget.executionId).go(context);
-        }
-      }
-    });
+    // Auto-navigation disabled to preserve timeline visibility (tulostus osa)
 
     return Scaffold(
       appBar: AppBar(

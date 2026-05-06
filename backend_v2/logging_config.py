@@ -5,7 +5,6 @@ import logging
 import os
 import re
 import sys
-from typing import Any
 
 from backend_v2.settings import get_settings
 
@@ -219,7 +218,8 @@ def setup_logging(log_level: int = logging.INFO) -> None:
         except Exception as e:
             logging.getLogger(__name__).error("Unexpected error configuring LiteLLM.", exc_info=True)
             raise AppException(
-                message="Failed to configure LiteLLM logging.", details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                message="Failed to configure LiteLLM logging.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             ) from e
     else:
         logging.getLogger(__name__).info("LiteLLM module not found. Skipping LiteLLM debug configuration.")

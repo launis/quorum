@@ -6,7 +6,6 @@ from typing import Any
 import litellm
 
 from backend_v2.exceptions import AppException, ErrorCodes, TokenLimitExceededError
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.utils.dict_utils import resolve_dot_notation
@@ -52,7 +51,6 @@ class ContextBuilder:
                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
                     try:
-                        matrix_dto = LightweightMatrixOutput.model_validate(value)
                         pruned = ContextRouter.route_and_prune(value, output_profile)
                         if not pruned:
                             continue

@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from pydantic import BaseModel, ConfigDict, ValidationError
+
 from backend_v2.exceptions import (
     AppException,
     ConfigurationError,
@@ -12,13 +14,26 @@ from backend_v2.exceptions import (
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, OutputProfileConfig
 
 
+class RoutingModeConfig(BaseModel):
+    """Pydantic model for validating routing configurations strictly."""
+
+    model_config = ConfigDict(extra="allow")
+    routing_mode: str
+
+
+class SnapshotState(BaseModel):
+    """Pydantic model to encapsulate execution state snapshots without using naked dicts."""
+
+    model_config = ConfigDict(extra="allow")
+    steps: list[Any] | None = None
+    raw_inputs: dict[str, Any] | None = None
+
+
 class ContextRouter:
     """Isolates UI-driven routing and data culling logic."""
 
     @staticmethod
-    def route_and_prune(
-        trace_event: dict[str, Any], output_profile: OutputProfileConfig | None
-    ) -> LightweightMatrixOutput:
+    def route_and_prune(trace_event: Any, output_profile: OutputProfileConfig | None) -> LightweightMatrixOutput:
         """Extracts strictly what the UI demands from the execution trace.
 
         Args:
@@ -33,7 +48,13 @@ class ContextRouter:
             MissingXaiExtensionError: If a requested extension is missing in the trace.
         """
         try:
-            validated_trace = LightweightMatrixOutput.model_validate(trace_event)
+            if isinstance(trace_event, dict):
+                mapped_trace = LightweightMatrixOutput.map_llm_extensions_to_domain(trace_event)
+                validated_trace = LightweightMatrixOutput.model_validate(mapped_trace)
+            else:
+                validated_trace = LightweightMatrixOutput.model_validate(trace_event)
+        except ValidationError as e:
+            raise ConfigurationError(message=f"Fail-Fast: Invalid trace_event format: {e}") from e
         except Exception as e:
             raise ConfigurationError(message=f"Missing required base field in trace_event: {e}") from e
 
@@ -58,7 +79,7 @@ class ContextRouter:
         )
 
     @staticmethod
-    def validate_routing_mode(mapping_path: str, mapping_config: dict[str, Any]) -> str:
+    def validate_routing_mode(mapping_path: str, mapping_config: Any) -> str:
         """Ensures that step-to-step mappings have a strict routing mode defined.
 
         Args:
@@ -72,12 +93,13 @@ class ContextRouter:
             MissingRoutingModeError: If routing_mode is not present.
         """
         try:
-            return str(mapping_config["routing_mode"])
-        except KeyError as e:
+            config = RoutingModeConfig.model_validate(mapping_config)
+            return config.routing_mode
+        except ValidationError as e:
             raise MissingRoutingModeError(mapping_path=mapping_path) from e
 
     @staticmethod
-    def normalize_and_validate_variable(path: str, snapshot: dict[str, Any]) -> str:
+    def normalize_and_validate_variable(path: str, snapshot: Any) -> str:
         """Validates dynamic variables (Fail-Fast) and strictly forbids legacy V1 paths.
 
         Enforces strict V2 nomenclature: No implicit stripping of '.output'.
@@ -91,9 +113,17 @@ class ContextRouter:
             parts = clean_path.split(".")
             if len(parts) >= 2:
                 step_key = parts[1]
-                steps_container = snapshot.get("steps")
 
-                if isinstance(steps_container, dict):
+                try:
+                    state = SnapshotState.model_validate(snapshot)
+                except ValidationError as e:
+                    raise AppException(
+                        message="Fail-Fast: Snapshot validation failed. Must match SnapshotState.",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from e
+
+                if isinstance(snapshot, dict) and "steps" in snapshot and isinstance(snapshot["steps"], dict):
                     raise AppException(
                         message=(
                             "Fail-Fast: Legacy dictionary state detected in trace. "
@@ -105,8 +135,8 @@ class ContextRouter:
                     )
 
                 found = False
-                if isinstance(steps_container, list):
-                    found = any(getattr(dto, "step_id", None) == step_key for dto in steps_container)
+                if state.steps:
+                    found = any(getattr(dto, "step_id", None) == step_key for dto in state.steps)
 
                 if not found:
                     raise AppException(

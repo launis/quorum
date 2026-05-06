@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$OutputLayoutBlock {
 
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView get presetView; I18nText? get title; I18nText? get description; List<String> get steps; List<String> get targetBlocks;@JsonKey(name: 'text_delivery_mode') String get textDeliveryMode; SynthesisConfigDTO? get synthesis;@JsonKey(name: 'synthesis_md') String? get synthesisMd;
+@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView get presetView; I18nText? get title; I18nText? get description; List<String> get steps; List<String> get targetBlocks;@JsonKey(name: 'text_delivery_mode') String get textDeliveryMode; SynthesisConfigDTO? get synthesis;@JsonKey(name: 'synthesis_md') String? get synthesisMd;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;
 /// Create a copy of OutputLayoutBlock
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,7 +30,7 @@ $OutputLayoutBlockCopyWith<OutputLayoutBlock> get copyWith => _$OutputLayoutBloc
 
 @override
 String toString() {
-  return 'OutputLayoutBlock(presetView: $presetView, title: $title, description: $description, steps: $steps, targetBlocks: $targetBlocks, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisMd: $synthesisMd)';
+  return 'OutputLayoutBlock(presetView: $presetView, title: $title, description: $description, steps: $steps, targetBlocks: $targetBlocks, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisMd: $synthesisMd, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy)';
 }
 
 
@@ -41,7 +41,7 @@ abstract mixin class $OutputLayoutBlockCopyWith<$Res>  {
   factory $OutputLayoutBlockCopyWith(OutputLayoutBlock value, $Res Function(OutputLayoutBlock) _then) = _$OutputLayoutBlockCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, SynthesisConfigDTO? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
+@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, SynthesisConfigDTO? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy
 });
 
 
@@ -58,7 +58,7 @@ class _$OutputLayoutBlockCopyWithImpl<$Res>
 
 /// Create a copy of OutputLayoutBlock
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisMd = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisMd = freezed,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,}) {
   return _then(_self.copyWith(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as PresetView,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -68,7 +68,9 @@ as List<String>,targetBlocks: null == targetBlocks ? _self.targetBlocks : target
 as List<String>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDTO?,synthesisMd: freezed == synthesisMd ? _self.synthesisMd : synthesisMd // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
+as int?,scoringStrategy: freezed == scoringStrategy ? _self.scoringStrategy : scoringStrategy // ignore: cast_nullable_to_non_nullable
+as ScoringStrategy?,
   ));
 }
 /// Create a copy of OutputLayoutBlock
@@ -189,10 +191,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OutputLayoutBlock() when $default != null:
-return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
+return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd,_that.strictnessLevel,_that.scoringStrategy);case _:
   return orElse();
 
 }
@@ -210,10 +212,10 @@ return $default(_that.presetView,_that.title,_that.description,_that.steps,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy)  $default,) {final _that = this;
 switch (_that) {
 case _OutputLayoutBlock():
-return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
+return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd,_that.strictnessLevel,_that.scoringStrategy);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -230,10 +232,10 @@ return $default(_that.presetView,_that.title,_that.description,_that.steps,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)  PresetView presetView,  I18nText? title,  I18nText? description,  List<String> steps,  List<String> targetBlocks, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy)?  $default,) {final _that = this;
 switch (_that) {
 case _OutputLayoutBlock() when $default != null:
-return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
+return $default(_that.presetView,_that.title,_that.description,_that.steps,_that.targetBlocks,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd,_that.strictnessLevel,_that.scoringStrategy);case _:
   return null;
 
 }
@@ -245,7 +247,7 @@ return $default(_that.presetView,_that.title,_that.description,_that.steps,_that
 @JsonSerializable()
 
 class _OutputLayoutBlock extends OutputLayoutBlock {
-  const _OutputLayoutBlock({@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) this.presetView = PresetView.defaultView, this.title, this.description, final  List<String> steps = const [], final  List<String> targetBlocks = const [], @JsonKey(name: 'text_delivery_mode') this.textDeliveryMode = 'full', this.synthesis, @JsonKey(name: 'synthesis_md') this.synthesisMd}): _steps = steps,_targetBlocks = targetBlocks,super._();
+  const _OutputLayoutBlock({@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) this.presetView = PresetView.defaultView, this.title, this.description, final  List<String> steps = const [], final  List<String> targetBlocks = const [], @JsonKey(name: 'text_delivery_mode') this.textDeliveryMode = 'full', this.synthesis, @JsonKey(name: 'synthesis_md') this.synthesisMd, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy}): _steps = steps,_targetBlocks = targetBlocks,super._();
   factory _OutputLayoutBlock.fromJson(Map<String, dynamic> json) => _$OutputLayoutBlockFromJson(json);
 
 @override@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) final  PresetView presetView;
@@ -268,6 +270,8 @@ class _OutputLayoutBlock extends OutputLayoutBlock {
 @override@JsonKey(name: 'text_delivery_mode') final  String textDeliveryMode;
 @override final  SynthesisConfigDTO? synthesis;
 @override@JsonKey(name: 'synthesis_md') final  String? synthesisMd;
+@override@JsonKey(name: 'strictness_level') final  int? strictnessLevel;
+@override@JsonKey(name: 'scoring_strategy') final  ScoringStrategy? scoringStrategy;
 
 /// Create a copy of OutputLayoutBlock
 /// with the given fields replaced by the non-null parameter values.
@@ -284,7 +288,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'OutputLayoutBlock(presetView: $presetView, title: $title, description: $description, steps: $steps, targetBlocks: $targetBlocks, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisMd: $synthesisMd)';
+  return 'OutputLayoutBlock(presetView: $presetView, title: $title, description: $description, steps: $steps, targetBlocks: $targetBlocks, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisMd: $synthesisMd, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy)';
 }
 
 
@@ -295,7 +299,7 @@ abstract mixin class _$OutputLayoutBlockCopyWith<$Res> implements $OutputLayoutB
   factory _$OutputLayoutBlockCopyWith(_OutputLayoutBlock value, $Res Function(_OutputLayoutBlock) _then) = __$OutputLayoutBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, SynthesisConfigDTO? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
+@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView) PresetView presetView, I18nText? title, I18nText? description, List<String> steps, List<String> targetBlocks,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, SynthesisConfigDTO? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy
 });
 
 
@@ -312,7 +316,7 @@ class __$OutputLayoutBlockCopyWithImpl<$Res>
 
 /// Create a copy of OutputLayoutBlock
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisMd = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? title = freezed,Object? description = freezed,Object? steps = null,Object? targetBlocks = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisMd = freezed,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,}) {
   return _then(_OutputLayoutBlock(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as PresetView,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -322,7 +326,9 @@ as List<String>,targetBlocks: null == targetBlocks ? _self._targetBlocks : targe
 as List<String>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDTO?,synthesisMd: freezed == synthesisMd ? _self.synthesisMd : synthesisMd // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
+as int?,scoringStrategy: freezed == scoringStrategy ? _self.scoringStrategy : scoringStrategy // ignore: cast_nullable_to_non_nullable
+as ScoringStrategy?,
   ));
 }
 
@@ -675,7 +681,7 @@ $I18nTextCopyWith<$Res>? get preambleText {
 /// @nodoc
 mixin _$OutputProfile {
 
-@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter() String get workflowId; String? get organizationId; I18nText get name; I18nText? get description; List<String> get visibleMetadata; List<XaiExtensionType> get visibleExtensions;@JsonKey(name: 'max_extension_items') int? get maxExtensionItems; String get displayScale; SynthesisConfigDTO? get synthesis;@JsonKey(name: 'include_diagnostic_scorecard') bool get includeDiagnosticScorecard; List<OutputLayoutBlock> get layouts;
+@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter() String get workflowId; String? get organizationId; I18nText get name; I18nText? get description; List<String> get visibleMetadata; List<XaiExtensionType> get visibleExtensions;@JsonKey(name: 'max_extension_items') int? get maxExtensionItems; String get displayScale; SynthesisConfigDTO? get synthesis;@JsonKey(name: 'include_diagnostic_scorecard') bool get includeDiagnosticScorecard;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy; List<OutputLayoutBlock> get layouts;
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -690,7 +696,7 @@ $OutputProfileCopyWith<OutputProfile> get copyWith => _$OutputProfileCopyWithImp
 
 @override
 String toString() {
-  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, organizationId: $organizationId, name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, synthesis: $synthesis, includeDiagnosticScorecard: $includeDiagnosticScorecard, layouts: $layouts)';
+  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, organizationId: $organizationId, name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, synthesis: $synthesis, includeDiagnosticScorecard: $includeDiagnosticScorecard, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy, layouts: $layouts)';
 }
 
 
@@ -701,7 +707,7 @@ abstract mixin class $OutputProfileCopyWith<$Res>  {
   factory $OutputProfileCopyWith(OutputProfile value, $Res Function(OutputProfile) _then) = _$OutputProfileCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale, SynthesisConfigDTO? synthesis,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard, List<OutputLayoutBlock> layouts
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale, SynthesisConfigDTO? synthesis,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy, List<OutputLayoutBlock> layouts
 });
 
 
@@ -718,7 +724,7 @@ class _$OutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? organizationId = freezed,Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? synthesis = freezed,Object? includeDiagnosticScorecard = null,Object? layouts = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? organizationId = freezed,Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? synthesis = freezed,Object? includeDiagnosticScorecard = null,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? layouts = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -732,7 +738,9 @@ as List<XaiExtensionType>,maxExtensionItems: freezed == maxExtensionItems ? _sel
 as int?,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDTO?,includeDiagnosticScorecard: null == includeDiagnosticScorecard ? _self.includeDiagnosticScorecard : includeDiagnosticScorecard // ignore: cast_nullable_to_non_nullable
-as bool,layouts: null == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
+as bool,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
+as int?,scoringStrategy: freezed == scoringStrategy ? _self.scoringStrategy : scoringStrategy // ignore: cast_nullable_to_non_nullable
+as ScoringStrategy?,layouts: null == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,
   ));
 }
@@ -851,10 +859,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OutputProfile() when $default != null:
-return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.layouts);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.layouts);case _:
   return orElse();
 
 }
@@ -872,10 +880,10 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
 switch (_that) {
 case _OutputProfile():
-return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.layouts);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.layouts);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -892,10 +900,10 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
 switch (_that) {
 case _OutputProfile() when $default != null:
-return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.layouts);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.layouts);case _:
   return null;
 
 }
@@ -907,7 +915,7 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.
 @JsonSerializable()
 
 class _OutputProfile extends OutputProfile {
-  const _OutputProfile({@StrictOpaqueIdConverter() required this.id, this.slug = '', @StrictOpaqueIdConverter() required this.workflowId, this.organizationId, required this.name, this.description, final  List<String> visibleMetadata = const ['date', 'organization'], required final  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items') this.maxExtensionItems, this.displayScale = 'original', this.synthesis, @JsonKey(name: 'include_diagnostic_scorecard') this.includeDiagnosticScorecard = false, final  List<OutputLayoutBlock> layouts = const []}): _visibleMetadata = visibleMetadata,_visibleExtensions = visibleExtensions,_layouts = layouts,super._();
+  const _OutputProfile({@StrictOpaqueIdConverter() required this.id, this.slug = '', @StrictOpaqueIdConverter() required this.workflowId, this.organizationId, required this.name, this.description, final  List<String> visibleMetadata = const ['date', 'organization'], required final  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items') this.maxExtensionItems, this.displayScale = 'original', this.synthesis, @JsonKey(name: 'include_diagnostic_scorecard') this.includeDiagnosticScorecard = false, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, final  List<OutputLayoutBlock> layouts = const []}): _visibleMetadata = visibleMetadata,_visibleExtensions = visibleExtensions,_layouts = layouts,super._();
   factory _OutputProfile.fromJson(Map<String, dynamic> json) => _$OutputProfileFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -934,6 +942,8 @@ class _OutputProfile extends OutputProfile {
 @override@JsonKey() final  String displayScale;
 @override final  SynthesisConfigDTO? synthesis;
 @override@JsonKey(name: 'include_diagnostic_scorecard') final  bool includeDiagnosticScorecard;
+@override@JsonKey(name: 'strictness_level') final  int? strictnessLevel;
+@override@JsonKey(name: 'scoring_strategy') final  ScoringStrategy? scoringStrategy;
  final  List<OutputLayoutBlock> _layouts;
 @override@JsonKey() List<OutputLayoutBlock> get layouts {
   if (_layouts is EqualUnmodifiableListView) return _layouts;
@@ -957,7 +967,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, organizationId: $organizationId, name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, synthesis: $synthesis, includeDiagnosticScorecard: $includeDiagnosticScorecard, layouts: $layouts)';
+  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, organizationId: $organizationId, name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, synthesis: $synthesis, includeDiagnosticScorecard: $includeDiagnosticScorecard, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy, layouts: $layouts)';
 }
 
 
@@ -968,7 +978,7 @@ abstract mixin class _$OutputProfileCopyWith<$Res> implements $OutputProfileCopy
   factory _$OutputProfileCopyWith(_OutputProfile value, $Res Function(_OutputProfile) _then) = __$OutputProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale, SynthesisConfigDTO? synthesis,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard, List<OutputLayoutBlock> layouts
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale, SynthesisConfigDTO? synthesis,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy, List<OutputLayoutBlock> layouts
 });
 
 
@@ -985,7 +995,7 @@ class __$OutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? organizationId = freezed,Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? synthesis = freezed,Object? includeDiagnosticScorecard = null,Object? layouts = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? organizationId = freezed,Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? synthesis = freezed,Object? includeDiagnosticScorecard = null,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? layouts = null,}) {
   return _then(_OutputProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -999,7 +1009,9 @@ as List<XaiExtensionType>,maxExtensionItems: freezed == maxExtensionItems ? _sel
 as int?,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDTO?,includeDiagnosticScorecard: null == includeDiagnosticScorecard ? _self.includeDiagnosticScorecard : includeDiagnosticScorecard // ignore: cast_nullable_to_non_nullable
-as bool,layouts: null == layouts ? _self._layouts : layouts // ignore: cast_nullable_to_non_nullable
+as bool,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
+as int?,scoringStrategy: freezed == scoringStrategy ? _self.scoringStrategy : scoringStrategy // ignore: cast_nullable_to_non_nullable
+as ScoringStrategy?,layouts: null == layouts ? _self._layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,
   ));
 }
@@ -1044,7 +1056,7 @@ $SynthesisConfigDTOCopyWith<$Res>? get synthesis {
 /// @nodoc
 mixin _$EmbeddedOutputProfile {
 
- I18nText get name; I18nText? get description; List<String> get visibleMetadata; List<XaiExtensionType> get visibleExtensions;@JsonKey(name: 'max_extension_items') int? get maxExtensionItems; String get displayScale; SynthesisConfigDTO? get synthesis;@JsonKey(name: 'include_diagnostic_scorecard') bool get includeDiagnosticScorecard; List<OutputLayoutBlock> get layouts;
+ I18nText get name; I18nText? get description; List<String> get visibleMetadata; List<XaiExtensionType> get visibleExtensions;@JsonKey(name: 'max_extension_items') int? get maxExtensionItems; String get displayScale; SynthesisConfigDTO? get synthesis;@JsonKey(name: 'include_diagnostic_scorecard') bool get includeDiagnosticScorecard;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy; List<OutputLayoutBlock> get layouts;
 /// Create a copy of EmbeddedOutputProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1059,7 +1071,7 @@ $EmbeddedOutputProfileCopyWith<EmbeddedOutputProfile> get copyWith => _$Embedded
 
 @override
 String toString() {
-  return 'EmbeddedOutputProfile(name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, synthesis: $synthesis, includeDiagnosticScorecard: $includeDiagnosticScorecard, layouts: $layouts)';
+  return 'EmbeddedOutputProfile(name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, synthesis: $synthesis, includeDiagnosticScorecard: $includeDiagnosticScorecard, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy, layouts: $layouts)';
 }
 
 
@@ -1070,7 +1082,7 @@ abstract mixin class $EmbeddedOutputProfileCopyWith<$Res>  {
   factory $EmbeddedOutputProfileCopyWith(EmbeddedOutputProfile value, $Res Function(EmbeddedOutputProfile) _then) = _$EmbeddedOutputProfileCopyWithImpl;
 @useResult
 $Res call({
- I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale, SynthesisConfigDTO? synthesis,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard, List<OutputLayoutBlock> layouts
+ I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale, SynthesisConfigDTO? synthesis,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy, List<OutputLayoutBlock> layouts
 });
 
 
@@ -1087,7 +1099,7 @@ class _$EmbeddedOutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of EmbeddedOutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? synthesis = freezed,Object? includeDiagnosticScorecard = null,Object? layouts = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? synthesis = freezed,Object? includeDiagnosticScorecard = null,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? layouts = null,}) {
   return _then(_self.copyWith(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
@@ -1097,7 +1109,9 @@ as List<XaiExtensionType>,maxExtensionItems: freezed == maxExtensionItems ? _sel
 as int?,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDTO?,includeDiagnosticScorecard: null == includeDiagnosticScorecard ? _self.includeDiagnosticScorecard : includeDiagnosticScorecard // ignore: cast_nullable_to_non_nullable
-as bool,layouts: null == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
+as bool,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
+as int?,scoringStrategy: freezed == scoringStrategy ? _self.scoringStrategy : scoringStrategy // ignore: cast_nullable_to_non_nullable
+as ScoringStrategy?,layouts: null == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,
   ));
 }
@@ -1216,10 +1230,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy,  List<OutputLayoutBlock> layouts)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EmbeddedOutputProfile() when $default != null:
-return $default(_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.layouts);case _:
+return $default(_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.layouts);case _:
   return orElse();
 
 }
@@ -1237,10 +1251,10 @@ return $default(_that.name,_that.description,_that.visibleMetadata,_that.visible
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy,  List<OutputLayoutBlock> layouts)  $default,) {final _that = this;
 switch (_that) {
 case _EmbeddedOutputProfile():
-return $default(_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.layouts);case _:
+return $default(_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.layouts);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1257,10 +1271,10 @@ return $default(_that.name,_that.description,_that.visibleMetadata,_that.visible
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText name,  I18nText? description,  List<String> visibleMetadata,  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items')  int? maxExtensionItems,  String displayScale,  SynthesisConfigDTO? synthesis, @JsonKey(name: 'include_diagnostic_scorecard')  bool includeDiagnosticScorecard, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy,  List<OutputLayoutBlock> layouts)?  $default,) {final _that = this;
 switch (_that) {
 case _EmbeddedOutputProfile() when $default != null:
-return $default(_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.layouts);case _:
+return $default(_that.name,_that.description,_that.visibleMetadata,_that.visibleExtensions,_that.maxExtensionItems,_that.displayScale,_that.synthesis,_that.includeDiagnosticScorecard,_that.strictnessLevel,_that.scoringStrategy,_that.layouts);case _:
   return null;
 
 }
@@ -1272,7 +1286,7 @@ return $default(_that.name,_that.description,_that.visibleMetadata,_that.visible
 @JsonSerializable()
 
 class _EmbeddedOutputProfile extends EmbeddedOutputProfile {
-  const _EmbeddedOutputProfile({required this.name, this.description, final  List<String> visibleMetadata = const ['date', 'organization'], required final  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items') this.maxExtensionItems, this.displayScale = 'original', this.synthesis, @JsonKey(name: 'include_diagnostic_scorecard') this.includeDiagnosticScorecard = false, final  List<OutputLayoutBlock> layouts = const []}): _visibleMetadata = visibleMetadata,_visibleExtensions = visibleExtensions,_layouts = layouts,super._();
+  const _EmbeddedOutputProfile({required this.name, this.description, final  List<String> visibleMetadata = const ['date', 'organization'], required final  List<XaiExtensionType> visibleExtensions, @JsonKey(name: 'max_extension_items') this.maxExtensionItems, this.displayScale = 'original', this.synthesis, @JsonKey(name: 'include_diagnostic_scorecard') this.includeDiagnosticScorecard = false, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, final  List<OutputLayoutBlock> layouts = const []}): _visibleMetadata = visibleMetadata,_visibleExtensions = visibleExtensions,_layouts = layouts,super._();
   factory _EmbeddedOutputProfile.fromJson(Map<String, dynamic> json) => _$EmbeddedOutputProfileFromJson(json);
 
 @override final  I18nText name;
@@ -1295,6 +1309,8 @@ class _EmbeddedOutputProfile extends EmbeddedOutputProfile {
 @override@JsonKey() final  String displayScale;
 @override final  SynthesisConfigDTO? synthesis;
 @override@JsonKey(name: 'include_diagnostic_scorecard') final  bool includeDiagnosticScorecard;
+@override@JsonKey(name: 'strictness_level') final  int? strictnessLevel;
+@override@JsonKey(name: 'scoring_strategy') final  ScoringStrategy? scoringStrategy;
  final  List<OutputLayoutBlock> _layouts;
 @override@JsonKey() List<OutputLayoutBlock> get layouts {
   if (_layouts is EqualUnmodifiableListView) return _layouts;
@@ -1318,7 +1334,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'EmbeddedOutputProfile(name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, synthesis: $synthesis, includeDiagnosticScorecard: $includeDiagnosticScorecard, layouts: $layouts)';
+  return 'EmbeddedOutputProfile(name: $name, description: $description, visibleMetadata: $visibleMetadata, visibleExtensions: $visibleExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, synthesis: $synthesis, includeDiagnosticScorecard: $includeDiagnosticScorecard, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy, layouts: $layouts)';
 }
 
 
@@ -1329,7 +1345,7 @@ abstract mixin class _$EmbeddedOutputProfileCopyWith<$Res> implements $EmbeddedO
   factory _$EmbeddedOutputProfileCopyWith(_EmbeddedOutputProfile value, $Res Function(_EmbeddedOutputProfile) _then) = __$EmbeddedOutputProfileCopyWithImpl;
 @override @useResult
 $Res call({
- I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale, SynthesisConfigDTO? synthesis,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard, List<OutputLayoutBlock> layouts
+ I18nText name, I18nText? description, List<String> visibleMetadata, List<XaiExtensionType> visibleExtensions,@JsonKey(name: 'max_extension_items') int? maxExtensionItems, String displayScale, SynthesisConfigDTO? synthesis,@JsonKey(name: 'include_diagnostic_scorecard') bool includeDiagnosticScorecard,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy, List<OutputLayoutBlock> layouts
 });
 
 
@@ -1346,7 +1362,7 @@ class __$EmbeddedOutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of EmbeddedOutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? synthesis = freezed,Object? includeDiagnosticScorecard = null,Object? layouts = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? description = freezed,Object? visibleMetadata = null,Object? visibleExtensions = null,Object? maxExtensionItems = freezed,Object? displayScale = null,Object? synthesis = freezed,Object? includeDiagnosticScorecard = null,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? layouts = null,}) {
   return _then(_EmbeddedOutputProfile(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as I18nText,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
@@ -1356,7 +1372,9 @@ as List<XaiExtensionType>,maxExtensionItems: freezed == maxExtensionItems ? _sel
 as int?,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as SynthesisConfigDTO?,includeDiagnosticScorecard: null == includeDiagnosticScorecard ? _self.includeDiagnosticScorecard : includeDiagnosticScorecard // ignore: cast_nullable_to_non_nullable
-as bool,layouts: null == layouts ? _self._layouts : layouts // ignore: cast_nullable_to_non_nullable
+as bool,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
+as int?,scoringStrategy: freezed == scoringStrategy ? _self.scoringStrategy : scoringStrategy // ignore: cast_nullable_to_non_nullable
+as ScoringStrategy?,layouts: null == layouts ? _self._layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<OutputLayoutBlock>,
   ));
 }

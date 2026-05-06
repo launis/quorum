@@ -40,6 +40,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorValidationEmpty => 'Inputs cannot be empty.';
 
   @override
+  String get eventLlmAnomalyRetry =>
+      'Quality Assurance: The AI detected an inconsistency and is verifying its reasoning (Attempt 2)...';
+
+  @override
   String errorValidationMissing(String fields) {
     return 'Missing required fields: $fields';
   }
@@ -3394,4 +3398,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String reportReasoningTokens(String count) {
     return 'Reasoning: $count';
   }
+
+  @override
+  String get strategyKoearvostelu => 'Koearvostelu (Test Evaluation)';
+
+  @override
+  String get strategySyvaarvostelu => 'Syväarvostelu (Deep Evaluation)';
+
+  @override
+  String get strategyLineaarinenKeskiarvo =>
+      'Lineaarinen Keskiarvo (Linear Average)';
+
+  @override
+  String get strategyPainotettuKeskiarvo =>
+      'Painotettu Keskiarvo (Weighted Average)';
 }

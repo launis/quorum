@@ -12,7 +12,7 @@ from backend_v2.api.routers.execution.executions import (
     start_execution,
 )
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.enums import ScoringStrategy
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import ExecutionRecord
 
 
@@ -49,10 +49,8 @@ async def test_list_executions(mock_current_user: Any, mock_execution_service: A
 async def test_get_execution_status(mock_current_user: Any, mock_execution_service: AsyncMock) -> None:
     """Test retrieving execution status by ID."""
     mock_record = ExecutionRecord(
-        scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
-        strictness_level=50,
         id="exe_1234567890abcdef1234567890abcdef",
-        status="completed",
+        status=ExecutionStatus.COMPLETED,
         workflow_id="wf_1",
     )
     mock_execution_service.get_execution.return_value = mock_record
@@ -78,15 +76,11 @@ async def test_start_execution(
         "workflow_id": "wf_1",
         "target_locale": "fi",
         "raw_inputs": {"dynamic_inputs": {"file1": "test"}},
-        "strictness_level": 50,
-        "scoring_strategy": "WATERFALL_FLOOR",
     }
 
     mock_record = ExecutionRecord(
-        scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
-        strictness_level=50,
         id="exe_1234567890abcdef1234567890abcdef",
-        status="pending",
+        status=ExecutionStatus.PENDING,
         workflow_id="wf_1",
     )
     mock_execution_service.start_execution.return_value = mock_record
@@ -123,10 +117,8 @@ async def test_resume_execution(
 ) -> None:
     """Test resuming an execution."""
     mock_record = ExecutionRecord(
-        scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
-        strictness_level=50,
         id="exe_1234567890abcdef1234567890abcdef",
-        status="running",
+        status=ExecutionStatus.RUNNING,
         workflow_id="wf_1",
     )
     mock_execution_service.resume_execution.return_value = mock_record
@@ -149,8 +141,6 @@ async def test_start_execution_base64_eager_extraction(
     mock_request.json.return_value = {
         "workflow_id": "wf_1",
         "target_locale": "fi",
-        "strictness_level": 50,
-        "scoring_strategy": "WATERFALL_FLOOR",
         "raw_inputs": {
             "dynamic_inputs": {
                 "product_text": {
@@ -170,10 +160,8 @@ async def test_start_execution_base64_eager_extraction(
     mock_doc_service.process_raw_inputs.side_effect = fake_process
 
     mock_record = ExecutionRecord(
-        scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
-        strictness_level=50,
         id="exe_1234567890abcdef1234567890abcdef",
-        status="pending",
+        status=ExecutionStatus.PENDING,
         workflow_id="wf_1",
     )
     mock_execution_service.start_execution.return_value = mock_record

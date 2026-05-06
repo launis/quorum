@@ -10,7 +10,7 @@ def test_hook_state_strictness() -> None:
         workflow_id="wf_1",
         metadata={"key": "val"},
         global_context_vars={"g": "v"},
-        inputs={"in": "1"}
+        inputs={"in": "1"},
     )
     assert state.execution_id == "exec_1"
     assert state.metadata == {"key": "val"}

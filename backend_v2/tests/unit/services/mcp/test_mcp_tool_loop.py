@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend_v2.models.domain.mcp import MCPToolLoopResult
 from backend_v2.services.mcp.mcp_tool_loop import (
-    MCPToolLoopResult,
     execute_tool_loop,
 )
 
@@ -41,7 +41,7 @@ def _make_mock_executor(
         mock_result = MockResponseModel(score=4.5, reasoning="Well-supported claim.")
         usage = TokenUsage(total_tokens=100)
         executor.execute_structured_task = AsyncMock(return_value=(mock_result, usage))
-        
+
     executor.execute_chat_task = AsyncMock(return_value="Direct text response.")
     return executor
 
@@ -485,6 +485,7 @@ def test_llm_response_accepts_tool_call_messages() -> None:
 
     OLD BUG: messages was typed as list[dict[str, str]] which rejected None and list values.
     """
+    from backend_v2.models.domain.usage import TokenUsage
     from backend_v2.models.llm import LLMResponse
 
     # This is the exact message structure that caused the ValidationError
@@ -508,7 +509,7 @@ def test_llm_response_accepts_tool_call_messages() -> None:
     # Must NOT raise ValidationError
     response = LLMResponse(
         content="Final answer.",
-        token_usage={"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
+        token_usage=TokenUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
         messages=[
             {"role": "system", "content": "You are a judge."},
             {"role": "user", "content": "Evaluate this."},
@@ -534,10 +535,7 @@ def test_llm_response_rejects_missing_content() -> None:
     from backend_v2.models.llm import LLMResponse
 
     with pytest.raises(pydantic.ValidationError):
-        LLMResponse(
-            content="",
-            token_usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
-        )
+        LLMResponse.model_validate({"token_usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}})
 
 
 @pytest.mark.asyncio

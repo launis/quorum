@@ -185,7 +185,7 @@ def test_build_blind_evaluation_schema() -> None:
             }
         ]
     }
-    parsed = DynamicSchema.model_validate(llm_payload)
+    parsed = DynamicSchema.model_validate(llm_payload, context={"strictness_level": 50})
     assert len(parsed.evaluations) == 1  # type: ignore[attr-defined]
     assert parsed.evaluations[0].atom_id == "test_hash_123"  # type: ignore[attr-defined]
     assert parsed.evaluations[0].step_5_boolean is True  # type: ignore[attr-defined]
@@ -212,7 +212,8 @@ def test_atom_response_fail_fast_anti_laziness() -> None:
                         "step_5_boolean": True,
                     }
                 ]
-            }
+            },
+            context={"strictness_level": 50},
         )
     assert "Quote required for EXPLICIT_QUOTE" in str(exc.value)
 
@@ -229,7 +230,8 @@ def test_atom_response_fail_fast_anti_laziness() -> None:
                         "step_5_boolean": True,
                     }
                 ]
-            }
+            },
+            context={"strictness_level": 50},
         )
     assert "Justification too short for IMPLIED_INTENT" in str(exc.value)
 
@@ -245,7 +247,8 @@ def test_atom_response_fail_fast_anti_laziness() -> None:
                         "step_5_boolean": True,
                     }
                 ]
-            }
+            },
+            context={"strictness_level": 50},
         )
     assert "Cannot be True with NO_EVIDENCE" in str(exc.value)
 
@@ -266,7 +269,7 @@ def test_atom_response_fail_fast_anti_laziness() -> None:
                     }
                 ]
             },
-            context={"strictness_level": 75},
+            context={"strictness_level": 85},
         )
     assert "Strictness >= 70 ei salli implisiittistä logiikkaa" in str(exc.value)
 

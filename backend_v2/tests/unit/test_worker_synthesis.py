@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from backend_v2.core.hook_registry import HookResult
-from backend_v2.models.enums import ScoringStrategy
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
 from backend_v2.worker import generate_profile_synthesis_and_pdf_task
 
@@ -20,13 +19,32 @@ async def test_worker_invokes_synthesis_hook(
     mock_repo_class.return_value = mock_repo
 
     mock_execution = ExecutionRecord(
-        scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
-        strictness_level=50,
         id="exec_1234567812345678",
         workflow_id="wf_1234567812345678",
         status=ExecutionStatus.COMPLETED,
     )
     mock_repo.get_execution.return_value = mock_execution
+    mock_repo.get_workflow_by_id.return_value = {
+        "id": "wf_1234567812345678",
+        "slug": "test_workflow",
+        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "default",
+        "expected_inputs": [],
+        "steps": [],
+    }
+    mock_repo.get_output_profile_by_id.return_value = {
+        "slug": "test_slug",
+        "workflow_id": "wf_123",
+        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "id": "default",
+        "strictness_level": 50,
+        "scoring_strategy": "AVERAGE",
+        "layouts": [],
+        "display_scale": "original",
+    }
 
     mock_execute.return_value = HookResult(success=True, state_delta={"synthesized_markdown": "Test MD"})
 

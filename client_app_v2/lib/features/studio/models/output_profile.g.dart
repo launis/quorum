@@ -23,6 +23,8 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         'text_delivery_mode',
         'synthesis',
         'synthesis_md',
+        'strictness_level',
+        'scoring_strategy',
       ],
     );
     final val = _OutputLayoutBlock(
@@ -65,6 +67,14 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
             : SynthesisConfigDTO.fromJson(v as Map<String, dynamic>),
       ),
       synthesisMd: $checkedConvert('synthesis_md', (v) => v as String?),
+      strictnessLevel: $checkedConvert(
+        'strictness_level',
+        (v) => (v as num?)?.toInt(),
+      ),
+      scoringStrategy: $checkedConvert(
+        'scoring_strategy',
+        (v) => $enumDecodeNullable(_$ScoringStrategyEnumMap, v),
+      ),
     );
     return val;
   },
@@ -73,6 +83,8 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
     'targetBlocks': 'target_blocks',
     'textDeliveryMode': 'text_delivery_mode',
     'synthesisMd': 'synthesis_md',
+    'strictnessLevel': 'strictness_level',
+    'scoringStrategy': 'scoring_strategy',
   },
 );
 
@@ -86,6 +98,8 @@ Map<String, dynamic> _$OutputLayoutBlockToJson(_OutputLayoutBlock instance) =>
       'text_delivery_mode': instance.textDeliveryMode,
       'synthesis': instance.synthesis?.toJson(),
       'synthesis_md': instance.synthesisMd,
+      'strictness_level': instance.strictnessLevel,
+      'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
     };
 
 const _$PresetViewEnumMap = {
@@ -95,6 +109,13 @@ const _$PresetViewEnumMap = {
   PresetView.matrix3d: '3d_matrix',
   PresetView.textOnly: 'text_only',
   PresetView.defaultView: 'default',
+};
+
+const _$ScoringStrategyEnumMap = {
+  ScoringStrategy.waterfall: 'WATERFALL',
+  ScoringStrategy.dampening: 'DAMPENING',
+  ScoringStrategy.average: 'AVERAGE',
+  ScoringStrategy.weightedAverage: 'WEIGHTED_AVERAGE',
 };
 
 _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
@@ -197,6 +218,8 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
             'display_scale',
             'synthesis',
             'include_diagnostic_scorecard',
+            'strictness_level',
+            'scoring_strategy',
             'layouts',
           ],
         );
@@ -253,6 +276,14 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
             'include_diagnostic_scorecard',
             (v) => v as bool? ?? false,
           ),
+          strictnessLevel: $checkedConvert(
+            'strictness_level',
+            (v) => (v as num?)?.toInt(),
+          ),
+          scoringStrategy: $checkedConvert(
+            'scoring_strategy',
+            (v) => $enumDecodeNullable(_$ScoringStrategyEnumMap, v),
+          ),
           layouts: $checkedConvert(
             'layouts',
             (v) =>
@@ -275,6 +306,8 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
         'maxExtensionItems': 'max_extension_items',
         'displayScale': 'display_scale',
         'includeDiagnosticScorecard': 'include_diagnostic_scorecard',
+        'strictnessLevel': 'strictness_level',
+        'scoringStrategy': 'scoring_strategy',
       },
     );
 
@@ -295,6 +328,8 @@ Map<String, dynamic> _$OutputProfileToJson(
   'display_scale': instance.displayScale,
   'synthesis': instance.synthesis?.toJson(),
   'include_diagnostic_scorecard': instance.includeDiagnosticScorecard,
+  'strictness_level': instance.strictnessLevel,
+  'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
 };
 
@@ -329,6 +364,8 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         'display_scale',
         'synthesis',
         'include_diagnostic_scorecard',
+        'strictness_level',
+        'scoring_strategy',
         'layouts',
       ],
     );
@@ -371,6 +408,14 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         'include_diagnostic_scorecard',
         (v) => v as bool? ?? false,
       ),
+      strictnessLevel: $checkedConvert(
+        'strictness_level',
+        (v) => (v as num?)?.toInt(),
+      ),
+      scoringStrategy: $checkedConvert(
+        'scoring_strategy',
+        (v) => $enumDecodeNullable(_$ScoringStrategyEnumMap, v),
+      ),
       layouts: $checkedConvert(
         'layouts',
         (v) =>
@@ -390,6 +435,8 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
     'maxExtensionItems': 'max_extension_items',
     'displayScale': 'display_scale',
     'includeDiagnosticScorecard': 'include_diagnostic_scorecard',
+    'strictnessLevel': 'strictness_level',
+    'scoringStrategy': 'scoring_strategy',
   },
 );
 
@@ -406,5 +453,7 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
   'display_scale': instance.displayScale,
   'synthesis': instance.synthesis?.toJson(),
   'include_diagnostic_scorecard': instance.includeDiagnosticScorecard,
+  'strictness_level': instance.strictnessLevel,
+  'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
 };

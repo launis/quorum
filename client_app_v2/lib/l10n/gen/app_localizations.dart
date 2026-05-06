@@ -158,6 +158,12 @@ abstract class AppLocalizations {
   /// **'Inputs cannot be empty.'**
   String get errorValidationEmpty;
 
+  /// Message shown when the AI self-correction circuit breaker triggers
+  ///
+  /// In en, this message translates to:
+  /// **'Quality Assurance: The AI detected an inconsistency and is verifying its reasoning (Attempt 2)...'**
+  String get eventLlmAnomalyRetry;
+
   /// No description provided for @errorValidationMissing.
   ///
   /// In en, this message translates to:
@@ -6209,6 +6215,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reasoning: {count}'**
   String reportReasoningTokens(String count);
+
+  /// No description provided for @strategyKoearvostelu.
+  ///
+  /// In en, this message translates to:
+  /// **'Koearvostelu (Test Evaluation)'**
+  String get strategyKoearvostelu;
+
+  /// No description provided for @strategySyvaarvostelu.
+  ///
+  /// In en, this message translates to:
+  /// **'Syväarvostelu (Deep Evaluation)'**
+  String get strategySyvaarvostelu;
+
+  /// No description provided for @strategyLineaarinenKeskiarvo.
+  ///
+  /// In en, this message translates to:
+  /// **'Lineaarinen Keskiarvo (Linear Average)'**
+  String get strategyLineaarinenKeskiarvo;
+
+  /// No description provided for @strategyPainotettuKeskiarvo.
+  ///
+  /// In en, this message translates to:
+  /// **'Painotettu Keskiarvo (Weighted Average)'**
+  String get strategyPainotettuKeskiarvo;
 }
 
 class _AppLocalizationsDelegate

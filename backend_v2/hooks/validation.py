@@ -239,3 +239,63 @@ def verify_output_language(state: HookState, deps: HookDependencies) -> HookResu
         delta["_system_warnings"] = [w.model_dump() for w in existing_warnings]
 
     return HookResult(success=True, state_delta=delta)
+
+
+@hook_registry.register(name="verify_anomaly")
+def verify_anomaly(state: HookState, deps: HookDependencies) -> HookResult:
+    """HOOK: verify_anomaly.
+
+    Pre-scoring anomaly detection to catch Guttman logic failures
+    (e.g., L1=0%, L3=100%). If an anomaly is detected, requests a retry.
+    """
+    logger.debug("[ValidationHook] Running LLM Anomaly detection...")
+
+    if not state or not state.inputs:
+        return HookResult(success=True, state_delta={})
+
+    anomaly_detected = False
+
+    # We inspect chunked atom outputs from the matrix blocks.
+    for block_id, result in state.inputs.items():
+        if isinstance(result, list) and len(result) > 0:
+            hits_by_level: dict[float, float] = {}
+            total_by_level: dict[float, float] = {}
+
+            for atom in result:
+                if isinstance(atom, dict) and "score_level" in atom and "hit" in atom:
+                    level = float(atom["score_level"])
+                    hits_by_level[level] = hits_by_level.get(level, 0.0) + (1.0 if atom["hit"] else 0.0)
+                    total_by_level[level] = total_by_level.get(level, 0.0) + 1.0
+
+            if len(total_by_level) > 1:
+                sorted_levels = sorted(total_by_level.keys())
+                for i in range(len(sorted_levels)):
+                    for j in range(i + 1, len(sorted_levels)):
+                        L_low = sorted_levels[i]
+                        L_high = sorted_levels[j]
+                        hr_low = hits_by_level[L_low] / total_by_level[L_low] if total_by_level[L_low] > 0 else 0.0
+                        hr_high = hits_by_level[L_high] / total_by_level[L_high] if total_by_level[L_high] > 0 else 0.0
+
+                        # Severe Guttman logic failure: Higher level hit rate drastically exceeds lower level
+                        if hr_low < hr_high - 0.4 or (hr_low == 0.0 and hr_high == 1.0):
+                            logger.warning(
+                                "[ValidationHook] Guttman logic anomaly detected in block %s: "
+                                "L%s rate (%.2f) vs L%s rate (%.2f). Requesting LLM Self-Correction.",
+                                block_id,
+                                L_low,
+                                hr_low,
+                                L_high,
+                                hr_high,
+                            )
+                            anomaly_detected = True
+                            break
+                    if anomaly_detected:
+                        break
+
+        if anomaly_detected:
+            break
+
+    if anomaly_detected:
+        return HookResult(success=True, state_delta={"llm_anomaly_retry_requested": True})
+
+    return HookResult(success=True, state_delta={})

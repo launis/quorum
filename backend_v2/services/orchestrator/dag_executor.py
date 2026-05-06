@@ -127,7 +127,7 @@ class NodeExecutor:
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
 
-            step_def = Step.model_validate(step_def_data, strict=False)
+            step_def = Step.model_validate(step_def_data)
 
             # Rule 3: Fail-Fast variable resolution & Orphaned Step prevention
             normalized_mappings = {}
@@ -170,7 +170,8 @@ class NodeExecutor:
                 )
 
             # FinOps Circuit Breaker: Worker Cut-off Check (Graceful Exit Hatch)
-            await strategy_impl.assert_quota(org_id=metadata.get("organization_id"))
+            org_id = metadata["organization_id"] if "organization_id" in metadata else None
+            await strategy_impl.assert_quota(org_id=org_id)
 
             emitted_events = await strategy_impl.execute(
                 step=step,
@@ -225,7 +226,7 @@ class DAGExecutor:
         workflow: Workflow,
         raw_inputs: WorkflowInputs,
         strictness_level: int | None = None,
-        scoring_strategy: ScoringStrategy = ScoringStrategy.WATERFALL_FLOOR,
+        scoring_strategy: ScoringStrategy = ScoringStrategy.WATERFALL,
     ) -> ExecutionRecord:
         """Main entrypoint for Workflow Execution."""
         # Fast Fail validation
@@ -233,39 +234,49 @@ class DAGExecutor:
 
         self.committer.execution_id = execution_id
 
+        if strictness_level is None:
+            strictness_level = workflow.default_strictness_level
+
         # 1. State Rehydration / Initialization
         existing_record_dict = await self.exec_repo.get_execution(execution_id)
 
         step_states = {
-            step.id: ExecutionStepState(id=step.id, label=step.id, status="pending") for step in workflow.steps
+            step.id: ExecutionStepState(id=step.id, label=step.id, status=ExecutionStatus.PENDING.value)
+            for step in workflow.steps
         }
 
         if existing_record_dict:
-            exec_record = ExecutionRecord.model_validate(existing_record_dict, strict=False)
+            exec_record = ExecutionRecord.model_validate(existing_record_dict)
             exec_record = exec_record.model_copy(update={"status": ExecutionStatus.RUNNING})
             if not getattr(exec_record, "step_states", None) or not exec_record.step_states:
                 exec_record = exec_record.model_copy(update={"step_states": step_states})
-        else:
-            if strictness_level is None:
-                msg = "SYSTEM ARCHITECTURE MANDATE: Missing 'strictness_level' in execution initialization."
-                logger.error("[DAGExecutor] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    status_code=400,
-                )
 
+            # Epic 47 Phase 2: Inject Virtual Step for Report Render Transparency
+            v_step_id = f"sys_render_{exec_record.output_profile_id or workflow.default_profile_id}"
+            if v_step_id not in exec_record.step_states:
+                new_states = dict(exec_record.step_states)
+                new_states[v_step_id] = ExecutionStepState(
+                    id=v_step_id, label="system.virtual.rendering", status=ExecutionStatus.PENDING.value
+                )
+                exec_record = exec_record.model_copy(update={"step_states": new_states})
+        else:
             exec_record = ExecutionRecord(
                 id=execution_id,
                 workflow_id=workflow.id,
-                strictness_level=strictness_level,
-                scoring_strategy=scoring_strategy,
                 status=ExecutionStatus.RUNNING,
                 raw_inputs=raw_inputs,
                 execution_trace=[],
                 step_states=step_states,
                 frozen_context=FrozenContext(),
             )
+            # Epic 47 Phase 2: Inject Virtual Step for Report Render Transparency
+            v_step_id = f"sys_render_{workflow.default_profile_id}"
+            if v_step_id not in exec_record.step_states:
+                new_states = dict(exec_record.step_states)
+                new_states[v_step_id] = ExecutionStepState(
+                    id=v_step_id, label="system.virtual.rendering", status=ExecutionStatus.PENDING.value
+                )
+                exec_record = exec_record.model_copy(update={"step_states": new_states})
 
         # 2. Project Initial State
         projector = StateProjector()
@@ -315,23 +326,26 @@ class DAGExecutor:
 
         failed_previous_steps = []
         for step_id, s_state in exec_record.step_states.items():
-            if s_state.status == "completed":
+            if s_state.status == ExecutionStatus.COMPLETED.value:
                 step_events[step_id].set()
-            elif s_state.status == "failed":
+            elif s_state.status == ExecutionStatus.FAILED.value:
                 failed_previous_steps.append(step_id)
-                new_state = exec_record.step_states[step_id].model_copy(update={"status": "pending"})
+                new_state = exec_record.step_states[step_id].model_copy(
+                    update={"status": ExecutionStatus.PENDING.value}
+                )
                 new_states = {**exec_record.step_states, step_id: new_state}
                 exec_record = exec_record.model_copy(update={"step_states": new_states})
 
         # Concurrency Limiter
         semaphore = asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS.value)
+        _update_lock = asyncio.Lock()
 
         async def run_step_wrapper(step_id: str) -> None:
             nonlocal exec_record
             step_obj = steps_by_id[step_id]
 
             # Skip if completed (Rehydration)
-            if exec_record.step_states[step_id].status == "completed":
+            if exec_record.step_states[step_id].status == ExecutionStatus.COMPLETED.value:
                 return
 
             for dep in step_obj.depends_on:
@@ -339,17 +353,20 @@ class DAGExecutor:
 
             async with semaphore:
                 try:
-                    new_state = exec_record.step_states[step_id].model_copy(update={"status": "running"})
-                    new_states = {**exec_record.step_states, step_id: new_state}
-                    exec_record = exec_record.model_copy(update={"step_states": new_states})
+                    async with _update_lock:
+                        new_state = exec_record.step_states[step_id].model_copy(
+                            update={"status": ExecutionStatus.RUNNING.value}
+                        )
+                        new_states = {**exec_record.step_states, step_id: new_state}
+                        exec_record = exec_record.model_copy(update={"step_states": new_states})
 
-                    # Proactive status push
-                    await self.committer.commit_trace(
-                        trace=exec_record.execution_trace,
-                        status=exec_record.status,
-                        step_states=exec_record.step_states,
-                        frozen_context=exec_record.frozen_context,
-                    )
+                        # Proactive status push
+                        await self.committer.commit_trace(
+                            trace=exec_record.execution_trace,
+                            status=exec_record.status,
+                            step_states=exec_record.step_states,
+                            frozen_context=exec_record.frozen_context,
+                        )
 
                     events = await self.node_executor.execute(
                         step=step_obj,
@@ -360,7 +377,7 @@ class DAGExecutor:
                         expected_inputs=workflow.expected_inputs,
                         frozen_ctx=exec_record.frozen_context,
                         trace=exec_record.execution_trace,
-                        strictness_level=exec_record.strictness_level,
+                        strictness_level=strictness_level,
                     )
 
                     for e in events:
@@ -369,9 +386,12 @@ class DAGExecutor:
 
                     # Error Catching Boundary
                     if any(isinstance(e, ErrorTraceEvent) for e in events):
-                        new_state = exec_record.step_states[step_id].model_copy(update={"status": "failed"})
-                        new_states = {**exec_record.step_states, step_id: new_state}
-                        exec_record = exec_record.model_copy(update={"step_states": new_states})
+                        async with _update_lock:
+                            new_state = exec_record.step_states[step_id].model_copy(
+                                update={"status": ExecutionStatus.FAILED.value}
+                            )
+                            new_states = {**exec_record.step_states, step_id: new_state}
+                            exec_record = exec_record.model_copy(update={"step_states": new_states})
                         # Extract the error message from the event
                         msg = [e.error_message for e in events if isinstance(e, ErrorTraceEvent)][0]
                         raise AppException(
@@ -380,28 +400,34 @@ class DAGExecutor:
                             details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
                         )
 
-                    new_state = exec_record.step_states[step_id].model_copy(update={"status": "completed"})
-                    new_states = {**exec_record.step_states, step_id: new_state}
-                    exec_record = exec_record.model_copy(update={"step_states": new_states})
-                    await self.committer.commit_trace(
-                        trace=exec_record.execution_trace,
-                        status=exec_record.status,
-                        step_states=exec_record.step_states,
-                        frozen_context=exec_record.frozen_context,
-                    )
+                    async with _update_lock:
+                        new_state = exec_record.step_states[step_id].model_copy(
+                            update={"status": ExecutionStatus.COMPLETED.value}
+                        )
+                        new_states = {**exec_record.step_states, step_id: new_state}
+                        exec_record = exec_record.model_copy(update={"step_states": new_states})
+                        await self.committer.commit_trace(
+                            trace=exec_record.execution_trace,
+                            status=exec_record.status,
+                            step_states=exec_record.step_states,
+                            frozen_context=exec_record.frozen_context,
+                        )
                     step_events[step_id].set()
 
                 except Exception as e:
-                    new_state = exec_record.step_states[step_id].model_copy(update={"status": "failed"})
-                    new_states = {**exec_record.step_states, step_id: new_state}
-                    exec_record = exec_record.model_copy(update={"step_states": new_states})
-                    await self.committer.commit_trace(
-                        trace=exec_record.execution_trace,
-                        status=ExecutionStatus.FAILED,
-                        step_states=exec_record.step_states,
-                        error=str(e),
-                        frozen_context=exec_record.frozen_context,
-                    )
+                    async with _update_lock:
+                        new_state = exec_record.step_states[step_id].model_copy(
+                            update={"status": ExecutionStatus.FAILED.value}
+                        )
+                        new_states = {**exec_record.step_states, step_id: new_state}
+                        exec_record = exec_record.model_copy(update={"step_states": new_states})
+                        await self.committer.commit_trace(
+                            trace=exec_record.execution_trace,
+                            status=ExecutionStatus.FAILED,
+                            step_states=exec_record.step_states,
+                            error=str(e),
+                            frozen_context=exec_record.frozen_context,
+                        )
                     raise WorkflowExecutionError(
                         step_id=step_id, task_key=step_obj.task_blueprint, original_error=e
                     ) from e
@@ -411,7 +437,9 @@ class DAGExecutor:
                 for step in workflow.steps:
                     tg.create_task(run_step_wrapper(step.id))
 
-            exec_record = exec_record.model_copy(update={"status": ExecutionStatus.COMPLETED})
+            # Epic 47 Phase 2: DO NOT transition to COMPLETED here.
+            # We keep it as RUNNING so the Arq worker can safely enqueue the Render job.
+            # The async Render job will handle the final status transition.
             await self.committer.commit_trace(
                 trace=exec_record.execution_trace, status=exec_record.status, step_states=exec_record.step_states
             )
@@ -425,8 +453,8 @@ class DAGExecutor:
             # Cleanup stuck 'running' states caused by CancelledError bypassing the standard exception handler
             new_states = dict(exec_record.step_states)
             for state_id, state in new_states.items():
-                if state.status == "running":
-                    new_states[state_id] = state.model_copy(update={"status": "failed"})
+                if state.status == ExecutionStatus.RUNNING.value:
+                    new_states[state_id] = state.model_copy(update={"status": ExecutionStatus.FAILED.value})
 
             exec_record = exec_record.model_copy(
                 update={"step_states": new_states, "status": ExecutionStatus.FAILED, "error": str(primary_err)}

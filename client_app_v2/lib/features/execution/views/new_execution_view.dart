@@ -15,7 +15,6 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
-import 'package:client_app/core/models/enums.dart';
 
 part 'new_execution_view.g.dart';
 
@@ -45,8 +44,6 @@ class NewExecutionController extends _$NewExecutionController {
     required Map<String, dynamic> collectedInputs,
     required String targetLocale,
     String? profileId,
-    int strictnessLevel = 50,
-    String scoringStrategy = 'KOEARVOSTELU',
   }) async {
     state = const AsyncLoading();
     try {
@@ -59,8 +56,6 @@ class NewExecutionController extends _$NewExecutionController {
           'raw_inputs': {'dynamic_inputs': collectedInputs},
           'target_locale': targetLocale,
           if (profileId != null) 'profile_id': profileId,
-          'strictness_level': strictnessLevel,
-          'scoring_strategy': scoringStrategy,
         },
       );
 
@@ -90,8 +85,7 @@ class NewExecutionView extends ConsumerStatefulWidget {
 class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   Map<String, dynamic>? _selectedWorkflow;
   String? _selectedProfileId;
-  StrictnessLevel _selectedStrictnessLevel = StrictnessLevel.balanced;
-  ScoringStrategy _selectedScoringStrategy = ScoringStrategy.koearvostelu;
+
   final Map<String, dynamic> _compiledInputs = {};
 
   // To keep track of filename for UI
@@ -224,13 +218,6 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             collectedInputs: _compiledInputs,
             targetLocale: localeCode,
             profileId: _selectedProfileId,
-            strictnessLevel: _selectedStrictnessLevel.value,
-            scoringStrategy: switch (_selectedScoringStrategy) {
-              ScoringStrategy.koearvostelu => 'KOEARVOSTELU',
-              ScoringStrategy.syvaarvostelu => 'SYVAARVOSTELU',
-              ScoringStrategy.lineaarinenKeskiarvo => 'LINEAARINEN_KESKIARVO',
-              ScoringStrategy.painotettuKeskiarvo => 'PAINOTETTU_KESKIARVO',
-            },
           );
 
       // Safe context routing using GoRouter Codegen
@@ -449,14 +436,12 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
           const Divider(height: 48),
 
-          _buildStrictnessSelector(),
-
-          const SizedBox(height: 24),
-
-          _buildScoringStrategySelector(),
-
-          const SizedBox(height: 24),
-
+          // Epic 47 Phase 2: Orchestration decoupled these from ExecutionCreate.
+          // Now managed exclusively via OutputProfile.
+          // _buildStrictnessSelector(),
+          // const SizedBox(height: 24),
+          // _buildScoringStrategySelector(),
+          // const SizedBox(height: 24),
           _buildProfileSelector(),
 
           const SizedBox(height: 24),
@@ -785,168 +770,6 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                   );
                 }
                 return const SizedBox();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStrictnessSelector() {
-    final Map<StrictnessLevel, String> strictnessOptions = {
-      StrictnessLevel.fullFlexibility: AppLocalizations.of(
-        context,
-      )!.strictnessFullFlex,
-      StrictnessLevel.lenient: AppLocalizations.of(context)!.strictnessLenient,
-      StrictnessLevel.balanced: AppLocalizations.of(
-        context,
-      )!.strictnessBalanced,
-      StrictnessLevel.strict: AppLocalizations.of(context)!.strictnessStrict,
-      StrictnessLevel.absolute: AppLocalizations.of(
-        context,
-      )!.strictnessAbsolute,
-    };
-
-    return Card(
-      elevation: 0,
-      color: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-      shape: RoundedRectangleBorder(
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.balance,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  AppLocalizations.of(context)!.strictnessSelectorTitle,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              AppLocalizations.of(context)!.strictnessSelectorDescription,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<StrictnessLevel>(
-              initialValue: _selectedStrictnessLevel,
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
-                labelText: AppLocalizations.of(
-                  context,
-                )!.strictnessSelectorTitle,
-                border: const OutlineInputBorder(),
-              ),
-              items: strictnessOptions.entries.map((entry) {
-                return DropdownMenuItem<StrictnessLevel>(
-                  value: entry.key,
-                  child: Text(entry.value),
-                );
-              }).toList(),
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() {
-                    _selectedStrictnessLevel = val;
-                  });
-                }
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildScoringStrategySelector() {
-    return Card(
-      elevation: 0,
-      color: Theme.of(
-        context,
-      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-      shape: RoundedRectangleBorder(
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.calculate,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  AppLocalizations.of(context)!.analysisLevelLabel,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              AppLocalizations.of(context)!.analysisLevelHelper,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<ScoringStrategy>(
-              initialValue: _selectedScoringStrategy,
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
-                labelText: AppLocalizations.of(context)!.analysisLevelLabel,
-                border: const OutlineInputBorder(),
-              ),
-              items: ScoringStrategy.values.map((strategy) {
-                final label = switch (strategy) {
-                  ScoringStrategy.koearvostelu => AppLocalizations.of(
-                    context,
-                  )!.strategyKoearvostelu,
-                  ScoringStrategy.syvaarvostelu => AppLocalizations.of(
-                    context,
-                  )!.strategySyvaarvostelu,
-                  ScoringStrategy.lineaarinenKeskiarvo => AppLocalizations.of(
-                    context,
-                  )!.strategyLineaarinenKeskiarvo,
-                  ScoringStrategy.painotettuKeskiarvo => AppLocalizations.of(
-                    context,
-                  )!.strategyPainotettuKeskiarvo,
-                };
-                return DropdownMenuItem<ScoringStrategy>(
-                  value: strategy,
-                  child: Text(label),
-                );
-              }).toList(),
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() {
-                    _selectedScoringStrategy = val;
-                  });
-                }
               },
             ),
           ],

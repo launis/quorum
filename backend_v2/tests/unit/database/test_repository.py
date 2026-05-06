@@ -14,7 +14,7 @@ async def test_hydrate_payloads_fails_fast_on_empty_blob() -> None:
 
     repo = UnifiedWorkflowRepository(driver=mock_driver)
 
-    with patch("backend_v2.database.repository.get_storage_driver", return_value=mock_driver):
+    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_driver):
         data = {"id": "exe_123", "execution_trace_storage_path": "executions/exe_123/execution_trace.json"}
 
         with pytest.raises(AppException) as exc_info:
@@ -55,7 +55,7 @@ async def test_offload_payloads_fails_fast() -> None:
         "execution_trace": ["large_data"] * 10000  # Will exceed 100KB
     }
 
-    with patch("backend_v2.database.repository.get_storage_driver", return_value=mock_storage_driver):
+    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_storage_driver):
         with pytest.raises(AppException) as exc_info:
             await repo._offload_payloads("doc_123", data)
 
@@ -73,34 +73,13 @@ async def test_hydrate_audit_trails_fails_fast() -> None:
     repo = UnifiedWorkflowRepository(driver=mock_driver)
     data = {"id": "doc_123"}
 
-    with patch("backend_v2.database.repository.get_storage_driver"):
+    with patch("backend_v2.database.repositories.execution.get_storage_driver"):
         with pytest.raises(AppException) as exc_info:
             await repo._hydrate_payloads(data)
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.DATA_CORRUPTION.value
     assert "Failed to hydrate audit_trails" in exc_info.value.message
-
-
-@pytest.mark.asyncio
-async def test_get_all_generic() -> None:
-    mock_driver = AsyncMock()
-    mock_driver.query.return_value = [{"id": "test"}]
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
-
-    res = await repo.get_all("workflows")
-    assert len(res) == 1
-    assert res[0]["id"] == "test"
-
-
-@pytest.mark.asyncio
-async def test_create_generic() -> None:
-    mock_driver = AsyncMock()
-    mock_driver.upsert.return_value = "new_id"
-    repo = UnifiedWorkflowRepository(driver=mock_driver)
-
-    res = await repo.create_raw("workflows", {"test": "data"})
-    assert res == "new_id"
 
 
 @pytest.mark.asyncio
@@ -111,7 +90,7 @@ async def test_workflow_fetching() -> None:
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.database.repository.ExecutionRecord.model_validate")
+@patch("backend_v2.database.repositories.execution.ExecutionRecord.model_validate")
 async def test_all_passthrough_methods(mock_validate: AsyncMock) -> None:
     mock_validate.return_value = AsyncMock()
     mock_driver = AsyncMock()
@@ -123,10 +102,6 @@ async def test_all_passthrough_methods(mock_validate: AsyncMock) -> None:
 
     repo = UnifiedWorkflowRepository(driver=mock_driver)
 
-    await repo.get_all("col")
-    await repo.get("col", "1")
-    await repo.create_raw("col", {"data": "test"})
-    await repo.delete("col", "1")
     await repo.get_execution("1")
     await repo.get_execution_status("1")
     await repo.create_execution({"id": "1"})

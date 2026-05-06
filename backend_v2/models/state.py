@@ -26,8 +26,8 @@ from backend_v2.models.domain.logician import LogicianOutput
 from backend_v2.models.domain.overseer import OverseerOutput
 from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.profiler import ProfilerOutput
-from backend_v2.models.domain.xai import XAIOutput
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.domain.xai import XAIOutput
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)

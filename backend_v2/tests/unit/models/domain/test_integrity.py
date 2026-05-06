@@ -12,26 +12,30 @@ from backend_v2.models.domain.integrity import (
 def test_knowledge_item_strict_validation() -> None:
     """Test that KnowledgeItem follows V2CoreBase strict and frozen constraints."""
     item = KnowledgeItem(term="Gravity", definition="A natural phenomenon.")
-    
+
     assert item.term == "Gravity"
     assert item.definition == "A natural phenomenon."
-    
+
     # extra=forbid
     with pytest.raises(ValidationError):
-        KnowledgeItem(term="Gravity", definition="A natural phenomenon.", extra_field="not allowed")
+        KnowledgeItem.model_validate(
+            {"term": "Gravity", "definition": "A natural phenomenon.", "extra_field": "not allowed"}
+        )
 
 
 def test_step_context_validation() -> None:
     """Test that StepContext properly handles knowledge items and extra forbid."""
     item = KnowledgeItem(term="Test", definition="Def")
     ctx = StepContext(precedents="None", knowledge_items=[item])
-    
+
     assert ctx.precedents == "None"
     assert len(ctx.knowledge_items) == 1
     assert ctx.knowledge_items[0].term == "Test"
-    
+
     with pytest.raises(ValidationError):
-        StepContext(precedents="None", knowledge_items=[item], random_key="val")
+        StepContext.model_validate(
+            {"precedents": "None", "knowledge_items": [{"term": "Test", "definition": "Def"}], "random_key": "val"}
+        )
 
 
 def test_citation_audit_defaults() -> None:
@@ -45,14 +49,9 @@ def test_citation_audit_defaults() -> None:
 def test_integrity_global_inputs_extract_source_texts() -> None:
     """Test extraction of source texts securely."""
     dto = IntegrityGlobalInputsDTO(
-        raw_inputs={
-            "source_1": "Text 1",
-            "source_2": "Text 2",
-            "empty": None,
-            "number": 123
-        }
+        raw_inputs={"source_1": "Text 1", "source_2": "Text 2", "empty": None, "number": 123}
     )
-    
+
     texts = dto.extract_source_texts()
     assert len(texts) == 3
     assert "Text 1" in texts

@@ -23,6 +23,7 @@ def test_archivist_input_valid() -> None:
     assert model.archivist_precedents is not None
     assert len(model.archivist_precedents) == 1
 
+
 def test_archivist_input_extra_forbid() -> None:
     """Test that extra fields are forbidden."""
     data = {

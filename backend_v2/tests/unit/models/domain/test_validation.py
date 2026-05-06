@@ -2,10 +2,10 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.domain.validation import (
-    ValidationHookPayloadDTO,
-    ValidationWarningDTO,
-    ValidationResultDTO,
     SystemWarningsStateDTO,
+    ValidationHookPayloadDTO,
+    ValidationResultDTO,
+    ValidationWarningDTO,
 )
 
 
@@ -56,8 +56,8 @@ def test_validation_result_valid() -> None:
         "errors": [warning_data],
     }
     result = ValidationResultDTO.model_validate(data)
-    assert getattr(result, "is_valid") is False
-    assert len(getattr(result, "errors")) == 1
+    assert result.is_valid is False
+    assert len(result.errors) == 1
 
 
 def test_system_warnings_state_extracts_and_ignores_extra() -> None:
@@ -75,6 +75,6 @@ def test_system_warnings_state_extracts_and_ignores_extra() -> None:
     }
     state = SystemWarningsStateDTO.model_validate(data)
     # The extra fields are ignored
-    assert len(getattr(state, "system_warnings")) == 1
+    assert len(state.system_warnings) == 1
     with pytest.raises(AttributeError):
-        _ = getattr(state, "random_execution_state_field")
+        _ = state.random_execution_state_field  # type: ignore[attr-defined]

@@ -19,6 +19,7 @@ def test_analyst_input_valid() -> None:
     assert model.chat_log == "hello world"
     assert model.last_reasoning_trace == "some trace"
 
+
 def test_analyst_input_extra_forbid() -> None:
     """Test that extra fields are forbidden."""
     data = {"chat_log": "hello world", "last_reasoning_trace": "some trace", "extra_field": "forbidden"}

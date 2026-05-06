@@ -9,7 +9,7 @@ from backend_v2.services.orchestrator.atomizer import PromptAtomizer
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.services.orchestrator.atomizer.LLMClient.from_strategy")
+@patch("backend_v2.services.orchestrator.atomizer.LLMClient.from_strategy", new_callable=AsyncMock)
 async def test_compile_atomizer_adds_15_atoms(mock_from_strategy: AsyncMock) -> None:
     """Tests that Kääntäjä-AI deeply atomizes claims if micro_atoms is missing."""
     repo = WorkflowRepositoryImpl(driver=None)  # type: ignore[arg-type]

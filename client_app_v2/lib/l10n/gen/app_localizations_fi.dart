@@ -40,6 +40,10 @@ class AppLocalizationsFi extends AppLocalizations {
   String get errorValidationEmpty => 'Syötteet eivät voi olla tyhjiä.';
 
   @override
+  String get eventLlmAnomalyRetry =>
+      'Laadunvarmistus: Tekoäly havaitsi epäjohdonmukaisuuden ja varmentaa päättelyketjuaan (Yritys 2)...';
+
+  @override
   String errorValidationMissing(String fields) {
     return 'Pakollisia kenttiä puuttuu: $fields';
   }
@@ -3419,4 +3423,16 @@ class AppLocalizationsFi extends AppLocalizations {
   String reportReasoningTokens(String count) {
     return 'Päättely: $count';
   }
+
+  @override
+  String get strategyKoearvostelu => 'Koearvostelu';
+
+  @override
+  String get strategySyvaarvostelu => 'Syväarvostelu';
+
+  @override
+  String get strategyLineaarinenKeskiarvo => 'Lineaarinen Keskiarvo';
+
+  @override
+  String get strategyPainotettuKeskiarvo => 'Painotettu Keskiarvo';
 }

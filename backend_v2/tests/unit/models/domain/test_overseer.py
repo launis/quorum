@@ -1,14 +1,13 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.enums import EthicalSeverity, VerificationResult
 from backend_v2.models.domain.overseer import (
-    FactCheckRFI,
     EthicalObservation,
+    FactCheckRFI,
     OverseerInput,
-    OverseerData,
     OverseerOutput,
 )
+from backend_v2.models.enums import EthicalSeverity, VerificationResult
 
 
 def test_fact_check_rfi_verified_enum() -> None:
@@ -19,8 +18,8 @@ def test_fact_check_rfi_verified_enum() -> None:
         "source_or_reasoning": "Observation",
     }
     rfi = FactCheckRFI.model_validate(data)
-    assert getattr(rfi, "is_verified") is True
-    assert getattr(rfi, "verification_result") == VerificationResult.VERIFIED
+    assert rfi.is_verified is True
+    assert rfi.verification_result == VerificationResult.VERIFIED
 
 
 def test_fact_check_rfi_verified_string() -> None:
@@ -31,8 +30,8 @@ def test_fact_check_rfi_verified_string() -> None:
         "source_or_reasoning": "Observation",
     }
     rfi = FactCheckRFI.model_validate(data)
-    assert getattr(rfi, "is_verified") is True
-    assert getattr(rfi, "verification_result") == VerificationResult.VERIFIED
+    assert rfi.is_verified is True
+    assert rfi.verification_result == VerificationResult.VERIFIED
 
 
 def test_ethical_observation_critical_enum() -> None:
@@ -43,8 +42,8 @@ def test_ethical_observation_critical_enum() -> None:
         "description": "User data leaked.",
     }
     obs = EthicalObservation.model_validate(data)
-    assert getattr(obs, "is_critical") is True
-    assert getattr(obs, "severity") == EthicalSeverity.CRITICAL
+    assert obs.is_critical is True
+    assert obs.severity == EthicalSeverity.CRITICAL
 
 
 def test_ethical_observation_critical_string() -> None:
@@ -55,8 +54,8 @@ def test_ethical_observation_critical_string() -> None:
         "description": "User data leaked.",
     }
     obs = EthicalObservation.model_validate(data)
-    assert getattr(obs, "is_critical") is True
-    assert getattr(obs, "severity") == EthicalSeverity.CRITICAL
+    assert obs.is_critical is True
+    assert obs.severity == EthicalSeverity.CRITICAL
 
 
 def test_overseer_input_fails_fast_without_chatlog() -> None:

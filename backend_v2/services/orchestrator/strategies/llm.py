@@ -274,83 +274,125 @@ class LLMNodeStrategy(NodeStrategy):
 
         sem = asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS.value)
 
-        telemetry_start_time = time.time()
-        context_char_length = len(user_payload)
-        logger.info(
-            "Epic 27 Telemetry: Compiling map-reduce for step '%s'. Context Bounds: %d chars, Chunk count: %d.",
-            step.id,
-            context_char_length,
-            len(chunks_list),
-        )
+        # Step 4 & 5 - Map-Reduce and Accumulation with Anomaly Circuit Breaker
+        MAX_RETRIES = 2
+        retry_count = 0
+        final_dict = {}
+        usage_agg = TokenUsage()
+        latency_ms = 0
 
-        # Step 4 - Map-Reduce (ChunkWorker)
-        tasks = []
-        async with asyncio.TaskGroup() as tg:
-            for c in chunks_list:
-                syn_instr = state_data["synthesis_instructions"] if "synthesis_instructions" in state_data else None
-                tasks.append(
-                    tg.create_task(
-                        ChunkWorker.process_chunk(
-                            chunk=c,
-                            sem=sem,
-                            compiler=self.compiler,
-                            criteria_blocks=criteria_blocks,
-                            user_payload=user_payload,
-                            base_system_prompt=base_system_prompt,
-                            has_search=has_search,
-                            has_shuffled_atoms=has_shuffled_atoms,
-                            atom_to_block_ids=atom_to_block_ids,
-                            effective_mcp_tools=effective_mcp_tools,
-                            bound_client=bound_client,
-                            step_id=step.id,
-                            target_locale=target_locale,
-                            synthesis_instructions=syn_instr,
-                            output_profile=None,
-                            strictness_level=context.strictness_level,
+        while retry_count <= MAX_RETRIES:
+            telemetry_start_time = time.time()
+            context_char_length = len(user_payload)
+            logger.info(
+                "Epic 27 Telemetry: Compiling map-reduce for step '%s'. "
+                "Context Bounds: %d chars, Chunk count: %d. (Attempt %d)",
+                step.id,
+                context_char_length,
+                len(chunks_list),
+                retry_count + 1,
+            )
+
+            tasks = []
+            async with asyncio.TaskGroup() as tg:
+                for c in chunks_list:
+                    syn_instr = state_data["synthesis_instructions"] if "synthesis_instructions" in state_data else None
+                    tasks.append(
+                        tg.create_task(
+                            ChunkWorker.process_chunk(
+                                chunk=c,
+                                sem=sem,
+                                compiler=self.compiler,
+                                criteria_blocks=criteria_blocks,
+                                user_payload=user_payload,
+                                base_system_prompt=base_system_prompt,
+                                has_search=has_search,
+                                has_shuffled_atoms=has_shuffled_atoms,
+                                atom_to_block_ids=atom_to_block_ids,
+                                effective_mcp_tools=effective_mcp_tools,
+                                bound_client=bound_client,
+                                step_id=step.id,
+                                target_locale=target_locale,
+                                synthesis_instructions=syn_instr,
+                                output_profile=None,
+                                strictness_level=context.strictness_level,
+                            )
                         )
                     )
-                )
 
-        latency_ms = int((time.time() - telemetry_start_time) * 1000)
+            latency_ms = int((time.time() - telemetry_start_time) * 1000)
 
-        # Step 5 - Accumulation & Hooks
-        accumulator = ChunkAccumulator()
-        usage_agg = TokenUsage()
+            # Step 5 - Accumulation & Hooks
+            accumulator = ChunkAccumulator()
+            usage_agg = TokenUsage()
 
-        for t in tasks:
-            c_final, c_usage, c_traces = t.result()
+            for t in tasks:
+                c_final, c_usage, c_traces = t.result()
 
-            accumulator.add(c_final)
+                accumulator.add(c_final)
 
-            if c_usage is not None:
-                usage_agg = usage_agg + c_usage
+                if c_usage is not None:
+                    usage_agg = usage_agg + c_usage
 
-            if frozen_ctx and c_traces:
-                existing_hashes = {f"{a.tool_id}::{a.query}" for a in frozen_ctx.mcp_tool_audit}
-                for t_trace in c_traces:
-                    thash = f"{t_trace.tool_id}::{t_trace.query}"
-                    if thash not in existing_hashes:
-                        frozen_ctx.mcp_tool_audit.append(t_trace)
-                        existing_hashes.add(thash)
+                if frozen_ctx and c_traces:
+                    existing_hashes = {f"{a.tool_id}::{a.query}" for a in frozen_ctx.mcp_tool_audit}
+                    for t_trace in c_traces:
+                        thash = f"{t_trace.tool_id}::{t_trace.query}"
+                        if thash not in existing_hashes:
+                            frozen_ctx.mcp_tool_audit.append(t_trace)
+                            existing_hashes.add(thash)
 
-        final_dict = accumulator.get_final_result()
+            final_dict = accumulator.get_final_result()
 
-        safe_context: dict[str, Any] = {"steps": projector.snapshot}
+            safe_context: dict[str, Any] = {"steps": projector.snapshot}
 
-        post_hook_state = hook_state.model_copy(
-            update={
-                "global_context_vars": safe_context,
-                "inputs": final_dict,
-            }
-        )
+            post_hook_state = hook_state.model_copy(
+                update={
+                    "global_context_vars": safe_context,
+                    "inputs": final_dict,
+                }
+            )
 
-        post_hook_state = await self.run_post_hooks(
-            step_obj=step_obj,
-            step=step,
-            hook_state=post_hook_state,
-            hook_deps=hook_deps,
-        )
-        final_dict = dict(post_hook_state.inputs)
+            post_hook_state = await self.run_post_hooks(
+                step_obj=step_obj,
+                step=step,
+                hook_state=post_hook_state,
+                hook_deps=hook_deps,
+            )
+            final_dict = dict(post_hook_state.inputs)
+
+            if final_dict.get("llm_anomaly_retry_requested"):
+                retry_count += 1
+                if retry_count > MAX_RETRIES:
+                    logger.warning(
+                        "[LLMStrategy] Max retries (%d) exceeded for step '%s'. Swallowing anomaly.",
+                        MAX_RETRIES,
+                        step.id,
+                    )
+                    final_dict["anomaly_unresolved"] = True
+                    final_dict.pop("llm_anomaly_retry_requested", None)
+                    break
+                else:
+                    logger.info(
+                        "[LLMStrategy] LLM Anomaly Retry triggered for step '%s'. Attempt %d/%d.",
+                        step.id,
+                        retry_count,
+                        MAX_RETRIES,
+                    )
+
+                    # Dispatch SSE to client: {"status": "processing", "message_code": "event_llm_anomaly_retry"}
+                    # Accomplished by updating the step_states in the database directly.
+                    exec_record = await self.exec_repo.get_execution(context.execution_id)
+                    if exec_record and step.id in exec_record.step_states:
+                        new_state = exec_record.step_states[step.id].model_copy(
+                            update={"status": "processing", "message_code": "event_llm_anomaly_retry"}
+                        )
+                        new_states = {**exec_record.step_states, step.id: new_state}
+                        new_states_raw = {k: v.model_dump(mode="json") for k, v in new_states.items()}
+                        await self.exec_repo.update_execution(context.execution_id, {"step_states": new_states_raw})
+                    continue
+
+            break
 
         for key in ["profiler_metrics", "step_metadata", "_audit_signature"]:
             if key in state_data:

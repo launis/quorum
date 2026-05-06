@@ -100,9 +100,11 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
                 models.append(PromptBlock.model_validate(b, strict=False))
             except Exception as e:
                 import logging
+
                 logger = logging.getLogger(__name__)
                 logger.error("Failed to parse PromptBlock %s: %s", b.get("id"), e, exc_info=True)
                 from backend_v2.exceptions import AppException, ErrorCodes
+
                 raise AppException(
                     message=f"Failed to parse PromptBlock {b.get('id')} from database",
                     status_code=500,
@@ -242,9 +244,11 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
                 models.append(OutputProfile.model_validate(pd, strict=False))
             except Exception as e:
                 import logging
+
                 logger = logging.getLogger(__name__)
                 logger.error("Failed to parse OutputProfile %s: %s", pd.get("id"), e, exc_info=True)
                 from backend_v2.exceptions import AppException, ErrorCodes
+
                 raise AppException(
                     message="Failed to parse profile from database",
                     status_code=500,

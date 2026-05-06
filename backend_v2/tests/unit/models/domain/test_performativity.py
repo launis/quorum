@@ -1,12 +1,12 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.enums import AuthenticityLevel
 from backend_v2.models.domain.performativity import (
-    PerformativityInput,
     PerformativityAnalysis,
+    PerformativityInput,
     PerformativityOutput,
 )
+from backend_v2.models.enums import AuthenticityLevel
 
 
 def test_performativity_input_requires_chatlog() -> None:
@@ -31,10 +31,17 @@ def test_performativity_analysis_authenticity_enum() -> None:
             "weak_signals": ["Signal 1"],
         },
         "authenticity_assessment": AuthenticityLevel.ORGANIC,
+        "authenticity_score": 3.0,
     }
     analysis = PerformativityAnalysis.model_validate(data)
-    assert getattr(analysis, "authenticity_score") == 3.0
-    assert getattr(analysis, "authenticity_assessment") == AuthenticityLevel.ORGANIC
+    assert analysis.authenticity_score == 3.0
+    assert analysis.authenticity_assessment == AuthenticityLevel.ORGANIC
+
+    # Fail fast if authenticity_score is omitted
+    del data["authenticity_score"]
+    with pytest.raises(ValidationError) as exc_info:
+        PerformativityAnalysis.model_validate(data)
+    assert "authenticity_score" in str(exc_info.value)
 
 
 def test_performativity_analysis_authenticity_string() -> None:
@@ -51,11 +58,12 @@ def test_performativity_analysis_authenticity_string() -> None:
             "performed": True,
             "weak_signals": ["Signal 1"],
         },
-        "authenticity_assessment": "LEVEL_ORGANIC",
+        "authenticity_assessment": "AUTH_ORGANIC",
+        "authenticity_score": 3.0,
     }
     analysis = PerformativityAnalysis.model_validate(data)
-    assert getattr(analysis, "authenticity_score") == 3.0
-    assert getattr(analysis, "authenticity_assessment") == AuthenticityLevel.ORGANIC
+    assert analysis.authenticity_score == 3.0
+    assert analysis.authenticity_assessment == AuthenticityLevel.ORGANIC
 
 
 def test_performativity_analysis_invalid_authenticity() -> None:
@@ -73,6 +81,7 @@ def test_performativity_analysis_invalid_authenticity() -> None:
             "weak_signals": ["Signal 1"],
         },
         "authenticity_assessment": "INVALID_LEVEL",
+        "authenticity_score": 3.0,
     }
     with pytest.raises(ValidationError):
         PerformativityAnalysis.model_validate(data)
@@ -93,7 +102,8 @@ def test_performativity_output_frozen_and_strict() -> None:
                 "performed": True,
                 "weak_signals": ["Signal"],
             },
-            "authenticity_assessment": "LEVEL_PERFORMATIVE",
+            "authenticity_assessment": "AUTH_PERFORMATIVE",
+            "authenticity_score": 2.0,
         },
         "reasoning_trace": "Analysis complete.",
         "calculation_log": [],

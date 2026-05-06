@@ -81,7 +81,7 @@ async def test_seed_database_no_file(mock_exit: Any, mock_exists: Any) -> None:
 @patch("backend_v2.seed.run_seed.TinyDB")
 @patch("backend_v2.seed.run_seed.TinyDBClient")
 @patch("backend_v2.seed.run_seed.TinyDBDriver")
-@patch("backend_v2.seed.run_seed.WorkflowRepositoryImpl")
+@patch("backend_v2.database.repositories.system.SystemRepositoryImpl")
 @patch("backend_v2.seed.run_seed.shutil")
 @patch("backend_v2.seed.run_seed.os.path.exists", return_value=True)
 @patch("backend_v2.seed.run_seed.os.path.getsize", return_value=123)

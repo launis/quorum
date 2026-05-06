@@ -285,7 +285,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     workflow_data = Workflow.model_validate(raw_workflow_data)
 
     raw_exec_data = await deps.exec_repo.get_execution(state.execution_id)
-    execution_data = ExecutionRecord.model_validate(raw_exec_data, strict=False) if raw_exec_data else None
+    execution_data = ExecutionRecord.model_validate(raw_exec_data) if raw_exec_data else None
 
     output_profile_id = execution_data.output_profile_id if execution_data else None
 
@@ -540,12 +540,12 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     sys_prompt = "<system_directive>\n<execution_parameters>\n"
     sys_prompt += f"  <target_language>{language}</target_language>\n"
 
-    if not execution_data or not execution_data.scoring_strategy:
-        msg = "Strict Fail-Fast Enforced: 'scoring_strategy' missing from execution data."
+    if not active_profile_dto or not active_profile_dto.scoring_strategy:
+        msg = f"Strict Fail-Fast Enforced: 'scoring_strategy' missing from active profile '{profile_to_use}'."
         logger.error("[SynthesisHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
-    scoring_strategy = execution_data.scoring_strategy.value
+    scoring_strategy = active_profile_dto.scoring_strategy.value
     sys_prompt += f"  <scoring_strategy>{scoring_strategy}</scoring_strategy>\n"
 
     if length_constraint:

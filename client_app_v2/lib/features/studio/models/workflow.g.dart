@@ -408,6 +408,8 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'ui_schema',
         'output_profiles',
         'default_profile_id',
+        'default_strictness_level',
+        'default_scoring_strategy',
         'expected_inputs',
         'steps',
       ],
@@ -449,6 +451,16 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'default_profile_id',
         (v) => v as String? ?? "default",
       ),
+      defaultStrictnessLevel: $checkedConvert(
+        'default_strictness_level',
+        (v) => (v as num?)?.toInt() ?? 50,
+      ),
+      defaultScoringStrategy: $checkedConvert(
+        'default_scoring_strategy',
+        (v) =>
+            $enumDecodeNullable(_$ScoringStrategyEnumMap, v) ??
+            ScoringStrategy.average,
+      ),
       expectedInputs: $checkedConvert(
         'expected_inputs',
         (v) =>
@@ -474,6 +486,8 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
     'uiSchema': 'ui_schema',
     'outputProfiles': 'output_profiles',
     'defaultProfileId': 'default_profile_id',
+    'defaultStrictnessLevel': 'default_strictness_level',
+    'defaultScoringStrategy': 'default_scoring_strategy',
     'expectedInputs': 'expected_inputs',
   },
 );
@@ -492,6 +506,16 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
     (k, e) => MapEntry(k, e.toJson()),
   ),
   'default_profile_id': instance.defaultProfileId,
+  'default_strictness_level': instance.defaultStrictnessLevel,
+  'default_scoring_strategy':
+      _$ScoringStrategyEnumMap[instance.defaultScoringStrategy]!,
   'expected_inputs': instance.expectedInputs.map((e) => e.toJson()).toList(),
   'steps': instance.steps.map((e) => e.toJson()).toList(),
+};
+
+const _$ScoringStrategyEnumMap = {
+  ScoringStrategy.waterfall: 'WATERFALL',
+  ScoringStrategy.dampening: 'DAMPENING',
+  ScoringStrategy.average: 'AVERAGE',
+  ScoringStrategy.weightedAverage: 'WEIGHTED_AVERAGE',
 };

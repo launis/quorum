@@ -99,7 +99,6 @@ from backend_v2.models.domain.xai import (
     XAIReporterInput,
     XAIScoreItem,
 )
-from backend_v2.models.dtos.report import ReportContextDTO as ReportContext
 
 # --- REGISTRY ---
 DOMAIN_REGISTRY = {
@@ -206,7 +205,6 @@ __all__ = [
     "BibliographyItem",
     "XAIOutput",
     "XAIScoreItem",
-    "ReportContext",
     "ReportResult",
     "DOMAIN_REGISTRY",
     "RetrievalInput",

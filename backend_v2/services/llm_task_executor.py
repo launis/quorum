@@ -90,7 +90,7 @@ class LLMTaskExecutor:
                 is_eof = e.is_eof
                 raw_payload = e.raw_llm_payload
                 error_msg = e.validation_error_msg
-                
+
                 if hasattr(e, "token_usage") and e.token_usage:
                     cumulative_usage = cumulative_usage + e.token_usage
 

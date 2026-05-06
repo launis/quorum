@@ -41,7 +41,8 @@ class ExecutionTimeline extends StatelessWidget {
           if (isRunning) labelColor = Theme.of(context).primaryColor;
           if (isFailed) labelColor = Theme.of(context).colorScheme.error;
 
-          final stepId = step['step_id']?.toString() ?? step['id']?.toString() ?? '';
+          final stepId =
+              step['step_id']?.toString() ?? step['id']?.toString() ?? '';
           final stepResult = results != null && results!.containsKey(stepId)
               ? (results![stepId] as Map<String, dynamic>?) ?? {}
               : {};

@@ -4,9 +4,8 @@ from pydantic import ValidationError
 from backend_v2.models.domain.profiler import (
     ProfilerInput,
     ProfilerMetrics,
-    TextMetrics,
-    BehavioralMetrics,
     ProfilerOutput,
+    TextMetrics,
 )
 
 

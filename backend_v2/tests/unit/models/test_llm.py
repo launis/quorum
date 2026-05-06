@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.llm import LLMProviderConfig, LLMResponse
 
 
@@ -40,6 +40,6 @@ def test_llm_response_valid() -> None:
     """Test valid instantiation of LLMResponse."""
     response = LLMResponse(
         content="Success",
-        token_usage={"prompt_tokens": 10},
+        token_usage=TokenUsage(prompt_tokens=10, completion_tokens=0, total_tokens=10),
     )
     assert response.content == "Success"

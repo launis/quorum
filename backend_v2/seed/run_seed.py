@@ -34,7 +34,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend_v2.database.firestore_driver import FirestoreDriver
-from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
 from backend_v2.database.tinydb_driver import TinyDBDriver
 from backend_v2.database.wrapper import TinyDBClient
 from backend_v2.exceptions import ErrorCodes
@@ -167,7 +166,9 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
     except Exception as e:
         _fail_fast("Error initializing TinyDB", e)
 
-    repo = WorkflowRepositoryImpl(TinyDBDriver(TinyDBClient(db_path)))
+    from backend_v2.database.repositories.system import SystemRepositoryImpl
+
+    sys_repo = SystemRepositoryImpl(TinyDBDriver(TinyDBClient(db_path)))
 
     # Seed Standard Strict Collections
     for col_key, config in STANDARD_REGISTRY.items():
@@ -195,7 +196,9 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
                 if col_key == "prompt_blocks":
                     if getattr(validated, "category_id", "") == "matrix":
                         current_matrix += 1
-                        validated = await _atomize_with_cache(validated, repo, current_matrix, total_matrices, False)
+                        validated = await _atomize_with_cache(
+                            validated, sys_repo, current_matrix, total_matrices, False
+                        )
 
                 if hasattr(validated, "model_dump"):
                     dumped = validated.model_dump(mode="json")
@@ -256,7 +259,9 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
     for col in collections_to_clear:
         _delete_collection(db.collection(col))
 
-    repo = WorkflowRepositoryImpl(FirestoreDriver(async_firestore.AsyncClient()))
+    from backend_v2.database.repositories.system import SystemRepositoryImpl
+
+    sys_repo = SystemRepositoryImpl(FirestoreDriver(async_firestore.AsyncClient()))
 
     def batch_upsert(collection_name: str, items: list[dict[str, Any]], id_field: str = "id") -> None:
         batch = db.batch()
@@ -299,7 +304,9 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
                 if col_key == "prompt_blocks":
                     if getattr(validated, "category_id", "") == "matrix":
                         current_matrix += 1
-                        validated = await _atomize_with_cache(validated, repo, current_matrix, total_matrices, False)
+                        validated = await _atomize_with_cache(
+                            validated, sys_repo, current_matrix, total_matrices, False
+                        )
 
                 valid_items.append(validated.model_dump(mode="json"))
             except ValidationError as ve:

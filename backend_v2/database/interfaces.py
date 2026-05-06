@@ -6,10 +6,10 @@ cohesive, role-based protocols according to the Interface Segregation Principle.
 
 from typing import Any, Protocol
 
-from backend_v2.models.v2_core import ExecutionRecord, PromptBlock
-from backend_v2.models.v2_core import Workflow as WorkflowDefinition
 from backend_v2.models.auth import Organization
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.v2_core import ExecutionRecord, PromptBlock
+from backend_v2.models.v2_core import Workflow as WorkflowDefinition
 
 
 class IExecutionRepository(Protocol):

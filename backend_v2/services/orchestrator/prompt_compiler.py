@@ -455,9 +455,6 @@ class PromptCompiler:
                             )
                         if info.context["strictness_level"] >= 70:
                             raise ValueError("Strictness >= 70 ei salli implisiittistä logiikkaa")
-                    elif self.step_1_evidence_type == EvidenceType.NO_EVIDENCE:
-                        if self.step_5_boolean:
-                            raise ValueError("ANTI-LAZINESS MANDATE: Cannot be True with NO_EVIDENCE")
                     return self
 
             fields["evaluations"] = (list[AtomResponse], Field(..., description="Array of blinded evaluations."))
@@ -868,7 +865,7 @@ class PromptCompiler:
                     if info.context["strictness_level"] >= 70:
                         raise ValueError("Strictness >= 70 ei salli implisiittistä logiikkaa")
                 elif self.step_1_evidence_type == EvidenceType.NO_EVIDENCE:
-                    if self.step_5_boolean:
+                    if self.step_5_boolean is True:
                         raise ValueError("ANTI-LAZINESS MANDATE: Cannot be True with NO_EVIDENCE")
                 return self
 

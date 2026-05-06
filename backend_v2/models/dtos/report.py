@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
-from uuid import UUID
+from typing import Any
 
 from pydantic import Field
 
-if TYPE_CHECKING:
-    from backend_v2.models.domain.analyst import SearchResult
-    from backend_v2.models.domain.archivist import ArchivistOutputDTO
-    from backend_v2.models.domain.coach import BibliographyResult, CoachingPlanDTO
+from backend_v2.models.domain.analyst import SearchResult
+from backend_v2.models.domain.archivist import ArchivistOutputDTO
+from backend_v2.models.domain.coach import BibliographyResult, CoachingPlanDTO
 from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.view.sdui import ReferenceItem
 
@@ -19,7 +17,7 @@ class XAIFlatReportDTO(BaseDTO):
     Contains no Markdown, no nested structures (except the scores dict), and strictly typed fields.
     """
 
-    execution_id: UUID = Field(..., description="The unique ID of the workflow execution.")
+    execution_id: str = Field(..., description="The unique ID of the workflow execution.")
     timestamp: datetime = Field(..., description="When this report was generated.")
 
     # High-Level Outcomes
@@ -48,6 +46,7 @@ class MatrixFieldsMixin(BaseDTO):
     evaluated_atoms: dict[str, bool] | None = None
     extensions: dict[str, str] | None = None
     level_breakdown: dict[str, dict[str, int]] | None = None
+    xai_log: dict[str, Any] | None = None
 
 
 class XaiReportData(MatrixFieldsMixin):
@@ -231,17 +230,14 @@ class ReportContextDTO(BaseDTO):
     coaching_plan: CoachingPlanDTO | None = None
 
 
-from backend_v2.models.domain.analyst import SearchResult
-from backend_v2.models.domain.archivist import ArchivistOutputDTO
-from backend_v2.models.domain.coach import BibliographyResult, CoachingPlanDTO
-
-
 class TraceScoringPayloadDTO(BaseDTO):
     """Strict hydration schema for extracting scoring results in BlueprintTransformer."""
 
     total_score: float | None = None
+    final_score: float | None = None
     normalized_score: float | None = None
     penalties_applied: list[Any] | None = None
+    aggregation_status: str | None = None
 
 
 class TraceMatrixPayloadDTO(BaseDTO):
@@ -254,3 +250,4 @@ class TraceMatrixPayloadDTO(BaseDTO):
     level_breakdown: dict[str, Any] | None = None
     extensions: dict[str, Any] | None = None
     evaluated_atoms: dict[str, bool] | None = None
+    xai_log: dict[str, Any] | None = None

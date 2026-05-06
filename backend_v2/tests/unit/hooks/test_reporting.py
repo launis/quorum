@@ -15,7 +15,6 @@ valid_execution_data = {
     "organization_id": "org_1",
     "status": "running",
     "output_profile_id": "prof_123",
-    "strictness_level": 50,
 }
 
 valid_workflow_data = {
@@ -48,6 +47,9 @@ def test_reporting_hook_fail_fast_on_invalid_inputs() -> None:
     mock_workflow_repo.get_workflow_by_id.return_value = valid_workflow_data
     mock_workflow_repo.get_output_profile_by_id.return_value = {
         "id": "prof_123",
+        "slug": "test_profile",
+        "workflow_id": "wf_123",
+        "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
         "layouts": [],
         "display_scale": "original",
     }  # noqa: E501
@@ -91,6 +93,9 @@ def test_reporting_hook_fail_fast_on_invalid_pydantic_schema() -> None:
     mock_workflow_repo.get_workflow_by_id.return_value = valid_workflow_data
     mock_workflow_repo.get_output_profile_by_id.return_value = {
         "id": "prof_123",
+        "slug": "test_profile",
+        "workflow_id": "wf_123",
+        "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
         "layouts": [],
         "display_scale": "original",
     }  # noqa: E501
@@ -122,13 +127,11 @@ def test_reporting_hook_success_with_valid_schema() -> None:
         inputs={
             "true_atoms_count": 0,
             "false_atoms_count": 0,
-            "dim1": {
-                "raw_score": 4.5,
-                "normalized_score": 4.5,
-                "level_breakdown": None,
-                "justification": "Very logical.",
-                "evaluated_atoms": {},
-                "extensions": {},
+            "matrices": {
+                "dim1": {
+                    "normalized_score": 4.5,
+                    "justification": "Very logical.",
+                }
             },
         },
         global_context_vars={
@@ -142,6 +145,9 @@ def test_reporting_hook_success_with_valid_schema() -> None:
     mock_workflow_repo.get_workflow_by_id.return_value = valid_workflow_data
     mock_workflow_repo.get_output_profile_by_id.return_value = {
         "id": "prof_123",
+        "slug": "test_profile",
+        "workflow_id": "wf_123",
+        "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
         "layouts": [],
         "display_scale": "original",
     }  # noqa: E501

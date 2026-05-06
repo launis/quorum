@@ -1,15 +1,14 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.enums import XaiExtensionType
 from backend_v2.models.domain.xai import (
-    XAIReporterInput,
-    XAIScoreItem,
     CitationExtension,
     EmotionalSentimentExtension,
-    ComparisonDataDTO,
     XAIOutput,
+    XAIReporterInput,
+    XAIScoreItem,
 )
+from backend_v2.models.enums import XaiExtensionType
 
 
 def test_xai_reporter_input_requires_chatlog() -> None:
@@ -45,7 +44,7 @@ def test_xai_extensions_polymorphism() -> None:
         "url": "https://example.com",
     }
     citation = CitationExtension.model_validate(citation_data)
-    assert getattr(citation, "source_id") == "src_1"
+    assert citation.source_id == "src_1"
 
     sentiment_data = {
         "extension_type": XaiExtensionType.EMOTIONAL_SENTIMENT,
@@ -53,7 +52,7 @@ def test_xai_extensions_polymorphism() -> None:
         "intensity": 0.5,
     }
     sentiment = EmotionalSentimentExtension.model_validate(sentiment_data)
-    assert getattr(sentiment, "sentiment") == "Neutral"
+    assert sentiment.sentiment == "Neutral"
 
 
 def test_xai_output_frozen_and_strict() -> None:

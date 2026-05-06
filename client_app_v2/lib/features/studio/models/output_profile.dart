@@ -24,6 +24,8 @@ abstract class OutputLayoutBlock with _$OutputLayoutBlock {
     String textDeliveryMode,
     SynthesisConfigDTO? synthesis,
     @JsonKey(name: 'synthesis_md') String? synthesisMd,
+    @JsonKey(name: 'strictness_level') int? strictnessLevel,
+    @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
   }) = _OutputLayoutBlock;
 
   factory OutputLayoutBlock.fromJson(Map<String, dynamic> json) =>
@@ -70,6 +72,8 @@ abstract class OutputProfile with _$OutputProfile {
     @Default(false)
     @JsonKey(name: 'include_diagnostic_scorecard')
     bool includeDiagnosticScorecard,
+    @JsonKey(name: 'strictness_level') int? strictnessLevel,
+    @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
     @Default([]) List<OutputLayoutBlock> layouts,
   }) = _OutputProfile;
 
@@ -92,6 +96,8 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
     @Default(false)
     @JsonKey(name: 'include_diagnostic_scorecard')
     bool includeDiagnosticScorecard,
+    @JsonKey(name: 'strictness_level') int? strictnessLevel,
+    @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
     @Default([]) List<OutputLayoutBlock> layouts,
   }) = _EmbeddedOutputProfile;
 

@@ -72,7 +72,7 @@ class ExecutionController extends _$ExecutionController {
     String workflowId,
     Map<String, dynamic> inputs, {
     int strictnessLevel = 50,
-    String scoringStrategy = 'WATERFALL_FLOOR',
+    String scoringStrategy = 'WATERFALL',
   }) async {
     state = const AsyncValue.loading();
     await _sseSubscription?.cancel();
@@ -109,7 +109,7 @@ class ExecutionController extends _$ExecutionController {
 
   /// Reconnects to an existing execution stream by ID
   Future<void> resumeExecution(String executionId) async {
-    state = const AsyncValue.loading();
+    state = const AsyncValue<Map<String, dynamic>?>.loading();
     await _sseSubscription?.cancel();
 
     _connectToStream(executionId);
@@ -118,11 +118,16 @@ class ExecutionController extends _$ExecutionController {
   /// Submits a Rehydration request to the backend for an interrupted/FAILED execution.
   /// This adheres to the Riverpod 3.0 Mutation pattern by optimistically updating the state.
   Future<void> submitRehydration(String executionId) async {
-    state = const AsyncValue.loading();
+    // Preserve existing state while loading to prevent UI flicker
+    state = const AsyncValue<Map<String, dynamic>?>.loading();
     await _sseSubscription?.cancel();
     try {
       final client = ref.read(executionClientProvider);
-      await client.resumeExecution(executionId);
+      final resumedRecord = await client.resumeExecution(executionId);
+
+      // Immediately hydrate with the backend's verified resumed state
+      state = AsyncValue.data(resumedRecord);
+
       // Wait a tiny bit for the backend to transition state before we hook SSE again
       await Future.delayed(ExecutionSettings.rehydrationDelay);
       _connectToStream(executionId);

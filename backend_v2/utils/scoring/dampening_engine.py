@@ -1,3 +1,4 @@
+from backend_v2.models.dtos.lightweight_matrix import XAILogDto
 from backend_v2.models.enums import CognitiveFlowStatus, CognitiveFlowThreshold
 from backend_v2.utils.math_utils import calculate_progressive_dampening_score, clamp_score, get_strictness_config
 from backend_v2.utils.scoring.base_engine import ScoringEngineBase
@@ -12,7 +13,7 @@ class DampeningScoringEngine(ScoringEngineBase):
 
     def calculate(
         self, stats: dict[float, dict[str, int]], math_min: float, math_max: float, strictness_level: int = 50
-    ) -> tuple[float, str, dict[str, dict[str, int]]]:
+    ) -> tuple[float, XAILogDto, dict[str, dict[str, int]]]:
         config = get_strictness_config(strictness_level)
         dampening_score = calculate_progressive_dampening_score(stats, math_min, math_max, config)
 
@@ -79,4 +80,18 @@ class DampeningScoringEngine(ScoringEngineBase):
         level_breakdown = {str(k): {"hits": v["hits"], "total": v["total"]} for k, v in stats.items()}
 
         final_score = clamp_score(dampening_score, math_min, math_max)
-        return float(final_score), "\n".join(log_lines), level_breakdown
+
+        engine_debug_trace = {
+            "engine": "dampening",
+            "stats": stats,
+            "strictness_level": strictness_level,
+            "config": config.model_dump(),
+            "log_trace": log_lines,
+        }
+
+        xai_log = XAILogDto(
+            pedagogical_key="xai_dampening_engine_breakdown",
+            engine_debug_trace=engine_debug_trace,
+        )
+
+        return float(final_score), xai_log, level_breakdown

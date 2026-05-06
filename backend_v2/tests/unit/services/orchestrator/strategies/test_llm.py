@@ -260,13 +260,17 @@ async def test_execute_success_path_structured_output(
         mock_client.run_structured_task.return_value = (mock_result, {"total_tokens": 100})
 
         with patch(
-            "backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock
-        ) as mock_from_strategy:  # noqa: E501
-            mock_from_strategy.return_value = mock_client
+            "backend_v2.services.orchestrator.strategies.llm_execution.context_builder.litellm.token_counter",
+            return_value=10,
+        ):
+            with patch(
+                "backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock
+            ) as mock_from_strategy:  # noqa: E501
+                mock_from_strategy.return_value = mock_client
 
-            traces = await llm_strategy.execute(
-                step=step, projector=projector, context=context, frozen_ctx=None, trace=[]
-            )
+                traces = await llm_strategy.execute(
+                    step=step, projector=projector, context=context, frozen_ctx=None, trace=[]
+                )
 
     assert len(traces) == 1
     assert traces[0].event_type == "output"

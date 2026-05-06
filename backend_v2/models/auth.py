@@ -10,7 +10,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Literal
 
-from pydantic import ConfigDict, EmailStr, Field, field_validator, model_validator
+from pydantic import ConfigDict, EmailStr, Field, field_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -97,6 +97,13 @@ class Organization(V2CoreBase):
     tpm_limit: Annotated[int, Field(ge=1000, description="Tokens Per Minute Limit")]
     rpm_limit: Annotated[int, Field(ge=1, description="Requests Per Minute Limit")]
 
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def parse_datetime(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            return datetime.fromisoformat(v.replace("Z", "+00:00"))
+        return v
+
     @field_validator("id", "name")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
@@ -114,8 +121,6 @@ class Organization(V2CoreBase):
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise ValueError(msg)
         return v.strip() if v else v
-
-
 
 
 class UserBase(V2CoreBase):
@@ -172,6 +177,13 @@ class User(UserBase):
     created_at: Annotated[datetime, Field(description="ISO 8601 Timestamp")]
     created_by: Annotated[str | None, Field(description="UID of the creator")] = None
 
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def parse_datetime(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            return datetime.fromisoformat(v.replace("Z", "+00:00"))
+        return v
+
     @field_validator("id")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
@@ -189,8 +201,6 @@ class User(UserBase):
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise ValueError(msg)
         return v.strip() if v else v
-
-
 
 
 class UserAdminView(UserBase):

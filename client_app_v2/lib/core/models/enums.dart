@@ -86,14 +86,14 @@ enum EvidenceType {
 /// Epic 43: Multi-Engine Scoring Strategies
 @JsonEnum()
 enum ScoringStrategy {
-  @JsonValue('KOEARVOSTELU')
-  koearvostelu,
-  @JsonValue('SYVAARVOSTELU')
-  syvaarvostelu,
-  @JsonValue('LINEAARINEN_KESKIARVO')
-  lineaarinenKeskiarvo,
-  @JsonValue('PAINOTETTU_KESKIARVO')
-  painotettuKeskiarvo,
+  @JsonValue('WATERFALL')
+  waterfall,
+  @JsonValue('DAMPENING')
+  dampening,
+  @JsonValue('AVERAGE')
+  average,
+  @JsonValue('WEIGHTED_AVERAGE')
+  weightedAverage,
 }
 
 /// Epic 46: Strictness Level Enums

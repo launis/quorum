@@ -7,13 +7,12 @@ including Toulmin argumentation analysis and Walton schemes.
 import logging
 from typing import Any
 
-from pydantic import Field, model_validator
+from pydantic import Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
-from backend_v2.models.enums import BloomLevel, StrategicDepth, LaxBloomLevel, LaxStrategicDepth
-from backend_v2.services.localization import LocalizationService
+from backend_v2.models.enums import LaxBloomLevel, LaxStrategicDepth
 
 logger = logging.getLogger(__name__)
 
@@ -123,56 +122,6 @@ class CognitiveLevel(V2CoreBase):
         default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"}
     )
 
-    @model_validator(mode="before")
-    @classmethod
-    def calculate_scores(cls, data: Any) -> Any:
-        """Calculate numeric scores and populate descriptions."""
-        if isinstance(data, dict):
-            # Populate Description (Context-Aware)
-            key = data.get("description_key", "bloom_desc")
-            if not data.get("description"):
-                data["description"] = LocalizationService.translate(key)
-
-            bloom_map = {
-                BloomLevel.REMEMBERING: 1.0,
-                BloomLevel.UNDERSTANDING: 2.0,
-                BloomLevel.APPLYING: 3.0,
-                BloomLevel.ANALYZING: 4.0,
-                BloomLevel.EVALUATING: 5.0,
-                BloomLevel.CREATING: 6.0,
-                BloomLevel.REMEMBERING.value: 1.0,
-                BloomLevel.UNDERSTANDING.value: 2.0,
-                BloomLevel.APPLYING.value: 3.0,
-                BloomLevel.ANALYZING.value: 4.0,
-                BloomLevel.EVALUATING.value: 5.0,
-                BloomLevel.CREATING.value: 6.0,
-            }
-
-            current_bloom_score = data.get("bloom_score")
-            if current_bloom_score is None:
-                b_val = data.get("bloom_level")
-                if b_val in bloom_map:
-                    data["bloom_score"] = bloom_map[b_val]
-
-            strat_map = {
-                StrategicDepth.LOW: 1.0,
-                StrategicDepth.MEDIUM: 2.0,
-                StrategicDepth.HIGH: 3.0,
-                StrategicDepth.VISIONARY: 4.0,
-                StrategicDepth.LOW.value: 1.0,
-                StrategicDepth.MEDIUM.value: 2.0,
-                StrategicDepth.HIGH.value: 3.0,
-                StrategicDepth.VISIONARY.value: 4.0,
-            }
-
-            current_strat_score = data.get("strategic_score")
-            if current_strat_score is None:
-                s_val = data.get("strategic_depth")
-                if s_val in strat_map:
-                    data["strategic_score"] = strat_map[s_val]
-
-        return data
-
 
 class WaltonScheme(V2CoreBase):
     """Walton's Argumentation Scheme."""
@@ -227,15 +176,6 @@ class LogicianData(V2CoreBase):
     description: str = Field(
         default="", description="Localized description.", json_schema_extra={"x-ui-label": "Description"}
     )
-
-    @model_validator(mode="before")
-    @classmethod
-    def pop_desc(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            key = data.get("description_key", "toulmin_desc")
-            if not data.get("description"):
-                data["description"] = LocalizationService.translate(key)
-        return data
 
 
 class LogicianOutputDTO(ReasoningTraceDTO):

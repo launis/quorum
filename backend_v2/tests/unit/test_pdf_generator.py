@@ -2,7 +2,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from backend_v2.models.enums import ScoringStrategy
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, I18nText, ReportDataDTO, ReportLayoutDTO
 from backend_v2.services.pdf_generator import PdfReportService
@@ -15,8 +14,6 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
 
     # Mock an execution record with strict V2 validations
     mock_execution = ExecutionRecord(
-        scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
-        strictness_level=50,
         id="exe_aaaaaaaabbbbbbbb",
         workflow_id="test_wf",
         status=ExecutionStatus.COMPLETED,
@@ -49,8 +46,6 @@ async def test_html_generator_chart_injection_failure_safe() -> None:
 
     # Mock an execution record with strict V2 validations
     mock_execution = ExecutionRecord(
-        scoring_strategy=ScoringStrategy.WATERFALL_FLOOR,
-        strictness_level=50,
         id="exe_aaaaaaaabbbbbbbb",
         workflow_id="test_wf",
         status=ExecutionStatus.COMPLETED,

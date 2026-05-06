@@ -6,6 +6,7 @@ import pytest
 
 from backend_v2.core.hook_registry import HookResult
 from backend_v2.exceptions import AppException
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.state import ErrorTraceEvent
 from backend_v2.models.v2_core import I18nText, StepRule, Workflow
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
@@ -21,8 +22,6 @@ def mock_repo() -> AsyncMock:
         "id": "exe_1111222233334444",
         "workflow_id": "wf_tg_test",
         "status": ExecutionStatus.PENDING,
-        "strictness_level": 50,
-        "scoring_strategy": "WATERFALL_FLOOR",
         "raw_inputs": {"dynamic_inputs": {"log": "test"}},
         "metadata": {},
     }
@@ -96,7 +95,7 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
                 await executor.execute_workflow(
                     execution_id="exe_1111222233334444",
                     workflow=workflow,
-                    raw_inputs={"dynamic_inputs": {"log": "test"}},
+                    raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
                 )
 
             # The failure from the first step should unwrap gracefully

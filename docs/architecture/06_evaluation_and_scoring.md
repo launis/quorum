@@ -103,27 +103,40 @@ Kun LLM palauttaa vastauksen, Pydantic V2 `@model_validator(mode='after')` tekee
 * **Physical Word-Count Blocker:** Jos näyttö perustuu implisiittiseen päättelyyn (`IMPLIED_INTENT`), järjestelmä estää "konsulttipuheen" asettamalla fyysisen sanamäärärajan (esim. vähintään 20 sanaa). Jos selitys on laiska (esim. "Perustuu rivien välistä luettuun dataan"), Pydantic nostaa `ValueError` -virheen.
 * **Strictness Threshold (>= 70):** Mikäli työnkulun käyttäjä on asettanut ankaruustasoksi vähintään 70, `IMPLIED_INTENT` hylätään automaattisesti kokonaan. Tällöin vain `EXPLICIT_QUOTE` tai `NO_EVIDENCE` hyväksytään järjestelmään, mikä muuttaa koko tekoälyn laskennan armottoman faktapohjaiseksi auditointikoneeksi ilman tulkinnanvaraisuuksia.
 
-## 4. Pisteytyslogiikka: Waterfall Floor (Guttmanin asteikko) ja Kireystasot
+## 4. Pisteytyslogiikka: Soft Scoring V3 (Lerp, Sigmoid, MAD) ja Kireystasot
 
-Aiemmin järjestelmä hyödynsi arvioinnissa Kognitiivista Diagnostiikkamallia (DINA) ja "Square Root Dampening" -vaimennusta, joka rankaisi huonosta perustasta, mutta antoi osapisteitä potentiaalista. 
+Epic 47 myötä järjestelmä on siirtynyt kovan "Square Root Dampening" ja ehdottomien kynnysarvojen ajasta kohti **Soft Scoring V3** -arkkitehtuuria. Tämä uusi arviointimoottori eliminoi luonnottomat matemaattiset jyrkänteet (cliff effects) ja mahdollistaa joustavan mutta deterministisen kognitiivisen arvioinnin soveltamalla lineaarista interpolaatiota (Lerp), loogisia Sigmoid-käyriä ja MAD-pohjaista poikkeamien torjuntaa.
 
-Epic 42 (Phase 9) -arkkitehtuurissa järjestelmä on siirtynyt puhtaaseen **Zero-Trust -malliin**, jossa pisteytys perustuu ehdottomaan **Vesiputousmalliin (Waterfall Floor / Guttman Scale)** yhdistettynä säädettäviin **Kireystasoihin (Strictness 0-100)**. Tämä erottaa matemaattisen auditoinnin tekoälyn datan keruusta.
+### Forensic Sovereignty ja Kaksinkertainen Pisteytys (Double Scoring)
+Epic 47 irrotti matemaattisen pisteytyksen lopullisesti sidotusta suoritusvaiheesta (Execution) käyttäen "Forensic Sovereignty" -arkkitehtuuria. Vaikka tavoitteena on "Decoupling" (eriytetty pisteytys), järjestelmä suorittaa matemaattisen laskennan tietoisesti kahteen kertaan:
 
-### Matemaattinen Malli: The Ceiling Cap (Rikkinäiset tikapuut)
-Laskenta (`waterfall_scoring_hook` & `calculate_waterfall_floor`) etenee tiukasti alimmalta skaalatasolta ylöspäin.
-* **Ehdoton kynnysarvo (Threshold):** Jotta taso hyväksytään, sen osumaprosentin (`hit_rate`) on ylitettävä kovakoodattu kynnys (vakiona 0.75).
-* **The Break Rule:** Jos yksikin alempi taso epäonnistuu kynnyksen ylittämisessä, koodi suorittaa absoluuttisen `break`-komennon. Se ei koskaan iteroi tai huomioi ylempiä tasoja.
-* **Lopputulos (Logical Integrity):** On matemaattisesti mahdotonta saada korkean tason strategisia pisteitä (esim. Taso 5), jos fundamentaaliset perustukset (esim. Taso 2) vuotavat. Pisteiden katto ("Ceiling Cap") lukittuu välittömästi alimpaan epäonnistuneeseen tasoon.
+1. **DAG-vaiheen Baseline-laskenta (Historiallinen sormenjälki):** 
+   Itse työnkulun ajon (Execution) yhteydessä `matrix_scoring_hook` tallentaa sokeat faktat (`level_breakdown`) ja suorittaa niille matemaattisen laskennan työnkulun sen hetkisellä *oletuskireydellä*. Tämä luo tietokantaan (`execution.step_states`) ikuisen "Baseline"-tuloksen. Tämän ainoa arkkitehtoninen tarkoitus on luoda ja säilöä rikas **XAI-loki (Explainable AI)**, joka sisältää tarkan matemaattisen selityksen siitä, miten tekoäly tuotti arvosanan reaaliajassa (esim. "Osuma-aste 0% -> Sovelletaan liukuvaa rangaistusta 0.85").
+2. **Virtuaaliset Järjestelmäaskeleet ja Worker-synteesi (SSOT):**
+   Kun lopullinen PDF- tai käyttöliittymäraportti luodaan, Arq Worker käynnistää asynkronisen virtuaaliaskeleen (esim. `sys_render_default`). Worker *ohittaa täysin* aiemmat Baseline-pisteet ja XAI-lokin. Se lukee vain muuttumattomat faktat (`level_breakdown`) ja suorittaa täysin uuden matemaattisen laskennan käyttäjän valitseman uuden `OutputProfile` -konfiguraation kireystasolla. Tämän uuden ajon luomaa XAI-lokia ei enää tallenneta, sillä loppukäyttäjälle tuotetaan vain matemaattisesti puhtaat, uuteen profiiliin perustuvat loppupisteet (Scorecard).
+
+Tämä arkkitehtoninen "poikkeus" takaa, että tietokantaan ei synny datapaisumusta miljoonista eri XAI-lokeista jokaisen käyttäjän tekemän PDF-tulosteen yhteydessä, mutta säilyttää silti alkuperäisen auditoitavan matemaattisen jäljen devaajille. SSOT (Single Source of Truth) loppukäyttäjän esityskerroksessa on aina Workerin tuottama tuloste, joten arvot eivät voi mennä ristiin.
+
+### Matemaattiset Moottorit (Mathematical Engines)
+
+Arviointijärjestelmä sisältää neljä täysin Zero-Math UI -pariteettia noudattavaa laskentamoottoria, joiden toimintaa ohjaa dynaaminen **StrictnessConfig** (Kireystaso 0-100). Mitä korkeampi kireystaso, sitä vähemmän anteeksiantoa (forgiveness) järjestelmä antaa.
+
+1. **Syväarvostelu (Progressive Dampening - DINA V3):** 
+   Tämä moottori hyödyntää lineaarista interpolaatiota (Lerp) lieventääkseen alempien kognitiivisten tasojen puutteita (`effective_hit_rate = base_forgiveness + (hit_rate * (1.0 - base_forgiveness))`). Vaimennukseen sovelletaan kireystason perusteella dynaamista eksponenttia, jolloin täydellinenkään ylemmän tason suoritus ei voi kompensoida täysin murentunutta perustaa, mutta pisteet eivät romahda absoluuttisesti nollaan yksittäisen virheen takia.
+2. **Koearvostelu (Soft Waterfall - Guttman V3):** 
+   Tiukka compliance-moottori. Jos tavoitekynnys (threshold) alitetaan, järjestelmä ei enää lukitse koko pisteytystä "rikkinäisiin tikapuihin", vaan laskee vajauksen (`shortfall`) ja soveltaa **liukuvaa rangaistuskerrointa** (sliding penalty multiplier) kaikkiin myöhempiin tasoihin kaskadoituvasti.
+3. **Painotettu Keskiarvo (Sigmoid Scaling):** 
+   Laskee matriisin tason perusteella painotetun suhdeluvun ja skaalaa tuloksen ulos **Sigmoid (logistic) -käyrällä** (`raw_sigmoid = 1 / (1 + math.exp(-steepness * (hit_rate - midpoint)))`). Kireystaso liikuttaa Sigmoidin keskipistettä, jolloin tiukempi kireystaso vaatii eksponentiaalisesti puhtaampaa osumaprosenttia korkean arvosanan saamiseksi. Järjestelmä suorittaa täyden matemaattisen normalisoinnin absoluuttisten ääripäiden väliin.
+4. **Lineaarinen Keskiarvo (MAD Outlier Rejection):** 
+   Puhtaassa keskiarvossa järjestelmä on alttiimpi datapisteille, jotka heikentävät muuten vahvaa profiilia. Tämä moottori tunnistaa tilastolliset anomaliat hyödyntämällä **Median Absolute Deviation (MAD)** -menetelmää. Jos yksittäinen taso poikkeaa merkittävästi aggregaatin mediaanista (`hit_rate < median - 3.0 * MAD` ja `hit_rate < 0.30`), tason painoarvoa alennetaan (0.25x), suojellen näin kokonaisarvosanaa perusteettomilta romahduksilta.
 
 ### Kireystason Kalibrointi (Strictness Level 0–100)
-Matemaattinen vesiputous on armoton, mutta tekoälyn kykyä "löytää" osumia säädetään dynaamisesti Kireystasolla. Tämä määrittää, hyväksytäänkö Pydantic V2 -kerroksessa `IMPLIED_INTENT` vai vaaditaanko ehdotonta `EXPLICIT_QUOTE` -todistetta.
-* **0–40 (Sparraava Valmentaja):** Tekoäly saa lukea rivien välistä. Malli löytää osumia helposti, jolloin vesiputous virtaa huipulle asti tuottaen rohkaisevia, korkeita arvosanoja.
-* **50 (Objektiivinen Arvioija / Oletus):** Vaatii suoraa lainausta, mutta sallii rivien välistä lukemisen vähintään 20 sanan pakollista, loogista kirjallista perustelua vastaan. Säilyttää pariteetin vanhan DINA-mallin antamiin arvosanoihin.
-* **70–89 (Kylmä Tilintarkastaja):** Pydantic hylkää implisiittiset tulkinnat. Vain eksakti lainaus (`EXPLICIT_QUOTE`) kelpuutetaan. Pieni puute tekstissä laukaisee vesiputouksen `break`-komennon, ja arvosana romahtaa.
-* **90–100 (Lakisääteinen Tuomari):** Aktivoi `ANTI_SYCOPHANCY_MANDATE` -tilan. Malli etsii aktiivisesti loogisia ristiriitoja ja hylkää herkästi (Zero-Tolerance).
+Matemaattiset moottorit ovat armottomia algoritmeja, mutta tekoälyn kykyä "löytää" osumia säädetään dynaamisesti Kireystasolla. Kireystaso ohjaa myös Pydantic V2 -kerroksen validointia.
 
-> [!TIP]
-> **Hybridimahdollisuus (Dampening + Strictness):** Mikäli järjestelmää halutaan käyttää puhtaasti inhimilliseen valmennukseen siten, että se antaa osapisteitä korkean tason potentiaalista vaikka perusta vuotaisi, koodi mahdollistaa paluun `calculate_progressive_dampening_score` -funktioon. Yhdistämällä tämä vanha laskentamalli uusiin "Silmälaseihin" (Kireystasoihin), saavutetaan markkinoiden edistynein, säädettävä valmennustekoäly. Oletuksena kuitenkin käytetään tiukkaa Waterfall-auditointia.
+* **0–40 (Joustava / Flexible):** Tekoäly saa lukea rivien välistä (`IMPLIED_INTENT`). Malli löytää osumia helposti ja anteeksianto on korkea (Lerp forgiveness 1.0 - 0.6).
+* **50 (Oletus / Balanced):** Objektiivinen kultainen keskitie. Vaatii usein suoraa lainausta, mutta sallii implisiittisen perustelun laadukkaalla CoT-ketjulla. Sigmoidin keskipiste on matemaattisessa ytimessä.
+* **70–89 (Tiukka / Strict):** Pydantic hylkää implisiittiset tulkinnat. Vain eksakti lainaus (`EXPLICIT_QUOTE`) kelpuutetaan. Kognitiiviset vaimennukset ovat jyrkkiä ja anteeksianto on lähellä nollaa.
+* **90–100 (Absoluuttinen / Absolute):** Nollatoleranssi virheille. Aktivoi `ANTI_SYCOPHANCY_MANDATE` -tilan.
 
 ### Rangaistusmekanismit (Penalty Logic)
 
@@ -229,6 +242,14 @@ Tekoälyn tekemä sokea atomien arviointityö tallentuu prosessidatana paikallis
 ### C. Lopulliset arvosanat ja XAI-perustelut (Output-tila)
 Itse matemaattinen päättely (DINA-laskenta) muodostetaan vasta aivan lopuksi `scoring.py` -hookissa.
 Lopulliset rakenteet paketoidaan ja pakastetaan `StorageService` (FileDriver) -rajapinnan läpi polkuun `data/files/executions/exe_{id}/frozen_context.json`. Asiakassovellus kykenee lukemaan valmiin UI-datan suoraan FileDriverin yli nanosekunneissa suorittamatta raskaita laskelmia, täyttäen Zero-Math säännön ja pitäen järjestelmän Opaque Stripe ID relaatiot puhtaina ja rikkoutumattomina.
+
+### D. Idempotentti Tilanpäivitys (PDF-tulostus ja SSOT)
+Kun järjestelmä generoi lopullisia PDF-raportteja (`worker.py` / `generate_pdf_task`), se joutuu laskemaan tarkkoja dynaamisia matematiikka-arvoja (kuten `normalized_score` tavoiteskaalausta varten). Nämä lasketut arvot tallennetaan **suoraan alkuperäiseen tietokannan `execution_trace` -tapahtumaan (Event Sourcing SSOT)** normaalin `update_execution` -kutsun kautta. 
+
+Tämä operaatio on **matemaattisesti idempotentti**, mikä tarkoittaa että:
+1. **Ei tietokannan paisumista:** Arvojen päivitys ei luo uusia "Tulostus"-lokirivejä tai append-kopioita tapahtumahistoriaan. Se paikantaa oikean alkuperäisen matriisitapahtuman ja päivittää vain sen JSON-payloadin. Sadan peräkkäisen tulostusajon tekeminen samalle työnkululle ei kasvata `execution_trace` -taulukkoa yhdelläkään elementillä.
+2. **SSOT Data Locality:** Lasketut tulokset tallennetaan täsmälleen samaan `TraceEvent`-objektiin, joka sisältää tekoälyn alkuperäiset perustelut (`reasoning`) ja osumat (`evaluated_atoms`). Riippumatta siitä lukeeko dataa tulostin, käyttöliittymä vai tekoälyagentti, kaikki tahot katsovat Pydantic-validoitua yhtenäistä dataa yhdestä ja samasta lokitapahtumasta.
+3. **Determinismi:** Koska matematiikka on puhdasta determinististä koodia ja pohjautuu arvioinnin aikana lukittuun `evaluated_atoms`-dataan, sadannes tulostusajo tuottaa sekunnilleen ja millilleen saman tuloksen kuin ensimmäinenkin.
 
 ## 7. FinOps ja Token-hallinnan Arkkitehtuuri (Rate-Limit Resurssien Suojaus)
 

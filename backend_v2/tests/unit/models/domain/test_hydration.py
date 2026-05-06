@@ -9,14 +9,14 @@ def test_hydration_input_source_strict_validation() -> None:
     dto = HydrationInputSourceDTO(inputs={"key": "value", "foo": "bar"})
     assert "key" in dto.inputs
     assert dto.inputs["key"] == "value"
-    
+
     # Test methods
     assert dto.is_valid_source() is True
     assert dto.extract_hydrated_inputs() == {"key": "value", "foo": "bar"}
-    
+
     # Test extra forbid
     with pytest.raises(ValidationError):
-        HydrationInputSourceDTO(inputs={"key": "value"}, extra_field="not allowed")
+        HydrationInputSourceDTO.model_validate({"inputs": {"key": "value"}, "extra_field": "not allowed"})
 
 
 def test_hydration_input_source_type_validation() -> None:

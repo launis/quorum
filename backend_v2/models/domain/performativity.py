@@ -7,16 +7,14 @@ including linguistics analysis and heuristics.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
-from pydantic import Field, model_validator
+from pydantic import Field
 
-from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.domain.logician import LogicianOutput
-from backend_v2.models.enums import AuthenticityLevel, LaxAuthenticityLevel
+from backend_v2.models.enums import LaxAuthenticityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -114,23 +112,6 @@ class PerformativityAnalysis(V2CoreBase):
         description="Localized description.",
         json_schema_extra={"x-ui-label": "Description"},
     )
-
-    @model_validator(mode="before")
-    @classmethod
-    def calc_authenticity(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            mapping = {
-                AuthenticityLevel.PERFORMATIVE: 2.0, 
-                AuthenticityLevel.ORGANIC: 3.0,
-                AuthenticityLevel.PERFORMATIVE.value: 2.0,
-                AuthenticityLevel.ORGANIC.value: 3.0,
-            }
-            val = data.get("authenticity_assessment")
-
-            if data.get("authenticity_score") is None:
-                if val in mapping:
-                    data["authenticity_score"] = mapping[val]
-        return data
 
 
 class PerformativityDTO(ReasoningTraceDTO):

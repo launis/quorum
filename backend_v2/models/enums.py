@@ -72,9 +72,9 @@ class WaterfallThreshold(float, Enum):
     Defines the hit rate percentage required to pass a scale level.
     """
 
-    STRICT = 0.70    # Requires ~70% consensus (Tiukka 85)
+    STRICT = 0.70  # Requires ~70% consensus (Tiukka 85)
     STANDARD = 0.40  # Requires ~40% consensus (Tasapainoinen 50)
-    LENIENT = 0.15   # Requires ~15% consensus (Salliva 15)
+    LENIENT = 0.15  # Requires ~15% consensus (Salliva 15)
 
 
 class CognitiveFlowThreshold(float, Enum):
@@ -121,11 +121,27 @@ class ExecutionStatus(str, Enum):
     FAILED = "failed"
 
 
+class VirtualSystemStepID(str, Enum):
+    """Reserved IDs for Virtual System Steps generated dynamically by the DAG Engine."""
+
+    SCORING_RESULT = "scoring_result"
+    HAS_WARNING = "has_warning"
+    SYNTHESIZED_MARKDOWN = "synthesized_markdown"
+    STEP_METADATA = "_step_metadata"
+
+
 class HistoricalContextMode(str, Enum):
     """Modes for fetching historical execution data during synthesis."""
 
     DISABLED = "DISABLED"
     SLIDING_WINDOW_3 = "SLIDING_WINDOW_3"
+
+
+class SystemLocale(str, Enum):
+    """Supported system locales."""
+
+    EN = "en"
+    FI = "fi"
 
 
 class SystemConcurrency(int, Enum):
@@ -135,7 +151,7 @@ class SystemConcurrency(int, Enum):
     MAX_CONCURRENT_LLM_STEPS = 2
     LLM_MAX_RETRIES = 8
     LLM_MAX_CHUNK_SIZE = 60
-    MATRIX_SAMPLING_LIMIT = 25
+    MATRIX_SAMPLING_LIMIT = 2
     LLM_DEFAULT_TIMEOUT_SECONDS = 600
     RATE_LIMIT_COOLDOWN_SECONDS = 65
     MAX_SAFE_TOKENS = 1000000
@@ -332,9 +348,9 @@ class ReferenceTitle(str, Enum):
 class ScoringStrategy(str, Enum):
     """Selects the mathematical engine used to calculate final matrix scores."""
 
-    WATERFALL_FLOOR = "WATERFALL_FLOOR"
-    PROGRESSIVE_DAMPENING = "PROGRESSIVE_DAMPENING"
-    PURE_AVERAGE = "PURE_AVERAGE"
+    WATERFALL = "WATERFALL"
+    DAMPENING = "DAMPENING"
+    AVERAGE = "AVERAGE"
     WEIGHTED_AVERAGE = "WEIGHTED_AVERAGE"
 
 
@@ -350,3 +366,4 @@ LaxBlockDataType = Annotated[BlockDataType, Field(strict=False)]
 LaxComponentType = Annotated[ComponentType, Field(strict=False)]
 LaxHistoricalContextMode = Annotated[HistoricalContextMode, Field(strict=False)]
 LaxScoringStrategy = Annotated[ScoringStrategy, Field(strict=False)]
+LaxVirtualSystemStepID = Annotated[VirtualSystemStepID, Field(strict=False)]

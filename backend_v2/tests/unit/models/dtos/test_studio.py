@@ -5,10 +5,8 @@ from backend_v2.models.dtos.studio import (
     MCPGatewayDeleteResponse,
     ModelRegistryDeleteResponse,
     PromptBlockDeleteResponse,
-    PromptBlockSimulationRequest,
     PromptBlockSimulationResponse,
     StepDeleteResponse,
-    StepSimulationRequest,
     StepSimulationResponse,
     WorkflowDeleteResponse,
     WorkflowSimulationResponse,
@@ -77,39 +75,44 @@ def test_core_response_dto_strictness() -> None:
     valid_id_prf = "prf_0123456789abcdef"
     valid_id_org = "org_0123456789abcdef"
 
-    wf = WorkflowResponseDTO(
-        id=valid_id_wf,
-        slug="test-wf",
-        name="Test Workflow",
-        description="Desc",
-        version=1,
-        status="draft",
-        default_profile_id=valid_id_prf,
-        organization_id=valid_id_org
+    wf = WorkflowResponseDTO.model_validate(
+        {
+            "id": valid_id_wf,
+            "slug": "test-wf",
+            "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
+            "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+            "version": 1,
+            "status": "draft",
+            "default_profile_id": valid_id_prf,
+            "organization_id": valid_id_org,
+        }
     )
     assert wf.organization_id == valid_id_org
     assert wf.id == valid_id_wf
 
-    step = StepResponseDTO(
-        id=valid_id_stp,
-        slug="test-step",
-        name={"default_locale": "en", "translations": {"en": "Test Step"}},
-        type="llm",
-        description={"default_locale": "en", "translations": {"en": "test", "fi": "testi"}},
-        model_strategy="fast",
-        prompt_blocks=["blk_0123456789abcdef"],
-        organization_id=valid_id_org
+    step = StepResponseDTO.model_validate(
+        {
+            "id": valid_id_stp,
+            "slug": "test-step",
+            "name": {"default_locale": "en", "translations": {"en": "Test Step"}},
+            "type": "llm",
+            "description": {"default_locale": "en", "translations": {"en": "test", "fi": "testi"}},
+            "model_strategy": "fast",
+            "prompt_blocks": ["blk_0123456789abcdef"],
+            "organization_id": valid_id_org,
+        }
     )
     assert step.organization_id == valid_id_org
 
-    pb = PromptBlockResponseDTO(
-        id=valid_id_blk,
-        slug="test-block",
-        label={"default_locale": "en", "translations": {"en": "Test Block"}},
-        description={"default_locale": "en", "translations": {"en": "Test Block Desc"}},
-        category_id="test_cat",
-        type="string",
-        organization_id=valid_id_org
+    pb = PromptBlockResponseDTO.model_validate(
+        {
+            "id": valid_id_blk,
+            "slug": "test-block",
+            "label": {"default_locale": "en", "translations": {"en": "Test Block"}},
+            "description": {"default_locale": "en", "translations": {"en": "Test Block Desc"}},
+            "category_id": "test_cat",
+            "type": "string",
+            "organization_id": valid_id_org,
+        }
     )
     assert pb.organization_id == valid_id_org
-

@@ -30,8 +30,6 @@ def valid_execution_data_for_synthesis() -> dict[str, Any]:
         "organization_id": "org_00000000000000000000",
         "status": "running",
         "output_profile_id": "prof_00000000000000000000",
-        "strictness_level": 50,
-        "scoring_strategy": "WATERFALL_FLOOR",
     }
 
 
@@ -42,6 +40,8 @@ def valid_output_profile_data_for_synthesis() -> dict[str, Any]:
         "slug": "test_profile",
         "workflow_id": "wf_00000000000000000000",
         "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
+        "strictness_level": 50,
+        "scoring_strategy": "WATERFALL",
         "display_scale": "original",
         "synthesis": {
             "system_prompt": "You are a synthesizer.",
@@ -76,7 +76,9 @@ async def test_synthesis_happy_path(
             "section_syntheses": [],
             "xai_highlights": [],
         }
-        usage = {"completion_tokens": 10}
+        from backend_v2.models.domain.usage import TokenUsage
+
+        usage = TokenUsage(completion_tokens=10, prompt_tokens=0, total_tokens=10)
         from typing import Any
 
         audit_traces: list[Any] = []

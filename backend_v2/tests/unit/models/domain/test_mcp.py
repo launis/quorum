@@ -73,7 +73,6 @@ def test_tavily_tool_args_dto_valid() -> None:
 
 
 def test_mcp_tool_loop_result_valid() -> None:
-    from backend_v2.models.domain.usage import TokenUsage
     audit = MCPAuditTrace(
         tool_id="mcp_tavily_search",
         step_name="test_step",

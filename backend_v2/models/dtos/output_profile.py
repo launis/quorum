@@ -9,7 +9,7 @@ from pydantic import Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.base import BaseResponseDTO
-from backend_v2.models.enums import LaxXaiExtensionType
+from backend_v2.models.enums import LaxScoringStrategy, LaxXaiExtensionType
 from backend_v2.models.v2_core import (
     I18nText,
     OutputLayoutBlock,
@@ -52,6 +52,8 @@ class OutputProfileCreateDTO(V2CoreBase):
     include_diagnostic_scorecard: bool = Field(
         default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
     )
+    strictness_level: int | None = Field(default=None, ge=0, le=100, description="Profile-level strictness override.")
+    scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Sequence of layouts.")
 
 
@@ -85,6 +87,8 @@ class OutputProfileUpdateDTO(V2CoreBase):
     include_diagnostic_scorecard: bool | None = Field(
         default=None, description="Epic 24: Enable appending the independent diagnostic scorecard."
     )
+    strictness_level: int | None = Field(default=None, ge=0, le=100, description="Profile-level strictness override.")
+    scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
     layouts: list[OutputLayoutBlock] | None = Field(default=None, description="Sequence of layouts.")
 
 
@@ -104,4 +108,6 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     include_diagnostic_scorecard: bool = Field(
         default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
     )
+    strictness_level: int | None = None
+    scoring_strategy: LaxScoringStrategy | None = None
     layouts: list[OutputLayoutBlock]

@@ -44,6 +44,7 @@ from backend_v2.models.enums import (
     AbductiveConclusion,
     AuthenticityLevel,
     BloomLevel,
+    EthicalSeverity,
     FidelityLevel,
     InteractionStrategy,
     PlausibilityLevel,
@@ -51,7 +52,6 @@ from backend_v2.models.enums import (
     RoleClassification,
     StrategicDepth,
     VerificationResult,
-    EthicalSeverity,
 )
 
 # 0. Shared Metadata
@@ -154,7 +154,11 @@ MOCK_PERFORMATIVITY_OUTPUT = PerformativityOutput(
 
 MOCK_OVERSEER_DATA = OverseerData(
     fact_checks=[
-        FactCheckRFI(claim="Fact Check Claim 1", verification_result=VerificationResult.VERIFIED, source_or_reasoning="Source 1")
+        FactCheckRFI(
+            claim="Fact Check Claim 1",
+            verification_result=VerificationResult.VERIFIED,
+            source_or_reasoning="Source 1",
+        )
     ],
     ethical_issues=[EthicalObservation(issue_type="Bias", severity=EthicalSeverity.NONE, description="No issues")],
 )

@@ -21,7 +21,7 @@ def test_client_error_payload_strictness() -> None:
         error_message="Fatal crash",
         stack_trace="Traceback...",
         severity="fatal",
-        context_data={"screen": "home"}
+        context_data={"screen": "home"},
     )
     assert dto.error_message == "Fatal crash"
     assert dto.severity == "fatal"
@@ -30,5 +30,5 @@ def test_client_error_payload_strictness() -> None:
     with pytest.raises(ValidationError):
         ClientErrorPayload(
             error_message="Fatal crash",
-            extra="fail"  # type: ignore
+            extra="fail",  # type: ignore
         )

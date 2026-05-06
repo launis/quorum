@@ -33,8 +33,6 @@ from backend_v2.settings import get_settings
 # Configure logging
 logger = logging.getLogger(__name__)
 
-_settings = get_settings()
-
 # Ensure env is loaded from project root for LLM secrets
 _root_dir = Path(__file__).resolve().parent.parent.parent
 _env_path = _root_dir / ".env"

@@ -225,7 +225,10 @@ _ReportDataDTO _$ReportDataDTOFromJson(
         'strictness_level',
         (v) => (v as num?)?.toInt(),
       ),
-      scoringStrategy: $checkedConvert('scoring_strategy', (v) => v as String?),
+      scoringStrategy: $checkedConvert(
+        'scoring_strategy',
+        (v) => $enumDecodeNullable(_$ScoringStrategyEnumMap, v),
+      ),
       costEstimate: $checkedConvert(
         'cost_estimate',
         (v) => (v as num?)?.toDouble(),
@@ -340,7 +343,7 @@ Map<String, dynamic> _$ReportDataDTOToJson(_ReportDataDTO instance) =>
       'created_at': instance.createdAt,
       'org_name': instance.orgName,
       'strictness_level': instance.strictnessLevel,
-      'scoring_strategy': instance.scoringStrategy,
+      'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
       'cost_estimate': instance.costEstimate,
       'total_tokens': instance.totalTokens,
       'prompt_tokens': instance.promptTokens,
@@ -359,3 +362,10 @@ Map<String, dynamic> _$ReportDataDTOToJson(_ReportDataDTO instance) =>
           .map((e) => e.toJson())
           .toList(),
     };
+
+const _$ScoringStrategyEnumMap = {
+  ScoringStrategy.waterfall: 'WATERFALL',
+  ScoringStrategy.dampening: 'DAMPENING',
+  ScoringStrategy.average: 'AVERAGE',
+  ScoringStrategy.weightedAverage: 'WEIGHTED_AVERAGE',
+};

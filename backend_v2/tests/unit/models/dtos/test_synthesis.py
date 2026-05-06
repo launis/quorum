@@ -25,7 +25,7 @@ def test_synthesis_output_strictness() -> None:
         synthesized_markdown="# Title",
         cited_sources=["source1"],
         section_syntheses=[SynthesisSectionDTO(layout_id="l1", synthesized_markdown="test")],
-        xai_highlights=[XaiHighlightItem(extension_type="coaching", content="tip")]
+        xai_highlights=[XaiHighlightItem(extension_type="coaching", content="tip")],
     )
     assert dto.synthesized_markdown == "# Title"
 

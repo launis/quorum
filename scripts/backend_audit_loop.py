@@ -72,7 +72,13 @@ def run_tests_with_strict_coverage(target):
             coverage_cmd = ["uv", "run", "coverage", "report", f"--include=*{target_name}", "--fail-under=30", "-m"]
             result = subprocess.run(coverage_cmd)
     else:
-        cmd = ["uv", "run", "pytest", "-v", "--tb=short", f"--cov={cov_target}", "--cov-fail-under=30", "--cov-report=term-missing"]
+        parts = target.replace("\\", "/").strip("/").split("/")
+        if parts[0] == "backend_v2":
+            test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
+        else:
+            test_path = "tests/" + "/".join(parts)
+            
+        cmd = ["uv", "run", "pytest", test_path, "-v", "--tb=short", f"--cov={cov_target}", "--cov-fail-under=30", "--cov-report=term-missing"]
         result = subprocess.run(cmd)
     
     if result.returncode != 0:

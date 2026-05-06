@@ -21,6 +21,7 @@ from backend_v2.models.enums import (
     LaxComponentType,
     LaxExecutionStatus,
     LaxHistoricalContextMode,
+    LaxScoringStrategy,
     LaxXaiExtensionType,
     ScoringStrategy,
     SystemConcurrency,
@@ -592,7 +593,7 @@ class ReportDataDTO(V2CoreBase):
     workflow_id: str
     strictness_level: int = Field(...)
     scoring_strategy: str | None = Field(
-        default=None, description="The mathematical strategy used for scoring (e.g. WATERFALL_FLOOR)"
+        default=None, description="The mathematical strategy used for scoring (e.g. WATERFALL)"
     )
     profile_id: str
     profile_name: I18nText | None = Field(default=None)
@@ -661,7 +662,7 @@ class OutputLayoutBlock(V2CoreBase):
     strictness_level: int | None = Field(
         default=None, ge=0, le=100, description="Override for strictness_level in this layout."
     )
-    scoring_strategy: ScoringStrategy | None = Field(
+    scoring_strategy: LaxScoringStrategy | None = Field(
         default=None, description="Override for scoring_strategy in this layout."
     )
 
@@ -701,7 +702,7 @@ class OutputProfile(V2CoreBase):
         default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
     )
     strictness_level: int | None = Field(default=None, ge=0, le=100, description="Profile-level strictness override.")
-    scoring_strategy: ScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
+    scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
 
 
@@ -734,7 +735,7 @@ class EmbeddedOutputProfile(V2CoreBase):
         default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
     )
     strictness_level: int | None = Field(default=None, ge=0, le=100, description="Profile-level strictness override.")
-    scoring_strategy: ScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
+    scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
 
 
@@ -755,8 +756,8 @@ class Workflow(V2CoreBase):
     )
     default_profile_id: str = Field(description="The ID of the default output profile to use.")
     default_strictness_level: int = Field(default=50, ge=0, le=100, description="Fallback strictness level.")
-    default_scoring_strategy: ScoringStrategy = Field(
-        default=ScoringStrategy.PURE_AVERAGE, description="Fallback strategy."
+    default_scoring_strategy: LaxScoringStrategy = Field(
+        default=ScoringStrategy.AVERAGE, description="Fallback strategy."
     )
     expected_inputs: list[ExpectedInput] = Field(
         default_factory=list,

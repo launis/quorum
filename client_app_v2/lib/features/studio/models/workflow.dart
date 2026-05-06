@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:isolate';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/utils/json_converters.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -127,6 +128,12 @@ abstract class Workflow with _$Workflow {
     @Default({}) Map<String, dynamic> uiSchema,
     @Default({}) Map<String, EmbeddedOutputProfile> outputProfiles,
     @Default("default") String defaultProfileId,
+    @JsonKey(name: 'default_strictness_level')
+    @Default(50)
+    int defaultStrictnessLevel,
+    @JsonKey(name: 'default_scoring_strategy')
+    @Default(ScoringStrategy.average)
+    ScoringStrategy defaultScoringStrategy,
     @Default([]) List<ExpectedInput> expectedInputs,
     @Default([]) List<StepRule> steps,
   }) = _Workflow;

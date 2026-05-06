@@ -7,16 +7,14 @@ including fact checks and ethical observations.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
-from pydantic import Field, model_validator
+from pydantic import Field, computed_field
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.enums import EthicalSeverity, VerificationResult, LaxEthicalSeverity, LaxVerificationResult
-
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.domain.logician import LogicianOutput
+from backend_v2.models.enums import EthicalSeverity, LaxEthicalSeverity, LaxVerificationResult, VerificationResult
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +49,6 @@ class FactCheckRFI(V2CoreBase):
         description="Result.",
         json_schema_extra={"x-ui-label": "Result"},
     )
-    is_verified: bool = Field(
-        default=False,
-        description="Boolean verification status.",
-    )
     source_or_reasoning: str = Field(
         ...,
         min_length=1,
@@ -62,13 +56,11 @@ class FactCheckRFI(V2CoreBase):
         json_schema_extra={"x-ui-label": "Source/Reasoning"},
     )
 
-    @model_validator(mode="before")
-    @classmethod
-    def calc_verification(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            val = data.get("verification_result")
-            data["is_verified"] = val in (VerificationResult.VERIFIED, "RESULT_VERIFIED")
-        return data
+    @computed_field  # type: ignore[prop-decorator]  # Pydantic computed_field with @property
+    @property
+    def is_verified(self) -> bool:
+        """Boolean verification status."""
+        return self.verification_result == VerificationResult.VERIFIED
 
 
 class EthicalObservation(V2CoreBase):
@@ -85,10 +77,6 @@ class EthicalObservation(V2CoreBase):
         description="Severity level.",
         json_schema_extra={"x-ui-label": "Severity"},
     )
-    is_critical: bool = Field(
-        default=False,
-        description="Is the issue critical?",
-    )
     description: str = Field(
         ...,
         min_length=1,
@@ -96,13 +84,11 @@ class EthicalObservation(V2CoreBase):
         json_schema_extra={"x-ui-label": "Description"},
     )
 
-    @model_validator(mode="before")
-    @classmethod
-    def calc_ethics(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            val = data.get("severity")
-            data["is_critical"] = val in (EthicalSeverity.CRITICAL, "SEVERITY_CRITICAL")
-        return data
+    @computed_field  # type: ignore[prop-decorator]  # Pydantic computed_field with @property
+    @property
+    def is_critical(self) -> bool:
+        """Is the issue critical?"""
+        return self.severity == EthicalSeverity.CRITICAL
 
 
 class OverseerData(V2CoreBase):

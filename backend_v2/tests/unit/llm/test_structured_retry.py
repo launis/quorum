@@ -29,7 +29,7 @@ class DummyModel(BaseModel):
 
 
 @pytest.fixture
-def mock_repository():
+def mock_repository() -> MagicMock:
     repo = MagicMock()
     repo.get_model_registry = AsyncMock(
         return_value={
@@ -50,13 +50,18 @@ def mock_repository():
 
 
 @pytest.mark.asyncio
-async def test_run_structured_task_self_healing_success(mock_repository):
+async def test_run_structured_task_self_healing_success(mock_repository: MagicMock) -> None:
     """Tests that the self-healing retry loop successfully catches a JSON error
     on the first attempt and successfully recovers with valid JSON on the second.
     """
     config = LLMProviderConfig(
-        id="prv_12345678", provider="lite_llm", model_name="fast", tpm_limit=1000, rpm_limit=100,
-        temperature=0.2, default_max_tokens=1000
+        id="prv_12345678",
+        provider="lite_llm",
+        model_name="fast",
+        tpm_limit=1000,
+        rpm_limit=100,
+        temperature=0.2,
+        default_max_tokens=1000,
     )
     client = LLMClient(config=config)
     executor = LLMTaskExecutor(PromptCompiler())
@@ -67,6 +72,7 @@ async def test_run_structured_task_self_healing_success(mock_repository):
     good_response = MockLLMResponse('{"id": 1, "name": "Fixed"}')
 
     mock_provider = AsyncMock()
+    mock_provider.generate = AsyncMock()
     mock_provider.generate.side_effect = [bad_response, good_response]
 
     with patch("backend_v2.llm.provider.LLMFactory.create_provider", return_value=mock_provider):
@@ -88,13 +94,18 @@ async def test_run_structured_task_self_healing_success(mock_repository):
 
 
 @pytest.mark.asyncio
-async def test_run_structured_task_self_healing_exhaustion(mock_repository):
+async def test_run_structured_task_self_healing_exhaustion(mock_repository: MagicMock) -> None:
     """Tests that the self-healing circuit breaker triggers an AgentExecutionError
     if the maximum number of retries is exhausted with invalid schema outputs.
     """
     config = LLMProviderConfig(
-        id="prv_12345678", provider="lite_llm", model_name="fast", tpm_limit=1000, rpm_limit=100,
-        temperature=0.2, default_max_tokens=1000
+        id="prv_12345678",
+        provider="lite_llm",
+        model_name="fast",
+        tpm_limit=1000,
+        rpm_limit=100,
+        temperature=0.2,
+        default_max_tokens=1000,
     )
     client = LLMClient(config=config)
     executor = LLMTaskExecutor(PromptCompiler())
@@ -106,6 +117,7 @@ async def test_run_structured_task_self_healing_exhaustion(mock_repository):
     ]
 
     mock_provider = AsyncMock()
+    mock_provider.generate = AsyncMock()
     mock_provider.generate.side_effect = bad_responses  # Exactly 2 fail responses
 
     with patch("backend_v2.llm.provider.LLMFactory.create_provider", return_value=mock_provider):

@@ -1,16 +1,16 @@
-import uuid
 from datetime import datetime
+
 import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.domain.base import (
-    AuditLogEntry,
     Metadata,
     ReasoningTraceDTO,
     UsageRecord,
 )
 
-def test_usage_record_opaque_stripe_id():
+
+def test_usage_record_opaque_stripe_id() -> None:
     """Test that UsageRecord strictly enforces the Opaque Stripe ID mandate with 'usg_' prefix."""
     record = UsageRecord(
         org_id="org_123",
@@ -19,12 +19,13 @@ def test_usage_record_opaque_stripe_id():
         input_tokens=100,
         output_tokens=50,
         cost_usd=0.01,
-        timestamp="2026-05-04T12:00:00Z"
+        timestamp=datetime.fromisoformat("2026-05-04T12:00:00+00:00"),
     )
     assert record.id.startswith("usg_")
     assert len(record.id) > 10
 
-def test_usage_record_iso_timestamp():
+
+def test_usage_record_iso_timestamp() -> None:
     """Test strict ISO timestamp parsing with mode='before' validator."""
     record = UsageRecord(
         org_id="org_123",
@@ -33,57 +34,44 @@ def test_usage_record_iso_timestamp():
         input_tokens=100,
         output_tokens=50,
         cost_usd=0.01,
-        timestamp="2026-05-04T12:00:00Z"
+        timestamp=datetime.fromisoformat("2026-05-04T12:00:00+00:00"),
     )
     assert isinstance(record.timestamp, datetime)
 
-def test_reasoning_trace_native_confidence_bounds():
+
+def test_reasoning_trace_native_confidence_bounds() -> None:
     """Test that the native Field(ge=0.0, le=1.0) strictly guards confidence_score."""
     # Valid
-    trace = ReasoningTraceDTO(
-        thought_process="Valid reasoning.",
-        conclusion="Valid conclusion.",
-        confidence_score=0.9
-    )
+    trace = ReasoningTraceDTO(thought_process="Valid reasoning.", conclusion="Valid conclusion.", confidence_score=0.9)
     assert trace.confidence_score == 0.9
 
     # Invalid high
     with pytest.raises(ValidationError) as exc:
-        ReasoningTraceDTO(
-            thought_process="Valid reasoning.",
-            conclusion="Valid conclusion.",
-            confidence_score=1.5
-        )
+        ReasoningTraceDTO(thought_process="Valid reasoning.", conclusion="Valid conclusion.", confidence_score=1.5)
     assert "Input should be less than or equal to 1" in str(exc.value)
 
     # Invalid low
     with pytest.raises(ValidationError) as exc:
-        ReasoningTraceDTO(
-            thought_process="Valid reasoning.",
-            conclusion="Valid conclusion.",
-            confidence_score=-0.1
-        )
+        ReasoningTraceDTO(thought_process="Valid reasoning.", conclusion="Valid conclusion.", confidence_score=-0.1)
     assert "Input should be greater than or equal to 0" in str(exc.value)
 
-def test_reasoning_trace_hallucination_guard():
+
+def test_reasoning_trace_hallucination_guard() -> None:
     """Test that the thought_process hallucination guard strictly forbids empty-equivalent strings."""
     invalid_inputs = ["null", "none", "n/a", "ei saatavilla"]
-    
+
     for invalid_val in invalid_inputs:
         with pytest.raises(ValueError) as exc:
-            ReasoningTraceDTO(
-                thought_process=invalid_val,
-                conclusion="A valid conclusion.",
-                confidence_score=0.5
-            )
+            ReasoningTraceDTO(thought_process=invalid_val, conclusion="A valid conclusion.", confidence_score=0.5)
         assert "LLM returned an invalid empty-equivalent string" in str(exc.value)
 
-def test_metadata_strictness():
+
+def test_metadata_strictness() -> None:
     """Test Metadata strict constraints."""
     meta = Metadata(
-        luontiaika="2026-05-04T12:00:00Z",
+        luontiaika=datetime.fromisoformat("2026-05-04T12:00:00+00:00"),
         agentti="AnalystAgent",
-        suoritus_ymparisto="production"
+        suoritus_ymparisto="production",
     )
     assert meta.vaihe == 0
     assert meta.versio == "1.0"
@@ -92,7 +80,5 @@ def test_metadata_strictness():
     # Empty agentti should fail min_length=1
     with pytest.raises(ValidationError):
         Metadata(
-            luontiaika="2026-05-04T12:00:00Z",
-            agentti="",
-            suoritus_ymparisto="production"
+            luontiaika=datetime.fromisoformat("2026-05-04T12:00:00+00:00"), agentti="", suoritus_ymparisto="production"
         )

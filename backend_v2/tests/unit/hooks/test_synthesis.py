@@ -1,0 +1,814 @@
+import os
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+from collections.abc import Awaitable
+from typing import Any, cast
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.hooks.synthesis import (
+    _build_title_map,
+    _compress_synthesis_payload,
+    text_consolidation_hook,
+)
+
+
+@pytest.fixture
+def valid_workflow_data() -> dict[str, Any]:
+    return {
+        "id": "wf_1234567890abcdef1234567890abcdef",
+        "slug": "test_workflow",
+        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "prof_1234567890abcdef1234567890abcdef",
+        "expected_inputs": [],
+        "steps": [],
+    }
+
+
+@pytest.fixture
+def valid_execution_data() -> dict[str, Any]:
+    return {
+        "id": "exe_1234567890abcdef1234567890abcdef",
+        "workflow_id": "wf_1234567890abcdef1234567890abcdef",
+        "organization_id": "org_1",
+        "status": "running",
+        "output_profile_id": "prof_1234567890abcdef1234567890abcdef",
+    }
+
+
+@pytest.fixture
+def valid_output_profile_data() -> dict[str, Any]:
+    return {
+        "id": "prof_1234567890abcdef1234567890abcdef",
+        "slug": "test_profile",
+        "workflow_id": "wf_1234567890abcdef1234567890abcdef",
+        "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
+        "display_scale": "original",
+        "synthesis": {
+            "system_prompt": "You are a synthesizer.",
+            "historical_context_mode": "DISABLED",
+            "enable_pii_masking": False,
+            "omit_empty_sections": True,
+            "allowed_exports": ["pdf", "raw_json"],
+            "allowed_mcp_tools": [],
+        },
+        "layouts": [],
+    }
+
+
+@pytest.mark.asyncio
+async def test_synthesis_fails_fast_on_invalid_metadata(
+    valid_workflow_data: dict[str, Any],
+    valid_execution_data: dict[str, Any],
+    valid_output_profile_data: dict[str, Any],  # noqa: E501
+) -> None:  # noqa: E501
+    """Test that missing target_locale triggers AppException due to strict Pydantic parsing."""
+    state = HookState(
+        execution_id="exe_1234567890abcdef1234567890abcdef",
+        workflow_id=valid_workflow_data["id"],
+        inputs={},
+        metadata={},  # Missing target_locale
+        global_context_vars={},
+    )
+    mock_repo = AsyncMock()
+    mock_repo.get_workflow_by_id.return_value = valid_workflow_data
+    mock_repo.get_execution.return_value = valid_execution_data
+    mock_repo.get_output_profile_by_id.return_value = valid_output_profile_data
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )  # noqa: E501
+
+    from collections.abc import Awaitable
+
+    with pytest.raises(AppException) as exc_info:
+        await cast(Awaitable[HookResult], text_consolidation_hook(state, deps))
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "Strict Fail-Fast Enforced" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_synthesis_fails_fast_on_invalid_step_data(
+    valid_workflow_data: dict[str, Any],
+    valid_execution_data: dict[str, Any],
+    valid_output_profile_data: dict[str, Any],  # noqa: E501
+) -> None:  # noqa: E501
+    """Test that non-dict/model step data triggers AppException enforcing Phase 9 logic."""
+    state = HookState(
+        execution_id="exe_1234567890abcdef1234567890abcdef",
+        workflow_id=valid_workflow_data["id"],
+        inputs={"step_1": 12345},  # Invalid structured data
+        metadata={"target_locale": "en", "step_results": [{"invalid": "data"}]},
+        global_context_vars={},
+    )
+
+    mock_repo = AsyncMock()
+    mock_repo.get_workflow_by_id.return_value = valid_workflow_data
+    mock_repo.get_execution.return_value = valid_execution_data
+    mock_repo.get_output_profile_by_id.return_value = valid_output_profile_data
+
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )  # noqa: E501
+
+    from collections.abc import Awaitable
+
+    with pytest.raises(AppException) as exc_info:
+        await cast(Awaitable[HookResult], text_consolidation_hook(state, deps))
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "Strict Fail-Fast Enforced" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_synthesis_empty_inputs_returns_early(
+    valid_workflow_data: dict[str, Any],
+    valid_execution_data: dict[str, Any],
+    valid_output_profile_data: dict[str, Any],  # noqa: E501
+) -> None:  # noqa: E501
+    """Test that valid metadata and empty inputs safely return a HookResult without calling the LLM."""
+    state = HookState(
+        execution_id="exe_1234567890abcdef1234567890abcdef",
+        workflow_id=valid_workflow_data["id"],
+        inputs={"steps": []},
+        metadata={
+            "target_locale": "en",
+            "step_results": [{"step_id": "dummy_step", "block_id": "blk_1", "data_type": "matrix", "payload": {}}],
+        },  # noqa: E501
+        global_context_vars={},
+    )
+
+    mock_repo = AsyncMock()
+    mock_repo.get_workflow_by_id.return_value = valid_workflow_data
+    mock_repo.get_execution.return_value = valid_execution_data
+    mock_repo.get_output_profile_by_id.return_value = valid_output_profile_data
+
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )  # noqa: E501
+
+    result = await cast(Awaitable[HookResult], text_consolidation_hook(state, deps))
+
+    assert result.success is True
+    assert result.state_delta is not None
+    assert "synthesized_markdown" in result.state_delta
+    assert result.state_delta["synthesized_markdown"] == "*NO_DATA_AVAILABLE*"
+
+
+def test_compress_synthesis_payload_strips_heavy_keys() -> None:
+    """Test that _compress_synthesis_payload removes log-heavy keys but retains quotes and reasoning."""
+    import json
+
+    payload = {
+        "step_1": {
+            "result": "success",
+            "evaluations": [{"score": 1}],
+            "shuffled_atoms": ["a", "b"],
+            "quote": "test",
+            "reasoning": "because",
+            "nested": {"evaluations": "remove me too", "keep_me": True},
+        }
+    }
+
+    compressed_str = _compress_synthesis_payload(payload)
+    compressed = json.loads(compressed_str)
+
+    assert "evaluations" not in compressed["step_1"]
+    assert "shuffled_atoms" not in compressed["step_1"]
+    assert "quote" in compressed["step_1"]
+    assert "reasoning" in compressed["step_1"]
+    assert "evaluations" not in compressed["step_1"]["nested"]
+    assert compressed["step_1"]["nested"]["keep_me"] is True
+
+
+def test_build_title_map() -> None:
+    """Test that _build_title_map successfully resolves localized Step and Input names."""
+    from backend_v2.models.v2_core import I18nText, Step, Workflow
+
+    wf = Workflow(
+        id="wf_1234567890abcdef1234567890abcdef",
+        slug="test",
+        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        status="draft",
+        version=1,
+        default_profile_id="prof_1234567890abcdef1234567890abcdef",
+        steps=cast(
+            Any,
+            [
+                {
+                    "id": "node_1111111111abcdef1111111111abcdef",
+                    "task_blueprint": "step_2222222222abcdef2222222222abcdef",
+                }
+            ],
+        ),
+        expected_inputs=cast(
+            Any,
+            [
+                {
+                    "input_key": "input_x",
+                    "label": I18nText(default_locale="en", translations={"en": "Input X", "fi": "Syöte X"}),
+                    "required": True,
+                    "input_modes": ["text"],
+                    "description": I18nText(default_locale="en", translations={"en": "Desc"}),
+                }
+            ],
+        ),
+    )
+
+    step = Step(
+        id="step_2222222222abcdef2222222222abcdef",
+        slug="test_step",
+        name=I18nText(default_locale="en", translations={"en": "Test Step", "fi": "Testi Vaihe"}),
+        type="llm",
+        model_strategy="fast",
+        prompt_blocks=["block_1"],
+    )
+
+    title_map = _build_title_map(wf, [step], language="fi")
+
+    assert title_map["node_1111111111abcdef1111111111abcdef"] == "Testi Vaihe"
+    assert title_map["input_x"] == "Syöte X"
+
+
+"""Unit tests for the Synthesis Hook."""
+
+
+import pytest
+
+from backend_v2.core.hook_registry import hook_registry
+from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.services.mcp.mcp_tool_loop import MCPToolLoopResult  # type: ignore
+
+
+@pytest.fixture
+def mock_repo() -> AsyncMock:
+    repo = AsyncMock()
+    repo.get_workflow_by_id = AsyncMock()
+    repo.get_all = AsyncMock(return_value=[])
+    return repo
+
+
+@pytest.fixture
+def base_state() -> HookState:
+    return HookState(
+        execution_id="exe_1",
+        workflow_id="wf_1",
+        step_id="step_1",
+        inputs={
+            "steps": {
+                "step_1": {
+                    "reasoning_trace": {
+                        "thought_process": "test text",
+                        "conclusion": "abc@example.com",
+                        "confidence_score": 0.9,
+                    }
+                },
+                "step_2": {
+                    "reasoning_trace": {
+                        "thought_process": "localization test",
+                        "conclusion": "en",
+                        "confidence_score": 1.0,
+                    }
+                },
+            }
+        },
+        global_context_vars={"language": "en"},
+        metadata={
+            "target_locale": "en",
+            "step_results": [
+                {
+                    "step_id": "step_1",
+                    "block_id": "b1",
+                    "data_type": "text",
+                    "payload": {
+                        "reasoning_trace": {
+                            "thought_process": "test text",
+                            "conclusion": "abc@example.com",
+                            "confidence_score": 0.9,
+                        }
+                    },
+                },  # noqa: E501
+                {
+                    "step_id": "step_2",
+                    "block_id": "b2",
+                    "data_type": "text",
+                    "payload": {
+                        "reasoning_trace": {
+                            "thought_process": "localization test",
+                            "conclusion": "en",
+                            "confidence_score": 1.0,
+                        }
+                    },
+                },
+            ],
+        },
+    )
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.hooks.synthesis.execute_tool_loop")
+@patch("backend_v2.hooks.synthesis.LLMClient")
+async def test_synthesis_hook_success(
+    mock_llm_client_class: AsyncMock, mock_execute_tool_loop: AsyncMock, mock_repo: AsyncMock, base_state: HookState
+) -> None:
+    """Test that synthesis hook injects config constraints correctly and calls LLM."""
+    mock_repo.get_workflow_by_id = AsyncMock()
+    mock_repo.get_execution = AsyncMock(
+        return_value={
+            "id": "exe_1111111111111111",
+            "workflow_id": "wf_1111111111111111",
+            "status": "completed",
+            "output_profile_id": "prf_test",
+        }
+    )
+    mock_workflow: dict[str, Any] = {
+        "id": "wf_1111111111111111",
+        "slug": "test-workflow",
+        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "status": "published",
+        "version": 1,
+        "default_profile_id": "prf_test",
+        "output_profiles": {
+            "prf_test": {
+                "name": {"default_locale": "en", "translations": {"en": "Profile Test"}},
+                "strictness_level": 50,
+                "scoring_strategy": "WATERFALL",
+                "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
+                "synthesis": {
+                    "system_prompt": "Test sys prompt",
+                    "length_constraint": 500,
+                    "preamble_text": {"default_locale": "en", "translations": {"en": "Always be concise."}},
+                    "omit_empty_sections": True,
+                    "enable_pii_masking": True,
+                },
+            }
+        },
+    }
+    mock_repo.get_workflow_by_id.return_value = mock_workflow
+    prof_data = dict(mock_workflow["output_profiles"]["prf_test"])
+    prof_data.update({"id": "prf_test", "slug": "profile-test", "workflow_id": "wf_1111111111111111"})
+    mock_repo.get_output_profile_by_id = AsyncMock(return_value=prof_data)
+    mock_repo.get_step_by_id.return_value = {"id": "step_111111111111111111111111"}
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )
+
+    # Setup the mock LLM Client Instance
+    mock_client_instance = AsyncMock()
+    mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
+
+    # Return MCPToolLoopResult
+    mock_dto_dict = {
+        "synthesized_markdown": "Synthesized [1]",
+        "cited_sources": ["source1"],
+        "section_syntheses": [],
+        "xai_highlights": [],
+    }
+    mock_execute_tool_loop.return_value = MCPToolLoopResult(
+        result_data=mock_dto_dict, audit_traces=[], usage=TokenUsage(total_tokens=100)
+    )
+
+    result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
+
+    assert result.success is True
+    delta = result.state_delta
+    assert delta is not None
+
+    # Verify that LLM tools loop was called
+    mock_execute_tool_loop.assert_called_once()
+
+    # Check if PII was masked (the email inside inputs should be [REDACTED EMAIL])
+    call_args = mock_execute_tool_loop.call_args
+    messages = call_args.kwargs.get("messages", [])
+    user_msg: dict[str, Any] = next((m for m in messages if m["role"] == "user"), {})
+    sys_msg: dict[str, Any] = next((m for m in messages if m["role"] == "system"), {})
+
+    assert "[REDACTED_EMAIL]" in user_msg.get("content", "")
+    assert "abc@example.com" not in user_msg.get("content", "")
+
+    # Check if PII was masked (the email inside inputs should be [REDACTED EMAIL])
+    assert "<global_length_constraint_chars>500</global_length_constraint_chars>" in sys_msg.get("content", "")
+    assert "Always be concise." in sys_msg.get("content", "")
+
+    assert delta["synthesized_markdown"] == "Synthesized [1]"
+    assert delta["cited_sources"] == ["source1"]
+    assert "token_usage" in delta["step_metadata_updates"]
+    assert delta["step_metadata_updates"]["token_usage"]["total_tokens"] == 100
+
+
+@pytest.mark.asyncio
+async def test_synthesis_hook_workflow_not_found(mock_repo: AsyncMock, base_state: HookState) -> None:
+    """Test that missing workflow throws an AppException."""
+    mock_repo.get_workflow_by_id.return_value = None
+    mock_repo.get_step_by_id.return_value = {"id": "step_111111111111111111111111"}
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
+
+    assert exc_info.value.status_code == 404
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.hooks.synthesis.execute_tool_loop")
+@patch("backend_v2.hooks.synthesis.LLMClient")
+async def test_synthesis_hook_multi_profile_routing(
+    mock_llm_client_class: AsyncMock, mock_execute_tool_loop: AsyncMock, mock_repo: AsyncMock, base_state: HookState
+) -> None:
+    """Test that synthesis routes to requested target_profile_id and uses its distinct rules."""
+    mock_repo.get_execution = AsyncMock(
+        return_value={
+            "id": "exe_1111111111111111",
+            "workflow_id": "wf_1111111111111111",
+            "status": "completed",
+            "output_profile_id": "prof_b",
+        }
+    )
+
+    mock_workflow: dict[str, Any] = {
+        "id": "wf_1111111111111111",
+        "slug": "test-workflow",
+        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "status": "published",
+        "version": 1,
+        "default_profile_id": "prof_a",
+        "output_profiles": {
+            "prof_a": {
+                "name": {"default_locale": "en", "translations": {"en": "A"}},
+                "strictness_level": 50,
+                "scoring_strategy": "WATERFALL",
+                "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
+                "synthesis": {
+                    "system_prompt": "Test sys prompt",
+                    "length_constraint": 100,
+                    "preamble_text": {"default_locale": "en", "translations": {"en": "Alpha"}},
+                },
+            },
+            "prof_b": {
+                "name": {"default_locale": "en", "translations": {"en": "B"}},
+                "strictness_level": 50,
+                "scoring_strategy": "WATERFALL",
+                "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
+                "synthesis": {
+                    "system_prompt": "Test sys prompt",
+                    "length_constraint": 900,
+                    "preamble_text": {"default_locale": "en", "translations": {"en": "Beta"}},
+                },
+            },
+        },
+    }
+    mock_repo.get_workflow_by_id = AsyncMock(return_value=mock_workflow)
+    prof_data = dict(mock_workflow["output_profiles"]["prof_b"])
+    prof_data.update({"id": "prof_b", "slug": "prof-b", "workflow_id": "wf_1111111111111111"})
+    mock_repo.get_output_profile_by_id = AsyncMock(return_value=prof_data)
+    mock_repo.get_step_by_id.return_value = {"id": "step_111111111111111111111111"}
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )
+
+    # Force the hook to use prof_b
+    base_state.metadata["target_profile_id"] = "prof_b"
+
+    mock_client_instance = AsyncMock()
+    mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
+    mock_execute_tool_loop.return_value = MCPToolLoopResult(
+        result_data={
+            "synthesized_markdown": "Beta result",
+            "cited_sources": [],
+            "section_syntheses": [],
+            "xai_highlights": [],
+        },
+        audit_traces=[],
+        usage=TokenUsage(total_tokens=50),
+    )
+
+    result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
+    assert result.success is True
+
+    call_args = mock_execute_tool_loop.call_args
+    sys_msg: dict[str, Any] = next((m for m in call_args.kwargs.get("messages", []) if m["role"] == "system"), {})
+
+    # Assert Prof B's constraints are found, NOT Prof A's
+    assert "<global_length_constraint_chars>900</global_length_constraint_chars>" in sys_msg.get("content", "")
+    assert "Beta" in sys_msg.get("content", "")
+    assert "Alpha" not in sys_msg.get("content", "")
+    assert "<global_length_constraint_chars>100</global_length_constraint_chars>" not in sys_msg.get("content", "")
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.hooks.synthesis.execute_tool_loop")
+@patch("backend_v2.hooks.synthesis.LLMClient")
+async def test_synthesis_hook_target_blocks_wildcard_bypass(
+    mock_llm_client_class: AsyncMock, mock_execute_tool_loop: AsyncMock, mock_repo: AsyncMock, base_state: HookState
+) -> None:
+    """Test the dual-layer filter: AI traces are included by *, explicit Python variables bypass the check."""
+    mock_repo.get_execution = AsyncMock(
+        return_value={
+            "id": "exe_1111111111111111",
+            "workflow_id": "wf_1111111111111111",
+            "status": "completed",
+            "output_profile_id": "prof_a",
+        }
+    )
+
+    mock_workflow: dict[str, Any] = {
+        "id": "wf_1111111111111111",
+        "slug": "test-workflow",
+        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "status": "published",
+        "version": 1,
+        "default_profile_id": "prof_a",
+        "output_profiles": {
+            "prof_a": {
+                "name": {"default_locale": "en", "translations": {"en": "A"}},
+                "strictness_level": 50,
+                "scoring_strategy": "WATERFALL",
+                "layouts": [
+                    {"target_blocks": ["step_2"], "preset_view": "default"},
+                    {"target_blocks": ["*"], "preset_view": "default"},
+                ],
+                "synthesis": {
+                    "system_prompt": "Test sys prompt",
+                    "length_constraint": 100,
+                    "preamble_text": {"default_locale": "en", "translations": {"en": "Alpha"}},
+                },
+            }
+        },
+    }
+    mock_repo.get_workflow_by_id = AsyncMock(return_value=mock_workflow)
+    prof_data = dict(mock_workflow["output_profiles"]["prof_a"])
+    prof_data.update({"id": "prof_a", "slug": "prof-a", "workflow_id": "wf_1111111111111111"})
+    mock_repo.get_output_profile_by_id = AsyncMock(return_value=prof_data)
+    mock_repo.get_step_by_id.return_value = {"id": "step_111111111111111111111111"}
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )
+
+    base_state = base_state.model_copy(
+        update={
+            "inputs": {
+                "steps": {
+                    "step_1": {
+                        "reasoning_trace": {
+                            "thought_process": "AI says hello",
+                            "conclusion": "test",
+                            "confidence_score": 1.0,
+                        }
+                    },
+                    "step_2": {"result": 1337},
+                    "step_3": {"value": "this should be blocked by wildcard"},
+                }
+            },
+            "metadata": {
+                "target_locale": "en",
+                "step_results": [
+                    {
+                        "step_id": "step_1",
+                        "block_id": "b1",
+                        "data_type": "text",
+                        "payload": {
+                            "reasoning_trace": {
+                                "thought_process": "AI says hello",
+                                "conclusion": "test",
+                                "confidence_score": 1.0,
+                            }
+                        },
+                    },  # noqa: E501
+                    {"step_id": "step_2", "block_id": "b2", "data_type": "text", "payload": {"result": 1337}},
+                    {
+                        "step_id": "step_3",
+                        "block_id": "b3",
+                        "data_type": "text",
+                        "payload": {"value": "this should be blocked by wildcard"},
+                    },  # noqa: E501
+                ],
+            },
+        }
+    )
+
+    mock_client_instance = AsyncMock()
+    mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
+    mock_execute_tool_loop.return_value = MCPToolLoopResult(
+        result_data={
+            "synthesized_markdown": "Summary",
+            "cited_sources": [],
+            "section_syntheses": [],
+            "xai_highlights": [],
+        },
+        audit_traces=[],
+        usage=TokenUsage(total_tokens=10),
+    )
+
+    result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
+    assert result.success is True
+
+    call_args = mock_execute_tool_loop.call_args
+    user_msg: dict[str, Any] = next((m for m in call_args.kwargs.get("messages", []) if m["role"] == "user"), {})
+    content = user_msg.get("content", "")
+
+    # Assert AI trace is in
+    assert "step_1" in content
+    assert "AI says hello" in content
+
+    # Assert python math bypassed the wildcard shield
+    assert "step_2" in content
+    assert "1337" in content
+
+    # Assert garbage metadata was properly shielded
+    assert "step_3" not in content
+    assert "this should be blocked" not in content
+
+
+def test_synthesis_hook_is_registered() -> None:
+    """Test that text_consolidation_hook is correctly registered in the HookRegistry to prevent regressions."""
+    # Ensure hooks are initialized (this triggers decorators in tests if not already done)
+    import backend_v2.hooks  # noqa: F401
+
+    hook = hook_registry.get_hook("text_consolidation_hook")
+    assert hook is not None
+    assert hook == text_consolidation_hook
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.hooks.synthesis.execute_tool_loop")
+@patch("backend_v2.hooks.synthesis.LLMClient")
+async def test_synthesis_hook_historical_context_mode(
+    mock_llm_client_class: AsyncMock, mock_execute_tool_loop: AsyncMock, mock_repo: AsyncMock, base_state: HookState
+) -> None:
+    """Test that SLIDING_WINDOW_3 fetches valid past executions and ignores failed ones."""
+    mock_repo.get_execution = AsyncMock(
+        return_value={
+            "id": "exe_1111111111111111",
+            "workflow_id": "wf_1111111111111111",
+            "status": "completed",
+            "output_profile_id": "prf_test",
+        }
+    )
+
+    mock_workflow: dict[str, Any] = {
+        "id": "wf_1111111111111111",
+        "slug": "test-workflow",
+        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "status": "published",
+        "version": 1,
+        "default_profile_id": "prf_test",
+        "output_profiles": {
+            "prf_test": {
+                "name": {"default_locale": "en", "translations": {"en": "Profile Test"}},
+                "strictness_level": 50,
+                "scoring_strategy": "WATERFALL",
+                "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
+                "synthesis": {
+                    "historical_context_mode": "SLIDING_WINDOW_3",
+                    "system_prompt": "Test sys prompt",
+                    "preamble_text": {"default_locale": "en", "translations": {"en": "Alpha"}},
+                    "length_constraint": 100,
+                },
+            }
+        },
+    }
+    mock_repo.get_workflow_by_id = AsyncMock(return_value=mock_workflow)
+
+    # Mocking past executions
+    from datetime import datetime, timezone
+
+    mock_past_exec = AsyncMock()
+    mock_past_exec.id = "exe_past_1"
+    mock_past_exec.status.value = "completed"
+    mock_past_exec.created_at = datetime.now(timezone.utc)
+    mock_past_exec.completed_at = datetime.now(timezone.utc)
+
+    mock_cache = AsyncMock()
+    mock_cache.synthesized_markdown = "Past history text"
+    mock_past_exec.profile_syntheses = {"prf_test": mock_cache}
+
+    mock_failed_exec = AsyncMock()
+    mock_failed_exec.id = "exe_past_2"
+    mock_failed_exec.status.value = "failed"
+
+    mock_repo.get_all_executions = AsyncMock(return_value=[mock_failed_exec, mock_past_exec])
+    prof_data = dict(mock_workflow["output_profiles"]["prf_test"])
+    prof_data.update({"id": "prf_test", "slug": "profile-test", "workflow_id": "wf_1111111111111111"})
+    mock_repo.get_output_profile_by_id = AsyncMock(return_value=prof_data)
+
+    mock_repo.get_step_by_id.return_value = {"id": "step_111111111111111111111111"}
+    deps = HookDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+    )
+
+    mock_client_instance = AsyncMock()
+    mock_llm_client_class.from_strategy = AsyncMock(return_value=mock_client_instance)
+    mock_execute_tool_loop.return_value = MCPToolLoopResult(
+        result_data={
+            "synthesized_markdown": "Summary",
+            "cited_sources": [],
+            "section_syntheses": [],
+            "xai_highlights": [],
+        },
+        audit_traces=[],
+        usage=TokenUsage(total_tokens=10),
+    )
+
+    base_state = base_state.model_copy(
+        update={
+            "inputs": {
+                "steps": {
+                    "step_1": {
+                        "reasoning_trace": {
+                            "thought_process": "AI says hello",
+                            "conclusion": "test",
+                            "confidence_score": 1.0,
+                        }
+                    }
+                }
+            },
+            "global_context_vars": {"user_id": "usr_123"},
+            "metadata": {
+                "target_locale": "en",
+                "step_results": [
+                    {
+                        "step_id": "step_1",
+                        "block_id": "b1",
+                        "data_type": "text",
+                        "payload": {
+                            "reasoning_trace": {
+                                "thought_process": "AI says hello",
+                                "conclusion": "test",
+                                "confidence_score": 1.0,
+                            }
+                        },
+                    }
+                ],
+            },  # noqa: E501
+        }
+    )
+
+    result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
+    assert result.success is True
+
+    # Verify historical context was fetched
+    mock_repo.get_all_executions.assert_called_once()
+
+    call_args = mock_execute_tool_loop.call_args
+    user_msg: dict[str, Any] = next((m for m in call_args.kwargs.get("messages", []) if m["role"] == "user"), {})
+    content = user_msg.get("content", "")
+
+    # Assert valid past text was included
+    assert "Past history text" in content
+    assert "<HistoricalContext>" in content

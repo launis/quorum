@@ -7,8 +7,8 @@ from pydantic import BaseModel, ConfigDict, RootModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
-from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -18,13 +18,13 @@ logger = logging.getLogger(__name__)
 
 
 class AtomIdentifier(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="ignore")
     atom_id: str
 
 
-class SduiResponseList(RootModel[list[AnySduiBlock]]):
+class SduiResponseList(RootModel):  # type: ignore[type-arg]
+    root: list[AnySduiBlock]
     model_config = ConfigDict(frozen=True)
-    pass
 
 
 class ChunkWorker:
@@ -127,7 +127,10 @@ class ChunkWorker:
                         synthesis_instructions=synthesis_instructions,
                         validation_context={"strictness_level": strictness_level},
                     )
-                    chunk_final = dict(loop_res.result_data)
+                    if isinstance(loop_res.result_data, BaseModel):
+                        chunk_final = loop_res.result_data.model_dump(mode="json")
+                    else:
+                        chunk_final = dict(loop_res.result_data)
                     chunk_usage = loop_res.usage if loop_res.usage else None
                     if loop_res.audit_traces:
                         chunk_traces.extend(loop_res.audit_traces)
@@ -170,7 +173,7 @@ class ChunkWorker:
                             max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
                             validation_context={"strictness_level": strictness_level},
                         )
-                        chunk_final = dict(result.model_dump(mode="json"))
+                        chunk_final = result.model_dump(mode="json")
 
                     chunk_usage = usage if usage else None
                 except Exception as e:

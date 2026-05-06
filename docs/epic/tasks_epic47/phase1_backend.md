@@ -35,7 +35,7 @@ New logic requirements:
 5. Ensure strict monotonicity: a higher raw hit rate must ALWAYS result in a higher or equal effective modifier.
 6. **Agent Rule Compliance**: Strictly adhere to `c:\src\quorum\.agents\rules\01-python-backend.md` (Math Safety & The Duct Tape Ban). Do not use generic `except Exception: pass` to catch floating point errors; handle them explicitly.
 
-## Task 2: Vesiputousmoottori (Koearvostelu) - Liukuva rangaistuskerroin ja kaskadointi
+## [x] Task 2: Vesiputousmoottori (Koearvostelu) - Liukuva rangaistuskerroin ja kaskadointi
 Target file: `backend_v2/utils/scoring/waterfall_engine.py`
 
 Refactor `WaterfallScoringEngine.calculate` (Now called: "Koearvostelu") to use a proportional/sliding penalty multiplier instead of a fixed binary penalty. This engine is strictly for compliance pass/fail audits.
@@ -48,7 +48,7 @@ New logic requirements:
 4. Calculate sliding penalty: `sliding_penalty = 1.0 - (shortfall * (1.0 - base_forgiveness))`.
 5. Cascade Rule: The `sliding_penalty` MUST be cumulatively multiplied to ALL SUBSEQUENT (higher) levels ONLY, not the current level where the threshold was initially missed: `next_multiplier = current_multiplier * sliding_penalty`.
 
-## Task 3: Painotettu Keskiarvo (Sigmoid-skaalaus ilman ulkoisia riippuvuuksia)
+## [x] Task 3: Painotettu Keskiarvo (Sigmoid-skaalaus ilman ulkoisia riippuvuuksia)
 Target files: `backend_v2/utils/scoring/average_engine.py`, `backend_v2/utils/math_utils.py`
 
 Refactor `WeightedAverageScoringEngine` to utilize a Sigmoid (logistic) scaling curve.
@@ -59,7 +59,7 @@ New logic requirements:
 3. Shift the `midpoint` dynamically based on `strictness_level`. Higher strictness = higher midpoint.
 4. Normalization: Normalize the output mathematically so that a raw hit_rate of 0.0 yields EXACTLY the mathematical minimum (e.g., 1.0), and 1.0 yields EXACTLY the maximum (e.g., 5.0).
 
-## Task 4: Lineaarinen Keskiarvo (Konkreettinen Outlier Rejection)
+## [x] Task 4: Lineaarinen Keskiarvo (Konkreettinen Outlier Rejection)
 Target file: `backend_v2/utils/scoring/average_engine.py`
 
 Refactor `PureAverageScoringEngine` (Now called: "Lineaarinen Keskiarvo") to implement a statistically sound 'Outlier Rejection' mechanism utilizing the robust MAD (Median Absolute Deviation) method.
@@ -71,7 +71,7 @@ New logic requirements:
 4. Define a concrete heuristic for an anomaly: `hit_rate < (median - 3.0 * MAD) AND hit_rate < 0.30`.
 5. If an anomaly is found, mitigate it by multiplying that specific outlier level's total weight by `0.25` before calculating the final pure average.
 
-## Task 5: Backend - Keskitetty Strictness-konfiguraatio (Score Clamping)
+## [x] Task 5: Backend - Keskitetty Strictness-konfiguraatio (Score Clamping)
 Target files: `backend_v2/utils/math_utils.py`, `backend_v2/models/enums.py`
 
 Create a centralized strictness mapping and ensure absolute mathematical boundary safety.
@@ -83,7 +83,7 @@ New logic requirements:
 4. Implement `clamp_score(score: float, math_min: float, math_max: float) -> float`. Every single scoring engine MUST pass its final numerical result through this clamp before returning it.
 5. **Agent Rule Compliance**: Enforce `c:\src\quorum\.agents\rules\01-python-backend.md` (Strict Pydantic V2 & Mutability). New domain models (e.g., for strictness config) must use `ConfigDict(frozen=True)` and strict validations. Enum conversion must use `Annotated[Enum, Field(strict=False)]`.
 
-## Task 10: Laadunvarmistus - Matemaattisen Monotonisuuden Testiautomaatio
+## [x] Task 10: Laadunvarmistus - Matemaattisen Monotonisuuden Testiautomaatio
 Target files: `tests/backend_v2/utils/scoring/test_*.py`
 
 Implement rigorous Pytest coverage for the refactored 'Soft Scoring' engines.
@@ -94,8 +94,9 @@ New logic requirements:
 3. Outlier Mitigation Tests: Pass an array `[1.0, 1.0, 0.0, 1.0]` to the Lineaarinen Keskiarvo Engine and assert the `0.0` value's weight is significantly reduced compared to a standard mean calculation.
 4. **Hardening Verification**: The implementing agent MUST execute the `[/tier2-hardening-backend]` workflow rules upon completion. Explicitly run `ruff check .`, `ruff format .`, `mypy .`, and `pytest tests/backend_v2/utils/scoring/` to ensure zero errors. If any error occurs, fix it immediately before concluding the task.
 
-## Documentation Update
+## [x] Documentation Update
 Update `c:\src\quorum\docs\architecture\` documentation with the new Lerp, Sigmoid, and MAD mathematical definitions after tests pass.
+Täydennä myös `c:\src\quorum\.agents\rules\04_directory_reference.md` tiedostoa tehtyjen muutosten osalta.
 
 ## Testing & Quality Gate Plan
 1. **UNIT TESTS**: Create/update `tests/backend_v2/utils/scoring/test_dampening_engine.py`, `test_waterfall_engine.py`, `test_average_engine.py`, `test_math_utils.py` covering all new math boundaries and assertions.

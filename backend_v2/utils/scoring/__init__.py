@@ -15,13 +15,13 @@ def get_scoring_engine(strategy: ScoringStrategy | str) -> ScoringEngineBase:
             strategy = ScoringStrategy(strategy)
         except ValueError:
             # Fallback to standard if corrupted, though Fail-Fast at API level should prevent this
-            strategy = ScoringStrategy.WATERFALL_FLOOR
+            strategy = ScoringStrategy.WATERFALL
 
-    if strategy == ScoringStrategy.WATERFALL_FLOOR:
+    if strategy == ScoringStrategy.WATERFALL:
         return WaterfallScoringEngine()
-    elif strategy == ScoringStrategy.PROGRESSIVE_DAMPENING:
+    elif strategy == ScoringStrategy.DAMPENING:
         return DampeningScoringEngine()
-    elif strategy == ScoringStrategy.PURE_AVERAGE:
+    elif strategy == ScoringStrategy.AVERAGE:
         return PureAverageScoringEngine()
     elif strategy == ScoringStrategy.WEIGHTED_AVERAGE:
         return WeightedAverageScoringEngine()
