@@ -23,6 +23,25 @@ Nykyaikainen tulostusarkkitehtuuri nojaa seuraaviin kerroksiin:
 5. **`BlueprintTransformer` (BFF DTO Mapper & 3D Matrix Projection):**
    Kun synteesi ja data on koossa, Blueprint ottaa haltuun raakadatan (`FrozenContext`) sekä raporttipohjan (`OutputProfile`). Se pakkaa "Zero-Math" säännöillä paitsi perinteiset akselitiedot, myös täydellisen tuen 3D-matriisivisualisoinnille (kuten Illusion Detector ja hajontakuviot). Transformer mappaa saumattomasti edistyneet XAI-laajennukset (falsifikaatio, coaching, remediation, sentiment) ja matriisikohtaiset PromptBlock-arvosanat suoraan valmiiseen `ReportDataDTO` muotoon. Tämä mahdollistaa moniulotteisten 3D-näkymien renderöinnin Frontendissa (tai PDF-moottorissa) täysin ilman asiakaspuolen laskentaa (Zero-Math UI).
 
+### 1.1 Yhteenveto (Data Flow)
+Koko dynaaminen tulostusketju etenee askeleittain seuraavasti:
+1. **Tietokanta antaa raa'an historian:** Työnkulun koko `execution_trace` luetaan sellaisenaan.
+2. **Pydantic & Token Shield suodattaa:** `OutputProfile`n asetukset (kuten `target_blocks`) aktivoivat Token Shieldin. Pydantic varmistaa, että vain profiilin sallima, tarpeellinen data pääsee eteenpäin ilman LLM:n token-tukkeumaa.
+3. **Markdown-synteesi (Chief Editor LLM):** Tämä suodatettu, puhdas Pydantic-data syötetään uuden Arq Worker -taustatehtävän (`text_consolidation_hook`) avulla Chief Editor LLM:lle. Output Profile ohjeistaa tekoälyä roolilla (esim. "Senior Executive Coach") kirjoittamaan yhtenäinen asiantuntijateksti lennosta suoraan kovan datan pohjalta.
+4. **BlueprintTransformer (Lopullinen yhdistäminen):** `BlueprintTransformer` ottaa Pydanticista numeeriset pisteet (Frontendin *Zero-Math UI* -matriiseja varten) ja uuden Bleach-sanitoidun Markdown-dokumentin, kooten ne yhdeksi turvalliseksi `ReportDataDTO` -paketiksi, joka siirtyy suoraan Flutteriin tai PDF-generaattoriin.
+
+**Datan Muutosputki (Data Transformation Pipeline):**
+```mermaid
+flowchart LR
+    DB[(Tietokanta<br>Raa'at faktat)] --> |execution_trace| Filter{"Token Shield<br>& Pydantic"}
+    Profile["Output Profile<br>Säännöt"] -.->|target_blocks| Filter
+    Filter -->|Suodatettu data| LLM["Chief Editor LLM<br>(Arq Worker)"]
+    Profile -.->|system_directive| LLM
+    LLM -->|Markdown (Teksti)| BFF["BlueprintTransformer"]
+    Filter -->|Zero-Math Pisteet| BFF
+    BFF -->|ReportDataDTO| Out{"Flutter UI / PDF"}
+```
+
 ## 2. Tulostusprosessi (Mermaid Visualisointi)
 
 Alla on arkkitehtoninen Sequence-verkko, joka kuvaa koko tulostusprosessin (`/render` endpoint) reitityksen sekä Omni-Channel HTTP -käyttäytymisen UI:lle tai PDF-tuotannolle:
