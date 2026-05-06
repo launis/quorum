@@ -1,19 +1,30 @@
-# Epic 46: Soft Scoring Engines & Architecture Hardening (V3 Enterprise)
+# Epic 47: Unified Execution Visibility & Soft Scoring Engines V3
 
-## 1. Tausta ja Ongelman Kuvaus
-Järjestelmän aiempi arviointilogiikka toimi absoluuttisella "Hard Wall" -matematiikalla. Yksittäinen virhe alatasolla nollasi koko tuloksen, mikä teki arvioinnista kohtuuttoman ankaran ja epäreilun. Lisäksi arkkitehtuuri luotti sokeasti kielimallien (LLM) tuottamaan dataan, yrittäen laastaroida tekoälyn hallusinaatioita mekaanisilla pistekertoimilla. Lopuksi XAI (Explainable AI) paljasti loppukäyttäjälle raakoja desimaalikertoimia, mikä rapautti luottamusta arvioinnin asiantuntijamaisuuteen.
+## 1. Yhteenveto (Executive Summary)
+Tämä yhdistetty Master Epic integroi kaksi järjestelmän kriittisintä päivitystä: arviointilogiikan matemaattisen kypsyysloikan (Soft Scoring V3) sekä tausta-ajojen täydellisen läpinäkyvyyden käyttöliittymässä (Virtual System Steps).
 
-**Kuiluefekti (Cliff Effect) ja Nollahypoteesi:** Kuten syväanalyysissä havaittiin, LLM:n deterministiset asetukset (`temperature=0.0`) luovat armottoman nollahypoteesin. Kun tämä yhdistettiin vanhaan Waterfall-kynnykseen, syntyi massiivinen kuiluefekti (esim. 42 % osuma antoi täydet 100 %, ja 38 % romahdutti pisteet täysin). Tätä on mahdotonta korjata puhtaasti matematiikalla, jos tekoäly on tehnyt loogisen "laiskuusvirheen" itse rakenteessa.
+Tavoitteena on luoda **yleinen Arq-työnkulkujen (tausta-ajojen) hallinta- ja visualisointimenetelmä**. Pitkään kestävät tausta-ajot, kuten dynaaminen tulostemallikohtainen pisteiden laskenta (Scoring), LLM-synteesi ja PDF-raporttien koonti, tuodaan näkyväksi täsmälleen samaan käyttöliittymän työnkulkunäkymään kuin perinteiset AI-askeleet. Tämä tehdään "Virtuaalisten System-Askelien" (Virtual System Steps) avulla ilman, että rikotaan GraphEnginen tiukkaa DAG-moottorin SSOT-historiaa.
 
-Tämän Epicin toteuttaminen ratkaisee B2B SaaS LLM -tuotteen kriittisimmät haasteet:
-*   **Arvostelun reiluus ja monotonisuus:** Kovat matemaattiset "seinät" poistuvat. Pehmeä pisteytys (Lerp, Sigmoid, suhteelliset kaskadit) varmistaa, että osoitettu osaaminen palkitaan aina. Optimaalisilla asetuksilla (esim. Syväarvostelu + Strictness 50) luodaan tieteellisesti pätevä, jatkuva jakauma.
-*   **Defensiivinen tekoäly (Resilience):** LLM-mallien epäloogisuuksia ei peitellä matematiikalla. Orkestraattori valvoo tekoälyä ja pakottaa sen korjaamaan virheensä (Anomaly Detection Hook) ennen pisteytystä.
-*   **Frontendin "Fail-Fast" ja I18n:** "Zero DB Hardcoding" -mandaatti, uusi kansankielinen nimikkeistö (Koearvostelu, Syväarvostelu, Lineaarinen/Painotettu Keskiarvo), tyhjentävät kontrollirakenteet (exhaustive switches) ja backendin i18n-avaimien käyttö takaavat, että käyttöliittymä ei kaadu piileviin virheisiin ja on valmis globaaliin skaalautumiseen.
+**Liiketoiminta-arvo:** Parantaa järjestelmän UX:ää ja läpinäkyvyyttä. Käyttäjä ei enää koe järjestelmän "jumittavan" työnkulun päätyttyä, vaan näkee selkeästi visualisoituna, miten "Pisteiden laskenta" tai "Raportin koonti" etenee muiden työvaiheiden jonossa. Tämä menetelmä kattaa saumattomasti sekä automaattisen päätyönkulun loppuajot että yksittäisten, on-demand -tulosteiden (esim. tulostemallin vaihdon tai erillisen PDF-luonnin) visualisoinnin.
+
+Lisäksi tämä Epic ratkaisee B2B SaaS LLM -tuotteen kriittisimmät haasteet arvioinnin osalta: kovat matemaattiset "seinät" poistuvat. Pehmeä pisteytys (Lerp, Sigmoid, suhteelliset kaskadit) varmistaa, että osoitettu osaaminen palkitaan aina. Optimaalisilla asetuksilla (esim. Syväarvostelu + Strictness 50) luodaan tieteellisesti pätevä, jatkuva jakauma.
+
+## 2. Arkkitehtoniset Taustat ja Haasteet
+
+### 2.1. Kuiluefekti (Cliff Effect) ja Nollahypoteesi
+Järjestelmän aiempi arviointilogiikka toimi absoluuttisella "Hard Wall" -matematiikalla. Yksittäinen virhe alatasolla nollasi koko tuloksen, mikä teki arvioinnista kohtuuttoman ankaran ja epäreilun. Kuten syväanalyysissä havaittiin, LLM:n deterministiset asetukset (`temperature=0.0`) luovat armottoman nollahypoteesin. Kun tämä yhdistettiin vanhaan Waterfall-kynnykseen, syntyi massiivinen kuiluefekti (esim. 42 % osuma antoi täydet 100 %, ja 38 % romahdutti pisteet täysin). Tätä on mahdotonta korjata puhtaasti matematiikalla, jos tekoäly on tehnyt loogisen "laiskuusvirheen" itse rakenteessa.
+
+### 2.2. Nykytilanne Tausta-ajojen Näkyvyydessä
+Kun työnkulku (DAG) valmistuu, `worker.py` asettaa `ExecutionRecord`-tilan välittömästi `COMPLETED`-tilaan ja lähettää synteesin (`render_profile_job`) erillisenä taustatyönä Redis-jonoon. Käyttöliittymä näyttää "Completed" heti, eikä kerro synteesin tai PDF-generoinnin edistymisestä mitään.
+
+Jos synteesistä tehtäisiin aito GraphEnginen solmu (`PromptBlock`), sen uudelleenajaminen (esim. kun käyttäjä haluaa vaihtaa raporttipohjaa on-demand) vaatisi valmiin työnkulun tilan ja historian rikkomista tai rinnakkaisen, kokonaan piilossa olevan suorituspolun rakentamista uudelleenluonneille.
+
+Ratkaisuksi irrotamme "tilaseurannan" ja "DAG-suorituksen" toisistaan. Injektoimme manuaalisesti `ExecutionRecord.steps` -sanakirjaan uuden askeleen (esim. `sys_render_default`), jota Arq Worker ja API-endpointit hallitsevat manuaalisesti ohi DAG-moottorin.
 
 ---
 
-## 2. Antigravity-komentolista (Implementation Prompts)
-Seuraavat tehtävät on muotoiltu suoraan tekoälyagenteille syötettäviksi prompteiksi. Ne sisältävät tiukat arkkitehtuuriset suojamekanismit ja analyysiraportissa sovitut uudet käytännöt.
+## 3. Antigravity-komentolista (Backend Tasks)
+Seuraavat tehtävät on muotoiltu suoraan tekoälyagenteille syötettäviksi prompteiksi. Ne sisältävät tiukat arkkitehtuuriset suojamekanismit ja analyysiraportissa sovitut uudet käytännöt. **HUOM:** Toteutetaan ehdottomasti `[/tier2-hardening-backend]` -sääntöjen läpi.
 
 ### Task 1: DINA-moottori (Syväarvostelu) - Lerp ja matemaattinen turvallisuus
 ```text
@@ -122,19 +133,19 @@ New logic requirements:
 4. Place raw math details, thresholds, and multipliers strictly inside the `engine_debug_trace` dictionary for admins and developers.
 ```
 
-### Task 9: Frontend Hardening - Tyhjentävä käsittely (Dart 3 Exhaustive Switches)
+### Task 9: Backend - Yleinen Arq-työnkulkujen Hallintamenetelmä (Virtual Steps) & Tulostemallikohtainen Matematiikka
 ```text
-Target files: client_app_v2/lib/core/models/, client_app_v2/lib/features/execution/, client_app_v2/lib/l10n/app_fi.arb
+Target files: backend_v2/worker.py, backend_v2/api/routers/execution/executions.py, backend_v2/models/v2_core.py, backend_v2/models/dtos/output_profile.py, backend_v2/hooks/scoring.py
 
-Enforce 'Zero DB Hardcoding' and Exhaustive Handling for Strictness and Engine Selection.
+Refactor scoring logic to detach `strictness_level` and `scoring_strategy` from the Execution phase and bind them to the Output Profile phase (Arq Worker).
 
 New logic requirements:
-1. Replace backend/frontend enums to match the new plain-language taxonomy: "Koearvostelu", "Syväarvostelu", "Lineaarinen Keskiarvo", "Painotettu Keskiarvo".
-2. Backend API must return strictness configurations as structured DTOs (e.g., `{"level": 15, "localization_key": "strictness_lenient"}`).
-3. Frontend must map the `localization_key` to `AppLocalizations` to eliminate duplicate UI texts (e.g., fixing `Salliva (15) (15)` to just `Salliva (15)`).
-4. Enforce Dart 3 EXHAUSTIVE switch expressions for enums (NO `default:` branch allowed).
-5. For Freezed unions, strictly use `.map()` or `.when()`. Do not use `.maybeWhen()` or `??` fallbacks.
-6. Instruct the AI to run `dart run build_runner build --delete-conflicting-outputs` after updating frontend DTOs.
+1. Data Models: Remove `strictness_level` and `scoring_strategy` from `ExecutionCreate` and `ExecutionRecord`. Add them to `OutputProfile`, `EmbeddedOutputProfile`, and `OutputLayoutBlock`. Add them as defaults to the `Workflow` model (which will cascade them via `default_profile_id`).
+2. Execution Hook: Refactor `matrix_scoring_hook`. It must no longer calculate the mathematical score or use `dampening_score`. It should ONLY aggregate the raw hit/miss boolean counts (`evaluated_atoms`, `true_atoms_count`) into the Frozen Context.
+3. Arq Background Method - Trigger: When `execute_workflow` finishes (or when On-Demand endpoint `POST /{execution_id}/render_pdf` is called), the system injects a Virtual Step (e.g. `sys_render_X`) into `ExecutionRecord.steps` with `status="running"`. If On-Demand, it forces the execution status back to `RUNNING` from `COMPLETED`. Send an SSE immediately.
+4. Report Generation Phase (Inside Arq): The Arq-worker (`render_profile_job`) takes over. It loads the `Frozen Context` raw atoms, dynamically runs the math (`get_scoring_engine`) using the selected Output Profile's `strictness_level` and `scoring_strategy`, feeds the scores to LLM synthesis, and caches the `ReportDataDTO`.
+5. Arq Background Method - Completion: On success (`status="completed"`) or failure (`status="failed"`), update the `sys_render_<profile>` step state in the DB. In both cases, ensure the overall `ExecutionRecord` status is returned to `COMPLETED`.
+6. Taaksepäin Yhteensopivuus ja Zero-Trust: Uudet virtuaaliset askeleet tunnistetaan selkeästi `sys_` -etuliitteellä, jotta ne erotetaan aidoista AI-arviointiasteleista. SSOT säilyy tietokannassa. Kaikkien päivitysten on tapahduttava keskitetysti `repository.update_execution()` -metodin kautta atomisesti.
 ```
 
 ### Task 10: Laadunvarmistus - Matemaattisen Monotonisuuden Testiautomaatio
@@ -149,34 +160,53 @@ New logic requirements:
 3. Outlier Mitigation Tests: Pass an array `[1.0, 1.0, 0.0, 1.0]` to the Lineaarinen Keskiarvo Engine and assert the `0.0` value's weight is significantly reduced compared to a standard mean calculation.
 ```
 
-### Task 11: Backend - Tulostemallikohtainen Matematiikka (Dynamic Profile Scoring)
-```text
-Target files: backend_v2/models/v2_core.py, backend_v2/models/dtos/output_profile.py, backend_v2/hooks/scoring.py
+---
 
-Refactor scoring logic to detach `strictness_level` and `scoring_strategy` from the Execution phase and bind them to the Output Profile phase.
+## 4. Antigravity-komentolista (Frontend Tasks)
+**HUOM:** Toteutetaan ehdottomasti `[/tier2-hardening-frontend]` -sääntöjen läpi.
+
+### Task 11: Frontend Hardening - Tyhjentävä käsittely (Dart 3 Exhaustive Switches)
+```text
+Target files: client_app_v2/lib/core/models/, client_app_v2/lib/features/execution/, client_app_v2/lib/l10n/app_fi.arb
+
+Enforce 'Zero DB Hardcoding' and Exhaustive Handling for Strictness and Engine Selection.
 
 New logic requirements:
-1. Data Models: Remove `strictness_level` and `scoring_strategy` from `ExecutionCreate` and `ExecutionRecord`. Add them to `OutputProfile`, `EmbeddedOutputProfile`, and `OutputLayoutBlock`. Add them as defaults to the `Workflow` model (which will cascade them via `default_profile_id`).
-2. Execution Hook: Refactor `matrix_scoring_hook`. It must no longer calculate the mathematical score or use `dampening_score`. It should ONLY aggregate the raw hit/miss boolean counts (`evaluated_atoms`, `true_atoms_count`) into the Frozen Context.
-3. Report Generation Phase: Move the dynamic math calculation (calling `get_scoring_engine`) into the Synthesis / Report Builder tier. When a report is requested, apply the requested Output Profile's `strictness_level` and `scoring_strategy` to the frozen raw atoms to dynamically generate the math scores just-in-time for UI rendering and PDF generation.
+1. Replace backend/frontend enums to match the new plain-language taxonomy: "Koearvostelu", "Syväarvostelu", "Lineaarinen Keskiarvo", "Painotettu Keskiarvo".
+2. Backend API must return strictness configurations as structured DTOs (e.g., `{"level": 15, "localization_key": "strictness_lenient"}`).
+3. Frontend must map the `localization_key` to `AppLocalizations` to eliminate duplicate UI texts (e.g., fixing `Salliva (15) (15)` to just `Salliva (15)`).
+4. Enforce Dart 3 EXHAUSTIVE switch expressions for enums (NO `default:` branch allowed).
+5. For Freezed unions, strictly use `.map()` or `.when()`. Do not use `.maybeWhen()` or `??` fallbacks.
+6. Instruct the AI to run `dart run build_runner build --delete-conflicting-outputs` after updating frontend DTOs.
 ```
 
-### Task 12: Frontend - Tulostemallikohtaiset Kontrollit (UI)
+### Task 12: Tulostemallikohtaiset Kontrollit (UI)
 ```text
-Target files: client_app_v2/lib/features/studio/views/output_profile_editor.dart, client_app_v2/lib/features/execution/views/dashboard.dart
+Target files: client_app_v2/lib/features/studio/views/output_profile_editor.dart
 
 Expose the new Dynamic Profile Scoring controls in the Flutter UI.
 
 New logic requirements:
 1. Profile Editor: Add "Arvostelumoottori" (Scoring Strategy) and "Ankaruustaso" (Strictness Level) dropdowns to the "Muokkaa tulostusprofiilia" view. Ensure these bind to the updated OutputProfile DTOs.
-2. Execution Dashboard: Verify that selecting a profile in the "Valitse tulostemalli" popup automatically triggers the backend to re-calculate the scores based on the profile's specific math engine and strictness.
+```
+
+### Task 13: Yhtenäinen Askel-UI (Virtual Steps Visualization)
+```text
+Target files: client_app_v2/lib/features/execution/views/dashboard.dart, client_app_v2/lib/features/execution/widgets/step_card.dart
+
+New logic requirements:
+1. Frontend (Flutter) lukee jo valmiiksi kaikki askeleet `ExecutionRecord.steps` -sanakirjasta. Koska virtuaalinen askel on tietorakenteeltaan täysin validi `StepRecord` (sisältää tilan ja nimen), sen pitäisi automaattisesti piirtyä UI-komponenttina (`StepCard` tms.) oikein ilman suuria koodimuutoksia.
+2. Frontendin on hyödynnettävä täsmälleen samaa käyttöliittymäkomponenttia (askeleiden listanäkymä ikoneineen ja lataus-spinnereineen) virtuaalisten askeleiden esittämiseen kuin mitä se käyttää aitojen LLM-askeleiden (kuten "Faktantarkistaja", "Analyst") esittämiseen.
+3. Käyttäjän ei pidä visuaalisesti erottaa, onko kyseessä tekoälyn suorittama solmu vai Arq-taustatyö (kuten "Scoring Engine" tai "PDF Generointi"). Kaikki askeleet näkyvät yhtenäisenä, alaspäin rakentuvana listana.
+4. Yksittäiset tulostukset (On-Demand): Kun käyttäjä painaa UI:ssa myöhemmin "Luo uusi raportti" tai vaihtaa tulostemallia jo valmiissa ajossa (Execution Dashboardin "Valitse tulostemalli" popup), olemassa olevaan askeleiden listaan on ilmestyttävä lennosta uusi virtuaalinen askel pyörivällä spinnerillä ja backendin uusi laskenta käynnistyy.
+5. Testaus: Varmistettava, että käyttöliittymän "Kokonaisedistyminen" (Progress Bar) ymmärtää lennosta dynaamisesti kasvavan askelmäärän (Total Steps = AI-askeleet + Virtuaaliaskeleet) eikä sekoa prosenttilaskennassaan 100 % yli.
 ```
 
 ---
 
-## 3. Toteutuksen Sääntö: Phase 9 Hardening Mandates
+## 5. Toteutuksen Sääntö: Phase 9 Hardening Mandates
 
-Tämän Epicin toteutus **EI OLE** normaali ominaisuuskehityspyrähdys. Koska kyseessä on järjestelmän ytimeen (V2 Core) kajoava arkkitehtuuripäivitys, **KAIKKI** yllä olevat Taskit (1-12) on EHDOTTOMASTI toteutettava ja katselmoitava noudattaen tiukimpia arkkitehtuurisääntöjä.
+Tämän Epicin toteutus **EI OLE** normaali ominaisuuskehityspyrähdys. Koska kyseessä on järjestelmän ytimeen (V2 Core) kajoava arkkitehtuuripäivitys, **KAIKKI** yllä olevat Taskit (1-13) on EHDOTTOMASTI toteutettava ja katselmoitava noudattaen tiukimpia arkkitehtuurisääntöjä.
 
 Seuraavat vaatimukset on upotettu ehdottomina kriteereinä jokaiseen koodimuutokseen:
 
@@ -194,11 +224,12 @@ Seuraavat vaatimukset on upotettu ehdottomina kriteereinä jokaiseen koodimuutok
 
 ---
 
-## 4. Kokonaisarvio: Epic 46:n liiketoiminta-arvo (Maturity Leap)
+## 6. Kokonaisarvio: Epic 47:n liiketoiminta-arvo (Maturity Leap)
 
 Kun tämä Epic on suoritettu, järjestelmä ottaa merkittävän kypsyysloikan Enterprise-tasolle:
 
 *   **Ilmainen Simuloitavuus (Zero Re-runs):** Arvioinnin matematiikka (Engine & Strictness) irrotetaan raskaasta LLM-ajosta. Käyttäjä voi testata sekunneissa kymmeniä eri tiukkuustasoja samaan raakadataan muuttamalla vain Tulostemallia.
 *   **Tuotelupauksen lunastaminen:** Tekoälypohjainen arvostelu ei tunnu mekaaniselta rangaistusautomaatilta. Pehmeä pisteytys palkitsee aina suorituksesta, ja koodattu XAI muutetaan pedagogiseksi, lokalisoiduksi palautteeksi.
 *   **Kestävä tekoälyintegraatio (Defensive AI):** Ohjelmisto ei luota sokeasti kielimallien virheettömyyteen. Orkestraattori valvoo ja pakottaa LLM:n korjaamaan loogiset mahdottomuutensa reaaliajassa.
+*   **Läpinäkyvä Käyttökokemus:** Tausta-ajojen visualisointi yhdenmukaiseksi askeleeksi (Virtual Steps) poistaa järjestelmän "jumittumisen" tunteen. Käyttäjä näkee tarkalleen, missä vaiheessa Arq-workerin suorittama PDF-koonti tai pisteiden laskenta on menossa.
 *   **Arkkitehtuurinen ylläpidettävyys:** Kovakoodauksien poistaminen, keskitetty matematiikka ja täysi DTO/Enum -ohjautuvuus takaavat, ettei käyttöliittymä kaadu piileviin virheisiin päivitysten yhteydessä. Tier 2 -laatuporttien pakotus varmistaa pitkän aikavälin koodihygienian.
