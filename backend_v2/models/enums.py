@@ -2,7 +2,7 @@
 Strict definition of allowed types to enforce the No-String Mandate.
 """
 
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import Annotated
 
 from pydantic import Field
@@ -142,6 +142,16 @@ class SystemConcurrency(int, Enum):
 
 
 # --- Restored V1 Enums ---
+
+
+class StrictnessAnchor(IntEnum):
+    """UI:n kiinteät Strictness-tasot. Määrittää pehmeyden (forgiveness) ankkuripisteet."""
+
+    FLEXIBLE = 0
+    LENIENT = 15
+    BALANCED = 50
+    STRICT = 85
+    ABSOLUTE = 100
 
 
 class RiskLevel(str, Enum):

@@ -3,6 +3,7 @@ from backend_v2.utils.math_utils import (
     convert_strictness_to_forgiveness,
     calculate_soft_waterfall_score,
     calculate_progressive_dampening_score,
+    get_strictness_config,
     normalize_score_to_100,
     calculate_scaled_score,
     scale_to_custom_range,
@@ -99,8 +100,8 @@ def test_progressive_dampening_deterministic_differences():
         3.0: {"hits": 1, "total": 1},
     }
     
-    score_15 = calculate_progressive_dampening_score(level_stats, 1.0, 3.0, 0.60)
-    score_85 = calculate_progressive_dampening_score(level_stats, 1.0, 3.0, 0.10)
+    score_15 = calculate_progressive_dampening_score(level_stats, 1.0, 3.0, get_strictness_config(15))
+    score_85 = calculate_progressive_dampening_score(level_stats, 1.0, 3.0, get_strictness_config(85))
     
     assert abs(score_15 - 1.60) < 0.001
     assert abs(score_85 - 1.10) < 0.001
@@ -109,4 +110,42 @@ def test_progressive_dampening_deterministic_differences():
 
 def test_progressive_dampening_invalid_scale():
     with pytest.raises(AppException):
-        calculate_progressive_dampening_score({}, 5.0, 1.0)
+        calculate_progressive_dampening_score({}, 5.0, 1.0, get_strictness_config(50))
+
+
+def test_progressive_dampening_monotonicity():
+    """Assert that increasing hit rate strictly increases or maintains the score (never decreases)."""
+    strictness_levels = [0, 15, 50, 85, 100]
+    
+    for level in strictness_levels:
+        config = get_strictness_config(level)
+        previous_score = -1.0
+        
+        for i in range(101):
+            hit_rate = i / 100.0
+            stats = {
+                1.0: {"hits": int(hit_rate * 100), "total": 100},
+                2.0: {"hits": int(hit_rate * 100), "total": 100},
+                3.0: {"hits": int(hit_rate * 100), "total": 100},
+            }
+            score = calculate_progressive_dampening_score(stats, 1.0, 3.0, config)
+            
+            assert score >= previous_score, f"Monotonicity broken at strictness {level}: {score} < {previous_score}"
+            previous_score = score
+
+
+def test_progressive_dampening_boundaries():
+    """Test absolute 0.0 and 1.0 hit rates across all strictness levels clamp properly."""
+    strictness_levels = [0, 15, 50, 85, 100]
+    
+    for level in strictness_levels:
+        config = get_strictness_config(level)
+        
+        stats_zero = {1.0: {"hits": 0, "total": 100}, 2.0: {"hits": 0, "total": 100}}
+        stats_full = {1.0: {"hits": 100, "total": 100}, 2.0: {"hits": 100, "total": 100}}
+        
+        score_min = calculate_progressive_dampening_score(stats_zero, 1.0, 2.0, config)
+        score_max = calculate_progressive_dampening_score(stats_full, 1.0, 2.0, config)
+        
+        assert 1.0 <= score_min <= 2.0
+        assert 1.0 <= score_max <= 2.0

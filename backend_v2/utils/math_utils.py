@@ -6,10 +6,63 @@ prioritizing strict validation and Fail Fast principles.
 
 import logging
 
+from pydantic import BaseModel, ConfigDict, Field
+
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.enums import WaterfallThreshold
+from backend_v2.models.enums import StrictnessAnchor, WaterfallThreshold
 
 logger = logging.getLogger(__name__)
+
+class StrictnessConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    base_forgiveness: float = Field(ge=0.0, le=1.0)
+    sigmoid_midpoint: float = Field(ge=0.0, le=1.0)
+    dynamic_exponent: float = Field(ge=0.2, le=3.0)
+
+STRICTNESS_ANCHOR_CONFIGS = {
+    StrictnessAnchor.FLEXIBLE: StrictnessConfig(base_forgiveness=1.0, sigmoid_midpoint=0.1, dynamic_exponent=0.2),
+    StrictnessAnchor.LENIENT: StrictnessConfig(base_forgiveness=0.60, sigmoid_midpoint=0.3, dynamic_exponent=0.3),
+    StrictnessAnchor.BALANCED: StrictnessConfig(base_forgiveness=0.30, sigmoid_midpoint=0.5, dynamic_exponent=0.5),
+    StrictnessAnchor.STRICT: StrictnessConfig(base_forgiveness=0.10, sigmoid_midpoint=0.7, dynamic_exponent=1.5),
+    StrictnessAnchor.ABSOLUTE: StrictnessConfig(base_forgiveness=0.00, sigmoid_midpoint=0.9, dynamic_exponent=3.0),
+}
+
+def get_strictness_config(strictness_level: int) -> StrictnessConfig:
+    """Hakee joko suoran ankkurin tai laskee tarkan Linear Interpolationin ankkurien väliltä."""
+    level = max(0, min(100, strictness_level))
+    
+    if level in STRICTNESS_ANCHOR_CONFIGS:
+        return STRICTNESS_ANCHOR_CONFIGS[level]
+        
+    anchors = sorted(STRICTNESS_ANCHOR_CONFIGS.keys())
+    lower_anchor = max([a for a in anchors if a < level])
+    upper_anchor = min([a for a in anchors if a > level])
+    
+    lower_cfg = STRICTNESS_ANCHOR_CONFIGS[lower_anchor]
+    upper_cfg = STRICTNESS_ANCHOR_CONFIGS[upper_anchor]
+    
+    t = (level - lower_anchor) / (upper_anchor - lower_anchor)
+    
+    def lerp(start: float, end: float, t: float) -> float:
+        return start + (end - start) * t
+        
+    return StrictnessConfig(
+        base_forgiveness=lerp(lower_cfg.base_forgiveness, upper_cfg.base_forgiveness, t),
+        sigmoid_midpoint=lerp(lower_cfg.sigmoid_midpoint, upper_cfg.sigmoid_midpoint, t),
+        dynamic_exponent=lerp(lower_cfg.dynamic_exponent, upper_cfg.dynamic_exponent, t)
+    )
+
+def clamp_score(score: float, math_min: float, math_max: float) -> float:
+    """Ensure the score is strictly within the mathematical bounds."""
+    if math_min >= math_max:
+        msg = f"Invalid bounds for clamping: min ({math_min}) >= max ({math_max})."
+        logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+        )
+    return float(max(math_min, min(math_max, score)))
 
 
 def normalize_score_to_100(score: float, math_min: float, math_max: float) -> float:
@@ -88,26 +141,10 @@ def scale_to_custom_range(score: float, raw_min: float, raw_max: float, target_m
 
 
 def convert_strictness_to_forgiveness(strictness_level: int) -> float:
-    """Convert UI strictness level (0-100) to a forgiveness multiplier (0.0 - 1.0).
-
-    0 (Täysi joustavuus): 1.0
-    15 (Salliva): 0.60
-    50 (Tasapainoinen): 0.30
-    85 (Tiukka): 0.10
-    100 (Ehdottomuus): 0.00
+    """(DEPRECATED) Käytä get_strictness_config() suoraan. Jätetty vanhojen moottorien tueksi.
+    Convert UI strictness level (0-100) to a forgiveness multiplier (0.0 - 1.0).
     """
-    if strictness_level <= 0:
-        return 1.0
-    elif strictness_level <= 15:
-        return 1.0 - ((strictness_level - 0) / 15.0) * (1.0 - 0.60)
-    elif strictness_level <= 50:
-        return 0.60 - ((strictness_level - 15) / 35.0) * (0.60 - 0.30)
-    elif strictness_level <= 85:
-        return 0.30 - ((strictness_level - 50) / 35.0) * (0.30 - 0.10)
-    elif strictness_level < 100:
-        return 0.10 - ((strictness_level - 85) / 15.0) * (0.10 - 0.00)
-    else:
-        return 0.00
+    return get_strictness_config(strictness_level).base_forgiveness
 
 
 def calculate_soft_waterfall_score(
@@ -215,7 +252,7 @@ def calculate_weighted_score(
 
 
 def calculate_progressive_dampening_score(
-    level_stats: dict[float, dict[str, int]], scale_min: float, scale_max: float, base_forgiveness: float = 0.0
+    level_stats: dict[float, dict[str, int]], scale_min: float, scale_max: float, strictness_config: StrictnessConfig
 ) -> float:
     """Calculate the CDM (Cognitive Diagnostic Model) / DINA score using Progressive Dampening.
 
@@ -227,7 +264,7 @@ def calculate_progressive_dampening_score(
         level_stats: Dictionary mapping scale_level -> {"hits": X, "total": Y}
         scale_min: The minimum value of the scale.
         scale_max: The maximum value of the scale.
-        base_forgiveness: Base forgiveness derived from strictness level.
+        strictness_config: StrictnessConfig derived from UI strictness level.
 
     Returns:
         float: The progressive dampening score clamped to scale bounds.
@@ -241,13 +278,13 @@ def calculate_progressive_dampening_score(
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
 
-    import math
-
     achieved_score = float(scale_min)
     modifier = 1.0
     prev_level = float(scale_min)
 
     sorted_levels = sorted(level_stats.keys())
+    
+    safe_exponent = max(0.2, min(3.0, strictness_config.dynamic_exponent))
 
     for level in sorted_levels:
         stats = level_stats[level]
@@ -255,11 +292,21 @@ def calculate_progressive_dampening_score(
         hits = stats.get("hits", 0)
 
         hit_rate = (hits / total) if total > 0 else 0.0
-        effective_hit_rate = max(hit_rate, base_forgiveness)
+        
+        # 1. Lerp instead of max
+        effective_hit_rate = strictness_config.base_forgiveness + (hit_rate * (1.0 - strictness_config.base_forgiveness))
+        if effective_hit_rate <= 0.0:
+            effective_hit_rate = 0.0
+
+        try:
+            modifier_factor = effective_hit_rate ** safe_exponent
+        except (ValueError, OverflowError, ZeroDivisionError) as e:
+            logger.error("Math error in progressive dampening score: %s", e)
+            modifier_factor = 0.0
 
         if level == scale_min:
-            # Foundation level sets the initial current flow (modifier) with Square Root softness
-            modifier = math.sqrt(effective_hit_rate)
+            # Foundation level sets the initial current flow (modifier) with dynamic exponent
+            modifier = modifier_factor
         else:
             # How much points this level represents
             step_value = level - prev_level
@@ -267,9 +314,10 @@ def calculate_progressive_dampening_score(
             # The achieved points are dampened by the upstream modifier
             achieved_score += step_value * hit_rate * modifier
 
-            # The modifier is progressively dampened using Square Root to prevent absolute cliff-drop
-            modifier = modifier * math.sqrt(effective_hit_rate)
+            # The modifier is progressively dampened
+            modifier = modifier * modifier_factor
 
         prev_level = level
 
-    return float(max(scale_min, min(scale_max, achieved_score)))
+    return clamp_score(achieved_score, scale_min, scale_max)
+

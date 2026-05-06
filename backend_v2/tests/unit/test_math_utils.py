@@ -3,6 +3,7 @@ from backend_v2.utils.math_utils import (
     convert_strictness_to_forgiveness,
     calculate_soft_waterfall_score,
     calculate_progressive_dampening_score,
+    get_strictness_config,
 )
 from backend_v2.models.enums import WaterfallThreshold
 
@@ -70,11 +71,11 @@ def test_progressive_dampening_deterministic_differences():
     forgiveness_85 = convert_strictness_to_forgiveness(85)
     
     score_15 = calculate_progressive_dampening_score(
-        level_stats, scale_min=1.0, scale_max=3.0, base_forgiveness=forgiveness_15
+        level_stats, scale_min=1.0, scale_max=3.0, strictness_config=get_strictness_config(15)
     )
     
     score_85 = calculate_progressive_dampening_score(
-        level_stats, scale_min=1.0, scale_max=3.0, base_forgiveness=forgiveness_85
+        level_stats, scale_min=1.0, scale_max=3.0, strictness_config=get_strictness_config(85)
     )
     
     assert score_15 > score_85, f"Expected {score_15} > {score_85}"

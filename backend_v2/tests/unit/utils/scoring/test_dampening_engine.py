@@ -1,5 +1,6 @@
 import pytest
 from backend_v2.utils.scoring.dampening_engine import DampeningScoringEngine
+from backend_v2.models.enums import CognitiveFlowStatus
 
 
 def test_dampening_engine_calculate():
@@ -27,4 +28,4 @@ def test_dampening_engine_optimal_flow():
         2.0: {"hits": 1, "total": 1},
     }
     score, log, breakdown = engine.calculate(stats, math_min=1.0, math_max=3.0, strictness_level=0)
-    assert "OPTIMAL" in log
+    assert CognitiveFlowStatus.OPTIMAL.value in log
