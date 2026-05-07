@@ -33,13 +33,13 @@ Koko dynaaminen tulostusketju etenee askeleittain seuraavasti:
 **Datan Muutosputki (Data Transformation Pipeline):**
 ```mermaid
 flowchart LR
-    DB[(Tietokanta<br>Raa'at faktat)] --> |execution_trace| Filter{"Token Shield<br>& Pydantic"}
-    Profile["Output Profile<br>Säännöt"] -.->|target_blocks| Filter
-    Filter -->|Suodatettu data| LLM["Chief Editor LLM<br>(Arq Worker)"]
-    Profile -.->|system_directive| LLM
-    LLM -->|Markdown (Teksti)| BFF["BlueprintTransformer"]
-    Filter -->|Zero-Math Pisteet| BFF
-    BFF -->|ReportDataDTO| Out{"Flutter UI / PDF"}
+    DB[(Tietokanta<br>Raa'at faktat)] -->|"execution_trace"| Filter{"Token Shield<br>& Pydantic"}
+    Profile["Output Profile<br>Säännöt"] -.->|"target_blocks"| Filter
+    Filter -->|"Suodatettu data"| LLM["Chief Editor LLM<br>(Arq Worker)"]
+    Profile -.->|"system_directive"| LLM
+    LLM -->|"Markdown (Teksti)"| BFF["BlueprintTransformer"]
+    Filter -->|"Zero-Math Pisteet"| BFF
+    BFF -->|"ReportDataDTO"| Out{"Flutter UI / PDF"}
 ```
 
 ## 2. Tulostusprosessi (Mermaid Visualisointi)
