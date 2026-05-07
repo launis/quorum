@@ -121,7 +121,7 @@ graph TD
         E2["LLM Client<br>(Structured Output)"]
         
         DB3 -.->|Lukee metadatan| E1
-        E1 -->|1. create_model(strict=True)| E2
+        E1 -->|"1. create_model(strict=True)"| E2
     end
 
     subgraph "Moottori: Hook Interception & Registry"
