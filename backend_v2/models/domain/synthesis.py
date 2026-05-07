@@ -22,6 +22,12 @@ class SynthesisMetadataDTO(V2CoreBase):
     target_profile_id: str | None = Field(default=None)
     matrix_sampling_strategy: int | None = Field(default=None)
 
+    # Injected by worker.py during execution trace iterations for token usage tracking
+    total_tokens: int | None = Field(default=None)
+    prompt_tokens: int | None = Field(default=None)
+    completion_tokens: int | None = Field(default=None)
+    cost_estimate: float | None = Field(default=None)
+
 
 class SynthesisStepDataDTO(StepExecutionEnvelope):
     """Schema to safely extract required synthesis flags from generic step outputs."""

@@ -193,14 +193,8 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
       ),
       scaleMin: $checkedConvert('scale_min', (v) => (v as num?)?.toInt()),
       scaleMax: $checkedConvert('scale_max', (v) => (v as num?)?.toInt()),
-      computedMin: $checkedConvert(
-        'computed_min',
-        (v) => (v as num?)?.toDouble(),
-      ),
-      computedMax: $checkedConvert(
-        'computed_max',
-        (v) => (v as num?)?.toDouble(),
-      ),
+      computedMin: $checkedConvert('computed_min', (v) => (v as num?)?.toInt()),
+      computedMax: $checkedConvert('computed_max', (v) => (v as num?)?.toInt()),
       scales: $checkedConvert(
         'scales',
         (v) => (v as List<dynamic>?)
@@ -253,8 +247,6 @@ Map<String, dynamic> _$PromptBlockToJson(_PromptBlock instance) =>
       'theory_grounding': instance.theoryGrounding?.toJson(),
       'scale_min': instance.scaleMin,
       'scale_max': instance.scaleMax,
-      'computed_min': instance.computedMin,
-      'computed_max': instance.computedMax,
       'scales': instance.scales?.map((e) => e.toJson()).toList(),
       'rows': instance.rows?.map((e) => e.toJson()).toList(),
       'columns': instance.columns?.map((e) => e.toJson()).toList(),

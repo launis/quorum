@@ -680,6 +680,27 @@ class BlueprintTransformer:
                     else:
                         informational_matrices.append(axis)
 
+            # Epic 47 Phase 2: Dynamic Global Score Recalculation
+            # Ensure Kokonaiskeskiarvo accurately reflects the currently selected Output Profile's strictness
+            if evaluative_matrices:
+                total_norm = sum(m.normalized_score for m in evaluative_matrices if m.normalized_score is not None)
+                count_norm = sum(1 for m in evaluative_matrices if m.normalized_score is not None)
+                if count_norm > 0:
+                    base_avg = total_norm / count_norm
+
+                    effective_penalty = 0.0
+                    for penalty_str in penalties_applied:
+                        # Extract the percentage: "(-15%)" -> 15
+                        match = re.search(r'-\s*(\d+)%', penalty_str)
+                        if match:
+                            effective_penalty += float(match.group(1)) / 100.0
+
+                    # Clamp at PENALTY_CAP (0.40)
+                    effective_penalty = min(effective_penalty, 0.40)
+
+                    recalc_final = base_avg * (1.0 - effective_penalty)
+                    global_score = float(round(max(0.0, recalc_final), 1))
+
             p_strict = profile.strictness_level if hasattr(profile, "strictness_level") else None
             strictness_level = p_strict if p_strict is not None else workflow_obj.default_strictness_level
 

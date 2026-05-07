@@ -68,8 +68,33 @@
 
         <div class="header-card" style="text-align: left;">
             <h1 style="margin: 0 0 10px 0;">{{ workflow_name }} {% if report_data %}({{ report_data.profile_id }}){% endif %}</h1>
-            {% if report_data and report_data.strictness_level != None %}
-            <div style="background-color: #eee; border-radius: 4px; padding: 4px 8px; font-size: 10px; display: inline-block; margin-bottom: 12px; font-weight: bold; color: #555;">Strictness Level: {{ report_data.strictness_level }}</div>
+            {% if report_data and (report_data.strictness_level != None or report_data.scoring_strategy) %}
+            <div style="margin-bottom: 15px;">
+                {% if report_data.scoring_strategy %}
+                {% set strategy_map = {
+                    'waterfall': l10n.strategyKoearvostelu,
+                    'dampening': l10n.strategySyvaarvostelu,
+                    'average': l10n.strategyLineaarinenKeskiarvo,
+                    'weighted_average': l10n.strategyPainotettuKeskiarvo
+                } %}
+                <span style="background-color: #E8EAF6; border: 1px solid #C5CAE9; border-radius: 4px; padding: 4px 8px; font-size: 11px; display: inline-block; margin-right: 8px; font-weight: bold; color: #283593;">
+                    🧮 Scoring Engine: {{ strategy_map.get(report_data.scoring_strategy, report_data.scoring_strategy) }}
+                </span>
+                {% endif %}
+                
+                {% if report_data.strictness_level != None %}
+                {% set strictness_map = {
+                    0: l10n.strictnessFullFlex,
+                    15: l10n.strictnessLenient,
+                    50: l10n.strictnessBalanced,
+                    85: l10n.strictnessStrict,
+                    100: l10n.strictnessAbsolute
+                } %}
+                <span style="background-color: #E8EAF6; border: 1px solid #C5CAE9; border-radius: 4px; padding: 4px 8px; font-size: 11px; display: inline-block; font-weight: bold; color: #283593;">
+                    ⚖️ {{ l10n.strictnessSelectorTitle | default('Arvioinnin tiukkuus') }}: {{ strictness_map.get(report_data.strictness_level, report_data.strictness_level) }}
+                </span>
+                {% endif %}
+            </div>
             {% endif %}
             
             <div style="font-size: 12px; color: #444; margin-bottom: 12px;">
