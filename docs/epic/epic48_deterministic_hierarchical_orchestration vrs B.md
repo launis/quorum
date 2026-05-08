@@ -4,6 +4,12 @@
 
 ## **1\. Yhteenveto ja Arkkitehtuurinen Tavoite (Executive Summary)**
 
+> **Toteutuksen Nykytila ja Pakottavat Ohjeistukset (Tarkistettu koodikannasta)**
+> Jäljempänä esitetyt vaatimukset ovat sitovia sääntöjä, joita on ehdottomasti noudatettava kaikessa jatkokehityksessä. Vaiheiden toteutustilanne on merkitty seuraavasti:
+> 🟢 `[x]` = Täysin toteutettu (Koodikanta noudattaa sääntöä)
+> 🟡 `[-]` = Lähes toteutettu / Vaatii hienosäätöä (Esim. Falsifierin tarkan lainauksen pakotus tai litteytyksen ID-mäppäys)
+> 🔴 `[ ]` = Ei vielä toteutettu / Vaatii erillistä UI/PDF-tason työtä (Esim. DLQ-jono ja renderöintirajat)
+
 Tämän Epicin tavoitteena on implementoida state-of-the-art **Hierarchical Multi-Agent (Map-Reduce)** \-tekoälyarkkitehtuuri, joka on täysin alistettu tiukalle, deterministiselle ja asynkronisesti skaalautuvalle Python-objektiohjaukselle (**"Shift-to-Code"** ja **"Code-as-a-Judge"**).
 
 Ratkaisemme globaaleja tekoälyjärjestelmiä vaivaavan "Duck-Typing Token Shield" \-ongelman, jossa kovaa raakadataa piilotetaan loppusynteesiltä Token-rajojen pelossa, pakottaen järjestelmän luottamaan sokeasti välitason LLM-mallien tiivistelmiin ja menettäen täydellisen auditoitavuuden.
@@ -31,7 +37,7 @@ Nykytilan löyhät ratkaisut korvataan puhtaalla deterministisellä arkkitehtuur
 
 Seed-data (esim. db\_v2.json) määrittelee koko järjestelmän kognitiivisen topologian (työnkulut, matriisit, asiantuntijaroolit, tulosteprofiilit). Backendin on kyettävä lukemaan, validoimaan ja orkestroimaan tämä data ehdottoman tyyppiturvallisesti.
 
-### **Phase 1: Pydantic- ja Domain-mallien Absoluuttinen Puhtaus**
+### **Phase 1: Pydantic- ja Domain-mallien Absoluuttinen Puhtaus** 🟢 `[x]`
 
 Seed-datan monimutkaiset rakenteet (esim. prompt\_blocks ja output\_profiles) mallinnetaan tiukasti Pythonin logiikkakerroksessa. Koodikannassa ei ylläpidetä V1- ja V2-malleja rinnakkain; vanha koodi ja kentät tuhotaan armotta (**Single Source of Truth Mandate**).
 
@@ -40,14 +46,14 @@ Seed-datan monimutkaiset rakenteet (esim. prompt\_blocks ja output\_profiles) ma
 * **Polymorphic Routing (Discriminated Unions):** Seed-datan output\_profiles määrittelee erilaisia layouts-objekteja (esim. preset\_view: "3d\_matrix", "2d\_compare" tai "text\_only"). Näiden käsittelyssä hyödynnetään O(1)-tason Discriminated Unioneita (esim. Field(discriminator='preset\_view')), jotta data jäsennetään suoraan oikeaan Pydantic-aliluokkaan.  
 * **Pakotettu Tiukka Tyypitys (Strict Enums & Literals):** Kaikki Enumit ja Literalit on pakotettava tiukkaan tilaan (esim. `Field(strict=True)`). Jos tietokannasta tai Ingressistä tulee vieras arvo, järjestelmän on kaaduttava äänekkäästi (HTTP 500 / 422), jotta viallinen data ei etene logiikkaan. Löyhä tyypitys ja Lax-aliakset ovat ankarasti kiellettyjä.
 
-### **Phase 2: Agenttien ja Matriisien Looginen Roolitus (Boolean Evaluation)**
+### **Phase 2: Agenttien ja Matriisien Looginen Roolitus (Boolean Evaluation)** 🟢 `[x]`
 
 Seed-data sisältää prompt\_blocks-matriiseja, jotka määrittelevät **BARS (Behaviorally Anchored Rating Scales)** \-rakenteet (esim. Toulmin, Bloom). Asiantuntija-agenttien rooli muutetaan pisteiden arpojista ja tekstin generoijista puhtaiksi väite-evaluaattoreiksi.
 
 * **Nollahypoteesi ja Binäärinen Arviointi:** LLM ei enää palauta numeerista "arvosanaa". Seed-datan scales-rakenteissa on claims-väitteitä (esim. *"Oikeutus (warrant) puuttuu"*). LLM pakotetaan arvioimaan jokainen väite binäärisesti (is\_verified: bool) Nollahypoteesin alaisuudessa – eli olettamalla väite *vääriksi*, kunnes se löytää aukottoman todisteen.  
 * **Pakotettu Todiste (Evidence-Based):** Aina kun LLM asettaa väitteen todeksi (is\_verified \= True), sen on pakko nostaa täsmälleen alkuperäistä tekstiä vastaava lainaus evidence\_quotes: list\[str\] \-kenttään DTO-malliin.
 
-### **Phase 3: Code-as-a-Judge ja Fail-Fast Hallusinaatiosuoja**
+### **Phase 3: Code-as-a-Judge ja Fail-Fast Hallusinaatiosuoja** 🟢 `[x]`
 
 Mekaaninen validointi ja matemaattinen pistelasku siirretään täysin LLM:ltä koodin suoritettavaksi.
 
@@ -56,7 +62,7 @@ Mekaaninen validointi ja matemaattinen pistelasku siirretään täysin LLM:ltä 
 * **Hylkäys, Circuit Breaker, The Duct Tape Ban & Error Feedback Loop:** Jos LLM on keksinyt lainauksen tai muuttanut sanamuotoja, Python heittää välittömästi AppException-virheen. **Mykät virheiden ohitukset ja God Blockit (except Exception: pass) ovat ehdottomasti kiellettyjä.** Arq-worker pakottaa solmun yrittämään uudelleen. Koska sokea uudelleenyritys nollalämpötilalla johtaa identtiseen virheeseen, järjestelmän on siepattava Pydantic-virheet. Jos validointi epäonnistuu, seuraavaan Arq-yritykseen on injektoitava dynaaminen `<PREVIOUS_SCHEMA_ERROR>` -XML-lohko ohjaamaan tekoälyä korjaamaan virheensä. Maksimiyritykset sidotaan tiukasti SystemConcurrency.LLM\_MAX\_RETRIES-vakioon.  
 * **Security Logging Ban:** Arq-jonon ja Logfiren lokeihin ei koskaan tallenneta käyttäjän alkuperäisiä prompteja (PII) tai API-avaimia.
 
-### **Phase 4: Falsifier-agentin Red Teaming ja DAG-Orkestrointi**
+### **Phase 4: Falsifier-agentin Red Teaming ja DAG-Orkestrointi** 🟡 `[-]`
 
 Työnkulkujen agentit ja orkestrointi sidotaan tarkasti Seed Datan workflows.steps ja depends\_on \-verkkoon.
 
@@ -67,7 +73,7 @@ Työnkulkujen agentit ja orkestrointi sidotaan tarkasti Seed Datan workflows.ste
 * **MCP-verkkohakujen Sandbox & Tool Use Intent:** Falsifier lukee asiantuntijasolmun konfiguraatiosta allowed\_mcp\_tools \-kentän (esim. mcp\_tavily\_search). Agentti ei tee suoria `await`-kutsuja ulkoisiin palveluihin (mikä rikkoisi kerrosarkkitehtuurin), vaan palauttaa vain "Tool Use Intent" -objektin. Orkestraattori (LLMTaskExecutor) suorittaa varsinaisen fyysisen verkkokutsun eristetyssä `execute_tool_loop()` -hiekkalaatikossa tiukalla aikakatkaisulla, palauttaen rakenteellisen mallin. Agentti yrittää kumota käyttäjän väitteen tällä ulkoisella datalla, tallentaen vastaväitteen tiukasti nimettyyn kenttään falsifying\_evidence: str | None (ei dynaamisia kenttänimiä).  
 * **Opaque Stripe IDs & Zero DB Hardcoding Mandate:** Kaikki reititykset ja työkaluviittaukset käyttävät ainoastaan "läpinäkymättömiä" tunnisteita (esim. usr\_123 tai Seed-datan blk\_123). Tietokannan natiiveja kokonaisluku-ID:itä, "magic string" \-taulunnimiä tai listojen indeksejä (esim. lista\[0\]) ei saa koskaan kovakoodata ja vertailla logiikassa.
 
-### **Phase 5: Smart Token Shield ja Skeemaohjattu Reititys (Schema-Driven)**
+### **Phase 5: Smart Token Shield ja Skeemaohjattu Reititys (Schema-Driven)** 🟢 `[x]`
 
 Välitilojen siirto ja \_compress\_synthesis\_payload tehdään tyyppiturvallisiksi.
 
@@ -75,7 +81,7 @@ Välitilojen siirto ja \_compress\_synthesis\_payload tehdään tyyppiturvallisi
 * **Schema-Driven Polymorphic Routing O(1):** "Duck typing" (arvojen availu .endswith()-metodilla) on kielletty. Reititys solmujen välillä tehdään aina tietokannasta tulevan rakenteen perusteella hyödyntäen **Pydantic Discriminated Unioneita** ja Pythonin natiivia polymorfista match/case \-syntaksia.  
 * **Valikoiva suodatus & Rajoitettu Escape Hatch:** Token Shield pudottaa välitiloista raskaan kohinan (evaluations, shuffled\_atoms), mutta **päästää ohjelmallisesti läpi reasoning\_trace, boolean-arviot ja koodilla vahvistetut evidence\_quotes \-kentät**. Falsifierin tuottama critical\_quote on varustettu "Escape Hatchilla", joka ohittaa Token Shieldin karsinnan täysin. Escape Hatch sallitaan ainoastaan silloin, kun siihen liittyy Pydanticissa kova yläraja (esim. `Field(max_length=1500)`). Ylipitkät hallusinaatiot on hylättävä ennen XAI-synteesiä Token Explosion -riskin eliminoimiseksi.
 
-### **Phase 6: Algoritminen Triage, Puhdas Matematiikka ja Logic Step (Reduce)**
+### **Phase 6: Algoritminen Triage, Puhdas Matematiikka ja Logic Step (Reduce)** 🟡 `[-]`
 
 Seed Datan mukainen type: "logic" solmu (esim. sp\_d245365e4a274b9e Scoring Engine) ottaa matemaattisen laskennan kokonaan pois LLM:ltä O(1)-tason ohjelmakoodin haltuun (Reduce-vaihe).
 
@@ -86,7 +92,7 @@ Seed Datan mukainen type: "logic" solmu (esim. sp\_d245365e4a274b9e Scoring Engi
 
 ## **\---**
 
-## **4\. Tulosteiden Esitys ja XAI-Käyttöliittymä (Tripartite Rendering Boundary)**
+## **4\. Tulosteiden Esitys ja XAI-Käyttöliittymä (Tripartite Rendering Boundary)** 🔴 `[ ]`
 
 Todennetun datan ("Chain of Custody") on näyttävä loppukäyttäjälle saumattomasti ja identtisesti PDF-raportissa sekä Flutter-käyttöliittymässä. Järjestelmä noudattaa absoluuttista eristystä backend-logiikan, käyttöliittymän (Frontend/Flutter) ja PDF-generaattorin (Jinja2) välillä (**Tripartite Boundary**). Järjestelmä noudattaa **Zero-Math UI**, **Anemic Routers** ja **HTML-First** \-mandaattia.
 
@@ -119,16 +125,16 @@ Todennetun datan ("Chain of Custody") on näyttävä loppukäyttäjälle saumatt
 
 Historiallinen "Zero-Compromise" ja "Fail-Fast" puritanismi on ollut välttämätön data-eheyden saavuttamiseksi, mutta se johti pinnan alla "purkkaviritysten" (duct-tape) syntymiseen tuotannon kaatumisten estämiseksi. Tämä Epic 48 -arkkitehtuuri siirtää nämä piilotetut laastarit virallisiksi, skaalautuviksi tuotantotason design patterneiksi:
 
-1. **In-place Mutaatioista Aitoon CQRS-malliin:** 
+1. **In-place Mutaatioista Aitoon CQRS-malliin:** 🟡 `[-]`
    * **Ongelma:** Aiemmin sääntöjen ehdottomuus pakotti päivittämään dynaamiset matematiikka-arvot (`normalized_score`) suoraan vanhoihin `execution_trace` tapahtumiin, mikä tuhosi "Append-Only" -jäljitettävyyden.
    * **Tuotantoratkaisu (CQRS):** Kirjoitusoperaatiot (Command) tallentavat yksinomaan sokeat raakafaktat (`evaluated_atoms`). Lukupuoli (Query) ja renderöinti (`BlueprintTransformer`) suorittavat matemaattisen skaalauksen täysin lennosta uuden kireystason läpi (In-Memory Projektio). Tietokannan menneisyyttä ei koskaan ylikirjoiteta.
-2. **MD5-hasheistä Ephemeral Runtime ID -mäppäykseen:**
+2. **MD5-hasheistä Ephemeral Runtime ID -mäppäykseen:** 🟡 `[-]`
    * **Ongelma:** Kysymyksille laskettiin MD5-hashit lennosta "Content-Addressable ID" -puritanismin nimissä. Seurauksena oli Hash-törmäyksiä ja orpoutunutta historiadataa typografioita korjattaessa.
    * **Tuotantoratkaisu:** Asynkroninen hajautus käyttää puhtaasti tilapäistä muistimäppäystä (esim. `atom_1`). Sadoille kysymyksille ei synnytetä raskasta kryptografiaa tai tietokanta-bloatia, vaan 100 % determinismi saavutetaan Map-Reduce -elinkaaren sisäisellä O(1) sekvenssillä.
-3. **Sokeasta Fail-Fast -kaatumisesta DLQ-jonoihin (Dead Letter Queue):**
+3. **Sokeasta Fail-Fast -kaatumisesta DLQ-jonoihin (Dead Letter Queue):** 🔴 `[ ]`
    * **Ongelma:** LLM:n satunnainen merkkivirhe lainauksessa (tai Pydantic-validointivirhe) kaatoi säälimättä koko tuntikausien työnkulun, mikä pakotti kehittäjät rakentamaan vaarallisia "Self-Healing" regex-hookeja.
    * **Tuotantoratkaisu:** Epäonnistuneet `micro_atom` -arvioinnit ajetaan ensin dynaamisen **Error Feedback Loopin** läpi (LLM yrittää itse korjata virheensä `<PREVIOUS_ERROR>` -syötteen avulla). Jos atomi on pysyvästi korruptoitunut, sitä ei yritetä parsia kasaan regexillä, vaan se siirretään puhtaasti **Dead Letter Queue (DLQ)** -jonoon. Työnkulku etenee maaliin pragmallisesti, ja loppuraportti ilmoittaa läpinäkyvästi: *"1/150 väitettä ei voitu arvioida luotettavasti"*.
-4. **Token Shieldin virallistaminen (Graceful Degradation Boundary):**
+4. **Token Shieldin virallistaminen (Graceful Degradation Boundary):** 🟢 `[x]`
    * **Ongelma:** Pydanticin `extra="forbid"` aiheutti Token Exhaustion -kaatumisia suurilla tietomassoilla. Kehittäjät joutuivat rikkomaan puritanismia asettamalla hiljaisesti `extra="ignore"`.
    * **Tuotantoratkaisu:** Asetus `extra="ignore"` on nyt virallistettu "Duck-Typing Token Shield" -arkkitehtuuriseksi poikkeukseksi. Raskaiden datamassojen pudottaminen on eksplisiittisesti sallittua LLM-synteesivaiheessa, mutta se eristetään tiukasti vain tähän yhteen rajapintaan.
 
