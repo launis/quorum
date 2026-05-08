@@ -43,15 +43,69 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
   bool _isDownloadingContext = false;
 
   void _downloadPdf() async {
+    final textController = TextEditingController();
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Lisää selite (valinnainen)'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Kirjoita raportin alkuun tuleva saateteksti Markdown-muodossa.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: textController,
+              maxLines: 5,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Syötä teksti tähän...',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(AppLocalizations.of(context)!.cancelButton),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Lataa PDF'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final customPreface = textController.text.trim();
+
     setState(() {
       _isDownloadingPdf = true;
     });
 
     try {
+      final now = DateTime.now();
+      final localTimeStr =
+          '${now.year} ${now.month.toString().padLeft(2, '0')} ${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+      final queryParams = {
+        'format': 'pdf',
+        'profile_id': widget.variant,
+        'local_time_str': localTimeStr,
+      };
+
+      if (customPreface.isNotEmpty) {
+        queryParams['custom_preface_md'] = customPreface;
+      }
+
       final dio = ref.read(apiClientProvider);
       final response = await dio.get<List<int>>(
         '/execution/executions/${widget.executionId}/render',
-        queryParameters: {'format': 'pdf', 'profile_id': widget.variant},
+        queryParameters: queryParams,
         options: Options(responseType: ResponseType.bytes),
       );
 
@@ -233,7 +287,27 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
             );
           },
         ),
-        _ => const Center(child: CircularProgressIndicator()),
+        _ => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Consumer(
+                builder: (context, ref, child) {
+                  final statusMsg = ref.watch(renderStatusProvider);
+                  return Text(
+                    statusMsg,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
       },
     );
   }

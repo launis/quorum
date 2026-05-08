@@ -7,10 +7,17 @@ import 'package:client_app/core/error/app_exception.dart';
 
 part 'report_controller.g.dart';
 
+@riverpod
+class RenderStatus extends _$RenderStatus {
+  @override
+  String build() => 'Valmistellaan tulostusta...';
+
+  void updateStatus(String msg) {
+    if (state != msg) state = msg;
+  }
+}
+
 /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
-///
-/// NOTE (Architecture): Parsing is offloaded to a background isolate utilizing `Isolate.run`
-/// to prevent the 60fps UI thread from stuttering when hydrating large blueprint graphs.
 @riverpod
 class ReportController extends _$ReportController {
   @override
@@ -33,6 +40,9 @@ class ReportController extends _$ReportController {
       );
 
       if (rawData.containsKey('status') && rawData['status'] == 'pending') {
+        final msg = rawData['message'] as String? ?? 'Valmistellaan tulostusta...';
+        ref.read(renderStatusProvider.notifier).updateStatus(msg);
+        
         attempts++;
         if (attempts >= maxAttempts) {
           throw AppException.network(

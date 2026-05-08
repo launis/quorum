@@ -38,7 +38,7 @@ void main() {
                 labelEn: 'Mock Axis',
                 name: 'Mock Axis',
                 score: 100.0,
-                justification: 'Perfect',
+                rowExplanation: 'Perfect',
                 scaleMin: 0.0,
                 scaleMax: 6.0,
               ),
@@ -109,7 +109,7 @@ void main() {
                 labelEn: 'Text Axis',
                 name: 'Text Axis',
                 score: 0.0,
-                justification: 'This is a text only justification',
+                rowExplanation: 'This is a text only rowExplanation',
                 scaleMin: 0.0,
                 scaleMax: 6.0,
               ),
@@ -139,7 +139,7 @@ void main() {
       expect(find.text('Text Layout Desc'), findsOneWidget);
       expect(find.textContaining('Synthesis content'), findsOneWidget);
       expect(find.text('Text Axis'), findsNothing);
-      expect(find.text('This is a text only justification'), findsNothing);
+      expect(find.text('This is a text only rowExplanation'), findsNothing);
     },
   );
 }

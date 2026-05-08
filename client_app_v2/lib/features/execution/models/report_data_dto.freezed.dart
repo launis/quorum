@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ReportLayoutDTO {
 
-@JsonKey(name: 'preset_view') PresetView get presetView;@JsonKey(name: 'matrix_type') String? get matrixType; I18nText? get title; I18nText? get description; List<MatrixScorecardRowDto> get axes;@JsonKey(name: 'text_delivery_mode') String get textDeliveryMode; Map<String, dynamic>? get synthesis;@JsonKey(name: 'synthesis_md') String? get synthesisMd;
+@JsonKey(name: 'preset_view') PresetView get presetView;@JsonKey(name: 'matrix_type') String? get matrixType; I18nText? get title; I18nText? get description; List<MatrixScorecardRowDto> get axes;@JsonKey(name: 'visible_columns') List<String> get visibleColumns;@JsonKey(name: 'text_delivery_mode') String get textDeliveryMode; Map<String, dynamic>? get synthesis;@JsonKey(name: 'synthesis_md') String? get synthesisMd;
 /// Create a copy of ReportLayoutDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,7 +30,7 @@ $ReportLayoutDTOCopyWith<ReportLayoutDTO> get copyWith => _$ReportLayoutDTOCopyW
 
 @override
 String toString() {
-  return 'ReportLayoutDTO(presetView: $presetView, matrixType: $matrixType, title: $title, description: $description, axes: $axes, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisMd: $synthesisMd)';
+  return 'ReportLayoutDTO(presetView: $presetView, matrixType: $matrixType, title: $title, description: $description, axes: $axes, visibleColumns: $visibleColumns, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisMd: $synthesisMd)';
 }
 
 
@@ -41,7 +41,7 @@ abstract mixin class $ReportLayoutDTOCopyWith<$Res>  {
   factory $ReportLayoutDTOCopyWith(ReportLayoutDTO value, $Res Function(ReportLayoutDTO) _then) = _$ReportLayoutDTOCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'preset_view') PresetView presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, Map<String, dynamic>? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
+@JsonKey(name: 'preset_view') PresetView presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'visible_columns') List<String> visibleColumns,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, Map<String, dynamic>? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
 });
 
 
@@ -58,14 +58,15 @@ class _$ReportLayoutDTOCopyWithImpl<$Res>
 
 /// Create a copy of ReportLayoutDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? matrixType = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisMd = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? presetView = null,Object? matrixType = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? visibleColumns = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisMd = freezed,}) {
   return _then(_self.copyWith(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as PresetView,matrixType: freezed == matrixType ? _self.matrixType : matrixType // ignore: cast_nullable_to_non_nullable
 as String?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,axes: null == axes ? _self.axes : axes // ignore: cast_nullable_to_non_nullable
-as List<MatrixScorecardRowDto>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
+as List<MatrixScorecardRowDto>,visibleColumns: null == visibleColumns ? _self.visibleColumns : visibleColumns // ignore: cast_nullable_to_non_nullable
+as List<String>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self.synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,synthesisMd: freezed == synthesisMd ? _self.synthesisMd : synthesisMd // ignore: cast_nullable_to_non_nullable
 as String?,
@@ -177,10 +178,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  PresetView presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  PresetView presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'visible_columns')  List<String> visibleColumns, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportLayoutDTO() when $default != null:
-return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
+return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.visibleColumns,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
   return orElse();
 
 }
@@ -198,10 +199,10 @@ return $default(_that.presetView,_that.matrixType,_that.title,_that.description,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  PresetView presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  PresetView presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'visible_columns')  List<String> visibleColumns, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)  $default,) {final _that = this;
 switch (_that) {
 case _ReportLayoutDTO():
-return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
+return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.visibleColumns,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -218,10 +219,10 @@ return $default(_that.presetView,_that.matrixType,_that.title,_that.description,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view')  PresetView presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view')  PresetView presetView, @JsonKey(name: 'matrix_type')  String? matrixType,  I18nText? title,  I18nText? description,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'visible_columns')  List<String> visibleColumns, @JsonKey(name: 'text_delivery_mode')  String textDeliveryMode,  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md')  String? synthesisMd)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportLayoutDTO() when $default != null:
-return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
+return $default(_that.presetView,_that.matrixType,_that.title,_that.description,_that.axes,_that.visibleColumns,_that.textDeliveryMode,_that.synthesis,_that.synthesisMd);case _:
   return null;
 
 }
@@ -233,7 +234,7 @@ return $default(_that.presetView,_that.matrixType,_that.title,_that.description,
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ReportLayoutDTO implements ReportLayoutDTO {
-  const _ReportLayoutDTO({@JsonKey(name: 'preset_view') required this.presetView, @JsonKey(name: 'matrix_type') this.matrixType, this.title, this.description, final  List<MatrixScorecardRowDto> axes = const [], @JsonKey(name: 'text_delivery_mode') required this.textDeliveryMode, final  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md') this.synthesisMd}): _axes = axes,_synthesis = synthesis;
+  const _ReportLayoutDTO({@JsonKey(name: 'preset_view') required this.presetView, @JsonKey(name: 'matrix_type') this.matrixType, this.title, this.description, final  List<MatrixScorecardRowDto> axes = const [], @JsonKey(name: 'visible_columns') final  List<String> visibleColumns = const ['label', 'score', 'distribution', 'row_explanation'], @JsonKey(name: 'text_delivery_mode') required this.textDeliveryMode, final  Map<String, dynamic>? synthesis, @JsonKey(name: 'synthesis_md') this.synthesisMd}): _axes = axes,_visibleColumns = visibleColumns,_synthesis = synthesis;
   factory _ReportLayoutDTO.fromJson(Map<String, dynamic> json) => _$ReportLayoutDTOFromJson(json);
 
 @override@JsonKey(name: 'preset_view') final  PresetView presetView;
@@ -245,6 +246,13 @@ class _ReportLayoutDTO implements ReportLayoutDTO {
   if (_axes is EqualUnmodifiableListView) return _axes;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_axes);
+}
+
+ final  List<String> _visibleColumns;
+@override@JsonKey(name: 'visible_columns') List<String> get visibleColumns {
+  if (_visibleColumns is EqualUnmodifiableListView) return _visibleColumns;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_visibleColumns);
 }
 
 @override@JsonKey(name: 'text_delivery_mode') final  String textDeliveryMode;
@@ -274,7 +282,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ReportLayoutDTO(presetView: $presetView, matrixType: $matrixType, title: $title, description: $description, axes: $axes, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisMd: $synthesisMd)';
+  return 'ReportLayoutDTO(presetView: $presetView, matrixType: $matrixType, title: $title, description: $description, axes: $axes, visibleColumns: $visibleColumns, textDeliveryMode: $textDeliveryMode, synthesis: $synthesis, synthesisMd: $synthesisMd)';
 }
 
 
@@ -285,7 +293,7 @@ abstract mixin class _$ReportLayoutDTOCopyWith<$Res> implements $ReportLayoutDTO
   factory _$ReportLayoutDTOCopyWith(_ReportLayoutDTO value, $Res Function(_ReportLayoutDTO) _then) = __$ReportLayoutDTOCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'preset_view') PresetView presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, Map<String, dynamic>? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
+@JsonKey(name: 'preset_view') PresetView presetView,@JsonKey(name: 'matrix_type') String? matrixType, I18nText? title, I18nText? description, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'visible_columns') List<String> visibleColumns,@JsonKey(name: 'text_delivery_mode') String textDeliveryMode, Map<String, dynamic>? synthesis,@JsonKey(name: 'synthesis_md') String? synthesisMd
 });
 
 
@@ -302,14 +310,15 @@ class __$ReportLayoutDTOCopyWithImpl<$Res>
 
 /// Create a copy of ReportLayoutDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? matrixType = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisMd = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? presetView = null,Object? matrixType = freezed,Object? title = freezed,Object? description = freezed,Object? axes = null,Object? visibleColumns = null,Object? textDeliveryMode = null,Object? synthesis = freezed,Object? synthesisMd = freezed,}) {
   return _then(_ReportLayoutDTO(
 presetView: null == presetView ? _self.presetView : presetView // ignore: cast_nullable_to_non_nullable
 as PresetView,matrixType: freezed == matrixType ? _self.matrixType : matrixType // ignore: cast_nullable_to_non_nullable
 as String?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as I18nText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as I18nText?,axes: null == axes ? _self._axes : axes // ignore: cast_nullable_to_non_nullable
-as List<MatrixScorecardRowDto>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
+as List<MatrixScorecardRowDto>,visibleColumns: null == visibleColumns ? _self._visibleColumns : visibleColumns // ignore: cast_nullable_to_non_nullable
+as List<String>,textDeliveryMode: null == textDeliveryMode ? _self.textDeliveryMode : textDeliveryMode // ignore: cast_nullable_to_non_nullable
 as String,synthesis: freezed == synthesis ? _self._synthesis : synthesis // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,synthesisMd: freezed == synthesisMd ? _self.synthesisMd : synthesisMd // ignore: cast_nullable_to_non_nullable
 as String?,
@@ -623,7 +632,7 @@ as int,
 /// @nodoc
 mixin _$ReportDataDTO {
 
-@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'profile_id') String get profileId;@JsonKey(name: 'profile_name') I18nText? get profileName;@JsonKey(name: 'available_profiles') Map<String, I18nText> get availableProfiles;@JsonKey(name: 'global_score') double? get globalScore; List<ReportLayoutDTO> get layouts;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'org_name') String? get orgName;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;@JsonKey(name: 'cost_estimate') double? get costEstimate;@JsonKey(name: 'total_tokens') int? get totalTokens;@JsonKey(name: 'prompt_tokens') int? get promptTokens;@JsonKey(name: 'completion_tokens') int? get completionTokens;@JsonKey(name: 'reasoning_tokens') int? get reasoningTokens;@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> get mcpToolAudit;@JsonKey(name: 'has_warning') bool get hasWarning;@JsonKey(name: 'synthesized_markdown') String? get synthesizedMarkdown;@JsonKey(name: 'visible_metadata') List<String> get visibleMetadata;@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>> get groupedExtensions;@JsonKey(name: 'penalties_applied') List<String> get penaltiesApplied;@JsonKey(name: 'evaluative_matrices') List<MatrixScorecardRowDto> get evaluativeMatrices;@JsonKey(name: 'informational_matrices') List<MatrixScorecardRowDto> get informationalMatrices;
+@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'profile_id') String get profileId;@JsonKey(name: 'profile_name') I18nText? get profileName;@JsonKey(name: 'available_profiles') Map<String, I18nText> get availableProfiles;@JsonKey(name: 'global_score') double? get globalScore; List<ReportLayoutDTO> get layouts;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'local_time_str') String? get localTimeStr;@JsonKey(name: 'org_name') String? get orgName;@JsonKey(name: 'user_name') String? get userName;@JsonKey(name: 'scoring_engine_name') String? get scoringEngineName;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'custom_preface_md') String? get customPrefaceMd;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;@JsonKey(name: 'cost_estimate') double? get costEstimate;@JsonKey(name: 'total_tokens') int? get totalTokens;@JsonKey(name: 'prompt_tokens') int? get promptTokens;@JsonKey(name: 'completion_tokens') int? get completionTokens;@JsonKey(name: 'reasoning_tokens') int? get reasoningTokens;@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> get mcpToolAudit;@JsonKey(name: 'has_warning') bool get hasWarning;@JsonKey(name: 'synthesized_markdown') String? get synthesizedMarkdown;@JsonKey(name: 'visible_metadata') List<String> get visibleMetadata;@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>> get groupedExtensions;@JsonKey(name: 'penalties_applied') List<String> get penaltiesApplied;@JsonKey(name: 'evaluative_matrices') List<MatrixScorecardRowDto> get evaluativeMatrices;@JsonKey(name: 'informational_matrices') List<MatrixScorecardRowDto> get informationalMatrices;@JsonKey(name: 'matrix_visible_columns') List<String> get matrixVisibleColumns;
 /// Create a copy of ReportDataDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -638,7 +647,7 @@ $ReportDataDTOCopyWith<ReportDataDTO> get copyWith => _$ReportDataDTOCopyWithImp
 
 @override
 String toString() {
-  return 'ReportDataDTO(workflowId: $workflowId, profileId: $profileId, profileName: $profileName, availableProfiles: $availableProfiles, globalScore: $globalScore, layouts: $layouts, createdAt: $createdAt, orgName: $orgName, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit, hasWarning: $hasWarning, synthesizedMarkdown: $synthesizedMarkdown, visibleMetadata: $visibleMetadata, groupedExtensions: $groupedExtensions, penaltiesApplied: $penaltiesApplied, evaluativeMatrices: $evaluativeMatrices, informationalMatrices: $informationalMatrices)';
+  return 'ReportDataDTO(workflowId: $workflowId, profileId: $profileId, profileName: $profileName, availableProfiles: $availableProfiles, globalScore: $globalScore, layouts: $layouts, createdAt: $createdAt, localTimeStr: $localTimeStr, orgName: $orgName, userName: $userName, scoringEngineName: $scoringEngineName, strictnessLevel: $strictnessLevel, customPrefaceMd: $customPrefaceMd, scoringStrategy: $scoringStrategy, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit, hasWarning: $hasWarning, synthesizedMarkdown: $synthesizedMarkdown, visibleMetadata: $visibleMetadata, groupedExtensions: $groupedExtensions, penaltiesApplied: $penaltiesApplied, evaluativeMatrices: $evaluativeMatrices, informationalMatrices: $informationalMatrices, matrixVisibleColumns: $matrixVisibleColumns)';
 }
 
 
@@ -649,7 +658,7 @@ abstract mixin class $ReportDataDTOCopyWith<$Res>  {
   factory $ReportDataDTOCopyWith(ReportDataDTO value, $Res Function(ReportDataDTO) _then) = _$ReportDataDTOCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore, List<ReportLayoutDTO> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> mcpToolAudit,@JsonKey(name: 'has_warning') bool hasWarning,@JsonKey(name: 'synthesized_markdown') String? synthesizedMarkdown,@JsonKey(name: 'visible_metadata') List<String> visibleMetadata,@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>> groupedExtensions,@JsonKey(name: 'penalties_applied') List<String> penaltiesApplied,@JsonKey(name: 'evaluative_matrices') List<MatrixScorecardRowDto> evaluativeMatrices,@JsonKey(name: 'informational_matrices') List<MatrixScorecardRowDto> informationalMatrices
+@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore, List<ReportLayoutDTO> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'local_time_str') String? localTimeStr,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'user_name') String? userName,@JsonKey(name: 'scoring_engine_name') String? scoringEngineName,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> mcpToolAudit,@JsonKey(name: 'has_warning') bool hasWarning,@JsonKey(name: 'synthesized_markdown') String? synthesizedMarkdown,@JsonKey(name: 'visible_metadata') List<String> visibleMetadata,@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>> groupedExtensions,@JsonKey(name: 'penalties_applied') List<String> penaltiesApplied,@JsonKey(name: 'evaluative_matrices') List<MatrixScorecardRowDto> evaluativeMatrices,@JsonKey(name: 'informational_matrices') List<MatrixScorecardRowDto> informationalMatrices,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns
 });
 
 
@@ -666,7 +675,7 @@ class _$ReportDataDTOCopyWithImpl<$Res>
 
 /// Create a copy of ReportDataDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? workflowId = null,Object? profileId = null,Object? profileName = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? layouts = null,Object? createdAt = freezed,Object? orgName = freezed,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,Object? hasWarning = null,Object? synthesizedMarkdown = freezed,Object? visibleMetadata = null,Object? groupedExtensions = null,Object? penaltiesApplied = null,Object? evaluativeMatrices = null,Object? informationalMatrices = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? workflowId = null,Object? profileId = null,Object? profileName = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? layouts = null,Object? createdAt = freezed,Object? localTimeStr = freezed,Object? orgName = freezed,Object? userName = freezed,Object? scoringEngineName = freezed,Object? strictnessLevel = freezed,Object? customPrefaceMd = freezed,Object? scoringStrategy = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,Object? hasWarning = null,Object? synthesizedMarkdown = freezed,Object? visibleMetadata = null,Object? groupedExtensions = null,Object? penaltiesApplied = null,Object? evaluativeMatrices = null,Object? informationalMatrices = null,Object? matrixVisibleColumns = null,}) {
   return _then(_self.copyWith(
 workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,profileId: null == profileId ? _self.profileId : profileId // ignore: cast_nullable_to_non_nullable
@@ -675,9 +684,13 @@ as I18nText?,availableProfiles: null == availableProfiles ? _self.availableProfi
 as Map<String, I18nText>,globalScore: freezed == globalScore ? _self.globalScore : globalScore // ignore: cast_nullable_to_non_nullable
 as double?,layouts: null == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<ReportLayoutDTO>,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String?,localTimeStr: freezed == localTimeStr ? _self.localTimeStr : localTimeStr // ignore: cast_nullable_to_non_nullable
 as String?,orgName: freezed == orgName ? _self.orgName : orgName // ignore: cast_nullable_to_non_nullable
+as String?,userName: freezed == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
+as String?,scoringEngineName: freezed == scoringEngineName ? _self.scoringEngineName : scoringEngineName // ignore: cast_nullable_to_non_nullable
 as String?,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
-as int?,scoringStrategy: freezed == scoringStrategy ? _self.scoringStrategy : scoringStrategy // ignore: cast_nullable_to_non_nullable
+as int?,customPrefaceMd: freezed == customPrefaceMd ? _self.customPrefaceMd : customPrefaceMd // ignore: cast_nullable_to_non_nullable
+as String?,scoringStrategy: freezed == scoringStrategy ? _self.scoringStrategy : scoringStrategy // ignore: cast_nullable_to_non_nullable
 as ScoringStrategy?,costEstimate: freezed == costEstimate ? _self.costEstimate : costEstimate // ignore: cast_nullable_to_non_nullable
 as double?,totalTokens: freezed == totalTokens ? _self.totalTokens : totalTokens // ignore: cast_nullable_to_non_nullable
 as int?,promptTokens: freezed == promptTokens ? _self.promptTokens : promptTokens // ignore: cast_nullable_to_non_nullable
@@ -691,7 +704,8 @@ as List<String>,groupedExtensions: null == groupedExtensions ? _self.groupedExte
 as Map<String, List<dynamic>>,penaltiesApplied: null == penaltiesApplied ? _self.penaltiesApplied : penaltiesApplied // ignore: cast_nullable_to_non_nullable
 as List<String>,evaluativeMatrices: null == evaluativeMatrices ? _self.evaluativeMatrices : evaluativeMatrices // ignore: cast_nullable_to_non_nullable
 as List<MatrixScorecardRowDto>,informationalMatrices: null == informationalMatrices ? _self.informationalMatrices : informationalMatrices // ignore: cast_nullable_to_non_nullable
-as List<MatrixScorecardRowDto>,
+as List<MatrixScorecardRowDto>,matrixVisibleColumns: null == matrixVisibleColumns ? _self.matrixVisibleColumns : matrixVisibleColumns // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 /// Create a copy of ReportDataDTO
@@ -788,10 +802,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>> groupedExtensions, @JsonKey(name: 'penalties_applied')  List<String> penaltiesApplied, @JsonKey(name: 'evaluative_matrices')  List<MatrixScorecardRowDto> evaluativeMatrices, @JsonKey(name: 'informational_matrices')  List<MatrixScorecardRowDto> informationalMatrices)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'local_time_str')  String? localTimeStr, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'user_name')  String? userName, @JsonKey(name: 'scoring_engine_name')  String? scoringEngineName, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>> groupedExtensions, @JsonKey(name: 'penalties_applied')  List<String> penaltiesApplied, @JsonKey(name: 'evaluative_matrices')  List<MatrixScorecardRowDto> evaluativeMatrices, @JsonKey(name: 'informational_matrices')  List<MatrixScorecardRowDto> informationalMatrices, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportDataDTO() when $default != null:
-return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.strictnessLevel,_that.scoringStrategy,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata,_that.groupedExtensions,_that.penaltiesApplied,_that.evaluativeMatrices,_that.informationalMatrices);case _:
+return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.localTimeStr,_that.orgName,_that.userName,_that.scoringEngineName,_that.strictnessLevel,_that.customPrefaceMd,_that.scoringStrategy,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata,_that.groupedExtensions,_that.penaltiesApplied,_that.evaluativeMatrices,_that.informationalMatrices,_that.matrixVisibleColumns);case _:
   return orElse();
 
 }
@@ -809,10 +823,10 @@ return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availab
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>> groupedExtensions, @JsonKey(name: 'penalties_applied')  List<String> penaltiesApplied, @JsonKey(name: 'evaluative_matrices')  List<MatrixScorecardRowDto> evaluativeMatrices, @JsonKey(name: 'informational_matrices')  List<MatrixScorecardRowDto> informationalMatrices)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'local_time_str')  String? localTimeStr, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'user_name')  String? userName, @JsonKey(name: 'scoring_engine_name')  String? scoringEngineName, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>> groupedExtensions, @JsonKey(name: 'penalties_applied')  List<String> penaltiesApplied, @JsonKey(name: 'evaluative_matrices')  List<MatrixScorecardRowDto> evaluativeMatrices, @JsonKey(name: 'informational_matrices')  List<MatrixScorecardRowDto> informationalMatrices, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)  $default,) {final _that = this;
 switch (_that) {
 case _ReportDataDTO():
-return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.strictnessLevel,_that.scoringStrategy,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata,_that.groupedExtensions,_that.penaltiesApplied,_that.evaluativeMatrices,_that.informationalMatrices);case _:
+return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.localTimeStr,_that.orgName,_that.userName,_that.scoringEngineName,_that.strictnessLevel,_that.customPrefaceMd,_that.scoringStrategy,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata,_that.groupedExtensions,_that.penaltiesApplied,_that.evaluativeMatrices,_that.informationalMatrices,_that.matrixVisibleColumns);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -829,10 +843,10 @@ return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availab
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>> groupedExtensions, @JsonKey(name: 'penalties_applied')  List<String> penaltiesApplied, @JsonKey(name: 'evaluative_matrices')  List<MatrixScorecardRowDto> evaluativeMatrices, @JsonKey(name: 'informational_matrices')  List<MatrixScorecardRowDto> informationalMatrices)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId, @JsonKey(name: 'profile_name')  I18nText? profileName, @JsonKey(name: 'available_profiles')  Map<String, I18nText> availableProfiles, @JsonKey(name: 'global_score')  double? globalScore,  List<ReportLayoutDTO> layouts, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'local_time_str')  String? localTimeStr, @JsonKey(name: 'org_name')  String? orgName, @JsonKey(name: 'user_name')  String? userName, @JsonKey(name: 'scoring_engine_name')  String? scoringEngineName, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'total_tokens')  int? totalTokens, @JsonKey(name: 'prompt_tokens')  int? promptTokens, @JsonKey(name: 'completion_tokens')  int? completionTokens, @JsonKey(name: 'reasoning_tokens')  int? reasoningTokens, @JsonKey(name: 'mcp_tool_audit')  List<MCPToolAuditDTO> mcpToolAudit, @JsonKey(name: 'has_warning')  bool hasWarning, @JsonKey(name: 'synthesized_markdown')  String? synthesizedMarkdown, @JsonKey(name: 'visible_metadata')  List<String> visibleMetadata, @JsonKey(name: 'grouped_extensions')  Map<String, List<dynamic>> groupedExtensions, @JsonKey(name: 'penalties_applied')  List<String> penaltiesApplied, @JsonKey(name: 'evaluative_matrices')  List<MatrixScorecardRowDto> evaluativeMatrices, @JsonKey(name: 'informational_matrices')  List<MatrixScorecardRowDto> informationalMatrices, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportDataDTO() when $default != null:
-return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.orgName,_that.strictnessLevel,_that.scoringStrategy,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata,_that.groupedExtensions,_that.penaltiesApplied,_that.evaluativeMatrices,_that.informationalMatrices);case _:
+return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availableProfiles,_that.globalScore,_that.layouts,_that.createdAt,_that.localTimeStr,_that.orgName,_that.userName,_that.scoringEngineName,_that.strictnessLevel,_that.customPrefaceMd,_that.scoringStrategy,_that.costEstimate,_that.totalTokens,_that.promptTokens,_that.completionTokens,_that.reasoningTokens,_that.mcpToolAudit,_that.hasWarning,_that.synthesizedMarkdown,_that.visibleMetadata,_that.groupedExtensions,_that.penaltiesApplied,_that.evaluativeMatrices,_that.informationalMatrices,_that.matrixVisibleColumns);case _:
   return null;
 
 }
@@ -844,7 +858,7 @@ return $default(_that.workflowId,_that.profileId,_that.profileName,_that.availab
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ReportDataDTO extends ReportDataDTO {
-  const _ReportDataDTO({@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'profile_id') required this.profileId, @JsonKey(name: 'profile_name') this.profileName, @JsonKey(name: 'available_profiles') final  Map<String, I18nText> availableProfiles = const {}, @JsonKey(name: 'global_score') this.globalScore, final  List<ReportLayoutDTO> layouts = const [], @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'org_name') this.orgName, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'total_tokens') this.totalTokens, @JsonKey(name: 'prompt_tokens') this.promptTokens, @JsonKey(name: 'completion_tokens') this.completionTokens, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens, @JsonKey(name: 'mcp_tool_audit') final  List<MCPToolAuditDTO> mcpToolAudit = const [], @JsonKey(name: 'has_warning') this.hasWarning = false, @JsonKey(name: 'synthesized_markdown') this.synthesizedMarkdown, @JsonKey(name: 'visible_metadata') final  List<String> visibleMetadata = const [], @JsonKey(name: 'grouped_extensions') final  Map<String, List<dynamic>> groupedExtensions = const {}, @JsonKey(name: 'penalties_applied') final  List<String> penaltiesApplied = const [], @JsonKey(name: 'evaluative_matrices') final  List<MatrixScorecardRowDto> evaluativeMatrices = const [], @JsonKey(name: 'informational_matrices') final  List<MatrixScorecardRowDto> informationalMatrices = const []}): _availableProfiles = availableProfiles,_layouts = layouts,_mcpToolAudit = mcpToolAudit,_visibleMetadata = visibleMetadata,_groupedExtensions = groupedExtensions,_penaltiesApplied = penaltiesApplied,_evaluativeMatrices = evaluativeMatrices,_informationalMatrices = informationalMatrices,super._();
+  const _ReportDataDTO({@JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'profile_id') required this.profileId, @JsonKey(name: 'profile_name') this.profileName, @JsonKey(name: 'available_profiles') final  Map<String, I18nText> availableProfiles = const {}, @JsonKey(name: 'global_score') this.globalScore, final  List<ReportLayoutDTO> layouts = const [], @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'local_time_str') this.localTimeStr, @JsonKey(name: 'org_name') this.orgName, @JsonKey(name: 'user_name') this.userName, @JsonKey(name: 'scoring_engine_name') this.scoringEngineName, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'custom_preface_md') this.customPrefaceMd, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'total_tokens') this.totalTokens, @JsonKey(name: 'prompt_tokens') this.promptTokens, @JsonKey(name: 'completion_tokens') this.completionTokens, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens, @JsonKey(name: 'mcp_tool_audit') final  List<MCPToolAuditDTO> mcpToolAudit = const [], @JsonKey(name: 'has_warning') this.hasWarning = false, @JsonKey(name: 'synthesized_markdown') this.synthesizedMarkdown, @JsonKey(name: 'visible_metadata') final  List<String> visibleMetadata = const [], @JsonKey(name: 'grouped_extensions') final  Map<String, List<dynamic>> groupedExtensions = const {}, @JsonKey(name: 'penalties_applied') final  List<String> penaltiesApplied = const [], @JsonKey(name: 'evaluative_matrices') final  List<MatrixScorecardRowDto> evaluativeMatrices = const [], @JsonKey(name: 'informational_matrices') final  List<MatrixScorecardRowDto> informationalMatrices = const [], @JsonKey(name: 'matrix_visible_columns') final  List<String> matrixVisibleColumns = const ['label', 'score', 'distribution', 'row_explanation']}): _availableProfiles = availableProfiles,_layouts = layouts,_mcpToolAudit = mcpToolAudit,_visibleMetadata = visibleMetadata,_groupedExtensions = groupedExtensions,_penaltiesApplied = penaltiesApplied,_evaluativeMatrices = evaluativeMatrices,_informationalMatrices = informationalMatrices,_matrixVisibleColumns = matrixVisibleColumns,super._();
   factory _ReportDataDTO.fromJson(Map<String, dynamic> json) => _$ReportDataDTOFromJson(json);
 
 @override@JsonKey(name: 'workflow_id') final  String workflowId;
@@ -866,8 +880,12 @@ class _ReportDataDTO extends ReportDataDTO {
 }
 
 @override@JsonKey(name: 'created_at') final  String? createdAt;
+@override@JsonKey(name: 'local_time_str') final  String? localTimeStr;
 @override@JsonKey(name: 'org_name') final  String? orgName;
+@override@JsonKey(name: 'user_name') final  String? userName;
+@override@JsonKey(name: 'scoring_engine_name') final  String? scoringEngineName;
 @override@JsonKey(name: 'strictness_level') final  int? strictnessLevel;
+@override@JsonKey(name: 'custom_preface_md') final  String? customPrefaceMd;
 @override@JsonKey(name: 'scoring_strategy') final  ScoringStrategy? scoringStrategy;
 @override@JsonKey(name: 'cost_estimate') final  double? costEstimate;
 @override@JsonKey(name: 'total_tokens') final  int? totalTokens;
@@ -918,6 +936,13 @@ class _ReportDataDTO extends ReportDataDTO {
   return EqualUnmodifiableListView(_informationalMatrices);
 }
 
+ final  List<String> _matrixVisibleColumns;
+@override@JsonKey(name: 'matrix_visible_columns') List<String> get matrixVisibleColumns {
+  if (_matrixVisibleColumns is EqualUnmodifiableListView) return _matrixVisibleColumns;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_matrixVisibleColumns);
+}
+
 
 /// Create a copy of ReportDataDTO
 /// with the given fields replaced by the non-null parameter values.
@@ -934,7 +959,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ReportDataDTO(workflowId: $workflowId, profileId: $profileId, profileName: $profileName, availableProfiles: $availableProfiles, globalScore: $globalScore, layouts: $layouts, createdAt: $createdAt, orgName: $orgName, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit, hasWarning: $hasWarning, synthesizedMarkdown: $synthesizedMarkdown, visibleMetadata: $visibleMetadata, groupedExtensions: $groupedExtensions, penaltiesApplied: $penaltiesApplied, evaluativeMatrices: $evaluativeMatrices, informationalMatrices: $informationalMatrices)';
+  return 'ReportDataDTO(workflowId: $workflowId, profileId: $profileId, profileName: $profileName, availableProfiles: $availableProfiles, globalScore: $globalScore, layouts: $layouts, createdAt: $createdAt, localTimeStr: $localTimeStr, orgName: $orgName, userName: $userName, scoringEngineName: $scoringEngineName, strictnessLevel: $strictnessLevel, customPrefaceMd: $customPrefaceMd, scoringStrategy: $scoringStrategy, costEstimate: $costEstimate, totalTokens: $totalTokens, promptTokens: $promptTokens, completionTokens: $completionTokens, reasoningTokens: $reasoningTokens, mcpToolAudit: $mcpToolAudit, hasWarning: $hasWarning, synthesizedMarkdown: $synthesizedMarkdown, visibleMetadata: $visibleMetadata, groupedExtensions: $groupedExtensions, penaltiesApplied: $penaltiesApplied, evaluativeMatrices: $evaluativeMatrices, informationalMatrices: $informationalMatrices, matrixVisibleColumns: $matrixVisibleColumns)';
 }
 
 
@@ -945,7 +970,7 @@ abstract mixin class _$ReportDataDTOCopyWith<$Res> implements $ReportDataDTOCopy
   factory _$ReportDataDTOCopyWith(_ReportDataDTO value, $Res Function(_ReportDataDTO) _then) = __$ReportDataDTOCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore, List<ReportLayoutDTO> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> mcpToolAudit,@JsonKey(name: 'has_warning') bool hasWarning,@JsonKey(name: 'synthesized_markdown') String? synthesizedMarkdown,@JsonKey(name: 'visible_metadata') List<String> visibleMetadata,@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>> groupedExtensions,@JsonKey(name: 'penalties_applied') List<String> penaltiesApplied,@JsonKey(name: 'evaluative_matrices') List<MatrixScorecardRowDto> evaluativeMatrices,@JsonKey(name: 'informational_matrices') List<MatrixScorecardRowDto> informationalMatrices
+@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'profile_id') String profileId,@JsonKey(name: 'profile_name') I18nText? profileName,@JsonKey(name: 'available_profiles') Map<String, I18nText> availableProfiles,@JsonKey(name: 'global_score') double? globalScore, List<ReportLayoutDTO> layouts,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'local_time_str') String? localTimeStr,@JsonKey(name: 'org_name') String? orgName,@JsonKey(name: 'user_name') String? userName,@JsonKey(name: 'scoring_engine_name') String? scoringEngineName,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'total_tokens') int? totalTokens,@JsonKey(name: 'prompt_tokens') int? promptTokens,@JsonKey(name: 'completion_tokens') int? completionTokens,@JsonKey(name: 'reasoning_tokens') int? reasoningTokens,@JsonKey(name: 'mcp_tool_audit') List<MCPToolAuditDTO> mcpToolAudit,@JsonKey(name: 'has_warning') bool hasWarning,@JsonKey(name: 'synthesized_markdown') String? synthesizedMarkdown,@JsonKey(name: 'visible_metadata') List<String> visibleMetadata,@JsonKey(name: 'grouped_extensions') Map<String, List<dynamic>> groupedExtensions,@JsonKey(name: 'penalties_applied') List<String> penaltiesApplied,@JsonKey(name: 'evaluative_matrices') List<MatrixScorecardRowDto> evaluativeMatrices,@JsonKey(name: 'informational_matrices') List<MatrixScorecardRowDto> informationalMatrices,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns
 });
 
 
@@ -962,7 +987,7 @@ class __$ReportDataDTOCopyWithImpl<$Res>
 
 /// Create a copy of ReportDataDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? workflowId = null,Object? profileId = null,Object? profileName = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? layouts = null,Object? createdAt = freezed,Object? orgName = freezed,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,Object? hasWarning = null,Object? synthesizedMarkdown = freezed,Object? visibleMetadata = null,Object? groupedExtensions = null,Object? penaltiesApplied = null,Object? evaluativeMatrices = null,Object? informationalMatrices = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? workflowId = null,Object? profileId = null,Object? profileName = freezed,Object? availableProfiles = null,Object? globalScore = freezed,Object? layouts = null,Object? createdAt = freezed,Object? localTimeStr = freezed,Object? orgName = freezed,Object? userName = freezed,Object? scoringEngineName = freezed,Object? strictnessLevel = freezed,Object? customPrefaceMd = freezed,Object? scoringStrategy = freezed,Object? costEstimate = freezed,Object? totalTokens = freezed,Object? promptTokens = freezed,Object? completionTokens = freezed,Object? reasoningTokens = freezed,Object? mcpToolAudit = null,Object? hasWarning = null,Object? synthesizedMarkdown = freezed,Object? visibleMetadata = null,Object? groupedExtensions = null,Object? penaltiesApplied = null,Object? evaluativeMatrices = null,Object? informationalMatrices = null,Object? matrixVisibleColumns = null,}) {
   return _then(_ReportDataDTO(
 workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
 as String,profileId: null == profileId ? _self.profileId : profileId // ignore: cast_nullable_to_non_nullable
@@ -971,9 +996,13 @@ as I18nText?,availableProfiles: null == availableProfiles ? _self._availableProf
 as Map<String, I18nText>,globalScore: freezed == globalScore ? _self.globalScore : globalScore // ignore: cast_nullable_to_non_nullable
 as double?,layouts: null == layouts ? _self._layouts : layouts // ignore: cast_nullable_to_non_nullable
 as List<ReportLayoutDTO>,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String?,localTimeStr: freezed == localTimeStr ? _self.localTimeStr : localTimeStr // ignore: cast_nullable_to_non_nullable
 as String?,orgName: freezed == orgName ? _self.orgName : orgName // ignore: cast_nullable_to_non_nullable
+as String?,userName: freezed == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
+as String?,scoringEngineName: freezed == scoringEngineName ? _self.scoringEngineName : scoringEngineName // ignore: cast_nullable_to_non_nullable
 as String?,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
-as int?,scoringStrategy: freezed == scoringStrategy ? _self.scoringStrategy : scoringStrategy // ignore: cast_nullable_to_non_nullable
+as int?,customPrefaceMd: freezed == customPrefaceMd ? _self.customPrefaceMd : customPrefaceMd // ignore: cast_nullable_to_non_nullable
+as String?,scoringStrategy: freezed == scoringStrategy ? _self.scoringStrategy : scoringStrategy // ignore: cast_nullable_to_non_nullable
 as ScoringStrategy?,costEstimate: freezed == costEstimate ? _self.costEstimate : costEstimate // ignore: cast_nullable_to_non_nullable
 as double?,totalTokens: freezed == totalTokens ? _self.totalTokens : totalTokens // ignore: cast_nullable_to_non_nullable
 as int?,promptTokens: freezed == promptTokens ? _self.promptTokens : promptTokens // ignore: cast_nullable_to_non_nullable
@@ -987,7 +1016,8 @@ as List<String>,groupedExtensions: null == groupedExtensions ? _self._groupedExt
 as Map<String, List<dynamic>>,penaltiesApplied: null == penaltiesApplied ? _self._penaltiesApplied : penaltiesApplied // ignore: cast_nullable_to_non_nullable
 as List<String>,evaluativeMatrices: null == evaluativeMatrices ? _self._evaluativeMatrices : evaluativeMatrices // ignore: cast_nullable_to_non_nullable
 as List<MatrixScorecardRowDto>,informationalMatrices: null == informationalMatrices ? _self._informationalMatrices : informationalMatrices // ignore: cast_nullable_to_non_nullable
-as List<MatrixScorecardRowDto>,
+as List<MatrixScorecardRowDto>,matrixVisibleColumns: null == matrixVisibleColumns ? _self._matrixVisibleColumns : matrixVisibleColumns // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 

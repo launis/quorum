@@ -77,7 +77,11 @@ def detect_diagram_type(diagram_code: str) -> str:
         return 'unknown'
 
 def replace_mermaid_with_placeholders(markdown_text: str, diagrams: dict) -> str:
+<<<<<<< HEAD
     """Replace mermaid code blocks with simple text placeholders"""
+=======
+    """Replace mermaid code blocks with HTML div placeholders"""
+>>>>>>> 7929907139540a563a2ef89733e1c04dfb9a1916
     modified_text = markdown_text
     
     # Sort diagrams by position (reverse order to maintain positions)
@@ -86,13 +90,18 @@ def replace_mermaid_with_placeholders(markdown_text: str, diagrams: dict) -> str
     for diagram_id, diagram_info in sorted_diagrams:
         # Find and replace mermaid code block
         pattern = r'```mermaid\n' + re.escape(diagram_info['code']) + r'\n```'
+<<<<<<< HEAD
         # Simple text placeholder that markdown won't mangle (no underscores)
         safe_id = diagram_id.replace('_', '')
         placeholder = f'MERMAIDPLACEHOLDER{safe_id}'
+=======
+        placeholder = f'<div id="{diagram_id}" class="mermaid-placeholder" data-type="{diagram_info["type"]}"></div>'
+>>>>>>> 7929907139540a563a2ef89733e1c04dfb9a1916
         modified_text = re.sub(pattern, placeholder, modified_text, count=1)
     
     return modified_text
 
+<<<<<<< HEAD
 def inject_mermaid_html(html_content: str, diagrams: dict) -> str:
     """Replace text placeholders with actual mermaid HTML divs after markdown conversion"""
     modified_html = html_content
@@ -109,6 +118,8 @@ def inject_mermaid_html(html_content: str, diagrams: dict) -> str:
         
     return modified_html
 
+=======
+>>>>>>> 7929907139540a563a2ef89733e1c04dfb9a1916
 def markdown_to_html(markdown_text: str) -> str:
     """Convert markdown to HTML"""
     try:
@@ -125,11 +136,27 @@ def markdown_to_html(markdown_text: str) -> str:
 def create_html_template(html_content: str, diagrams: dict) -> str:
     """Create complete HTML template with Mermaid support"""
     
+<<<<<<< HEAD
     mermaid_scripts = """
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose', maxTextSize: 90000 });
         });
+=======
+    mermaid_scripts = ""
+    for diagram_id, diagram_info in diagrams.items():
+        mermaid_scripts += f"""
+    <script type="module" id="{diagram_id}_script">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({{ startOnLoad: true, theme: 'default', securityLevel: 'loose', maxTextSize: 90000 }});
+        
+        const placeholder = document.getElementById('{diagram_id}');
+        if (placeholder) {{
+            const mermaidCode = `{diagram_info['code']}`;
+            placeholder.innerHTML = mermaidCode;
+            await mermaid.contentLoaded();
+        }}
+>>>>>>> 7929907139540a563a2ef89733e1c04dfb9a1916
     </script>
 """
     
@@ -260,15 +287,29 @@ def create_html_template(html_content: str, diagrams: dict) -> str:
         }}
         
         .mermaid {{
+<<<<<<< HEAD
             text-align: center;
+=======
+            display: flex;
+            justify-content: center;
+>>>>>>> 7929907139540a563a2ef89733e1c04dfb9a1916
             margin: 30px 0;
             background: #fafafa;
             padding: 20px;
             border-radius: 4px;
+<<<<<<< HEAD
         }}
         
         .mermaid-placeholder {{
             text-align: center;
+=======
+            page-break-inside: avoid;
+        }}
+        
+        .mermaid-placeholder {{
+            display: flex;
+            justify-content: center;
+>>>>>>> 7929907139540a563a2ef89733e1c04dfb9a1916
             margin: 30px 0;
             background: #fafafa;
             padding: 20px;
@@ -406,7 +447,11 @@ def html_to_pdf(html_content: str, output_path: str) -> bool:
                     await page.goto(f'file://{temp_html}', wait_until='networkidle')
                     
                     # Wait for Mermaid diagrams to render
+<<<<<<< HEAD
                     await page.wait_for_timeout(5000)
+=======
+                    await page.wait_for_timeout(3000)
+>>>>>>> 7929907139540a563a2ef89733e1c04dfb9a1916
                     
                     # Generate PDF
                     await page.pdf(
@@ -471,9 +516,12 @@ def main():
     # Step 4: Convert markdown to HTML
     print_status("Converting markdown to HTML...", "info")
     html_content = markdown_to_html(modified_markdown)
+<<<<<<< HEAD
     
     # Step 4.5: Inject mermaid HTML
     html_content = inject_mermaid_html(html_content, diagrams)
+=======
+>>>>>>> 7929907139540a563a2ef89733e1c04dfb9a1916
     print_status("Markdown converted to HTML", "success")
     
     # Step 5: Create HTML template
@@ -495,4 +543,8 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     main()
+=======
+    main()
+>>>>>>> 7929907139540a563a2ef89733e1c04dfb9a1916

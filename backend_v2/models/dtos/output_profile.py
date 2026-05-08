@@ -31,7 +31,7 @@ class OutputProfileCreateDTO(V2CoreBase):
     name: I18nText = Field(..., description="Localized name.")
     description: I18nText | None = Field(default=None, description="Localized description.")
     visible_metadata: list[str] = Field(
-        default_factory=lambda: ["date", "organization"],
+        default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
         description="List of metadata fields visible on the UI and PDF cover header.",
     )
     visible_extensions: list[LaxXaiExtensionType] = Field(
@@ -100,7 +100,9 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     workflow_id: str
     name: I18nText
     description: I18nText | None = None
-    visible_metadata: list[str] = Field(default_factory=lambda: ["date", "organization"])
+    visible_metadata: list[str] = Field(
+        default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"]
+    )
     visible_extensions: list[LaxXaiExtensionType] = Field(default_factory=list)
     max_extension_items: int | None = None
     display_scale: Literal["original", "custom", "normalized_100"] = "original"

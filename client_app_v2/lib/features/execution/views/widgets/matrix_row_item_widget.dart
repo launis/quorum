@@ -44,7 +44,7 @@ class MatrixRowItemWidget extends StatelessWidget {
                     fontWeight: isEval ? FontWeight.bold : FontWeight.w600,
                   ),
                 ),
-                if (matrix.justification.isNotEmpty) ...[
+                if (matrix.rowExplanation.isNotEmpty) ...[
                   const SizedBox(height: 8.0),
                   Text(
                     AppLocalizations.of(context)!.xaiJustification,
@@ -55,7 +55,7 @@ class MatrixRowItemWidget extends StatelessWidget {
                   ),
                   const SizedBox(height: 2.0),
                   Text(
-                    matrix.justification,
+                    matrix.rowExplanation,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,

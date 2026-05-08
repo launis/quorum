@@ -48,6 +48,9 @@ class ReportRendererWidget extends ConsumerWidget {
       primary: false,
       children: [
         _buildMetadataHeaderBox(context),
+        if (payload.customPrefaceMd != null &&
+            payload.customPrefaceMd!.isNotEmpty)
+          _buildCustomPrefaceBox(context),
         if (payload.synthesizedMarkdown != null &&
             payload.synthesizedMarkdown!.isNotEmpty)
           _buildGlobalSynthesisBox(context),
@@ -66,6 +69,7 @@ class ReportRendererWidget extends ConsumerWidget {
           globalAverage: payload.globalScore,
           evaluativeMatrices: payload.evaluativeMatrices,
           informationalMatrices: payload.informationalMatrices,
+          visibleColumns: payload.matrixVisibleColumns,
         ),
 
         // XAI Evidence Box — only renders when MCP tool searches were executed
@@ -119,6 +123,40 @@ class ReportRendererWidget extends ConsumerWidget {
             child: OutputRenderer(
               markdownContent: payload.synthesizedMarkdown!,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomPrefaceBox(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        top: 16.0,
+        bottom: 8.0,
+        left: 16.0,
+        right: 16.0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                left: BorderSide(color: Colors.blue.shade400, width: 4),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: OutputRenderer(markdownContent: payload.customPrefaceMd!),
           ),
         ],
       ),
@@ -197,15 +235,8 @@ class ReportRendererWidget extends ConsumerWidget {
         ? '\$${payload.costEstimate!.toStringAsFixed(4)}'
         : '-';
 
-    bool isVisible(String key) {
-      if (payload.visibleMetadata.isEmpty) return true;
-      return payload.visibleMetadata.contains(key);
-    }
-
-    final showOrg = isVisible('organization');
-    final showDate = isVisible('date');
-    final showCost = isVisible('cost');
-    final showTokens = isVisible('tokens');
+    final showCost = payload.visibleMetadata.contains('cost');
+    final showTokens = payload.visibleMetadata.contains('tokens');
 
     return Card(
       elevation: 3,
@@ -224,28 +255,51 @@ class ReportRendererWidget extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
 
-            // KONTEKSTI
-            if (showOrg)
-              Text(
-                l10n.reportContext(defaultOrgName),
-                style: TextStyle(color: Colors.grey.shade800),
-              ),
-            if (showDate && payload.createdAt != null)
-              Text(
-                l10n.reportTimestamp(payload.createdAt.toString()),
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-              ),
-
-            if (payload.strictnessLevel != null ||
-                payload.scoringStrategy != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (payload.scoringStrategy != null)
-                      Container(
+            ...payload.visibleMetadata.map((metaKey) {
+              switch (metaKey) {
+                case 'organization':
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4.0),
+                    child: Text(
+                      l10n.reportContext(defaultOrgName),
+                      style: TextStyle(color: Colors.grey.shade800),
+                    ),
+                  );
+                case 'date':
+                  if (payload.localTimeStr != null ||
+                      payload.createdAt != null) {
+                    final dateVal = payload.localTimeStr ?? payload.createdAt!;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4.0),
+                      child: Text(
+                        l10n.reportTimestamp(dateVal),
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                case 'user':
+                  if (payload.userName != null) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4.0),
+                      child: Text(
+                        'Käyttäjä: ${payload.userName}',
+                        style: TextStyle(
+                          color: Colors.grey.shade800,
+                          fontSize: 13,
+                        ),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                case 'scoring_engine':
+                  if (payload.scoringStrategy != null) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4.0, top: 4.0),
+                      child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
                           vertical: 4,
@@ -275,40 +329,55 @@ class ReportRendererWidget extends ConsumerWidget {
                           ],
                         ),
                       ),
-                    if (payload.strictnessLevel != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.indigo.shade50,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.indigo.shade200),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.balance,
-                              size: 14,
-                              color: Colors.indigo.shade700,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '${l10n.strictnessSelectorTitle}: ${_getStrictnessName(context, payload.strictnessLevel!)}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.indigo.shade800,
-                                fontWeight: FontWeight.bold,
+                    );
+                  }
+                  return const SizedBox.shrink();
+                case 'strictness':
+                  if (payload.strictnessLevel != null) {
+                    final parsedStrictness = int.tryParse(
+                      payload.strictnessLevel.toString(),
+                    );
+                    if (parsedStrictness != null) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 4.0, top: 4.0),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.indigo.shade50,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: Colors.indigo.shade200),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.balance,
+                                size: 14,
+                                color: Colors.indigo.shade700,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 6),
+                              Text(
+                                '${l10n.strictnessSelectorTitle}: ${_getStrictnessName(context, parsedStrictness)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.indigo.shade800,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                  ],
-                ),
-              ),
+                      );
+                    }
+                  }
+                  return const SizedBox.shrink();
+                default:
+                  return const SizedBox.shrink();
+              }
+            }),
 
             if (showCost || showTokens) const Divider(height: 24),
 
@@ -401,14 +470,18 @@ class ReportRendererWidget extends ConsumerWidget {
 
     Widget content;
     try {
-      content = switch (layout.presetView) {
-        PresetView.metrics1d => _build1DMetrics(context, layout),
-        PresetView.compare2d => _build2DCompare(context, layout),
-        PresetView.matrix3d => _build3DComplex(context, layout),
-        PresetView.complex3d => _build3DRadar(context, layout),
-        PresetView.textOnly => const SizedBox(),
-        _ => _build1DMetrics(context, layout),
-      };
+      if (layout.visibleColumns.isEmpty) {
+        content = const SizedBox();
+      } else {
+        content = switch (layout.presetView) {
+          PresetView.metrics1d => _build1DMetrics(context, layout),
+          PresetView.compare2d => _build2DCompare(context, layout),
+          PresetView.matrix3d => _build3DComplex(context, layout),
+          PresetView.complex3d => _build3DRadar(context, layout),
+          PresetView.textOnly => const SizedBox(),
+          _ => _build1DMetrics(context, layout),
+        };
+      }
     } catch (e, st) {
       ref
           .read(loggerServiceProvider)

@@ -2247,15 +2247,15 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Kriittinen Turvallisuus- ja Etiikkavalvoja",
-                    "en": "Critical Security and Ethics Guardrail"
+                    "fi": "Vastuullisuus",
+                    "en": "Responsibility"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Valvoo järjestelmällisesti ja objektiivisesti turvallisuusrajoitteita, erottaen todennettavat uhat olettamuksista ja varmistaen eettisen linjanmukaisuuden.",
-                    "en": "Systematically and objectively monitors security guardrails, separating verifiable threats from assumptions and ensuring ethical compliance."
+                    "fi": "Varmistaa, ettei tekoälyä käytetä tavalla, joka tuottaa perusteetonta tai riskialtista tietoa.",
+                    "en": "Ensures the AI is not used to generate unfounded or risky information."
                 }
             },
             "category_id": "agent_role",
@@ -3519,15 +3519,15 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Turvallisuus- ja Etiikkasuodatin",
-                    "en": "Security & Ethics Guardrail"
+                    "fi": "Vastuullisuus",
+                    "en": "Responsibility"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Tunnistaa ja mittaa järjestelmätason turvallisuus- sekä eettisiä riskejä.",
-                    "en": "Identifies and measures systemic security and ethical risks."
+                    "fi": "Varmistaa, ettei tekoälyä käytetä tavalla, joka tuottaa perusteetonta tai riskialtista tietoa.",
+                    "en": "Ensures the AI is not used to generate unfounded or risky information."
                 }
             },
             "category_id": "matrix",
@@ -5123,6 +5123,78 @@
             ],
             "organization_id": "SYSTEM",
             "is_evaluative": true
+        },
+        {
+            "id": "blk_a1b2c3d4e5f6a1b2c3d4",
+            "type": "string",
+            "slug": "row_explanation_generator",
+            "category_id": "system_rule",
+            "label": {
+                "default_locale": "en",
+                "translations": {
+                    "en": "Row Explanation Generator",
+                    "fi": "Rivin selityksen generaattori"
+                }
+            },
+            "description": {
+                "default_locale": "en",
+                "translations": {
+                    "en": "Generates a single sentence explanation for a specific matrix row based on its score.",
+                    "fi": "Luo yksittäisen virkkeen selityksen matriisin riville sen saaman pistemäärän perusteella."
+                }
+            },
+            "ai_description": "<system_directive>\n  <role>Matrix Scoring Analyst</role>\n  <objective>\n    Generate a short, single-sentence explanation for a specific matrix row based on the user's normalized score (0-100).\n    Apply the strict SCORE-DRIVEN TONE AND STRUCTURE rules:\n    0 - 39: Catastrophic Failure\n    40 - 69: Mediocre / Flawed\n    70 - 89: Strong / Competent\n    90 - 100: Mastery / Excellent\n  </objective>\n  <rules>\n    - REQUIREMENT: Output EXACTLY ONE short sentence.\n    - REQUIREMENT: Adhere strictly to the defined tone bracket corresponding to the score.\n    - REQUIREMENT: Output language must match the requested UI locale (default to Finnish unless specified).\n  </rules>\n</system_directive>",
+            "scale_min": 0,
+            "scale_max": 100,
+            "scales": [
+                {
+                    "score": 0,
+                    "name": {
+                        "default_locale": "en",
+                        "translations": {
+                            "en": "Catastrophic",
+                            "fi": "Katastrofaalinen"
+                        }
+                    },
+                    "ai_label": "CATASTROPHIC FAILURE",
+                    "claims": [
+                        {
+                            "label": {
+                                "default_locale": "en",
+                                "translations": {
+                                    "en": "Catastrophic Failure",
+                                    "fi": "Katastrofaalinen epäonnistuminen"
+                                }
+                            },
+                            "ai_description": "Apply a tone of catastrophic failure."
+                        }
+                    ]
+                },
+                {
+                    "score": 100,
+                    "name": {
+                        "default_locale": "en",
+                        "translations": {
+                            "en": "Mastery",
+                            "fi": "Mestaruus"
+                        }
+                    },
+                    "ai_label": "MASTERY",
+                    "claims": [
+                        {
+                            "label": {
+                                "default_locale": "en",
+                                "translations": {
+                                    "en": "Mastery / Excellent",
+                                    "fi": "Mestaruus / Erinomainen"
+                                }
+                            },
+                            "ai_description": "Apply a tone of mastery and excellence."
+                        }
+                    ]
+                }
+            ],
+            "organization_id": "SYSTEM"
         }
     ],
     "workflows": [
@@ -6365,7 +6437,6 @@
     "users": [
         {
             "email": "root@example.com",
-            "display_name": "System Root",
             "role": "ROOT",
             "organization_id": "org_system000000",
             "is_active": true,
@@ -6374,11 +6445,11 @@
             "id": "usr_a3fd6b3d77c748f4",
             "slug": "root_master",
             "created_at": "2026-01-01T00:00:00Z",
-            "created_by": null
+            "created_by": null,
+            "name": "System Root"
         },
         {
             "email": "admin@demo.com",
-            "display_name": "Demo Admin",
             "role": "ADMIN",
             "organization_id": "org_e531d2ed8a6641f6",
             "is_active": true,
@@ -6387,11 +6458,11 @@
             "id": "usr_18a0d5f6151349a5",
             "slug": "admin_1",
             "created_at": "2026-01-01T00:00:00Z",
-            "created_by": null
+            "created_by": null,
+            "name": "Demo Admin"
         },
         {
             "email": "manager@demo.com",
-            "display_name": "Demo Manager",
             "role": "MANAGER",
             "organization_id": "org_e531d2ed8a6641f6",
             "is_active": true,
@@ -6400,11 +6471,11 @@
             "id": "usr_936983a7a6c643ab",
             "slug": "manager_1",
             "created_at": "2026-01-01T00:00:00Z",
-            "created_by": null
+            "created_by": null,
+            "name": "Demo Manager"
         },
         {
             "email": "member@demo.com",
-            "display_name": "Demo Member",
             "role": "MEMBER",
             "organization_id": "org_e531d2ed8a6641f6",
             "is_active": true,
@@ -6413,11 +6484,11 @@
             "id": "usr_1c1cf9c5178846bb",
             "slug": "member_1",
             "created_at": "2026-01-01T00:00:00Z",
-            "created_by": null
+            "created_by": null,
+            "name": "Demo Member"
         },
         {
             "email": "viewer@demo.com",
-            "display_name": "Demo Viewer",
             "role": "VIEWER",
             "organization_id": "org_e531d2ed8a6641f6",
             "is_active": true,
@@ -6426,7 +6497,8 @@
             "id": "usr_b2d6e4487afc4e69",
             "slug": "viewer_1",
             "created_at": "2026-01-01T00:00:00Z",
-            "created_by": null
+            "created_by": null,
+            "name": "Demo Viewer"
         }
     ],
     "output_profiles": [
@@ -6483,8 +6555,8 @@
                     "title": {
                         "default_locale": "fi",
                         "translations": {
-                            "en": " Intellectual Self-Defense Radar: 3D Cognitive Analysis",
-                            "fi": "Älyllisen Itsepuolustuksen Tutka: 3D-Kognitioanalyysi"
+                            "en": "DETAILED SCORING MATRIX",
+                            "fi": "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS"
                         }
                     },
                     "description": {
@@ -6525,8 +6597,8 @@
                     "title": {
                         "default_locale": "en",
                         "translations": {
-                            "en": "Reality Radar: Idea Robustness and Cognitive Blindness",
-                            "fi": "Reaalimaailman Tutka: Idean Kestävyys ja Kognitiivinen Sokeus"
+                            "en": "DETAILED SCORING MATRIX",
+                            "fi": "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS"
                         }
                     },
                     "description": {
@@ -6567,8 +6639,8 @@
                     "title": {
                         "default_locale": "en",
                         "translations": {
-                            "fi": "Illuusionpaljastin: Analyysin Läpinäkyvyyden ja Vastuullisuuden Testi",
-                            "en": "The Illusion Detector: Test of Analytical Transparency and Accountability"
+                            "fi": "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS",
+                            "en": "DETAILED SCORING MATRIX"
                         }
                     },
                     "description": {

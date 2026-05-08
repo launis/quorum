@@ -412,6 +412,22 @@ async def generate_profile_synthesis_and_pdf_task(
                 await redis.enqueue_job("generate_pdf_job", execution_id, accept_language, profile_id)
             return
 
+        async def _update_render_status(msg: str) -> None:
+            v_step_id = f"sys_render_{profile_id}"
+            exec_record_local = await repo.get_execution(execution_id, hydrate=False)
+            if exec_record_local:
+                old_state = exec_record_local.step_states.get(v_step_id)
+                if old_state:
+                    updated_state = old_state.model_copy(update={"label": msg, "status": "running"})
+                else:
+                    updated_state = ExecutionStepState(id=v_step_id, label=msg, status="running")
+                new_states = dict(exec_record_local.step_states)
+                new_states[v_step_id] = updated_state
+                updates = {"step_states": {k: v.model_dump() for k, v in new_states.items()}}
+                await repo.update_execution(execution_id, updates)
+
+        await _update_render_status("Lasketaan dynaamisia tuloksia...")
+
         projector = StateProjector()
         for evt in execution.execution_trace:
             # Memory FinOps Protocol: Prevent 200-page RAW inputs from hydrating into RAM
@@ -531,6 +547,7 @@ async def generate_profile_synthesis_and_pdf_task(
         )  # noqa: E501
 
         # Execute Text Consolidation Hook
+        await _update_render_status("Generoidaan tekoälysynteesiä (tämä saattaa kestää verkosta riippuen)...")
         hook_res = await hook_registry.execute("text_consolidation_hook", state, deps)
 
         if hook_res.success and hook_res.state_delta:
@@ -588,6 +605,7 @@ async def generate_profile_synthesis_and_pdf_task(
             logger.info(f"[Task] Synthesis cached for {execution_id} (Profile: {profile_id})")
 
         # Now trigger the statically cached PDF job based on our newly cached synthesis
+        await _update_render_status("Koostetaan tulosteita valmiiksi...")
         if redis:
             await redis.enqueue_job("generate_pdf_job", execution_id, accept_language, profile_id)
 

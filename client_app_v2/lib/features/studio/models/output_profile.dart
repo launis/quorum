@@ -47,6 +47,9 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
     @Default(['pdf', 'raw_json']) List<String> allowedExports,
     @Default(true) bool omitEmptySections,
     @Default([]) List<String> allowedMcpTools,
+    @Default(['label', 'score', 'distribution', 'row_explanation'])
+    @JsonKey(name: 'matrix_visible_columns')
+    List<String> matrixVisibleColumns,
   }) = _SynthesisConfigDTO;
 
   factory SynthesisConfigDTO.fromJson(Map<String, dynamic> json) =>

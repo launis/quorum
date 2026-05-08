@@ -135,14 +135,14 @@ class UserBase(V2CoreBase):
     """
 
     email: Annotated[EmailStr, Field(description="User email address")]
-    display_name: Annotated[str | None, Field(description="User display name")] = None
+    name: Annotated[str | None, Field(description="User display name")] = None
     role: Annotated[LaxUserRole, Field(description="Assigned permission role")]
     organization_id: Annotated[str | None, Field(description="ID of the organization this user belongs to")] = None
     is_active: Annotated[bool, Field(description="Is the account active?")]
     language: Annotated[Literal["fi", "en", "sv"], Field(description="Preferred UI language")]
     theme_mode: Annotated[Literal["system", "light", "dark"], Field(description="Preferred Theme Mode")]
 
-    @field_validator("display_name", "organization_id")
+    @field_validator("name", "organization_id")
     @classmethod
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
         if v is not None and (not v or not v.strip()):
@@ -279,7 +279,7 @@ class UserUpdate(BaseDTO):
         password (Optional[str]): New password (only for admin resets).
     """
 
-    display_name: str | None = None
+    name: str | None = None
     role: UserRole | None = None
     is_active: bool | None = None
     password: str | None = None  # Only for admin resets

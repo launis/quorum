@@ -6,8 +6,13 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 /// Enforces Zero-Math SDUI rules: only renders data provided by the backend DTO.
 class AtomMatrixTableWidget extends StatelessWidget {
   final List<MatrixScorecardRowDto> matrices;
+  final List<String> visibleColumns;
 
-  const AtomMatrixTableWidget({super.key, required this.matrices});
+  const AtomMatrixTableWidget({
+    super.key,
+    required this.matrices,
+    required this.visibleColumns,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -78,34 +83,47 @@ class AtomMatrixTableWidget extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           child: Row(
             children: [
-              Expanded(
-                flex: 3,
-                child: Text(
-                  l10n.lblLogicMatrix,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+              if (visibleColumns.contains('label'))
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    l10n.lblLogicMatrix,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-              Expanded(
-                flex: 1,
-                child: Text(
-                  l10n.score,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+              if (visibleColumns.contains('score'))
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    l10n.score,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  l10n.atomicBreakdownTitle,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+              if (visibleColumns.contains('distribution') ||
+                  visibleColumns.contains('atomic_breakdown'))
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    l10n.atomicBreakdownTitle,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-              Expanded(
-                flex: 1,
-                child: Text(
-                  l10n.normalizedScore,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+              if (visibleColumns.contains('row_explanation'))
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    l10n.rowExplanationTitle,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
+              if (visibleColumns.contains('normalized_score'))
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    l10n.normalizedScore,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
             ],
           ),
         ),
@@ -129,56 +147,72 @@ class AtomMatrixTableWidget extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        (Localizations.localeOf(context).languageCode == 'fi'
-                                ? m.labelFi
-                                : m.labelEn) +
-                            (m.isEvaluative ? ' *' : ''),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: Text(
-                        m.score == null
-                            ? '-'
-                            : '${m.score!.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: sortedLevels.map((lvl) {
-                          final display = levelMap[lvl]!;
-                          final name = levelNames[lvl] ?? 'T$lvl';
-                          final numLvl = double.tryParse(lvl)?.toInt() ?? lvl;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 2.0),
-                            child: Text(
-                              '$numLvl - $name: $display',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: Text(
-                        m.normalizedScore != null
-                            ? '${m.normalizedScore!.toStringAsFixed(1)} %'
-                            : '-',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
+                    if (visibleColumns.contains('label'))
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          (Localizations.localeOf(context).languageCode == 'fi'
+                                  ? m.labelFi
+                                  : m.labelEn) +
+                              (m.isEvaluative ? ' *' : ''),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
-                    ),
+                    if (visibleColumns.contains('score'))
+                      Expanded(
+                        flex: 1,
+                        child: Text(
+                          m.score == null
+                              ? '-'
+                              : '${m.score!.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    if (visibleColumns.contains('distribution') ||
+                        visibleColumns.contains('atomic_breakdown'))
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: sortedLevels.map((lvl) {
+                            final display = levelMap[lvl]!;
+                            final name = levelNames[lvl] ?? 'T$lvl';
+                            final numLvl = double.tryParse(lvl)?.toInt() ?? lvl;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 2.0),
+                              child: Text(
+                                '$numLvl - $name: $display',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    if (visibleColumns.contains('row_explanation'))
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          m.rowExplanation,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    if (visibleColumns.contains('normalized_score'))
+                      Expanded(
+                        flex: 1,
+                        child: Text(
+                          m.normalizedScore != null
+                              ? '${m.normalizedScore!.toStringAsFixed(1)} %'
+                              : '-',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               );
@@ -221,12 +255,14 @@ class AtomMatrixTableWidget extends StatelessWidget {
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                m.score == null
-                    ? '${l10n.score}: -'
-                    : '${l10n.score}: ${m.score!.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
-              ),
-              if (m.normalizedScore != null)
+              if (visibleColumns.contains('score'))
+                Text(
+                  m.score == null
+                      ? '${l10n.score}: -'
+                      : '${l10n.score}: ${m.score!.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
+                ),
+              if (visibleColumns.contains('normalized_score') &&
+                  m.normalizedScore != null)
                 Text(
                   '100 %: ${m.normalizedScore!.toStringAsFixed(1)} %',
                   style: const TextStyle(
@@ -234,17 +270,32 @@ class AtomMatrixTableWidget extends StatelessWidget {
                     color: Colors.blue,
                   ),
                 ),
+              if (visibleColumns.contains('row_explanation'))
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Text(
+                    m.rowExplanation,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
             ],
           ),
-          children: sortedLevels.map((lvl) {
-            final display = m.levelBreakdown![lvl]!;
-            final name = m.levelNames?[lvl] ?? 'T$lvl';
-            final numLvl = double.tryParse(lvl)?.toInt() ?? lvl;
-            return ListTile(
-              dense: true,
-              title: Text('$numLvl - $name: $display'),
-            );
-          }).toList(),
+          children:
+              (visibleColumns.contains('distribution') ||
+                  visibleColumns.contains('atomic_breakdown'))
+              ? sortedLevels.map((lvl) {
+                  final display = m.levelBreakdown![lvl]!;
+                  final name = m.levelNames?[lvl] ?? 'T$lvl';
+                  final numLvl = double.tryParse(lvl)?.toInt() ?? lvl;
+                  return ListTile(
+                    dense: true,
+                    title: Text('$numLvl - $name: $display'),
+                  );
+                }).toList()
+              : [],
         );
       },
     );

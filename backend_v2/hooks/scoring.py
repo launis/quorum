@@ -28,6 +28,11 @@ from backend_v2.utils.math_utils import (
     scale_to_custom_range,
 )
 from backend_v2.utils.scoring import get_scoring_engine
+from backend_v2.llm.client import LLMClient
+from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +43,15 @@ class ScoringPayloadWrapper(V2CoreBase):
     step_falsifier: StepFalsifierDTO | None = None
     step_panel: StepPanelDTO | None = None
     evaluative_matrices: dict[str, float] | None = Field(default=None, alias="_evaluative_matrices")
+
+
+class RowExplanationOutputItem(V2CoreBase):
+    matrix_id: str
+    row_explanation: str
+
+
+class MatrixExplanationsResult(V2CoreBase):
+    explanations: list[RowExplanationOutputItem]
 
 
 class StateInputWrapper(V2CoreBase):
@@ -979,6 +993,59 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             )
 
         if updates_made:
+            # Epic 49: Generate Row Explanations dynamically using the LLM
+            matrices_to_explain = []
+            for pb_id, norm_val in eval_map.items():
+                matrices_to_explain.append({"matrix_id": pb_id, "score": norm_val})
+            
+            if matrices_to_explain:
+                # Check if row_explanation_generator block exists
+                try:
+                    all_blocks = await deps.comp_repo.get_all_prompt_blocks()
+                    gen_block = next((PromptBlock.model_validate(b) for b in all_blocks if b.get("slug") == "row_explanation_generator"), None)
+                    
+                    if gen_block and gen_block.ai_description:
+                        sys_prompt = gen_block.ai_description
+                        
+                        # Setup Batch Prompt with strict XML fencing (Rule 38, 60, 88)
+                        user_msg = (
+                            "<execution_parameters>\n"
+                            "  <task>generate_row_explanations</task>\n"
+                            "</execution_parameters>\n"
+                            "<source_data>\n"
+                            f"{json.dumps(matrices_to_explain, indent=2)}\n"
+                            "</source_data>"
+                        )
+                        messages = [
+                            {"role": "system", "content": sys_prompt},
+                            {"role": "user", "content": user_msg}
+                        ]
+                        
+                        client = await LLMClient.from_strategy("evaluation", repository=deps.system_repo)
+                        executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
+                        
+                        # Use execute_structured_task instead of execute_tool_loop (Rule 94)
+                        result_data, usage = await executor.execute_structured_task(
+                            client=client,
+                            messages=messages,
+                            response_model=MatrixExplanationsResult
+                        )
+                        for item in result_data.explanations:
+                            m_id = item.matrix_id
+                            if m_id in new_payload:
+                                raw_data = new_payload[m_id]
+                                try:
+                                    mapped = LightweightMatrixOutput.map_llm_extensions_to_domain(raw_data)
+                                    parsed_payload = LightweightMatrixOutput.model_validate(mapped)
+                                    parsed_payload.justification = item.row_explanation
+                                    dumped_matrix = parsed_payload.model_dump(mode="json")
+                                    dumped_matrix["__replace__"] = True
+                                    new_payload[m_id] = dumped_matrix
+                                except Exception as e:
+                                    logger.warning("[ScoringHook] Failed to inject justification for %s: %s", m_id, e)
+                except Exception as e:
+                    logger.error("[ScoringHook] Row explanation generation failed: %s", e, exc_info=True)
+
             # V2 Dict direct mutation avoided, send back state_delta
             return HookResult(success=True, state_delta=new_payload)
 

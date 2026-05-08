@@ -54,7 +54,7 @@ abstract class User with _$User {
     required String email,
     required UserRole role,
     String? organizationId,
-    String? displayName,
+    String? name,
     String? createdAt,
     String? language,
     String? themeMode,

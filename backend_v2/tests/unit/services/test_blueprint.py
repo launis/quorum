@@ -39,6 +39,7 @@ def mock_repo_transformer() -> Any:
             "output_profiles": {
                 "prf_dddd1111dddd1111": {
                     "name": {"default_locale": "en", "translations": {"en": "Default"}},
+                    "synthesis": None,
                     "layouts": [
                         {
                             "preset_view": "1d_metrics",
@@ -58,6 +59,7 @@ def mock_repo_transformer() -> Any:
                 "slug": "default",
                 "name": {"default_locale": "en", "translations": {"en": "Default"}},
                 "workflow_id": "wf_1234abcd1234abcd",
+                "synthesis": None,
                 "layouts": [
                     {
                         "preset_view": "1d_metrics",
@@ -153,7 +155,7 @@ async def test_build_report_dto_maps_correctly(mock_repo_transformer: Any) -> No
     axis = dto.layouts[0].axes[0]
     assert axis.name in ["Mock Workflow", "step_analyst", "matrix_logic1234", "test_k", "Logic", "Logic *"]  # noqa: E501
     assert axis.score == 75.0
-    assert axis.justification == "Very logical."
+    assert axis.row_explanation == "Very logical."
 
 
 @pytest.mark.asyncio
@@ -196,6 +198,7 @@ def mock_repo_microcot() -> Any:
             "output_profiles": {
                 "prf_1234567890abcdef": {
                     "name": {"default_locale": "en", "translations": {"en": "Default Profile"}},
+                    "synthesis": None,
                     "layouts": [
                         {
                             "preset_view": "2d_compare",
@@ -216,6 +219,7 @@ def mock_repo_microcot() -> Any:
                 "slug": "default",
                 "name": {"default_locale": "en", "translations": {"en": "Default Profile"}},
                 "workflow_id": "wf_1234567890abcdef",
+                "synthesis": None,
                 "layouts": [
                     {
                         "preset_view": "2d_compare",
@@ -374,6 +378,7 @@ def mock_repo_sdui() -> AsyncMock:
                 "slug": "default",
                 "workflow_id": "wf_1234abcd1234abcd",
                 "name": {"default_locale": "en", "translations": {"fi": "Oletus", "en": "Default"}},
+                "synthesis": None,
                 "layouts": [
                     {
                         "preset_view": "1d_metrics",
@@ -571,7 +576,7 @@ async def test_xai_extraction_works_for_nested_dict(mock_repo_transformer: Any) 
     assert len(dto.layouts) == 1
     axis = dto.layouts[0].axes[0]
     assert axis.score == 85.0
-    assert axis.justification == "Strictly suffix-based justification."
+    assert axis.row_explanation == "Strictly suffix-based justification."
     assert axis.coaching == "Keep it up"
 
 
@@ -719,4 +724,4 @@ async def test_blueprint_virtual_matrix_allows_missing_justification(mock_repo_t
     assert len(dto.layouts) == 1
     axis = dto.layouts[0].axes[0]
     assert axis.score == 50.0
-    assert axis.justification == ""  # Should default to empty string, not crash
+    assert axis.row_explanation == ""  # Should default to empty string, not crash

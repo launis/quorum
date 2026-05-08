@@ -134,6 +134,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
             'allowed_exports',
             'omit_empty_sections',
             'allowed_mcp_tools',
+            'matrix_visible_columns',
           ],
         );
         final val = _SynthesisConfigDTO(
@@ -171,6 +172,12 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
                 (v as List<dynamic>?)?.map((e) => e as String).toList() ??
                 const [],
           ),
+          matrixVisibleColumns: $checkedConvert(
+            'matrix_visible_columns',
+            (v) =>
+                (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+                const ['label', 'score', 'distribution', 'row_explanation'],
+          ),
         );
         return val;
       },
@@ -183,6 +190,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
         'allowedExports': 'allowed_exports',
         'omitEmptySections': 'omit_empty_sections',
         'allowedMcpTools': 'allowed_mcp_tools',
+        'matrixVisibleColumns': 'matrix_visible_columns',
       },
     );
 
@@ -196,6 +204,7 @@ Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
       'allowed_exports': instance.allowedExports,
       'omit_empty_sections': instance.omitEmptySections,
       'allowed_mcp_tools': instance.allowedMcpTools,
+      'matrix_visible_columns': instance.matrixVisibleColumns,
     };
 
 _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>

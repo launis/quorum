@@ -9,16 +9,21 @@ class DiagnosticScorecardWidget extends StatelessWidget {
   final double? globalAverage;
   final List<MatrixScorecardRowDto> evaluativeMatrices;
   final List<MatrixScorecardRowDto> informationalMatrices;
+  final List<String> visibleColumns;
 
   const DiagnosticScorecardWidget({
     super.key,
     this.globalAverage,
     required this.evaluativeMatrices,
     required this.informationalMatrices,
+    required this.visibleColumns,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (visibleColumns.isEmpty) {
+      return const SizedBox(); // Matrix skipped if visibleColumns is empty
+    }
     if (evaluativeMatrices.isEmpty && informationalMatrices.isEmpty) {
       return const SizedBox(); // Scorecard not applicable
     }
@@ -74,6 +79,7 @@ class DiagnosticScorecardWidget extends StatelessWidget {
 
           AtomMatrixTableWidget(
             matrices: [...evaluativeMatrices, ...informationalMatrices],
+            visibleColumns: visibleColumns,
           ),
         ],
       ),

@@ -35,7 +35,7 @@ async def get_driver(settings: Settings, db_client: AbstractDatabase | None = No
         ValueError: If an unknown storage backend is configured.
     """
     backend = settings.active_backend
-    logger.info("[Factory] Initializing Storage Driver for Backend: %s", backend.value)
+    logger.debug("[Factory] Initializing Storage Driver for Backend: %s", backend.value)
 
     match backend:
         case StorageBackend.FIRESTORE:
@@ -54,7 +54,7 @@ async def get_driver(settings: Settings, db_client: AbstractDatabase | None = No
                 db_client_local = db_client
             else:
                 db_path = settings.prod_db_path
-                logger.info("[Factory] Using LOCAL configuration. Path: %s", db_path)
+                logger.debug("[Factory] Using LOCAL configuration. Path: %s", db_path)
                 db_client_local = TinyDBClient(db_path)
 
             local_driver = TinyDBDriver(db_client_local)

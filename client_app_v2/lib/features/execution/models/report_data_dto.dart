@@ -21,6 +21,9 @@ abstract class ReportLayoutDTO with _$ReportLayoutDTO {
     I18nText? title,
     I18nText? description,
     @Default([]) List<MatrixScorecardRowDto> axes,
+    @Default(['label', 'score', 'distribution', 'row_explanation'])
+    @JsonKey(name: 'visible_columns')
+    List<String> visibleColumns,
     @JsonKey(name: 'text_delivery_mode') required String textDeliveryMode,
     Map<String, dynamic>? synthesis,
     @JsonKey(name: 'synthesis_md') String? synthesisMd,
@@ -66,8 +69,12 @@ abstract class ReportDataDTO with _$ReportDataDTO {
     @JsonKey(name: 'global_score') double? globalScore,
     @Default([]) List<ReportLayoutDTO> layouts,
     @JsonKey(name: 'created_at') String? createdAt,
+    @JsonKey(name: 'local_time_str') String? localTimeStr,
     @JsonKey(name: 'org_name') String? orgName,
+    @JsonKey(name: 'user_name') String? userName,
+    @JsonKey(name: 'scoring_engine_name') String? scoringEngineName,
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
+    @JsonKey(name: 'custom_preface_md') String? customPrefaceMd,
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
     @JsonKey(name: 'cost_estimate') double? costEstimate,
     @JsonKey(name: 'total_tokens') int? totalTokens,
@@ -94,6 +101,9 @@ abstract class ReportDataDTO with _$ReportDataDTO {
     @JsonKey(name: 'informational_matrices')
     @Default([])
     List<MatrixScorecardRowDto> informationalMatrices,
+    @JsonKey(name: 'matrix_visible_columns')
+    @Default(['label', 'score', 'distribution', 'row_explanation'])
+    List<String> matrixVisibleColumns,
   }) = _ReportDataDTO;
 
   factory ReportDataDTO.fromJson(Map<String, dynamic> json) =>

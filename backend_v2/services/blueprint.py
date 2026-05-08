@@ -43,7 +43,12 @@ class BlueprintTransformer:
         self.identity_repo = identity_repo
 
     async def build_report_dto(
-        self, execution_id: str, profile_id: str | None = None, accept_language: str | None = None
+        self,
+        execution_id: str,
+        profile_id: str | None = None,
+        accept_language: str | None = None,
+        custom_preface_md: str | None = None,
+        local_time_str: str | None = None,
     ) -> ReportDataDTO:
         """Builds the strictly typed report payload by parsing results according to the selected profile."""
         execution = await self.exec_repo.get_execution(execution_id)
@@ -418,7 +423,7 @@ class BlueprintTransformer:
                 normalized_score=float(norm_score) if norm_score is not None else None,
                 true_atoms=true_atoms,
                 total_atoms=total_atoms,
-                justification=_clean_hallucinated_numbers(justification),
+                row_explanation=_clean_hallucinated_numbers(justification),
                 evidence_type=ext_dict["evidence_type"] if "evidence_type" in ext_dict else None,
                 missing_context=(
                     ext_dict["missing_context"] if "missing_context" in ext_dict and ext_dict["missing_context"] else ""
@@ -610,6 +615,34 @@ class BlueprintTransformer:
                     details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND},
                 ) from org_err
 
+        user_name = None
+        if execution.created_by:
+            try:
+                user_dict = await self.identity_repo.get_user(execution.created_by)
+                if user_dict and "name" in user_dict:
+                    user_name = user_dict["name"]
+                elif user_dict and "display_name" in user_dict:
+                    user_name = user_dict["display_name"]  # Legacy fallback
+            except Exception as u_err:
+                logger.warning(f"Failed to fetch user {execution.created_by}: {u_err}")
+
+        # Engine string lookup
+        engine_str = None
+        s_strat = workflow_obj.default_scoring_strategy.value
+        p_score = profile.scoring_strategy if hasattr(profile, "scoring_strategy") else None
+        if p_score is not None:
+            s_strat = p_score.value
+        if s_strat == "AVERAGE":
+            engine_str = "Average Engine"
+        elif s_strat == "WATERFALL":
+            engine_str = "Waterfall Engine"
+        elif s_strat == "MAD_OUTLIER":
+            engine_str = "MAD Outlier Engine"
+        elif s_strat == "NONE":
+            engine_str = "None"
+        else:
+            engine_str = str(s_strat)
+
         try:
             # Event Sensed V3 Token Aggregation
             p_tokens = 0
@@ -691,7 +724,7 @@ class BlueprintTransformer:
                     effective_penalty = 0.0
                     for penalty_str in penalties_applied:
                         # Extract the percentage: "(-15%)" -> 15
-                        match = re.search(r'-\s*(\d+)%', penalty_str)
+                        match = re.search(r"-\s*(\d+)%", penalty_str)
                         if match:
                             effective_penalty += float(match.group(1)) / 100.0
 
@@ -707,14 +740,23 @@ class BlueprintTransformer:
             p_score = profile.scoring_strategy if hasattr(profile, "scoring_strategy") else None
             scoring_strategy = (p_score if p_score is not None else workflow_obj.default_scoring_strategy).value
 
+            syn = profile.synthesis
+            matrix_visible_cols = (
+                syn.matrix_visible_columns if syn else ["label", "score", "distribution", "row_explanation"]
+            )
+
             report_dto = ReportDataDTO(
                 strictness_level=strictness_level,
                 scoring_strategy=scoring_strategy,
+                scoring_engine_name=engine_str,
+                user_name=user_name,
                 workflow_id=execution.workflow_id,
                 profile_id=resolved_pid,
                 profile_name=profile_name_dict,
                 available_profiles=available_profiles_map,
                 created_at=execution.created_at,
+                local_time_str=local_time_str,
+                custom_preface_md=custom_preface_md,
                 org_name=org_name,
                 global_score=global_score,
                 has_warning=has_warning,
@@ -731,6 +773,7 @@ class BlueprintTransformer:
                 penalties_applied=penalties_applied,
                 evaluative_matrices=evaluative_matrices,
                 informational_matrices=informational_matrices,
+                matrix_visible_columns=matrix_visible_cols,
             )
             return report_dto
         except Exception as e:

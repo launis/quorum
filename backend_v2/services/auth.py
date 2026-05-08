@@ -332,7 +332,7 @@ class AuthService:
         admin_payload = UserCreate(
             email=org_create.admin_email,
             password=org_create.admin_password,
-            display_name=org_create.admin_name,
+            name=org_create.admin_name,
             role=UserRole.ADMIN,
             organization_id=org_id,
             is_active=True,
@@ -419,7 +419,7 @@ class AuthService:
         if self.use_firebase and user_data.password:
             try:
                 fb_user = self.firebase_auth.create_user(
-                    email=user_data.email, password=user_data.password, display_name=user_data.display_name
+                    email=user_data.email, password=user_data.password, name=user_data.name
                 )
 
                 new_id = fb_user.id
@@ -453,7 +453,7 @@ class AuthService:
         new_user = User(
             id=new_id,
             email=user_data.email,
-            display_name=user_data.display_name,
+            name=user_data.name,
             role=user_data.role,
             organization_id=target_org_id,
             created_at=datetime.now(timezone.utc),

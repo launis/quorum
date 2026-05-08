@@ -32,7 +32,16 @@ void main() {
           // Set a large screen size to render the DataTable instead of mobile list
           home: MediaQuery(
             data: const MediaQueryData(size: Size(800, 600)),
-            child: Scaffold(body: AtomMatrixTableWidget(matrices: matrices)),
+            child: Scaffold(
+              body: AtomMatrixTableWidget(
+                matrices: matrices,
+                visibleColumns: const [
+                  'score',
+                  'normalized_score',
+                  'distribution',
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -72,7 +81,16 @@ void main() {
             // Small screen size to trigger mobile layout
             home: MediaQuery(
               data: const MediaQueryData(size: Size(400, 800)),
-              child: Scaffold(body: AtomMatrixTableWidget(matrices: matrices)),
+              child: Scaffold(
+                body: AtomMatrixTableWidget(
+                  matrices: matrices,
+                  visibleColumns: const [
+                    'score',
+                    'normalized_score',
+                    'distribution',
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -111,7 +129,16 @@ void main() {
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             locale: const Locale('en'),
-            home: Scaffold(body: AtomMatrixTableWidget(matrices: matrices)),
+            home: Scaffold(
+              body: AtomMatrixTableWidget(
+                matrices: matrices,
+                visibleColumns: const [
+                  'score',
+                  'normalized_score',
+                  'distribution',
+                ],
+              ),
+            ),
           ),
         ),
       );

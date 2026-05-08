@@ -458,45 +458,56 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 8),
-              CheckboxListTile(
-                title: const Text('Päivämäärä (date)'),
-                value: payload.visibleMetadata.contains('date'),
-                onChanged: (val) {
-                  final list = List<String>.from(payload.visibleMetadata);
-                  if (val == true)
-                    list.add('date');
-                  else
-                    list.remove('date');
-                  updatePayload(payload.copyWith(visibleMetadata: list));
-                },
-                controlAffinity: ListTileControlAffinity.leading,
-              ),
-              CheckboxListTile(
-                title: const Text('Organisaatio (organization)'),
-                value: payload.visibleMetadata.contains('organization'),
-                onChanged: (val) {
-                  final list = List<String>.from(payload.visibleMetadata);
-                  if (val == true)
-                    list.add('organization');
-                  else
-                    list.remove('organization');
-                  updatePayload(payload.copyWith(visibleMetadata: list));
-                },
-                controlAffinity: ListTileControlAffinity.leading,
-              ),
-              CheckboxListTile(
-                title: const Text('Kustannusarvio (cost)'),
-                value: payload.visibleMetadata.contains('cost'),
-                onChanged: (val) {
-                  final list = List<String>.from(payload.visibleMetadata);
-                  if (val == true)
-                    list.add('cost');
-                  else
-                    list.remove('cost');
-                  updatePayload(payload.copyWith(visibleMetadata: list));
-                },
-                controlAffinity: ListTileControlAffinity.leading,
-              ),
+              ...[
+                'date',
+                'organization',
+                'user',
+                'scoring_engine',
+                'strictness',
+                'cost',
+                'tokens',
+              ].map((meta) {
+                final String title = switch (meta) {
+                  'date' => 'Päivämäärä (date)',
+                  'organization' => 'Organisaatio (organization)',
+                  'user' => 'Käyttäjä (user)',
+                  'scoring_engine' => 'Arviointimoottori (scoring_engine)',
+                  'strictness' => 'Ankaruustaso (strictness)',
+                  'cost' => 'Hinta-arvio (cost)',
+                  'tokens' => 'Kognitiivinen työ (tokens)',
+                  _ => meta,
+                };
+                return CheckboxListTile(
+                  title: Text(title),
+                  value: payload.visibleMetadata.contains(meta),
+                  onChanged: (val) {
+                    final masterOrder = [
+                      'date',
+                      'organization',
+                      'user',
+                      'scoring_engine',
+                      'strictness',
+                      'cost',
+                      'tokens',
+                    ];
+                    final list = List<String>.from(payload.visibleMetadata);
+                    if (val == true) {
+                      if (!list.contains(meta)) list.add(meta);
+                    } else {
+                      list.remove(meta);
+                    }
+                    // Sort by master order to enforce UI and PDF parity
+                    list.sort((a, b) {
+                      final indexA = masterOrder.indexOf(a);
+                      final indexB = masterOrder.indexOf(b);
+                      if (indexA == -1 || indexB == -1) return 0;
+                      return indexA.compareTo(indexB);
+                    });
+                    updatePayload(payload.copyWith(visibleMetadata: list));
+                  },
+                  controlAffinity: ListTileControlAffinity.leading,
+                );
+              }),
               const SizedBox(height: 16),
               TextFormField(
                 initialValue: payload.maxExtensionItems?.toString() ?? '3',

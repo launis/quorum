@@ -517,7 +517,7 @@ class MatrixScorecardRowDTO(V2CoreBase):
     true_atoms: int | None = Field(default=None, description="Global hits found.")
     total_atoms: int | None = Field(default=None, description="Total atoms available to evaluate.")
 
-    justification: str = Field(..., description="The one-sentence justification.")
+    row_explanation: str = Field(..., description="The one-sentence justification.")
     evidence_type: str | None = Field(default=None, description="The EvidenceType extracted from AtomResponse")
 
     cited_source_id: str | None = None
@@ -574,6 +574,10 @@ class SynthesisConfigDTO(V2CoreBase):
     allowed_mcp_tools: list[str] = Field(
         default_factory=list, description="Enabled MCP tool identifiers for pre-fetch synthesis phase."
     )
+    matrix_visible_columns: list[str] = Field(
+        default_factory=lambda: ["label", "score", "distribution", "row_explanation"],
+        description="Visible columns for the global matrix summary table.",
+    )
 
 
 class ReportLayoutDTO(V2CoreBase):
@@ -591,10 +595,14 @@ class ReportLayoutDTO(V2CoreBase):
 
 class ReportDataDTO(V2CoreBase):
     workflow_id: str
-    strictness_level: int = Field(...)
     scoring_strategy: str | None = Field(
         default=None, description="The mathematical strategy used for scoring (e.g. WATERFALL)"
     )
+    user_name: str | None = Field(default=None, description="Initiating user's name")
+    scoring_engine_name: str | None = Field(default=None, description="Human readable name of the scoring engine")
+    strictness_level: int | None = Field(default=None, description="Numeric strictness level (0-100)")
+    local_time_str: str | None = Field(default=None, description="Localized time string from the client")
+    custom_preface_md: str | None = Field(default=None, description="Custom user preface rendered as Markdown")
     profile_id: str
     profile_name: I18nText | None = Field(default=None)
     available_profiles: dict[str, I18nText] = Field(default_factory=dict)
@@ -615,6 +623,9 @@ class ReportDataDTO(V2CoreBase):
         default_factory=list, description="Fields visible on the UI and PDF cover header."
     )
     layouts: list[ReportLayoutDTO] = Field(default_factory=list)
+    matrix_visible_columns: list[str] = Field(
+        default_factory=lambda: ["label", "score", "distribution", "row_explanation"]
+    )
 
     # Execution Diagnostic Metadata
     created_at: datetime | None = None
@@ -677,7 +688,7 @@ class OutputProfile(V2CoreBase):
     name: I18nText = Field(description="Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})")
     description: I18nText | None = Field(default=None, description="Detailed profile context")
     visible_metadata: list[str] = Field(
-        default_factory=lambda: ["date", "organization"],
+        default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
         description="List of metadata fields visible on the UI and PDF cover header.",
     )
     visible_extensions: list[LaxXaiExtensionType] = Field(
@@ -712,7 +723,7 @@ class EmbeddedOutputProfile(V2CoreBase):
     name: I18nText = Field(description="Localized name of the profile.")
     description: I18nText | None = Field(default=None, description="Detailed profile context")
     visible_metadata: list[str] = Field(
-        default_factory=lambda: ["date", "organization"],
+        default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
         description="List of metadata fields visible on the UI and PDF cover header.",
     )
     visible_extensions: list[LaxXaiExtensionType] = Field(

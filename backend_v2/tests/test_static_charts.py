@@ -12,7 +12,7 @@ def test_generate_scatter_chart() -> None:
             score=2.5,
             scale_min=0.0,
             scale_max=5.0,
-            justification="ok",
+            row_explanation="ok",
             is_evaluative=True,
         ),
         MatrixScorecardRowDTO(
@@ -23,7 +23,7 @@ def test_generate_scatter_chart() -> None:
             score=4.0,
             scale_min=0.0,
             scale_max=5.0,
-            justification="ok",
+            row_explanation="ok",
             is_evaluative=True,
         ),
         MatrixScorecardRowDTO(
@@ -34,7 +34,7 @@ def test_generate_scatter_chart() -> None:
             score=3.0,
             scale_min=0.0,
             scale_max=5.0,
-            justification="ok",
+            row_explanation="ok",
             is_evaluative=True,
         ),
     ]
@@ -53,7 +53,7 @@ def test_generate_radar_chart() -> None:
             score=2.5,
             scale_min=0.0,
             scale_max=5.0,
-            justification="ok",
+            row_explanation="ok",
             is_evaluative=True,
         ),
         MatrixScorecardRowDTO(
@@ -64,7 +64,7 @@ def test_generate_radar_chart() -> None:
             score=4.0,
             scale_min=0.0,
             scale_max=5.0,
-            justification="ok",
+            row_explanation="ok",
             is_evaluative=True,
         ),
         MatrixScorecardRowDTO(
@@ -75,7 +75,7 @@ def test_generate_radar_chart() -> None:
             score=3.0,
             scale_min=0.0,
             scale_max=5.0,
-            justification="ok",
+            row_explanation="ok",
             is_evaluative=True,
         ),
     ]
@@ -92,7 +92,7 @@ def test_empty_scatter() -> None:
             label_fi="O1",
             label_en="O1",
             score=2.0,
-            justification="ok",
+            row_explanation="ok",
             is_evaluative=True,
         )
     ]
@@ -103,10 +103,22 @@ def test_empty_scatter() -> None:
 def test_empty_radar() -> None:
     axes = [
         MatrixScorecardRowDTO(
-            block_id="1", name="Dim 1", label_fi="D1", label_en="D1", score=2.0, justification="ok", is_evaluative=True
+            block_id="1",
+            name="Dim 1",
+            label_fi="D1",
+            label_en="D1",
+            score=2.0,
+            row_explanation="ok",
+            is_evaluative=True,
         ),
         MatrixScorecardRowDTO(
-            block_id="2", name="Dim 2", label_fi="D2", label_en="D2", score=2.0, justification="ok", is_evaluative=True
+            block_id="2",
+            name="Dim 2",
+            label_fi="D2",
+            label_en="D2",
+            score=2.0,
+            row_explanation="ok",
+            is_evaluative=True,
         ),
     ]
     b64 = generate_radar_chart(axes)

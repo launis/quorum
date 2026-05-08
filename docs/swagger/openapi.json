@@ -1103,6 +1103,42 @@
               "title": "Profile Id"
             },
             "description": "The output profile to render"
+          },
+          {
+            "name": "custom_preface_md",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Custom preface markdown",
+              "title": "Custom Preface Md"
+            },
+            "description": "Custom preface markdown"
+          },
+          {
+            "name": "local_time_str",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Localized time string",
+              "title": "Local Time Str"
+            },
+            "description": "Localized time string"
           }
         ],
         "responses": {
@@ -1165,6 +1201,42 @@
               ],
               "title": "Profile Id"
             }
+          },
+          {
+            "name": "custom_preface_md",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Custom preface markdown",
+              "title": "Custom Preface Md"
+            },
+            "description": "Custom preface markdown"
+          },
+          {
+            "name": "local_time_str",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Localized time string",
+              "title": "Local Time Str"
+            },
+            "description": "Localized time string"
           }
         ],
         "responses": {
@@ -6262,6 +6334,14 @@
             "type": "array",
             "title": "Allowed Mcp Tools",
             "description": "Enabled MCP tool identifiers for pre-fetch synthesis phase."
+          },
+          "matrix_visible_columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Matrix Visible Columns",
+            "description": "Visible columns for the global matrix summary table."
           }
         },
         "additionalProperties": false,
@@ -6625,7 +6705,7 @@
             "title": "Email",
             "description": "User email address"
           },
-          "display_name": {
+          "name": {
             "anyOf": [
               {
                 "type": "string"
@@ -6634,7 +6714,7 @@
                 "type": "null"
               }
             ],
-            "title": "Display Name",
+            "title": "Name",
             "description": "User display name"
           },
           "role": {
@@ -6736,7 +6816,7 @@
             "title": "Email",
             "description": "User email address"
           },
-          "display_name": {
+          "name": {
             "anyOf": [
               {
                 "type": "string"
@@ -6745,7 +6825,7 @@
                 "type": "null"
               }
             ],
-            "title": "Display Name",
+            "title": "Name",
             "description": "User display name"
           },
           "role": {
@@ -6861,7 +6941,7 @@
       },
       "UserUpdate": {
         "properties": {
-          "display_name": {
+          "name": {
             "anyOf": [
               {
                 "type": "string"
@@ -6870,7 +6950,7 @@
                 "type": "null"
               }
             ],
-            "title": "Display Name"
+            "title": "Name"
           },
           "role": {
             "anyOf": [

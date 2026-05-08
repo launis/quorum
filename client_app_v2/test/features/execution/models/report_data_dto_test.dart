@@ -9,7 +9,7 @@ void main() {
         'label_en': 'Matrix Risk',
         'label_fi': 'Matriisi Riski',
         'name': 'Matrix Risk',
-        'justification': 'Valid logic structure.',
+        'rowExplanation': 'Valid logic structure.',
         'is_evaluative': true,
         'scale_min': 0.0,
         'scale_max': 5.0,
@@ -30,7 +30,7 @@ void main() {
       expect(dto.labelEn, 'Matrix Risk');
       expect(dto.name, 'Matrix Risk');
       expect(dto.score, 4.5);
-      expect(dto.justification, 'Valid logic structure.');
+      expect(dto.rowExplanation, 'Valid logic structure.');
       expect(dto.coaching, 'Try alternative phrasing.');
       expect(dto.confidence, 95.5);
       expect(dto.falsification, 'Unless the edge case is impossible.');
@@ -49,7 +49,7 @@ void main() {
           'label_en': 'Matrix Logic',
           'label_fi': 'Matriisi Logiikka',
           'name': 'Matrix Logic',
-          'justification': 'Basic',
+          'rowExplanation': 'Basic',
           'is_evaluative': true,
           'scale_min': null,
           'score': 0.0,
@@ -62,7 +62,7 @@ void main() {
         final dto = MatrixScorecardRowDto.fromJson(json);
 
         expect(dto.name, 'Matrix Logic');
-        expect(dto.justification, 'Basic');
+        expect(dto.rowExplanation, 'Basic');
         expect(dto.score, 0.0);
         expect(dto.scaleMin, null);
         expect(dto.scaleMax, null);

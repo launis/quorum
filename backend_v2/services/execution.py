@@ -448,6 +448,8 @@ class ExecutionService:
         profile_id: str | None,
         accept_language: str | None,
         arq_pool: ArqRedis,
+        custom_preface_md: str | None = None,
+        local_time_str: str | None = None,
     ) -> tuple[bytes | list[Any] | dict[str, Any], str, str | None]:
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
 
@@ -498,11 +500,20 @@ class ExecutionService:
                 profile_id=resolved_pid,
                 accept_language=accept_language,
             )
-            return {"status": "pending", "message": "Synthesis generating"}, "application/json", None
+            
+            v_step_id = f"sys_render_{resolved_pid}"
+            if v_step_id in execution.step_states:
+                active_message = execution.step_states[v_step_id].label
+            else:
+                active_message = "Valmistellaan tulostusta..."
+                
+            return {"status": "pending", "message": active_message}, "application/json", None
 
         if fmt == "json":
             transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
-            dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
+            dto = await transformer.build_report_dto(
+                execution_id, profile_id, accept_language, custom_preface_md, local_time_str
+            )
 
             return dto.model_dump(mode="json"), "application/json", None
 
@@ -518,7 +529,9 @@ class ExecutionService:
                 accept_language = str(execution.metadata["target_locale"])
 
             transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
-            dto = await transformer.build_report_dto(execution_id, resolved_pid, accept_language)
+            dto = await transformer.build_report_dto(
+                execution_id, resolved_pid, accept_language, custom_preface_md, local_time_str
+            )
 
             pdf_service = PdfReportService(self.exec_repo, self.workflow_repo)
             html_string = await pdf_service.generate_execution_html(execution_id, report_dto=dto)
@@ -526,7 +539,12 @@ class ExecutionService:
             return html_string.encode("utf-8"), "text/html", f"execution_{execution_id}.html"
 
         elif fmt == "pdf":
-            if resolved_pid == default_pid and execution.pdf_report_path:
+            if (
+                resolved_pid == default_pid
+                and execution.pdf_report_path
+                and not custom_preface_md
+                and not local_time_str
+            ):
                 storage = get_storage_driver()
                 try:
                     pdf_bytes = await storage.read(execution.pdf_report_path)
@@ -554,7 +572,9 @@ class ExecutionService:
                 accept_language = str(execution.metadata["target_locale"])
 
             transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
-            dto = await transformer.build_report_dto(execution_id, resolved_pid, accept_language)
+            dto = await transformer.build_report_dto(
+                execution_id, resolved_pid, accept_language, custom_preface_md, local_time_str
+            )
 
             pdf_service = PdfReportService(self.exec_repo, self.workflow_repo)
             pdf_bytes = await pdf_service.generate_execution_pdf(execution_id, report_dto=dto)
@@ -595,6 +615,8 @@ class ExecutionService:
         accept_language: str | None,
         profile_id: str,
         arq_pool: ArqRedis,
+        custom_preface_md: str | None = None,
+        local_time_str: str | None = None,
     ) -> None:
         """Securely enqueue a PDF generation job and inject a Virtual Step into the trace."""
         # 1. Authorize connection first via Security Dependency
@@ -617,5 +639,10 @@ class ExecutionService:
 
         # 3. Queue the background task into Redis
         await arq_pool.enqueue_job(
-            "generate_pdf_job", execution_id=execution_id, accept_language=accept_language, profile_id=profile_id
+            "generate_pdf_job",
+            execution_id=execution_id,
+            accept_language=accept_language,
+            profile_id=profile_id,
+            custom_preface_md=custom_preface_md,
+            local_time_str=local_time_str,
         )

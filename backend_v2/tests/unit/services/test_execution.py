@@ -359,5 +359,10 @@ async def test_enqueue_pdf_generation_success() -> None:
 
     repo_mock.update_execution.assert_called_once()
     arq_pool.enqueue_job.assert_called_once_with(
-        "generate_pdf_job", execution_id="exe_1", accept_language="fi", profile_id="prof_1"
+        "generate_pdf_job",
+        execution_id="exe_1",
+        accept_language="fi",
+        profile_id="prof_1",
+        custom_preface_md=None,
+        local_time_str=None,
     )

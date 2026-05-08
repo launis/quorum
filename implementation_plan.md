@@ -22,50 +22,50 @@ Käyttäjän toiveena on laajentaa ja tarkentaa tulostettavien raporttien metati
 - `backend_v2/api/routers/render.py`
 
 **Tehtävät:**
-1. Päivitä `OutputProfileCreateDTO`, `OutputProfileUpdateDTO` ja `EmbeddedOutputProfile` sallimaan kentät `"user"`, `"scoring_engine"` ja `"strictness"` `visible_metadata` -listassa, ja muuta oletuslistaksi `["date", "organization", "user", "scoring_engine", "strictness"]`. Varmista listan järjestyksen säilyminen ja sen ohjaava rooli renderöinnissä.
-2. Lisää `OutputLayoutBlock` -malliin uusi ominaisuus: `visible_columns: list[str] = Field(default_factory=lambda: ["label", "score", "distribution", "row_explanation"])`, jotta PDF:n ja UI:n matriisitaulukon sarakkeet voidaan valita dynaamisesti. Jos lista on tyhjä, koko matriisia ei renderöidä.
-3. Lisää `ReportDataDTO` -luokkaan kentät:
+- [x] 1. Päivitä `OutputProfileCreateDTO`, `OutputProfileUpdateDTO` ja `EmbeddedOutputProfile` sallimaan kentät `"user"`, `"scoring_engine"` ja `"strictness"` `visible_metadata` -listassa, ja muuta oletuslistaksi `["date", "organization", "user", "scoring_engine", "strictness"]`. Varmista listan järjestyksen säilyminen ja sen ohjaava rooli renderöinnissä.
+- [x] 2. Lisää `OutputLayoutBlock` -malliin uusi ominaisuus: `visible_columns: list[str] = Field(default_factory=lambda: ["label", "score", "distribution", "row_explanation"])`, jotta PDF:n ja UI:n matriisitaulukon sarakkeet voidaan valita dynaamisesti. Jos lista on tyhjä, koko matriisia ei renderöidä.
+- [x] 3. Lisää `ReportDataDTO` -luokkaan kentät:
    - `user_name: str | None = None`
    - `scoring_engine_name: str | None = None`
    - `strictness_level: str | None = None`
    - `local_time_str: str | None = None` (jotta vältämme UTC-Jinja2 -aikaongelmat)
    - `custom_preface_md: str | None = None`
-4. Päivitä `ExecutionService` / `/executions/{id}/render` endpoint vastaanottamaan uudet valinnaiset query-parametrit (esim. `?custom_preface_md=...&local_time_str=...`), jotka ruiskutetaan suoraan `ReportDataDTO`:hon PDF-renderöintiä varten. Endpointin tulee myös hakea suorituksen tiukkuus ja moottori, ja asettaa ne `ReportDataDTO`:hon.
-5. Muuta User-malleissa (kuten `UserDTO`, `UserCreateDTO` jne. tiedostoissa `backend_v2/models/dtos/identity.py` tai vastaavissa) olemassa oleva `display_name` -kenttä muotoon `name` koko Pydantic-kerroksessa.
-6. Lisää backendin arviointilogiikkaan tai DTO:hon uusi ominaisuus, joka generoi matriisiin uuden sarakkeen: lyhyt yhden virkkeen pituinen selitys tuloksesta. Tämä iteroidaan **matriisikohtaisesti jokaiselle riville erikseen**. Tämä vaatii erillisen ohjelman/agentin (LLM-kutsun), joka käy läpi matriisin jokaisen rivin, ja soveltaa juuri kyseisen rivin omaan `normalized_score` (0-100) arvoon perustuvaa tiukkaa "SCORE-DRIVEN TONE AND STRUCTURE" -säännöstöä:
+- [x] 4. Päivitä `ExecutionService` / `/executions/{id}/render` endpoint vastaanottamaan uudet valinnaiset query-parametrit (esim. `?custom_preface_md=...&local_time_str=...`), jotka ruiskutetaan suoraan `ReportDataDTO`:hon PDF-renderöintiä varten. Endpointin tulee myös hakea suorituksen tiukkuus ja moottori, ja asettaa ne `ReportDataDTO`:hon.
+- [x] 5. Muuta User-malleissa (kuten `UserDTO`, `UserCreateDTO` jne. tiedostoissa `backend_v2/models/dtos/identity.py` tai vastaavissa) olemassa oleva `display_name` -kenttä muotoon `name` koko Pydantic-kerroksessa.
+- [x] 6. Lisää backendin arviointilogiikkaan tai DTO:hon uusi ominaisuus, joka generoi matriisiin uuden sarakkeen: lyhyt yhden virkkeen pituinen selitys tuloksesta. Tämä iteroidaan **matriisikohtaisesti jokaiselle riville erikseen**. Tämä vaatii erillisen ohjelman/agentin (LLM-kutsun), joka käy läpi matriisin jokaisen rivin, ja soveltaa juuri kyseisen rivin omaan `normalized_score` (0-100) arvoon perustuvaa tiukkaa "SCORE-DRIVEN TONE AND STRUCTURE" -säännöstöä:
    - 0 - 39 (Catastrophic Failure)
    - 40 - 69 (Mediocre / Flawed)
    - 70 - 89 (Strong / Competent)
    - 90 - 100 (Mastery / Excellent)
 
-## Vaihe 2: Frontend UI - Tulostusikkuna ja Output Profile CRUD
+## Vaihe 2: Frontend UI - Tulostusikkuna ja Output Profile CRUD (DONE)
 **Tiedostot:**
 - `client_app_v2/lib/features/studio/views/output_profile_crud_view.dart`
 - `client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart`
 - `client_app_v2/lib/features/executions/views/execution_render_view.dart`
 
 **Tehtävät:**
-1. Lisää Admin Studioon (`OutputProfileCrudView`) CheckboxListTile / dynaamiset valinnat kaikille Identity Metadata -kentille (`date`, `organization`, `user`, `scoring_engine` ja `strictness`). Anna käyttäjän mahdollisesti järjestää ne, tai pakota UI ja PDF käyttämään listan absoluuttista järjestystä.
-2. Lisää Layout Editoriin (`layout_editor_card.dart`) mahdollisuus valita näytettävät sarakkeet (`visible_columns`, mukaan lukien uusi selitesarake). Lisää logiikka, että jos yhtäkään saraketta ei ole valittu, koko matriisia ei näytetä/tulosteta.
-3. Luo loppukäyttäjän renderöintinäkymään (tulostusnäyttöön) dialogi, jossa käyttäjä voi syöttää "Selitteen" (Rich text / Markdown) ennen PDF-generoinnin käynnistämistä.
-4. Välitä tämä teksti API-kutsussa backendille. Generoi myös `local_time_str` Dartissa muotoon `yyyy kk pv hh:mm` ja lähetä pyynnön mukana.
-5. Päivitä Frontendin Dart-mallit ja UI-komponentit lukemaan käyttäjän nimi kentästä `name` aiemman `display_name` -kentän sijaan.
-6. Varmista, että tulostusikkunan PDF-esikatselu (UI) ja itse generoitu PDF tulostavat valitut otsikkokentät täsmälleen 1:1 samassa järjestyksessä.
+- [x] 1. Lisää Admin Studioon (`OutputProfileCrudView`) CheckboxListTile / dynaamiset valinnat kaikille Identity Metadata -kentille (`date`, `organization`, `user`, `scoring_engine` ja `strictness`). Anna käyttäjän mahdollisesti järjestää ne, tai pakota UI ja PDF käyttämään listan absoluuttista järjestystä.
+- [x] 2. Lisää Layout Editoriin (`layout_editor_card.dart`) mahdollisuus valita näytettävät sarakkeet (`visible_columns`, mukaan lukien uusi selitesarake). Lisää logiikka, että jos yhtäkään saraketta ei ole valittu, koko matriisia ei näytetä/tulosteta.
+- [x] 3. Luo loppukäyttäjän renderöintinäkymään (tulostusnäyttöön) dialogi, jossa käyttäjä voi syöttää "Selitteen" (Rich text / Markdown) ennen PDF-generoinnin käynnistämistä.
+- [x] 4. Välitä tämä teksti API-kutsussa backendille. Generoi myös `local_time_str` Dartissa muotoon `yyyy kk pv hh:mm` ja lähetä pyynnön mukana.
+- [x] 5. Frontend domain malleihin ja UI-kerroksiin vaaditaan `display_name` -> `name` muutos järjestelmänlaajuisen linjauksen toteuttamiseksi.
+- [x] 6. Varmista, että tulostusikkunan PDF-esikatselu (UI) ja itse generoitu PDF tulostavat valitut otsikkokentät täsmälleen 1:1 samassa järjestyksessä.
 
 ## Vaihe 3: Tietokannan (SSOT) Terminologian Päivitys (English First)
 **Tiedostot:**
 - `backend_v2/seed/seed_data.json`
 
 **Tehtävät:**
-1. Muuta matriisien ja PromptBlockien `label` ja `description` -kentät annettujen vaatimusten mukaisiksi, varmistaen "English First" I18nText-rakenteissa. Esimerkiksi:
+- [x] 1. Muuta matriisien ja PromptBlockien `label` ja `description` -kentät annettujen vaatimusten mukaisiksi, varmistaen "English First" I18nText-rakenteissa. Esimerkiksi:
    - "Turvallisuus- ja Etiikkasuodatin" -> `label`: `{"en": "Responsibility", "fi": "Vastuullisuus"}`, `description`: `{"en": "Ensures...", "fi": "Varmistaa, ettei tekoälyä käytetä tavalla, joka tuottaa perusteetonta tai riskialtista tietoa."}`
    - (Tee sama kaikille annetuille avaimille: Harkintakyky, Oman tiedon rajat, Päättelyn rehellisyys jne.)
-2. Muuta Output Profile -mallien otsikot I18nText-muodossa:
+- [x] 2. Muuta Output Profile -mallien otsikot I18nText-muodossa:
    - "Globaali johdon yhteenveto" -> `{"en": "AI Utilization Summary", "fi": "Yhteenveto tekoälyn hyödyntämisestä"}`
-3. Varmista, että nämä on muutettu sekä `prompt_blocks` arrayn että `workflows` -> `output_profiles` sisällä olevista rakenteista.
-4. Päivitä profiilien `layouts`-blokkeihin dynaaminen otsikko `title`, korvaten kovakoodatun "YHTEENVETO / MATRIX SUMMARY" dynaamisella `{"en": "DETAILED SCORING MATRIX", "fi": "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS"}`.
-5. Vaihda `seed_data.json` -tiedostossa (rivit 6368, 6381, 6394, 6407 ja 6420) `users`-taulukon jokaisen käyttäjän kenttä `"display_name"` muotoon `"name"`.
-6. Lisää `seed_data.json` -tiedostoon tarvittava uusi PromptBlock / järjestelmäkehote uudelle ohjelmalle, joka generoi selitykset **matriisikohtaisesti jokaiselle riville erikseen**. Kehotteen on sisällettävä uudet "SCORE-DRIVEN TONE AND STRUCTURE" -säännöt.
+- [x] 3. Varmista, että nämä on muutettu sekä `prompt_blocks` arrayn että `workflows` -> `output_profiles` sisällä olevista rakenteista.
+- [x] 4. Päivitä profiilien `layouts`-blokkeihin dynaaminen otsikko `title`, korvaten kovakoodatun "YHTEENVETO / MATRIX SUMMARY" dynaamisella `{"en": "DETAILED SCORING MATRIX", "fi": "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS"}`.
+- [x] 5. Vaihda `seed_data.json` -tiedostossa (rivit 6368, 6381, 6394, 6407 ja 6420) `users`-taulukon jokaisen käyttäjän kenttä `"display_name"` muotoon `"name"`.
+- [x] 6. Lisää `seed_data.json` -tiedostoon tarvittava uusi PromptBlock / järjestelmäkehote uudelle ohjelmalle, joka generoi selitykset **matriisikohtaisesti jokaiselle riville erikseen**. Kehotteen on sisällettävä uudet "SCORE-DRIVEN TONE AND STRUCTURE" -säännöt.
 
 ## Vaihe 4: PDF & SDUI Renderöintipohjien Päivitys (Jinja2 & Arb)
 **Tiedostot:**
@@ -73,15 +73,15 @@ Käyttäjän toiveena on laajentaa ja tarkentaa tulostettavien raporttien metati
 - `client_app_v2/lib/l10n/app_fi.arb` & `app_en.arb`
 
 **Tehtävät:**
-1. Poista PDF-pohjasta kovakoodatut kentät "YHTEENVETO / MATRIX SUMMARY" ja ota käyttöön layout-blokin dynaaminen `title`.
-2. Etsi kovakoodattu "Logiikkamatriisi" ja ota I18nText tai Arb-käännös dynaamisesti käyttöön ("Osaamisen osa-alueet").
-3. Varmista, että PDF ja Flutter UI renderöivät vain ne taulukkosarakkeet, jotka on määritetty layoutin `visible_columns` -listassa. Jos `visible_columns` on tyhjä, koko matriisia ei renderöidä. Varmista myös uuden yhden virkkeen selitesarakkeen renderöinti, jos se on valittuna.
-4. Päivitä Jinja2-templaten `Kannen metatiedot` (Identity Metadata) osio:
-   - Poista/piilota `Konteksti` renderöinti.
-   - Ota käyttöön `dto.user_name`, jos `user` on `visible_metadata` listassa.
-   - Vaihda aiempi UTC `dto.created_at` renderöitymään suoraan `dto.local_time_str` arvosta.
-5. Renderöi `custom_preface_md` (selite) raportin alkuun tyylikkäässä Rich Text (HTML) laatikossa/osiossa.
-6. Varmista, että matriisien `description` tulostetaan PDF:n taulukossa tai matriisiotsikoiden yhteydessä käyttäjän toivomalla tavalla.
+- [x] 1. Poista PDF-pohjasta kovakoodatut kentät "YHTEENVETO / MATRIX SUMMARY" ja ota käyttöön layout-blokin dynaaminen `title`.
+- [x] 2. Etsi kovakoodattu "Logiikkamatriisi" ja ota I18nText tai Arb-käännös dynaamisesti käyttöön ("Osaamisen osa-alueet").
+- [x] 3. Varmista, että PDF ja Flutter UI renderöivät vain ne taulukkosarakkeet, jotka on määritetty layoutin `visible_columns` -listassa. Jos `visible_columns` on tyhjä, koko matriisia ei renderöidä. Varmista myös uuden yhden virkkeen selitesarakkeen renderöinti, jos se on valittuna.
+- [x] 4. Päivitä Jinja2-templaten `Kannen metatiedot` (Identity Metadata) osio:
+    - Poista/piilota `Konteksti` renderöinti.
+    - Ota käyttöön `dto.user_name`, jos `user` on `visible_metadata` listassa.
+    - Vaihda aiempi UTC `dto.created_at` renderöitymään suoraan `dto.local_time_str` arvosta.
+- [x] 5. Renderöi `custom_preface_md` (selite) raportin alkuun tyylikkäässä Rich Text (HTML) laatikossa/osiossa.
+- [x] 6. Varmista, että matriisien `description` tulostetaan PDF:n taulukossa tai matriisiotsikoiden yhteydessä käyttäjän toivomalla tavalla.
 
 ## Suoritusohje
 Kun hyväksyt tämän suunnitelman, voimme siirtyä vaiheeseen 1 käyttämällä `/tier2-execute` komentoa. Suoritan vaiheet tarkan atomisesti pyytäen sinulta aina hyväksynnän ja git commitin välissä.

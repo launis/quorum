@@ -211,6 +211,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get atomicBreakdownTitle => 'Tasojakauma';
 
   @override
+  String get rowExplanationTitle => 'Selite';
+
+  @override
   String get normalizedScore => '100 %';
 
   @override
@@ -820,7 +823,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get lblMethodologicalLog => 'Metodologinen Loki';
 
   @override
-  String get lblLogicMatrix => 'Logiikkamatriisi';
+  String get lblLogicMatrix => 'Osaamisen osa-alueet';
 
   @override
   String get lblMatrixSubtitle => 'Visuaalinen analyysi päättelyn laadusta.';

@@ -8,24 +8,68 @@ part of 'report_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+
+@ProviderFor(RenderStatus)
+final renderStatusProvider = RenderStatusProvider._();
+
+final class RenderStatusProvider
+    extends $NotifierProvider<RenderStatus, String> {
+  RenderStatusProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'renderStatusProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$renderStatusHash();
+
+  @$internal
+  @override
+  RenderStatus create() => RenderStatus();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(String value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<String>(value),
+    );
+  }
+}
+
+String _$renderStatusHash() => r'bc2c6252ddbe696fb186ef4c0d2cd1f3e63a2724';
+
+abstract class _$RenderStatus extends $Notifier<String> {
+  String build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<String, String>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<String, String>,
+              String,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
 /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
-///
-/// NOTE (Architecture): Parsing is offloaded to a background isolate utilizing `Isolate.run`
-/// to prevent the 60fps UI thread from stuttering when hydrating large blueprint graphs.
 
 @ProviderFor(ReportController)
 final reportControllerProvider = ReportControllerFamily._();
 
 /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
-///
-/// NOTE (Architecture): Parsing is offloaded to a background isolate utilizing `Isolate.run`
-/// to prevent the 60fps UI thread from stuttering when hydrating large blueprint graphs.
 final class ReportControllerProvider
     extends $AsyncNotifierProvider<ReportController, ReportDataDTO> {
   /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
-  ///
-  /// NOTE (Architecture): Parsing is offloaded to a background isolate utilizing `Isolate.run`
-  /// to prevent the 60fps UI thread from stuttering when hydrating large blueprint graphs.
   ReportControllerProvider._({
     required ReportControllerFamily super.from,
     required (String, {String lang, String variant}) super.argument,
@@ -62,12 +106,9 @@ final class ReportControllerProvider
   }
 }
 
-String _$reportControllerHash() => r'01bc925b8931d283010ea37dfa26fe2c93796625';
+String _$reportControllerHash() => r'b6c59f3281ea691acf2952f83e09a3f9dd3d3a08';
 
 /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
-///
-/// NOTE (Architecture): Parsing is offloaded to a background isolate utilizing `Isolate.run`
-/// to prevent the 60fps UI thread from stuttering when hydrating large blueprint graphs.
 
 final class ReportControllerFamily extends $Family
     with
@@ -88,9 +129,6 @@ final class ReportControllerFamily extends $Family
       );
 
   /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
-  ///
-  /// NOTE (Architecture): Parsing is offloaded to a background isolate utilizing `Isolate.run`
-  /// to prevent the 60fps UI thread from stuttering when hydrating large blueprint graphs.
 
   ReportControllerProvider call(
     String executionId, {
@@ -106,9 +144,6 @@ final class ReportControllerFamily extends $Family
 }
 
 /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
-///
-/// NOTE (Architecture): Parsing is offloaded to a background isolate utilizing `Isolate.run`
-/// to prevent the 60fps UI thread from stuttering when hydrating large blueprint graphs.
 
 abstract class _$ReportController extends $AsyncNotifier<ReportDataDTO> {
   late final _$args = ref.$arg as (String, {String lang, String variant});

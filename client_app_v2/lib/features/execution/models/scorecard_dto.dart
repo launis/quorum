@@ -39,7 +39,7 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
     @JsonKey(name: 'normalized_score') double? normalizedScore,
     @JsonKey(name: 'true_atoms') int? trueAtoms,
     @JsonKey(name: 'total_atoms') int? totalAtoms,
-    @Default('') String justification,
+    @JsonKey(name: 'row_explanation') @Default('') String rowExplanation,
 
     @JsonKey(name: 'cited_source_id') String? citedSourceId,
     @JsonKey(name: 'cited_text_quote') String? citedTextQuote,

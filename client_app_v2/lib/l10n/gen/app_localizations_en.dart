@@ -209,6 +209,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get atomicBreakdownTitle => 'Level Breakdown';
 
   @override
+  String get rowExplanationTitle => 'Explanation';
+
+  @override
   String get normalizedScore => '100 %';
 
   @override
@@ -817,7 +820,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lblMethodologicalLog => 'Methodological Log';
 
   @override
-  String get lblLogicMatrix => 'Logic Matrix';
+  String get lblLogicMatrix => 'Competency Areas';
 
   @override
   String get lblMatrixSubtitle => 'Visual analysis of reasoning quality.';

@@ -178,6 +178,7 @@ class PdfReportService:
                 printed_at=printed_at,
                 charts=charts,
                 l10n=l10n,
+                lang_code=target_locale,
             )
             return str(html_content)
 

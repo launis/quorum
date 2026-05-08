@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$User {
 
- String get id; String? get slug; String get email; UserRole get role; String? get organizationId; String? get displayName; String? get createdAt; String? get language; String? get themeMode; DateTime? get lastLoginAt; int? get executionCount; bool? get isActive; String? get createdBy;
+ String get id; String? get slug; String get email; UserRole get role; String? get organizationId; String? get name; String? get createdAt; String? get language; String? get themeMode; DateTime? get lastLoginAt; int? get executionCount; bool? get isActive; String? get createdBy;
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $UserCopyWith<User> get copyWith => _$UserCopyWithImpl<User>(this as User, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.email, email) || other.email == email)&&(identical(other.role, role) || other.role == role)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.language, language) || other.language == language)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.lastLoginAt, lastLoginAt) || other.lastLoginAt == lastLoginAt)&&(identical(other.executionCount, executionCount) || other.executionCount == executionCount)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.email, email) || other.email == email)&&(identical(other.role, role) || other.role == role)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.name, name) || other.name == name)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.language, language) || other.language == language)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.lastLoginAt, lastLoginAt) || other.lastLoginAt == lastLoginAt)&&(identical(other.executionCount, executionCount) || other.executionCount == executionCount)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,email,role,organizationId,displayName,createdAt,language,themeMode,lastLoginAt,executionCount,isActive,createdBy);
+int get hashCode => Object.hash(runtimeType,id,slug,email,role,organizationId,name,createdAt,language,themeMode,lastLoginAt,executionCount,isActive,createdBy);
 
 @override
 String toString() {
-  return 'User(id: $id, slug: $slug, email: $email, role: $role, organizationId: $organizationId, displayName: $displayName, createdAt: $createdAt, language: $language, themeMode: $themeMode, lastLoginAt: $lastLoginAt, executionCount: $executionCount, isActive: $isActive, createdBy: $createdBy)';
+  return 'User(id: $id, slug: $slug, email: $email, role: $role, organizationId: $organizationId, name: $name, createdAt: $createdAt, language: $language, themeMode: $themeMode, lastLoginAt: $lastLoginAt, executionCount: $executionCount, isActive: $isActive, createdBy: $createdBy)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $UserCopyWith<$Res>  {
   factory $UserCopyWith(User value, $Res Function(User) _then) = _$UserCopyWithImpl;
 @useResult
 $Res call({
- String id, String? slug, String email, UserRole role, String? organizationId, String? displayName, String? createdAt, String? language, String? themeMode, DateTime? lastLoginAt, int? executionCount, bool? isActive, String? createdBy
+ String id, String? slug, String email, UserRole role, String? organizationId, String? name, String? createdAt, String? language, String? themeMode, DateTime? lastLoginAt, int? executionCount, bool? isActive, String? createdBy
 });
 
 
@@ -65,14 +65,14 @@ class _$UserCopyWithImpl<$Res>
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? email = null,Object? role = null,Object? organizationId = freezed,Object? displayName = freezed,Object? createdAt = freezed,Object? language = freezed,Object? themeMode = freezed,Object? lastLoginAt = freezed,Object? executionCount = freezed,Object? isActive = freezed,Object? createdBy = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? email = null,Object? role = null,Object? organizationId = freezed,Object? name = freezed,Object? createdAt = freezed,Object? language = freezed,Object? themeMode = freezed,Object? lastLoginAt = freezed,Object? executionCount = freezed,Object? isActive = freezed,Object? createdBy = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String?,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as UserRole,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
-as String?,displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
+as String?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String?,language: freezed == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
 as String?,themeMode: freezed == themeMode ? _self.themeMode : themeMode // ignore: cast_nullable_to_non_nullable
@@ -165,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String? slug,  String email,  UserRole role,  String? organizationId,  String? displayName,  String? createdAt,  String? language,  String? themeMode,  DateTime? lastLoginAt,  int? executionCount,  bool? isActive,  String? createdBy)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String? slug,  String email,  UserRole role,  String? organizationId,  String? name,  String? createdAt,  String? language,  String? themeMode,  DateTime? lastLoginAt,  int? executionCount,  bool? isActive,  String? createdBy)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
-return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,_that.displayName,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy);case _:
+return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,_that.name,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy);case _:
   return orElse();
 
 }
@@ -186,10 +186,10 @@ return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String? slug,  String email,  UserRole role,  String? organizationId,  String? displayName,  String? createdAt,  String? language,  String? themeMode,  DateTime? lastLoginAt,  int? executionCount,  bool? isActive,  String? createdBy)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String? slug,  String email,  UserRole role,  String? organizationId,  String? name,  String? createdAt,  String? language,  String? themeMode,  DateTime? lastLoginAt,  int? executionCount,  bool? isActive,  String? createdBy)  $default,) {final _that = this;
 switch (_that) {
 case _User():
-return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,_that.displayName,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy);case _:
+return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,_that.name,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -206,10 +206,10 @@ return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String? slug,  String email,  UserRole role,  String? organizationId,  String? displayName,  String? createdAt,  String? language,  String? themeMode,  DateTime? lastLoginAt,  int? executionCount,  bool? isActive,  String? createdBy)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String? slug,  String email,  UserRole role,  String? organizationId,  String? name,  String? createdAt,  String? language,  String? themeMode,  DateTime? lastLoginAt,  int? executionCount,  bool? isActive,  String? createdBy)?  $default,) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
-return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,_that.displayName,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy);case _:
+return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,_that.name,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy);case _:
   return null;
 
 }
@@ -221,7 +221,7 @@ return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,
 @JsonSerializable()
 
 class _User extends User {
-  const _User({required this.id, this.slug, required this.email, required this.role, this.organizationId, this.displayName, this.createdAt, this.language, this.themeMode, this.lastLoginAt, this.executionCount, this.isActive, this.createdBy}): super._();
+  const _User({required this.id, this.slug, required this.email, required this.role, this.organizationId, this.name, this.createdAt, this.language, this.themeMode, this.lastLoginAt, this.executionCount, this.isActive, this.createdBy}): super._();
   factory _User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 
 @override final  String id;
@@ -229,7 +229,7 @@ class _User extends User {
 @override final  String email;
 @override final  UserRole role;
 @override final  String? organizationId;
-@override final  String? displayName;
+@override final  String? name;
 @override final  String? createdAt;
 @override final  String? language;
 @override final  String? themeMode;
@@ -251,16 +251,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.email, email) || other.email == email)&&(identical(other.role, role) || other.role == role)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.language, language) || other.language == language)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.lastLoginAt, lastLoginAt) || other.lastLoginAt == lastLoginAt)&&(identical(other.executionCount, executionCount) || other.executionCount == executionCount)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.email, email) || other.email == email)&&(identical(other.role, role) || other.role == role)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.name, name) || other.name == name)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.language, language) || other.language == language)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.lastLoginAt, lastLoginAt) || other.lastLoginAt == lastLoginAt)&&(identical(other.executionCount, executionCount) || other.executionCount == executionCount)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,email,role,organizationId,displayName,createdAt,language,themeMode,lastLoginAt,executionCount,isActive,createdBy);
+int get hashCode => Object.hash(runtimeType,id,slug,email,role,organizationId,name,createdAt,language,themeMode,lastLoginAt,executionCount,isActive,createdBy);
 
 @override
 String toString() {
-  return 'User(id: $id, slug: $slug, email: $email, role: $role, organizationId: $organizationId, displayName: $displayName, createdAt: $createdAt, language: $language, themeMode: $themeMode, lastLoginAt: $lastLoginAt, executionCount: $executionCount, isActive: $isActive, createdBy: $createdBy)';
+  return 'User(id: $id, slug: $slug, email: $email, role: $role, organizationId: $organizationId, name: $name, createdAt: $createdAt, language: $language, themeMode: $themeMode, lastLoginAt: $lastLoginAt, executionCount: $executionCount, isActive: $isActive, createdBy: $createdBy)';
 }
 
 
@@ -271,7 +271,7 @@ abstract mixin class _$UserCopyWith<$Res> implements $UserCopyWith<$Res> {
   factory _$UserCopyWith(_User value, $Res Function(_User) _then) = __$UserCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String? slug, String email, UserRole role, String? organizationId, String? displayName, String? createdAt, String? language, String? themeMode, DateTime? lastLoginAt, int? executionCount, bool? isActive, String? createdBy
+ String id, String? slug, String email, UserRole role, String? organizationId, String? name, String? createdAt, String? language, String? themeMode, DateTime? lastLoginAt, int? executionCount, bool? isActive, String? createdBy
 });
 
 
@@ -288,14 +288,14 @@ class __$UserCopyWithImpl<$Res>
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? email = null,Object? role = null,Object? organizationId = freezed,Object? displayName = freezed,Object? createdAt = freezed,Object? language = freezed,Object? themeMode = freezed,Object? lastLoginAt = freezed,Object? executionCount = freezed,Object? isActive = freezed,Object? createdBy = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? email = null,Object? role = null,Object? organizationId = freezed,Object? name = freezed,Object? createdAt = freezed,Object? language = freezed,Object? themeMode = freezed,Object? lastLoginAt = freezed,Object? executionCount = freezed,Object? isActive = freezed,Object? createdBy = freezed,}) {
   return _then(_User(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String?,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as UserRole,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
-as String?,displayName: freezed == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
+as String?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String?,language: freezed == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
 as String?,themeMode: freezed == themeMode ? _self.themeMode : themeMode // ignore: cast_nullable_to_non_nullable

@@ -66,6 +66,16 @@ class ContextFilter(logging.Filter):
         return True
 
 
+class UvicornPollingFilter(logging.Filter):
+    """Filters out repetitive 202 Accepted /render polling logs to reduce noise."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = record.getMessage()
+        if '"GET /api/v2/execution/executions/' in msg and '/render' in msg and '" 202' in msg:
+            return False
+        return True
+
+
 def configure_logfire() -> None:
     """Configures Logfire for observability.
 
@@ -190,11 +200,14 @@ def setup_logging(log_level: int = logging.INFO) -> None:
 
     # Set external libraries to warning to reduce noise
     # Configure uvicorn to use our format (propagate to root handler)
+    polling_filter = UvicornPollingFilter()
     for uvicorn_logger_name in ["uvicorn", "uvicorn.access", "uvicorn.error"]:
         uvicorn_logger = logging.getLogger(uvicorn_logger_name)
         uvicorn_logger.handlers = []  # Remove default handlers
         uvicorn_logger.propagate = True  # Use root logger handlers
         uvicorn_logger.setLevel(logging.INFO)
+        if uvicorn_logger_name == "uvicorn.access":
+            uvicorn_logger.addFilter(polling_filter)
 
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)

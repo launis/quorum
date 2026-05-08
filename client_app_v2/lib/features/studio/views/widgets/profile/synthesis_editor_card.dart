@@ -6,11 +6,13 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 class SynthesisEditorCard extends StatelessWidget {
   final SynthesisConfigDTO? synthesis;
   final Function(SynthesisConfigDTO?) onChanged;
+  final bool isGlobal;
 
   const SynthesisEditorCard({
     super.key,
     required this.synthesis,
     required this.onChanged,
+    this.isGlobal = true,
   });
 
   @override
@@ -140,32 +142,77 @@ class SynthesisEditorCard extends StatelessWidget {
                 onChanged(syn.copyWith(omitEmptySections: val));
               },
             ),
-            const SizedBox(height: 16),
-            Text(
-              AppLocalizations.of(context)!.synAllowedExports,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            Wrap(
-              spacing: 8.0,
-              children: ['pdf', 'raw_json', 'docx'].map((exportType) {
-                final isSelected = syn.allowedExports.contains(exportType);
-                return FilterChip(
-                  label: Text(exportType.toUpperCase()),
-                  selected: isSelected,
-                  onSelected: (bool selected) {
-                    final exports = List<String>.from(syn.allowedExports);
-                    if (selected) {
-                      if (!exports.contains(exportType)) {
-                        exports.add(exportType);
+            if (isGlobal) ...[
+              const SizedBox(height: 16),
+              Text(
+                AppLocalizations.of(context)!.synAllowedExports,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Wrap(
+                spacing: 8.0,
+                children: ['pdf', 'raw_json', 'docx'].map((exportType) {
+                  final isSelected = syn.allowedExports.contains(exportType);
+                  return FilterChip(
+                    label: Text(exportType.toUpperCase()),
+                    selected: isSelected,
+                    onSelected: (bool selected) {
+                      final exports = List<String>.from(syn.allowedExports);
+                      if (selected) {
+                        if (!exports.contains(exportType)) {
+                          exports.add(exportType);
+                        }
+                      } else {
+                        exports.remove(exportType);
                       }
+                      onChanged(syn.copyWith(allowedExports: exports));
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Näytettävät Sarakkeet (Visible Columns)',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              ...['label', 'score', 'distribution', 'row_explanation'].map((col) {
+                final String colTitle = switch (col) {
+                  'label' => 'Otsikko (label)',
+                  'score' => 'Pisteet (score)',
+                  'distribution' => 'Jakauma (distribution)',
+                  'row_explanation' => 'Selite (row_explanation)',
+                  _ => col,
+                };
+                return CheckboxListTile(
+                  title: Text(colTitle),
+                  value: syn.matrixVisibleColumns.contains(col),
+                  onChanged: (val) {
+                    final masterOrder = [
+                      'label',
+                      'score',
+                      'distribution',
+                      'row_explanation',
+                    ];
+                    final list = List<String>.from(syn.matrixVisibleColumns);
+                    if (val == true) {
+                      if (!list.contains(col)) list.add(col);
                     } else {
-                      exports.remove(exportType);
+                      list.remove(col);
                     }
-                    onChanged(syn.copyWith(allowedExports: exports));
+                    list.sort((a, b) {
+                      final indexA = masterOrder.indexOf(a);
+                      final indexB = masterOrder.indexOf(b);
+                      if (indexA == -1 || indexB == -1) return 0;
+                      return indexA.compareTo(indexB);
+                    });
+                    onChanged(syn.copyWith(matrixVisibleColumns: list));
                   },
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
                 );
-              }).toList(),
-            ),
+              }),
+            ],
           ],
         ),
       ),

@@ -452,6 +452,12 @@ abstract class AppLocalizations {
   /// **'Level Breakdown'**
   String get atomicBreakdownTitle;
 
+  /// No description provided for @rowExplanationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Explanation'**
+  String get rowExplanationTitle;
+
   /// No description provided for @normalizedScore.
   ///
   /// In en, this message translates to:
@@ -1577,7 +1583,7 @@ abstract class AppLocalizations {
   /// No description provided for @lblLogicMatrix.
   ///
   /// In en, this message translates to:
-  /// **'Logic Matrix'**
+  /// **'Competency Areas'**
   String get lblLogicMatrix;
 
   /// No description provided for @lblMatrixSubtitle.

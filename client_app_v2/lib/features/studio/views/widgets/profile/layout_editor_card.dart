@@ -279,11 +279,13 @@ class LayoutEditorCard extends ConsumerWidget {
               ),
               child: SynthesisEditorCard(
                 synthesis: layout.synthesis,
+                isGlobal: false,
                 onChanged: (val) {
                   updateLayout(layout.copyWith(synthesis: val));
                 },
               ),
             ),
+
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,

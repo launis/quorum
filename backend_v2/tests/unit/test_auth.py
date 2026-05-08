@@ -122,12 +122,12 @@ async def test_user_repository_create_update_delete(mock_repo: Any) -> None:
             "created_at": "2026-01-01T00:00:00Z",
             "language": "en",
             "theme_mode": "system",
-            "display_name": "Updated Name",
+            "name": "Updated Name",
         },  # noqa: E501
     ]
-    updated = await user_repo.update("usr_2345bcde", UserUpdate(display_name="Updated Name"))
+    updated = await user_repo.update("usr_2345bcde", UserUpdate(name="Updated Name"))
     mock_repo.update_user.assert_called_once()
-    assert updated.display_name == "Updated Name"  # type: ignore  # type: ignore
+    assert updated.name == "Updated Name"  # type: ignore  # type: ignore
 
     # delete
     mock_repo.delete_user.return_value = True

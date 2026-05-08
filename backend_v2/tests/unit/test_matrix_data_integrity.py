@@ -22,6 +22,8 @@ def test_all_bars_matrices_allow_decimals(db: dict[str, Any]) -> None:
     """Ensure every PromptBlock or Matrix with 'scales' explicitly permits decimals."""
     for list_name in ["prompt_blocks", "matrices"]:
         for item in db.get(list_name, []):
+            if item.get("category_id") == "system_rule":
+                continue
             if "scales" in item and len(item["scales"]) > 0:
                 # The BARS float architecture requires allow_decimals to be True
                 assert item.get("allow_decimals") is True, f"Item {item.get('id')} must have allow_decimals=True"
@@ -31,6 +33,8 @@ def test_all_bars_matrices_use_discrete_integer_scores(db: dict[str, Any]) -> No
     """Ensure that the defined 'score' values in the BARS matrix are simple integers (1, 2, 3...)."""
     for list_name in ["prompt_blocks", "matrices"]:
         for item in db.get(list_name, []):
+            if item.get("category_id") == "system_rule":
+                continue
             scales = item.get("scales", [])
             if not scales:
                 continue

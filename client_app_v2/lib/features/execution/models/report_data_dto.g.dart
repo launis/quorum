@@ -19,6 +19,7 @@ _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
             'title',
             'description',
             'axes',
+            'visible_columns',
             'text_delivery_mode',
             'synthesis',
             'synthesis_md',
@@ -52,6 +53,12 @@ _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
                     .toList() ??
                 const [],
           ),
+          visibleColumns: $checkedConvert(
+            'visible_columns',
+            (v) =>
+                (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+                const ['label', 'score', 'distribution', 'row_explanation'],
+          ),
           textDeliveryMode: $checkedConvert(
             'text_delivery_mode',
             (v) => v as String,
@@ -67,6 +74,7 @@ _ReportLayoutDTO _$ReportLayoutDTOFromJson(Map<String, dynamic> json) =>
       fieldKeyMap: const {
         'presetView': 'preset_view',
         'matrixType': 'matrix_type',
+        'visibleColumns': 'visible_columns',
         'textDeliveryMode': 'text_delivery_mode',
         'synthesisMd': 'synthesis_md',
       },
@@ -79,6 +87,7 @@ Map<String, dynamic> _$ReportLayoutDTOToJson(_ReportLayoutDTO instance) =>
       'title': instance.title?.toJson(),
       'description': instance.description?.toJson(),
       'axes': instance.axes.map((e) => e.toJson()).toList(),
+      'visible_columns': instance.visibleColumns,
       'text_delivery_mode': instance.textDeliveryMode,
       'synthesis': instance.synthesis,
       'synthesis_md': instance.synthesisMd,
@@ -171,8 +180,12 @@ _ReportDataDTO _$ReportDataDTOFromJson(
         'global_score',
         'layouts',
         'created_at',
+        'local_time_str',
         'org_name',
+        'user_name',
+        'scoring_engine_name',
         'strictness_level',
+        'custom_preface_md',
         'scoring_strategy',
         'cost_estimate',
         'total_tokens',
@@ -187,6 +200,7 @@ _ReportDataDTO _$ReportDataDTOFromJson(
         'penalties_applied',
         'evaluative_matrices',
         'informational_matrices',
+        'matrix_visible_columns',
       ],
     );
     final val = _ReportDataDTO(
@@ -220,10 +234,20 @@ _ReportDataDTO _$ReportDataDTOFromJson(
             const [],
       ),
       createdAt: $checkedConvert('created_at', (v) => v as String?),
+      localTimeStr: $checkedConvert('local_time_str', (v) => v as String?),
       orgName: $checkedConvert('org_name', (v) => v as String?),
+      userName: $checkedConvert('user_name', (v) => v as String?),
+      scoringEngineName: $checkedConvert(
+        'scoring_engine_name',
+        (v) => v as String?,
+      ),
       strictnessLevel: $checkedConvert(
         'strictness_level',
         (v) => (v as num?)?.toInt(),
+      ),
+      customPrefaceMd: $checkedConvert(
+        'custom_preface_md',
+        (v) => v as String?,
       ),
       scoringStrategy: $checkedConvert(
         'scoring_strategy',
@@ -301,6 +325,12 @@ _ReportDataDTO _$ReportDataDTOFromJson(
                 .toList() ??
             const [],
       ),
+      matrixVisibleColumns: $checkedConvert(
+        'matrix_visible_columns',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const ['label', 'score', 'distribution', 'row_explanation'],
+      ),
     );
     return val;
   },
@@ -311,8 +341,12 @@ _ReportDataDTO _$ReportDataDTOFromJson(
     'availableProfiles': 'available_profiles',
     'globalScore': 'global_score',
     'createdAt': 'created_at',
+    'localTimeStr': 'local_time_str',
     'orgName': 'org_name',
+    'userName': 'user_name',
+    'scoringEngineName': 'scoring_engine_name',
     'strictnessLevel': 'strictness_level',
+    'customPrefaceMd': 'custom_preface_md',
     'scoringStrategy': 'scoring_strategy',
     'costEstimate': 'cost_estimate',
     'totalTokens': 'total_tokens',
@@ -327,6 +361,7 @@ _ReportDataDTO _$ReportDataDTOFromJson(
     'penaltiesApplied': 'penalties_applied',
     'evaluativeMatrices': 'evaluative_matrices',
     'informationalMatrices': 'informational_matrices',
+    'matrixVisibleColumns': 'matrix_visible_columns',
   },
 );
 
@@ -341,8 +376,12 @@ Map<String, dynamic> _$ReportDataDTOToJson(_ReportDataDTO instance) =>
       'global_score': instance.globalScore,
       'layouts': instance.layouts.map((e) => e.toJson()).toList(),
       'created_at': instance.createdAt,
+      'local_time_str': instance.localTimeStr,
       'org_name': instance.orgName,
+      'user_name': instance.userName,
+      'scoring_engine_name': instance.scoringEngineName,
       'strictness_level': instance.strictnessLevel,
+      'custom_preface_md': instance.customPrefaceMd,
       'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
       'cost_estimate': instance.costEstimate,
       'total_tokens': instance.totalTokens,
@@ -361,6 +400,7 @@ Map<String, dynamic> _$ReportDataDTOToJson(_ReportDataDTO instance) =>
       'informational_matrices': instance.informationalMatrices
           .map((e) => e.toJson())
           .toList(),
+      'matrix_visible_columns': instance.matrixVisibleColumns,
     };
 
 const _$ScoringStrategyEnumMap = {

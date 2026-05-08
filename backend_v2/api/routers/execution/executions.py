@@ -150,6 +150,8 @@ async def render_execution(
     arq_pool: ArqPoolDep,
     format: str = Query("json", description="Output format: json, pdf, or flat"),
     profile_id: str | None = Query(None, description="The output profile to render"),
+    custom_preface_md: str | None = Query(None, description="Custom preface markdown"),
+    local_time_str: str | None = Query(None, description="Localized time string"),
 ) -> Response:
     """Omni-channel render endpoint for an execution."""
     accept_language = request.headers.get("accept-language")
@@ -161,6 +163,8 @@ async def render_execution(
         profile_id=profile_id,
         accept_language=accept_language,
         arq_pool=arq_pool,
+        custom_preface_md=custom_preface_md,
+        local_time_str=local_time_str,
     )
 
     headers = {}
@@ -183,6 +187,8 @@ async def generate_pdf_async(
     execution_service: ExecutionServiceDep,
     arq_pool: ArqPoolDep,
     profile_id: str | None = Query(None),
+    custom_preface_md: str | None = Query(None, description="Custom preface markdown"),
+    local_time_str: str | None = Query(None, description="Localized time string"),
 ) -> JobAcceptedDTO:
     """Omni-channel render endpoint for asynchronous PDF Generation via BackgroundWorker."""
     accept_language = request.headers.get("accept-language", None)
@@ -194,6 +200,8 @@ async def generate_pdf_async(
         accept_language=accept_language,
         profile_id=prof_id,
         arq_pool=arq_pool,
+        custom_preface_md=custom_preface_md,
+        local_time_str=local_time_str,
     )
 
     # 4. Return 202 Accepted Fast

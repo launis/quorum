@@ -33,14 +33,14 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
   }
 
   Widget _buildMainContent(BuildContext context) {
-    final hasJustification = axis.justification.trim().isNotEmpty;
+    final hasRowExplanation = axis.rowExplanation.trim().isNotEmpty;
     final hasQuote = showQuote;
     final hasWebCitation =
         axis.citedWebCitation != null && axis.citedWebCitation!.isNotEmpty;
     final hasSourceId =
         axis.citedSourceId != null && axis.citedSourceId!.isNotEmpty;
 
-    if (!hasJustification && !hasQuote && !hasWebCitation && !hasSourceId) {
+    if (!hasRowExplanation && !hasQuote && !hasWebCitation && !hasSourceId) {
       return const SizedBox();
     }
 
@@ -50,7 +50,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (hasJustification)
+        if (hasRowExplanation)
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -62,7 +62,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
               ],
               Expanded(
                 child: Text(
-                  axis.justification,
+                  axis.rowExplanation,
                   style: const TextStyle(fontSize: 14, color: Colors.black87),
                 ),
               ),
