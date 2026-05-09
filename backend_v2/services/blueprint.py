@@ -330,7 +330,6 @@ class BlueprintTransformer:
                 active_score_key = "normalized_score"
                 display_scale_min = 0.0
                 display_scale_max = 100.0
-                level_names = {}  # Purge mapping to prevent disproportionate labeling
             elif display_scale == "custom":
                 # Custom bounds are from pb_meta scale_min/scale_max
                 scale_min_val = pb_meta.scale_min

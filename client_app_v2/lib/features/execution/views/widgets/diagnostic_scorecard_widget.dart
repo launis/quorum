@@ -6,14 +6,12 @@ import 'package:client_app/features/execution/models/scorecard_dto.dart';
 
 /// The master entrypoint component for the Diagnostic Scorecard UI.
 class DiagnosticScorecardWidget extends StatelessWidget {
-  final double? globalAverage;
   final List<MatrixScorecardRowDto> evaluativeMatrices;
   final List<MatrixScorecardRowDto> informationalMatrices;
   final List<String> visibleColumns;
 
   const DiagnosticScorecardWidget({
     super.key,
-    this.globalAverage,
     required this.evaluativeMatrices,
     required this.informationalMatrices,
     required this.visibleColumns,
@@ -36,46 +34,6 @@ class DiagnosticScorecardWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (globalAverage != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 20.0,
-              ),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primaryContainer,
-                    theme.colorScheme.primaryContainer.withValues(alpha: 0.8),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(12.0),
-                border: Border.all(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    l10n.scorecard_global_average,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                  Text(
-                    globalAverage!.toStringAsFixed(2),
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: theme.colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-          ],
 
           AtomMatrixTableWidget(
             matrices: [...evaluativeMatrices, ...informationalMatrices],

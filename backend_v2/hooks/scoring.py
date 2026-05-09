@@ -1021,7 +1021,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                             {"role": "user", "content": user_msg}
                         ]
                         
-                        client = await LLMClient.from_strategy("evaluation", repository=deps.system_repo)
+                        client = await LLMClient.from_strategy("strict", repository=deps.system_repo)
                         executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
                         
                         # Use execute_structured_task instead of execute_tool_loop (Rule 94)

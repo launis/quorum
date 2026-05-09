@@ -64,6 +64,8 @@ class LightweightMatrixOutput(V2CoreBase):
             if flat_key in mapped_data:
                 val = mapped_data.pop(flat_key)
                 if val is not None:
+                    if enum_str == "justification":
+                        mapped_data["justification"] = val
                     extensions[enum_str] = val
 
         mapped_data["extensions"] = extensions

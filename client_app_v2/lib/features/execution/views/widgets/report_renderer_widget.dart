@@ -55,6 +55,10 @@ class ReportRendererWidget extends ConsumerWidget {
             payload.synthesizedMarkdown!.isNotEmpty)
           _buildGlobalSynthesisBox(context),
 
+        // Global Average Banner right after Introduction (Global Synthesis)
+        if (payload.globalScore != null)
+          _buildGlobalAverageBanner(context, payload.globalScore!),
+
         ...payload.layouts.map(
           (layout) => _buildLayoutSequence(context, ref, layout),
         ),
@@ -66,7 +70,6 @@ class ReportRendererWidget extends ConsumerWidget {
         // Epic 27: Render Independent Matrix Scorecard directly below extensions
         // V6.1 Parity Fix: This is the 'Appendix' of all matrices, regardless of 3D layout inclusion.
         DiagnosticScorecardWidget(
-          globalAverage: payload.globalScore,
           evaluativeMatrices: payload.evaluativeMatrices,
           informationalMatrices: payload.informationalMatrices,
           visibleColumns: payload.matrixVisibleColumns,
@@ -125,6 +128,56 @@ class ReportRendererWidget extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildGlobalAverageBanner(BuildContext context, double globalAverage) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.only(
+        top: 8.0,
+        bottom: 16.0,
+        left: 16.0,
+        right: 16.0,
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24.0,
+          vertical: 16.0,
+        ),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primaryContainer,
+              theme.colorScheme.primaryContainer.withValues(alpha: 0.8),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12.0),
+          border: Border.all(
+            color: theme.colorScheme.primary.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              l10n.scorecard_global_average,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+            Text(
+              globalAverage.toStringAsFixed(2),
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -155,14 +155,14 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Toulminin Argumentaatiomalli",
+                    "fi": "Väitteiden perustelu (Toulminin Argumentaatiomalli)",
                     "en": "Toulmin Argumentation Model"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Arvioi logiikan kestävyyttä ja väitteiden perusteluja.",
+                    "fi": "Kertoo, kuinka taitavasti perustelet asiasi. Se seuraa, onko esittämilläsi väitteillä selkeä looginen pohja.",
                     "en": "Evaluates the robustness of logic and the justification of claims."
                 }
             },
@@ -450,14 +450,14 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Bloomin Taksonomia",
+                    "fi": "Luovuus ja syvyys (Bloomin Taksonomia)",
                     "en": "Bloom's Taxonomy"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Arvioi kognitiivisen prosessoinnin ja tekemisen syvyyttä.",
+                    "fi": "Mittaa, kuinka syvälle pureudut aiheeseen. Korkeimmalla tasolla et vain toista tietoa, vaan luot tekoälyn avulla täysin uusia näkökulmia.",
                     "en": "Evaluates the depth of cognitive processing and actionable execution."
                 }
             },
@@ -748,14 +748,14 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Kahnemanin Kaksoisprosessiteoria",
+                    "fi": "Harkintakyky (Kahnemanin Kaksoisprosessiteoria)",
                     "en": "Kahneman's Dual Process Theory"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Mittaa tasapainoa intuitiivisen nopeuden ja analyyttisen harkinnan välillä.",
+                    "fi": "Seuraa, käytätkö nopeaa intuitiota (Systeemi 1) vai hidasta, kriittistä harkintaa (Systeemi 2). Tavoitteena on välttää hätäisiä johtopäätöksiä.",
                     "en": "Measures the balance between intuitive speed and analytical deliberation."
                 }
             },
@@ -967,14 +967,14 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Performatiivisuus ja Goodhartin Laki",
+                    "fi": "Aktiivinen ohjaus (Performatiivisuus ja Goodhartin Laki)",
                     "en": "Performativity & Goodhart's Law"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Paljastaa strategian pinnallisuuden ja pelkkiin mittareihin keskittymisen.",
+                    "fi": "Arvioi, oletko prosessin johtaja vai pelkkä matkustaja. Se mittaa, kuinka aktiivisesti ohjaat tekoälyä kohti tavoitetta.",
                     "en": "Exposes superficial strategies and over-reliance on optimizable metrics."
                 }
             },
@@ -1437,14 +1437,14 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Arkistointistandardien Auditointi",
+                    "fi": "Ohjeiden noudattaminen (Arkistointistandardien Auditointi)",
                     "en": "Archival Compliance Audit"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Mittaa tiedon jäljitettävyyttä ja ankkurointia luotettaviin lähteisiin.",
+                    "fi": "Seuraa, kuinka hyvin pysyt sovituissa raameissa ja parhaissa käytännöissä työn aikana.",
                     "en": "Measures data traceability and logical anchoring to reliable references."
                 }
             },
@@ -1762,14 +1762,14 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Kausaalisuuden Analyysi",
+                    "fi": "Syy-seuraussuhteet (Kausaalisuuden Analyysi)",
                     "en": "Causal Analyst"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Arvioi syy-seuraussuhteiden paikkansapitävyyttä ja kestävyyttä.",
+                    "fi": "Arvioi kykyäsi ymmärtää, mikä johtaa mihinkin. Se mittaa, kuinka hyvin hallitset monimutkaisia ketjuja, joissa yksi asia vaikuttaa toiseen.",
                     "en": "Evaluates the validity and robustness of direct causal relationships."
                 }
             },
@@ -2004,14 +2004,14 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Falsifioinnin Auditointi",
+                    "fi": "Itsensä haastaminen (Falsifioinnin Auditointi)",
                     "en": "Falsification Audit"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Mittaa vastaväitteiden huomioimista ja heikkouksien aktiivista testaamista.",
+                    "fi": "Mittaa haluasi etsiä virheitä omista ajatuksistasi. Se arvioi, yritätkö aktiivisesti todistaa omat väitteesi vääriksi vahvistaaksesi niitä.",
                     "en": "Measures the acknowledgment of counterarguments and active vulnerability testing."
                 }
             },
@@ -2247,7 +2247,7 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Vastuullisuus",
+                    "fi": "Vastuullisuus (Turvallisuus- ja Etiikkasuodatin)",
                     "en": "Responsibility"
                 }
             },
@@ -2274,14 +2274,14 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Ylituomari",
+                    "fi": "Prosessiomistajuus (Ylituomari)",
                     "en": "Supreme Adjudicator"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Arvioi päätöksentekijän lopullista toiminnan ohjausta ja kontrollia.",
+                    "fi": "Tämä kuvaa sitä, kuinka vahvasti otat vastuun koko ketjusta ja ohjaat työtä alusta loppuun.",
                     "en": "Evaluates the final executive command and control over decision making."
                 }
             },
@@ -2670,14 +2670,14 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "XAI-Raportoija",
+                    "fi": "Luottamusarvio (XAI-Raportoija)",
                     "en": "XAI Synthesis Reporter"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Antaa lopullisen tuomion tuotetun analyysin sisäisestä ristiriidattomuudesta.",
+                    "fi": "Arvioi tekoälyn suositusten läpinäkyvyyttä ja selitettävyyttä luottamuksen rakentamiseksi.",
                     "en": "Delivers the final verdict on the internal coherence of the generated analyses."
                 }
             },
@@ -3195,14 +3195,14 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Kriittinen Episteeminen Nöyryys",
+                    "fi": "Oman tiedon rajat (Episteeminen Nöyryys)",
                     "en": "Critical Epistemic Humility"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Määrittää objektiivisen protokollan epävarmuuden ja tiedollisten aukkojen tunnistamiseksi, kieltäen ehdottomasti arvaukset ja olettamukset.",
+                    "fi": "Arvioi kykyäsi tunnistaa, mitä et tiedä. Se varoittaa liiallisesta varmuudesta asioissa, jotka ovat todellisuudessa epävarmoja.",
                     "en": "Defines an objective protocol for identifying uncertainty and epistemic gaps, strictly prohibiting guesses and assumptions."
                 }
             },
@@ -3519,7 +3519,7 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Vastuullisuus",
+                    "fi": "Vastuullisuus (Turvallisuus- ja Etiikkasuodatin)",
                     "en": "Responsibility"
                 }
             },
@@ -3856,14 +3856,14 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Kausaalinen ja Abduktiivinen Integriteetti",
+                    "fi": "Päättelyn rehellisyys (Kausaalinen ja Abduktiivinen Integriteetti)",
                     "en": "Causal & Abductive Integrity"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Paljastaa jälkikäteisen selittelyn ja epäloogiset johtopäätökset päätöksenteossa.",
+                    "fi": "Varmistaa, että johtopäätöksesi ovat syntyneet aidon analyysin tuloksena, eivätkä ne ole vain keksittyjä selityksiä lopputulokselle.",
                     "en": "Exposes post-hoc rationalizations and illogical leaps in decision making."
                 }
             },
@@ -4145,14 +4145,14 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Selitettävyys ja Läpinäkyvyys",
+                    "fi": "Avoimuus (Selitettävyys ja Läpinäkyvyys)",
                     "en": "Explainability & Transparency"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Mittaa sitä, kuinka avoimesti ja selitettävästi johtopäätökset on muodostettu.",
+                    "fi": "Mittaa, kuinka helposti raporttisi logiikka on ulkopuolisen seurattavissa ja kuinka hyvin olet avannut käytetyt lähteet.",
                     "en": "Measures how transparently and explainably conclusions are reached."
                 }
             },
@@ -4866,14 +4866,14 @@
             "label": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Episteeminen Nöyryys",
+                    "fi": "Oman tiedon rajat (Episteeminen Nöyryys)",
                     "en": "Epistemic Humility"
                 }
             },
             "description": {
                 "default_locale": "fi",
                 "translations": {
-                    "fi": "Arvioi kykyä tunnistaa oman tiedon rajat ja mahdolliset epävarmuustekijät avoimesti.",
+                    "fi": "Arvioi kykyäsi tunnistaa, mitä et tiedä. Se varoittaa liiallisesta varmuudesta asioissa, jotka ovat todellisuudessa epävarmoja.",
                     "en": "Evaluates the ability to openly recognize boundaries of context and inherent uncertainties."
                 }
             },
@@ -5143,7 +5143,7 @@
                     "fi": "Luo yksittäisen virkkeen selityksen matriisin riville sen saaman pistemäärän perusteella."
                 }
             },
-            "ai_description": "<system_directive>\n  <role>Matrix Scoring Analyst</role>\n  <objective>\n    Generate a short, single-sentence explanation for a specific matrix row based on the user's normalized score (0-100).\n    Apply the strict SCORE-DRIVEN TONE AND STRUCTURE rules:\n    0 - 39: Catastrophic Failure\n    40 - 69: Mediocre / Flawed\n    70 - 89: Strong / Competent\n    90 - 100: Mastery / Excellent\n  </objective>\n  <rules>\n    - REQUIREMENT: Output EXACTLY ONE short sentence.\n    - REQUIREMENT: Adhere strictly to the defined tone bracket corresponding to the score.\n    - REQUIREMENT: Output language must match the requested UI locale (default to Finnish unless specified).\n  </rules>\n</system_directive>",
+            "ai_description": "<system_directive>\n  <role>Matrix Scoring Analyst</role>\n  <objective>\n    Generate an ULTRA-SHORT explanation (Observation + Cause only) for a specific matrix row based on its score (0-100).\n    Apply the strict SCORE-DRIVEN TONE rules:\n    0 - 39: Catastrophic Failure\n    40 - 69: Mediocre / Flawed\n    70 - 89: Strong / Competent\n    90 - 100: Mastery / Excellent\n  </objective>\n  <rules>\n    - MANDATORY LENGTH LIMIT: Your explanation MUST be extremely concise. Maximum length is 1-2 sentences and absolutely no more than 15-20 words.\n    - REQUIREMENT: Output exactly ONE punchy observation containing only the core finding and its cause.\n    - REQUIREMENT: Do NOT quote long text from the source. Be direct. Example: 'Selkeä epistemologisen nöyryyden puute: teksti esittää tulkinnanvaraisia skenaarioita ehdottomina totuuksina ilman varauksellisuutta.'\n    - REQUIREMENT: Output language must be Finnish.\n  </rules>\n</system_directive>",
             "scale_min": 0,
             "scale_max": 100,
             "scales": [

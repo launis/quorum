@@ -23,7 +23,7 @@ class AtomMatrixTableWidget extends StatelessWidget {
     final tableMatrices = matrices
         .where((m) => m.levelBreakdown != null && m.levelBreakdown!.isNotEmpty)
         .toList();
-    if (tableMatrices.isEmpty) {
+    if (tableMatrices.isEmpty || visibleColumns.isEmpty) {
       return const SizedBox();
     }
 
@@ -91,14 +91,6 @@ class AtomMatrixTableWidget extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-              if (visibleColumns.contains('score'))
-                Expanded(
-                  flex: 1,
-                  child: Text(
-                    l10n.score,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
               if (visibleColumns.contains('distribution') ||
                   visibleColumns.contains('atomic_breakdown'))
                 Expanded(
@@ -121,6 +113,14 @@ class AtomMatrixTableWidget extends StatelessWidget {
                   flex: 1,
                   child: Text(
                     l10n.normalizedScore,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              if (visibleColumns.contains('score'))
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    l10n.score,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -150,22 +150,29 @@ class AtomMatrixTableWidget extends StatelessWidget {
                     if (visibleColumns.contains('label'))
                       Expanded(
                         flex: 3,
-                        child: Text(
-                          (Localizations.localeOf(context).languageCode == 'fi'
-                                  ? m.labelFi
-                                  : m.labelEn) +
-                              (m.isEvaluative ? ' *' : ''),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    if (visibleColumns.contains('score'))
-                      Expanded(
-                        flex: 1,
-                        child: Text(
-                          m.score == null
-                              ? '-'
-                              : '${m.score!.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              (Localizations.localeOf(context).languageCode == 'fi'
+                                      ? m.labelFi
+                                      : m.labelEn) +
+                                  (m.isEvaluative ? ' *' : ''),
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            if (m.description != null && m.description!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Text(
+                                  m.description!,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.black54,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     if (visibleColumns.contains('distribution') ||
@@ -213,6 +220,16 @@ class AtomMatrixTableWidget extends StatelessWidget {
                           ),
                         ),
                       ),
+                    if (visibleColumns.contains('score'))
+                      Expanded(
+                        flex: 1,
+                        child: Text(
+                          m.score == null
+                              ? '-'
+                              : '${m.score!.toStringAsFixed(1)} / ${m.scaleMax?.toStringAsFixed(1) ?? '-'}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
                   ],
                 ),
               );
@@ -245,12 +262,29 @@ class AtomMatrixTableWidget extends StatelessWidget {
           });
 
         return ExpansionTile(
-          title: Text(
-            (Localizations.localeOf(context).languageCode == 'fi'
-                    ? m.labelFi
-                    : m.labelEn) +
-                (m.isEvaluative ? ' *' : ''),
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                (Localizations.localeOf(context).languageCode == 'fi'
+                        ? m.labelFi
+                        : m.labelEn) +
+                    (m.isEvaluative ? ' *' : ''),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              if (m.description != null && m.description!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Text(
+                    m.description!,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.black54,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+            ],
           ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
