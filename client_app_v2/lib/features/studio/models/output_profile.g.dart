@@ -127,7 +127,6 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
           json,
           allowedKeys: const [
             'system_prompt',
-            'row_explanation_prompt',
             'length_constraint',
             'preamble_text',
             'historical_context_mode',
@@ -140,10 +139,6 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
         );
         final val = _SynthesisConfigDTO(
           systemPrompt: $checkedConvert('system_prompt', (v) => v as String?),
-          rowExplanationPrompt: $checkedConvert(
-            'row_explanation_prompt',
-            (v) => v as String?,
-          ),
           lengthConstraint: $checkedConvert(
             'length_constraint',
             (v) => (v as num?)?.toInt(),
@@ -188,7 +183,6 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
       },
       fieldKeyMap: const {
         'systemPrompt': 'system_prompt',
-        'rowExplanationPrompt': 'row_explanation_prompt',
         'lengthConstraint': 'length_constraint',
         'preambleText': 'preamble_text',
         'historicalContextMode': 'historical_context_mode',
@@ -203,7 +197,6 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
     <String, dynamic>{
       'system_prompt': instance.systemPrompt,
-      'row_explanation_prompt': instance.rowExplanationPrompt,
       'length_constraint': instance.lengthConstraint,
       'preamble_text': instance.preambleText?.toJson(),
       'historical_context_mode': instance.historicalContextMode,
@@ -228,6 +221,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
             'organization_id',
             'name',
             'description',
+            'custom_preface',
             'visible_metadata',
             'visible_extensions',
             'max_extension_items',
@@ -259,6 +253,11 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
           ),
           description: $checkedConvert(
             'description',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+          ),
+          customPreface: $checkedConvert(
+            'custom_preface',
             (v) =>
                 v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
           ),
@@ -317,6 +316,7 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
       fieldKeyMap: const {
         'workflowId': 'workflow_id',
         'organizationId': 'organization_id',
+        'customPreface': 'custom_preface',
         'visibleMetadata': 'visible_metadata',
         'visibleExtensions': 'visible_extensions',
         'maxExtensionItems': 'max_extension_items',
@@ -336,6 +336,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'organization_id': instance.organizationId,
   'name': instance.name.toJson(),
   'description': instance.description?.toJson(),
+  'custom_preface': instance.customPreface?.toJson(),
   'visible_metadata': instance.visibleMetadata,
   'visible_extensions': instance.visibleExtensions
       .map((e) => _$XaiExtensionTypeEnumMap[e]!)
@@ -374,6 +375,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
       allowedKeys: const [
         'name',
         'description',
+        'custom_preface',
         'visible_metadata',
         'visible_extensions',
         'max_extension_items',
@@ -392,6 +394,10 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
       ),
       description: $checkedConvert(
         'description',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      customPreface: $checkedConvert(
+        'custom_preface',
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
       visibleMetadata: $checkedConvert(
@@ -446,6 +452,7 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
     return val;
   },
   fieldKeyMap: const {
+    'customPreface': 'custom_preface',
     'visibleMetadata': 'visible_metadata',
     'visibleExtensions': 'visible_extensions',
     'maxExtensionItems': 'max_extension_items',
@@ -461,6 +468,7 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
 ) => <String, dynamic>{
   'name': instance.name.toJson(),
   'description': instance.description?.toJson(),
+  'custom_preface': instance.customPreface?.toJson(),
   'visible_metadata': instance.visibleMetadata,
   'visible_extensions': instance.visibleExtensions
       .map((e) => _$XaiExtensionTypeEnumMap[e]!)

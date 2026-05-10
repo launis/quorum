@@ -5775,6 +5775,14 @@
             "title": "Section Syntheses",
             "description": "Mapping of layout ID to LLM generated Section-Level synthesis"
           },
+          "row_explanations": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Row Explanations",
+            "description": "Synthesized row explanations by matrix ID"
+          },
           "cited_sources": {
             "items": {
               "type": "string"

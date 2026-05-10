@@ -26,11 +26,13 @@ Siirrytään asiantuntijamalleissa (esim. SynthesisStepDataDTO ja StepFalsifierD
 
 ### **Phase 2: Exact Match Validator (Hallusinaatiosuoja)**
 
-Poistetaan LLM-pohjaisten laadunvalvontasolmujen tarve raakadatan vertailussa.
+Poistetaan LLM-pohjaisten laadunvalvontasolmujen tarve raakadatan vertailussa. Tämä vaihe sisältää tietoisen arkkitehtuurisen kompromissin puristisen "Code-as-a-Judge" -determinismin ja PDF-dokumenttien reaalimaailman (OCR-virheet, ligatuurit) välillä DLQ-tulvien estämiseksi.
 
-* **Python Fail-Fast:** Rakennetaan Pydantic @model\_validator, joka ottaa asiantuntijamallin palauttaman evidence\_quotes \-taulukon ja suorittaa tekstivertailun (fuzzy matching RapidFuzz-kirjastolla) alkuperäistä puhdistettua dokumenttia vasten.
+* **Python Fail-Fast (O(n) Exact Match + RapidFuzz Fallback):** Rakennetaan Pydantic `@model_validator`, joka ottaa asiantuntijamallin palauttaman `evidence_quotes`-taulukon ja suorittaa tekstivertailun alkuperäistä puhdistettua dokumenttia vasten. Validaattori yrittää aina ensin salamannopeaa eksaktia hakua. Vain jos se epäonnistuu, käytetään RapidFuzz-kirjastoa (sumea vertailu CPU-lukkojen välttämiseksi raskaissa dokumenteissa).
 
-* **Hylkäys & Circuit Breaker:** Jos LLM on keksinyt lainauksen omasta päästään tai muuttanut sanamuotoja, Python heittää välittömästi AppException-virheen ja Arq-worker pakottaa solmun yrittämään uudelleen. Circuit Breakerin ja uudelleenyritysten maksimimäärä sidotaan tiukasti `SystemConcurrency.LLM_MAX_RETRIES` -vakioon (enintään 2 epäonnistumista). Jos toisto epäonnistuu kaksi kertaa, prosessi kaatuu (Fail-Fast) lopullisesti ja heittää `AppException`-virheen eteenpäin.
+* **Dynaaminen Kynnysarvo & Audit-Loki:** Sumean logiikan tuoma "Duck-Typing" -riski minimoidaan skaalaamalla kynnysarvoa (`> 95.0`) dynaamisesti lainauksen pituuden mukaan sekä tarkistamalla sanarajat. Jos osuma on "sumea" (alle 100 %), alkuperäinen lähdeteksti ja mallin tuloste tallennetaan audit-lokiin jäljitettävyyden takaamiseksi.
+
+* **Hylkäys & Circuit Breaker:** Jos LLM on keksinyt lainauksen omasta päästään tai RapidFuzz-tulos jää alle sallitun kynnyksen, Python heittää välittömästi `AppException`-virheen ja Arq-worker pakottaa solmun yrittämään uudelleen. Circuit Breakerin ja uudelleenyritysten maksimimäärä sidotaan tiukasti `SystemConcurrency.LLM_MAX_RETRIES` -vakioon. Jos toisto epäonnistuu kaksi kertaa, prosessi kaatuu lopullisesti.
 
 ### **Phase 3: Falsifier-agentin Uusi Rooli (Red Teaming & MCP)**
 

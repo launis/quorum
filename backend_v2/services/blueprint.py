@@ -754,6 +754,10 @@ class BlueprintTransformer:
                 syn.matrix_visible_columns if syn else ["label", "score", "distribution", "row_explanation"]
             )
 
+            resolved_preface_md = custom_preface_md
+            if hasattr(profile, "custom_preface") and profile.custom_preface:
+                resolved_preface_md = profile.custom_preface.resolve(locale)
+
             report_dto = ReportDataDTO(
                 strictness_level=strictness_level,
                 scoring_strategy=scoring_strategy,
@@ -765,7 +769,7 @@ class BlueprintTransformer:
                 available_profiles=available_profiles_map,
                 created_at=execution.created_at,
                 local_time_str=local_time_str,
-                custom_preface_md=custom_preface_md,
+                custom_preface_md=resolved_preface_md,
                 org_name=org_name,
                 global_score=global_score,
                 has_warning=has_warning,

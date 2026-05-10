@@ -20,7 +20,7 @@ from backend_v2.hooks.context_mapper import ContextMapper
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.synthesis import SynthesisMetadataDTO, SynthesisStepDataDTO
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
-from backend_v2.models.dtos.synthesis import SynthesisOutputDTO
+from backend_v2.models.dtos.synthesis import MatrixExplanationsResult, SynthesisOutputDTO
 from backend_v2.models.enums import HistoricalContextMode
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
@@ -678,6 +678,65 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
         raw_highlights = [h.model_dump() for h in result.xai_highlights] if result.xai_highlights else []
 
+        # Epic 50: Dynamic Row Explanation Generation with strict SSOT 
+        row_explanations_dict = {}
+        row_exp_rule = "MAXIMUM LENGTH IS 30 WORDS. KEEP IT CONCISE BUT INFORMATIVE."
+            
+        row_exp_prompt = (
+            "<system_directive>\n"
+            "<objective>Summarize EACH of the provided execution justifications into EXACTLY ONE short, punchy sentence. You must return an explanation for EVERY matrix_id in the source_data.</objective>\n"
+            "<rules>\n"
+            "<rule>Focus strictly on the core reason for the score.</rule>\n"
+            "<rule>Do not use markdown, line breaks, or bullet points.</rule>\n"
+            f"<rule>{row_exp_rule}</rule>\n"
+            "<rule>CRITICAL LANGUAGE MANDATE: You must generate the explanation exclusively in the language specified in <target_language>.</rule>\n"
+            "</rules>\n"
+            "</system_directive>"
+        )
+
+        matrices_to_explain = []
+        for step_dto_obj in available_dtos:
+            payload = step_dto_obj.payload
+            block_id = step_dto_obj.block_id
+            if isinstance(payload, dict) and "justification" in payload and "normalized_score" in payload:
+                if not any(m["matrix_id"] == block_id for m in matrices_to_explain):
+                    matrices_to_explain.append({
+                        "matrix_id": block_id,
+                        "score": payload.get("normalized_score"),
+                        "justification": payload.get("justification")
+                    })
+        
+        if matrices_to_explain:
+            try:
+                user_msg = (
+                    "<execution_parameters>\n"
+                    "  <task>generate_row_explanations</task>\n"
+                    f"  <target_language>{language}</target_language>\n"
+                    "</execution_parameters>\n"
+                    "<source_data>\n"
+                    f"{json.dumps(matrices_to_explain, indent=2)}\n"
+                    "</source_data>"
+                )
+                exp_messages = [
+                    {"role": "system", "content": row_exp_prompt},
+                    {"role": "user", "content": user_msg}
+                ]
+                
+                exp_client = await LLMClient.from_strategy("strict", repository=deps.system_repo)
+                
+                exp_res, exp_usage = await executor.execute_structured_task(
+                    client=exp_client,
+                    messages=exp_messages,
+                    response_model=MatrixExplanationsResult
+                )
+                
+                for item in exp_res.explanations:
+                    row_explanations_dict[item.matrix_id] = item.row_explanation
+                    
+                updated_usage = updated_usage + exp_usage
+            except Exception as e:
+                logger.error("[SynthesisHook] Row explanation generation failed: %s", e, exc_info=True)
+
         # EPIC 13 M3: Save synthesis metrics directly to DB state
         return HookResult(
             success=True,
@@ -686,6 +745,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 "section_syntheses": section_dict,
                 "cited_sources": result.cited_sources,
                 "xai_highlights": raw_highlights,
+                "row_explanations": row_explanations_dict,
                 "step_metadata_updates": {"token_usage": updated_usage.model_dump()},
                 "mcp_tool_audit": raw_audits,
             },

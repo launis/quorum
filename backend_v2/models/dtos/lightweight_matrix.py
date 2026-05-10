@@ -28,7 +28,7 @@ class LightweightMatrixOutput(V2CoreBase):
     justification: str = ""
     xai_log: XAILogDto | None = None
     evaluated_atoms: dict[str, bool] = Field(default_factory=dict)
-    extensions: dict[LaxXaiExtensionType, str] = Field(default_factory=dict)
+    extensions: dict[LaxXaiExtensionType, Any] = Field(default_factory=dict)
 
     @staticmethod
     def map_llm_extensions_to_domain(raw_data: Any) -> Any:

@@ -29,19 +29,6 @@ class ReportRendererWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (payload.layouts.isEmpty) {
-      final l10n = AppLocalizations.of(context)!;
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Text(
-            l10n.reportEmptyProfile,
-            style: const TextStyle(color: Colors.grey),
-          ),
-        ),
-      );
-    }
-
     return ListView(
       padding: EdgeInsets.zero,
       shrinkWrap: true,
@@ -291,212 +278,208 @@ class ReportRendererWidget extends ConsumerWidget {
     final showCost = payload.visibleMetadata.contains('cost');
     final showTokens = payload.visibleMetadata.contains('tokens');
 
-    return Card(
-      elevation: 3,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // AIHE & PROFIILI
-            Text(
-              l10n.reportTopicProfile(profileNameStr),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
+    final showEngine = payload.visibleMetadata.contains('scoring_engine');
+    final showStrictness = payload.visibleMetadata.contains('strictness');
 
-            ...payload.visibleMetadata.map((metaKey) {
-              switch (metaKey) {
-                case 'organization':
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 4.0),
-                    child: Text(
-                      l10n.reportContext(defaultOrgName),
-                      style: TextStyle(color: Colors.grey.shade800),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(20.0),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        border: Border.all(color: Colors.green, width: 2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // TITLE AND PROFILE ID (Centered)
+          Text(
+            profileNameStr.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.indigo.shade900,
+              letterSpacing: 1.0,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // PILLS ROW (scoring_engine and strictness)
+          if ((showEngine && payload.scoringStrategy != null) || (showStrictness && payload.strictnessLevel != null)) ...[
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (showEngine && payload.scoringStrategy != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.indigo.shade200),
                     ),
-                  );
-                case 'date':
-                  if (payload.localTimeStr != null ||
-                      payload.createdAt != null) {
-                    final dateVal = payload.localTimeStr ?? payload.createdAt!;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 4.0),
-                      child: Text(
-                        l10n.reportTimestamp(dateVal),
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 13,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.calculate, size: 14, color: Colors.indigo.shade700),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Scoring Engine: ${_getScoringEngineName(context, payload.scoringStrategy)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.indigo.shade800,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                case 'user':
-                  if (payload.userName != null) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 4.0),
-                      child: Text(
-                        'Käyttäjä: ${payload.userName}',
-                        style: TextStyle(
-                          color: Colors.grey.shade800,
-                          fontSize: 13,
+                      ],
+                    ),
+                  ),
+                if (showStrictness && payload.strictnessLevel != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.indigo.shade200),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.balance, size: 14, color: Colors.indigo.shade700),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${l10n.strictnessSelectorTitle}: ${_getStrictnessName(context, int.tryParse(payload.strictnessLevel.toString()) ?? 50)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.indigo.shade800,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                case 'scoring_engine':
-                  if (payload.scoringStrategy != null) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 4.0, top: 4.0),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.indigo.shade50,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.indigo.shade200),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.calculate,
-                              size: 14,
-                              color: Colors.indigo.shade700,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Scoring Engine: ${_getScoringEngineName(context, payload.scoringStrategy)}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.indigo.shade800,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                case 'strictness':
-                  if (payload.strictnessLevel != null) {
-                    final parsedStrictness = int.tryParse(
-                      payload.strictnessLevel.toString(),
-                    );
-                    if (parsedStrictness != null) {
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // LEFT ALIGNED METADATA
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ...payload.visibleMetadata.map((metaKey) {
+                switch (metaKey) {
+                  case 'user':
+                    if (payload.userName != null) {
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 4.0, top: 4.0),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.indigo.shade50,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colors.indigo.shade200),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.balance,
-                                size: 14,
-                                color: Colors.indigo.shade700,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                '${l10n.strictnessSelectorTitle}: ${_getStrictnessName(context, parsedStrictness)}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.indigo.shade800,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+                        padding: const EdgeInsets.only(bottom: 4.0),
+                        child: Text(
+                          'Käyttäjä: ${payload.userName}',
+                          style: TextStyle(color: Colors.grey.shade800, fontSize: 13, fontWeight: FontWeight.bold),
                         ),
                       );
                     }
-                  }
-                  return const SizedBox.shrink();
-                default:
-                  return const SizedBox.shrink();
-              }
-            }),
-
-            if (showCost || showTokens) const Divider(height: 24),
-
-            // KUSTANNUKSET & KOGNITIIVINEN TYÖ
-            if (showCost || showTokens)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (showCost)
-                    Expanded(
-                      child: Column(
+                    return const SizedBox.shrink();
+                  case 'date':
+                    if (payload.localTimeStr != null || payload.createdAt != null) {
+                      String dateStr = '';
+                      if (payload.localTimeStr != null) {
+                        dateStr = payload.localTimeStr!;
+                      } else {
+                        try {
+                          final parsed = DateTime.parse(payload.createdAt!).toLocal();
+                          dateStr = '${parsed.year}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')} ${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
+                        } catch (_) {
+                          dateStr = payload.createdAt!;
+                        }
+                      }
+                      return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            l10n.reportCosts,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
+                            l10n.reportTimestamp(dateStr),
+                            style: TextStyle(color: Colors.grey.shade800, fontSize: 13, fontWeight: FontWeight.bold),
                           ),
+                          const SizedBox(height: 4),
                           Text(
-                            l10n.reportApiPrice(costStr),
-                            style: const TextStyle(fontSize: 13),
+                            'ID: $executionId',
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
                           ),
-                        ],
+                          const SizedBox(height: 4),
+                        ]
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  case 'organization':
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4.0),
+                      child: Text(
+                        'Organisaatio: $defaultOrgName',
+                        style: TextStyle(color: Colors.grey.shade800, fontSize: 13, fontWeight: FontWeight.bold),
                       ),
+                    );
+                  default:
+                    return const SizedBox.shrink();
+                }
+              }),
+            ]
+          ),
+
+          if (showCost || showTokens) const Divider(height: 24),
+
+          // KUSTANNUKSET & KOGNITIIVINEN TYÖ
+          if (showCost || showTokens)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (showCost)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          l10n.reportCosts,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        Text(
+                          l10n.reportApiPrice(costStr),
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ],
                     ),
-                  if (showTokens)
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            l10n.reportCognitiveWork,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                          Text(
-                            l10n.reportPromptTokens(
-                              (payload.promptTokens ?? '-').toString(),
-                            ),
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                          Text(
-                            l10n.reportCompletionTokens(
-                              (payload.completionTokens ?? '-').toString(),
-                            ),
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                          Text(
-                            l10n.reportReasoningTokens(
-                              (payload.reasoningTokens ?? '-').toString(),
-                            ),
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                        ],
-                      ),
+                  ),
+                if (showTokens)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          l10n.reportCognitiveWork,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        Text(
+                          l10n.reportPromptTokens((payload.promptTokens ?? '-').toString()),
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                        Text(
+                          l10n.reportCompletionTokens((payload.completionTokens ?? '-').toString()),
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                        Text(
+                          l10n.reportReasoningTokens((payload.reasoningTokens ?? '-').toString()),
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ],
                     ),
-                ],
-              ),
-          ],
-        ),
+                  ),
+              ],
+            ),
+        ],
       ),
     );
   }

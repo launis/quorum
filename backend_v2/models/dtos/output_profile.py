@@ -30,6 +30,7 @@ class OutputProfileCreateDTO(V2CoreBase):
     organization_id: str | None = Field(default=None, description="Tenant organization scope.")
     name: I18nText = Field(..., description="Localized name.")
     description: I18nText | None = Field(default=None, description="Localized description.")
+    custom_preface: I18nText | None = Field(default=None, description="Rich text preface.")
     visible_metadata: list[str] = Field(
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
         description="List of metadata fields visible on the UI and PDF cover header.",
@@ -64,6 +65,7 @@ class OutputProfileUpdateDTO(V2CoreBase):
     workflow_id: str | None = Field(default=None, description="Optional workflow reassignment.")
     name: I18nText | None = Field(default=None, description="Localized name.")
     description: I18nText | None = Field(default=None, description="Localized description.")
+    custom_preface: I18nText | None = Field(default=None, description="Rich text preface.")
     organization_id: str | None = Field(default=None, description="Tenant organization scope.")
     visible_metadata: list[str] | None = Field(
         default=None,
@@ -100,6 +102,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     workflow_id: str
     name: I18nText
     description: I18nText | None = None
+    custom_preface: I18nText | None = None
     visible_metadata: list[str] = Field(
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"]
     )

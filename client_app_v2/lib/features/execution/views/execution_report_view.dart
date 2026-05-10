@@ -43,64 +43,33 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
   bool _isDownloadingContext = false;
 
   void _downloadPdf() async {
-    final textController = TextEditingController();
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Lisää selite (valinnainen)'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Kirjoita raportin alkuun tuleva saateteksti Markdown-muodossa.',
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: textController,
-              maxLines: 5,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Syötä teksti tähän...',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(AppLocalizations.of(context)!.cancelButton),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Lataa PDF'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    final customPreface = textController.text.trim();
-
     setState(() {
       _isDownloadingPdf = true;
     });
 
     try {
-      final now = DateTime.now();
+      final locale = Localizations.localeOf(context).languageCode == 'fi' ? 'fi' : 'en';
+      final payload = ref.read(reportControllerProvider(widget.executionId, lang: locale, variant: widget.variant)).value;
+      
+      DateTime targetDate;
+      if (payload?.createdAt != null) {
+        try {
+          targetDate = DateTime.parse(payload!.createdAt!).toLocal();
+        } catch (_) {
+          targetDate = DateTime.now();
+        }
+      } else {
+        targetDate = DateTime.now();
+      }
+
       final localTimeStr =
-          '${now.year} ${now.month.toString().padLeft(2, '0')} ${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+          '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')} ${targetDate.hour.toString().padLeft(2, '0')}:${targetDate.minute.toString().padLeft(2, '0')}';
 
       final queryParams = {
         'format': 'pdf',
         'profile_id': widget.variant,
         'local_time_str': localTimeStr,
       };
-
-      if (customPreface.isNotEmpty) {
-        queryParams['custom_preface_md'] = customPreface;
-      }
 
       final dio = ref.read(apiClientProvider);
       final response = await dio.get<List<int>>(

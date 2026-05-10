@@ -66,33 +66,6 @@ class SynthesisEditorCard extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  initialValue: syn.rowExplanationPrompt ?? '',
-                  maxLines: 4,
-                  minLines: 2,
-                  decoration: InputDecoration(
-                    labelText:
-                        'Matriisien Rivi-selitteiden Kehote (Row Explanation Prompt)',
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withValues(alpha: 0.2),
-                  ),
-                  onChanged: (val) {
-                    onChanged(
-                      syn.copyWith(
-                        rowExplanationPrompt: val.trim().isEmpty ? null : val,
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
                 I18nTextField(
                   label: 'Osion Väliotsikko (Preamble Text)',
                   initialData: syn.preambleText,

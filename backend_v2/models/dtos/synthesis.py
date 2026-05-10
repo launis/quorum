@@ -20,6 +20,17 @@ class XaiHighlightItem(V2CoreBase):
     content: str = Field(..., description="The synthesized, deduplicated insight or tip. Max 2 sentences.")
 
 
+class SynthesisRowExplanationDTO(V2CoreBase):
+    matrix_id: str = Field(..., description="The ID of the matrix")
+    row_explanation: str = Field(..., description="The ultra-short synthesized explanation")
+
+
+class MatrixExplanationsResult(V2CoreBase):
+    explanations: list[SynthesisRowExplanationDTO] = Field(
+        ..., description="A mandatory list containing EXACTLY ONE explanation for EACH matrix_id provided in the source_data."
+    )
+
+
 class SynthesisOutputDTO(V2CoreBase):
     """Structured output expected from the Synthesis LLM."""
 

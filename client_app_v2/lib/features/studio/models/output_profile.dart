@@ -38,7 +38,6 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
 
   const factory SynthesisConfigDTO({
     String? systemPrompt,
-    @JsonKey(name: 'row_explanation_prompt') String? rowExplanationPrompt,
     int? lengthConstraint,
     I18nText? preambleText,
     @Default('DISABLED')
@@ -68,6 +67,7 @@ abstract class OutputProfile with _$OutputProfile {
     String? organizationId,
     required I18nText name,
     I18nText? description,
+    @JsonKey(name: 'custom_preface') I18nText? customPreface,
     @Default(['date', 'organization']) List<String> visibleMetadata,
     required List<XaiExtensionType> visibleExtensions,
     @JsonKey(name: 'max_extension_items') int? maxExtensionItems,
@@ -92,6 +92,7 @@ abstract class EmbeddedOutputProfile with _$EmbeddedOutputProfile {
   const factory EmbeddedOutputProfile({
     required I18nText name,
     I18nText? description,
+    @JsonKey(name: 'custom_preface') I18nText? customPreface,
     @Default(['date', 'organization']) List<String> visibleMetadata,
     required List<XaiExtensionType> visibleExtensions,
     @JsonKey(name: 'max_extension_items') int? maxExtensionItems,

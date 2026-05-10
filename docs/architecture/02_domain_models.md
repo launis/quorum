@@ -321,6 +321,11 @@ classDiagram
    * Järjestelmä estää puutteelliset Workflown tilat ennen ajoa: `validate_dag_integrity` suorittaa Depth-First Search (DFS) -algoritmin, joka paljastaa työnkulun solmukohdista syklit (kehät) pystyen katkaisemaan suorituksen (RFC 7807) ennen ajon alkua. Se on absoluuttinen vaatimus turvalliselle asynkroniselle taustaprosessoinnille.
    * **E2E Orchestration Fail-Fast:** Rajapinta kaatuu välittömästi (HTTP 400 Validation Error), mikäli työnkulun `expected_inputs` -määritelmät (esim. `chat_log`) puuttuvat ajopyynnön `raw_inputs` -payloadista. Asiakassovellukset (esim. Dart E2E-skriptit) EIVÄT SAA käyttää keksittyjä syötteitä tai hardkoodattuja Opaque ID -tunnisteita (`prof_123`). Niiden on haettava ID:t dynaamisesti ja lähetettävä täsmälleen oikeat, validit syötteet.
 
+4. **Execution and Synthesis Tier Decoupling (Epic 50):**
+   * Järjestelmä erottaa **Execution Phase** (Raaka-arviointi, `PromptBlockit`) ja **Reporting/Display Phase** (Synteesi, `OutputProfilet`) täysin toisistaan.
+   * `PromptBlockit` ovat yksinomaan raakadatan arviointia varten (numeeriset asteikot kuten 1-5, ZERO-TRUST AUDITOR -ohjeet) eivätkä ne SAA sisältää UI-muotoilun tai pituuden ohjeita (esim. "kirjoita lyhyt lause").
+   * `OutputProfilet` (mukaan lukien `SynthesisConfigDTO`) ovat yksinomaan UI-muotoilua ja synteesiä varten (esim. `row_explanation_prompt`). Ne EIVÄT SAA sisältää arviointiohjeita kuten "hypoteesien testaus" tai "oikein/väärin" -määrittelyjä.
+
 ## Järjestelmäkonfiguraatiot ja Mallit
 
 Pydantic-kirjasto on laajennettu hallinnoimaan työnkulkujen lisäksi koko järjestelmän laajuisia asetuksia, joilla tekoälyagenttien kyvykkyyksiä ohjataan koodin ulkopuolelta.

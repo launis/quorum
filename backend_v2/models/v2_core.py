@@ -687,6 +687,9 @@ class OutputProfile(V2CoreBase):
     organization_id: str | None = Field(default=None, description="Tenant organization ID.")
     name: I18nText = Field(description="Localized name of the profile (e.g. {'fi': 'Johdon tiivistelmä'})")
     description: I18nText | None = Field(default=None, description="Detailed profile context")
+    custom_preface: I18nText | None = Field(
+        default=None, description="Rich text preface shown at the very beginning of the report."
+    )
     visible_metadata: list[str] = Field(
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
         description="List of metadata fields visible on the UI and PDF cover header.",
@@ -722,6 +725,9 @@ class EmbeddedOutputProfile(V2CoreBase):
 
     name: I18nText = Field(description="Localized name of the profile.")
     description: I18nText | None = Field(default=None, description="Detailed profile context")
+    custom_preface: I18nText | None = Field(
+        default=None, description="Rich text preface shown at the very beginning of the report."
+    )
     visible_metadata: list[str] = Field(
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
         description="List of metadata fields visible on the UI and PDF cover header.",
@@ -876,6 +882,9 @@ class RenderedSynthesisCache(V2CoreBase):
     synthesized_markdown: str = Field(description="Global synthesis markdown text")
     section_syntheses: dict[str, str] = Field(
         default_factory=dict, description="Mapping of layout ID to LLM generated Section-Level synthesis"
+    )
+    row_explanations: dict[str, str] = Field(
+        default_factory=dict, description="Synthesized row explanations by matrix ID"
     )
     cited_sources: list[str] = Field(default_factory=list, description="Citations used in this profile's synthesis")
     xai_highlights: list[XaiHighlightItem] = Field(default_factory=list, description="Generated XAI highlight boxes")

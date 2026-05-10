@@ -323,6 +323,19 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 },
               ),
               const SizedBox(height: 16),
+              I18nTextField(
+                label: 'Selite (Rich Text Preface)',
+                initialData: payload.customPreface,
+                onChanged: (val) {
+                  final isEmpty =
+                      val.translations.isEmpty ||
+                      val.translations.values.every((v) => v.trim().isEmpty);
+                  updatePayload(
+                    payload.copyWith(customPreface: isEmpty ? null : val),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
               InputDecorator(
                 decoration: InputDecoration(
                   labelText: l10n.profileDisplayScaleLabel,
