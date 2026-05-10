@@ -164,6 +164,7 @@ class BlueprintTransformer:
         profile_cache = execution.profile_syntheses.get(resolved_pid)
         original_synthesis_md = synthesis_md
         section_syntheses: dict[str, str] = {}
+        row_explanations_cache: dict[str, str] = {}
         xai_highlights_cache: list[Any] = []
         if profile_cache:
             section_syntheses = (
@@ -177,6 +178,11 @@ class BlueprintTransformer:
                 else original_synthesis_md
             )
             synthesis_md = val or original_synthesis_md
+            row_explanations_cache = (
+                profile_cache.row_explanations
+                if hasattr(profile_cache, "row_explanations") and profile_cache.row_explanations
+                else {}
+            )
             xai_highlights_cache = (
                 profile_cache.xai_highlights
                 if hasattr(profile_cache, "xai_highlights") and profile_cache.xai_highlights
@@ -410,6 +416,10 @@ class BlueprintTransformer:
                 true_atoms = sum(1 for v in matrix_payload.evaluated_atoms.values() if v)
                 total_atoms = len(matrix_payload.evaluated_atoms)
 
+            # Epic 50: Use dynamically generated row explanation if available, else raw justification
+            synth_explanation = row_explanations_cache.get(b_id)
+            final_explanation = synth_explanation if synth_explanation else justification
+
             row_dto = MatrixScorecardRowDTO(
                 block_id=b_id,
                 name=axis_name,
@@ -422,7 +432,7 @@ class BlueprintTransformer:
                 normalized_score=float(norm_score) if norm_score is not None else None,
                 true_atoms=true_atoms,
                 total_atoms=total_atoms,
-                row_explanation=_clean_hallucinated_numbers(justification),
+                row_explanation=_clean_hallucinated_numbers(final_explanation),
                 evidence_type=ext_dict["evidence_type"] if "evidence_type" in ext_dict else None,
                 missing_context=(
                     ext_dict["missing_context"] if "missing_context" in ext_dict and ext_dict["missing_context"] else ""

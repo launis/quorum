@@ -38,6 +38,7 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
 
   const factory SynthesisConfigDTO({
     String? systemPrompt,
+    @JsonKey(name: 'row_explanation_prompt') String? rowExplanationPrompt,
     int? lengthConstraint,
     I18nText? preambleText,
     @Default('DISABLED')

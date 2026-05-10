@@ -375,7 +375,7 @@ $SynthesisConfigDTOCopyWith<$Res>? get synthesis {
 /// @nodoc
 mixin _$SynthesisConfigDTO {
 
- String? get systemPrompt; int? get lengthConstraint; I18nText? get preambleText;@JsonKey(name: 'historical_context_mode') String get historicalContextMode; bool get enablePiiMasking; List<String> get allowedExports; bool get omitEmptySections; List<String> get allowedMcpTools;@JsonKey(name: 'matrix_visible_columns') List<String> get matrixVisibleColumns;
+ String? get systemPrompt;@JsonKey(name: 'row_explanation_prompt') String? get rowExplanationPrompt; int? get lengthConstraint; I18nText? get preambleText;@JsonKey(name: 'historical_context_mode') String get historicalContextMode; bool get enablePiiMasking; List<String> get allowedExports; bool get omitEmptySections; List<String> get allowedMcpTools;@JsonKey(name: 'matrix_visible_columns') List<String> get matrixVisibleColumns;
 /// Create a copy of SynthesisConfigDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -390,7 +390,7 @@ $SynthesisConfigDTOCopyWith<SynthesisConfigDTO> get copyWith => _$SynthesisConfi
 
 @override
 String toString() {
-  return 'SynthesisConfigDTO(systemPrompt: $systemPrompt, lengthConstraint: $lengthConstraint, preambleText: $preambleText, historicalContextMode: $historicalContextMode, enablePiiMasking: $enablePiiMasking, allowedExports: $allowedExports, omitEmptySections: $omitEmptySections, allowedMcpTools: $allowedMcpTools, matrixVisibleColumns: $matrixVisibleColumns)';
+  return 'SynthesisConfigDTO(systemPrompt: $systemPrompt, rowExplanationPrompt: $rowExplanationPrompt, lengthConstraint: $lengthConstraint, preambleText: $preambleText, historicalContextMode: $historicalContextMode, enablePiiMasking: $enablePiiMasking, allowedExports: $allowedExports, omitEmptySections: $omitEmptySections, allowedMcpTools: $allowedMcpTools, matrixVisibleColumns: $matrixVisibleColumns)';
 }
 
 
@@ -401,7 +401,7 @@ abstract mixin class $SynthesisConfigDTOCopyWith<$Res>  {
   factory $SynthesisConfigDTOCopyWith(SynthesisConfigDTO value, $Res Function(SynthesisConfigDTO) _then) = _$SynthesisConfigDTOCopyWithImpl;
 @useResult
 $Res call({
- String? systemPrompt, int? lengthConstraint, I18nText? preambleText,@JsonKey(name: 'historical_context_mode') String historicalContextMode, bool enablePiiMasking, List<String> allowedExports, bool omitEmptySections, List<String> allowedMcpTools,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns
+ String? systemPrompt,@JsonKey(name: 'row_explanation_prompt') String? rowExplanationPrompt, int? lengthConstraint, I18nText? preambleText,@JsonKey(name: 'historical_context_mode') String historicalContextMode, bool enablePiiMasking, List<String> allowedExports, bool omitEmptySections, List<String> allowedMcpTools,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns
 });
 
 
@@ -418,9 +418,10 @@ class _$SynthesisConfigDTOCopyWithImpl<$Res>
 
 /// Create a copy of SynthesisConfigDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? systemPrompt = freezed,Object? lengthConstraint = freezed,Object? preambleText = freezed,Object? historicalContextMode = null,Object? enablePiiMasking = null,Object? allowedExports = null,Object? omitEmptySections = null,Object? allowedMcpTools = null,Object? matrixVisibleColumns = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? systemPrompt = freezed,Object? rowExplanationPrompt = freezed,Object? lengthConstraint = freezed,Object? preambleText = freezed,Object? historicalContextMode = null,Object? enablePiiMasking = null,Object? allowedExports = null,Object? omitEmptySections = null,Object? allowedMcpTools = null,Object? matrixVisibleColumns = null,}) {
   return _then(_self.copyWith(
 systemPrompt: freezed == systemPrompt ? _self.systemPrompt : systemPrompt // ignore: cast_nullable_to_non_nullable
+as String?,rowExplanationPrompt: freezed == rowExplanationPrompt ? _self.rowExplanationPrompt : rowExplanationPrompt // ignore: cast_nullable_to_non_nullable
 as String?,lengthConstraint: freezed == lengthConstraint ? _self.lengthConstraint : lengthConstraint // ignore: cast_nullable_to_non_nullable
 as int?,preambleText: freezed == preambleText ? _self.preambleText : preambleText // ignore: cast_nullable_to_non_nullable
 as I18nText?,historicalContextMode: null == historicalContextMode ? _self.historicalContextMode : historicalContextMode // ignore: cast_nullable_to_non_nullable
@@ -526,10 +527,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? systemPrompt,  int? lengthConstraint,  I18nText? preambleText, @JsonKey(name: 'historical_context_mode')  String historicalContextMode,  bool enablePiiMasking,  List<String> allowedExports,  bool omitEmptySections,  List<String> allowedMcpTools, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? systemPrompt, @JsonKey(name: 'row_explanation_prompt')  String? rowExplanationPrompt,  int? lengthConstraint,  I18nText? preambleText, @JsonKey(name: 'historical_context_mode')  String historicalContextMode,  bool enablePiiMasking,  List<String> allowedExports,  bool omitEmptySections,  List<String> allowedMcpTools, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDTO() when $default != null:
-return $default(_that.systemPrompt,_that.lengthConstraint,_that.preambleText,_that.historicalContextMode,_that.enablePiiMasking,_that.allowedExports,_that.omitEmptySections,_that.allowedMcpTools,_that.matrixVisibleColumns);case _:
+return $default(_that.systemPrompt,_that.rowExplanationPrompt,_that.lengthConstraint,_that.preambleText,_that.historicalContextMode,_that.enablePiiMasking,_that.allowedExports,_that.omitEmptySections,_that.allowedMcpTools,_that.matrixVisibleColumns);case _:
   return orElse();
 
 }
@@ -547,10 +548,10 @@ return $default(_that.systemPrompt,_that.lengthConstraint,_that.preambleText,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? systemPrompt,  int? lengthConstraint,  I18nText? preambleText, @JsonKey(name: 'historical_context_mode')  String historicalContextMode,  bool enablePiiMasking,  List<String> allowedExports,  bool omitEmptySections,  List<String> allowedMcpTools, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? systemPrompt, @JsonKey(name: 'row_explanation_prompt')  String? rowExplanationPrompt,  int? lengthConstraint,  I18nText? preambleText, @JsonKey(name: 'historical_context_mode')  String historicalContextMode,  bool enablePiiMasking,  List<String> allowedExports,  bool omitEmptySections,  List<String> allowedMcpTools, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)  $default,) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDTO():
-return $default(_that.systemPrompt,_that.lengthConstraint,_that.preambleText,_that.historicalContextMode,_that.enablePiiMasking,_that.allowedExports,_that.omitEmptySections,_that.allowedMcpTools,_that.matrixVisibleColumns);case _:
+return $default(_that.systemPrompt,_that.rowExplanationPrompt,_that.lengthConstraint,_that.preambleText,_that.historicalContextMode,_that.enablePiiMasking,_that.allowedExports,_that.omitEmptySections,_that.allowedMcpTools,_that.matrixVisibleColumns);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -567,10 +568,10 @@ return $default(_that.systemPrompt,_that.lengthConstraint,_that.preambleText,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? systemPrompt,  int? lengthConstraint,  I18nText? preambleText, @JsonKey(name: 'historical_context_mode')  String historicalContextMode,  bool enablePiiMasking,  List<String> allowedExports,  bool omitEmptySections,  List<String> allowedMcpTools, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? systemPrompt, @JsonKey(name: 'row_explanation_prompt')  String? rowExplanationPrompt,  int? lengthConstraint,  I18nText? preambleText, @JsonKey(name: 'historical_context_mode')  String historicalContextMode,  bool enablePiiMasking,  List<String> allowedExports,  bool omitEmptySections,  List<String> allowedMcpTools, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  $default,) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDTO() when $default != null:
-return $default(_that.systemPrompt,_that.lengthConstraint,_that.preambleText,_that.historicalContextMode,_that.enablePiiMasking,_that.allowedExports,_that.omitEmptySections,_that.allowedMcpTools,_that.matrixVisibleColumns);case _:
+return $default(_that.systemPrompt,_that.rowExplanationPrompt,_that.lengthConstraint,_that.preambleText,_that.historicalContextMode,_that.enablePiiMasking,_that.allowedExports,_that.omitEmptySections,_that.allowedMcpTools,_that.matrixVisibleColumns);case _:
   return null;
 
 }
@@ -582,10 +583,11 @@ return $default(_that.systemPrompt,_that.lengthConstraint,_that.preambleText,_th
 @JsonSerializable()
 
 class _SynthesisConfigDTO extends SynthesisConfigDTO {
-  const _SynthesisConfigDTO({this.systemPrompt, this.lengthConstraint, this.preambleText, @JsonKey(name: 'historical_context_mode') this.historicalContextMode = 'DISABLED', this.enablePiiMasking = false, final  List<String> allowedExports = const ['pdf', 'raw_json'], this.omitEmptySections = true, final  List<String> allowedMcpTools = const [], @JsonKey(name: 'matrix_visible_columns') final  List<String> matrixVisibleColumns = const ['label', 'score', 'distribution', 'row_explanation']}): _allowedExports = allowedExports,_allowedMcpTools = allowedMcpTools,_matrixVisibleColumns = matrixVisibleColumns,super._();
+  const _SynthesisConfigDTO({this.systemPrompt, @JsonKey(name: 'row_explanation_prompt') this.rowExplanationPrompt, this.lengthConstraint, this.preambleText, @JsonKey(name: 'historical_context_mode') this.historicalContextMode = 'DISABLED', this.enablePiiMasking = false, final  List<String> allowedExports = const ['pdf', 'raw_json'], this.omitEmptySections = true, final  List<String> allowedMcpTools = const [], @JsonKey(name: 'matrix_visible_columns') final  List<String> matrixVisibleColumns = const ['label', 'score', 'distribution', 'row_explanation']}): _allowedExports = allowedExports,_allowedMcpTools = allowedMcpTools,_matrixVisibleColumns = matrixVisibleColumns,super._();
   factory _SynthesisConfigDTO.fromJson(Map<String, dynamic> json) => _$SynthesisConfigDTOFromJson(json);
 
 @override final  String? systemPrompt;
+@override@JsonKey(name: 'row_explanation_prompt') final  String? rowExplanationPrompt;
 @override final  int? lengthConstraint;
 @override final  I18nText? preambleText;
 @override@JsonKey(name: 'historical_context_mode') final  String historicalContextMode;
@@ -628,7 +630,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'SynthesisConfigDTO(systemPrompt: $systemPrompt, lengthConstraint: $lengthConstraint, preambleText: $preambleText, historicalContextMode: $historicalContextMode, enablePiiMasking: $enablePiiMasking, allowedExports: $allowedExports, omitEmptySections: $omitEmptySections, allowedMcpTools: $allowedMcpTools, matrixVisibleColumns: $matrixVisibleColumns)';
+  return 'SynthesisConfigDTO(systemPrompt: $systemPrompt, rowExplanationPrompt: $rowExplanationPrompt, lengthConstraint: $lengthConstraint, preambleText: $preambleText, historicalContextMode: $historicalContextMode, enablePiiMasking: $enablePiiMasking, allowedExports: $allowedExports, omitEmptySections: $omitEmptySections, allowedMcpTools: $allowedMcpTools, matrixVisibleColumns: $matrixVisibleColumns)';
 }
 
 
@@ -639,7 +641,7 @@ abstract mixin class _$SynthesisConfigDTOCopyWith<$Res> implements $SynthesisCon
   factory _$SynthesisConfigDTOCopyWith(_SynthesisConfigDTO value, $Res Function(_SynthesisConfigDTO) _then) = __$SynthesisConfigDTOCopyWithImpl;
 @override @useResult
 $Res call({
- String? systemPrompt, int? lengthConstraint, I18nText? preambleText,@JsonKey(name: 'historical_context_mode') String historicalContextMode, bool enablePiiMasking, List<String> allowedExports, bool omitEmptySections, List<String> allowedMcpTools,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns
+ String? systemPrompt,@JsonKey(name: 'row_explanation_prompt') String? rowExplanationPrompt, int? lengthConstraint, I18nText? preambleText,@JsonKey(name: 'historical_context_mode') String historicalContextMode, bool enablePiiMasking, List<String> allowedExports, bool omitEmptySections, List<String> allowedMcpTools,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns
 });
 
 
@@ -656,9 +658,10 @@ class __$SynthesisConfigDTOCopyWithImpl<$Res>
 
 /// Create a copy of SynthesisConfigDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? systemPrompt = freezed,Object? lengthConstraint = freezed,Object? preambleText = freezed,Object? historicalContextMode = null,Object? enablePiiMasking = null,Object? allowedExports = null,Object? omitEmptySections = null,Object? allowedMcpTools = null,Object? matrixVisibleColumns = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? systemPrompt = freezed,Object? rowExplanationPrompt = freezed,Object? lengthConstraint = freezed,Object? preambleText = freezed,Object? historicalContextMode = null,Object? enablePiiMasking = null,Object? allowedExports = null,Object? omitEmptySections = null,Object? allowedMcpTools = null,Object? matrixVisibleColumns = null,}) {
   return _then(_SynthesisConfigDTO(
 systemPrompt: freezed == systemPrompt ? _self.systemPrompt : systemPrompt // ignore: cast_nullable_to_non_nullable
+as String?,rowExplanationPrompt: freezed == rowExplanationPrompt ? _self.rowExplanationPrompt : rowExplanationPrompt // ignore: cast_nullable_to_non_nullable
 as String?,lengthConstraint: freezed == lengthConstraint ? _self.lengthConstraint : lengthConstraint // ignore: cast_nullable_to_non_nullable
 as int?,preambleText: freezed == preambleText ? _self.preambleText : preambleText // ignore: cast_nullable_to_non_nullable
 as I18nText?,historicalContextMode: null == historicalContextMode ? _self.historicalContextMode : historicalContextMode // ignore: cast_nullable_to_non_nullable
