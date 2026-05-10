@@ -27,7 +27,10 @@ class SynthesisRowExplanationDTO(V2CoreBase):
 
 class MatrixExplanationsResult(V2CoreBase):
     explanations: list[SynthesisRowExplanationDTO] = Field(
-        ..., description="A mandatory list containing EXACTLY ONE explanation for EACH matrix_id provided in the source_data."
+        ...,
+        description=(
+            "A mandatory list containing EXACTLY ONE explanation for EACH matrix_id provided in the source_data."
+        ),
     )
 
 

@@ -40,9 +40,10 @@ class ReportController extends _$ReportController {
       );
 
       if (rawData.containsKey('status') && rawData['status'] == 'pending') {
-        final msg = rawData['message'] as String? ?? 'Valmistellaan tulostusta...';
+        final msg =
+            rawData['message'] as String? ?? 'Valmistellaan tulostusta...';
         ref.read(renderStatusProvider.notifier).updateStatus(msg);
-        
+
         attempts++;
         if (attempts >= maxAttempts) {
           throw AppException.network(

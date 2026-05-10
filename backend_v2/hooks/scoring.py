@@ -28,11 +28,6 @@ from backend_v2.utils.math_utils import (
     scale_to_custom_range,
 )
 from backend_v2.utils.scoring import get_scoring_engine
-from backend_v2.llm.client import LLMClient
-from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-from backend_v2.services.llm_task_executor import LLMTaskExecutor
-from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +38,6 @@ class ScoringPayloadWrapper(V2CoreBase):
     step_falsifier: StepFalsifierDTO | None = None
     step_panel: StepPanelDTO | None = None
     evaluative_matrices: dict[str, float] | None = Field(default=None, alias="_evaluative_matrices")
-
-
-
 
 
 class StateInputWrapper(V2CoreBase):

@@ -175,7 +175,9 @@ class SynthesisEditorCard extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
-              ...['label', 'score', 'distribution', 'row_explanation'].map((col) {
+              ...['label', 'score', 'distribution', 'row_explanation'].map((
+                col,
+              ) {
                 final String colTitle = switch (col) {
                   'label' => 'Otsikko (label)',
                   'score' => 'Pisteet (score)',

@@ -16,7 +16,6 @@ void main() {
           locale: const Locale('en'),
           home: const Scaffold(
             body: DiagnosticScorecardWidget(
-              globalAverage: 4.5,
               evaluativeMatrices: [
                 MatrixScorecardRowDto(
                   blockId: 'm1',
@@ -48,7 +47,6 @@ void main() {
 
       // Check specific data from the mock
       expect(find.text('Test Matrix *'), findsWidgets);
-      expect(find.text('4.50'), findsOneWidget); // Global average formatted
     },
   );
 
@@ -62,7 +60,6 @@ void main() {
         locale: const Locale('en'),
         home: const Scaffold(
           body: DiagnosticScorecardWidget(
-            globalAverage: null,
             evaluativeMatrices: [],
             informationalMatrices: [],
             visibleColumns: const ['score', 'normalized_score', 'distribution'],

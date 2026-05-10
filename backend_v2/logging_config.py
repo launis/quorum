@@ -71,7 +71,7 @@ class UvicornPollingFilter(logging.Filter):
 
     def filter(self, record: logging.LogRecord) -> bool:
         msg = record.getMessage()
-        if '"GET /api/v2/execution/executions/' in msg and '/render' in msg and '" 202' in msg:
+        if '"GET /api/v2/execution/executions/' in msg and "/render" in msg and '" 202' in msg:
             return False
         return True
 

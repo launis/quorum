@@ -25,12 +25,13 @@ Järjestelmä puhdistetaan dynaamisista atomisaatio-kutsuista. Infrastruktuuri p
      Python  
      class TDAAssertion(BaseModel):  
          description: str  \# Varsinainen kriteeri (esim. "Teksti esittää numeerisen tavoitteen")  
-         inverse\_evidence: bool \= False  \# Kääntää lainauksen vaatimuksen
+         inverse\_evidence: bool \= False  \# Kääntää lainauksen vaatimuksen (Lokaali evaluaatio)
+         aggregation_mode: Literal['EXISTS', 'ALL_MUST_COMPLY'] = 'EXISTS'  \# Globaali yhdistämislogiikka
 
    * Muutetaan solun Claim-malli muotoon: tda\_assertions: list\[TDAAssertion\] \= Field(min\_length=1). Tämä on järjestelmän uusi SSOT.  
    * **Pakottavat säännöt (@[c:\src\quorum\.agents\rules\01-python-backend.md]):** Pydantic-malleihin ei saa lisätä `@model_validator(mode="before")` -funktioita tai löysiä tyyppejä vanhan V1-datan kiertämiseksi (`strict_pydantic_v2_rust` & `zero_legacy_fallback_hacks`).
    * **CQRS ja extra-parametrit (Siirtymäajan hallinta):**
-     * **LLM I/O ja Kirjoitusmallit:** `model_config = ConfigDict(extra='forbid', strict=True)`. Estää uuden hallusinoidun tai V1-aikaisen datan päätymisen järjestelmään.
+     * **LLM I/O ja Kirjoitusmallit:** `model_config = ConfigDict(extra='forbid')`. Estää uuden hallusinoidun tai V1-aikaisen datan päätymisen järjestelmään.
      * **Lukumallit:** `model_config = ConfigDict(extra='allow')`. Sallii vanhan datan ohittamisen kaatumatta ja tallentaa tuntemattomat kentät (kuten `micro_atoms`) luokan `__pydantic_extra__` -sanakirjaan, jotta migraatioskripti voi lukea ne ja muuttaa uusiksi atomeiksi.
    * **Hydraatiomandaatti (@[c:\src\quorum\.agents\rules\01-python-backend.md]):** Älä KOSKAAN käytä backendissä Pythonin `dict.get()`-metodia vanhojen rakenteiden kiertämiseksi (`fail_fast_hydration_mandate`). Kaikki saapuva JSON-data on hydratoitava VÄLITTÖMÄSTI Pydanticin `.model_validate()` -komennolla.
 4. **run\_seed.py kevennys ja nollaus (@[c:\src\quorum\.agents\rules\03_seed_vault.md]):**  
@@ -121,15 +122,15 @@ Kaikki kriteerit irrotetaan LLM:n "musta tuntuu" \-logiikasta ja ankkuroidaan su
    * **Confidence Index (Luottamusindeksi):** `(total_atoms - dlq_count) / total_atoms`. Tämä luku paljastetaan rinnakkaisena UX-elementtinä, kertoen suoraan kuinka suuren osan dokumentista koodi kykeni todentamaan.
    * **Luottamusrajan yksinkertaistus (Thresholding):** Aiempi vaikeaselkoinen dlq_count-katkoraja muutetaan suoraan indeksipohjaiseksi järjestelmätason hylkäykseksi: `if confidence_index < 0.70: return ScoringResult(score=None, status="FAILED_UNSCORABLE")`. DLQ ei koskaan ole porsaanreikä 100 % puhtaudelle.
 3. **Map-Reduce / Chunk-Aggregointi (Kolmitilalogiikka):**  
-   * Jos dokumentti on pilkottu osiin, yksinkertainen boolean `ANY()` -logiikka on EHDOTTOMASTI KIELLETTY, sillä se aiheuttaa "False Purity" -vaaran (sallii dokumentin läpäisyn, jos rike oli lukukelvottomassa DLQ-osassa). Orkestraattorin on käytettävä matemaattisesti rehellistä kolmitilalogiikkaa (True, False, DLQ) yhdistämisessä:
-     * **Käänteiset säännöt (Etsitään kiellettyä / Universal):**
-       * Jos `ANY(Violation)` $\rightarrow$ Koko dokumentin tulos on **False** (Rike / Hylätty).
-       * Jos ei rikeitä, mutta `ANY(DLQ)` $\rightarrow$ Koko dokumentin tulos on **DLQ** (Turvallisuutta ei voida taata, koska rike voi piillä lukematta jääneessä osassa).
-       * Vain jos `ALL(Clean)` $\rightarrow$ Koko dokumentin tulos on **True** (Todistetusti puhdas).
-     * **Normaalit säännöt (Etsitään pakollista / Existential):**
-       * Jos `ANY(Hit)` $\rightarrow$ Koko dokumentin tulos on **True** (Osuma löytyi).
-       * Jos ei osumia, mutta `ANY(DLQ)` $\rightarrow$ Koko dokumentin tulos on **DLQ** (Ei voida todistaa puuttuvaksi, osuma voi piillä DLQ-osassa).
-       * Vain jos `ALL(Miss)` $\rightarrow$ Koko dokumentin tulos on **False** (Todistetusti puuttuu).
+   * Jos dokumentti on pilkottu osiin, yksinkertainen boolean `ANY()` -logiikka on EHDOTTOMASTI KIELLETTY. Orkestraattorin on käytettävä matemaattisesti rehellistä kolmitilalogiikkaa (Passed, Failed, DLQ). Reducer lukee ainoastaan säännön `aggregation_mode`-lipun, jolloin lokaali logiikka (`inverse_evidence`) ei sekoita tila-konetta:
+     * **`aggregation_mode = 'EXISTS'` (Etsitään osumaa mistä tahansa):**
+       * Jos `ANY(Passed)` $\rightarrow$ Koko dokumentin tulos on **Passed**.
+       * Jos ei yhtään Passed, mutta `ANY(DLQ)` $\rightarrow$ Koko dokumentin tulos on **DLQ** (Osuma voi piillä DLQ-osassa).
+       * Vain jos `ALL(Failed)` $\rightarrow$ Koko dokumentin tulos on **Failed** (Todistetusti puuttuu koko asiakirjasta).
+     * **`aggregation_mode = 'ALL_MUST_COMPLY'` (Kaikkien osien on toteltava sääntöä):**
+       * Jos `ANY(Failed)` $\rightarrow$ Koko dokumentin tulos on **Failed** (Yksikin rike tai puute kaataa koko säännön).
+       * Jos ei yhtään Failed, mutta `ANY(DLQ)` $\rightarrow$ Koko dokumentin tulos on **DLQ** (Turvallisuutta ei voida taata, koska rike voi piillä lukematta jääneessä osassa).
+       * Vain jos `ALL(Passed)` $\rightarrow$ Koko dokumentin tulos on **Passed** (Todistetusti puhdas koko asiakirjan mitalta).
 4. **DAG-tason suojat:**  
    * Jos pisteytysmoottori palauttaa FAILED\_UNSCORABLE, Orkestraattorin on merkittävä koko arvioinnin tila luokkaan FATAL\_SOURCE\_DATA ja lopetettava prosessointi välittömästi.
 5. **Synteesimoottorin yhteensopivuus (Epic 50):**
@@ -174,7 +175,7 @@ Jotta järjestelmän tuotantokustannukset (Unit Economics) pysyvät hallinnassa,
 
 * **Arkkitehtuuridokumentaation Päivitys:** Varmistetaan, että `c:\src\quorum\.agents\rules\04_directory_reference.md` ja `c:\src\quorum\docs\architecture\` -hakemiston dokumentit on päivitetty vastaamaan tätä Epicissä määriteltyä uutta, vahvistettua arkkitehtuuria (esim. Ternary Logic, Dual-Metric, Cache-First Topologia ja Bi-Directional Anchors).
 * **Tier 3 Nollaus:** Kehitystietokannat on tyhjennetty ja siemennetty uudella, deterministisellä datalla.  
-* **Yksikkötestit (\>90%):** Pydantic RapidFuzz @model\_validator on testattu onnistumisilla, OCR-roskalla, liian pitkillä/lyhyillä lainauksilla sekä kadonneella info.context:lla. Nollalla jakaminen ja DLQ-vähennys on testattu moottoreissa. Chunk-reducer (ANY/ALL) on testattu.  
+* **Yksikkötestit (\>90%):** Asynkroninen `fuzz_anchor_service` (ja `asyncio.to_thread` -reititys) on testattu onnistumisilla, OCR-roskalla, liian pitkillä/lyhyillä lainauksilla. Pydantic-malleissa EI OLE sallittua olla raskaita validaattoreita (GIL-suoja). Nollalla jakaminen ja DLQ-vähennys on testattu moottoreissa. Chunk-reducer (ANY/ALL) on testattu.  
 * **Verkottomuus (Strict Mocking):** Yksikään testi ei tee eläviä LLM-verkkokutsuja. Mock-LLM on viritetty palauttamaan kahdesti vääränlainen lainaus ja todistamaan, että \<PREVIOUS\_SCHEMA\_ERROR\> välitetään oikein ja kolmannella kerralla TDA ohjataan DLQ-tilaan kaatumatta.
 
 ### ---

@@ -55,9 +55,13 @@ async def test_worker_invokes_synthesis_hook(
     mock_execute.assert_called_once()
     assert mock_execute.call_args[0][0] == "text_consolidation_hook"
 
-    args, kwargs = mock_repo.update_execution.call_args
-    assert args[0] == "exec_1234567812345678"
-    payload = args[1]
-    assert "profile_syntheses" in payload
-    assert "default" in payload["profile_syntheses"]
-    assert payload["profile_syntheses"]["default"]["synthesized_markdown"] == "Test MD"
+    found_payload = None
+    for call in mock_repo.update_execution.call_args_list:
+        args, kwargs = call
+        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
+            found_payload = args[1]
+            break
+
+    assert found_payload is not None, "Execution record was not updated with profile_syntheses"
+    assert "default" in found_payload["profile_syntheses"]
+    assert found_payload["profile_syntheses"]["default"]["synthesized_markdown"] == "Test MD"

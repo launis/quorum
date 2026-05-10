@@ -154,13 +154,17 @@ class AtomMatrixTableWidget extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              (Localizations.localeOf(context).languageCode == 'fi'
+                              (Localizations.localeOf(context).languageCode ==
+                                          'fi'
                                       ? m.labelFi
                                       : m.labelEn) +
                                   (m.isEvaluative ? ' *' : ''),
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            if (m.description != null && m.description!.isNotEmpty)
+                            if (m.description != null &&
+                                m.description!.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 4.0),
                                 child: Text(

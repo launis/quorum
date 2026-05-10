@@ -130,10 +130,7 @@ class ReportRendererWidget extends ConsumerWidget {
         right: 16.0,
       ),
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 24.0,
-          vertical: 16.0,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -307,7 +304,8 @@ class ReportRendererWidget extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // PILLS ROW (scoring_engine and strictness)
-          if ((showEngine && payload.scoringStrategy != null) || (showStrictness && payload.strictnessLevel != null)) ...[
+          if ((showEngine && payload.scoringStrategy != null) ||
+              (showStrictness && payload.strictnessLevel != null)) ...[
             Wrap(
               alignment: WrapAlignment.center,
               spacing: 8,
@@ -315,7 +313,10 @@ class ReportRendererWidget extends ConsumerWidget {
               children: [
                 if (showEngine && payload.scoringStrategy != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.indigo.shade50,
                       borderRadius: BorderRadius.circular(4),
@@ -324,7 +325,11 @@ class ReportRendererWidget extends ConsumerWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.calculate, size: 14, color: Colors.indigo.shade700),
+                        Icon(
+                          Icons.calculate,
+                          size: 14,
+                          color: Colors.indigo.shade700,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           'Scoring Engine: ${_getScoringEngineName(context, payload.scoringStrategy)}',
@@ -339,7 +344,10 @@ class ReportRendererWidget extends ConsumerWidget {
                   ),
                 if (showStrictness && payload.strictnessLevel != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.indigo.shade50,
                       borderRadius: BorderRadius.circular(4),
@@ -348,7 +356,11 @@ class ReportRendererWidget extends ConsumerWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.balance, size: 14, color: Colors.indigo.shade700),
+                        Icon(
+                          Icons.balance,
+                          size: 14,
+                          color: Colors.indigo.shade700,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           '${l10n.strictnessSelectorTitle}: ${_getStrictnessName(context, int.tryParse(payload.strictnessLevel.toString()) ?? 50)}',
@@ -378,20 +390,28 @@ class ReportRendererWidget extends ConsumerWidget {
                         padding: const EdgeInsets.only(bottom: 4.0),
                         child: Text(
                           'Käyttäjä: ${payload.userName}',
-                          style: TextStyle(color: Colors.grey.shade800, fontSize: 13, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: Colors.grey.shade800,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       );
                     }
                     return const SizedBox.shrink();
                   case 'date':
-                    if (payload.localTimeStr != null || payload.createdAt != null) {
+                    if (payload.localTimeStr != null ||
+                        payload.createdAt != null) {
                       String dateStr = '';
                       if (payload.localTimeStr != null) {
                         dateStr = payload.localTimeStr!;
                       } else {
                         try {
-                          final parsed = DateTime.parse(payload.createdAt!).toLocal();
-                          dateStr = '${parsed.year}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')} ${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
+                          final parsed = DateTime.parse(
+                            payload.createdAt!,
+                          ).toLocal();
+                          dateStr =
+                              '${parsed.year}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')} ${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
                         } catch (_) {
                           dateStr = payload.createdAt!;
                         }
@@ -401,15 +421,22 @@ class ReportRendererWidget extends ConsumerWidget {
                         children: [
                           Text(
                             l10n.reportTimestamp(dateStr),
-                            style: TextStyle(color: Colors.grey.shade800, fontSize: 13, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Colors.grey.shade800,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'ID: $executionId',
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 11,
+                            ),
                           ),
                           const SizedBox(height: 4),
-                        ]
+                        ],
                       );
                     }
                     return const SizedBox.shrink();
@@ -418,14 +445,18 @@ class ReportRendererWidget extends ConsumerWidget {
                       padding: const EdgeInsets.only(bottom: 4.0),
                       child: Text(
                         'Organisaatio: $defaultOrgName',
-                        style: TextStyle(color: Colors.grey.shade800, fontSize: 13, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.grey.shade800,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     );
                   default:
                     return const SizedBox.shrink();
                 }
               }),
-            ]
+            ],
           ),
 
           if (showCost || showTokens) const Divider(height: 24),
@@ -443,7 +474,10 @@ class ReportRendererWidget extends ConsumerWidget {
                       children: [
                         Text(
                           l10n.reportCosts,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                         Text(
                           l10n.reportApiPrice(costStr),
@@ -460,18 +494,27 @@ class ReportRendererWidget extends ConsumerWidget {
                       children: [
                         Text(
                           l10n.reportCognitiveWork,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                         Text(
-                          l10n.reportPromptTokens((payload.promptTokens ?? '-').toString()),
+                          l10n.reportPromptTokens(
+                            (payload.promptTokens ?? '-').toString(),
+                          ),
                           style: const TextStyle(fontSize: 13),
                         ),
                         Text(
-                          l10n.reportCompletionTokens((payload.completionTokens ?? '-').toString()),
+                          l10n.reportCompletionTokens(
+                            (payload.completionTokens ?? '-').toString(),
+                          ),
                           style: const TextStyle(fontSize: 13),
                         ),
                         Text(
-                          l10n.reportReasoningTokens((payload.reasoningTokens ?? '-').toString()),
+                          l10n.reportReasoningTokens(
+                            (payload.reasoningTokens ?? '-').toString(),
+                          ),
                           style: const TextStyle(fontSize: 13),
                         ),
                       ],

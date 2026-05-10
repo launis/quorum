@@ -48,9 +48,19 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
     });
 
     try {
-      final locale = Localizations.localeOf(context).languageCode == 'fi' ? 'fi' : 'en';
-      final payload = ref.read(reportControllerProvider(widget.executionId, lang: locale, variant: widget.variant)).value;
-      
+      final locale = Localizations.localeOf(context).languageCode == 'fi'
+          ? 'fi'
+          : 'en';
+      final payload = ref
+          .read(
+            reportControllerProvider(
+              widget.executionId,
+              lang: locale,
+              variant: widget.variant,
+            ),
+          )
+          .value;
+
       DateTime targetDate;
       if (payload?.createdAt != null) {
         try {

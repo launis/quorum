@@ -500,13 +500,13 @@ class ExecutionService:
                 profile_id=resolved_pid,
                 accept_language=accept_language,
             )
-            
+
             v_step_id = f"sys_render_{resolved_pid}"
             if v_step_id in execution.step_states:
                 active_message = execution.step_states[v_step_id].label
             else:
                 active_message = "Valmistellaan tulostusta..."
-                
+
             return {"status": "pending", "message": active_message}, "application/json", None
 
         if fmt == "json":

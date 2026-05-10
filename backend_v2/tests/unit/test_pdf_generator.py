@@ -69,4 +69,5 @@ async def test_html_generator_chart_injection_failure_safe() -> None:
     html_string = await svc.generate_execution_html(execution_id="exe_aaaaaaaabbbbbbbb", report_dto=dto)
     assert html_string is not None
     assert isinstance(html_string, str)
-    assert "prf_test" in html_string
+    assert "Test Profile" in html_string
+    assert "exe_aaaaaaaabbbbbbbb" in html_string
