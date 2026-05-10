@@ -61,6 +61,9 @@ Kaikki hookit noudattavat **Explicit Routing** ja **Zero Silent Data Loss** -per
 
 3. **Informaation Pre-prosessointi (`input_processing.py`):**
    * Huolehtii mm. massiivisten PDF/Word -tiedostojen ennakkojaottelusta, metatiedustelusta ja normalisoinnista "Eager Extraction" -malliin ennen kalliita LLM-kutsuja.
+   * **Document Extraction:** Base64-koodatut PDF-tiedostot puretaan synkronisesti pelkäksi tekstiksi (Markdown-muotoon) `DocumentExtractionService`-palvelussa käyttäen erittäin nopeaa **`fitz` (PyMuPDF)** ja **`pymupdf4llm`** -kirjastoa. Raskas työ ajetaan FastAPIn `run_in_threadpool` -säikeessä, jotta se ei lukitse asynkronista ydintä.
+   * **Kontekstin Injektointi (English-Only Mandate):** Syötteille määritellyt globaalit tekoälyohjeistukset (`ai_description`) injektoidaan automaattisesti puretun tekstin yläpuolelle.
+   * **Forensinen Tallennus:** Lopullinen prosessoitu teksti (sis. injektoidut ohjeet ja PDF:stä luetun Markdownin) tallennetaan levylle väliaikaisena `.md` tiedostona (esim. `executions/{execution_id}/inputs/input_tiedostonimi.md`) **Forensic Observability** -mandaatin mukaisesti. Tämä takaa 100% jäljitettävyyden siitä, mitä tekoälylle on tarkalleen syötetty ennen työnkulun askelten suorittamista.
 
 4. **Raportointi ja Synteesi (`reporting.py` & `synthesis.py`):**
 
