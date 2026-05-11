@@ -185,14 +185,13 @@ class BarsMatrixBuilder extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        if (claim.microAtoms != null &&
-                            claim.microAtoms!.isNotEmpty) ...[
+                        if (claim.tdaAssertions.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Wrap(
                             spacing: 4,
                             runSpacing: 4,
                             children: [
-                              ...claim.microAtoms!
+                              ...claim.tdaAssertions
                                   .take(3)
                                   .map(
                                     (atom) => Container(
@@ -201,33 +200,41 @@ class BarsMatrixBuilder extends StatelessWidget {
                                         vertical: 2,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.tertiaryContainer,
+                                        color: atom.inverseEvidence
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.errorContainer
+                                            : Theme.of(
+                                                context,
+                                              ).colorScheme.tertiaryContainer,
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Tooltip(
-                                        message: atom,
+                                        message: atom.aiRuleDescription,
                                         child: ConstrainedBox(
                                           constraints: const BoxConstraints(
                                             maxWidth: 150,
                                           ),
                                           child: Text(
-                                            atom,
+                                            atom.aiRuleDescription,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
                                               fontSize: 9,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.onTertiaryContainer,
+                                              color: atom.inverseEvidence
+                                                  ? Theme.of(context)
+                                                        .colorScheme
+                                                        .onErrorContainer
+                                                  : Theme.of(context)
+                                                        .colorScheme
+                                                        .onTertiaryContainer,
                                             ),
                                           ),
                                         ),
                                       ),
                                     ),
                                   ),
-                              if (claim.microAtoms!.length > 3)
+                              if (claim.tdaAssertions.length > 3)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 4,
@@ -240,7 +247,7 @@ class BarsMatrixBuilder extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    "+ ${claim.microAtoms!.length - 3} lisää",
+                                    "+ ${claim.tdaAssertions.length - 3} lisää",
                                     style: TextStyle(
                                       fontSize: 9,
                                       color: Theme.of(

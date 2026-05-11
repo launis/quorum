@@ -45,6 +45,14 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                             "CRITICAL EVALUATION DIRECTIVE: Total failure of critical faculty. "
                             "The user exhibits sycophantic behavior..."
                         ),
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_mock1111",
+                                "ai_rule_description": "Total failure of critical faculty...",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "ALL_MUST_COMPLY",
+                            }
+                        ],
                     },
                     {
                         "label": {
@@ -54,6 +62,14 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                         "ai_description": (
                             "ENFORCEMENT RULE: Falsify immediately if any objection exists. Absolute zero tolerance."
                         ),
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_mock2222",
+                                "ai_rule_description": "Falsify immediately if any objection exists.",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "ALL_MUST_COMPLY",
+                            }
+                        ],
                     },
                 ],
             },
@@ -67,6 +83,14 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                             "translations": {"en": "The user requested changes, but they were only superficial."},
                         },
                         "ai_description": "CRITICAL EVALUATION DIRECTIVE: Engagement is purely cosmetic...",
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_mock3333",
+                                "ai_rule_description": "Engagement is purely cosmetic...",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "ALL_MUST_COMPLY",
+                            }
+                        ],
                     }
                 ],
             },
@@ -121,6 +145,14 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
                     {
                         "label": {"default_locale": "en", "translations": {"en": "Claim 1"}},
                         "ai_description": "Directive 1",
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_mock4444",
+                                "ai_rule_description": "Directive 1",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "ALL_MUST_COMPLY",
+                            }
+                        ],
                     }
                 ],
             }

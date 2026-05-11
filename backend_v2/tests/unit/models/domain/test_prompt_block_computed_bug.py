@@ -52,6 +52,14 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
                     {
                         "label": {"default_locale": "en", "translations": {"en": "Bad"}},
                         "ai_description": "bad",
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_1",
+                                "ai_rule_description": "bad",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "EXISTS",
+                            }
+                        ],
                     }
                 ],
             },
@@ -62,6 +70,14 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
                     {
                         "label": {"default_locale": "en", "translations": {"en": "Good"}},
                         "ai_description": "good",
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_2",
+                                "ai_rule_description": "good",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "EXISTS",
+                            }
+                        ],
                     }
                 ],
             },

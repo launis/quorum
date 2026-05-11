@@ -7,6 +7,32 @@ from arq.connections import ArqRedis
 
 logger = logging.getLogger(__name__)
 
+ASYNC_ACCUMULATOR_LUA = """
+-- Lua script for atomic state accumulation
+-- KEYS[1] = Hash key (e.g., 'exec:123:step:abc')
+-- ARGV[1] = total chunks
+-- ARGV[2] = chunk state payload (JSON string)
+-- ARGV[3] = chunk index
+
+local hkey = KEYS[1]
+local total_chunks = tonumber(ARGV[1])
+local payload = ARGV[2]
+local index = ARGV[3]
+
+-- Save the chunk payload
+redis.call('HSET', hkey, 'chunk_' .. index, payload)
+
+-- Increment completed counter
+local completed = redis.call('HINCRBY', hkey, 'completed', 1)
+
+if completed == total_chunks then
+    -- Return 1 to indicate all chunks are done
+    return 1
+else
+    return 0
+end
+"""
+
 
 def get_patched_fakeredis_pool() -> ArqRedis:
     """Creates and patches a FakeRedis instance to be compatible with Arq.

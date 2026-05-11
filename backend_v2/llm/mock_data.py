@@ -340,7 +340,16 @@ def get_fallback_data(key: str) -> dict[str, Any]:
     elif key == "xai_agent":
         return MOCK_XAI_OUTPUT.model_dump()
     elif key == "atomize_mock":
-        return {"micro_atoms": ["atom" + str(i) for i in range(1, 16)], "rubric_cot": "Mocked CoT for testing"}
+        assertions = [
+            {
+                "tda_id": f"atom{i}",
+                "ai_rule_description": f"Atom {i}",
+                "inverse_evidence": False,
+                "aggregation_mode": "EXISTS",
+            }
+            for i in range(1, 16)
+        ]
+        return {"tda_assertions": assertions, "rubric_cot": "Mocked CoT for testing"}
 
     # STRICT FAIL-FAST: No silent dictionary fallbacks
     raise ValueError(f"Strict Mock Data Error: Mock data not found for key '{key}'")

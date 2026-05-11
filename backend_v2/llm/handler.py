@@ -15,7 +15,6 @@ from backend_v2.utils.pydantic_utils import inflate
 
 try:
     import google.auth
-    import litellm
     import requests
     import vertexai
     from google.api_core import client_options as g_client_options
@@ -146,6 +145,7 @@ class LLMHandler:
                         details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
                     )
 
+                import litellm
                 # Get all candidates
                 all_models = litellm.model_list
                 candidates = []

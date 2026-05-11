@@ -113,18 +113,26 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                     sampling_limit_val,
                 )
 
-                matrix_collected_atoms: list[str] = []
+                matrix_collected_atoms: list[tuple[str, str]] = []
                 mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
 
                 # Stratification happens strictly per-scale
                 for scale in block.scales:
-                    scale_atoms: list[str] = []
+                    scale_atoms: list[tuple[str, str]] = []
 
                     for claim in scale.claims:
-                        if claim.micro_atoms and len(claim.micro_atoms) > 0:
-                            scale_atoms.extend([ma.strip() for ma in claim.micro_atoms])
+                        tda_assertions = claim.tda_assertions
+                        if tda_assertions and len(tda_assertions) > 0:
+                            for tda in tda_assertions:
+                                if tda.tda_id and str(tda.tda_id).startswith("tda_"):
+                                    aid = str(tda.tda_id)
+                                else:
+                                    aid = generate_atom_hash(tda.ai_rule_description, mandate)
+                                scale_atoms.append((aid, tda.ai_rule_description.strip()))
                         else:
-                            msg = f"PromptBlock '{block.id}' claim is missing mandatory 'micro_atoms' during runtime."
+                            msg = (
+                                f"PromptBlock '{block.id}' claim is missing mandatory 'tda_assertions' during runtime."
+                            )
                             logger.error("[%s] %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                             raise AppException(
                                 message=msg,
@@ -149,9 +157,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
 
                     matrix_collected_atoms.extend(selected_atoms)
 
-                # Calculate immutable MD5 IDs for safe bridging to subsequent math logic
-                for text in matrix_collected_atoms:
-                    atom_id = generate_atom_hash(text, mandate)
+                for atom_id, text in matrix_collected_atoms:
                     if atom_id not in unique_atoms:
                         unique_atoms[atom_id] = text
 

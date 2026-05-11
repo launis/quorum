@@ -6,7 +6,6 @@ Strictly restricted to V2 Pydantic models (SystemConfig, Role, Workflow, PromptB
 
 import argparse
 import asyncio
-import hashlib
 import json
 import logging
 import os
@@ -22,7 +21,6 @@ from tinydb import Query, TinyDB
 try:
     import firebase_admin
     from firebase_admin import credentials, firestore
-    from google.cloud import firestore as async_firestore  # type: ignore[attr-defined]
 
     FIREBASE_AVAILABLE = True
 except ImportError:
@@ -33,13 +31,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from backend_v2.database.firestore_driver import FirestoreDriver
-from backend_v2.database.tinydb_driver import TinyDBDriver
-from backend_v2.database.wrapper import TinyDBClient
 from backend_v2.exceptions import ErrorCodes
-from backend_v2.models.v2_core import MatrixScale
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY
-from backend_v2.services.orchestrator.atomizer import PromptAtomizer
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
 SEED_PATH = os.path.join(PROJECT_ROOT, "backend_v2", "seed", "seed_data.json")
@@ -63,68 +56,6 @@ def _fail_fast(msg: str, error: Exception) -> None:
     )
     print(f"\033[91m[CRITICAL FAIL FAST] {msg}\n{str(error)}\033[0m")
     sys.exit(1)
-
-
-async def _atomize_with_cache(
-    validated: Any, repo: Any, current_matrix: int, total_matrices: int, is_test: bool
-) -> Any:
-    val_label = getattr(validated, "label", None)
-    if val_label and hasattr(val_label, "translations") and isinstance(val_label.translations, dict):
-        label_en = val_label.translations.get("en", getattr(validated, "slug", "unknown"))
-    else:
-        label_en = getattr(validated, "slug", "unknown")
-
-    # V2 PromptBlock does not have 'content', so we hash the ENTIRE model payload to detect ANY rule changes.
-    raw_text = validated.model_dump_json(exclude_none=True)
-    cache_key = hashlib.md5(raw_text.encode("utf-8")).hexdigest()
-    cache_path = os.path.join(PROJECT_ROOT, "backend_v2", "seed", "atomization_cache.json")
-
-    try:
-        with open(cache_path, encoding="utf-8") as cache_f:
-            cache_data = json.load(cache_f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        cache_data = {}
-
-    if cache_key in cache_data and cache_data[cache_key]:
-        print(f"[Seeder V2] CACHE HIT for matrix ({current_matrix}/{total_matrices}): '{label_en}'...")
-        scales = [MatrixScale.model_validate(s) for s in cache_data[cache_key]]
-        validated = validated.model_copy(update={"scales": scales})
-    else:
-        print(f"[Seeder V2] Atomizing matrix ({current_matrix}/{total_matrices}): '{label_en}'...")
-
-        # Mute LiteLLM logger spam during seeding
-        llm_logger = logging.getLogger("LiteLLM")
-        router_logger = logging.getLogger("LiteLLM Router")
-        provider_logger = logging.getLogger("backend_v2.llm.provider")
-
-        old_lvl = llm_logger.level
-        llm_logger.setLevel(logging.WARNING)
-        router_logger.setLevel(logging.WARNING)
-        provider_logger.setLevel(logging.WARNING)
-
-        try:
-            validated = await PromptAtomizer.atomize_prompt_block(validated, repository=repo, is_test=is_test)
-        finally:
-            llm_logger.setLevel(old_lvl)
-            router_logger.setLevel(old_lvl)
-            provider_logger.setLevel(old_lvl)
-
-        # Auto-accumulate cache
-        try:
-            dumped_scales = []
-            for s in getattr(validated, "scales", []) or []:
-                if hasattr(s, "model_dump"):
-                    dumped_scales.append(s.model_dump(mode="json"))
-                else:
-                    dumped_scales.append(s)
-
-            cache_data[cache_key] = dumped_scales
-            with open(cache_path, "w", encoding="utf-8") as cache_f:
-                json.dump(cache_data, cache_f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            logger.warning("[Seeder V2] Failed to auto-accumulate cache: %s", e)
-
-    return validated
 
 
 async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str) -> None:
@@ -166,10 +97,6 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
     except Exception as e:
         _fail_fast("Error initializing TinyDB", e)
 
-    from backend_v2.database.repositories.system import SystemRepositoryImpl
-
-    sys_repo = SystemRepositoryImpl(TinyDBDriver(TinyDBClient(db_path)))
-
     # Seed Standard Strict Collections
     for col_key, config in STANDARD_REGISTRY.items():
         table_name = str(config["table"])
@@ -180,11 +107,6 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
 
         dumped_buffer = []
 
-        total_matrices = 0
-        current_matrix = 0
-        if col_key == "prompt_blocks":
-            total_matrices = sum(1 for i in seed_data.get(col_key, []) if i.get("category_id") == "matrix")
-
         for item in seed_data.get(col_key, []):
             try:
                 # Let Pydantic resolve the strictness natively using model_config=ConfigDict(strict=True)
@@ -192,13 +114,6 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
 
                 if col_key == "workflows":
                     DAGCompilerService.validate_workflow(validated)
-
-                if col_key == "prompt_blocks":
-                    if getattr(validated, "category_id", "") == "matrix":
-                        current_matrix += 1
-                        validated = await _atomize_with_cache(
-                            validated, sys_repo, current_matrix, total_matrices, False
-                        )
 
                 if hasattr(validated, "model_dump"):
                     dumped = validated.model_dump(mode="json")
@@ -259,10 +174,6 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
     for col in collections_to_clear:
         _delete_collection(db.collection(col))
 
-    from backend_v2.database.repositories.system import SystemRepositoryImpl
-
-    sys_repo = SystemRepositoryImpl(FirestoreDriver(async_firestore.AsyncClient()))
-
     def batch_upsert(collection_name: str, items: list[dict[str, Any]], id_field: str = "id") -> None:
         batch = db.batch()
         count = 0
@@ -289,24 +200,12 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
         id_field = str(config["id_field"])
         pyd_adapter: Any = config["model"]
 
-        total_matrices = 0
-        current_matrix = 0
-        if col_key == "prompt_blocks":
-            total_matrices = sum(1 for i in seed_data.get(col_key, []) if i.get("category_id") == "matrix")
-
         valid_items = []
         for item in seed_data.get(col_key, []):
             try:
                 validated = pyd_adapter.validate_python(item)
                 if col_key == "workflows":
                     DAGCompilerService.validate_workflow(validated)
-
-                if col_key == "prompt_blocks":
-                    if getattr(validated, "category_id", "") == "matrix":
-                        current_matrix += 1
-                        validated = await _atomize_with_cache(
-                            validated, sys_repo, current_matrix, total_matrices, False
-                        )
 
                 valid_items.append(validated.model_dump(mode="json"))
             except ValidationError as ve:

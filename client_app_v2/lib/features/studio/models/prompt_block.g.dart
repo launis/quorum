@@ -36,13 +36,65 @@ Map<String, dynamic> _$TheoryGroundingToJson(_TheoryGrounding instance) =>
       'citation_reference': instance.citationReference,
     };
 
+_TDAAssertion _$TDAAssertionFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      '_TDAAssertion',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'tda_id',
+            'ai_rule_description',
+            'inverse_evidence',
+            'aggregation_mode',
+          ],
+        );
+        final val = _TDAAssertion(
+          tdaId: $checkedConvert('tda_id', (v) => v as String),
+          aiRuleDescription: $checkedConvert(
+            'ai_rule_description',
+            (v) => v as String,
+          ),
+          inverseEvidence: $checkedConvert(
+            'inverse_evidence',
+            (v) => v as bool,
+          ),
+          aggregationMode: $checkedConvert(
+            'aggregation_mode',
+            (v) => $enumDecode(_$AggregationModeEnumMap, v),
+          ),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'tdaId': 'tda_id',
+        'aiRuleDescription': 'ai_rule_description',
+        'inverseEvidence': 'inverse_evidence',
+        'aggregationMode': 'aggregation_mode',
+      },
+    );
+
+Map<String, dynamic> _$TDAAssertionToJson(_TDAAssertion instance) =>
+    <String, dynamic>{
+      'tda_id': instance.tdaId,
+      'ai_rule_description': instance.aiRuleDescription,
+      'inverse_evidence': instance.inverseEvidence,
+      'aggregation_mode': _$AggregationModeEnumMap[instance.aggregationMode]!,
+    };
+
+const _$AggregationModeEnumMap = {
+  AggregationMode.exists: 'EXISTS',
+  AggregationMode.allMustComply: 'ALL_MUST_COMPLY',
+};
+
 _MatrixClaim _$MatrixClaimFromJson(Map<String, dynamic> json) => $checkedCreate(
   '_MatrixClaim',
   json,
   ($checkedConvert) {
     $checkKeys(
       json,
-      allowedKeys: const ['label', 'ai_description', 'micro_atoms'],
+      allowedKeys: const ['label', 'ai_description', 'tda_assertions'],
     );
     final val = _MatrixClaim(
       label: $checkedConvert(
@@ -50,16 +102,20 @@ _MatrixClaim _$MatrixClaimFromJson(Map<String, dynamic> json) => $checkedCreate(
         (v) => I18nText.fromJson(v as Map<String, dynamic>),
       ),
       aiDescription: $checkedConvert('ai_description', (v) => v as String),
-      microAtoms: $checkedConvert(
-        'micro_atoms',
-        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+      tdaAssertions: $checkedConvert(
+        'tda_assertions',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => TDAAssertion.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
       ),
     );
     return val;
   },
   fieldKeyMap: const {
     'aiDescription': 'ai_description',
-    'microAtoms': 'micro_atoms',
+    'tdaAssertions': 'tda_assertions',
   },
 );
 
@@ -67,7 +123,7 @@ Map<String, dynamic> _$MatrixClaimToJson(_MatrixClaim instance) =>
     <String, dynamic>{
       'label': instance.label.toJson(),
       'ai_description': instance.aiDescription,
-      'micro_atoms': instance.microAtoms,
+      'tda_assertions': instance.tdaAssertions.map((e) => e.toJson()).toList(),
     };
 
 _MatrixRow _$MatrixRowFromJson(Map<String, dynamic> json) =>

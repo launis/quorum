@@ -40,7 +40,20 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
                             {
                                 "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Väite 1"}},
                                 "ai_description": "Claim 1 Desc",
-                                "micro_atoms": ["Atom 1", "Atom 2"],
+                                "tda_assertions": [
+                                    {
+                                        "tda_id": "tda_1",
+                                        "ai_rule_description": "Atom 1",
+                                        "inverse_evidence": False,
+                                        "aggregation_mode": "EXISTS",
+                                    },
+                                    {
+                                        "tda_id": "tda_2",
+                                        "ai_rule_description": "Atom 2",
+                                        "inverse_evidence": False,
+                                        "aggregation_mode": "EXISTS",
+                                    },
+                                ],
                             },
                         ],
                     }
@@ -72,35 +85,20 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
     assert len(payload.atom_to_block_ids) == 2
 
 
-def test_prompt_factory_missing_micro_atoms(mock_compiler: MagicMock) -> None:
-    """Test Fail-Fast when micro_atoms are missing."""
-    from backend_v2.models.v2_core import PromptBlock
+def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock) -> None:
+    """Test Fail-Fast when tda_assertions are missing."""
+    from backend_v2.models.v2_core import MatrixClaim, MatrixScale, PromptBlock
 
     criteria_blocks = [
-        PromptBlock.model_validate(
-            {
-                "id": "blk_12345678901234567890123456789012",
-                "slug": "test_slug",
-                "label": {"default_locale": "en", "translations": {"en": "Test Label", "fi": "Testi"}},
-                "description": {"default_locale": "en", "translations": {"en": "Test Desc", "fi": "Testi"}},
-                "type": "string",
-                "category_id": "matrix",
-                "scale_min": 1,
-                "scale_max": 5,
-                "scales": [
-                    {
-                        "score": 1,
-                        "ai_label": "Scale 1",
-                        "claims": [
-                            {
-                                "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Väite 1"}},
-                                "ai_description": "Claim 1 Desc",
-                                "micro_atoms": [],  # Empty micro atoms should crash
-                            },
-                        ],
-                    }
-                ],
-            }
+        PromptBlock.model_construct(  # type: ignore[call-arg]
+            id="blk_12345678901234567890123456789012",
+            category_id="matrix",
+            scales=[
+                MatrixScale.model_construct(  # type: ignore[call-arg]
+                    score=1,
+                    claims=[MatrixClaim.model_construct(tda_assertions=[])],  # type: ignore[call-arg]
+                )
+            ],
         )
     ]
 
@@ -116,4 +114,4 @@ def test_prompt_factory_missing_micro_atoms(mock_compiler: MagicMock) -> None:
         )
 
     assert exc_info.value.status_code == 500
-    assert "missing mandatory 'micro_atoms'" in str(exc_info.value.message)
+    assert "missing mandatory 'tda_assertions'" in str(exc_info.value.message)

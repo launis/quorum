@@ -109,6 +109,7 @@ class NodeExecutor:
         frozen_ctx: FrozenContext | None = None,
         trace: list[TraceEvent] | None = None,
         strictness_level: int = 50,
+        arq_pool: Any | None = None,
     ) -> list[TraceEvent]:
         try:
             blueprint_id = getattr(step, "task_blueprint", None)
@@ -157,6 +158,7 @@ class NodeExecutor:
                     self.audit_repo,
                     self.system_repo,
                     self.compiler,
+                    arq_pool=arq_pool,
                 )
             else:
                 strategy_impl = LLMNodeStrategy(
@@ -167,6 +169,7 @@ class NodeExecutor:
                     self.audit_repo,
                     self.system_repo,
                     self.compiler,
+                    arq_pool=arq_pool,
                 )
 
             # FinOps Circuit Breaker: Worker Cut-off Check (Graceful Exit Hatch)
@@ -227,6 +230,7 @@ class DAGExecutor:
         raw_inputs: WorkflowInputs,
         strictness_level: int | None = None,
         scoring_strategy: ScoringStrategy = ScoringStrategy.WATERFALL,
+        arq_pool: Any | None = None,
     ) -> ExecutionRecord:
         """Main entrypoint for Workflow Execution."""
         # Fast Fail validation

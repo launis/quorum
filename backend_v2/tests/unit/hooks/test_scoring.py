@@ -17,7 +17,15 @@ def _build_valid_scale(score: Any, micro_atoms: list[str] | None = None) -> dict
             {
                 "label": {"default_locale": "en", "translations": {"en": "Test Claim"}},
                 "ai_description": "Test Claim Desc",
-                "micro_atoms": micro_atoms,
+                "tda_assertions": [
+                    {
+                        "tda_id": f"atom_{atom}",
+                        "ai_rule_description": atom,
+                        "inverse_evidence": False,
+                        "aggregation_mode": "EXISTS",
+                    }
+                    for atom in micro_atoms
+                ],
             }
         )
     return {
@@ -307,7 +315,7 @@ async def test_matrix_scoring_hook_ignores_instructions() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": [{"atom_id": atom_hash, "step_5_boolean": True}]},
+        inputs={"evaluations": [{"atom_id": atom_hash, "rule_satisfied": True, "evidence_found": True, "exact_quote": "Ote", "reasoning_trace": ""}]},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -333,7 +341,7 @@ async def test_matrix_scoring_hook_pass_all() -> None:
     evaluations = []
     for i in range(1, 6):
         atom_hash = generate_atom_hash(f"atom_{i}", mandate)
-        evaluations.append({"atom_id": atom_hash, "step_5_boolean": True, "step_4_reasoning": "Hyväksytty"})
+        evaluations.append({"atom_id": atom_hash, "rule_satisfied": True, "evidence_found": True, "exact_quote": "Ote", "reasoning_trace": "Hyväksytty"})
 
     state = HookState(
         execution_id="ex_1111111111111111",
@@ -372,7 +380,7 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
     for i in range(1, 6):
         atom_hash = generate_atom_hash(f"atom_{i}", mandate)
         is_hit = True if i != 2 else False
-        evaluations.append({"atom_id": atom_hash, "step_5_boolean": is_hit})
+        evaluations.append({"atom_id": atom_hash, "rule_satisfied": is_hit, "evidence_found": is_hit, "exact_quote": "Ote" if is_hit else "", "reasoning_trace": ""})
 
     state = HookState(
         execution_id="ex_2222222222222222",
@@ -414,7 +422,7 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
         atom_hash = generate_atom_hash(f"atom_{i}", mandate)
         is_hit = False if i == 3 else True
         reasoning = "Testivaste" if not is_hit else "OK"
-        evaluations.append({"atom_id": atom_hash, "step_5_boolean": is_hit, "step_4_reasoning": reasoning})
+        evaluations.append({"atom_id": atom_hash, "rule_satisfied": is_hit, "evidence_found": is_hit, "exact_quote": "Ote" if is_hit else "", "reasoning_trace": reasoning})
 
     state = HookState(
         execution_id="ex_3333333333333333",
@@ -490,15 +498,19 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L1_A1", mandate),
-            "step_5_boolean": True,
-            "step_4_reasoning": "Oikein",
+            "rule_satisfied": True,
+            "evidence_found": True,
+            "exact_quote": "Ote",
+            "reasoning_trace": "Oikein",
         }  # noqa: E501
     )
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L1_A2", mandate),
-            "step_5_boolean": True,
-            "step_4_reasoning": "Oikein",
+            "rule_satisfied": True,
+            "evidence_found": True,
+            "exact_quote": "Ote",
+            "reasoning_trace": "Oikein",
         }  # noqa: E501
     )
 
@@ -506,15 +518,19 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L2_A1", mandate),
-            "step_5_boolean": True,
-            "step_4_reasoning": "Oikein",
+            "rule_satisfied": True,
+            "evidence_found": True,
+            "exact_quote": "Ote",
+            "reasoning_trace": "Oikein",
         }  # noqa: E501
     )
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L2_A2", mandate),
-            "step_5_boolean": True,
-            "step_4_reasoning": "Oikein",
+            "rule_satisfied": True,
+            "evidence_found": True,
+            "exact_quote": "Ote",
+            "reasoning_trace": "Oikein",
         }  # noqa: E501
     )
 
@@ -522,15 +538,19 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L3_A1", mandate),
-            "step_5_boolean": True,
-            "step_4_reasoning": "Oikein",
+            "rule_satisfied": True,
+            "evidence_found": True,
+            "exact_quote": "Ote",
+            "reasoning_trace": "Oikein",
         }  # noqa: E501
     )
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L3_A2", mandate),
-            "step_5_boolean": False,
-            "step_4_reasoning": "Aihetodistetta EI esitetty.",
+            "rule_satisfied": False,
+            "evidence_found": False,
+            "exact_quote": "",
+            "reasoning_trace": "Aihetodistetta EI esitetty.",
         }
     )
 
@@ -538,8 +558,10 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L4_A1", mandate),
-            "step_5_boolean": True,
-            "step_4_reasoning": "Hieno oivallus!",
+            "rule_satisfied": True,
+            "evidence_found": True,
+            "exact_quote": "Ote",
+            "reasoning_trace": "Hieno oivallus!",
         }
     )
 
@@ -547,8 +569,10 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L5_A1", mandate),
-            "step_5_boolean": False,
-            "step_4_reasoning": "Ei yltänyt tälle tasolle.",
+            "rule_satisfied": False,
+            "evidence_found": False,
+            "exact_quote": "",
+            "reasoning_trace": "Ei yltänyt tälle tasolle.",
         }
     )
 

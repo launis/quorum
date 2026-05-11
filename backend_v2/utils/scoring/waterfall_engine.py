@@ -36,7 +36,7 @@ class WaterfallScoringEngine(ScoringEngineBase):
         for s_level in sorted_levels:
             level_data = stats[s_level]
             t_hits = level_data["hits"]
-            t_total = level_data["total"]
+            t_total = level_data["total"] - level_data.get("dlqs", 0)
 
             hit_rate = (t_hits / t_total) if t_total > 0 else 0.0
             pct = int(hit_rate * 100)
@@ -65,7 +65,9 @@ class WaterfallScoringEngine(ScoringEngineBase):
         log_lines.append("")
         log_lines.append(f"**Final Koearvostelu Score:** {floor_score:.2f} (Sliding penalty applied)")
 
-        level_breakdown = {str(k): {"hits": v["hits"], "total": v["total"]} for k, v in stats.items()}
+        level_breakdown = {
+            str(k): {"hits": v["hits"], "total": v["total"], "dlqs": v.get("dlqs", 0)} for k, v in stats.items()
+        }
 
         engine_debug_trace = {
             "engine": "waterfall",

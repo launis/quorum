@@ -13,6 +13,7 @@ from backend_v2.models.v2_core import (
     MatrixScale,
     PromptBlock,
     Step,
+    TDAAssertion,
 )
 
 
@@ -40,7 +41,15 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> PromptB
             MatrixClaim(
                 label=I18nText(default_locale="en", translations={"en": f"Claim {score}"}),
                 ai_description=f"Desc {score}",
-                micro_atoms=[f"Atom {score}-{i}" for i in range(num_atoms_per_scale)],
+                tda_assertions=[
+                    TDAAssertion(
+                        tda_id=f"atom_{score}_{i}",
+                        ai_rule_description=f"Atom {score}-{i}",
+                        inverse_evidence=False,
+                        aggregation_mode="EXISTS",
+                    )
+                    for i in range(num_atoms_per_scale)
+                ],
             )
         ]
         scales.append(

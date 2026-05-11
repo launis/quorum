@@ -5,6 +5,7 @@ import 'package:client_app/features/studio/views/components/bars_matrix_builder.
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:client_app/core/models/enums.dart';
 
 void main() {
   group('BarsMatrixBuilder Component Tests', () {
@@ -23,7 +24,20 @@ void main() {
                 translations: {'en': 'Claim 1'},
               ),
               aiDescription: 'AI Rule 1',
-              microAtoms: ['Atom 1', 'Atom 2'],
+              tdaAssertions: [
+                TDAAssertion(
+                  tdaId: 'tda_1',
+                  aiRuleDescription: 'Atom 1 Rule',
+                  inverseEvidence: false,
+                  aggregationMode: AggregationMode.exists,
+                ),
+                TDAAssertion(
+                  tdaId: 'tda_2',
+                  aiRuleDescription: 'Atom 2 Rule',
+                  inverseEvidence: true,
+                  aggregationMode: AggregationMode.exists,
+                ),
+              ],
             ),
           ],
         ),
@@ -61,7 +75,7 @@ void main() {
       expect(
         find.textContaining('Atom'),
         findsWidgets,
-      ); // Due to microAtoms mapping
+      ); // Due to tdaAssertions mapping
 
       // Cleanup
       await tester.binding.setSurfaceSize(null);

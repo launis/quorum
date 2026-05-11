@@ -56,6 +56,8 @@ __all__ = [
     "OutputProfile",
     "EmbeddedOutputProfile",
     "JobAcceptedDTO",
+    "TDAAssertion",
+    "MatrixClaim",
 ]
 
 
@@ -122,14 +124,30 @@ class TheoryGrounding(V2CoreBase):
     citation_reference: str = Field(description="Specific section or phrase to cite from the source.")
 
 
+class TDAAssertion(V2CoreBase):
+    """Deterministic rule evaluated by the backend."""
+
+    tda_id: str = Field(description="Opaque Stripe ID for this assertion.")
+    ai_rule_description: str = Field(description="Strict enforcement rule.")
+    inverse_evidence: bool = Field(description="If True, acts as a poison/penalty detector.")
+    aggregation_mode: Literal["EXISTS", "ALL_MUST_COMPLY"] = Field(description="Aggregation constraint.")
+
+    @model_validator(mode="after")
+    def validate_math_logic(self) -> TDAAssertion:
+        if self.inverse_evidence and self.aggregation_mode == "ALL_MUST_COMPLY":
+            raise ValueError("Käänteinen sääntö (myrkyn etsintä) vaatii EHDOTTOMASTI 'EXISTS' -aggregaation...")
+        return self
+
+
 class MatrixClaim(V2CoreBase):
     """Represents a single behavioral claim with an AI evaluation directive."""
 
     label: I18nText = Field(description="User-facing empirical claim.")
     ai_description: str = Field(description="Specific AI enforcement rule for this claim.")
-    micro_atoms: list[str] | None = Field(
-        default=None,
-        description="Scaffolded atoms generated from the claim during design time for deeper evaluation.",
+    tda_assertions: list[TDAAssertion] = Field(
+        ...,
+        min_length=1,
+        description="Test-Driven Assertion rules explicitly set by experts.",
     )
 
 
@@ -552,6 +570,8 @@ class MatrixScorecardRowDTO(V2CoreBase):
     )
 
     is_evaluative: bool = Field(..., description="Whether this block contributes to global average.")
+    
+    tda_state: dict[str, Any] | None = Field(default=None, description="TDAState union representation.")
 
 
 class SynthesisConfigDTO(V2CoreBase):

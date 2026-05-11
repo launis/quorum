@@ -4,6 +4,7 @@ import 'dart:isolate';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/utils/json_converters.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:client_app/core/models/enums.dart';
 
 part 'prompt_block.freezed.dart';
 part 'prompt_block.g.dart';
@@ -54,6 +55,22 @@ abstract class TheoryGrounding with _$TheoryGrounding {
 }
 
 @Freezed(equal: false)
+abstract class TDAAssertion with _$TDAAssertion {
+  const TDAAssertion._();
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory TDAAssertion({
+    @JsonKey(name: 'tda_id') required String tdaId,
+    @JsonKey(name: 'ai_rule_description') required String aiRuleDescription,
+    @JsonKey(name: 'inverse_evidence') required bool inverseEvidence,
+    @JsonKey(name: 'aggregation_mode') required AggregationMode aggregationMode,
+  }) = _TDAAssertion;
+
+  factory TDAAssertion.fromJson(Map<String, dynamic> json) =>
+      _$TDAAssertionFromJson(json);
+}
+
+@Freezed(equal: false)
 abstract class MatrixClaim with _$MatrixClaim {
   const MatrixClaim._();
 
@@ -61,7 +78,9 @@ abstract class MatrixClaim with _$MatrixClaim {
   const factory MatrixClaim({
     required I18nText label,
     required String aiDescription,
-    List<String>? microAtoms,
+    @JsonKey(name: 'tda_assertions')
+    @Default([])
+    List<TDAAssertion> tdaAssertions,
   }) = _MatrixClaim;
 
   factory MatrixClaim.fromJson(Map<String, dynamic> json) =>

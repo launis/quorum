@@ -557,7 +557,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        atom_mapping: dict[str, tuple[str, float, str]] = {}
+        atom_mapping: dict[str, tuple[str, float, str, str]] = {}
         blocks_meta: dict[str, dict[str, Any]] = {}
 
         # 1. Reverse extraction of Atom Hashes
@@ -576,24 +576,20 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 blocks_meta[pb_id]["scales"].append(s_val)
                 claims = scale.claims
                 for claim in claims:
-                    micro_atoms = claim.micro_atoms
-                    if micro_atoms:
+                    tda_assertions = claim.tda_assertions
+                    if tda_assertions:
                         mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
-                        for text in micro_atoms:
-                            atom_hash = generate_atom_hash(text, mandate)
-                            atom_mapping[atom_hash] = (pb_id, s_val, text)
-                    else:
-                        claim_text = claim.label.resolve("en")
-                        if not claim_text:
-                            if pb_model.ai_description:
-                                claim_text = pb_model.ai_description
+                        for tda in tda_assertions:
+                            if tda.tda_id and str(tda.tda_id).startswith("tda_"):
+                                aid = str(tda.tda_id)
                             else:
-                                claim_text = ""
-
-                        if claim_text:
-                            mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
-                            atom_hash = generate_atom_hash(claim_text, mandate)
-                            atom_mapping[atom_hash] = (pb_id, s_val, claim_text)
+                                aid = generate_atom_hash(tda.ai_rule_description, mandate)
+                            atom_mapping[aid] = (
+                                pb_id,
+                                s_val,
+                                tda.ai_rule_description,
+                                getattr(tda, "aggregation_mode", "EXISTS"),
+                            )
 
             # Fail-fast: Ei fallbackeja. Korjattu normaalin virhehallinnan tyyliin.
             if not blocks_meta[pb_id]["scales"]:
@@ -610,9 +606,19 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
         block_scale_stats: dict[str, dict[float, dict[str, int]]] = {}
         missing_atoms_by_block: dict[str, list[str]] = {}
-        evaluated_atoms_by_block: dict[str, dict[str, bool]] = {}
+        evaluated_atoms_by_block: dict[str, dict[str, bool | str]] = {}
 
-        # 2. Iterate evaluations
+        # 2. Iterate evaluations with MatrixReducer for Three-State Logic
+        from typing import Literal, cast
+
+        from backend_v2.models.v2_core import TDAAssertion
+        from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
+
+        State = Literal["PASSED", "FAILED", "DLQ"]
+        # Accumulate states per atom_id across all chunks
+        raw_states_by_atom: dict[str, list[State]] = {}
+        reasoning_by_atom: dict[str, list[str]] = {}
+
         for ev in evaluations:
             try:
                 ev_dto = AtomEvaluationItemDTO.model_validate(ev)
@@ -624,34 +630,69 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 ) from e
 
             atom_id = ev_dto.atom_id
-            boolean_val = ev_dto.step_5_boolean
-            reasoning = ev_dto.step_4_reasoning
+            boolean_val = ev_dto.rule_satisfied
+            reasoning = ev_dto.reasoning_trace
+            dlq = getattr(ev_dto, "dlq_status", False)
 
             if not atom_id:
                 continue
 
+            if atom_id not in raw_states_by_atom:
+                raw_states_by_atom[atom_id] = []
+                reasoning_by_atom[atom_id] = []
+
+            if dlq:
+                raw_states_by_atom[atom_id].append("DLQ")
+            elif boolean_val:
+                raw_states_by_atom[atom_id].append("PASSED")
+            else:
+                raw_states_by_atom[atom_id].append("FAILED")
+
+            if reasoning:
+                reasoning_by_atom[atom_id].append(reasoning)
+
+        # Reduce states and apply to math logic
+        for atom_id, states in raw_states_by_atom.items():
             mapping = atom_mapping.get(atom_id)
             if not mapping:
                 continue
 
-            pb_id, s_val, text = mapping
+            pb_id, s_val, text, agg_mode = mapping
 
             if pb_id not in block_scale_stats:
                 block_scale_stats[pb_id] = {}
                 missing_atoms_by_block[pb_id] = []
                 evaluated_atoms_by_block[pb_id] = {}
 
-            evaluated_atoms_by_block[pb_id][atom_id] = boolean_val
-
             if s_val not in block_scale_stats[pb_id]:
-                block_scale_stats[pb_id][s_val] = {"hits": 0, "total": 0}
+                block_scale_stats[pb_id][s_val] = {"hits": 0, "total": 0, "dlqs": 0}
 
-            block_scale_stats[pb_id][s_val]["total"] += 1
-            if boolean_val:
+            # Create dummy TDAAssertion to use the MatrixReducer
+            # We bypass full validation since we only need aggregation_mode
+            dummy_tda = TDAAssertion.model_construct(
+                tda_id=atom_id,
+                ai_rule_description=text,
+                inverse_evidence=False,
+                aggregation_mode=cast(Literal["EXISTS", "ALL_MUST_COMPLY"], agg_mode),
+            )
+
+            final_state = MatrixReducer.reduce(dummy_tda, states)
+            reasoning_str = " | ".join(reasoning_by_atom[atom_id])
+
+            if final_state == "DLQ":
+                evaluated_atoms_by_block[pb_id][atom_id] = "DLQ"
+                block_scale_stats[pb_id][s_val]["total"] += 1
+                block_scale_stats[pb_id][s_val]["dlqs"] += 1
+                missing_atoms_by_block[pb_id].append(f"- {text} (DLQ - Unscorable)")
+            elif final_state == "PASSED":
+                evaluated_atoms_by_block[pb_id][atom_id] = True
+                block_scale_stats[pb_id][s_val]["total"] += 1
                 block_scale_stats[pb_id][s_val]["hits"] += 1
             else:
-                if reasoning:
-                    missing_atoms_by_block[pb_id].append(f"- {text} (Reasoning: {reasoning})")
+                evaluated_atoms_by_block[pb_id][atom_id] = False
+                block_scale_stats[pb_id][s_val]["total"] += 1
+                if reasoning_str:
+                    missing_atoms_by_block[pb_id].append(f"- {text} (Reasoning: {reasoning_str})")
                 else:
                     missing_atoms_by_block[pb_id].append(f"- {text}")
 
@@ -669,9 +710,24 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
             global_total = sum(level_data["total"] for level_data in stats.values())
             global_hits = sum(level_data["hits"] for level_data in stats.values())
+            global_dlqs = sum(level_data.get("dlqs", 0) for level_data in stats.values())
+
+            if global_total > 0:
+                system_confidence = (global_total - global_dlqs) / global_total
+                if system_confidence < 0.90:
+                    msg = (
+                        f"System Confidence dropped below 90% for block {pb_id} "
+                        f"(Confidence: {system_confidence:.2f}). Unscorable matrix."
+                    )
+                    logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.value},
+                    )
 
             total_true_atoms += global_hits
-            total_false_atoms += global_total - global_hits
+            total_false_atoms += global_total - global_hits - global_dlqs
 
             if global_total == 0:
                 logger.warning(

@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import LaxXaiExtensionType
@@ -27,7 +27,7 @@ class LightweightMatrixOutput(V2CoreBase):
     level_breakdown: dict[str, dict[str, int]] | None = None
     justification: str = ""
     xai_log: XAILogDto | None = None
-    evaluated_atoms: dict[str, bool] = Field(default_factory=dict)
+    evaluated_atoms: dict[str, bool | str] = Field(default_factory=dict)
     extensions: dict[LaxXaiExtensionType, Any] = Field(default_factory=dict)
 
     @staticmethod
@@ -76,8 +76,20 @@ class AtomEvaluationItemDTO(V2CoreBase):
     """Strict schema for individual atom evaluations in the waterfall pipeline."""
 
     atom_id: str
-    step_1_evidence_type: str | None = None
-    step_2_quote: str | None = None
-    step_3_implicit_justification: str | None = None
-    step_4_reasoning: str = ""
-    step_5_boolean: bool = False
+    rule_satisfied: bool
+    evidence_found: bool
+    exact_quote: str = ""
+    pre_quote_anchor: str = ""
+    post_quote_anchor: str = ""
+    reasoning_trace: str = ""
+    dlq_status: bool = False
+
+    @model_validator(mode="after")
+    def validate_anti_laziness(self) -> AtomEvaluationItemDTO:
+        if self.evidence_found:
+            if not self.exact_quote:
+                raise ValueError("Anti-Laziness: exact_quote cannot be empty if evidence_found is True.")
+        else:
+            if self.exact_quote:
+                raise ValueError("Anti-Hallucination: exact_quote MUST be empty if evidence_found is False.")
+        return self

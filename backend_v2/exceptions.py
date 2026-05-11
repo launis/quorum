@@ -750,3 +750,20 @@ class LogicalValidationError(AppException):
             details=details,
         )
         self.validation_error_msg = validation_error_msg
+
+
+class PydanticSyntaxError(LLMSchemaValidationError):
+    """Raised when LLM returns unstructured output that fails pure syntax checks."""
+
+    pass
+
+
+class SemanticEvidenceError(AppException):
+    """Raised when an atom fails semantic O(1) anchoring. Directly routes to DLQ without AI reasoning."""
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
+        super().__init__(
+            message=message,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details=details or {"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED},
+        )

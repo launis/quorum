@@ -11,6 +11,12 @@
         <catastrophic_reason>Bypassing the Model Registry breaks token tracking, rate limiting, and centralized FinOps cost analysis.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="eager_llm_dependency_loading">
+        <banned_pattern>Placing `import litellm`, `import vertexai` or other heavy PyO3/Rust-based LLM libraries at the module level (top of the file) in backend providers or handlers.</banned_pattern>
+        <mandatory_pattern>Enforce Lazy Loading / Deferred Initialization: Heavy LLM SDK imports MUST be placed inside the specific functions/methods (e.g. `__init__`, `generate`) where they are actually invoked.</mandatory_pattern>
+        <catastrophic_reason>Importing Rust-based libraries (like `tokenizers` via LiteLLM) at the module level permanently crashes Python 3.14+ test suites running with `pytest-cov` due to PyO3 multi-initialization constraints. Lazy loading guarantees test collection is safe and accelerates application boot times.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="data_leak_logging">
         <banned_pattern>Logging raw LLM payloads, user prompts (PII, Chat Data), or full Pydantic exception text blocks natively into logs.</banned_pattern>
         <mandatory_pattern>Enforce strict Data Leak Prevention (DLP). Log ONLY the mathematical/enumerated error code and Trace ID (e.g., `logger.error("Task failed", extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name})`).</mandatory_pattern>

@@ -64,15 +64,18 @@ class PromptFactory:
                 for scale in block_model.scales:
                     for claim in scale.claims:
                         mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
-                        micro_atoms = claim.micro_atoms
-                        if micro_atoms and len(micro_atoms) > 0:
-                            for ma in micro_atoms:
-                                aid = generate_atom_hash(ma, mandate)
+                        tda_assertions = claim.tda_assertions
+                        if tda_assertions and len(tda_assertions) > 0:
+                            for tda in tda_assertions:
+                                if tda.tda_id and str(tda.tda_id).startswith("tda_"):
+                                    aid = str(tda.tda_id)
+                                else:
+                                    aid = generate_atom_hash(tda.ai_rule_description, mandate)
                                 if aid not in atom_to_block_ids:
                                     atom_to_block_ids[aid] = set()
                                 atom_to_block_ids[aid].add(b_id)
                         else:
-                            msg = f"PromptBlock '{b_id}' claim is missing mandatory 'micro_atoms' during runtime."
+                            msg = f"PromptBlock '{b_id}' claim is missing mandatory 'tda_assertions' during runtime."
                             logger.error("[%s] %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                             raise AppException(
                                 message=msg,

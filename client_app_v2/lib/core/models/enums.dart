@@ -134,3 +134,12 @@ extension StrictnessLevelExtension on StrictnessLevel {
     );
   }
 }
+
+/// Epic 48: Aggregation constraint for TDA Assertions
+@JsonEnum()
+enum AggregationMode {
+  @JsonValue('EXISTS')
+  exists,
+  @JsonValue('ALL_MUST_COMPLY')
+  allMustComply,
+}

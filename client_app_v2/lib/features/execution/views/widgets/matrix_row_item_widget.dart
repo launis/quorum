@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/execution/models/scorecard_dto.dart';
+import 'package:client_app/features/execution/models/tda_state.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// Renders a single matrix row enforcing the Zero-Math UI mandate.
@@ -12,16 +13,23 @@ class MatrixRowItemWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isEval = matrix.isEvaluative;
+    final isDlq = matrix.tdaState is Dlq;
+
+    final bgColor = isDlq
+        ? Colors.grey.shade200
+        : isEval
+        ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
+        : theme.colorScheme.surfaceContainerLow;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8.0),
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: BoxDecoration(
-        color: isEval
-            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
-            : theme.colorScheme.surfaceContainerLow,
+        color: bgColor,
         border: Border.all(
-          color: isEval
+          color: isDlq
+              ? Colors.grey.shade400
+              : isEval
               ? theme.colorScheme.outlineVariant
               : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
@@ -50,15 +58,43 @@ class MatrixRowItemWidget extends StatelessWidget {
                     AppLocalizations.of(context)!.xaiJustification,
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
+                      color: isDlq
+                          ? Colors.grey.shade700
+                          : theme.colorScheme.primary,
                     ),
                   ),
                   const SizedBox(height: 2.0),
                   Text(
                     matrix.rowExplanation,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: isDlq
+                          ? Colors.grey.shade800
+                          : theme.colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+                if (isDlq) ...[
+                  const SizedBox(height: 8.0),
+                  Tooltip(
+                    message: (matrix.tdaState as Dlq).backendTrace,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 16,
+                          color: Colors.orange.shade800,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          (matrix.tdaState as Dlq).userReason,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.orange.shade900,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

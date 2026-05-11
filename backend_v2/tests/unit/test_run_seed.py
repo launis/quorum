@@ -79,9 +79,6 @@ async def test_seed_database_no_file(mock_exit: Any, mock_exists: Any) -> None:
 
 @pytest.mark.asyncio
 @patch("backend_v2.seed.run_seed.TinyDB")
-@patch("backend_v2.seed.run_seed.TinyDBClient")
-@patch("backend_v2.seed.run_seed.TinyDBDriver")
-@patch("backend_v2.database.repositories.system.SystemRepositoryImpl")
 @patch("backend_v2.seed.run_seed.shutil")
 @patch("backend_v2.seed.run_seed.os.path.exists", return_value=True)
 @patch("backend_v2.seed.run_seed.os.path.getsize", return_value=123)
@@ -91,9 +88,6 @@ async def test_seed_tinydb_empty_data(
     mock_getsize: Any,
     mock_exists: Any,
     mock_shutil: Any,
-    mock_repo: Any,
-    mock_driver: Any,
-    mock_client: Any,
     mock_tinydb: Any,
 ) -> None:
     """Test _seed_tinydb initialization and empty data loop."""

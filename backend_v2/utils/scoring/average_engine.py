@@ -24,8 +24,9 @@ class PureAverageScoringEngine(ScoringEngineBase):
 
         hit_rates = []
         for v in stats.values():
-            if v["total"] > 0:
-                hit_rates.append(v["hits"] / v["total"])
+            eff_total = v["total"] - v.get("dlqs", 0)
+            if eff_total > 0:
+                hit_rates.append(v["hits"] / eff_total)
             else:
                 hit_rates.append(0.0)
 
@@ -45,7 +46,8 @@ class PureAverageScoringEngine(ScoringEngineBase):
         flattened_total = 0.0
 
         for level, v in stats.items():
-            hr = (v["hits"] / v["total"]) if v["total"] > 0 else 0.0
+            eff_total = v["total"] - v.get("dlqs", 0)
+            hr = (v["hits"] / eff_total) if eff_total > 0 else 0.0
 
             if hr < outlier_threshold and hr < 0.30:
                 log_lines.append(
@@ -54,10 +56,10 @@ class PureAverageScoringEngine(ScoringEngineBase):
                     f"Weight reduced to 0.25x."
                 )
                 flattened_hits += v["hits"] * 0.25
-                flattened_total += v["total"] * 0.25
+                flattened_total += eff_total * 0.25
             else:
                 flattened_hits += v["hits"]
-                flattened_total += v["total"]
+                flattened_total += eff_total
 
         flattened_stats: dict[float, dict[str, float | int]] = {1.0: {"hits": flattened_hits, "total": flattened_total}}
 
@@ -78,7 +80,9 @@ class PureAverageScoringEngine(ScoringEngineBase):
             f"with exponent {exponent:.2f} based on strictness {strictness_level})"
         )
 
-        level_breakdown = {str(k): {"hits": v["hits"], "total": v["total"]} for k, v in stats.items()}
+        level_breakdown = {
+            str(k): {"hits": v["hits"], "total": v["total"], "dlqs": v.get("dlqs", 0)} for k, v in stats.items()
+        }
 
         engine_debug_trace = {
             "engine": "pure_average",
@@ -119,12 +123,12 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
         for s_level in sorted_levels:
             level_data = stats[s_level]
             t_hits = level_data["hits"]
-            t_total = level_data["total"]
+            eff_total = level_data["total"] - level_data.get("dlqs", 0)
 
             achieved_weights += t_hits * s_level
-            max_weights += t_total * s_level
+            max_weights += eff_total * s_level
 
-            log_lines.append(f"- **Level {s_level} (Weight x{s_level}):** {t_hits}/{t_total} hits")
+            log_lines.append(f"- **Level {s_level} (Weight x{s_level}):** {t_hits}/{eff_total} hits")
 
         ratio = (achieved_weights / max_weights) if max_weights > 0 else 0.0
         pct = int(ratio * 100)
@@ -137,7 +141,9 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
             f"and midpoint {config.sigmoid_midpoint:.2f})"
         )
 
-        level_breakdown = {str(k): {"hits": v["hits"], "total": v["total"]} for k, v in stats.items()}
+        level_breakdown = {
+            str(k): {"hits": v["hits"], "total": v["total"], "dlqs": v.get("dlqs", 0)} for k, v in stats.items()
+        }
 
         engine_debug_trace = {
             "engine": "weighted_average",

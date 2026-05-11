@@ -898,9 +898,11 @@
             <h3 style="margin-top: 10px; margin-bottom: 10px; font-size: 11px; color: #333; font-weight: 700;">Tarkempi erittely</h3>
             <div style="display: flex; flex-direction: column; gap: 8px;">
             {% for dim in section.value.get('dimensions', []) %}
-                <div style="background-color: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 6px; padding: 12px; display: flex; align-items: flex-start; gap: 15px;">
-                    <div style="background-color: #E1BEE7; border-radius: 50%; width: 34px; height: 34px; min-width: 34px; display: flex; justify-content: center; align-items: center; margin-top: 2px;">
-                        <span style="font-size: 13px; font-weight: 700; color: #311B92;">
+                {% set tda = dim.get('tda_state', {}) %}
+                {% set is_dlq = (tda.get('runtimeType') == 'dlq' or dim.get('status') == 'dlq') %}
+                <div style="background-color: {{ '#EEEEEE' if is_dlq else '#FAFAFA' }}; border: 1px solid {{ '#BDBDBD' if is_dlq else '#E0E0E0' }}; border-radius: 6px; padding: 12px; display: flex; align-items: flex-start; gap: 15px;">
+                    <div style="background-color: {{ '#9E9E9E' if is_dlq else '#E1BEE7' }}; border-radius: 50%; width: 34px; height: 34px; min-width: 34px; display: flex; justify-content: center; align-items: center; margin-top: 2px;">
+                        <span style="font-size: 13px; font-weight: 700; color: {{ '#FFFFFF' if is_dlq else '#311B92' }};">
                             {% set ds = dim.get('score_display', '0') %}
                             {% if ds is not none and ds|string|trim != '' %}
                                 {{ ds }}
@@ -912,6 +914,11 @@
                     <div style="flex: 1;">
                         <div style="font-size: 10px; font-weight: 700; color: #212121; margin-bottom: 4px;">{{ dim.get('dimension_label') or dim.get('label') }}</div>
                         <div style="font-size: 10px; color: #616161; line-height: 1.4;">{{ dim.get('reasoning') }}</div>
+                        {% if is_dlq %}
+                        <div style="font-size: 9px; color: #E65100; margin-top: 4px; font-weight: bold;">
+                            DLQ: {{ tda.get('userReason', 'Data Quality Issue') }}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             {% endfor %}

@@ -51,7 +51,8 @@ class LLMTaskExecutor:
         """
         cumulative_usage = TokenUsage()
 
-        current_messages = list(messages)
+        # Shallow copy the message array and dicts so we can mutate the user message text safely
+        current_messages = [dict(m) for m in messages]
         schema_attempts = 0
         logical_attempts = 0
 
@@ -128,8 +129,23 @@ class LLMTaskExecutor:
                     is_eof=is_eof,
                 )
 
-                current_messages.append({"role": "assistant", "content": raw_payload})
-                current_messages.append({"role": "user", "content": correction_prompt})
+                # Quality-First Retries (Tail-End Injection)
+                # We inject the error at the absolute end of the User Prompt to preserve prefix caching.
+                # We drop the previous raw hallucination to avoid poisoning the LLM context.
+                for i in range(len(current_messages) - 1, -1, -1):
+                    if current_messages[i].get("role") == "user":
+                        current_messages[i]["content"] = (
+                            current_messages[i].get("content", "")
+                            + f"\n\n<PREVIOUS_SCHEMA_ERROR>\n{correction_prompt}\n</PREVIOUS_SCHEMA_ERROR>"
+                        )
+                        break
+                else:
+                    current_messages.append(
+                        {
+                            "role": "user",
+                            "content": (f"<PREVIOUS_SCHEMA_ERROR>\n{correction_prompt}\n</PREVIOUS_SCHEMA_ERROR>"),
+                        }
+                    )
 
             except LogicalValidationError as e:
                 error_msg = e.validation_error_msg
@@ -167,8 +183,29 @@ class LLMTaskExecutor:
 
                 failed_json = validated_model.model_dump_json() if validated_model else "{}"
 
-                current_messages.append({"role": "assistant", "content": failed_json})
-                current_messages.append({"role": "user", "content": correction_prompt})
+                # Quality-First Retries (Tail-End Injection)
+                for i in range(len(current_messages) - 1, -1, -1):
+                    if current_messages[i].get("role") == "user":
+                        current_messages[i]["content"] = (
+                            current_messages[i].get("content", "")
+                            + "\n\n<PREVIOUS_SCHEMA_ERROR>\n"
+                            + f"Failed Output: {failed_json}\n"
+                            + f"{correction_prompt}\n"
+                            + "</PREVIOUS_SCHEMA_ERROR>"
+                        )
+                        break
+                else:
+                    current_messages.append(
+                        {
+                            "role": "user",
+                            "content": (
+                                "<PREVIOUS_SCHEMA_ERROR>\n"
+                                f"Failed Output: {failed_json}\n"
+                                f"{correction_prompt}\n"
+                                "</PREVIOUS_SCHEMA_ERROR>"
+                            ),
+                        }
+                    )
 
         # Smart Stop if the loop exits without returning or raising
         logger.error("LLM task failed to complete within retry budgets.")

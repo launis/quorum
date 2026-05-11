@@ -37,8 +37,8 @@ graph TD
 
 Järjestelmän arviointi luottaa atomisaatioon, missä matriisin kriteerit on valmiiksi pureskeltu pienimpiin mahdollisiin logiikkayksiköihin.
 
-**Dynaaminen Pydantic-mallinnus ja LLM-Seeding:**
-Atomisoidut väitteet ja ohjeistukset luodaan järjestelmään dynaamisesti `PromptCompiler` ja `BlueprintTransformer` -moduulien avulla. Erityisen kriittistä on **Dynaaminen Seeding-Atomisaatio**: Kun järjestelmän paikallinen tietokanta alustetaan (`run_seed.py`), `PromptAtomizer` -tekoälymoduuli tarttuu väliin ja purkaa asiantuntijoiden määrittämät raskaat arviointikriteerit (`ai_description`) automaattisesti lennosta **absoluuttisesti 15 erilliseksi mikro-väitteeksi** (`micro_atoms`). Poikkeamat tästä (esim. 14 tai 16 väitettä) rikkovat järjestelmän osumien aggregaatiomatematiikan ja hylätään Fail-Fast -säännön mukaisesti. Tämä luo kantaan massiivisen tiheän, syvästi atomisoidun rakenteen. `atomization_cache.json` huolehtii lokaalista välimuistista tässä "Deep Atomization" -vaiheessa, eliminoiden tarpeettomat LLM-kutsut myöhemmissä seed-käynnistyksissä.
+**Pydantic-mallinnus ja Deterministinen TDA-Seeding:**
+Arviointiohjeistukset perustuvat nykyään asiantuntijoiden valmiiksi kirjoittamiin `TDAAssertion` (Test-Driven Assertion) -sääntöihin, jotka ladataan suoraan `seed_data.json` -tiedostosta ilman lennosta tapahtuvaa AI-atomisointia. `PromptAtomizer` on täysin riisuttu LLM-riippuvuuksista, ja se tuottaa ajon aikana asiantuntijoiden `TDAAssertion`-säännöille ainoastaan satunnaiset, kryptografiset Opaque Stripe ID:t (esim. `tda_a1b2c3d4`). Aiempi tekoälyllä suoritettu "Deep Atomization" -vaihe ja sen purkkavirityksenä toiminut `atomization_cache.json` on tuhottu (Epic 48). Tämä takaa absoluuttisen matemaattisen determinismin ja täydellisen Fail-Fast -yhteensopivuuden.
 
 ### Tasokohtainen Atomien Kertolasku (Dynamic Atom Aggregation)
 Järjestelmän litteiden osumien kokonaismäärä (Denominator / Total Atoms) vaihtelee dynaamisesti arvosteluskaalojen (esim. T1 vs. T5) välillä. On arkkitehtuurinen välttämättömyys, että "läpikäytyjen atomisoitujen väitteiden määrä" ei ole kaikilla tasoilla sama.
@@ -62,6 +62,11 @@ Perinteinen LLM-pohjainen lausuntojen arviointi kykenee harvoin tuottamaan tiukk
    Jotta satojen kysymysten yhtäaikainen sokea arviointi ei johtaisi Timeout/429 Rate Limit -kaatumisiin tai json-skeeman rikkoutumiseen LLM:n muistin loppuessa (Token Explosion), `LLMNodeStrategy` suorittaa Map-Reduce -operaation. Massiivinen kysymyslista luovutetaan `ChunkingService`-komponentille, joka pilkkoo sen turvallisiin Opaque Stripe ID -suojattuihin osiin (`SystemConcurrency.LLM_MAX_CHUNK_SIZE`-sääntöjen mukaisesti). Palikat ajetaan vahvasti rinnakkain `asyncio.TaskGroup` ja `Semaphore` -varmistuksin. Lopulta erilliset rakenteelliset vastaukset parsitaan takaisin yhtenäiseksi `List[FlattenedAtomResult]` -paketiksi täydellisellä 1:1 osumatarkkuudella.
 3. **Eristetty Runtime AI (T=0.0):**
    LLM suorittaa kunkin Map-Reduce -lohkon arvioinnin tiukassa "Strict Mode" -tilassa, missä `LiteLLMProvider` vaatii koodilta absoluuttisesti TPM/RPM-rajoitusten määrittämistä. Jos Pydantic-validaatio epäonnistuu yksittäisessä chunkissa, arkkitehtuuri ei yritä "arvailla" fallback-arvoja (Zero-Fallback), vaan nostaa välittömästi RFC 7807 `AppException` -virheen (Fail-Fast).
+4. **Three-State Logic ja MatrixReducer (O(N) Reduktio):**
+   Koska atomit on pilkottu N-määrään asynkronisia chunkkeja, järjestelmä voi kohdata konfliktin: chunk A löytää osuman (PASSED), mutta chunk B ei löydä (FAILED). Matemaattinen tila reduktoidaan `MatrixReducer`in avulla noudattaen TDA-säännön `aggregation_mode`-attribuuttia:
+   - `EXISTS`: Yksikin "PASSED" chunkkien välillä riittää koko säännön läpäisyyn (ANY(Passed) -> Passed). Muuten tutkitaan FAILED/DLQ -enemmistö.
+   - `ALL_MUST_COMPLY`: Yksikin "FAILED" (tai DLQ) pudottaa koko säännön tilaan FAILED/DLQ. Kaikkien chunkkien on oltava puhtaasti "PASSED".
+   DLQ (Dead Letter Queue) on kolmas tila, johon väite siirretään, jos se on teknisesti viallinen (esim. korruptoitunut lainaus), eikä sitä lasketa nimittäjään (Denominator) lopullisessa Compliance Scoressa.
 4. **Paluu Rakennetilaan ja Käänteinen Hajautus (Reverse Hash Mapping):**
    Kun kaikki asynkroniset LLM-palat on suoritettu ja vastaukset (True/False & Micro-CoT -perustelut) on sulatettu massiiviseksi yhteiseksi Boolean-listaksi, asynkronisen moottorin on osattava palauttaa sokeat osumat takaisin alkuperäisiin matriiseihinsa ja vaatimustasoilleen. 
    Tämä ratkaistaan nojaten dynaamiseen **Ephemeral Runtime ID -mäppäykseen (In-Memory)**:
@@ -76,12 +81,12 @@ Jotta arviointi olisi matemaattisesti stabiili eikä altis tekoälyn mielistelyl
 * LLM:ltä on täysin riistetty kyky palauttaa itse valmiita numeerisia lukuja kuten jatkuvia kokonaisarvosanoja. Tämä logiikka (Zero-Math Payload) pienentää Map-Reduce -töiden palauttamia JSON-rakenteita kriittisesti, pysäyttäen raskaisiin Token-määriin liittyvät "Arq Worker Timeout" -ylikuormittumiset.
 
 **DRY-Abstrahoitu Lainsäädäntö (`atom_flattening.py`):**
-Koska arvioidut lauseet voivat nykymallissa olla täysin dynaamisesti luotuja `micro_atoms`-kysymyksiä (joita tekoäly luo tietokantaa seedatessa), itse asiantuntijatietokanta (`seed_data.json`) on puhdistettu toistuvista ja raskaista säännöistä. Nollahypoteesi on kovakoodattu puhtaasti taustajärjestelmän arviointiputkeen. Map-reduce -vaiheessa `atom_flattening.py` -hookki ohjelmallisesti "liimaa" absoluuttisen säännön (*ENFORCEMENT: Evaluate as FALSE immediately unless explicit, documented evidence is provided.*) jokaisen sokean mikro-atomin perään lennosta. Tämä arkkitehtuuri takaa, ettei LLM pääse "irti hihnasta" edes satojen uusien, lennosta generoitujen lyhyiden kysymysten keskellä.
+Vaikka arvioidut lauseet ovat nykyään deterministisiä `TDAAssertion`-sääntöjä (joita ei enää generoida tekoälyllä lennosta), itse asiantuntijatietokanta (`seed_data.json`) pidetään puhtaana toistuvista ja raskaista säännöistä. Nollahypoteesi on kovakoodattu puhtaasti taustajärjestelmän arviointiputkeen. Map-reduce -vaiheessa `atom_flattening.py` -hookki ohjelmallisesti "liimaa" absoluuttisen säännön (*ENFORCEMENT: Evaluate as FALSE immediately unless explicit, documented evidence is provided.*) jokaisen deterministisen `tda_assertion` -säännön perään lennosta. Tämä arkkitehtuuri takaa, ettei LLM pääse "irti hihnasta" arvioidessaan laajojakin sääntömassoja.
 
 ### Laajennuskäsittely ja Pydantic-purku (Extensions & Evaluations)
 Asynkronisen moottorin suorittama datan jäsennys tapahtuu Zero-Compromise Pydantic V2 -hengessä. 
-* **Laajennusten Tiukennus (`output_extensions`):** `PromptBlock` (blk_) `output_extensions` (kuten `scoring_matrix`, `micro_atoms`) luetaan tiukasti Pydantic-olioihin ajon aikana. Järjestelmä ei salli "graceful degradation" -tilaa: mikäli tekoäly palauttaa viallista dataa näiden laajennusten osalta, dataa ei hiljaisesti ohiteta `.get()` -purkalla tai pudoteta pois, vaan rajapinta nostaa virheen heti.
-* **Evaluations Dict Parsing:** Myös `evaluations`-vastausten jäsentely on ehdottoman tiukkaa. Järjestelmä ei hyväksy löysää parserointia. Pienikin poikkeama mallinnetuista `micro_atoms` -kentistä kaataa asynkronisen kerroksen (RFC 7807), eikä oletuksena yritetä tarjota "tyhjää dictiä `{}`" pelastamaan LLM:n rakenteellista hallusinaatiota. Tällä taataan, että jatkolaskenta ei koskaan operoi korruptoituneella aineistolla.
+* **Laajennusten Tiukennus (`output_extensions`):** `PromptBlock` (blk_) `output_extensions` (kuten `scoring_matrix`, `tda_assertions`) luetaan tiukasti Pydantic-olioihin ajon aikana. Järjestelmä ei salli "graceful degradation" -tilaa: mikäli tekoäly palauttaa viallista dataa näiden laajennusten osalta, dataa ei hiljaisesti ohiteta `.get()` -purkalla tai pudoteta pois, vaan rajapinta nostaa virheen heti.
+* **Evaluations Dict Parsing:** Myös `evaluations`-vastausten jäsentely on ehdottoman tiukkaa. Järjestelmä ei hyväksy löysää parserointia. Pienikin poikkeama mallinnetuista `tda_assertions` -kentistä kaataa asynkronisen kerroksen (RFC 7807), eikä oletuksena yritetä tarjota "tyhjää dictiä `{}`" pelastamaan LLM:n rakenteellista hallusinaatiota. Tällä taataan, että jatkolaskenta ei koskaan operoi korruptoituneella aineistolla.
 
 ## 3. Zero-Trust Pydantic Validation & Anti-Laziness Mandate (Epic 42)
 
@@ -243,8 +248,8 @@ Data ratkaistaan kolmiportaisella rakenteella `normalize_matrix_scores_hook` -fu
 
 Arviointiarkkitehtuurin tilanhallinta ja datan tallennus on "Event Sourced" -yhteensopiva.
 
-### A. Atomisoidut Väittämät (Konfiguraatio / Siemendata)
-Atomit (`micro_atoms`) luodaan järjestelmän siemennysvaiheessa. Pysyvä siemendata luetaan hakemistosta `backend_v2/seed/`. Välimuistitiedosto `backend_v2/seed/atomization_cache.json` estää LLM:ää atomisoimasta vanhoja kriteereitä jatkuvasti uudelleen, taaten nopeat siemennysajot (`run_seed.py local`).
+### A. TDAAssertion-säännöt (Konfiguraatio / Siemendata)
+Deterministiset `TDAAssertion` -säännöt luetaan suoraan pysyvästä siemendatasta hakemistosta `backend_v2/seed/seed_data.json`. Aiempi tekoälypohjainen atomisointi ja sen vaatima `atomization_cache.json` on tuhottu, taaten ehdottoman arkkitehtuurisen pariteetin ja nopeat siemennysajot puhtaalla JSON-datalla (`run_seed.py local`).
 
 ### B. Raaka-arvioinnit ja True/False -tulokset (Suoritustila)
 Tekoälyn tekemä sokea atomien arviointityö tallentuu prosessidatana paikallisesti kehityksessä `data/db_v2.json` -tiedoston `executions`-taulukkoon. Koska säilytämme raaan lokin (Execution Trace), jokaista `True/False` arviota (Micro-CoT) voidaan analysoida audit-loopissa jälkikäteen ilman toistoja.
@@ -280,9 +285,13 @@ Aiemmin järjestelmässä käytettiin "Self-Healing Citations" -heuristiikkaa (p
 **Nykymalli (The CPU Trap Resolution):**
 Sen sijaan, että turvauduttaisiin epävarmaan regex-korjailuun tai siirrettäisiin validointia asynkronisiin Arq-jonoihin ("The CPU Trap"), lainausten ja viitteiden validointi tapahtuu 100 % synkronisesti Pydantic V2:n natiivissa C/Rust-kerroksessa (`@model_validator(mode='after')`). 
 
-1. **Deterministinen Normalisointi (Canonicalization):** Molemmat merkkijonot (alkuperäinen lähde ja LLM:n tuottama lainaus) stripataan erikoismerkeistä ja välilyönneistä puhtaalla O(N) algoritmillä erittäin nopeasti pääsäikeessä.
 2. **Exact Match tai Fail-Fast:** Jos normalisoitu LLM-lainaus ei vastaa lähdettä tismalleen, Pydantic heittää välittömästi `ValidationError`in.
 3. **Error Feedback Loop ja DLQ:** Arkkitehtuuri ei yritä enää hiljaisesti "parantaa" virhettä. Epäonnistuminen laukaisee automaattisen Error Feedback Loopin (LLM yrittää itse korjata virheensä `<ERROR>` -syötteen avulla). Jos atomi on pysyvästi rikki, se siirretään pragmallisesti DLQ-jonoon (Dead Letter Queue), jotta työnkulku etenee maaliin ilman ohjelman kaatumista.
+
+### C. Kaskadoituva O(N) Anchoring (AnchorValidationService)
+Epic 48 esitteli deterministisen kaskadiarkkitehtuurin (`AnchorValidationService`) täydentämään Pydantic-validointia ja estämään puhtaasti ohjelmallisten lainausvirheiden päätymisen DLQ:hun:
+1. **O(N) RapidFuzz Anchoring:** Järjestelmä etsii eksaktia lainausta tekstistä nopealla fuzzy-match -algoritmilla (RapidFuzz), sen jälkeen kun molemmat tekstit on normalisoitu (NFKC, lowercase, regex `[^a-z0-9]`). Tämä on matemaattisesti deterministinen Fast-Path.
+2. **Semantic Fallback Cascade (NLI):** Jos O(N) fuzzy-match epäonnistuu, kaskadi ei hylkää väitettä suoraan. Järjestelmä laukaisee halvan tason NLI-mallin (esim. GPT-4o-mini), jolta kysytään onko eristetty väite samaa tarkoittava PDF-kontekstin kanssa. Tämä pelastaa OCR-virheistä tai vahvoista lyhenteistä kärsivät tekstiosat DLQ-hylkäykseltä.
 
 <br><hr>
 

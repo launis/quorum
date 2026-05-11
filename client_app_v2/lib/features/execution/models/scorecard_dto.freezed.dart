@@ -288,7 +288,7 @@ as List<MatrixScorecardRowDto>,
 /// @nodoc
 mixin _$MatrixScorecardRowDto {
 
-@JsonKey(name: 'block_id') String get blockId; String get name;@JsonKey(name: 'label_fi') String get labelFi;@JsonKey(name: 'label_en') String get labelEn; String? get description; double? get score;@JsonKey(name: 'scale_min') double? get scaleMin;@JsonKey(name: 'scale_max') double? get scaleMax;@JsonKey(name: 'normalized_score') double? get normalizedScore;@JsonKey(name: 'true_atoms') int? get trueAtoms;@JsonKey(name: 'total_atoms') int? get totalAtoms;@JsonKey(name: 'row_explanation') String get rowExplanation;@JsonKey(name: 'cited_source_id') String? get citedSourceId;@JsonKey(name: 'cited_text_quote') String? get citedTextQuote;@JsonKey(name: 'cited_web_citation') String? get citedWebCitation;@JsonKey(name: 'evidence_type') EvidenceType? get evidenceType;// Epic 6: XAI Output Extensions
+@JsonKey(name: 'block_id') String get blockId; String get name;@JsonKey(name: 'label_fi') String get labelFi;@JsonKey(name: 'label_en') String get labelEn; String? get description; double? get score;@JsonKey(name: 'scale_min') double? get scaleMin;@JsonKey(name: 'scale_max') double? get scaleMax;@JsonKey(name: 'normalized_score') double? get normalizedScore;@JsonKey(name: 'true_atoms') int? get trueAtoms;@JsonKey(name: 'total_atoms') int? get totalAtoms;@JsonKey(name: 'row_explanation') String get rowExplanation;@JsonKey(name: 'cited_source_id') String? get citedSourceId;@JsonKey(name: 'cited_text_quote') String? get citedTextQuote;@JsonKey(name: 'cited_web_citation') String? get citedWebCitation;@JsonKey(name: 'evidence_type') EvidenceType? get evidenceType;@JsonKey(name: 'tda_state') TDAState? get tdaState;// Epic 6: XAI Output Extensions
  String? get coaching; double? get confidence; String? get falsification;@JsonKey(name: 'missing_context') String? get missingContext;@JsonKey(name: 'risk_flag') bool? get riskFlag;@JsonKey(name: 'remediation_steps') String? get remediationSteps;@JsonKey(name: 'emotional_sentiment') String? get emotionalSentiment;@JsonKey(name: 'theory_link') String? get theoryLink;@JsonKey(name: 'level_breakdown') Map<String, String>? get levelBreakdown;@JsonKey(name: 'level_names') Map<String, String>? get levelNames;@JsonKey(name: 'ui_boundary_labels') Map<String, String>? get uiBoundaryLabels;@JsonKey(name: 'ui_plot_ratio') double? get uiPlotRatio;@JsonKey(name: 'is_evaluative') bool get isEvaluative;
 /// Create a copy of MatrixScorecardRowDto
 /// with the given fields replaced by the non-null parameter values.
@@ -304,7 +304,7 @@ $MatrixScorecardRowDtoCopyWith<MatrixScorecardRowDto> get copyWith => _$MatrixSc
 
 @override
 String toString() {
-  return 'MatrixScorecardRowDto(blockId: $blockId, name: $name, labelFi: $labelFi, labelEn: $labelEn, description: $description, score: $score, scaleMin: $scaleMin, scaleMax: $scaleMax, normalizedScore: $normalizedScore, trueAtoms: $trueAtoms, totalAtoms: $totalAtoms, rowExplanation: $rowExplanation, citedSourceId: $citedSourceId, citedTextQuote: $citedTextQuote, citedWebCitation: $citedWebCitation, evidenceType: $evidenceType, coaching: $coaching, confidence: $confidence, falsification: $falsification, missingContext: $missingContext, riskFlag: $riskFlag, remediationSteps: $remediationSteps, emotionalSentiment: $emotionalSentiment, theoryLink: $theoryLink, levelBreakdown: $levelBreakdown, levelNames: $levelNames, uiBoundaryLabels: $uiBoundaryLabels, uiPlotRatio: $uiPlotRatio, isEvaluative: $isEvaluative)';
+  return 'MatrixScorecardRowDto(blockId: $blockId, name: $name, labelFi: $labelFi, labelEn: $labelEn, description: $description, score: $score, scaleMin: $scaleMin, scaleMax: $scaleMax, normalizedScore: $normalizedScore, trueAtoms: $trueAtoms, totalAtoms: $totalAtoms, rowExplanation: $rowExplanation, citedSourceId: $citedSourceId, citedTextQuote: $citedTextQuote, citedWebCitation: $citedWebCitation, evidenceType: $evidenceType, tdaState: $tdaState, coaching: $coaching, confidence: $confidence, falsification: $falsification, missingContext: $missingContext, riskFlag: $riskFlag, remediationSteps: $remediationSteps, emotionalSentiment: $emotionalSentiment, theoryLink: $theoryLink, levelBreakdown: $levelBreakdown, levelNames: $levelNames, uiBoundaryLabels: $uiBoundaryLabels, uiPlotRatio: $uiPlotRatio, isEvaluative: $isEvaluative)';
 }
 
 
@@ -315,11 +315,11 @@ abstract mixin class $MatrixScorecardRowDtoCopyWith<$Res>  {
   factory $MatrixScorecardRowDtoCopyWith(MatrixScorecardRowDto value, $Res Function(MatrixScorecardRowDto) _then) = _$MatrixScorecardRowDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'block_id') String blockId, String name,@JsonKey(name: 'label_fi') String labelFi,@JsonKey(name: 'label_en') String labelEn, String? description, double? score,@JsonKey(name: 'scale_min') double? scaleMin,@JsonKey(name: 'scale_max') double? scaleMax,@JsonKey(name: 'normalized_score') double? normalizedScore,@JsonKey(name: 'true_atoms') int? trueAtoms,@JsonKey(name: 'total_atoms') int? totalAtoms,@JsonKey(name: 'row_explanation') String rowExplanation,@JsonKey(name: 'cited_source_id') String? citedSourceId,@JsonKey(name: 'cited_text_quote') String? citedTextQuote,@JsonKey(name: 'cited_web_citation') String? citedWebCitation,@JsonKey(name: 'evidence_type') EvidenceType? evidenceType, String? coaching, double? confidence, String? falsification,@JsonKey(name: 'missing_context') String? missingContext,@JsonKey(name: 'risk_flag') bool? riskFlag,@JsonKey(name: 'remediation_steps') String? remediationSteps,@JsonKey(name: 'emotional_sentiment') String? emotionalSentiment,@JsonKey(name: 'theory_link') String? theoryLink,@JsonKey(name: 'level_breakdown') Map<String, String>? levelBreakdown,@JsonKey(name: 'level_names') Map<String, String>? levelNames,@JsonKey(name: 'ui_boundary_labels') Map<String, String>? uiBoundaryLabels,@JsonKey(name: 'ui_plot_ratio') double? uiPlotRatio,@JsonKey(name: 'is_evaluative') bool isEvaluative
+@JsonKey(name: 'block_id') String blockId, String name,@JsonKey(name: 'label_fi') String labelFi,@JsonKey(name: 'label_en') String labelEn, String? description, double? score,@JsonKey(name: 'scale_min') double? scaleMin,@JsonKey(name: 'scale_max') double? scaleMax,@JsonKey(name: 'normalized_score') double? normalizedScore,@JsonKey(name: 'true_atoms') int? trueAtoms,@JsonKey(name: 'total_atoms') int? totalAtoms,@JsonKey(name: 'row_explanation') String rowExplanation,@JsonKey(name: 'cited_source_id') String? citedSourceId,@JsonKey(name: 'cited_text_quote') String? citedTextQuote,@JsonKey(name: 'cited_web_citation') String? citedWebCitation,@JsonKey(name: 'evidence_type') EvidenceType? evidenceType,@JsonKey(name: 'tda_state') TDAState? tdaState, String? coaching, double? confidence, String? falsification,@JsonKey(name: 'missing_context') String? missingContext,@JsonKey(name: 'risk_flag') bool? riskFlag,@JsonKey(name: 'remediation_steps') String? remediationSteps,@JsonKey(name: 'emotional_sentiment') String? emotionalSentiment,@JsonKey(name: 'theory_link') String? theoryLink,@JsonKey(name: 'level_breakdown') Map<String, String>? levelBreakdown,@JsonKey(name: 'level_names') Map<String, String>? levelNames,@JsonKey(name: 'ui_boundary_labels') Map<String, String>? uiBoundaryLabels,@JsonKey(name: 'ui_plot_ratio') double? uiPlotRatio,@JsonKey(name: 'is_evaluative') bool isEvaluative
 });
 
 
-
+$TDAStateCopyWith<$Res>? get tdaState;
 
 }
 /// @nodoc
@@ -332,7 +332,7 @@ class _$MatrixScorecardRowDtoCopyWithImpl<$Res>
 
 /// Create a copy of MatrixScorecardRowDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? blockId = null,Object? name = null,Object? labelFi = null,Object? labelEn = null,Object? description = freezed,Object? score = freezed,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? normalizedScore = freezed,Object? trueAtoms = freezed,Object? totalAtoms = freezed,Object? rowExplanation = null,Object? citedSourceId = freezed,Object? citedTextQuote = freezed,Object? citedWebCitation = freezed,Object? evidenceType = freezed,Object? coaching = freezed,Object? confidence = freezed,Object? falsification = freezed,Object? missingContext = freezed,Object? riskFlag = freezed,Object? remediationSteps = freezed,Object? emotionalSentiment = freezed,Object? theoryLink = freezed,Object? levelBreakdown = freezed,Object? levelNames = freezed,Object? uiBoundaryLabels = freezed,Object? uiPlotRatio = freezed,Object? isEvaluative = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? blockId = null,Object? name = null,Object? labelFi = null,Object? labelEn = null,Object? description = freezed,Object? score = freezed,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? normalizedScore = freezed,Object? trueAtoms = freezed,Object? totalAtoms = freezed,Object? rowExplanation = null,Object? citedSourceId = freezed,Object? citedTextQuote = freezed,Object? citedWebCitation = freezed,Object? evidenceType = freezed,Object? tdaState = freezed,Object? coaching = freezed,Object? confidence = freezed,Object? falsification = freezed,Object? missingContext = freezed,Object? riskFlag = freezed,Object? remediationSteps = freezed,Object? emotionalSentiment = freezed,Object? theoryLink = freezed,Object? levelBreakdown = freezed,Object? levelNames = freezed,Object? uiBoundaryLabels = freezed,Object? uiPlotRatio = freezed,Object? isEvaluative = null,}) {
   return _then(_self.copyWith(
 blockId: null == blockId ? _self.blockId : blockId // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -350,7 +350,8 @@ as String,citedSourceId: freezed == citedSourceId ? _self.citedSourceId : citedS
 as String?,citedTextQuote: freezed == citedTextQuote ? _self.citedTextQuote : citedTextQuote // ignore: cast_nullable_to_non_nullable
 as String?,citedWebCitation: freezed == citedWebCitation ? _self.citedWebCitation : citedWebCitation // ignore: cast_nullable_to_non_nullable
 as String?,evidenceType: freezed == evidenceType ? _self.evidenceType : evidenceType // ignore: cast_nullable_to_non_nullable
-as EvidenceType?,coaching: freezed == coaching ? _self.coaching : coaching // ignore: cast_nullable_to_non_nullable
+as EvidenceType?,tdaState: freezed == tdaState ? _self.tdaState : tdaState // ignore: cast_nullable_to_non_nullable
+as TDAState?,coaching: freezed == coaching ? _self.coaching : coaching // ignore: cast_nullable_to_non_nullable
 as String?,confidence: freezed == confidence ? _self.confidence : confidence // ignore: cast_nullable_to_non_nullable
 as double?,falsification: freezed == falsification ? _self.falsification : falsification // ignore: cast_nullable_to_non_nullable
 as String?,missingContext: freezed == missingContext ? _self.missingContext : missingContext // ignore: cast_nullable_to_non_nullable
@@ -366,7 +367,19 @@ as double?,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluativ
 as bool,
   ));
 }
+/// Create a copy of MatrixScorecardRowDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TDAStateCopyWith<$Res>? get tdaState {
+    if (_self.tdaState == null) {
+    return null;
+  }
 
+  return $TDAStateCopyWith<$Res>(_self.tdaState!, (value) {
+    return _then(_self.copyWith(tdaState: value));
+  });
+}
 }
 
 
@@ -448,10 +461,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'block_id')  String blockId,  String name, @JsonKey(name: 'label_fi')  String labelFi, @JsonKey(name: 'label_en')  String labelEn,  String? description,  double? score, @JsonKey(name: 'scale_min')  double? scaleMin, @JsonKey(name: 'scale_max')  double? scaleMax, @JsonKey(name: 'normalized_score')  double? normalizedScore, @JsonKey(name: 'true_atoms')  int? trueAtoms, @JsonKey(name: 'total_atoms')  int? totalAtoms, @JsonKey(name: 'row_explanation')  String rowExplanation, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation, @JsonKey(name: 'evidence_type')  EvidenceType? evidenceType,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  String? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'level_breakdown')  Map<String, String>? levelBreakdown, @JsonKey(name: 'level_names')  Map<String, String>? levelNames, @JsonKey(name: 'ui_boundary_labels')  Map<String, String>? uiBoundaryLabels, @JsonKey(name: 'ui_plot_ratio')  double? uiPlotRatio, @JsonKey(name: 'is_evaluative')  bool isEvaluative)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'block_id')  String blockId,  String name, @JsonKey(name: 'label_fi')  String labelFi, @JsonKey(name: 'label_en')  String labelEn,  String? description,  double? score, @JsonKey(name: 'scale_min')  double? scaleMin, @JsonKey(name: 'scale_max')  double? scaleMax, @JsonKey(name: 'normalized_score')  double? normalizedScore, @JsonKey(name: 'true_atoms')  int? trueAtoms, @JsonKey(name: 'total_atoms')  int? totalAtoms, @JsonKey(name: 'row_explanation')  String rowExplanation, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation, @JsonKey(name: 'evidence_type')  EvidenceType? evidenceType, @JsonKey(name: 'tda_state')  TDAState? tdaState,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  String? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'level_breakdown')  Map<String, String>? levelBreakdown, @JsonKey(name: 'level_names')  Map<String, String>? levelNames, @JsonKey(name: 'ui_boundary_labels')  Map<String, String>? uiBoundaryLabels, @JsonKey(name: 'ui_plot_ratio')  double? uiPlotRatio, @JsonKey(name: 'is_evaluative')  bool isEvaluative)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MatrixScorecardRowDto() when $default != null:
-return $default(_that.blockId,_that.name,_that.labelFi,_that.labelEn,_that.description,_that.score,_that.scaleMin,_that.scaleMax,_that.normalizedScore,_that.trueAtoms,_that.totalAtoms,_that.rowExplanation,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.evidenceType,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.levelBreakdown,_that.levelNames,_that.uiBoundaryLabels,_that.uiPlotRatio,_that.isEvaluative);case _:
+return $default(_that.blockId,_that.name,_that.labelFi,_that.labelEn,_that.description,_that.score,_that.scaleMin,_that.scaleMax,_that.normalizedScore,_that.trueAtoms,_that.totalAtoms,_that.rowExplanation,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.evidenceType,_that.tdaState,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.levelBreakdown,_that.levelNames,_that.uiBoundaryLabels,_that.uiPlotRatio,_that.isEvaluative);case _:
   return orElse();
 
 }
@@ -469,10 +482,10 @@ return $default(_that.blockId,_that.name,_that.labelFi,_that.labelEn,_that.descr
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'block_id')  String blockId,  String name, @JsonKey(name: 'label_fi')  String labelFi, @JsonKey(name: 'label_en')  String labelEn,  String? description,  double? score, @JsonKey(name: 'scale_min')  double? scaleMin, @JsonKey(name: 'scale_max')  double? scaleMax, @JsonKey(name: 'normalized_score')  double? normalizedScore, @JsonKey(name: 'true_atoms')  int? trueAtoms, @JsonKey(name: 'total_atoms')  int? totalAtoms, @JsonKey(name: 'row_explanation')  String rowExplanation, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation, @JsonKey(name: 'evidence_type')  EvidenceType? evidenceType,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  String? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'level_breakdown')  Map<String, String>? levelBreakdown, @JsonKey(name: 'level_names')  Map<String, String>? levelNames, @JsonKey(name: 'ui_boundary_labels')  Map<String, String>? uiBoundaryLabels, @JsonKey(name: 'ui_plot_ratio')  double? uiPlotRatio, @JsonKey(name: 'is_evaluative')  bool isEvaluative)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'block_id')  String blockId,  String name, @JsonKey(name: 'label_fi')  String labelFi, @JsonKey(name: 'label_en')  String labelEn,  String? description,  double? score, @JsonKey(name: 'scale_min')  double? scaleMin, @JsonKey(name: 'scale_max')  double? scaleMax, @JsonKey(name: 'normalized_score')  double? normalizedScore, @JsonKey(name: 'true_atoms')  int? trueAtoms, @JsonKey(name: 'total_atoms')  int? totalAtoms, @JsonKey(name: 'row_explanation')  String rowExplanation, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation, @JsonKey(name: 'evidence_type')  EvidenceType? evidenceType, @JsonKey(name: 'tda_state')  TDAState? tdaState,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  String? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'level_breakdown')  Map<String, String>? levelBreakdown, @JsonKey(name: 'level_names')  Map<String, String>? levelNames, @JsonKey(name: 'ui_boundary_labels')  Map<String, String>? uiBoundaryLabels, @JsonKey(name: 'ui_plot_ratio')  double? uiPlotRatio, @JsonKey(name: 'is_evaluative')  bool isEvaluative)  $default,) {final _that = this;
 switch (_that) {
 case _MatrixScorecardRowDto():
-return $default(_that.blockId,_that.name,_that.labelFi,_that.labelEn,_that.description,_that.score,_that.scaleMin,_that.scaleMax,_that.normalizedScore,_that.trueAtoms,_that.totalAtoms,_that.rowExplanation,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.evidenceType,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.levelBreakdown,_that.levelNames,_that.uiBoundaryLabels,_that.uiPlotRatio,_that.isEvaluative);case _:
+return $default(_that.blockId,_that.name,_that.labelFi,_that.labelEn,_that.description,_that.score,_that.scaleMin,_that.scaleMax,_that.normalizedScore,_that.trueAtoms,_that.totalAtoms,_that.rowExplanation,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.evidenceType,_that.tdaState,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.levelBreakdown,_that.levelNames,_that.uiBoundaryLabels,_that.uiPlotRatio,_that.isEvaluative);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -489,10 +502,10 @@ return $default(_that.blockId,_that.name,_that.labelFi,_that.labelEn,_that.descr
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'block_id')  String blockId,  String name, @JsonKey(name: 'label_fi')  String labelFi, @JsonKey(name: 'label_en')  String labelEn,  String? description,  double? score, @JsonKey(name: 'scale_min')  double? scaleMin, @JsonKey(name: 'scale_max')  double? scaleMax, @JsonKey(name: 'normalized_score')  double? normalizedScore, @JsonKey(name: 'true_atoms')  int? trueAtoms, @JsonKey(name: 'total_atoms')  int? totalAtoms, @JsonKey(name: 'row_explanation')  String rowExplanation, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation, @JsonKey(name: 'evidence_type')  EvidenceType? evidenceType,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  String? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'level_breakdown')  Map<String, String>? levelBreakdown, @JsonKey(name: 'level_names')  Map<String, String>? levelNames, @JsonKey(name: 'ui_boundary_labels')  Map<String, String>? uiBoundaryLabels, @JsonKey(name: 'ui_plot_ratio')  double? uiPlotRatio, @JsonKey(name: 'is_evaluative')  bool isEvaluative)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'block_id')  String blockId,  String name, @JsonKey(name: 'label_fi')  String labelFi, @JsonKey(name: 'label_en')  String labelEn,  String? description,  double? score, @JsonKey(name: 'scale_min')  double? scaleMin, @JsonKey(name: 'scale_max')  double? scaleMax, @JsonKey(name: 'normalized_score')  double? normalizedScore, @JsonKey(name: 'true_atoms')  int? trueAtoms, @JsonKey(name: 'total_atoms')  int? totalAtoms, @JsonKey(name: 'row_explanation')  String rowExplanation, @JsonKey(name: 'cited_source_id')  String? citedSourceId, @JsonKey(name: 'cited_text_quote')  String? citedTextQuote, @JsonKey(name: 'cited_web_citation')  String? citedWebCitation, @JsonKey(name: 'evidence_type')  EvidenceType? evidenceType, @JsonKey(name: 'tda_state')  TDAState? tdaState,  String? coaching,  double? confidence,  String? falsification, @JsonKey(name: 'missing_context')  String? missingContext, @JsonKey(name: 'risk_flag')  bool? riskFlag, @JsonKey(name: 'remediation_steps')  String? remediationSteps, @JsonKey(name: 'emotional_sentiment')  String? emotionalSentiment, @JsonKey(name: 'theory_link')  String? theoryLink, @JsonKey(name: 'level_breakdown')  Map<String, String>? levelBreakdown, @JsonKey(name: 'level_names')  Map<String, String>? levelNames, @JsonKey(name: 'ui_boundary_labels')  Map<String, String>? uiBoundaryLabels, @JsonKey(name: 'ui_plot_ratio')  double? uiPlotRatio, @JsonKey(name: 'is_evaluative')  bool isEvaluative)?  $default,) {final _that = this;
 switch (_that) {
 case _MatrixScorecardRowDto() when $default != null:
-return $default(_that.blockId,_that.name,_that.labelFi,_that.labelEn,_that.description,_that.score,_that.scaleMin,_that.scaleMax,_that.normalizedScore,_that.trueAtoms,_that.totalAtoms,_that.rowExplanation,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.evidenceType,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.levelBreakdown,_that.levelNames,_that.uiBoundaryLabels,_that.uiPlotRatio,_that.isEvaluative);case _:
+return $default(_that.blockId,_that.name,_that.labelFi,_that.labelEn,_that.description,_that.score,_that.scaleMin,_that.scaleMax,_that.normalizedScore,_that.trueAtoms,_that.totalAtoms,_that.rowExplanation,_that.citedSourceId,_that.citedTextQuote,_that.citedWebCitation,_that.evidenceType,_that.tdaState,_that.coaching,_that.confidence,_that.falsification,_that.missingContext,_that.riskFlag,_that.remediationSteps,_that.emotionalSentiment,_that.theoryLink,_that.levelBreakdown,_that.levelNames,_that.uiBoundaryLabels,_that.uiPlotRatio,_that.isEvaluative);case _:
   return null;
 
 }
@@ -504,7 +517,7 @@ return $default(_that.blockId,_that.name,_that.labelFi,_that.labelEn,_that.descr
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _MatrixScorecardRowDto implements MatrixScorecardRowDto {
-  const _MatrixScorecardRowDto({@JsonKey(name: 'block_id') required this.blockId, required this.name, @JsonKey(name: 'label_fi') required this.labelFi, @JsonKey(name: 'label_en') required this.labelEn, this.description, this.score, @JsonKey(name: 'scale_min') this.scaleMin, @JsonKey(name: 'scale_max') this.scaleMax, @JsonKey(name: 'normalized_score') this.normalizedScore, @JsonKey(name: 'true_atoms') this.trueAtoms, @JsonKey(name: 'total_atoms') this.totalAtoms, @JsonKey(name: 'row_explanation') this.rowExplanation = '', @JsonKey(name: 'cited_source_id') this.citedSourceId, @JsonKey(name: 'cited_text_quote') this.citedTextQuote, @JsonKey(name: 'cited_web_citation') this.citedWebCitation, @JsonKey(name: 'evidence_type') this.evidenceType, this.coaching, this.confidence, this.falsification, @JsonKey(name: 'missing_context') this.missingContext, @JsonKey(name: 'risk_flag') this.riskFlag, @JsonKey(name: 'remediation_steps') this.remediationSteps, @JsonKey(name: 'emotional_sentiment') this.emotionalSentiment, @JsonKey(name: 'theory_link') this.theoryLink, @JsonKey(name: 'level_breakdown') final  Map<String, String>? levelBreakdown, @JsonKey(name: 'level_names') final  Map<String, String>? levelNames, @JsonKey(name: 'ui_boundary_labels') final  Map<String, String>? uiBoundaryLabels, @JsonKey(name: 'ui_plot_ratio') this.uiPlotRatio, @JsonKey(name: 'is_evaluative') this.isEvaluative = true}): _levelBreakdown = levelBreakdown,_levelNames = levelNames,_uiBoundaryLabels = uiBoundaryLabels;
+  const _MatrixScorecardRowDto({@JsonKey(name: 'block_id') required this.blockId, required this.name, @JsonKey(name: 'label_fi') required this.labelFi, @JsonKey(name: 'label_en') required this.labelEn, this.description, this.score, @JsonKey(name: 'scale_min') this.scaleMin, @JsonKey(name: 'scale_max') this.scaleMax, @JsonKey(name: 'normalized_score') this.normalizedScore, @JsonKey(name: 'true_atoms') this.trueAtoms, @JsonKey(name: 'total_atoms') this.totalAtoms, @JsonKey(name: 'row_explanation') this.rowExplanation = '', @JsonKey(name: 'cited_source_id') this.citedSourceId, @JsonKey(name: 'cited_text_quote') this.citedTextQuote, @JsonKey(name: 'cited_web_citation') this.citedWebCitation, @JsonKey(name: 'evidence_type') this.evidenceType, @JsonKey(name: 'tda_state') this.tdaState, this.coaching, this.confidence, this.falsification, @JsonKey(name: 'missing_context') this.missingContext, @JsonKey(name: 'risk_flag') this.riskFlag, @JsonKey(name: 'remediation_steps') this.remediationSteps, @JsonKey(name: 'emotional_sentiment') this.emotionalSentiment, @JsonKey(name: 'theory_link') this.theoryLink, @JsonKey(name: 'level_breakdown') final  Map<String, String>? levelBreakdown, @JsonKey(name: 'level_names') final  Map<String, String>? levelNames, @JsonKey(name: 'ui_boundary_labels') final  Map<String, String>? uiBoundaryLabels, @JsonKey(name: 'ui_plot_ratio') this.uiPlotRatio, @JsonKey(name: 'is_evaluative') this.isEvaluative = true}): _levelBreakdown = levelBreakdown,_levelNames = levelNames,_uiBoundaryLabels = uiBoundaryLabels;
   factory _MatrixScorecardRowDto.fromJson(Map<String, dynamic> json) => _$MatrixScorecardRowDtoFromJson(json);
 
 @override@JsonKey(name: 'block_id') final  String blockId;
@@ -523,6 +536,7 @@ class _MatrixScorecardRowDto implements MatrixScorecardRowDto {
 @override@JsonKey(name: 'cited_text_quote') final  String? citedTextQuote;
 @override@JsonKey(name: 'cited_web_citation') final  String? citedWebCitation;
 @override@JsonKey(name: 'evidence_type') final  EvidenceType? evidenceType;
+@override@JsonKey(name: 'tda_state') final  TDAState? tdaState;
 // Epic 6: XAI Output Extensions
 @override final  String? coaching;
 @override final  double? confidence;
@@ -577,7 +591,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'MatrixScorecardRowDto(blockId: $blockId, name: $name, labelFi: $labelFi, labelEn: $labelEn, description: $description, score: $score, scaleMin: $scaleMin, scaleMax: $scaleMax, normalizedScore: $normalizedScore, trueAtoms: $trueAtoms, totalAtoms: $totalAtoms, rowExplanation: $rowExplanation, citedSourceId: $citedSourceId, citedTextQuote: $citedTextQuote, citedWebCitation: $citedWebCitation, evidenceType: $evidenceType, coaching: $coaching, confidence: $confidence, falsification: $falsification, missingContext: $missingContext, riskFlag: $riskFlag, remediationSteps: $remediationSteps, emotionalSentiment: $emotionalSentiment, theoryLink: $theoryLink, levelBreakdown: $levelBreakdown, levelNames: $levelNames, uiBoundaryLabels: $uiBoundaryLabels, uiPlotRatio: $uiPlotRatio, isEvaluative: $isEvaluative)';
+  return 'MatrixScorecardRowDto(blockId: $blockId, name: $name, labelFi: $labelFi, labelEn: $labelEn, description: $description, score: $score, scaleMin: $scaleMin, scaleMax: $scaleMax, normalizedScore: $normalizedScore, trueAtoms: $trueAtoms, totalAtoms: $totalAtoms, rowExplanation: $rowExplanation, citedSourceId: $citedSourceId, citedTextQuote: $citedTextQuote, citedWebCitation: $citedWebCitation, evidenceType: $evidenceType, tdaState: $tdaState, coaching: $coaching, confidence: $confidence, falsification: $falsification, missingContext: $missingContext, riskFlag: $riskFlag, remediationSteps: $remediationSteps, emotionalSentiment: $emotionalSentiment, theoryLink: $theoryLink, levelBreakdown: $levelBreakdown, levelNames: $levelNames, uiBoundaryLabels: $uiBoundaryLabels, uiPlotRatio: $uiPlotRatio, isEvaluative: $isEvaluative)';
 }
 
 
@@ -588,11 +602,11 @@ abstract mixin class _$MatrixScorecardRowDtoCopyWith<$Res> implements $MatrixSco
   factory _$MatrixScorecardRowDtoCopyWith(_MatrixScorecardRowDto value, $Res Function(_MatrixScorecardRowDto) _then) = __$MatrixScorecardRowDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'block_id') String blockId, String name,@JsonKey(name: 'label_fi') String labelFi,@JsonKey(name: 'label_en') String labelEn, String? description, double? score,@JsonKey(name: 'scale_min') double? scaleMin,@JsonKey(name: 'scale_max') double? scaleMax,@JsonKey(name: 'normalized_score') double? normalizedScore,@JsonKey(name: 'true_atoms') int? trueAtoms,@JsonKey(name: 'total_atoms') int? totalAtoms,@JsonKey(name: 'row_explanation') String rowExplanation,@JsonKey(name: 'cited_source_id') String? citedSourceId,@JsonKey(name: 'cited_text_quote') String? citedTextQuote,@JsonKey(name: 'cited_web_citation') String? citedWebCitation,@JsonKey(name: 'evidence_type') EvidenceType? evidenceType, String? coaching, double? confidence, String? falsification,@JsonKey(name: 'missing_context') String? missingContext,@JsonKey(name: 'risk_flag') bool? riskFlag,@JsonKey(name: 'remediation_steps') String? remediationSteps,@JsonKey(name: 'emotional_sentiment') String? emotionalSentiment,@JsonKey(name: 'theory_link') String? theoryLink,@JsonKey(name: 'level_breakdown') Map<String, String>? levelBreakdown,@JsonKey(name: 'level_names') Map<String, String>? levelNames,@JsonKey(name: 'ui_boundary_labels') Map<String, String>? uiBoundaryLabels,@JsonKey(name: 'ui_plot_ratio') double? uiPlotRatio,@JsonKey(name: 'is_evaluative') bool isEvaluative
+@JsonKey(name: 'block_id') String blockId, String name,@JsonKey(name: 'label_fi') String labelFi,@JsonKey(name: 'label_en') String labelEn, String? description, double? score,@JsonKey(name: 'scale_min') double? scaleMin,@JsonKey(name: 'scale_max') double? scaleMax,@JsonKey(name: 'normalized_score') double? normalizedScore,@JsonKey(name: 'true_atoms') int? trueAtoms,@JsonKey(name: 'total_atoms') int? totalAtoms,@JsonKey(name: 'row_explanation') String rowExplanation,@JsonKey(name: 'cited_source_id') String? citedSourceId,@JsonKey(name: 'cited_text_quote') String? citedTextQuote,@JsonKey(name: 'cited_web_citation') String? citedWebCitation,@JsonKey(name: 'evidence_type') EvidenceType? evidenceType,@JsonKey(name: 'tda_state') TDAState? tdaState, String? coaching, double? confidence, String? falsification,@JsonKey(name: 'missing_context') String? missingContext,@JsonKey(name: 'risk_flag') bool? riskFlag,@JsonKey(name: 'remediation_steps') String? remediationSteps,@JsonKey(name: 'emotional_sentiment') String? emotionalSentiment,@JsonKey(name: 'theory_link') String? theoryLink,@JsonKey(name: 'level_breakdown') Map<String, String>? levelBreakdown,@JsonKey(name: 'level_names') Map<String, String>? levelNames,@JsonKey(name: 'ui_boundary_labels') Map<String, String>? uiBoundaryLabels,@JsonKey(name: 'ui_plot_ratio') double? uiPlotRatio,@JsonKey(name: 'is_evaluative') bool isEvaluative
 });
 
 
-
+@override $TDAStateCopyWith<$Res>? get tdaState;
 
 }
 /// @nodoc
@@ -605,7 +619,7 @@ class __$MatrixScorecardRowDtoCopyWithImpl<$Res>
 
 /// Create a copy of MatrixScorecardRowDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? blockId = null,Object? name = null,Object? labelFi = null,Object? labelEn = null,Object? description = freezed,Object? score = freezed,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? normalizedScore = freezed,Object? trueAtoms = freezed,Object? totalAtoms = freezed,Object? rowExplanation = null,Object? citedSourceId = freezed,Object? citedTextQuote = freezed,Object? citedWebCitation = freezed,Object? evidenceType = freezed,Object? coaching = freezed,Object? confidence = freezed,Object? falsification = freezed,Object? missingContext = freezed,Object? riskFlag = freezed,Object? remediationSteps = freezed,Object? emotionalSentiment = freezed,Object? theoryLink = freezed,Object? levelBreakdown = freezed,Object? levelNames = freezed,Object? uiBoundaryLabels = freezed,Object? uiPlotRatio = freezed,Object? isEvaluative = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? blockId = null,Object? name = null,Object? labelFi = null,Object? labelEn = null,Object? description = freezed,Object? score = freezed,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? normalizedScore = freezed,Object? trueAtoms = freezed,Object? totalAtoms = freezed,Object? rowExplanation = null,Object? citedSourceId = freezed,Object? citedTextQuote = freezed,Object? citedWebCitation = freezed,Object? evidenceType = freezed,Object? tdaState = freezed,Object? coaching = freezed,Object? confidence = freezed,Object? falsification = freezed,Object? missingContext = freezed,Object? riskFlag = freezed,Object? remediationSteps = freezed,Object? emotionalSentiment = freezed,Object? theoryLink = freezed,Object? levelBreakdown = freezed,Object? levelNames = freezed,Object? uiBoundaryLabels = freezed,Object? uiPlotRatio = freezed,Object? isEvaluative = null,}) {
   return _then(_MatrixScorecardRowDto(
 blockId: null == blockId ? _self.blockId : blockId // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -623,7 +637,8 @@ as String,citedSourceId: freezed == citedSourceId ? _self.citedSourceId : citedS
 as String?,citedTextQuote: freezed == citedTextQuote ? _self.citedTextQuote : citedTextQuote // ignore: cast_nullable_to_non_nullable
 as String?,citedWebCitation: freezed == citedWebCitation ? _self.citedWebCitation : citedWebCitation // ignore: cast_nullable_to_non_nullable
 as String?,evidenceType: freezed == evidenceType ? _self.evidenceType : evidenceType // ignore: cast_nullable_to_non_nullable
-as EvidenceType?,coaching: freezed == coaching ? _self.coaching : coaching // ignore: cast_nullable_to_non_nullable
+as EvidenceType?,tdaState: freezed == tdaState ? _self.tdaState : tdaState // ignore: cast_nullable_to_non_nullable
+as TDAState?,coaching: freezed == coaching ? _self.coaching : coaching // ignore: cast_nullable_to_non_nullable
 as String?,confidence: freezed == confidence ? _self.confidence : confidence // ignore: cast_nullable_to_non_nullable
 as double?,falsification: freezed == falsification ? _self.falsification : falsification // ignore: cast_nullable_to_non_nullable
 as String?,missingContext: freezed == missingContext ? _self.missingContext : missingContext // ignore: cast_nullable_to_non_nullable
@@ -640,7 +655,19 @@ as bool,
   ));
 }
 
+/// Create a copy of MatrixScorecardRowDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TDAStateCopyWith<$Res>? get tdaState {
+    if (_self.tdaState == null) {
+    return null;
+  }
 
+  return $TDAStateCopyWith<$Res>(_self.tdaState!, (value) {
+    return _then(_self.copyWith(tdaState: value));
+  });
+}
 }
 
 // dart format on

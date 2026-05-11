@@ -9,9 +9,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
-import litellm
 from dotenv import load_dotenv
-from litellm import Router  # type: ignore[attr-defined] # LiteLLM ei eksplisiittisesti exporttaa Routeria
 from pydantic import BaseModel
 from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_combine, wait_fixed, wait_random
 
@@ -52,6 +50,7 @@ def _sync_diagnostic_dump(dump_file: str, model_name: str, payload_str: str) -> 
 
 def _is_transient_llm_error(e: BaseException) -> bool:
     """Check if the LiteLLM/asyncio exception is a transient rate limit or timeout."""
+    import litellm
     return (
         isinstance(e, asyncio.TimeoutError)
         or (hasattr(e, "status_code") and e.status_code in (429, 502, 503, 504))
@@ -138,6 +137,9 @@ class LiteLLMProvider(LLMProvider):
         self.organization_id = organization_id or "UNKNOWN_ORG"
         self.supports_grounding = supports_grounding
 
+        import litellm
+        from litellm import Router
+
         # litellm general config
         litellm.drop_params = True
         litellm.num_retries = 0  # CRITICAL: Disable internal retries so Tenacity is in control
@@ -213,6 +215,8 @@ class LiteLLMProvider(LLMProvider):
 
         Returns unified LLMResponse with content and reasoning state.
         """
+        import litellm
+
         final_messages: list[dict[str, Any]] = []
         if messages:
             final_messages.extend(messages)

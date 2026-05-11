@@ -191,7 +191,7 @@ def calculate_soft_waterfall_score(
     sorted_levels = sorted(level_stats.keys())
     for level in sorted_levels:
         stats = level_stats[level]
-        total = stats.get("total", 0)
+        total = stats.get("total", 0) - stats.get("dlqs", 0)
         hits = stats.get("hits", 0)
 
         hit_rate = (hits / total) if total > 0 else 0.0
@@ -248,7 +248,7 @@ def calculate_linear_ratio_score(
     max_weights = 0.0
 
     for level, stats in level_stats.items():
-        total = stats.get("total", 0)
+        total = stats.get("total", 0) - stats.get("dlqs", 0)
         hits = stats.get("hits", 0)
 
         # Painotettu matematiikka
@@ -292,7 +292,7 @@ def calculate_sigmoid_weighted_score(
     max_weights = 0.0
 
     for level, stats in level_stats.items():
-        total = stats.get("total", 0)
+        total = stats.get("total", 0) - stats.get("dlqs", 0)
         hits = stats.get("hits", 0)
 
         achieved_weights += hits * level
@@ -364,7 +364,7 @@ def calculate_progressive_dampening_score(
 
     for level in sorted_levels:
         stats = level_stats[level]
-        total = stats.get("total", 0)
+        total = stats.get("total", 0) - stats.get("dlqs", 0)
         hits = stats.get("hits", 0)
 
         hit_rate = (hits / total) if total > 0 else 0.0

@@ -265,9 +265,267 @@ as String,
 
 
 /// @nodoc
+mixin _$TDAAssertion {
+
+@JsonKey(name: 'tda_id') String get tdaId;@JsonKey(name: 'ai_rule_description') String get aiRuleDescription;@JsonKey(name: 'inverse_evidence') bool get inverseEvidence;@JsonKey(name: 'aggregation_mode') AggregationMode get aggregationMode;
+/// Create a copy of TDAAssertion
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TDAAssertionCopyWith<TDAAssertion> get copyWith => _$TDAAssertionCopyWithImpl<TDAAssertion>(this as TDAAssertion, _$identity);
+
+  /// Serializes this TDAAssertion to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+
+
+@override
+String toString() {
+  return 'TDAAssertion(tdaId: $tdaId, aiRuleDescription: $aiRuleDescription, inverseEvidence: $inverseEvidence, aggregationMode: $aggregationMode)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $TDAAssertionCopyWith<$Res>  {
+  factory $TDAAssertionCopyWith(TDAAssertion value, $Res Function(TDAAssertion) _then) = _$TDAAssertionCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'ai_rule_description') String aiRuleDescription,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode
+});
+
+
+
+
+}
+/// @nodoc
+class _$TDAAssertionCopyWithImpl<$Res>
+    implements $TDAAssertionCopyWith<$Res> {
+  _$TDAAssertionCopyWithImpl(this._self, this._then);
+
+  final TDAAssertion _self;
+  final $Res Function(TDAAssertion) _then;
+
+/// Create a copy of TDAAssertion
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? tdaId = null,Object? aiRuleDescription = null,Object? inverseEvidence = null,Object? aggregationMode = null,}) {
+  return _then(_self.copyWith(
+tdaId: null == tdaId ? _self.tdaId : tdaId // ignore: cast_nullable_to_non_nullable
+as String,aiRuleDescription: null == aiRuleDescription ? _self.aiRuleDescription : aiRuleDescription // ignore: cast_nullable_to_non_nullable
+as String,inverseEvidence: null == inverseEvidence ? _self.inverseEvidence : inverseEvidence // ignore: cast_nullable_to_non_nullable
+as bool,aggregationMode: null == aggregationMode ? _self.aggregationMode : aggregationMode // ignore: cast_nullable_to_non_nullable
+as AggregationMode,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [TDAAssertion].
+extension TDAAssertionPatterns on TDAAssertion {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TDAAssertion value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _TDAAssertion() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TDAAssertion value)  $default,){
+final _that = this;
+switch (_that) {
+case _TDAAssertion():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TDAAssertion value)?  $default,){
+final _that = this;
+switch (_that) {
+case _TDAAssertion() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'ai_rule_description')  String aiRuleDescription, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _TDAAssertion() when $default != null:
+return $default(_that.tdaId,_that.aiRuleDescription,_that.inverseEvidence,_that.aggregationMode);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'ai_rule_description')  String aiRuleDescription, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode)  $default,) {final _that = this;
+switch (_that) {
+case _TDAAssertion():
+return $default(_that.tdaId,_that.aiRuleDescription,_that.inverseEvidence,_that.aggregationMode);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'ai_rule_description')  String aiRuleDescription, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode)?  $default,) {final _that = this;
+switch (_that) {
+case _TDAAssertion() when $default != null:
+return $default(_that.tdaId,_that.aiRuleDescription,_that.inverseEvidence,_that.aggregationMode);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class _TDAAssertion extends TDAAssertion {
+  const _TDAAssertion({@JsonKey(name: 'tda_id') required this.tdaId, @JsonKey(name: 'ai_rule_description') required this.aiRuleDescription, @JsonKey(name: 'inverse_evidence') required this.inverseEvidence, @JsonKey(name: 'aggregation_mode') required this.aggregationMode}): super._();
+  factory _TDAAssertion.fromJson(Map<String, dynamic> json) => _$TDAAssertionFromJson(json);
+
+@override@JsonKey(name: 'tda_id') final  String tdaId;
+@override@JsonKey(name: 'ai_rule_description') final  String aiRuleDescription;
+@override@JsonKey(name: 'inverse_evidence') final  bool inverseEvidence;
+@override@JsonKey(name: 'aggregation_mode') final  AggregationMode aggregationMode;
+
+/// Create a copy of TDAAssertion
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$TDAAssertionCopyWith<_TDAAssertion> get copyWith => __$TDAAssertionCopyWithImpl<_TDAAssertion>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$TDAAssertionToJson(this, );
+}
+
+
+
+@override
+String toString() {
+  return 'TDAAssertion(tdaId: $tdaId, aiRuleDescription: $aiRuleDescription, inverseEvidence: $inverseEvidence, aggregationMode: $aggregationMode)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$TDAAssertionCopyWith<$Res> implements $TDAAssertionCopyWith<$Res> {
+  factory _$TDAAssertionCopyWith(_TDAAssertion value, $Res Function(_TDAAssertion) _then) = __$TDAAssertionCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'ai_rule_description') String aiRuleDescription,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode
+});
+
+
+
+
+}
+/// @nodoc
+class __$TDAAssertionCopyWithImpl<$Res>
+    implements _$TDAAssertionCopyWith<$Res> {
+  __$TDAAssertionCopyWithImpl(this._self, this._then);
+
+  final _TDAAssertion _self;
+  final $Res Function(_TDAAssertion) _then;
+
+/// Create a copy of TDAAssertion
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? tdaId = null,Object? aiRuleDescription = null,Object? inverseEvidence = null,Object? aggregationMode = null,}) {
+  return _then(_TDAAssertion(
+tdaId: null == tdaId ? _self.tdaId : tdaId // ignore: cast_nullable_to_non_nullable
+as String,aiRuleDescription: null == aiRuleDescription ? _self.aiRuleDescription : aiRuleDescription // ignore: cast_nullable_to_non_nullable
+as String,inverseEvidence: null == inverseEvidence ? _self.inverseEvidence : inverseEvidence // ignore: cast_nullable_to_non_nullable
+as bool,aggregationMode: null == aggregationMode ? _self.aggregationMode : aggregationMode // ignore: cast_nullable_to_non_nullable
+as AggregationMode,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$MatrixClaim {
 
- I18nText get label; String get aiDescription; List<String>? get microAtoms;
+ I18nText get label; String get aiDescription;@JsonKey(name: 'tda_assertions') List<TDAAssertion> get tdaAssertions;
 /// Create a copy of MatrixClaim
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -282,7 +540,7 @@ $MatrixClaimCopyWith<MatrixClaim> get copyWith => _$MatrixClaimCopyWithImpl<Matr
 
 @override
 String toString() {
-  return 'MatrixClaim(label: $label, aiDescription: $aiDescription, microAtoms: $microAtoms)';
+  return 'MatrixClaim(label: $label, aiDescription: $aiDescription, tdaAssertions: $tdaAssertions)';
 }
 
 
@@ -293,7 +551,7 @@ abstract mixin class $MatrixClaimCopyWith<$Res>  {
   factory $MatrixClaimCopyWith(MatrixClaim value, $Res Function(MatrixClaim) _then) = _$MatrixClaimCopyWithImpl;
 @useResult
 $Res call({
- I18nText label, String aiDescription, List<String>? microAtoms
+ I18nText label, String aiDescription,@JsonKey(name: 'tda_assertions') List<TDAAssertion> tdaAssertions
 });
 
 
@@ -310,12 +568,12 @@ class _$MatrixClaimCopyWithImpl<$Res>
 
 /// Create a copy of MatrixClaim
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? label = null,Object? aiDescription = null,Object? microAtoms = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? label = null,Object? aiDescription = null,Object? tdaAssertions = null,}) {
   return _then(_self.copyWith(
 label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as I18nText,aiDescription: null == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
-as String,microAtoms: freezed == microAtoms ? _self.microAtoms : microAtoms // ignore: cast_nullable_to_non_nullable
-as List<String>?,
+as String,tdaAssertions: null == tdaAssertions ? _self.tdaAssertions : tdaAssertions // ignore: cast_nullable_to_non_nullable
+as List<TDAAssertion>,
   ));
 }
 /// Create a copy of MatrixClaim
@@ -409,10 +667,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText label,  String aiDescription,  List<String>? microAtoms)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText label,  String aiDescription, @JsonKey(name: 'tda_assertions')  List<TDAAssertion> tdaAssertions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MatrixClaim() when $default != null:
-return $default(_that.label,_that.aiDescription,_that.microAtoms);case _:
+return $default(_that.label,_that.aiDescription,_that.tdaAssertions);case _:
   return orElse();
 
 }
@@ -430,10 +688,10 @@ return $default(_that.label,_that.aiDescription,_that.microAtoms);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText label,  String aiDescription,  List<String>? microAtoms)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText label,  String aiDescription, @JsonKey(name: 'tda_assertions')  List<TDAAssertion> tdaAssertions)  $default,) {final _that = this;
 switch (_that) {
 case _MatrixClaim():
-return $default(_that.label,_that.aiDescription,_that.microAtoms);case _:
+return $default(_that.label,_that.aiDescription,_that.tdaAssertions);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -450,10 +708,10 @@ return $default(_that.label,_that.aiDescription,_that.microAtoms);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText label,  String aiDescription,  List<String>? microAtoms)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText label,  String aiDescription, @JsonKey(name: 'tda_assertions')  List<TDAAssertion> tdaAssertions)?  $default,) {final _that = this;
 switch (_that) {
 case _MatrixClaim() when $default != null:
-return $default(_that.label,_that.aiDescription,_that.microAtoms);case _:
+return $default(_that.label,_that.aiDescription,_that.tdaAssertions);case _:
   return null;
 
 }
@@ -465,18 +723,16 @@ return $default(_that.label,_that.aiDescription,_that.microAtoms);case _:
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _MatrixClaim extends MatrixClaim {
-  const _MatrixClaim({required this.label, required this.aiDescription, final  List<String>? microAtoms}): _microAtoms = microAtoms,super._();
+  const _MatrixClaim({required this.label, required this.aiDescription, @JsonKey(name: 'tda_assertions') final  List<TDAAssertion> tdaAssertions = const []}): _tdaAssertions = tdaAssertions,super._();
   factory _MatrixClaim.fromJson(Map<String, dynamic> json) => _$MatrixClaimFromJson(json);
 
 @override final  I18nText label;
 @override final  String aiDescription;
- final  List<String>? _microAtoms;
-@override List<String>? get microAtoms {
-  final value = _microAtoms;
-  if (value == null) return null;
-  if (_microAtoms is EqualUnmodifiableListView) return _microAtoms;
+ final  List<TDAAssertion> _tdaAssertions;
+@override@JsonKey(name: 'tda_assertions') List<TDAAssertion> get tdaAssertions {
+  if (_tdaAssertions is EqualUnmodifiableListView) return _tdaAssertions;
   // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(value);
+  return EqualUnmodifiableListView(_tdaAssertions);
 }
 
 
@@ -495,7 +751,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'MatrixClaim(label: $label, aiDescription: $aiDescription, microAtoms: $microAtoms)';
+  return 'MatrixClaim(label: $label, aiDescription: $aiDescription, tdaAssertions: $tdaAssertions)';
 }
 
 
@@ -506,7 +762,7 @@ abstract mixin class _$MatrixClaimCopyWith<$Res> implements $MatrixClaimCopyWith
   factory _$MatrixClaimCopyWith(_MatrixClaim value, $Res Function(_MatrixClaim) _then) = __$MatrixClaimCopyWithImpl;
 @override @useResult
 $Res call({
- I18nText label, String aiDescription, List<String>? microAtoms
+ I18nText label, String aiDescription,@JsonKey(name: 'tda_assertions') List<TDAAssertion> tdaAssertions
 });
 
 
@@ -523,12 +779,12 @@ class __$MatrixClaimCopyWithImpl<$Res>
 
 /// Create a copy of MatrixClaim
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? label = null,Object? aiDescription = null,Object? microAtoms = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? label = null,Object? aiDescription = null,Object? tdaAssertions = null,}) {
   return _then(_MatrixClaim(
 label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as I18nText,aiDescription: null == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
-as String,microAtoms: freezed == microAtoms ? _self._microAtoms : microAtoms // ignore: cast_nullable_to_non_nullable
-as List<String>?,
+as String,tdaAssertions: null == tdaAssertions ? _self._tdaAssertions : tdaAssertions // ignore: cast_nullable_to_non_nullable
+as List<TDAAssertion>,
   ));
 }
 

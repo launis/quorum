@@ -421,40 +421,25 @@ class PromptCompiler:
             class AtomResponse(BaseModel):
                 model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
                 atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")
-                step_1_evidence_type: EvidenceType = Field(
-                    ..., description="CRITICAL: You MUST choose your strategy first."
+                rule_satisfied: bool = Field(..., description="Is the rule fully satisfied? (True/False)")
+                evidence_found: bool = Field(..., description="Did you find explicit evidence for this? (True/False)")
+                exact_quote: str = Field(
+                    ..., description="The exact quote if evidence was found, otherwise empty string."
                 )
-                step_2_quote: str | None = Field(
-                    default=None,
-                    description="Required if evidence_type is EXPLICIT_QUOTE. The exact verbatim quote.",
-                )
-                step_3_implicit_justification: str | None = Field(
-                    default=None,
-                    description=(
-                        "Required ONLY if evidence_type is IMPLIED_INTENT. "
-                        "Provide an exhaustive 20+ word justification to prove the implied intent."
-                    ),
-                )
-                step_4_reasoning: str = Field(..., description="Final cognitive friction and evaluation reasoning.")
-                step_5_boolean: bool = Field(..., description="The final True/False decision.")
+                pre_quote_anchor: str = Field(..., description="5 words before the exact quote, or empty.")
+                post_quote_anchor: str = Field(..., description="5 words after the exact quote, or empty.")
+                reasoning_trace: str = Field(..., description="Your reasoning trace.")
 
                 @model_validator(mode="after")
                 def validate_evidence(self, info: ValidationInfo) -> Any:
-                    if self.step_1_evidence_type == EvidenceType.EXPLICIT_QUOTE:
-                        if not self.step_2_quote or not self.step_2_quote.strip():
-                            raise ValueError("ANTI-LAZINESS MANDATE: Quote required for EXPLICIT_QUOTE")
-                    elif self.step_1_evidence_type == EvidenceType.IMPLIED_INTENT:
-                        just_str = self.step_3_implicit_justification
-                        if not just_str or len(just_str.split()) < 20:
+                    if self.evidence_found:
+                        if not self.exact_quote or not self.exact_quote.strip():
+                            raise ValueError("ANTI-LAZINESS MANDATE: Quote required if evidence_found is True")
+                    else:
+                        if self.exact_quote != "":
                             raise ValueError(
-                                "ANTI-LAZINESS MANDATE: Justification too short for IMPLIED_INTENT (min 20 words)"
+                                "SYSTEM MANDATE: exact_quote MUST be exactly empty string if evidence_found is False"
                             )
-                        if info.context is None or "strictness_level" not in info.context:
-                            raise ValueError(
-                                "SYSTEM ARCHITECTURE MANDATE: Missing 'strictness_level' in validation context"
-                            )
-                        if info.context["strictness_level"] >= 70:
-                            raise ValueError("Strictness >= 70 ei salli implisiittistä logiikkaa")
                     return self
 
             fields["evaluations"] = (list[AtomResponse], Field(..., description="Array of blinded evaluations."))
@@ -678,9 +663,19 @@ class PromptCompiler:
 
                     claims_texts = []
                     for c in s.claims:
-                        substance = (c.ai_description or "").strip()
-                        if substance:
-                            claims_texts.append(f"{substance}{mandate_str}")
+                        for assertion in c.tda_assertions:
+                            substance = (assertion.ai_rule_description or "").strip()
+                            if substance:
+                                rule_text = substance
+                                if assertion.inverse_evidence:
+                                    rule_text += (
+                                        " This is an inverse rule (Vice). If rule_satisfied = True "
+                                        "(no issues found), evidence_found MUST be False and you must "
+                                        'return an empty string "" for exact_quote. If rule_satisfied = False '
+                                        "(violation found), evidence_found MUST be True and you MUST quote "
+                                        "the exact violation."
+                                    )
+                                claims_texts.append(f"{rule_text} {mandate_str}")
 
                     claims = " ".join(claims_texts)
                     xml_blocks.append(f'      <SCALE value="{s_val}" label="{s_lbl}">')

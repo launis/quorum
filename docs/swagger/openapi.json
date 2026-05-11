@@ -4304,27 +4304,22 @@
             "title": "Ai Description",
             "description": "Specific AI enforcement rule for this claim."
           },
-          "micro_atoms": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Micro Atoms",
-            "description": "Scaffolded atoms generated from the claim during design time for deeper evaluation."
+          "tda_assertions": {
+            "items": {
+              "$ref": "#/components/schemas/TDAAssertion"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Tda Assertions",
+            "description": "Test-Driven Assertion rules explicitly set by experts."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
           "label",
-          "ai_description"
+          "ai_description",
+          "tda_assertions"
         ],
         "title": "MatrixClaim",
         "description": "Represents a single behavioral claim with an AI evaluation directive."
@@ -6511,6 +6506,44 @@
         ],
         "title": "SystemConfigModelRegistry",
         "description": "V2 Flattened Model Registry System Config."
+      },
+      "TDAAssertion": {
+        "properties": {
+          "tda_id": {
+            "type": "string",
+            "title": "Tda Id",
+            "description": "Opaque Stripe ID for this assertion."
+          },
+          "ai_rule_description": {
+            "type": "string",
+            "title": "Ai Rule Description",
+            "description": "Strict enforcement rule."
+          },
+          "inverse_evidence": {
+            "type": "boolean",
+            "title": "Inverse Evidence",
+            "description": "If True, acts as a poison/penalty detector."
+          },
+          "aggregation_mode": {
+            "type": "string",
+            "enum": [
+              "EXISTS",
+              "ALL_MUST_COMPLY"
+            ],
+            "title": "Aggregation Mode",
+            "description": "Aggregation constraint."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "tda_id",
+          "ai_rule_description",
+          "inverse_evidence",
+          "aggregation_mode"
+        ],
+        "title": "TDAAssertion",
+        "description": "Deterministic rule evaluated by the backend."
       },
       "TheoryGrounding": {
         "properties": {

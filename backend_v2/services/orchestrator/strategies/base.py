@@ -55,6 +55,7 @@ class NodeStrategy(ABC):
         audit_repo: IAuditRepository,
         system_repo: ISystemRepository,
         prompt_compiler: Any,
+        arq_pool: Any | None = None,
     ):
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
@@ -65,6 +66,7 @@ class NodeStrategy(ABC):
         # Compiler is intentionally Any right now to avoid circular dependencies with heavy modules.
         # It's injected from the DAGExecutor.
         self.compiler = prompt_compiler
+        self.arq_pool = arq_pool
 
     @abstractmethod
     async def execute(

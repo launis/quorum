@@ -48,7 +48,7 @@
         <directory path="seed/">
             <description>Zero-Deploy initialization architecture (The Seed Vault). Features `backups` and `scripts`.</description>
             <file_rules>
-                <file path="seed_data.json">Global mathematical logic templates and base definitions.</file>
+                <file path="seed_data.json">The absolute SSOT for System Configs, PromptBlocks, and deterministic TDAAssertions. Ei sisällä enää LLM-atomisaatiota tai legacy-rakenteita (micro_atoms).</file>
                 <file path="run_seed.py">Ensures database integration parities and bootstrap (Hard Reset).</file>
                 <file path="wipe_user_data.py">The 'Soft Reset' mechanism clearing dynamic executions and workflows while preserving seeded configs.</file>
                 <file path="harvest_output_profile.py">Surgical Extraction / Inverse Merge script to safely pull UI-created output profiles back into seed_data.json.</file>
@@ -57,13 +57,21 @@
         <directory path="services/">
             <description>Complex business orchestration processing logic routines. Subdivided into drivers, mcp, and orchestrator.</description>
             <file_rules>
-                <file path="llm_task_executor.py">Central orchestration point enforcing Fail-Fast structured execution for cognitive workflows. Sisältää dynaamisen Pydantic-kontekstivalidoinnin (Validation Context).</file>
+                <file path="llm_task_executor.py">Central orchestration point enforcing Fail-Fast structured execution for cognitive workflows. Sisältää dynaamisen Pydantic-kontekstivalidoinnin (Validation Context) sekä Prompt Topology ja Tail-End Injection -logiikan Prefix Cachingin eheyden säilyttämiseksi retry-luupeissa.</file>
+                <file path="orchestrator/anchor_validation_service.py">TDD-testattava palvelu deterministiseen O(N) RapidFuzz -ankkurointiin ja Semantic Fallback (NLI) -kaskadiin LLMTaskExecutorin tukena.</file>
+                <file path="orchestrator/matrix_reducer.py">Suorittaa Three-State Logic (PASSED, FAILED, DLQ) synkronisen reduktion Map-Reduce asynkronisista kimpaleista (chunks) TDA-sääntöjen aggregaatiomoodien (EXISTS vs ALL_MUST_COMPLY) mukaisesti.</file>
                 <file path="mcp/">Model Context Protocol loop execution directory for tool-based LLM routing.</file>
             </file_rules>
         </directory>
         <directory path="scripts/">Backendin sisäiset aputyökalut, kuten OpenAPI-skeemojen automaattinen generointi.</directory>
         <directory path="templates/">Jinja2/HTML pohjat dynaamiselle PDF- ja tulostusraporttigeneroinnille (PDF Service).</directory>
-        <directory path="tests/">Automaattisen laatuportin (Pytest) yksikkö- ja integraatiotestit.</directory>
+        <directory path="tests/">
+            <description>Automaattisen laatuportin (Pytest) yksikkö- ja integraatiotestit.</description>
+            <file_rules>
+                <file path="integration/">Integraatiotestit, jotka varmistavat komponenttien välisen datavirran ja logiikkainjektiot (esim. test_prompt_compiler.py).</file>
+                <file path="unit/">Rakenteellisesti peilaavat yksikkötestit. Yksikkötestien tiedostopolkujen ON PAKKO vastata tismalleen lähdekoodin arkkitehtuuripolkuja (esim. services/orchestrator/test_prompt_compiler.py), tai Universal Quality Gate hylkää suorituksen.</file>
+            </file_rules>
+        </directory>
         <directory path="utils/">
             <description>Uudelleenkäytettävät apufunktiot, matemaattinen ydin ja graafiset piirtotyökalut.</description>
             <file_rules>
@@ -72,7 +80,7 @@
             </file_rules>
         </directory>
         <file path="main.py">FastAPI framework server execution point instantiating web boundaries and hook registries.</file>
-        <file path="worker.py">ARQ Worker loop driving automated DAG task resolutions concurrently. Vastaa myös Virtuaalisten Järjestelmäaskeleiden (Virtual System Steps, esim. sys_render_) suorittamisesta matemaattisen pisteytyksen irrottamiseksi alkuperäisestä työnkulusta (Decoupled Scoring).</file>
+        <file path="worker.py">ARQ Worker loop driving automated DAG task resolutions concurrently. Vastaa Virtuaalisten Järjestelmäaskeleiden (esim. sys_render_) suorittamisesta (Decoupled Scoring) sekä 'evaluate_chunk_job' -operaatioista osana skaalautuvaa Map-Reduce arkkitehtuuria.</file>
     </layer>
 
     <layer id="frontend" path="client_app_v2/">
@@ -114,15 +122,17 @@
         <directory path="docs/architecture/">
             <description>Puhtaasti arkkitehtuurin kuvaus- ja dokumentaatiokansio.</description>
             <file_rules>
-                <file path="01_backend_api_and_core.md">API-kerros ja Asynkroninen tapahtumahallinta (Arq).</file>
+                <file path="01_engine_architecture.md">Pääarkkitehtuuri ja järjestelmän ydin.</file>
                 <file path="02_domain_models.md">Pydantic Domain-mallit ja Opaque ID säännöt.</file>
-                <file path="03_business_services_and_dag.md">Liiketoimintalogiikka ja DAG-orkestraattori.</file>
-                <file path="04_hooks_and_llm.md">Dynaamiset kognition muuttajat (Hooks) ja LLM-infrastruktuuri.</file>
-                <file path="05_data_persistence_and_seeding.md">Tietokanta, Repositoriot ja Nollakonfiguraatio-seedaus.</file>
-                <file path="06_desktop_first_flutter_client.md">Flutter Client V2 (Desktop-First, SDUI, Riverpod).</file>
-                <file path="07_infrastructure_and_observability.md">Infrastruktuuri, Docker, ja Observabiliteetti (Logfire).</file>
-                <file path="08_dynamic_rendering_engine.md">Raportoinnin Renderöintimoottori (Jinja2, WeasyPrint).</file>
-                <file path="09_evaluation_and_scoring.md">Kognitiivinen Arviointi, BARS ja Pisteidenlaskenta.</file>
+                <file path="03_api_and_async_core.md">API-kerros ja Asynkroninen tapahtumahallinta (Arq).</file>
+                <file path="04_workflow_and_dag.md">Työnkulkujen orkestrointi ja DAG-rakenteet.</file>
+                <file path="05_llm_and_hooks.md">Dynaamiset kognition muuttajat (Hooks) ja LLM-infrastruktuuri.</file>
+                <file path="06_evaluation_and_scoring.md">Kognitiivinen Arviointi, BARS, Deterministinen TDA-Seeding ja Pisteidenlaskenta.</file>
+                <file path="07_desktop_first_flutter.md">Flutter Client V2 (Desktop-First, SDUI, Riverpod).</file>
+                <file path="08_dynamic_rendering_sdui.md">Raportoinnin Renderöintimoottori ja SDUI-näkymät.</file>
+                <file path="09_data_persistence.md">Tietokanta, Repositoriot ja Nollakonfiguraatio-seedaus.</file>
+                <file path="10_infrastructure_and_logs.md">Infrastruktuuri, Docker, ja Observabiliteetti (Logfire).</file>
+                <file path="11_empirical_scoring_report.md">Empiirinen laskentaraportti ja tulokset.</file>
             </file_rules>
         </directory>
         <directory path="docs/epic/">"Tehtävälista / Backlog". Täällä on puhtaasti toimintaohjeita siitä, mitä asioita pitää koodissa korjata tai rakentaa seuraavaksi. Kun Epic on koodattu, se on ikään kuin "tehty".</directory>
