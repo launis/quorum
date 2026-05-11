@@ -6,14 +6,48 @@ Tämän Epicin tavoitteena on suorittaa **"Kognitiivinen Siivous" (Cognitive Cle
 Tässä Epicissä käymme järjestelmällisesti läpi koko `seed_data.json` -tiedoston (solu kerrallaan) käyttäen tekoälyn "Generator-Critic-Refiner" -loopia. Jokainen arviointikriteeri muutetaan huipputarkkaan XML-hybridimuotoon ja jaetaan 2-5 mikrotason matemaattisesti todennettavaan EHDOTTOMAAN TDA-väitteeseen.
 
 ## 2. Arkkitehtuuriset Mandaatit (The Rules of Engagement)
-Kaikki uudet säännöt (`ai_description` ja `ai_rule_description`) on luotava näiden viiden EHDOTTOMAN säännön puitteissa:
 
-1. **Akateeminen ankkurointi (Ei AI-hallusinaatiota)**: Kriteerit perustuvat vahvasti tieteellisiin ja loogisiin teorioihin (esim. Kahnemanin System 1 / System 2, kognitiiviset vinoumat).
-2. **Tiivis "Hybrid Prompting" (Anti-Token Bloat)**: Ylätason `ai_description` on aina formatoitava XML-tageilla (esim. `<system_directive><persona>...</persona></system_directive>`). Koska nämä injektoidaan usein Claim-tasolla, niiden on oltava äärimmäisen lyhyitä ja tiiviitä (max 1-2 lausetta), jotta vältetään LLM:n huomiokyvyn hukkuminen ja turhat API-kulut.
-3. **Native English Mandate**: Jotta tekoälyn looginen päättelykyky ei romahda (Intelligence Dropping), kaikki säännöt ja promptit on kirjoitettava **100% englanniksi**. Suomenkieliset selitteet (translations) pidetään erillään UI-tarpeita varten.
-4. **Mikro-TDA Fokus**: Säännön (`ai_rule_description`) on oltava yksi, yksiselitteinen väite, johon LLM voi vastata "Kyllä/Ei" ja osoittaa sen todeksi yhdellä tekstilainauksella (`exact_quote`). Sääntö ei saa sisältää liikaa "tai"-ehtoja, jotka hämärtävät arviointia.
-5. **Käänteinen logiikka ja Negatiivisen lainauksen ongelma (`inverse_evidence`)**: Kun etsitään vikoja, säännössä on asetettava `"inverse_evidence": true`. **Kriittinen sääntö:** Koska tekoäly ei voi lainata (`exact_quote`) asiaa jota ei ole olemassa (esim. puuttuvaa dataa), käänteinen sääntö on kirjoitettava niin, että virhe materialisoituu. Esim: *"Kirjoittaja esittää vahvan väitteen, mutta ei tarjoa sille dataa"*. Tällöin tekoäly poimii lainaukseksi itse perusteettoman väitteen!
-6. **Foundation vs Ceiling -logiikka (Vesiputousmatematiikka)**: Alimpien tasojen (esim. Taso 1 ja 2) TDA-väitteet on EHDOTTOMASTI kirjoitettava "Lattia-logiikalla" (asioita, jotka huonon tekstin lisäksi myös nerokas teksti tekee/tuntee). Ei saa kirjoittaa "Katto-logiikalla" (esim. "Teksti *ainoastaan* toistaa"), koska muuten nerokas teksti reputtaa Tason 1 ja Waterfall-moottori tuhoaa sen arvosanan nollaan.
+Jokainen matriisin `ai_description` ja `tda_assertions` -kenttä on tästä hetkestä lähtien muotoiltava seuraavien viiden ehdottoman säännön mukaisesti. Yksikin sääntörikkomus kaataa koko Pydantic-tason Fail-Fast -rutiinin tai tuhoaa arvioinnin validiteetin. Poikkeuksia ei sallita.
+
+### 1. CHUNK-TURVALLINEN KÄÄNTEISLOGIIKKA (The Absence Paradox)
+**Ongelma:** Asynkroninen worker näkee vain yhden irrallisen lohkon kerrallaan. Puutteen (omission) etsiminen aiheuttaa tekoälyssä joko hallusinaatioita tai massiivisen määrän vääriä negatiivisia tuloksia (False Negatives).
+**Mandaatti:** Kun luot "Fatal Flaw" -kriteerejä (`inverse_evidence: true`), sääntö on EHDOTTOMASTI muotoiltava niin, että virhe **materialisoituu lokaalina lauseena** (commission). Pakota tekoäly poimimaan itse rikkova, virheellinen väite `exact_quote`-kenttään. Älä koskaan käske tekoälyä etsimään tyhjiötä.
+* 🚫 **KIELLETTY (Omission):** *"Oikeutus puuttuu."* tai *"Kirjoittaja ei esitä dataa väitteensä tueksi."*
+* ✅ **SALLITTU (Commission):** *"Etsi lause, jossa kirjoittaja esittää subjektiivisen olettamuksen 100% absoluuttisena faktana."*
+
+### 2. LATTIALOGIIKAN MATEMATIIKKA (Floor vs. Ceiling Logic)
+**Ongelma:** Z-tason Waterfall- ja DINA-kaskadimoottorit tuhoavat kokonaisarvosanan, jos alin taso reputetaan. Katto-logiikka alatasolla (esim. "teksti ainoastaan toistaa") reputtaa huipputekstit.
+**Mandaatti:** Tasojen 1 ja 2 POSITIIVISET vaatimukset (`inverse_evidence: false`) on muotoiltava inklusiivisella "lattia-logiikalla" (Floor Logic). Säännön on kuvattava perusmekanismi, jonka myös nerokas teksti tekee automaattisesti sivutuotteenaan. Kieltosanojen (vain, ainoastaan, pelkästään) käyttö alatasojen positiivisissa kriteereissä on nollatoleranssissa.
+* 🚫 **KIELLETTY (Ceiling Logic):** *"Teksti ainoastaan toistaa annettua tietoa."*
+* ✅ **SALLITTU (Floor Logic):** *"Teksti sisältää alkuperäisen tiedon tunnistamista ja toistamista."*
+
+### 3. LEKSIKAALISET INDIKAATTORIT (Lexical Proxies)
+**Ongelma:** RapidFuzz ymmärtää vain fyysisiä merkkejä. Pelkät konseptuaaliset abstraktiot saavat LLM:n poimimaan epämääräisiä lauseita.
+**Mandaatti:** Jokaiseen abstraktia konseptia mittaavaan TDA-väitteeseen on pakotettava konkreettiset kielelliset sormenjäljet eli **Leksikaaliset indikaattorit (Lexical Proxies)**. Anna tekoälylle täsmälliset englanninkieliset siirtymäsanat (esim. 'however', 'therefore') ja ohjeista se etsimään näiden vastineita dokumentin alkuperäiskielellä.
+* 🚫 **KIELLETTY:** *"Find evidence of cognitive friction."*
+* ✅ **SALLITTU:** *"Find evidence of cognitive friction. Look for lexical markers of contrast such as 'however', 'on the other hand', or 'therefore' (in the document's native language). Extract the sentence containing this structural opposition."*
+
+### 4. CHAIN-OF-THOUGHT (CoT) PAKOTUS SÄÄNTÖTASOLLA
+**Ongelma:** Jos LLM ohjeistetaan suoraan poimimaan lainaus, se kärsii kognitiivisesta laiskuudesta ja "jälkikäteisrationalisoi" lainaukset.
+**Mandaatti:** LLM on pakotettava perustelemaan looginen ketjunsa **ennen** lainauksen poimimista (ohjaamalla se tuottamaan logiikka JSON:n `reasoning_trace`-kenttään ensin).
+* 🚫 **KIELLETTY:** *"Poimi exact_quote, joka osoittaa kausaalisuuden."*
+* ✅ **SALLITTU:** *"ENFORCEMENT RULE: Ennen exact_quote-lainauksen poimimista, dokumentoi syy-seurausmekanismi askeleittain. Vasta kun olet loogisesti perustellut päättelyn, poimi TÄSMÄLLINEN lainaus."*
+
+### 5. ANTI-TOKEN BLOAT & XML-RAKENNE
+**Ongelma:** Raskaat roolitukset ja XML-tagit mikrosäännöissä paisuttavat Map-Reduce -lohkojen promptit käyttökelvottomiksi.
+**Mandaatti:** Eristä globaali konteksti ja XML-tagit puhtaasti ylätason `ai_description` -kenttään (Makrotaso, max 1-2 lausetta per tagi). Mikrotason `tda_assertions` (`ai_rule_description`) on oltava puhdasta, konemaista ja XML-vapaata imperatiivista tekstiä. Koodaa toimintaverbit isoin kirjaimin.
+* 🚫 **KIELLETTY (Mikrotasolla XML-kohinaa):** `<rule>Etsi todiste...</rule> <cot>Perustele ensin...</cot>`
+* ✅ **SALLITTU (Puhdas imperatiivi):** *"CRITICAL DIRECTIVE: Etsi tekstistä leksikaalinen indikaattori vastaväitteelle (esim. 'kuitenkin'). Pura logiikka askeleittain ennen exact_quote-poimintaa."*
+
+### 6. UNIVERSAL LANGUAGE PROTOCOL (Native English Mandate)
+* **Säännöt ovat 100% englantia:** Kaikki tekoälyn promptit (`ai_description`, `ai_rule_description`) kirjoitetaan tietokantaan yksinomaan englanniksi tekoälyn "Intelligence Dropping" -ilmiön välttämiseksi.
+* **Dokumentti voi olla mitä tahansa kieltä:** Tekoälyä ohjeistetaan aina etsimään konseptit ja leksikaaliset indikaattorit kohdedokumentin omalla kielellä (esim. *"Look for 'therefore' or its equivalent in the document's native language"*). Suomenkieliset UI-tekstit pidetään täysin erillään taustalogiikasta.
+
+### 2.1 Epistemologiset ja Laadulliset Mandaatit (The Grounding Rules)
+Tämä on vain kerta-ajo, joten data on ankkuroitava oikeaan maailmaan huolellisesti.
+1. **Epistemic Anchoring:** Pelkkä tekoälyn "yleistieto" ei riitä. Jokaiseen `ai_description` -kenttään on injektoitava `<epistemic_anchor>` -tagi, joka sisältää verifioidun akateemisen tai rakenteellisen ankkurin (esim. suora viittaus Sitran megatrendi-metodologiaan tai Kahnemanin tiettyyn sivuun/käsitteeseen).
+2. **Anti-Patternien Injektointi (Few-Shot):** Varsinkin `inverse_evidence: true` (Fatal Flaw) -säännöissä on pakko tarjota tekoälylle yksi mikroskooppinen reaalimaailman esimerkkilause siitä, miltä virhe näyttää käytännössä.
+3. **Kontekstuaalinen Jargon:** Säännöissä on huomioitava toimialakohtainen kieli käyttämällä `search_web` -työkalua esimerkiksi hallintojargonin tai strategiaslangin tunnistamiseen.
 
 ## 3. Toteutuksen Vaiheet ja Automaattinen Työnkulku (State-Tracked Workflow)
 
@@ -25,9 +59,9 @@ Kaikki uudet säännöt (`ai_description` ja `ai_rule_description`) on luotava n
 * **Työnkulku:** 
   1. **Uusi Konteksti:** Ihminen avaa puhtaan chatin ja sanoo "Jatka" (tai antaa tietyn matriisin ID:n, esim. `blk_440a5fef9331451b`).
   2. **Valinta:** AI lukee `epic51_matrix_tracker.md` -tiedoston ja poimii listalta seuraavan `[NOK]`-tilassa olevan matriisin.
-  3. **Teorian Purku (Tiedonhaku):** AI hakee matriisin sisällön `seed_data.json` -tiedostosta. Jos matriisissa on `theory_grounding` (esim. Toulmin 2003), AI tekee aktiivisen `search_web` (Tavily AI) -haun teoriasta ja dekonstruktoi sen akateemisiin alkutekijöihinsä.
-  4. **Generointi (XML & TDA):** AI rakentaa `05_llm_architecture.md` -sääntöjen mukaisen Native English XML-ohjeen (`ai_description`) ja kääntää teorian 2-5:ksi toisensa poissulkevaksi (MECE) mikrosäännöksi. Virheitä etsivät säännöt merkitään EHDOTTOMASTI `inverse_evidence: true`.
-  5. **Auditointi:** AI ehdottaa säännöt ihmiselle. Kun ihminen hyväksyy (tai pyytää tarkennusta), AI tallentaa ne `seed_data.json` -tiedostoon.
+  3. **Teorian Purku (Tiedonhaku ja Ankkurointi):** AI hakee matriisin sisällön `seed_data.json` -tiedostosta. AI on **pakotettu** tekemään `search_web` -haun etsiäkseen aidon tieteellisen lähteen tai metodologisen viitekehyksen (esim. argumentaatioteoria, kognitiiviset vinoumat). Samalla se etsii oikean maailman esimerkkejä (Anti-Patterns) ja tunnistaa oikeat leksikaaliset siirtymäsanat.
+  4. **Generointi (XML & TDA):** AI rakentaa `05_llm_architecture.md` -sääntöjen mukaisen Native English XML-ohjeen (`ai_description`), johon se sisällyttää `<epistemic_anchor>` -viitteen. Se kääntää teorian 2-5:ksi toisensa poissulkevaksi mikrosäännöksi. **Sääntöihin injektoidaan aina negatiivinen "Few-Shot" -esimerkki, jos `inverse_evidence: true`**. Jokaiselle uudelle TDA-säännölle on generoitava täysin uusi ja ainutkertainen "Opaque Stripe ID" (esim. `tda_` + 16-32 merkin satunnainen hex-arvo Pydantic-standardin mukaisesti). **KRIITTINEN PYDANTIC-SÄÄNTÖ:** Jos `inverse_evidence` on `true`, `aggregation_mode` on EHDOTTOMASTI oltava `"EXISTS"` (muuten Pydantic V2 kaatuu `validate_math_logic` -validaattoriin). Jos `inverse_evidence` on `false`, se voi olla `"ALL_MUST_COMPLY"`.
+  5. **Auditointi:** AI ehdottaa säännöt ihmiselle esittäen selkeästi löytämänsä akateemisen ankkurin ja leksikaaliset indikaattorit. Kun ihminen hyväksyy, AI tallentaa ne `seed_data.json` -tiedostoon.
   6. **Tilan tallennus:** AI päivittää seurantatiedostoon tilaksi `[OK]` ja ohjeistaa ihmistä: *"Matriisi valmis. Avaa uusi puhdas chat ja sano Jatka."*
 
 ### Phase 3: "Raskaan Kognition" -matriisien refaktorointi
