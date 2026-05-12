@@ -16,7 +16,7 @@ Agentin komentaminen tapahtuu kutsumalla työnkulkua chattiin sen nimellä (esim
 
 * **/tier1-planner (Okkultistinen Arkkitehti):**  
   * **Milloin:** Uuden laajan ominaisuuden (Epic) tai arkkitehtuurimuutoksen aloitus.  
-  * **Mitä se tekee:** Aktivoi **DISCOVER-lukon** (skannaa oikeat tiedostot ensin, kieltää arvaamisen). Tuottaa loogisesti jaetun virstanpylvässuunnitelman implementation\_plan.md. Koodia ei tuoteta vielä riviäkään.  
+  * **Mitä se tekee:** Aktivoi **DISCOVER-lukon** (skannaa oikeat tiedostot ensin, kieltää arvaamisen). Tuottaa loogisesti jaetut virstanpylvässuunnitelmat (esim. phase1.md, phase2.md) sekä **automaattisesti generoidun Tracker-tiedoston** (`[epic]_tracker.md`). Tämä mahdollistaa Epicin automaattisen suorittamisen jatkuvana luuppina. Koodia ei tuoteta vielä riviäkään.  
 * **/tier2-execute (Mekaaninen Toteuttaja):**  
   * **Milloin:** Kun Tier 1 suunnitelma on valmis ja hyväksytty.  
   * **Mitä se tekee:** Pakottaa agentin toteuttamaan suunnitelmaa vain **yhden askeleen kerrallaan**. Vaatii koodauksen, testit ja Laatuportin (Audit Loop) komentojen luovutuksen sinulle ajettavaksi, ennen kuin se saa jatkaa.
@@ -68,8 +68,11 @@ Kun yksi asioiden vaihe on valmis tai chat on liian pitkä, kirjoita:
 ### **Askel 2: Uuden chatin herätys (Vastaanottaja & Bootstrapper)**
 
 1. Avaa täysin puhdas chat-ikkuna.  
-2. Liimaa kenttään tekoälyn antama herätyskomento (esim. `/tier5-resume --target="docs/epic/my_epic.md" --next="..."`).  
-3. Uusi, terävä tekoäly **pakotetaan** ensin lukemaan arkkitehtuurin säännöt (`.agents/rules/` ja `docs/architecture/`). Tämän jälkeen se aktivoi automaattisesti oikean työnkulun: `/tier1-planner` (jos kyseessä on Epic) tai `/tier2-execute` (jos kyseessä on toteutussuunnitelma).
+2. Liimaa kenttään tekoälyn antama herätyskomento (esim. `/tier5-resume --target="docs/epic/my_epic_tracker.md"`).  
+3. Uusi, terävä tekoäly **pakotetaan** ensin lukemaan arkkitehtuurin säännöt (`.agents/rules/` ja `docs/architecture/`). Tämän jälkeen se aktivoi automaattisesti kohteen mukaisen kolmiosaisen työnkulun: 
+   * **Epic (`docs/epic/*.md`):** Käynnistää `/tier1-planner` pilkkomisen.
+   * **Plan (`implementation_plan.md`):** Käynnistää `/tier2-execute` lineaarisen suorituksen.
+   * **Tracker (`*tracker.md`):** Käynnistää jatkuvan **Generator-Critic-Refiner** -työnkulun, joka iteratiivisesti suorittaa `[NOK]`-tehtävät läpi kunnes kaikki ovat `[OK]`.
 4. **Loppu-Hardening:** Kun suunnitelma tai Epic-taskit on saatu päätökseen, tekoäly ohjaa ajamaan muuttuneille tiedostoille laatuportin `/tier2-hardening-backend` tai `frontend`!
 
 ## ---

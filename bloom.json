@@ -1,0 +1,434 @@
+{
+  "id": "blk_f921c7c0989b47e8",
+  "label": {
+    "default_locale": "fi",
+    "translations": {
+      "fi": "Luovuus ja syvyys (Bloomin Taksonomia)",
+      "en": "Bloom's Taxonomy"
+    }
+  },
+  "description": {
+    "default_locale": "fi",
+    "translations": {
+      "fi": "Mittaa, kuinka syv\u00e4lle pureudut aiheeseen. Korkeimmalla tasolla et vain toista tietoa, vaan luot teko\u00e4lyn avulla t\u00e4ysin uusia n\u00e4k\u00f6kulmia.",
+      "en": "Evaluates the depth of cognitive processing and actionable execution."
+    }
+  },
+  "category_id": "matrix",
+  "type": "float",
+  "allow_decimals": true,
+  "theory_grounding": {
+    "source_url": "https://www.jstor.org/stable/j.ctt1v2xv4",
+    "citation_reference": "Anderson, Lorin W. & Krathwohl, David R. (toim.) 2001."
+  },
+  "scales": [
+    {
+      "score": 1,
+      "name": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Muistaminen",
+          "en": "Remembering"
+        }
+      },
+      "claims": [
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Teksti ainoastaan toistaa annettua tietoa.",
+              "en": "The text merely repeats given information."
+            }
+          },
+          "ai_description": "CRITICAL EVALUATION DIRECTIVE: NULL HYPOTHESIS APPLIED. The response consists solely of regurgitated, unanalyzed data or verbatim text. There is zero evidence of comprehension. ENFORCEMENT RULE: Assign this score immediately if the output is purely mechanical retrieval.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_f390ca9d",
+              "ai_rule_description": "CRITICAL EVALUATION DIRECTIVE: NULL HYPOTHESIS APPLIED. The response consists solely of regurgitated, unanalyzed data or verbatim text. There is zero evidence of comprehension. ENFORCEMENT RULE: Assign this score immediately if the output is purely mechanical retrieval.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Ymm\u00e4rryst\u00e4 ei ole eksplisiittisesti osoitettu.",
+              "en": "Understanding is not explicitly demonstrated."
+            }
+          },
+          "ai_description": "CRITICAL EVALUATION DIRECTIVE: Active falsification triggered. The text lacks any contextual framing or interpretation that would prove the author understands what they are saying.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_76a0a4ce",
+              "ai_rule_description": "CRITICAL EVALUATION DIRECTIVE: Active falsification triggered. The text lacks any contextual framing or interpretation that would prove the author understands what they are saying.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Tieto esitet\u00e4\u00e4n absoluuttisena faktana ilman l\u00e4hdekritiikki\u00e4.",
+              "en": "Information is presented as absolute fact without source criticism."
+            }
+          },
+          "ai_description": "ENFORCEMENT RULE: SEVERE HUBRIS PENALTY. Falsify the text if it presents regurgitated statements, AI hallucinations, or basic assumptions as absolute 100% facts without any epistemological humility or critical reflection.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_ac498876",
+              "ai_rule_description": "ENFORCEMENT RULE: SEVERE HUBRIS PENALTY. Falsify the text if it presents regurgitated statements, AI hallucinations, or basic assumptions as absolute 100% facts without any epistemological humility or critical reflection.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        }
+      ],
+      "ai_label": "CATASTROPHIC FAILURE - TRIGGER PASSIVITY PENALTY AND HUBRIS PENALTY"
+    },
+    {
+      "score": 2,
+      "name": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Ymm\u00e4rt\u00e4minen",
+          "en": "Understanding"
+        }
+      },
+      "claims": [
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Tieto on muotoiltu uudelleen omin sanoin.",
+              "en": "Information is rephrased in own words."
+            }
+          },
+          "ai_description": "CRITICAL EVALUATION DIRECTIVE: The response demonstrates a rudimentary ability to paraphrase. It is a surface-level interpretation without deeper insight.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_c1e0414c",
+              "ai_rule_description": "CRITICAL EVALUATION DIRECTIVE: The response demonstrates a rudimentary ability to paraphrase. It is a surface-level interpretation without deeper insight.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "K\u00e4sitteiden v\u00e4liset syvemm\u00e4t yhteydet puuttuvat.",
+              "en": "Deeper connections between concepts are missing."
+            }
+          },
+          "ai_description": "CRITICAL EVALUATION DIRECTIVE: The explanation is shallow. ENFORCEMENT RULE: Do not offer unearned benefit of the doubt. If the author summarizes without connecting the concepts to a broader framework, cap the score here.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_1dff22cf",
+              "ai_rule_description": "CRITICAL EVALUATION DIRECTIVE: The explanation is shallow. ENFORCEMENT RULE: Do not offer unearned benefit of the doubt. If the author summarizes without connecting the concepts to a broader framework, cap the score here.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        }
+      ],
+      "ai_label": "DEFICIENT - SUPERFICIAL REWRITE"
+    },
+    {
+      "score": 3,
+      "name": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Soveltaminen",
+          "en": "Applying"
+        }
+      },
+      "claims": [
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Tietoa sovelletaan uuteen, konkreettiseen tilanteeseen.",
+              "en": "Information is applied to a new, concrete situation."
+            }
+          },
+          "ai_description": "CRITICAL EVALUATION DIRECTIVE: The response correctly applies a known rule or abstract concept to a specific scenario. However, the application is strictly procedural.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_0d3c741f",
+              "ai_rule_description": "CRITICAL EVALUATION DIRECTIVE: The response correctly applies a known rule or abstract concept to a specific scenario. However, the application is strictly procedural.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Soveltaminen on mekaanista.",
+              "en": "The application is mechanistic."
+            }
+          },
+          "ai_description": "CRITICAL EVALUATION DIRECTIVE: The user executes a known process without questioning or optimizing it. There is no adaptability or critical judgment present.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_b1bc9d32",
+              "ai_rule_description": "CRITICAL EVALUATION DIRECTIVE: The user executes a known process without questioning or optimizing it. There is no adaptability or critical judgment present.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Vaihtoehtoisia l\u00e4hestymistapoja ei ole k\u00e4sitelty.",
+              "en": "Alternative approaches have not been considered."
+            }
+          },
+          "ai_description": "ENFORCEMENT RULE: ONE-SIDED EXECUTION DETECTED. The author uses a tool or model blindly without acknowledging its limitations or alternative models. Penalize intellectual laziness; this completely blocks progression to upper scales.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_0b449865",
+              "ai_rule_description": "ENFORCEMENT RULE: ONE-SIDED EXECUTION DETECTED. The author uses a tool or model blindly without acknowledging its limitations or alternative models. Penalize intellectual laziness; this completely blocks progression to upper scales.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        }
+      ],
+      "ai_label": "MECHANISTIC APPLICATION - REQUIRES REBUTTALS FOR ADVANCEMENT"
+    },
+    {
+      "score": 4,
+      "name": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Analysointi",
+          "en": "Analyzing"
+        }
+      },
+      "claims": [
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Kokonaisuus on purettu rakenteellisiin osiin.",
+              "en": "The whole has been broken down into structural parts."
+            }
+          },
+          "ai_description": "CRITICAL EVALUATION DIRECTIVE: The response successfully deconstructs information into its constituent components.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_19dc5286",
+              "ai_rule_description": "CRITICAL EVALUATION DIRECTIVE: The response successfully deconstructs information into its constituent components.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Osien v\u00e4liset piilev\u00e4t suhteet on paljastettu.",
+              "en": "Underlying relationships between parts have been revealed."
+            }
+          },
+          "ai_description": "CRITICAL EVALUATION DIRECTIVE: The text identifies underlying structures, patterns, or causal relationships, distinguishing between facts and inferences.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_0502721e",
+              "ai_rule_description": "CRITICAL EVALUATION DIRECTIVE: The text identifies underlying structures, patterns, or causal relationships, distinguishing between facts and inferences.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Analyysin taustaoletuksia ei kyseenalaisteta riitt\u00e4v\u00e4sti.",
+              "en": "The underlying assumptions of the analysis are not sufficiently questioned."
+            }
+          },
+          "ai_description": "ENFORCEMENT RULE: LACK OF EPISTEMOLOGICAL HUMILITY. Even though the structure is analyzed, the author still operates within a rigid framework without questioning the foundational axioms of the data provided. Downgrade or lock at this tier if absolute certainty is assumed.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_3820fc07",
+              "ai_rule_description": "ENFORCEMENT RULE: LACK OF EPISTEMOLOGICAL HUMILITY. Even though the structure is analyzed, the author still operates within a rigid framework without questioning the foundational axioms of the data provided. Downgrade or lock at this tier if absolute certainty is assumed.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        }
+      ],
+      "ai_label": "STRUCTURAL ANALYSIS - LACKS EPISTEMOLOGICAL HUMILITY"
+    },
+    {
+      "score": 5,
+      "name": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Arviointi",
+          "en": "Evaluating"
+        }
+      },
+      "claims": [
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Teksti esitt\u00e4\u00e4 loogisesti perustellun arvoasetelman teorioiden v\u00e4lill\u00e4.",
+              "en": "The text presents a logically justified value judgment between theories."
+            }
+          },
+          "ai_description": "CRITICAL EVALUATION DIRECTIVE: The response moves beyond analysis to make defensible judgments based on logical criteria.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_de285fbd",
+              "ai_rule_description": "CRITICAL EVALUATION DIRECTIVE: The response moves beyond analysis to make defensible judgments based on logical criteria.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Arviointi nojaa ekspliittisiin sis\u00e4isiin ja ulkoisiin kriteereihin.",
+              "en": "The evaluation relies on explicit internal and external criteria."
+            }
+          },
+          "ai_description": "CRITICAL EVALUATION DIRECTIVE: The critique of validity, quality, or utility must be explicitly tethered to stated standards, not just subjective opinion.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_6f99d884",
+              "ai_rule_description": "CRITICAL EVALUATION DIRECTIVE: The critique of validity, quality, or utility must be explicitly tethered to stated standards, not just subjective opinion.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Vastav\u00e4itteet ja rajoitteet on k\u00e4sitelty asiantuntevasti.",
+              "en": "Counterarguments and limitations have been expertly addressed."
+            }
+          },
+          "ai_description": "ENFORCEMENT RULE: The author must act as their own prosecutor, actively anticipating and dismantling opposing views. If the evaluation is one-sided, it fails this tier.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_e620ff35",
+              "ai_rule_description": "ENFORCEMENT RULE: The author must act as their own prosecutor, actively anticipating and dismantling opposing views. If the evaluation is one-sided, it fails this tier.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        }
+      ],
+      "ai_label": "CRITICAL EVALUATION - COGNITIVE FRICTION DEMANDED"
+    },
+    {
+      "score": 6,
+      "name": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Luominen",
+          "en": "Creating"
+        }
+      },
+      "claims": [
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Teksti syntetisoi uuden ja alkuper\u00e4isen rakenteen tai hypoteesin.",
+              "en": "The text synthesizes a new and original structure or hypothesis."
+            }
+          },
+          "ai_description": "CRITICAL EVALUATION DIRECTIVE: THEORETICAL PERFECTION. The response synthesizes disparate elements into a completely novel, coherent, and logically sound framework. It represents a genuine act of intellectual creation.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_24798c15",
+              "ai_rule_description": "CRITICAL EVALUATION DIRECTIVE: THEORETICAL PERFECTION. The response synthesizes disparate elements into a completely novel, coherent, and logically sound framework. It represents a genuine act of intellectual creation.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "P\u00e4\u00e4t\u00f6ksentekoprosessi ja kognitiivinen kitka on dokumentoitu.",
+              "en": "The decision-making process and cognitive friction are documented."
+            }
+          },
+          "ai_description": "ENFORCEMENT RULE: SYSTEM 2 REQUIREMENT. The text MUST explicitly articulate 'how' and 'why' the novel conclusion was reached. It must show the slow, deliberate work of reasoning. Mere correct synthesis without explicitly documented cognitive friction fails this condition.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_9919034a",
+              "ai_rule_description": "ENFORCEMENT RULE: SYSTEM 2 REQUIREMENT. The text MUST explicitly articulate 'how' and 'why' the novel conclusion was reached. It must show the slow, deliberate work of reasoning. Mere correct synthesis without explicitly documented cognitive friction fails this condition.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Uusi synteesi on ankkuroitu ekspliittisesti asiantuntijal\u00e4hteisiin.",
+              "en": "The new synthesis is explicitly anchored to expert sources."
+            }
+          },
+          "ai_description": "ENFORCEMENT RULE: MANDATORY SOURCE ANCHORING. ABSOLUTE ZERO-TRUST. A perfect intellectual structure without demonstrable anchoring in cited external literature or concrete expert references is inherently suspicious and must be penalized.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_b7ccf807",
+              "ai_rule_description": "ENFORCEMENT RULE: MANDATORY SOURCE ANCHORING. ABSOLUTE ZERO-TRUST. A perfect intellectual structure without demonstrable anchoring in cited external literature or concrete expert references is inherently suspicious and must be penalized.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        }
+      ],
+      "ai_label": "NOVEL SYNTHESIS - EXPLICIT COGNITIVE FRICTION AND ANCHORING REQUIRED"
+    }
+  ],
+  "rows": [
+    {
+      "label": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Kognitiivinen syvyys",
+          "en": "Cognitive Depth"
+        }
+      },
+      "ai_description": "CRITICAL MANDATE: Start by evaluating every atomic claim as FALSE. You must enforce the Null Hypothesis."
+    }
+  ],
+  "scale_min": 1,
+  "scale_max": 6,
+  "ai_description": "ROLE: ANTAGONISTIC PROSECUTOR (ZERO-TRUST). TASK: Evaluate the response's cognitive depth and intellectual complexity using Bloom's Taxonomy. NULL HYPOTHESIS: Assume the text relies on mere rote memorization, lazy aggregation, or AI-generated hallucination without true System 2 comprehension. Actively search for passive regurgitation, lack of critical friction, and unacknowledged alternative models. Do NOT give the benefit of the doubt. Falsify immediately if the required cognitive operation is not explicitly demonstrated and sourced in the text. MANDATORY DIRECTIVE: Default all boolean claim evaluations to FALSE. You must never infer, guess, or synthesize compliance. A claim can only be evaluated as TRUE if you can extract direct, undeniable semantic proof from the text. Give absolutely no benefit of the doubt.",
+  "slug": "matrix_bloom",
+  "output_extensions": [
+    "justification",
+    "falsification",
+    "coaching",
+    "remediation_steps"
+  ],
+  "organization_id": "SYSTEM",
+  "is_evaluative": true
+}

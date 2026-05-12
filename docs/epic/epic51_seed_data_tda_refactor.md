@@ -43,6 +43,30 @@ Jokainen matriisin `ai_description` ja `tda_assertions` -kenttä on tästä hetk
 * **Säännöt ovat 100% englantia:** Kaikki tekoälyn promptit (`ai_description`, `ai_rule_description`) kirjoitetaan tietokantaan yksinomaan englanniksi tekoälyn "Intelligence Dropping" -ilmiön välttämiseksi.
 * **Dokumentti voi olla mitä tahansa kieltä:** Tekoälyä ohjeistetaan aina etsimään konseptit ja leksikaaliset indikaattorit kohdedokumentin omalla kielellä (esim. *"Look for 'therefore' or its equivalent in the document's native language"*). Suomenkieliset UI-tekstit pidetään täysin erillään taustalogiikasta.
 
+### 7. TEOREETTINEN ANKKUROINTI (No Hollow Pydantic Structures)
+**Ongelma:** Pelkkä XML-tägien ja Pydantic-rakenteen mekaaninen lisääminen ei paranna tekoälyn arviointikykyä, jos itse kriteeri on ontto tai jättää tulkinnanvaraa.
+**Mandaatti:** Generaattori-Kriitikko-Jalostaja -työnkulussa **jokaisen TDA-väitteen on nojattava todelliseen teoriaan**, ei vain onttoon Pydantic-rakenteeseen. Jokaisen refaktoroidun blokin päätteeksi tekoälyn on raportoitava eksplisiittisesti, kuinka teoriainjektio (esim. uuden tutkimuksen käsitteet) integroitiin syvälle mikrosääntöihin asti.
+
+### 8. PAKOLLINEN TIEDONHAKU (Mandatory Web Search & Grounding)
+**Ongelma:** "Puhdas" AI käyttää vain sisäistä päättelyään (yleistä hallusinaatiota) täydentämään akateemisia viitteitä, jolloin syväkonteksti ohenee.
+**Mandaatti:** Jos tekoäly on injektoimassa teoriaa, käsitteitä tai rakentamassa `epistemic_anchor` -viitettä, sen on EHDOTTOMASTI käytettävä `search_web` -työkalua hakeakseen täsmälliset teoriatermit (esim. Kahnemanin System 1/2 määritelmät tai Floridin "Human-in-the-loop"). Akateemisten käsitteiden arvailu on kielletty.
+
+### 9. TURVALLINEN JSON-MANIPULAATIO (Python Scripts Only)
+**Ongelma:** Massiivisen ja syvästi sisäkkäisen `seed_data.json` -tiedoston muokkaaminen merkkijonokorvauksilla rikkoo lähes aina JSON-skeeman (pilkkujen puuttuminen, sisennykset).
+**Mandaatti:** AI on EHDOTTOMASTI KIELLETTY muokkaamasta `seed_data.json` -tiedostoa suoraan. Kaikki muutokset on tehtävä kirjoittamalla lokaali Python-skripti (esim. `scratch/refactor.py`), joka lataa JSONin tietorakenteena, tekee täsmällisen muokkauksen kohteena olevan blokin dataan (`data['prompt_blocks']`), ja tallentaa sen takaisin. Tämä takaa 100% syntaktisen eheyden.
+
+### 10. IMPERATIIVINEN KÄSKYMUOTO (Actionable Directives)
+**Ongelma:** Laiska AI kysyy arvioinnissa passiivisia kysymyksiä ("Onko tässä syy-seuraussuhde?").
+**Mandaatti:** Mikrotason `ai_rule_description` ei saa KOSKAAN olla kysymys tai passiivinen toteamus. Sen on AINA alettava imperatiivisella toimintaverbillä (Etsi, Tunnista, Eristä / Identify, Locate, Find), joka pakottaa "työntekijä-tekoälyn" aktiivisesti haravoimaan näyttöä ja poimimaan `exact_quote` -todisteen.
+
+### 11. 100% KATTAVUUSVAATIMUS (Comprehensive Traversal)
+**Ongelma:** Laiska AI refaktoroi matriisista vain ylimmät pisteet (esim. score 1 ja 5) tai jättää osan väitteistä (claims) ennalleen, jolloin vanhaa V1-dataa jää kummittelemaan rakenteen sisään.
+**Mandaatti:** AI on EHDOTTOMASTI pakotettu käymään läpi ja refaktoroimaan matriisin **jokainen pistetaso (score 1-5)** ja niiden sisällä oleva **jokainen yksittäinen väite (claim)**. Koko kohde-matriisin JSON-haara on käsiteltävä 100% kattavasti; oikominen, yhdistely tai osittainen suoritus on ehdottomasti kielletty.
+
+### 12. EHDOTON TRACKER-SUVEREENIUS (Absolute Tracker Sovereignty)
+**Ongelma:** Tietokannassa (`seed_data.json`) saattaa näkyä jäänteitä aiemmista epäonnistuneista tai osittaisista refaktoroinneista, jotka näyttävät tekoälylle siltä, että työ olisi jo tehty (esim. `tda_assertions` löytyy).
+**Mandaatti:** `epic51_matrix_tracker.md` on AINOA lähde totuudelle. Osa refaktoroinnista on tietoista valittua uudelleenajoa. Jos matriisi on trackerissä tilassa `[NOK]`, se ON refaktoroitava uudelleen nollasta riippumatta siitä, mitä `seed_data.json` näyttää. Tietokannan tilalla ei ole mitään merkitystä, jos tracker sanoo `[NOK]`.
+
 ### 2.1 Epistemologiset ja Laadulliset Mandaatit (The Grounding Rules)
 Tämä on vain kerta-ajo, joten data on ankkuroitava oikeaan maailmaan huolellisesti.
 1. **Epistemic Anchoring:** Pelkkä tekoälyn "yleistieto" ei riitä. Jokaiseen `ai_description` -kenttään on injektoitava `<epistemic_anchor>` -tagi, joka sisältää verifioidun akateemisen tai rakenteellisen ankkurin (esim. suora viittaus Sitran megatrendi-metodologiaan tai Kahnemanin tiettyyn sivuun/käsitteeseen).
@@ -56,13 +80,24 @@ Tämä on vain kerta-ajo, joten data on ankkuroitava oikeaan maailmaan huolellis
 * **Toteutus:** Kaikki matriisit merkitään alkutilaan `[NOK]`. Tämä tiedosto toimii koko työnkulun "Aivoina", jotta konteksti-ikkunat voidaan tyhjentää välissä tekoälyn suorituskyvyn takaamiseksi.
 
 ### Phase 2: "Raskas" Itseohjautuva Refaktorointilooppi
+* **KRIITTINEN SÄÄNTÖ: YKSI MATRIISI PER CHAT.** AI:n kognitiivisen tason ylläpitämiseksi yhdessä konteksti-ikkunassa (chatissa) saa refaktoroida **vain ja ainoastaan yhden matriisin**. Kun matriisi on valmis, session on päätyttävä ja seuraava matriisi on aloitettava täysin uudessa puhtaassa ikkunassa.
+* **SÄÄNTÖ 1:** Matriisin alkuperäistä skaalaa (esim. 1-5) ei saa koskaan muuttaa tai kaventaa.
+* **SÄÄNTÖ 2:** Tekoäly EI saa pyytää käyttäjää sanomaan "Jatka". Työvaiheen päätteeksi tekoälyn on aina annettava vakiokomento `/tier5-resume --target docs/epic/epic51_matrix_tracker.md`.
+* **SÄÄNTÖ 3:** `[NOK]`-merkittyjä matriiseja voi olla missä tahansa kohtaa `epic51_matrix_tracker.md` -listaa. Etsi aktiivisesti mikä tahansa jäljellä oleva `[NOK]` riippumatta sen sijainnista.
 * **Työnkulku:** 
-  1. **Uusi Konteksti:** Ihminen avaa puhtaan chatin ja sanoo "Jatka" (tai antaa tietyn matriisin ID:n, esim. `blk_440a5fef9331451b`).
-  2. **Valinta:** AI lukee `epic51_matrix_tracker.md` -tiedoston ja poimii listalta seuraavan `[NOK]`-tilassa olevan matriisin.
-  3. **Teorian Purku (Tiedonhaku ja Ankkurointi):** AI hakee matriisin sisällön `seed_data.json` -tiedostosta. AI on **pakotettu** tekemään `search_web` -haun etsiäkseen aidon tieteellisen lähteen tai metodologisen viitekehyksen (esim. argumentaatioteoria, kognitiiviset vinoumat). Samalla se etsii oikean maailman esimerkkejä (Anti-Patterns) ja tunnistaa oikeat leksikaaliset siirtymäsanat.
-  4. **Generointi (XML & TDA):** AI rakentaa `05_llm_architecture.md` -sääntöjen mukaisen Native English XML-ohjeen (`ai_description`), johon se sisällyttää `<epistemic_anchor>` -viitteen. Se kääntää teorian 2-5:ksi toisensa poissulkevaksi mikrosäännöksi. **Sääntöihin injektoidaan aina negatiivinen "Few-Shot" -esimerkki, jos `inverse_evidence: true`**. Jokaiselle uudelle TDA-säännölle on generoitava täysin uusi ja ainutkertainen "Opaque Stripe ID" (esim. `tda_` + 16-32 merkin satunnainen hex-arvo Pydantic-standardin mukaisesti). **KRIITTINEN PYDANTIC-SÄÄNTÖ:** Jos `inverse_evidence` on `true`, `aggregation_mode` on EHDOTTOMASTI oltava `"EXISTS"` (muuten Pydantic V2 kaatuu `validate_math_logic` -validaattoriin). Jos `inverse_evidence` on `false`, se voi olla `"ALL_MUST_COMPLY"`.
-  5. **Auditointi:** AI ehdottaa säännöt ihmiselle esittäen selkeästi löytämänsä akateemisen ankkurin ja leksikaaliset indikaattorit. Kun ihminen hyväksyy, AI tallentaa ne `seed_data.json` -tiedostoon.
-  6. **Tilan tallennus:** AI päivittää seurantatiedostoon tilaksi `[OK]` ja ohjeistaa ihmistä: *"Matriisi valmis. Avaa uusi puhdas chat ja sano Jatka."*
+  1. **Uusi Konteksti:** Ihminen avaa puhtaan chatin ja ajaa komennon: `/tier5-resume --target docs/epic/epic51_matrix_tracker.md`. Tekoäly ei saa ehdottaa toisen matriisin käsittelyä samassa istunnossa.
+  2. **Teorian Purku (Tiedonhaku ja Ankkurointi):** AI hakee matriisin sisällön `seed_data.json` -tiedostosta. AI on **pakotettu** tekemään `search_web` -haun etsiäkseen aidon tieteellisen lähteen tai metodologisen viitekehyksen (esim. argumentaatioteoria, kognitiiviset vinoumat). Samalla se etsii oikean maailman esimerkkejä (Anti-Patterns) ja tunnistaa oikeat leksikaaliset siirtymäsanat.
+  3. **Generointi (XML & TDA):** AI rakentaa `05_llm_architecture.md` -sääntöjen mukaisen Native English XML-ohjeen (`ai_description`), johon se sisällyttää `<epistemic_anchor>` -viitteen. Se kääntää teorian 2-5:ksi toisensa poissulkevaksi mikrosäännöksi. **Sääntöihin injektoidaan aina negatiivinen "Few-Shot" -esimerkki, jos `inverse_evidence: true`**. Jokaiselle uudelle TDA-säännölle on generoitava täysin uusi ja ainutkertainen "Opaque Stripe ID" (esim. `tda_` + 16-32 merkin satunnainen hex-arvo Pydantic-standardin mukaisesti). **KRIITTINEN PYDANTIC-SÄÄNTÖ:** Jos `inverse_evidence` on `true`, `aggregation_mode` on EHDOTTOMASTI oltava `"EXISTS"` (muuten Pydantic V2 kaatuu `validate_math_logic` -validaattoriin). Jos `inverse_evidence` on `false`, se voi olla `"ALL_MUST_COMPLY"`.
+  4. **Auditointi & Pydantic-Verifikaatio:** AI ehdottaa säännöt ihmiselle esittäen selkeästi löytämänsä akateemisen ankkurin ja leksikaaliset indikaattorit. Kun ihminen hyväksyy, AI tallentaa ne `seed_data.json` -tiedostoon (skriptillä). **KRIITTINEN VERIFIKAATIO:** Välittömästi skriptin ajon jälkeen ihmistä ohjeistetaan AINA ajamaan seuraava komentosarja (joka sisältää MECE-tarkistuksen ja Pydantic-testit): `uv run python scratch/verify_claims.py; uv run pytest backend_v2/tests/unit/test_seed_architectural_guardrails.py backend_v2/tests/unit/test_matrix_data_integrity.py -v`. Tämä takaa Fail-Fast -rakenteen säilymisen jokaisen matriisin jälkeen.
+  5. **Tilan tallennus ja Kattava Raportointi:** AI päivittää seurantatiedostoon tilaksi `[OK]`. **Pakollinen Mandaatti-Audit (Loppuraportti):** AI:n on raportoitava EHDOTTOMASTI ALLA OLEVAN EKSPLISIITTISEN TARKISTUSLISTAN AVULLA, miten se on täyttänyt arkkitehtuurimandaatit tässä refaktoroinnissa (jos yksikin näistä 6 kohdasta puuttuu, AI on epäonnistunut tehtävässään):
+     - [ ] 1. **Teoriainjektio:** Mitä teoriaa haettiin (search_web) ja miten se injektoitiin väitteisiin.
+     - [ ] 2. **Käänteis- ja Lattialogiikka:** Miten käänteislogiikka ja lattialogiikka toteutettiin (ei "puutetta" vaan aktiivinen komissio).
+     - [ ] 3. **Leksikaaliset indikaattorit:** Mitkä leksikaaliset indikaattorit pakotettiin.
+     - [ ] 4. **CoT-perustelu:** Miten CoT-perustelu pakotettiin ennen `exact_quote`-poimintaa.
+     - [ ] 5. **100% kattavuus:** Vahvistus 100% kattavuudesta JSONin Python-skriptauksella.
+     - [ ] 6. **MECE-sääntö (Rule of 3):** Etsittiin kaikki refaktoroidut 'claims' `verify_claims.py` -skriptillä ja raportoitiin niiden lukumäärä vahvistuksena MECE-säännön (tasan 3 kpl/solu) toteutumisesta.
+     
+     Lopuksi AI ohjeistaa ihmistä aina ehdottomasti tällä vakiokomennolla: *"Matriisi valmis. Avaa uusi puhdas chat ja aja komento: `/tier5-resume --target docs/epic/epic51_matrix_tracker.md`"*
 
 ### Phase 3: "Raskaan Kognition" -matriisien refaktorointi
 * **Tehtävä:** Käydään läpi järjestelmän vaikeimmat matriisit.
@@ -78,7 +113,7 @@ Tämä on vain kerta-ajo, joten data on ankkuroitava oikeaan maailmaan huolellis
   * *Johtopäätösten kestävyys*
 
 ### Phase 4: Tietokannan Nollaus ja Quality Gate
-* **Tehtävä:** Kun koko `seed_data.json` on käyty läpi, järjestelmä nollataan ja uusi data injektoidaan.
+* **Tehtävä:** Tietokannan nollaus ja datan injektio. **KRIITTINEN SÄÄNTÖ:** Tätä vaihetta EI SAA SUORITTAA ennen kuin *jokainen* matriisi tiedostossa `epic51_matrix_tracker.md` on merkitty tilaan `[OK]`. Keskeneräisen datan ajaminen seederiin (`run_seed.py`) on ehdottomasti kielletty.
 * **Komennot:**
   * `uv run python backend_v2/seed/run_seed.py local`
   * Ajetaan `backend_audit_loop.py` varmistamaan, että mikään uusi sääntö ei rikkonut Pydantic V2 -skeemoja (`extra='forbid'`).
@@ -87,6 +122,6 @@ Tämä on vain kerta-ajo, joten data on ankkuroitava oikeaan maailmaan huolellis
 ## 4. Definition of Done (DoD)
 - Koko `seed_data.json` -tiedoston `ai_description` ja `tda_assertions` -kentät on kirjoitettu uudelleen Epic 48:n V2-standardeilla.
 - Yksikään `ai_description` ei ole litteää tekstiä, vaan käyttää `<system_directive>` XML-rakennetta.
-- Jokaisessa monimutkaisessa solussa on vähintään 2-3 EHDOTONTA `TDAAssertion` -sääntöä.
+- Jokaisessa solussa on TASAN 3 toisistaan riippumatonta (MECE-periaatteella trianguloitua) EHDOTONTA `TDAAssertion` -sääntöä, optimaalisen tilastollisen validiteetin ja kognitiivisen kuorman tasapainon takaamiseksi.
 - Uusi data on ajettu menestyksekkäästi paikalliseen tietokantaan (`run_seed.py`).
 - Yksikään Pydantic-validointi ei kaadu, ja järjestelmä läpäisee Universal Quality Gaten (Tier 2).
