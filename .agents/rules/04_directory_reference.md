@@ -28,7 +28,12 @@
                 <file path="repositories/">Decoupled interfaces enforcing the Interface Segregation Principle (ISP) (e.g., audit.py, execution.py).</file>
             </file_rules>
         </directory>
-        <directory path="hooks/">Pure deterministic CPU-bound algorithmic logic files (Integrity, Reporting, Scoring filters, Security, Vertex Search).</directory>
+        <directory path="hooks/">
+            <description>Pure deterministic CPU-bound algorithmic logic files (Integrity, Reporting, Scoring filters, Security, Vertex Search) and Hybrid LLM hooks.</description>
+            <file_rules>
+                <file path="interaction_hook.py">Hybrid Truth -arkkitehtuurin mukainen rooliluokittelu (Passenger -> Architect). Yhdistää deterministisen control_ratio-laskennan ja `execute_structured_task()` LLM-kutsut fail-fast Pydantic -validoinnilla.</file>
+            </file_rules>
+        </directory>
         <directory path="llm/">
             <description>Standardized interface API proxies connecting internal systems to LLM SDKs (LiteLLM, GenAI).</description>
             <file_rules>

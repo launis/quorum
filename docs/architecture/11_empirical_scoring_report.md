@@ -84,3 +84,13 @@ Jokainen moottori pohjautuu validioituun kognitiiviseen tai tilastolliseen teori
 * **Teoriapohja:** Robustit tilastomenetelmät, erityisesti Median Absolute Deviation (MAD), jota käytetään tilastollisten anomalioiden (outliers) suodattamiseen keskiarvosta.
 * **Optimaalinen Käyttötarkoitus:** Massadatan suodatus ja suurten organisaatioiden arviointi.
 * **Käytännön Esimerkki:** **Globaalin henkilöstökyselyn synteesi.** Jos 9 osastoa tekee erinomaista työtä, mutta 1 osasto epäonnistuu täysin (koska he ymmärsivät kyselyn ohjeistuksen väärin), perinteinen keskiarvo romahtaisi. MAD tunnistaa tämän yhden epäonnistumisen "anomaliaksi" ja pienentää sen painoarvoa, suojellen koko yrityksen globaalia arvosanaa perusteettomalta romahdukselta.
+
+## 7. Hybrid Truth ja Käyttäjän Roolin Luokittelu (Passenger -> Architect)
+
+Kognitiivisen arvioinnin lisäksi järjestelmä suorittaa synteesivaiheessa käyttäjän roolin luokittelun (Matkustaja, Suunnistaja, Kuski, Arkkitehti). Tämä toteutetaan "Hybrid Truth" -mallilla, joka yhdistää deterministisen Python-laskennan ja LLM-päättelyn. Kooditasolla `interaction_hook.py`:ssa tapahtuu tarkalleen seuraavaa:
+
+1. **Deterministinen Ankkuri (Python):** Ensin järjestelmä validoi sisääntulevan datan `InteractionInput`-skeemalla (Pydantic Fail-Fast). Tämän jälkeen se laskee käyttäjän syötteistä matemaattisen `control_ratio`-arvon sekä laajemmat `behavioral_metrics`-mittaristot, joihin kuuluvat `imperative_command_count`, `say_do_gap` ja `automation_bias`.
+2. **LLM-Arviointi (Hybrid Truth):** Nämä suhdeluvut syötetään `<execution_parameters>`-tunnisteen sisällä yhdessä puhtaan raakadatan (`<source_data><user_payload>`) kanssa asynkronisesti nopealle LLM:lle (`execute_structured_task`). LLM käyttää tiukkaa Järjestelmäkehotetta, joka ohjaa luokittelemaan käyttäjän roolin tiukasti suhdelukuihin nojaten. Vastauksena palautetaan Pydantic-validoitu `InteractionAnalysisDTO`, jonka on ehdottomasti sisällettävä roolin lisäksi kentät `thought_process`, `conclusion` ja `confidence_score`.
+3. **Yhteenvetoon Injektointi:** Senior Executive Coach -synteesikehotteen `STRUCTURAL RIGIDITY` -sääntö pakottaa LLM:n nostamaan tämän roolin raportin toiseen kappaleeseen (esim. "**Käyttäjän Rooli: Arkkitehti**") ja perustelemaan sen suoraan deterministisillä metriikoilla, kuten `control_ratio`.
+
+Tämä arkkitehtuuri takaa, että tekoäly ei voi hallusinoida "Arkkitehti"-roolia tyhjästä, jos deterministiset ankkurit (kuten matala käskymäärä tai matala control_ratio) osoittavat passiivisuutta.

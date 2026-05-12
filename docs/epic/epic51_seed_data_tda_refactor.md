@@ -67,6 +67,24 @@ Jokainen matriisin `ai_description` ja `tda_assertions` -kenttä on tästä hetk
 **Ongelma:** Tietokannassa (`seed_data.json`) saattaa näkyä jäänteitä aiemmista epäonnistuneista tai osittaisista refaktoroinneista, jotka näyttävät tekoälylle siltä, että työ olisi jo tehty (esim. `tda_assertions` löytyy).
 **Mandaatti:** `epic51_matrix_tracker.md` on AINOA lähde totuudelle. Osa refaktoroinnista on tietoista valittua uudelleenajoa. Jos matriisi on trackerissä tilassa `[NOK]`, se ON refaktoroitava uudelleen nollasta riippumatta siitä, mitä `seed_data.json` näyttää. Tietokannan tilalla ei ole mitään merkitystä, jos tracker sanoo `[NOK]`.
 
+### 13. EKSPLISIITTISET POISSULKULISTAT (Banned Concepts & Anti-Proxies)
+**Ongelma:** Tekoäly tulkitsee kielellisiä indikaattoreita ("kuten OWASP") ehdotuksina ja alittaa aidan matalimmasta kohdasta hyväksyen ylätason markkinointitermejä. Tämä altistaa arvioinnin "haamuvarianssille" huomion herpaantuessa.
+**Mandaatti:** Jokaiseen käsitteelliseen TDA-väitteeseen on sisällytettävä EHDOTON KIELTO (Banned Concepts). Tekoälylle on kerrottava eksplisiittisesti, mitä se EI saa hyväksyä osumaksi.
+* 🚫 **KIELLETTY (Valinnaisuus):** *"Etsi tietoturvakehyksiä, kuten OWASP tai vastaava."*
+* ✅ **SALLITTU (Poissulkulista):** *"REQUIRED: Etsi OWASP, NIST. BANNED CONCEPTS: Älä koskaan hyväksy ylätason termejä kuten 'tietosuoja' tai 'kyberturvallisuus'."*
+
+### 14. "PALKKIONMETSÄSTÄJÄ"-PARADIGMA (Fatal Flaw over Consistency)
+**Ongelma:** "Johdonmukaisen välttelyn" etsiminen 32 000 merkin tekstistä ylittää tekoälyn Attention-mekanismin kyvyt (Lost in the Middle -ongelma). Tulos heiluilee satunnaisuuden mukaan.
+**Mandaatti:** Kaikki säännöt, jotka vaativat "johdonmukaisuutta" tai "sävyn ylläpitämistä" koko tekstissä, on EHDOTTOMASTI käännettävä `inverse_evidence: true` -muotoon. Tekoäly ei todista viattomuutta, vaan se asetetaan "tuhoamismoodiin" etsimään yhtä ainoaa rikkomusta.
+* 🚫 **KIELLETTY (Johdonmukaisuuden todistaminen):** *"Teksti välttelee absoluuttisia termejä johdonmukaisesti."*
+* ✅ **SALLITTU (Bounty Hunter -moodi):** *"CRITICAL DIRECTIVE (FATAL FLAW): Etsi tekstistä YKSI KIN lause, jossa käytetään absoluuttista termiä (esim. 'ainoa tapa taata'). Jos löydät, poimi exact_quote."*
+
+### 15. YKSINAPAINEN LOOGINEN PORTTI (Boolean Integrity)
+**Ongelma:** Kaksoiskiellot ja monimutkaiset lauserakenteet ("Teksti on passiivinen EIKÄ sisällä itsetutkiskelua") aiheuttavat tekoälyn loogisessa portissa oikosulun, jolloin se saattaa kirjoittaa oikean perustelun mutta antaa käänteisen boolean-arvon (`FALSE`).
+**Mandaatti:** TDA-väitteiden on oltava "yksinapaisia". Ei AND/OR -lausekkeita. Ei negatiivisia määreitä mittaamaan positiivista tulosta (ei "puuttuu" tai "ei sisällä"). Sääntö mittaa AINA vain ja ainoastaan etsittävän asian aktiivista läsnäoloa.
+* 🚫 **KIELLETTY (Kaksoiskielto/Kompleksinen):** *"Teksti on passiivinen EIKÄ ota kantaa EIKÄ ehdota ratkaisuja."*
+* ✅ **SALLITTU (Yksinapainen aktiivinen haku):** *"Etsi lause, jossa kirjoittaja aktiivisesti ulkoistaa päätöksenteon muille tahoille (delegaatio)."*
+
 ### 2.1 Epistemologiset ja Laadulliset Mandaatit (The Grounding Rules)
 Tämä on vain kerta-ajo, joten data on ankkuroitava oikeaan maailmaan huolellisesti.
 1. **Epistemic Anchoring:** Pelkkä tekoälyn "yleistieto" ei riitä. Jokaiseen `ai_description` -kenttään on injektoitava `<epistemic_anchor>` -tagi, joka sisältää verifioidun akateemisen tai rakenteellisen ankkurin (esim. suora viittaus Sitran megatrendi-metodologiaan tai Kahnemanin tiettyyn sivuun/käsitteeseen).
@@ -92,14 +110,19 @@ Tämä on vain kerta-ajo, joten data on ankkuroitava oikeaan maailmaan huolellis
   5. **Tilan tallennus ja Kattava Raportointi:** AI päivittää seurantatiedostoon tilaksi `[OK]`. **Pakollinen Mandaatti-Audit (Loppuraportti):** AI:n on raportoitava EHDOTTOMASTI ALLA OLEVAN EKSPLISIITTISEN TARKISTUSLISTAN AVULLA, miten se on täyttänyt arkkitehtuurimandaatit tässä refaktoroinnissa (jos yksikin näistä 6 kohdasta puuttuu, AI on epäonnistunut tehtävässään):
      - [ ] 1. **Teoriainjektio:** Mitä teoriaa haettiin (search_web) ja miten se injektoitiin väitteisiin.
      - [ ] 2. **Käänteis- ja Lattialogiikka:** Miten käänteislogiikka ja lattialogiikka toteutettiin (ei "puutetta" vaan aktiivinen komissio).
-     - [ ] 3. **Leksikaaliset indikaattorit:** Mitkä leksikaaliset indikaattorit pakotettiin.
-     - [ ] 4. **CoT-perustelu:** Miten CoT-perustelu pakotettiin ennen `exact_quote`-poimintaa.
-     - [ ] 5. **100% kattavuus:** Vahvistus 100% kattavuudesta JSONin Python-skriptauksella.
-     - [ ] 6. **MECE-sääntö (Rule of 3):** Etsittiin kaikki refaktoroidut 'claims' `verify_claims.py` -skriptillä ja raportoitiin niiden lukumäärä vahvistuksena MECE-säännön (tasan 3 kpl/solu) toteutumisesta.
+     - [ ] 3. **Leksikaaliset indikaattorit & Poissulkulistat:** Mitkä leksikaaliset indikaattorit pakotettiin ja **mitkä ylätason termit kiellettiin (Anti-Proxies)**.
+     - [ ] 4. **Bounty Hunter -paradigma:** Vahvistus, että kaikki johdonmukaisuutta vaativat säännöt on käännetty `inverse_evidence: true` -tuhoamismoodiin.
+     - [ ] 5. **Boolean Integrity:** Vahvistus, että säännöistä on siivottu kaikki kaksoiskiellot ja monimutkaiset AND/OR -portit.
+     - [ ] 6. **CoT-perustelu:** Miten CoT-perustelu pakotettiin ennen `exact_quote`-poimintaa.
+     - [ ] 7. **100% kattavuus:** Vahvistus 100% kattavuudesta JSONin Python-skriptauksella.
+     - [ ] 8. **MECE-sääntö (Rule of 3):** Etsittiin kaikki refaktoroidut 'claims' `verify_claims.py` -skriptillä ja raportoitiin niiden lukumäärä vahvistuksena MECE-säännön (tasan 3 kpl/solu) toteutumisesta.
      
      Lopuksi AI ohjeistaa ihmistä aina ehdottomasti tällä vakiokomennolla: *"Matriisi valmis. Avaa uusi puhdas chat ja aja komento: `/tier5-resume --target docs/epic/epic51_matrix_tracker.md`"*
 
-### Phase 3: "Raskaan Kognition" -matriisien refaktorointi
+### Phase 2.5: "Haamuvarianssi" (Wobble) -matriisien V3-Kovetus
+* **Tehtävä:** Aiempi analyysi paljasti, että kysymysten satunnaistaminen (Blind Shuffle) aiheuttaa 15 pisteen heittoja, koska 13 matriisin vanhat säännöt vuotavat (niissä on kaksoiskieltoja, liiaksi tulkinnanvaraa tai laajoja johdonmukaisuusvaatimuksia). Nämä 13 matriisia on refaktoroitava uudelleen "Hardened 2.0" -säännöillä (Säännöt 13, 14, 15).
+* **Kohteet (13 matriisia):** `blk_53f3...`, `blk_6b8c...`, `blk_c3bc...`, `blk_f6e2...`, `blk_c580...`, `blk_8073...`, `blk_fb15...`, `blk_ff72...`, `blk_440a...`, `blk_f921...`, `blk_22e3...`, `blk_109d...`, `blk_b476...`.
+* **Toteutus:** Nämä 13 matriisia on merkittävä trackerissä takaisin tilaan `[NOK]` (tai esim. `[NOK-V3]`), vaikka ne olisivat jo aiemmin saaneet `[OK]`. Ne käydään läpi yksi kerrallaan käyttäen nimenomaan yksinapaisia portteja, palkkionmetsästäjä-moodia ja poissulkulistoja.
 * **Tehtävä:** Käydään läpi järjestelmän vaikeimmat matriisit.
 * **Kohteet (esim.):**
   * *Catastrophic Failure / Hubris* (System 1 dominanssi)

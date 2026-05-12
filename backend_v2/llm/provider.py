@@ -138,7 +138,7 @@ class LiteLLMProvider(LLMProvider):
         self.supports_grounding = supports_grounding
 
         import litellm
-        from litellm import Router
+        from litellm import Router  # type: ignore[attr-defined] # External library typing constraint
 
         # litellm general config
         litellm.drop_params = True

@@ -6,6 +6,7 @@ and unstructured `reflection_text` strings into a unified text format for downst
 """
 
 import logging
+import re
 
 from fastapi import status
 from pydantic import TypeAdapter, ValidationError
@@ -154,7 +155,10 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 # Format to Markdown instead of raw JSON to prevent \n escaping in LLM prompt
                 chat_lines = []
                 for turn in chat_dto.conversation:
-                    chat_lines.append(f"**{turn.role}**: {turn.content}")
+                    # Deterministic Normalization: Crush all whitespace/newlines into single spaces
+                    # This eliminates MoE tokenization variance caused by formatting differences.
+                    cleaned_content = re.sub(r'\s+', ' ', turn.content).strip()
+                    chat_lines.append(f"**{turn.role}**: {cleaned_content}")
                 resolved_text = "\n\n".join(chat_lines)
 
                 logger.info("[InputProcessingHook] Successfully structured %s via ChatParser (Markdown).", key)

@@ -277,7 +277,7 @@ class _I18nTextFieldState extends State<I18nTextField> {
                 fillColor: Theme.of(context).colorScheme.surface,
               ),
               minLines: 1,
-              maxLines: 5,
+              maxLines: null,
             ),
             if (_translationControllers.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -355,7 +355,7 @@ class _I18nTextFieldState extends State<I18nTextField> {
                             contentPadding: EdgeInsets.zero,
                           ),
                           minLines: 1,
-                          maxLines: 5,
+                          maxLines: null,
                         ),
                       ],
                     ),

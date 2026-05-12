@@ -19,6 +19,7 @@ class OpenAIFunctionCallDTO(V2CoreBase):
 
 
 class OpenAIToolCallDTO(V2CoreBase):
+    index: int | None = None
     id: str
     type: str = "function"
     function: OpenAIFunctionCallDTO

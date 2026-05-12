@@ -9,7 +9,7 @@ abstract class I18nText with _$I18nText {
   const I18nText._();
 
   const factory I18nText({
-    @Default('en') String defaultLocale,
+    @JsonKey(name: 'default_locale') @Default('en') String defaultLocale,
     @Default({'en': ''}) Map<String, String> translations,
   }) = _I18nText;
 

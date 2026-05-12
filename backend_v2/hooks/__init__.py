@@ -1,12 +1,13 @@
 """Legacy and Active hook definitions for the AI Orchestrator."""
 
 # Initialize all hooks to trigger the @hook_registry.register decorators
-from . import (
+from . import (  # pragma: no cover
     archival,
     atom_flattening,
     hydration,
     input_processing,
     integrity,
+    interaction_hook,
     linguistics,
     llm,
     metadata,
@@ -20,12 +21,13 @@ from . import (
     validation,
 )
 
-__all__ = [
+__all__ = [  # pragma: no cover
     "archival",
     "atom_flattening",
     "hydration",
     "input_processing",
     "integrity",
+    "interaction_hook",
     "linguistics",
     "llm",
     "metrics",

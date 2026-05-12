@@ -88,13 +88,38 @@ class XAIExtensionsBox extends ConsumerWidget {
             final extKey = entry.key;
             final extItems = entry.value;
 
+            Color cardBgColor = colorScheme.secondaryContainer;
+            Color cardBorderColor = colorScheme.secondary;
+
+            switch (extKey) {
+              case 'falsification':
+              case 'risk_flag':
+                cardBgColor = colorScheme.errorContainer;
+                cardBorderColor = colorScheme.error;
+                break;
+              case 'coaching':
+              case 'remediation_steps':
+                cardBgColor = const Color(0xFFE8F5E9);
+                cardBorderColor = const Color(0xFF2E7D32);
+                break;
+              case 'justification':
+              case 'theory_link':
+                cardBgColor = colorScheme.primaryContainer;
+                cardBorderColor = colorScheme.primary;
+                break;
+              case 'missing_context':
+                cardBgColor = const Color(0xFFFFF3E0);
+                cardBorderColor = const Color(0xFFE65100);
+                break;
+            }
+
             return Card(
               elevation: 4,
               margin: const EdgeInsets.only(bottom: 16.0),
-              color: colorScheme.secondaryContainer,
+              color: cardBgColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: colorScheme.primary, width: 1.5),
+                side: BorderSide(color: cardBorderColor, width: 1.5),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -151,12 +176,8 @@ class XAIExtensionsBox extends ConsumerWidget {
                               val['content']?.toString() ?? displayContent;
                           final colorTheme =
                               val['color_theme']?.toString() ?? 'info';
-                          final iconName =
-                              val['icon_name']?.toString() ?? 'info';
-
                           Color bgColor = theme.colorScheme.primaryContainer;
                           Color fgColor = theme.colorScheme.onPrimaryContainer;
-                          IconData innerIcon = Icons.info_outline;
 
                           switch (colorTheme) {
                             case 'danger':
@@ -177,15 +198,6 @@ class XAIExtensionsBox extends ConsumerWidget {
                               fgColor = theme.colorScheme.onSecondaryContainer;
                           }
 
-                          if (iconName == 'warning' || iconName == 'alert')
-                            innerIcon = Icons.warning_amber_rounded;
-                          if (iconName == 'check' || iconName == 'success')
-                            innerIcon = Icons.check_circle_outline;
-                          if (iconName == 'lightbulb' || iconName == 'idea')
-                            innerIcon = Icons.lightbulb_outline;
-                          if (iconName == 'psychology' || iconName == 'brain')
-                            innerIcon = Icons.psychology;
-
                           return Container(
                             padding: const EdgeInsets.all(12.0),
                             decoration: BoxDecoration(
@@ -195,22 +207,13 @@ class XAIExtensionsBox extends ConsumerWidget {
                                 left: BorderSide(color: fgColor, width: 4.0),
                               ),
                             ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(innerIcon, color: fgColor, size: 20),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    content,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: theme.colorScheme.onSurface,
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              content,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: theme.colorScheme.onSurface,
+                                height: 1.4,
+                              ),
                             ),
                           );
                         }

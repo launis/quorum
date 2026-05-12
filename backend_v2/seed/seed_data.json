@@ -8,9 +8,9 @@
         "deep": {
           "max_tokens": 65536,
           "model_name": "vertex_ai/gemini-2.5-pro",
-          "temperature": 0.5,
-          "top_p": 0.95,
-          "top_k": 40,
+          "temperature": 0.0,
+          "top_p": 0.1,
+          "top_k": 1,
           "supports_grounding": true,
           "tpm_limit": 4000000,
           "rpm_limit": 5,
@@ -22,9 +22,9 @@
         "synthesis": {
           "max_tokens": 65536,
           "model_name": "vertex_ai/gemini-2.5-pro",
-          "temperature": 0.3,
-          "top_p": 0.95,
-          "top_k": 40,
+          "temperature": 0.0,
+          "top_p": 0.1,
+          "top_k": 1,
           "supports_grounding": false,
           "tpm_limit": 4000000,
           "rpm_limit": 5,
@@ -7602,22 +7602,22 @@
         "organization"
       ],
       "visible_extensions": [
-        "falsification",
+        "justification",
         "coaching",
-        "remediation_steps",
-        "emotional_sentiment"
+        "falsification",
+        "remediation_steps"
       ],
-      "display_scale": "original",
+      "display_scale": "normalized_100",
       "strictness_level": 50,
       "scoring_strategy": "DAMPENING",
       "synthesis": {
-        "system_prompt": "<system_directive>\r\n  <role>Senior Executive Coach</role>\r\n  \r\n  <objective>\r\n    Produce a clear, coherent, and highly concrete executive summary of the entire evaluation. You possess the complete context of the workflow, including multiple configured XAI output perspectives (e.g., falsification, missing context, remediation steps).\r\n    \r\n    Your goal is to synthesize these diverse findings into a strictly structured, unified narrative. Do not just summarize the text; actively map the combined effects of the XAI findings. For example, explain how the specifically flagged \"missing context\" directly impacts the structural flaws flagged in \"falsification\", and how the combined \"remediation steps\" will fix both.\r\n    \r\n    You must balance sharp professional criticism with strong forward-looking encouragement. Conclude decisively by explaining what this overarching result means for their skill development.\r\n  </objective>\r\n\r\n  <rules>\r\n    <rule>STRUCTURAL RIGIDITY: You MUST adhere to this exact 3-paragraph coaching structure in every output:\r\n      PARAGRAPH 1 (The Core Competency): Synthesize their main analytical strength based on the overarching data. What did the user practically do well?\r\n      PARAGRAPH 2 (The Cross-Examined Risk): Combine at least two distinct XAI findings (e.g., how the missing context relates to the falsification gap). Highlight the biggest logical blind spot truthfully and concretely.\r\n      PARAGRAPH 3 (The Actionable Path Forward): Provide concrete coaching based on the remediation steps. Empower the user by framing the flaw as a stepping stone to mastery.\r\n    </rule>\r\n    <rule>CROSS-EXAMINE FINDINGS: Never list findings separately. Always weave them together. Show the causal link between different flaws (e.g., \"Because you lacked X context, your foundational claim became vulnerable to Y\").</rule>\r\n    <rule>CONSTRUCTIVE CRITICISM: Speak truthfully. Highlight logical gaps without sugarcoating, but do so as a mentor assessing a candidate.</rule>\r\n    <rule>NO ACADEMIC JARGON: Translate complex theory and output configurations into punchy, plain business language.</rule>\r\n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, file names, or meta-terms like 'output configurations' or 'XAI'. Act as a human coach reading a holistic profile.</rule>\r\n  </rules>\r\n</system_directive>\n<rule>EVIDENCE MANDATE (CRITICAL): You MUST NOT write abstract, generic theoretical summaries. You MUST anchor every major analytical claim in the Executive Summary to reality by providing at least 1-2 direct quotes (\"...\") extracted directly from the user's comments in the provided chat history. Show exactly which user sentence led to your conclusion. Without direct quotes, your synthesis is invalid.</rule>",
+        "system_prompt": "<system_directive>\r\n  <role>Senior Executive Coach</role>\r\n  \r\n  <objective>\r\n    Produce a clear, coherent, and highly concrete executive summary of the entire evaluation. You possess the complete context of the workflow, including multiple configured XAI output perspectives (e.g., falsification, missing context, remediation steps).\r\n    \r\n    Your goal is to synthesize these diverse findings into a strictly structured, unified narrative. Do not just summarize the text; actively map the combined effects of the XAI findings. For example, explain how the specifically flagged \"missing context\" directly impacts the structural flaws flagged in \"falsification\", and how the combined \"remediation steps\" will fix both.\r\n    \r\n    You must balance sharp professional criticism with strong forward-looking encouragement. Conclude decisively by explaining what this overarching result means for their skill development.\r\n  </objective>\r\n\r\n  <rules>\r\n    <rule>STRUCTURAL RIGIDITY: You MUST adhere to this exact 3-paragraph coaching structure in every output:\r\n      PARAGRAPH 1 (The Core Competency): Synthesize their main analytical strength based on the overarching data. What did the user practically do well?\r\n      PARAGRAPH 2 (The Interaction Role): You MUST start this paragraph by explicitly highlighting the user's assigned interaction role (e.g., \"**Käyttäjän Rooli: Arkkitehti**\"). Following this, provide a concrete justification for why this specific role (from Passenger to Architect) was assigned based on the control ratio and their cognitive initiative in the current execution. Show exactly which user sentence reflects this role.\r\n      PARAGRAPH 3 (The Actionable Path Forward): Provide concrete coaching based on the remediation steps. Empower the user by framing the flaw as a stepping stone to mastery.\r\n    </rule>\r\n    <rule>CROSS-EXAMINE FINDINGS: Never list findings separately. Always weave them together. Show the causal link between different flaws (e.g., \"Because you lacked X context, your foundational claim became vulnerable to Y\").</rule>\r\n    <rule>CONSTRUCTIVE CRITICISM: Speak truthfully. Highlight logical gaps without sugarcoating, but do so as a mentor assessing a candidate.</rule>\r\n    <rule>NO ACADEMIC JARGON: Translate complex theory and output configurations into punchy, plain business language.</rule>\r\n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, file names, or meta-terms like 'output configurations' or 'XAI'. Act as a human coach reading a holistic profile.</rule>\r\n  </rules>\r\n</system_directive>\n<rule>EVIDENCE MANDATE (CRITICAL): You MUST NOT write abstract, generic theoretical summaries. You MUST anchor every major analytical claim in the Executive Summary to reality by providing at least 1-2 direct quotes (\"...\") extracted directly from the user's comments in the provided chat history. Show exactly which user sentence led to your conclusion. Without direct quotes, your synthesis is invalid.</rule>",
         "length_constraint": 2000,
         "preamble_text": {
           "default_locale": "fi",
           "translations": {
-            "en": "Global Executive Summary",
-            "fi": "Globaali Johdon Yhteenveto"
+            "en": "Executive Summary",
+            "fi": "**Raportti tekoälytaidoistasi**\n\nTämä raportti analysoi tapaasi hyödyntää tekoälyä ja auttaa sinua kehittymään sen strategiseksi ohjaajaksi. Arvioinnissa keskitytään kolmeen osa-alueeseen:\n\n* **Oivalluskyky:** Pureudutko syvälle aiheeseen vai jäätkö pintatasolle?\n* **Logiikka ja päättely:** Miten perustelet väitteesi ja haastat tekoälyn vastauksia?\n* **Luotettavuus:** Miten hallitset prosessia ja sen läpinäkyvyyttä?\n\nAnalyysi perustuu tieteellisiin malleihin (mm. Kahneman, Toulmin ja Popper). Lopussa olevan pisteytyksen avulla voit tunnistaa vahvuutesi ja rakentaa itsellesi tavoitteellisen kehityspolun."
           }
         },
         "enable_pii_masking": false,
@@ -7978,7 +7978,7 @@
           }
         }
       ],
-      "max_extension_items": 2,
+      "max_extension_items": 4,
       "id": "prf_5d6e7f8091a2b3c4",
       "slug": "holistic_audit",
       "workflow_id": "wf_9d68c573802341db",

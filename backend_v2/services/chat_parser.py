@@ -79,8 +79,8 @@ class ChatParserService:
 
         # Initialize LLM Client via Strategy Pattern
         try:
-            # Note: The system model_registry must have a 'fast' (or alias) strategy defined.
-            llm_client = await LLMClient.from_strategy("fast", repository=system_repo)
+            # Note: The system model_registry must have a 'precise' (or alias) strategy defined.
+            llm_client = await LLMClient.from_strategy("precise", repository=system_repo)
             executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
         except ConfigurationError as e:
             error_code = ErrorCodes.CONFIGURATION_ERROR
