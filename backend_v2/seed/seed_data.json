@@ -580,8 +580,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of mechanical recall where facts are repeated without synthesis.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c8f6870b78004f17",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of mechanical recall. Look for simple statements of fact without explanatory context. Document the lack of synthesis in reasoning_trace before extracting the verbatim statement.",
+                  "tda_id": "tda_7225f3a3fd3a4b65",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of mechanical recall. Look for simple factual statements that lack any 'because' or 'therefore' structural bridges. ENFORCEMENT RULE: Document the exact rote fact in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept text that attempts to explain the 'why' (synthesis) of the fact.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -598,8 +598,8 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where facts are dumped abruptly without contextual framing.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_12f6e1334ada58ad",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an instance where data or facts are stated abruptly without any contextual framing or logical bridge to the main topic. Explain why this is a 'contextless dump' in reasoning_trace before extracting.",
+                  "tda_id": "tda_c489292f2bc3465d",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a single sentence where a raw fact is dumped abruptly without any contextual framing. Look for sudden topic shifts without lexical transitions. ENFORCEMENT RULE: Explain the missing logical bridge in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept facts that are introduced with proper narrative framing.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -616,8 +616,8 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT an assertion presented as an absolute fact without source criticism.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_4801cbdfafe0a3ca",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT an assertion regurgitated as 100% absolute fact without source criticism or epistemological humility. Look for hubris indicators like 'it is a fact that'. Document the overconfidence in reasoning_trace before quoting.",
+                  "tda_id": "tda_db333a7a20d14814",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT an assertion presented as 100% absolute fact without source criticism. Look for hubris markers (e.g., 'it is a fact that', 'always', 'everyone knows'). ENFORCEMENT RULE: Document the overconfidence in reasoning_trace before quoting. BANNED CONCEPTS: Do not accept mathematically proven theorems.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -647,8 +647,8 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence that the author can paraphrase or summarize the original information.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_d970b449767134c7",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND evidence that the author can paraphrase or summarize information rather than quoting verbatim. Document the semantic shift in reasoning_trace before extracting the summarized text.",
+                  "tda_id": "tda_a3bf70ff15f54642",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND evidence that the author can paraphrase original information. Look for lexical markers of reformulation (e.g., 'in other words', 'this means that'). ENFORCEMENT RULE: Document the semantic shift in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept verbatim copy-pasting of definitions.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -665,8 +665,8 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE a superficial explanation where concepts are listed but deeper connections are ignored.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_a06460481fa1978a",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an instance where multiple concepts are mentioned but the author actively ignores underlying causal connections (e.g., using 'and' instead of 'because'). Document this superficial treatment in reasoning_trace before extracting.",
+                  "tda_id": "tda_75fc45d7e1fe436b",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE an instance where multiple concepts are listed (using 'and', 'also') but the author actively ignores underlying causal connections. ENFORCEMENT RULE: Explain the missing causal link in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept complex causal analysis.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -683,8 +683,8 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT a statement that oversimplifies a complex concept into a binary view.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_7086f2fda3feed0c",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT a statement that actively reduces a complex nuance into a dangerous oversimplification. Look for reductive phrases. Explain the lost nuance in reasoning_trace before extracting the reductive quote.",
+                  "tda_id": "tda_6e45a9eea94f4bf0",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE an instance where multiple concepts are listed (using 'and', 'also') but the author actively ignores underlying causal connections. ENFORCEMENT RULE: Explain the missing causal link in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept complex causal analysis.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -714,8 +714,8 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where an abstract concept is explicitly applied to a concrete scenario.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_1135a803dd8d5515",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an instance where an abstract concept is explicitly applied to a concrete, real-world scenario. Map the concept-to-scenario bridge in reasoning_trace before extracting the application text.",
+                  "tda_id": "tda_152963c0cd6946b4",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an instance where an abstract concept is explicitly applied to a concrete, real-world scenario. Look for application markers (e.g., 'in practice', 'applying this to'). ENFORCEMENT RULE: Map the concept-to-scenario bridge in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept purely theoretical analogies without actionable context.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -732,8 +732,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a rigid application of a rule where the author executes a process mechanically.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_72a379c428eb36b4",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY a rigid, mechanistic application of a rule where the author forces a framework onto a problem without evaluating its suitability. Document the forced fit in reasoning_trace before extracting.",
+                  "tda_id": "tda_9297885389cf45bf",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): IDENTIFY a rigid, mechanistic application where a framework is forced onto a problem without evaluating its suitability. Look for blind procedural language. ENFORCEMENT RULE: Document the forced fit in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept justifiable adherence to safety or compliance protocols.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -750,8 +750,8 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT a claim where a single method is pushed while alternative approaches are ignored.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_243df462a1c5797b",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT a claim where a single method is pushed as the only solution while obvious alternative approaches are actively excluded. Document the tunnel vision in reasoning_trace before extracting.",
+                  "tda_id": "tda_a65da3baaa8d4ef7",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a claim where a single method is pushed as the 'only' solution (tunnel vision) while obvious alternatives are ignored. ENFORCEMENT RULE: Document the excluded alternatives in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept solutions that have explicitly evaluated and dismissed alternatives.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -781,8 +781,8 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND an explicit structural breakdown where a complex whole is divided into parts.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_9b53ed95f7a8f1aa",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND an explicit structural breakdown where a complex whole is divided into its constituent parts for analysis. Look for structural markers like 'consists of'. Document the deconstruction in reasoning_trace before extracting.",
+                  "tda_id": "tda_c43193285e3d4a2f",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND an explicit structural breakdown where a complex whole is divided into its constituent parts. Look for structural markers (e.g., 'consists of', 'can be divided into'). ENFORCEMENT RULE: Document the deconstruction in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept simple bullet-point lists of features without systemic relation.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -799,8 +799,8 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an analysis that explicitly reveals hidden patterns or assumptions.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_014fdd9d6eb3e8ac",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an analysis that explicitly reveals hidden patterns, causal links, or foundational assumptions. Map the revealed structure in reasoning_trace before extracting the insight.",
+                  "tda_id": "tda_bb2616480add4201",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an analysis that explicitly reveals hidden patterns or foundational assumptions. Look for revelation markers (e.g., 'underlying this is', 'the root cause is'). ENFORCEMENT RULE: Map the revealed structure in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept superficial observations of symptoms.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -817,8 +817,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY an analysis that treats its own analytical framework as unquestionable.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_e14c02ecb69af4ca",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY an analysis that structurally breaks down data but treats its own analytical framework as absolute truth. Look for phrases indicating an inability to see outside the framework. Document this rigidity in reasoning_trace before extracting.",
+                  "tda_id": "tda_5370525dc4c143a4",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): IDENTIFY a sentence that structurally breaks down data but treats its own analytical framework as absolute, unquestionable truth. ENFORCEMENT RULE: Document this framework-rigidity in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept analyses that acknowledge the limitations of their own models.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -848,8 +848,8 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE a defensible judgment that critiques the validity of an idea.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_975339543b399f54",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE a defensible judgment that explicitly critiques the validity, quality, or utility of an idea based on logic. Look for evaluative markers. Document the criteria in reasoning_trace before extracting.",
+                  "tda_id": "tda_ac8bd6f6573c4e87",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE a defensible judgment that explicitly critiques the validity or utility of an idea. Look for evaluative markers (e.g., 'falls short because', 'is highly effective due to'). ENFORCEMENT RULE: Document the logic in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept subjective opinions ('I feel', 'I think').",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -866,8 +866,8 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence where the evaluation is tethered to stated criteria.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_22328b76e4cbe1e5",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND evidence where the evaluation is strictly tethered to stated criteria (e.g., efficiency, accuracy) rather than subjective opinion. Map the anchor in reasoning_trace before extracting.",
+                  "tda_id": "tda_eeac39e73164468e",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND evidence where the evaluation is strictly tethered to stated criteria (e.g., 'measured against efficiency'). ENFORCEMENT RULE: Map the anchor criteria in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept evaluations based on unstated or shifting goalposts.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -884,8 +884,8 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT an evaluation that delivers a final verdict without dismantling opposing views.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_64015c207939a339",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT an evaluation that delivers a verdict but acts merely as a judge, completely failing to act as their own prosecutor to dismantle limitations constructively. Document the lack of dialectical balance in reasoning_trace before extracting.",
+                  "tda_id": "tda_3e8b25b3f697450d",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT an evaluation that delivers a final verdict but acts merely as a judge, failing to act as a prosecutor to dismantle limitations. Look for one-sided praise or condemnation. ENFORCEMENT RULE: Document the lack of dialectical balance in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept balanced verdicts that weigh both sides.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -915,8 +915,8 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE the synthesis of disparate elements into a completely novel hypothesis.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_3961d65051f3ae3d",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE the explicit synthesis of disparate elements into a completely novel, logically sound framework or hypothesis. Document the components of this synthesis in reasoning_trace before extracting.",
+                  "tda_id": "tda_fecdfaa15dfc4157",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE the explicit synthesis of disparate elements into a completely novel, logically sound framework. Look for synthesis markers (e.g., 'combining X and Y creates a new approach'). ENFORCEMENT RULE: Document the components of this synthesis in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept mere combinations of existing ideas without a novel theoretical leap.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -933,8 +933,8 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND explicit step-by-step documentation of the reasoning process for the synthesis.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_0a6ece8ad3cb37fd",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND explicit step-by-step documentation of the cognitive friction-the 'how' and 'why' alternative structures were discarded in favor of the new synthesis. Map this deliberate System 2 friction in reasoning_trace before extracting.",
+                  "tda_id": "tda_3d870075d8df49b3",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE the explicit synthesis of disparate elements into a completely novel, logically sound framework. Look for synthesis markers (e.g., 'combining X and Y creates a new approach'). ENFORCEMENT RULE: Document the components of this synthesis in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept mere combinations of existing ideas without a novel theoretical leap.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -951,8 +951,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a novel framework that floats purely in abstraction without anchoring.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_257284264b9acb79",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY a synthesized framework that floats purely in abstraction without any explicit anchoring to concrete expert literature or demonstrable methodology. Document the missing theoretical anchor in reasoning_trace before extracting.",
+                  "tda_id": "tda_f3c8c1a867b84f62",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): IDENTIFY a synthesized framework that floats purely in abstraction without any explicit anchoring to concrete expert literature. ENFORCEMENT RULE: Document the missing theoretical anchor in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept grounded hypotheses that cite valid external precedents.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -976,7 +976,7 @@
       ],
       "scale_min": 1,
       "scale_max": 6,
-      "ai_description": "<system_directive>\n<objective>Evaluate the cognitive depth and intellectual complexity using the Revised Bloom's Taxonomy (Anderson & Krathwohl, 2001).</objective>\n<epistemic_anchor>Anderson, L. W., & Krathwohl, D. R. (2001). A Taxonomy for Learning, Teaching, and Assessing. Measures progression from passive regurgitation (Remembering) through functional application to highest-order synthesis (Creating). True cognitive depth requires explicit demonstration of the required cognitive operation, not assumed competence.</epistemic_anchor>\n<rules>\n<rule>Enforce the Null Hypothesis: Assume rote memorization or AI hallucination unless explicit structural evidence (e.g., semantic friction, synthesis) is present.</rule>\n</rules>\n</system_directive>",
+      "ai_description": "<system_directive>\n<objective>Evaluate the cognitive depth and intellectual complexity using the Revised Bloom's Taxonomy (Anderson & Krathwohl, 2001).</objective>\n<epistemic_anchor>Anderson, L. W., & Krathwohl, D. R. (2001). A Taxonomy for Learning, Teaching, and Assessing. Measures progression from passive regurgitation (Remembering) through functional application to highest-order synthesis (Creating). True cognitive depth requires explicit demonstration of the required cognitive operation, not assumed competence.</epistemic_anchor>\n<rules>\n<rule>Bounty Hunter Paradigm: In FATAL FLAW directives, do not prove consistency. Find ONE occurrence of the described anti-pattern.</rule>\n<rule>Strict Boolean Logic: Evaluate claims as single-pole facts. Ignore complex AND/OR evaluations.</rule>\n<rule>Enforce the Null Hypothesis: Assume rote memorization or AI hallucination unless explicit structural evidence (e.g., semantic friction, synthesis) is present.</rule>\n</rules>\n</system_directive>",
       "slug": "matrix_bloom",
       "output_extensions": [
         "justification",
@@ -1032,10 +1032,10 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of unexamined System 1 thinking. The output is instantaneous, automatic, and lacks analytical depth.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k1_1",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of unexamined System 1 thinking. Look for instantaneous or automatic conclusions without analytical depth. Document the lack of self-correction in reasoning_trace before extracting.",
-                  "inverse_evidence": false,
-                  "aggregation_mode": "ALL_MUST_COMPLY"
+                  "tda_id": "tda_07fa8604e05e4103",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE an instance of unexamined System 1 thinking where an automatic or instantaneous conclusion is drawn without any analytical depth. Look for immediate leaps to conclusions. ENFORCEMENT RULE: Document the lack of self-correction in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept conclusions that are supported by systematic breakdown.",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS"
                 }
               ]
             },
@@ -1050,8 +1050,8 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT evidence of cognitive biases or mental shortcuts.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k1_2",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT evidence of cognitive biases (confirmation bias, halo effect) or 'What You See Is All There Is' (WYSIATI) heuristic leaps. Document the detected bias in reasoning_trace before extracting the biased statement.",
+                  "tda_id": "tda_3f5f304a41284429",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT evidence of cognitive biases (e.g., confirmation bias, halo effect) or 'What You See Is All There Is' (WYSIATI) heuristic leaps. ENFORCEMENT RULE: Document the detected bias in reasoning_trace before extracting the biased statement. BANNED CONCEPTS: Do not accept legitimate inductive reasoning based on robust statistical data.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -1068,8 +1068,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY subjective views or initial reactions presented as absolute truth.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k1_3",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY subjective views, initial reactions, or lazy extrapolations presented as absolute truth without epistemological humility. Document the hubris in reasoning_trace before extracting.",
+                  "tda_id": "tda_f02628772b0740db",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): IDENTIFY subjective views, initial reactions, or lazy extrapolations presented as absolute truth without epistemological humility. ENFORCEMENT RULE: Document the hubris in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept statements that explicitly acknowledge their own limitations or uncertainties.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -1099,10 +1099,10 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND a weak or performative attempt to engage System 2 by questioning intuition.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k2_1",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND a weak, perhaps merely performative, attempt to engage System 2. The author questions intuition but fails to fully override System 1 defaults, resulting in superficial analysis. Map the incomplete transition in reasoning_trace before extracting.",
-                  "inverse_evidence": false,
-                  "aggregation_mode": "ALL_MUST_COMPLY"
+                  "tda_id": "tda_e86ac17156dd4600",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): FIND a weak or performative attempt to engage System 2 where the author questions intuition but fails to fully override System 1 defaults, resulting in a superficial analysis. ENFORCEMENT RULE: Map the incomplete transition in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept successful, deep analytical overrides of initial intuition.",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS"
                 }
               ]
             },
@@ -1117,8 +1117,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a one-sided argument that fails to systematically address alternative hypotheses.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k2_2",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY a one-sided argument that fails to systematically address alternative hypotheses. Lack of epistemological humility prevents progression. Document the missing alternatives in reasoning_trace before extracting.",
+                  "tda_id": "tda_a13a95cf3d544dc0",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): IDENTIFY a one-sided argument that fails to systematically address alternative hypotheses. ENFORCEMENT RULE: Document the missing alternatives in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept arguments that systematically weigh multiple hypotheses.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -1135,8 +1135,8 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT an instance where the text actively ignores or dismisses rebuttals.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k2_3",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT an instance where the text does not anticipate and engage with opposing arguments (rebuttals). Explain how counterarguments were ignored in reasoning_trace before extracting.",
+                  "tda_id": "tda_0e928b1caea14816",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT an instance where the text explicitly ignores or superficially dismisses opposing arguments (rebuttals) without engaging them logically. ENFORCEMENT RULE: Explain how counterarguments were ignored in reasoning_trace before extracting. BANNED CONCEPTS: Do not flag texts that thoroughly address and dismantle counterarguments.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -1166,8 +1166,8 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE where the response systematically deconstructs the problem, explicitly overriding initial intuitions.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k3_1",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE where the response systematically deconstructs the problem, consciously overriding initial intuitions and evaluating evidence with strict logical rigor. Map the cognitive friction ('how' and 'why') in reasoning_trace before extracting.",
+                  "tda_id": "tda_80d5dd4e0f194bc9",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE where the response systematically deconstructs the problem, explicitly overriding initial intuitions and evaluating evidence with strict logical rigor. ENFORCEMENT RULE: Map the cognitive friction ('how' and 'why') in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept superficial or rote systematic breakdowns that lack genuine cognitive friction.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -1184,8 +1184,8 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence of the author acting as a prosecutor against their own ideas and thoughtfully engaging rebuttals.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k3_2",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT thoughtful identification of and response to rebuttals. The author acts as an antagonistic prosecutor against their own ideas, dismantling biases and engaging opposing arguments. Explain the dialectical synthesis in reasoning_trace before extracting.",
+                  "tda_id": "tda_0aa8f1bcfb80490e",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT evidence where the author thoughtfully identifies and responds to rebuttals by acting as an antagonistic prosecutor against their own ideas. ENFORCEMENT RULE: Explain the dialectical synthesis in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept weak rebuttals that are easily knocked down (strawman arguments).",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -1202,8 +1202,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the structured logic is explicitly tethered to external expert references.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k3_3",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY where the structured logic is explicitly tethered to external, verifiable expert references or data. True System 2 processing does not operate in a vacuum. Document the external anchor in reasoning_trace before extracting.",
+                  "tda_id": "tda_b0fd17beffb74010",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY where the structured logic is explicitly tethered to external, verifiable expert references or data. ENFORCEMENT RULE: Document the external anchor in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept generic appeals to authority or unverified 'common knowledge'.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -1227,7 +1227,7 @@
       ],
       "scale_min": 1,
       "scale_max": 3,
-      "ai_description": "<system_directive>\n<objective>Evaluate the cognitive mode of operation using Kahneman's Dual Process Theory.</objective>\n<epistemic_anchor>Kahneman, D. (2011). Thinking, Fast and Slow. Analyzes cognitive operations: System 1 operates automatically and quickly, with little or no effort and no sense of voluntary control (heuristics, WYSIATI, biases). System 2 allocates attention to the effortful mental activities that demand it, including complex computations, critical thinking, and conscious deliberation.</epistemic_anchor>\n<rules>\n<rule>Enforce the Null Hypothesis: Assume the text is a product of intellectually lazy, heuristic-driven System 1 thinking or automated generation. True System 2 requires documented cognitive friction and explicit source anchoring.</rule>\n</rules>\n</system_directive>",
+      "ai_description": "<system_directive>\n<objective>Evaluate the cognitive mode of operation using Kahneman's Dual Process Theory.</objective>\n<epistemic_anchor>Kahneman, D. (2011). Thinking, Fast and Slow. Analyzes cognitive operations: System 1 operates automatically and quickly, with little or no effort and no sense of voluntary control (heuristics, WYSIATI, biases). System 2 allocates attention to the effortful mental activities that demand it, including complex computations, critical thinking, and conscious deliberation.</epistemic_anchor>\n<rules>\n<rule>Bounty Hunter Paradigm: In FATAL FLAW directives, do not prove consistency. Find ONE occurrence of the described anti-pattern.</rule>\n<rule>Strict Boolean Logic: Evaluate claims as single-pole facts. Ignore complex AND/OR evaluations.</rule>\n<rule>Enforce the Null Hypothesis: Assume the text is a product of intellectually lazy, heuristic-driven System 1 thinking or automated generation. True System 2 requires documented cognitive friction and explicit source anchoring.</rule>\n</rules>\n</system_directive>",
       "slug": "matrix_kahneman",
       "output_extensions": [
         "justification",
