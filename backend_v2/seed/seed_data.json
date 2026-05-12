@@ -196,8 +196,8 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an assertive claim that is presented entirely without supporting Data or evidence.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_92efe51da198409b",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an assertive claim that is presented entirely without supporting Data or evidence. Example of failure: 'This approach is the best.' (No 'because' or 'since'). ENFORCEMENT RULE: Document the missing grounds in reasoning_trace before extracting the unsupported claim.",
+                  "tda_id": "tda_b1c2d3e4f5a6b7c8",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author states a subjective opinion or policy as an absolute fact without linking it to any empirical data. Look for dogmatic markers (e.g., 'is the best', 'must be done', 'is the only way' or their equivalents in the document's native language). ENFORCEMENT RULE: Document the missing empirical data in reasoning_trace before extracting the unsupported claim.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -214,8 +214,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a logical leap where Data is presented, but there is zero logical connection (Warrant) to the Claim.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ae89721a9fa34320",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY a logical leap where Data is presented, but there is zero logical connection (Warrant) to the Claim. Example: 'Sales dropped, so we must rebrand.' Explain the catastrophic logical leap in reasoning_trace, then extract the disjointed sentence.",
+                  "tda_id": "tda_a1b2c3d4e5f6a7b8",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): IDENTIFY a sentence where the author forces a causal link using an abrupt transition (e.g., 'therefore', 'so', 'thus' or their native language equivalents) between two unrelated facts without explaining the underlying mechanism. ENFORCEMENT RULE: Explain the missing logical mechanism in reasoning_trace before extracting the disjointed sentence.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -232,8 +232,8 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT a probabilistic or subjective statement presented as an absolute 100% fact without any Qualifiers.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_aa58bdbf1b20486b",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT a probabilistic or subjective statement presented as an absolute 100% fact without any Qualifiers. Look for Hubris indicators like 'guaranteed', 'undoubtedly', or 'always'. Document the epistemological overreach in reasoning_trace before quoting.",
+                  "tda_id": "tda_f1e2d3c4b5a69012",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a sentence that uses absolute terms (e.g., 'guaranteed', 'undoubtedly', 'always', '100%' or native language equivalents) to describe a future prediction or subjective assessment. BANNED CONCEPTS: Do not flag mathematical or historical truths. ENFORCEMENT RULE: Document the epistemological hubris in reasoning_trace before quoting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -263,8 +263,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of a Claim and some supporting Data.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_38d847d1f4f94031",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of a Claim and some supporting Data. Look for basic causal pairs (e.g., 'X happened because of Y' in the native language). Document the explicit Claim-Data linkage in reasoning_trace before extracting the quote.",
+                  "tda_id": "tda_7a8b9c0d1e2f3a4b",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of a causal pair where a claim is linked to data. Look for basic causal connectors (e.g., 'because', 'due to', 'since' or native equivalents). BANNED CONCEPTS: Do not accept simple chronological sequences. ENFORCEMENT RULE: Map the Claim-Data linkage in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -281,8 +281,8 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where the provided Data is logically disconnected or objectively too weak to support the Claim.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_a46db173478a412f",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an instance where the provided Data is logically disconnected or objectively too weak to support the Claim. Example: Using an isolated anecdote to prove a systemic rule. Detail the inadequacy of the evidence in reasoning_trace before extracting the flaw.",
+                  "tda_id": "tda_5f6e7d8c9b0a1f2e",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE an instance where the author uses a single isolated anecdote or personal experience (e.g., 'I once saw', 'in my experience' or native equivalents) to justify a broad systemic rule or policy. ENFORCEMENT RULE: Detail the inadequacy of the statistical sample in reasoning_trace before extracting the flaw.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -299,8 +299,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a one-sided argument that completely ignores obvious counter-arguments or limitations.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_a9d9e1aba0534f6a",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY a one-sided argument that completely ignores obvious counter-arguments or limitations. Look for absolute declarations in complex scenarios. Document the omitted alternative perspective in reasoning_trace before extracting the dogmatic claim.",
+                  "tda_id": "tda_1122334455667788",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): IDENTIFY a sentence where the author explicitly dismisses complexity or opposing views with a thought-terminating cliché (e.g., 'it is simply a matter of', 'there is no alternative', 'period' or native equivalents). ENFORCEMENT RULE: Document the dismissed complexity in reasoning_trace before extracting the dogmatic claim.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -330,8 +330,8 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND an argument where the Claim and Data are present, and the Warrant exists but remains implicit.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_5ee756b195d84d7c",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND an argument where the Claim and Data are present, and the Warrant (logical bridge) exists but remains implicit or assumed rather than explicitly stated. Map out the assumed Warrant in reasoning_trace before extracting the relevant text.",
+                  "tda_id": "tda_aabbccddeeff0011",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND a sentence that connects Data to a Claim using weak associative language (e.g., 'relates to', 'is associated with', 'impacts' or native equivalents) instead of defining an explicit causal mechanism. ENFORCEMENT RULE: Document the ambiguity of the mechanism in reasoning_trace before extracting the relevant text.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -348,8 +348,8 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where the author mentions a counter-argument but dismisses it superficially without dismantling it.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_e1939074ba9441fc",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an instance where the author mentions a counter-argument (Rebuttal) but dismisses it superficially without dismantling it with Data. Look for dismissive lexical markers like 'although X, it doesn't matter'. Document the superficial dismissal in reasoning_trace before extracting.",
+                  "tda_id": "tda_9988776655443322",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author mentions a counter-argument but dismisses it superficially using rhetorical bypasses (e.g., 'although X is true, it does not matter', 'regardless of' or native equivalents). BANNED CONCEPTS: Do not flag rebuttals that provide counter-data. ENFORCEMENT RULE: Document the superficial dismissal in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -366,8 +366,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a structural weakness where the Warrant is stated but lacks deeper Backing.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_f629e4c475b04e28",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY a structural weakness where the Warrant is stated but lacks deeper Backing (expert consensus, methodology, or systemic proof). Explain why the Warrant requires more foundational support in reasoning_trace before extracting the unsupported logic.",
+                  "tda_id": "tda_deadbeefdeadbeef",
+                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author relies on generic consensus or 'common sense' (e.g., 'as everyone knows', 'it is widely accepted', 'obviously' or native equivalents) as the sole backing for their logical Warrant. ENFORCEMENT RULE: Explain the missing empirical backing in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -397,8 +397,8 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE a robust, explicitly stated Warrant that clearly bridges the Data to the Claim.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_bd20ed490e3e4138",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE a robust, explicitly stated Warrant that clearly bridges the Data to the Claim. Look for lexical indicators like 'given the principle that' or 'this demonstrates that'. Document the structural cohesion in reasoning_trace before extracting the sentence.",
+                  "tda_id": "tda_1a2b3c4d5e6f7a8b",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an explicitly stated Warrant that articulates the underlying rule bridging the Data to the Claim. Look for lexical indicators (e.g., 'given the principle that', 'this demonstrates that mechanism X' or native equivalents). BANNED CONCEPTS: Do not accept simple 'because' statements without a structural rule. ENFORCEMENT RULE: Document the structural rule in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -415,8 +415,8 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND epistemological humility where the author explicitly uses Qualifiers to limit the scope of their Claim.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_0041d73c37a64b29",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND epistemological humility where the author explicitly uses Qualifiers to limit the scope of their Claim. Look for lexical markers like 'probably', 'in most cases', or 'under these conditions'. Document the scoped boundary in reasoning_trace before extracting.",
+                  "tda_id": "tda_cafebabecafebabe",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND epistemological humility where the author defines specific boundaries for their Claim using conditional Qualifiers (e.g., 'under these specific conditions', 'in scenarios where', 'primarily when' or native equivalents). BANNED CONCEPTS: Do not accept vague filler words like 'maybe' or 'perhaps'. ENFORCEMENT RULE: Document the defined boundary in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -433,8 +433,8 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT an instance where the author actively engages with a Rebuttal and systematically addresses it.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_0f635fc9eb944ea6",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT an instance where the author actively engages with a Rebuttal and systematically addresses it. Look for lexical markers of contrast like 'however' or 'despite this'. Document the dialectical synthesis in reasoning_trace before quoting.",
+                  "tda_id": "tda_8badf00d8badf00d",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT an instance where the author engages with a specific Rebuttal and addresses it using empirical counter-data. Look for contrast markers followed by evidence (e.g., 'however, data shows that', 'despite X, the metric Y indicates' or native equivalents). BANNED CONCEPTS: Do not accept rhetorical dismissals. ENFORCEMENT RULE: Document the data-driven synthesis in reasoning_trace before quoting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -464,8 +464,8 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an argument where the Warrant is fortified by explicit Backing from external expert sources.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_95ad81123ed64113",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an argument where the Warrant is fortified by explicit Backing from external expert sources, verifiable methodologies, or systemic literature. Map the connection to the external anchor in reasoning_trace before extracting the quote.",
+                  "tda_id": "tda_c0ffee00c0ffee00",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an argument where the Warrant is explicitly backed by a verifiable external methodology or study. Look for formal citations or methodological references (e.g., 'according to the methodology of', 'based on the study by' or native equivalents). BANNED CONCEPTS: Do not accept vague references like 'research shows'. ENFORCEMENT RULE: Map the external anchor in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -482,8 +482,8 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence of 'System 2' deliberation where the author acts as their own prosecutor.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ba425ecaa6e149a5",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND evidence of 'System 2' deliberation where the author acts as their own prosecutor, deeply evaluating why alternative Claims fail against the Data. Look for complex dialectical reasoning. Document the cognitive friction step-by-step in reasoning_trace before extracting.",
+                  "tda_id": "tda_1234567890abcdef",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND evidence of 'System 2' deliberation where the author explicitly attempts to falsify their own Claim before accepting it. Look for dialectical reasoning (e.g., 'One might argue that X, but testing showed Y because...' or native equivalents). BANNED CONCEPTS: Do not accept simple pros/cons lists. ENFORCEMENT RULE: Document the falsification attempt in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -500,8 +500,8 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT a masterfully constructed Claim-Data-Warrant triad that leaves zero room for logical fallacy.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_50a18c7f936b4319",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT a masterfully constructed Claim-Data-Warrant triad that leaves zero room for logical fallacy. Every component must be explicitly stated. Document the perfect triad mapping in reasoning_trace before extracting the definitive conclusion.",
+                  "tda_id": "tda_fedcba0987654321",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT a sentence where a Claim is supported by empirical Data, and the exact mechanism (Warrant) is defined using precise causal language (e.g., 'which directly causes', 'the mechanism behind this is' or native equivalents). BANNED CONCEPTS: Do not accept claims that lack any of the three Toulmin components explicitly in the text. ENFORCEMENT RULE: Document the perfect triad mapping in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -524,7 +524,7 @@
       ],
       "scale_min": 1,
       "scale_max": 5,
-      "ai_description": "<system_directive>\n<objective>Evaluate the argument's robustness using Stephen Toulmin's Model of Argumentation.</objective>\n<epistemic_anchor>Toulmin, S. E. (2003). The Uses of Argument. Analyzes arguments through 6 components: Claim (conclusion), Data/Grounds (evidence), Warrant (logical bridge), Backing (support for warrant), Qualifier (degree of certainty), and Rebuttal (conditions of exception). Lexical indicators for Warrants include 'since' or 'given that'; Rebuttals use 'unless' or 'despite'.</epistemic_anchor>\n<rules>\n<rule>Enforce the Null Hypothesis: Treat every claim as hallucinated or unsupported until empirical Data and an explicit Warrant are located.</rule>\n</rules>\n</system_directive>",
+      "ai_description": "<system_directive>\n<objective>Evaluate the argument's robustness using Stephen Toulmin's Model of Argumentation.</objective>\n<epistemic_anchor>Toulmin, S. E. (2003). The Uses of Argument. Analyzes arguments through 6 components: Claim (conclusion), Data/Grounds (evidence), Warrant (logical bridge), Backing (support for warrant), Qualifier (degree of certainty), and Rebuttal (conditions of exception). Lexical indicators for Warrants include 'since' or 'given that'; Rebuttals use 'unless' or 'despite'.</epistemic_anchor>\n<rules>\n<rule>Enforce the Null Hypothesis: Treat every claim as hallucinated or unsupported until empirical Data and an explicit Warrant are located.</rule>\n<rule>Bounty Hunter Paradigm: In FATAL FLAW directives, you are not proving consistency. You only need to find ONE sentence that commits the described error to trigger extraction.</rule>\n<rule>Strict Boolean Logic: Evaluate claims as single-pole facts. Ignore complex AND/OR evaluations.</rule>\n</rules>\n</system_directive>",
       "slug": "matrix_toulmin",
       "output_extensions": [
         "justification",

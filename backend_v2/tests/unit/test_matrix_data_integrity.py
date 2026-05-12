@@ -83,7 +83,8 @@ def test_blueprints_have_normalization_hook(db: dict[str, Any]) -> None:
 def test_all_ok_matrices_have_exactly_three_claims(db: dict[str, Any]) -> None:
     """Ensure that all matrices marked as [OK] in the epic tracker have EXACTLY 3 claims per scale."""
     import re
-    tracker_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "docs", "epic", "epic51_matrix_tracker.md")
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    tracker_path = os.path.join(base_dir, "docs", "epic", "epic51_matrix_tracker.md")
     ok_matrices = set()
     if os.path.exists(tracker_path):
         with open(tracker_path, encoding="utf-8") as f:
@@ -92,12 +93,15 @@ def test_all_ok_matrices_have_exactly_three_claims(db: dict[str, Any]) -> None:
                     match = re.search(r'`(blk_[a-f0-9]+)`', line)
                     if match:
                         ok_matrices.add(match.group(1))
-    
+
     for block in db.get("prompt_blocks", []):
         block_id = block.get("id")
         if block_id in ok_matrices:
             scales = block.get("scales", [])
             for scale in scales:
                 claims = scale.get("claims", [])
-                assert len(claims) == 3, f"Matrix {block_id} (marked [OK]) scale {scale.get('score')} must have EXACTLY 3 claims for MECE. Found {len(claims)}."
+                assert len(claims) == 3, (
+                    f"Matrix {block_id} (marked [OK]) scale {scale.get('score')} "
+                    f"must have EXACTLY 3 claims for MECE. Found {len(claims)}."
+                )
 

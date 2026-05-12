@@ -75,7 +75,7 @@ async def test_execute_structured_task_retry_on_schema_error(
     calls = mock_client.run_structured_task.call_args_list
     assert len(calls) == 2
     retry_messages = calls[1].kwargs["messages"]
-    
+
     # Should still only be 2 messages (system, user), no new assistant message appended
     assert len(retry_messages) == 2
     assert retry_messages[0]["role"] == "system"
@@ -171,7 +171,7 @@ async def test_execute_structured_task_logical_error_retry(
     calls = mock_client.run_structured_task.call_args_list
     assert len(calls) == 2
     retry_messages = calls[1].kwargs["messages"]
-    
+
     assert len(retry_messages) == 2
     assert retry_messages[0]["role"] == "system"
     assert retry_messages[1]["role"] == "user"

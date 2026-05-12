@@ -100,8 +100,9 @@ Tämä on vain kerta-ajo, joten data on ankkuroitava oikeaan maailmaan huolellis
 ### Phase 2: "Raskas" Itseohjautuva Refaktorointilooppi
 * **KRIITTINEN SÄÄNTÖ: YKSI MATRIISI PER CHAT.** AI:n kognitiivisen tason ylläpitämiseksi yhdessä konteksti-ikkunassa (chatissa) saa refaktoroida **vain ja ainoastaan yhden matriisin**. Kun matriisi on valmis, session on päätyttävä ja seuraava matriisi on aloitettava täysin uudessa puhtaassa ikkunassa.
 * **SÄÄNTÖ 1:** Matriisin alkuperäistä skaalaa (esim. 1-5) ei saa koskaan muuttaa tai kaventaa.
-* **SÄÄNTÖ 2:** Tekoäly EI saa pyytää käyttäjää sanomaan "Jatka". Työvaiheen päätteeksi tekoälyn on aina annettava vakiokomento `/tier5-resume --target docs/epic/epic51_matrix_tracker.md`.
+* **SÄÄNTÖ 2:** Tekoäly EI saa pyytää käyttäjää sanomaan "Jatka". Työvaiheen päätteeksi tekoälyn on aina annettava vakiokomento `/tier5-resume --target docs/epic/epic51_matrix_tracker.md`. EHDOTON VAATIMUS: Seuraavaan matriisiin siirtyminen vaatii AINA puhtaan, uuden konteksti-ikkunan. Vanhaa ikkunaa ei saa käyttää kahden matriisin käsittelyyn.
 * **SÄÄNTÖ 3:** `[NOK]`-merkittyjä matriiseja voi olla missä tahansa kohtaa `epic51_matrix_tracker.md` -listaa. Etsi aktiivisesti mikä tahansa jäljellä oleva `[NOK]` riippumatta sen sijainnista.
+* **SÄÄNTÖ 4 (Execution Note):** Tässä silmukassa tai Epicin valmistuessa EI SAA koskaan ajaa komentoja `/tier2-execute` tai `/tier2-hardening-backend`. Muokkaamme ainoastaan JSON-muotoista seeder-dataa, emmekä tee rakenteellisia muutoksia Python- tai Flutter-ohjelmakoodiin.
 * **Työnkulku:** 
   1. **Uusi Konteksti:** Ihminen avaa puhtaan chatin ja ajaa komennon: `/tier5-resume --target docs/epic/epic51_matrix_tracker.md`. Tekoäly ei saa ehdottaa toisen matriisin käsittelyä samassa istunnossa.
   2. **Teorian Purku (Tiedonhaku ja Ankkurointi):** AI hakee matriisin sisällön `seed_data.json` -tiedostosta. AI on **pakotettu** tekemään `search_web` -haun etsiäkseen aidon tieteellisen lähteen tai metodologisen viitekehyksen (esim. argumentaatioteoria, kognitiiviset vinoumat). Samalla se etsii oikean maailman esimerkkejä (Anti-Patterns) ja tunnistaa oikeat leksikaaliset siirtymäsanat.

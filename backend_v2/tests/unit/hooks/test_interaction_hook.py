@@ -1,7 +1,7 @@
 """Unit tests for the Interaction Role Hook."""
 
-from typing import cast
 from collections.abc import Awaitable
+from typing import cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -11,7 +11,8 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.interaction_hook import _SYSTEM_INSTRUCTION, analyze_interaction_role
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO
-from backend_v2.models.enums import RoleClassification, InteractionStrategy
+from backend_v2.models.enums import InteractionStrategy, RoleClassification
+
 
 @pytest.fixture
 def mock_repository() -> AsyncMock:
@@ -97,7 +98,7 @@ async def test_analyze_interaction_role_prompt_injection(
         audit_repo=mock_repository,
         system_repo=mock_repository,
     )
-    
+
     mock_control_ratio.return_value = 0.5
     from backend_v2.models.domain.metrics import BehavioralMetricsDTO
     mock_behavioral_metrics.return_value = BehavioralMetricsDTO(
@@ -114,18 +115,18 @@ async def test_analyze_interaction_role_prompt_injection(
         confidence_score=0.9,
     )
     mock_execute_structured_task.return_value = (mock_llm_response, {})
-    
+
     res = await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
-    
+
     assert res.success is True
     assert res.state_delta is not None
     assert "interaction_analysis" in res.state_delta
-    
+
     # Assert Fencing
     mock_execute_structured_task.assert_called_once()
     call_kwargs = mock_execute_structured_task.call_args.kwargs
     messages = call_kwargs["messages"]
-    
+
     assert len(messages) == 2
     assert messages[0]["role"] == "system"
     assert messages[1]["role"] == "user"
@@ -167,7 +168,7 @@ async def test_analyze_interaction_role_garbage_data(
     mock_behavioral_metrics.return_value = BehavioralMetricsDTO(
         say_do_gap=0.0, automation_bias=0.0, illusion_of_competence=0.0, imperative_command_count=0
     )
-    
+
     mock_llm_response = InteractionAnalysisDTO(
         role_classification=RoleClassification.PASSENGER,
         high_dependency=True,
@@ -178,7 +179,7 @@ async def test_analyze_interaction_role_garbage_data(
         confidence_score=0.9,
     )
     mock_execute_structured_task.return_value = (mock_llm_response, {})
-    
+
     res = await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
     assert res.success is True
 
@@ -211,7 +212,7 @@ async def test_analyze_interaction_role_cognitive_conflict(
         audit_repo=mock_repository,
         system_repo=mock_repository,
     )
-    
+
     mock_control_ratio.return_value = 0.05
     from backend_v2.models.domain.metrics import BehavioralMetricsDTO
     mock_behavioral_metrics.return_value = BehavioralMetricsDTO(
@@ -228,11 +229,11 @@ async def test_analyze_interaction_role_cognitive_conflict(
         confidence_score=0.9,
     )
     mock_execute_structured_task.return_value = (mock_llm_response, {})
-    
+
     res = await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
-    
+
     assert res.success is True
-    
+
     messages = mock_execute_structured_task.call_args.kwargs["messages"]
     user_content = messages[1]["content"]
     assert "<control_ratio>0.05</control_ratio>" in user_content
@@ -266,7 +267,7 @@ async def test_analyze_interaction_role_llm_failure(
         audit_repo=mock_repository,
         system_repo=mock_repository,
     )
-    
+
     mock_control_ratio.return_value = 0.5
     from backend_v2.models.domain.metrics import BehavioralMetricsDTO
     mock_behavioral_metrics.return_value = BehavioralMetricsDTO(
@@ -274,9 +275,9 @@ async def test_analyze_interaction_role_llm_failure(
     )
 
     mock_execute_structured_task.side_effect = Exception("LLM connection lost")
-    
+
     with pytest.raises(AppException) as exc:
         await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
-        
+
     assert exc.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert "LLM structured execution failed" in exc.value.message
