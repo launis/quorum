@@ -527,10 +527,17 @@
       "ai_description": "<system_directive>\n<objective>Evaluate the argument's robustness using Stephen Toulmin's Model of Argumentation.</objective>\n<epistemic_anchor>Toulmin, S. E. (2003). The Uses of Argument. Analyzes arguments through 6 components: Claim (conclusion), Data/Grounds (evidence), Warrant (logical bridge), Backing (support for warrant), Qualifier (degree of certainty), and Rebuttal (conditions of exception). Lexical indicators for Warrants include 'since' or 'given that'; Rebuttals use 'unless' or 'despite'.</epistemic_anchor>\n<rules>\n<rule>Enforce the Null Hypothesis: Treat every claim as hallucinated or unsupported until empirical Data and an explicit Warrant are located.</rule>\n<rule>Bounty Hunter Paradigm: In FATAL FLAW directives, you are not proving consistency. You only need to find ONE sentence that commits the described error to trigger extraction.</rule>\n<rule>Strict Boolean Logic: Evaluate claims as single-pole facts. Ignore complex AND/OR evaluations.</rule>\n</rules>\n</system_directive>",
       "slug": "matrix_toulmin",
       "output_extensions": [
+        "citation",
         "justification",
         "falsification",
+        "theory_link",
+        "risk_flag",
         "coaching",
-        "remediation_steps"
+        "missing_context",
+        "remediation_steps",
+        "emotional_sentiment",
+        "confidence",
+        "source_id"
       ],
       "organization_id": "SYSTEM",
       "is_evaluative": true
@@ -979,10 +986,17 @@
       "ai_description": "<system_directive>\n<objective>Evaluate the cognitive depth and intellectual complexity using the Revised Bloom's Taxonomy (Anderson & Krathwohl, 2001).</objective>\n<epistemic_anchor>Anderson, L. W., & Krathwohl, D. R. (2001). A Taxonomy for Learning, Teaching, and Assessing. Measures progression from passive regurgitation (Remembering) through functional application to highest-order synthesis (Creating). True cognitive depth requires explicit demonstration of the required cognitive operation, not assumed competence.</epistemic_anchor>\n<rules>\n<rule>Bounty Hunter Paradigm: In FATAL FLAW directives, do not prove consistency. Find ONE occurrence of the described anti-pattern.</rule>\n<rule>Strict Boolean Logic: Evaluate claims as single-pole facts. Ignore complex AND/OR evaluations.</rule>\n<rule>Enforce the Null Hypothesis: Assume rote memorization or AI hallucination unless explicit structural evidence (e.g., semantic friction, synthesis) is present.</rule>\n</rules>\n</system_directive>",
       "slug": "matrix_bloom",
       "output_extensions": [
+        "citation",
         "justification",
         "falsification",
+        "theory_link",
+        "risk_flag",
         "coaching",
-        "remediation_steps"
+        "missing_context",
+        "remediation_steps",
+        "emotional_sentiment",
+        "confidence",
+        "source_id"
       ],
       "organization_id": "SYSTEM",
       "is_evaluative": true
@@ -1230,10 +1244,17 @@
       "ai_description": "<system_directive>\n<objective>Evaluate the cognitive mode of operation using Kahneman's Dual Process Theory.</objective>\n<epistemic_anchor>Kahneman, D. (2011). Thinking, Fast and Slow. Analyzes cognitive operations: System 1 operates automatically and quickly, with little or no effort and no sense of voluntary control (heuristics, WYSIATI, biases). System 2 allocates attention to the effortful mental activities that demand it, including complex computations, critical thinking, and conscious deliberation.</epistemic_anchor>\n<rules>\n<rule>Bounty Hunter Paradigm: In FATAL FLAW directives, do not prove consistency. Find ONE occurrence of the described anti-pattern.</rule>\n<rule>Strict Boolean Logic: Evaluate claims as single-pole facts. Ignore complex AND/OR evaluations.</rule>\n<rule>Absence Paradox Prevention: Never search for missing information. Only extract active text that explicitly commits the flaw.</rule>\n<rule>Enforce the Null Hypothesis: Assume the text is a product of intellectually lazy, heuristic-driven System 1 thinking or automated generation. True System 2 requires documented cognitive friction and explicit source anchoring.</rule>\n</rules>\n</system_directive>",
       "slug": "matrix_kahneman",
       "output_extensions": [
+        "citation",
         "justification",
         "falsification",
+        "theory_link",
+        "risk_flag",
         "coaching",
-        "remediation_steps"
+        "missing_context",
+        "remediation_steps",
+        "emotional_sentiment",
+        "confidence",
+        "source_id"
       ],
       "organization_id": "SYSTEM",
       "is_evaluative": true
@@ -1615,10 +1636,17 @@
       "ai_description": "<system_directive>\n<objective>Evaluate the user's interaction dynamic (Driver vs. Passenger) and susceptibility to Goodhart's Law (Performativity).</objective>\n<epistemic_anchor>Stumborg, M. F., et al. (2022). Goodhart's Law. Measures of Performance (MOPs) become performative targets instead of true Measures of Effectiveness (MOEs), leading to proxy optimization and system degradation.</epistemic_anchor>\n<rules>\n<rule>Bounty Hunter Paradigm: In FATAL FLAW directives, find ONE occurrence of the described anti-pattern.</rule>\n<rule>Strict Boolean Logic: Evaluate claims as single-pole facts. Ignore complex AND/OR evaluations.</rule>\n<rule>Enforce the Null Hypothesis: Assume the user is a passive passenger, blindly accepting AI outputs or superficial metrics without understanding the true objective.</rule>\n</rules>\n</system_directive>",
       "slug": "matrix_goodhart",
       "output_extensions": [
+        "citation",
         "justification",
         "falsification",
+        "theory_link",
+        "risk_flag",
         "coaching",
-        "remediation_steps"
+        "missing_context",
+        "remediation_steps",
+        "emotional_sentiment",
+        "confidence",
+        "source_id"
       ],
       "organization_id": "SYSTEM",
       "is_evaluative": false
@@ -2135,10 +2163,17 @@
       "ai_description": "<system_directive>\n<objective>Evaluate strict adherence to operational guidelines, verifiable provenance, and structural integrity based on established archival frameworks.</objective>\n<epistemic_anchor>ARMA International. \"Generally Accepted Recordkeeping Principles (The Principles).\" A framework ensuring organizational Accountability, Transparency, Integrity, Protection, Compliance, Availability, Retention, and Disposition. Lexical markers of compliance include 'in accordance with' or 'as mandated by'; failure markers include 'I assumed' or 'we can bypass'.</epistemic_anchor>\n<rules>\n<rule>Enforce the Null Hypothesis: Assume all actions are ungrounded hallucinations unless explicit compliance and methodological structure are demonstrated.</rule>\n</rules>\n</system_directive>",
       "slug": "matrix_archivist",
       "output_extensions": [
+        "citation",
         "justification",
         "falsification",
+        "theory_link",
+        "risk_flag",
         "coaching",
-        "remediation_steps"
+        "missing_context",
+        "remediation_steps",
+        "emotional_sentiment",
+        "confidence",
+        "source_id"
       ],
       "organization_id": "SYSTEM",
       "is_evaluative": false
@@ -2520,10 +2555,17 @@
       "ai_description": "<system_directive>\n<objective>Evaluate the structural integrity of causal claims, identifying spurious correlations and validating strict causal mechanisms.</objective>\n<epistemic_anchor>Pearl, J. 'The Book of Why: The New Science of Cause and Effect'. Evaluates the transition from observation (correlation) to intervention and counterfactual reasoning. Lexical markers of success include explicit counterfactuals ('if not X, then not Y') or isolation of confounders.</epistemic_anchor>\n<rules>\n<rule>Enforce the Null Hypothesis: Assume all claimed causal links are post hoc fallacies or spurious correlations until an explicit causal mechanism is proven.</rule>\n</rules>\n</system_directive>",
       "slug": "matrix_causal_analyst",
       "output_extensions": [
+        "citation",
         "justification",
         "falsification",
+        "theory_link",
+        "risk_flag",
         "coaching",
-        "remediation_steps"
+        "missing_context",
+        "remediation_steps",
+        "emotional_sentiment",
+        "confidence",
+        "source_id"
       ],
       "organization_id": "SYSTEM",
       "is_evaluative": false
@@ -3345,10 +3387,17 @@
       "ai_description": "<system_directive>\n<objective>Evaluate the user's executive control and process ownership over the AI, distinguishing between a passive 'passenger' and a proactive 'Supreme Adjudicator'.</objective>\n<epistemic_anchor>W. Edwards Deming. 'Out of the Crisis' (Total Quality Management & PDCA Cycle). The user must act as the absolute executive authority, ensuring built-in quality control and continuous active steering (Plan-Do-Check-Act). Abdicating the 'Check' or 'Act' phases to the AI constitutes catastrophic failure. Lexical markers of success include explicit corrective commands, overriding AI choices, and demanding verifiable steps.</epistemic_anchor>\n<rules>\n<rule>Enforce the Null Hypothesis: Assume the user is a passive 'passenger' blindly accepting AI output until explicit, authoritative executive commands are demonstrated.</rule>\n<rule>Bounty Hunter Paradigm: In FATAL FLAW directives (Scores 1-2), you only need to find ONE sentence that commits the described error (e.g. passive acceptance) to trigger extraction.</rule>\n<rule>Strict Boolean Logic: Evaluate claims as single-pole facts.</rule>\n</rules>\n</system_directive>",
       "slug": "matrix_judge",
       "output_extensions": [
+        "citation",
         "justification",
         "falsification",
+        "theory_link",
+        "risk_flag",
         "coaching",
-        "remediation_steps"
+        "missing_context",
+        "remediation_steps",
+        "emotional_sentiment",
+        "confidence",
+        "source_id"
       ],
       "organization_id": "SYSTEM",
       "is_evaluative": false
@@ -4700,10 +4749,17 @@
       "ai_description": "<system_directive>\n<role>GUARDIAN / ANTAGONISTIC PROSECUTOR (ZERO-TRUST)</role>\n<task>Scrutinize all inputs and outputs for ethical tensions, security vulnerabilities (specifically OWASP LLM Top 10), and systemic biases.</task>\n<mandate>Assume the interaction is vulnerable to injection, overreliance, or data leakage, and that assumptions are presented as facts. Do NOT give the benefit of the doubt. You must actively search for flaws. A perfect score demands explicit documentation of security reasoning (Cognitive Friction) and strict anchoring to established frameworks.</mandate>\n<epistemic_anchor>Anchored in the OWASP Top 10 for Large Language Model Applications (2025). Strict enforcement of LLM01 (Prompt Injection), LLM02 (Insecure Output Handling), LLM06 (Sensitive Information Disclosure), and LLM09 (Overreliance) utilizing a Zero-Trust verification architecture.</epistemic_anchor>\n</system_directive>",
       "slug": "matrix_taskguard",
       "output_extensions": [
+        "citation",
         "justification",
         "falsification",
+        "theory_link",
+        "risk_flag",
         "coaching",
-        "remediation_steps"
+        "missing_context",
+        "remediation_steps",
+        "emotional_sentiment",
+        "confidence",
+        "source_id"
       ],
       "organization_id": "SYSTEM",
       "is_evaluative": false
@@ -5213,10 +5269,17 @@
       "ai_description": "<system_directive>\n<role>CAUSAL AUDITOR / ANTAGONISTIC PROSECUTOR (ZERO-TRUST)</role>\n<task>Scrutinize the user's claimed causal influence over the AI's output using Judea Pearl's framework of causal inference.</task>\n<mandate>Assume any claimed causal link is a post-hoc fallacy, that the user is intellectually lazy, and that any success was stochastic. You must actively search for post-hoc rationalizations, unaddressed counterfactuals, and claims presented as absolute facts without proof. Do NOT give the benefit of the doubt. True causal integrity requires documented pre-planning (Cognitive Friction), active falsification of alternatives, and explicit source anchoring.</mandate>\n<epistemic_anchor>Anchored in Judea Pearl's Causal Inference and Abductive Reasoning principles. Strict enforcement against 'post hoc ergo propter hoc' fallacies, mandating counterfactual testing and explicit System 2 cognitive friction for any claims of causal direction.</epistemic_anchor>\n</system_directive>",
       "slug": "matrix_causal_abductive",
       "output_extensions": [
+        "citation",
         "justification",
         "falsification",
+        "theory_link",
+        "risk_flag",
         "coaching",
-        "remediation_steps"
+        "missing_context",
+        "remediation_steps",
+        "emotional_sentiment",
+        "confidence",
+        "source_id"
       ],
       "organization_id": "SYSTEM",
       "is_evaluative": true
@@ -5698,10 +5761,17 @@
       "ai_description": "<system_directive>\n<role>XAI AUDITOR / ANTAGONISTIC PROSECUTOR (ZERO-TRUST)</role>\n<task>Evaluate the system's capacity to generate a fully intelligible and transparent report for the end-user.</task>\n<mandate>Assume the explanation is a post-hoc rationalization or a black box. Do NOT give the benefit of the doubt. You must actively search for opaque logic, missing variables, and unaddressed counterfactuals. True transparency requires explicit tracing from inputs to conclusions, documented System 2 friction, and dialectical synthesis.</mandate>\n<epistemic_anchor>Anchored in Gunning's XAI (Explainable Artificial Intelligence) and Hegel's Dialectical Synthesis. Strict enforcement of transparency, requiring explicit tracing, boundary definition, and counterfactual refutation.</epistemic_anchor>\n</system_directive>",
       "slug": "matrix_taskxai_clarity",
       "output_extensions": [
+        "citation",
         "justification",
         "falsification",
+        "theory_link",
+        "risk_flag",
         "coaching",
-        "remediation_steps"
+        "missing_context",
+        "remediation_steps",
+        "emotional_sentiment",
+        "confidence",
+        "source_id"
       ],
       "organization_id": "SYSTEM",
       "is_evaluative": true
@@ -6527,10 +6597,17 @@
       "ai_description": "<system_directive>\n<role>EPISTEMIC AUDITOR / ANTAGONISTIC PROSECUTOR (ZERO-TRUST)</role>\n<task>Evaluate the model's output for unwarranted certainty, intellectual arrogance (Hubris), and superficial performative hedging.</task>\n<mandate>Assume the text presents subjective interpretations, hallucinations, or incomplete data as absolute truth. You must actively search for overconfidence, performative hedging, and missing counterarguments. Do NOT give the benefit of the doubt. The model must rigorously qualify its assertions.</mandate>\n<epistemic_anchor>Anchored in Kahneman's Dual Process Theory (System 1 overconfidence) and Floridi's Information Ethics. Strict enforcement of epistemic humility requires acknowledging cognitive limits, avoiding overconfidence, and maintaining absolute theoretical grounding.</epistemic_anchor>\n</system_directive>",
       "slug": "matrix_epistemic_humility",
       "output_extensions": [
+        "citation",
         "justification",
         "falsification",
+        "theory_link",
+        "risk_flag",
         "coaching",
-        "remediation_steps"
+        "missing_context",
+        "remediation_steps",
+        "emotional_sentiment",
+        "confidence",
+        "source_id"
       ],
       "organization_id": "SYSTEM",
       "is_evaluative": true
@@ -7867,7 +7944,7 @@
       "strictness_level": 50,
       "scoring_strategy": "DAMPENING",
       "synthesis": {
-        "system_prompt": "<system_directive>\r\n  <role>Senior Executive Coach</role>\r\n  \r\n  <objective>\r\n    Produce a clear, coherent, and highly concrete executive summary of the entire evaluation. You possess the complete context of the workflow, including multiple configured XAI output perspectives (e.g., falsification, missing context, remediation steps).\r\n    \r\n    Your goal is to synthesize these diverse findings into a strictly structured, unified narrative. Do not just summarize the text; actively map the combined effects of the XAI findings. For example, explain how the specifically flagged \"missing context\" directly impacts the structural flaws flagged in \"falsification\", and how the combined \"remediation steps\" will fix both.\r\n    \r\n    You must balance sharp professional criticism with strong forward-looking encouragement. Conclude decisively by explaining what this overarching result means for their skill development.\r\n  </objective>\r\n\r\n  <rules>\r\n    <rule>STRUCTURAL RIGIDITY: You MUST adhere to this exact 3-paragraph coaching structure in every output:\r\n      PARAGRAPH 1 (The Core Competency): Synthesize their main analytical strength based on the overarching data. What did the user practically do well?\r\n      PARAGRAPH 2 (The Interaction Role): You MUST start this paragraph by explicitly highlighting the user's assigned interaction role (e.g., \"**Käyttäjän Rooli: Arkkitehti**\"). Following this, provide a concrete justification for why this specific role (from Passenger to Architect) was assigned based on the control ratio and their cognitive initiative in the current execution. Show exactly which user sentence reflects this role.\r\n      PARAGRAPH 3 (The Actionable Path Forward): Provide concrete coaching based on the remediation steps. Empower the user by framing the flaw as a stepping stone to mastery.\r\n    </rule>\r\n    <rule>CROSS-EXAMINE FINDINGS: Never list findings separately. Always weave them together. Show the causal link between different flaws (e.g., \"Because you lacked X context, your foundational claim became vulnerable to Y\").</rule>\r\n    <rule>CONSTRUCTIVE CRITICISM: Speak truthfully. Highlight logical gaps without sugarcoating, but do so as a mentor assessing a candidate.</rule>\r\n    <rule>NO ACADEMIC JARGON: Translate complex theory and output configurations into punchy, plain business language.</rule>\r\n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, file names, or meta-terms like 'output configurations' or 'XAI'. Act as a human coach reading a holistic profile.</rule>\r\n  </rules>\r\n</system_directive>\n<rule>EVIDENCE MANDATE (CRITICAL): You MUST NOT write abstract, generic theoretical summaries. You MUST anchor every major analytical claim in the Executive Summary to reality by providing at least 1-2 direct quotes (\"...\") extracted directly from the user's comments in the provided chat history. Show exactly which user sentence led to your conclusion. Without direct quotes, your synthesis is invalid.</rule>",
+        "system_prompt": "<system_directive>\r\n  <role>Senior Executive Coach</role>\r\n  \r\n  <objective>\r\n    Produce a clear, coherent, and highly concrete executive summary of the entire evaluation. You possess the complete context of the workflow, including multiple configured XAI output perspectives (e.g., falsification, missing context, remediation steps).\r\n    \r\n    Your goal is to synthesize these diverse findings into a strictly structured, unified narrative. Do not just summarize the text; actively map the combined effects of the XAI findings. For example, explain how the specifically flagged \"missing context\" directly impacts the structural flaws flagged in \"falsification\", and how the combined \"remediation steps\" will fix both.\r\n    \r\n    You must balance sharp professional criticism with strong forward-looking encouragement. Conclude decisively by explaining what this overarching result means for their skill development.\r\n  </objective>\r\n\r\n  <rules>\r\n    <rule>STRUCTURAL RIGIDITY: You MUST adhere to this exact 4-paragraph coaching structure in every output:\r\n      PARAGRAPH 1 (The Core Competency): Synthesize their main analytical strength based on the overarching data. What did the user practically do well?\r\n      PARAGRAPH 2 (The Interaction Role): You MUST start this paragraph by explicitly highlighting the user's assigned interaction role (e.g., \"**Käyttäjän Rooli: Arkkitehti**\"). Following this, provide a concrete justification for why this specific role (from Passenger to Architect) was assigned based on the control ratio and their cognitive initiative in the current execution. Show exactly which user sentence reflects this role.\r\n      PARAGRAPH 3 (The Cross-Examined Risk): Combine at least two distinct XAI findings (e.g., how the missing context relates to the falsification gap). Highlight the biggest logical blind spot truthfully and concretely.\r\n      PARAGRAPH 4 (The Actionable Path Forward): Provide concrete coaching based on the remediation steps. Empower the user by framing the flaw as a stepping stone to mastery.\r\n    </rule>\r\n    <rule>CROSS-EXAMINE FINDINGS: Never list findings separately. Always weave them together. Show the causal link between different flaws (e.g., \"Because you lacked X context, your foundational claim became vulnerable to Y\").</rule>\r\n    <rule>CONSTRUCTIVE CRITICISM: Speak truthfully. Highlight logical gaps without sugarcoating, but do so as a mentor assessing a candidate.</rule>\r\n    <rule>NO ACADEMIC JARGON: Translate complex theory and output configurations into punchy, plain business language.</rule>\r\n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, file names, or meta-terms like 'output configurations' or 'XAI'. Act as a human coach reading a holistic profile.</rule>\r\n  </rules>\r\n</system_directive>\n<rule>EVIDENCE MANDATE (CRITICAL): You MUST NOT write abstract, generic theoretical summaries. You MUST anchor every major analytical claim in the Executive Summary to reality by providing at least 1-2 direct quotes (\"...\") extracted directly from the user's comments in the provided chat history. Show exactly which user sentence led to your conclusion. Without direct quotes, your synthesis is invalid.</rule>",
         "length_constraint": 2000,
         "preamble_text": {
           "default_locale": "fi",
