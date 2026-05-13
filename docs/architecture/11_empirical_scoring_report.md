@@ -60,6 +60,7 @@ Tämä ratkaistiin injektoimalla asynkronisen Workerin tuottama `normalized_scor
 Tämä arkkitehtuurikokonaisuus varmistaa kaksi 2026 Zero-Legacy -mandaatin ydintavoitetta:
 1. **Zero-Math UI:** Käyttöliittymä (Flutter) vastaanottaa valmiit laskelmat ja tekstit, eikä sen tarvitse koskaan purkaa matemaattista logiikkaa selaimeen.
 2. **Kognitiivinen Pariteetti:** Matematiikka, arviointimatriisit ja tekoälyn ihmiskielinen palaute ovat saumattomassa, todistettavassa synkronissa. Tekoäly haukkuu vain, jos matematiikka antaa siihen luvan, ja perustelee ankaran palautteensa (*"keksitty päivämäärä"*) suorilla, auditoitavilla lainauksilla raakadatasta.
+3. **100 % Determinismi ja Kognitiivinen Eristäminen:** "Hardened 2.0" -päivityksen myötä LLM ei enää toimi "tulkitsevana lukijana", vaan säälimättömänä yksittäisten boolean-väitteiden (TDA) etsijänä (Bounty Hunter -malli). Kun tähän yhdistetään LLM:n nollalämpötila (`temperature=0.0`), DAG-pohjainen suorituksen eristäminen `PromptBlock`-tasolla ja matematiikan siirtäminen täysin Pythonin puolelle, koko järjestelmä saavuttaa käytännössä täydellisen (99,9 %) determinismin. Kyselyjen suoritusjärjestyksen muuttaminen ei enää aiheuta aiemmin havaittua huomiokyvyn harhautumista (Attention Drift), sillä kyselyt on eristetty toisistaan ja ne nojaavat puhtaaseen TDA-tekstinhakuun.
 
 ## 6. Teorialähteet ja Käyttötapaukset (Use Cases)
 

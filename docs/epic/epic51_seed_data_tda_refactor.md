@@ -98,6 +98,18 @@ Tämä on vain kerta-ajo, joten data on ankkuroitava oikeaan maailmaan huolellis
 * **Toteutus:** Kaikki matriisit merkitään alkutilaan `[NOK]`. Tämä tiedosto toimii koko työnkulun "Aivoina", jotta konteksti-ikkunat voidaan tyhjentää välissä tekoälyn suorituskyvyn takaamiseksi.
 
 ### Phase 2: "Raskas" Itseohjautuva Refaktorointilooppi
+> [!IMPORTANT]
+> **SYSTEM DIRECTIVE FOR ANY AI AGENT (ZERO-SHOT BULLETPROOF PROMPT):**
+> If you are reading this document via `/tier5-resume` in a fresh context window, even if months have passed, your ONLY goal is to process EXACTLY ONE matrix using extreme strictness. 
+> 
+> **MANDATORY EXECUTION SEQUENCE (YOU MUST FOLLOW THIS EXACT ORDER):**
+> 1. **Target Selection:** Read `epic51_matrix_tracker.md`. Find the FIRST line with `[NOK-V3]` or `[NOK]`. Extract its ID (e.g. `blk_...`). DO NOT edit the tracker file yourself.
+> 2. **Context Loading:** Read that specific block from `backend_v2/seed/seed_data.json`.
+> 3. **Pre-Flight Checklist:** Before writing any code, YOU MUST PRINT a checklist acknowledging Rules 13 (Banned Concepts), 14 (Fatal Flaw), and 15 (Single-Pole Logic) to prove you have loaded them into your attention window.
+> 4. **Execution:** Generate a local Python script to update the block in `seed_data.json` by enforcing all 15 rules, and execute the script.
+> 5. **Post-Flight Audit:** You MUST PRINT the 8-point Mandaatti-Audit checklist exactly as defined in step 5 below. Provide concrete examples of what your script just did for each of the 8 points.
+> 6. **Quality Gate:** Instruct the human to run the Pydantic verification tests.
+> 7. **Halt:** Do not proceed to a second matrix. Terminate your turn.
 * **KRIITTINEN SÄÄNTÖ: YKSI MATRIISI PER CHAT.** AI:n kognitiivisen tason ylläpitämiseksi yhdessä konteksti-ikkunassa (chatissa) saa refaktoroida **vain ja ainoastaan yhden matriisin**. Kun matriisi on valmis, session on päätyttävä ja seuraava matriisi on aloitettava täysin uudessa puhtaassa ikkunassa.
 * **SÄÄNTÖ 1:** Matriisin alkuperäistä skaalaa (esim. 1-5) ei saa koskaan muuttaa tai kaventaa.
 * **SÄÄNTÖ 2:** Tekoäly EI saa pyytää käyttäjää sanomaan "Jatka". Työvaiheen päätteeksi tekoälyn on aina annettava vakiokomento `/tier5-resume --target docs/epic/epic51_matrix_tracker.md`. EHDOTON VAATIMUS: Seuraavaan matriisiin siirtyminen vaatii AINA puhtaan, uuden konteksti-ikkunan. Vanhaa ikkunaa ei saa käyttää kahden matriisin käsittelyyn.
@@ -118,12 +130,12 @@ Tämä on vain kerta-ajo, joten data on ankkuroitava oikeaan maailmaan huolellis
      - [ ] 7. **100% kattavuus:** Vahvistus 100% kattavuudesta JSONin Python-skriptauksella.
      - [ ] 8. **MECE-sääntö (Rule of 3):** Etsittiin kaikki refaktoroidut 'claims' `verify_claims.py` -skriptillä ja raportoitiin niiden lukumäärä vahvistuksena MECE-säännön (tasan 3 kpl/solu) toteutumisesta.
      
-     Lopuksi AI ohjeistaa ihmistä aina ehdottomasti tällä vakiokomennolla: *"Matriisi valmis. Avaa uusi puhdas chat ja aja komento: `/tier5-resume --target docs/epic/epic51_matrix_tracker.md`"*
+     Lopuksi AI **KIRJOITTAA YLLÄ OLEVAN 8-KOHTAISEN TARKISTUSLISTAN NÄKYVIIN KÄYTTÄJÄLLE SEURAAVASSA VASTAUKSESSAAN** ja ohjeistaa ihmistä aina ehdottomasti tällä vakiokomennolla: *"Matriisi valmis. Avaa uusi puhdas chat ja aja komento: `/tier5-resume --target docs/epic/epic51_matrix_tracker.md`"*
 
 ### Phase 2.5: "Haamuvarianssi" (Wobble) -matriisien V3-Kovetus
 * **Tehtävä:** Aiempi analyysi paljasti, että kysymysten satunnaistaminen (Blind Shuffle) aiheuttaa 15 pisteen heittoja, koska 13 matriisin vanhat säännöt vuotavat (niissä on kaksoiskieltoja, liiaksi tulkinnanvaraa tai laajoja johdonmukaisuusvaatimuksia). Nämä 13 matriisia on refaktoroitava uudelleen "Hardened 2.0" -säännöillä (Säännöt 13, 14, 15).
 * **Kohteet (13 matriisia):** `blk_53f3...`, `blk_6b8c...`, `blk_c3bc...`, `blk_f6e2...`, `blk_c580...`, `blk_8073...`, `blk_fb15...`, `blk_ff72...`, `blk_440a...`, `blk_f921...`, `blk_22e3...`, `blk_109d...`, `blk_b476...`.
-* **Toteutus:** Nämä 13 matriisia on merkittävä trackerissä takaisin tilaan `[NOK]` (tai esim. `[NOK-V3]`), vaikka ne olisivat jo aiemmin saaneet `[OK]`. Ne käydään läpi yksi kerrallaan käyttäen nimenomaan yksinapaisia portteja, palkkionmetsästäjä-moodia ja poissulkulistoja.
+* **Toteutus:** Ihminen vastaa trackerin tilan hallinnasta ja on merkinnyt nämä 13 matriisia takaisin tilaan `[NOK-V3]`. Tekoälyn tehtävä on poimia trackeristä aina ylin `[NOK-V3]`-matriisi ja käydä se läpi käyttäen nimenomaan V3-tason yksinapaisia portteja, palkkionmetsästäjä-moodia ja poissulkulistoja. Tekoäly EI koskaan muuta trackerin tilaa itse.
 * **Tehtävä:** Käydään läpi järjestelmän vaikeimmat matriisit.
 * **Kohteet (esim.):**
   * *Catastrophic Failure / Hubris* (System 1 dominanssi)
