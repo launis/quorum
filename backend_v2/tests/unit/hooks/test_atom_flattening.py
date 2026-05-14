@@ -215,3 +215,7 @@ async def test_atom_flattening_all_strategy_no_sampling(base_hook_state: HookSta
     assert isinstance(shuffled_atoms, list)
     # 2 scales (1 and 5), 5 samples each = 10 total atoms
     assert len(shuffled_atoms) == 10
+    
+    # Semantic micro-batching requirement: ensure deterministic sorting based on atom_id
+    sorted_ids = [item["atom_id"] for item in shuffled_atoms]
+    assert sorted_ids == sorted(sorted_ids), "Atoms are not deterministically sorted by atom_id"

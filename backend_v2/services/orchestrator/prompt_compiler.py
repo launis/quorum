@@ -394,6 +394,7 @@ class PromptCompiler:
                 str,
                 Field(
                     ...,
+                    alias="step_1_reasoning_trace",
                     description=(
                         "Mandatory Chain-of-Thought. Analyze the user's logic, guidance, and "
                         "strategic intent step-by-step BEFORE assigning any final values."
@@ -421,14 +422,20 @@ class PromptCompiler:
             class AtomResponse(BaseModel):
                 model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
                 atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")
-                rule_satisfied: bool = Field(..., description="Is the rule fully satisfied? (True/False)")
-                evidence_found: bool = Field(..., description="Did you find explicit evidence for this? (True/False)")
+                rule_satisfied: bool = Field(
+                    ..., alias="step_4_rule_satisfied", description="Is the rule fully satisfied? (True/False)"
+                )
+                evidence_found: bool = Field(
+                    ...,
+                    alias="step_5_evidence_found",
+                    description="Did you find explicit evidence for this? (True/False)",
+                )
                 exact_quote: str = Field(
                     ..., description="The exact quote if evidence was found, otherwise empty string."
                 )
                 pre_quote_anchor: str = Field(..., description="5 words before the exact quote, or empty.")
                 post_quote_anchor: str = Field(..., description="5 words after the exact quote, or empty.")
-                reasoning_trace: str = Field(..., description="Your reasoning trace.")
+                reasoning_trace: str = Field(..., alias="step_1_reasoning_trace", description="Your reasoning trace.")
 
                 @model_validator(mode="after")
                 def validate_evidence(self, info: ValidationInfo) -> Any:
@@ -536,7 +543,7 @@ class PromptCompiler:
                 )
 
             if "coaching" in extensions:
-                sub_fields["extension_coaching"] = (
+                sub_fields["step_3_coaching"] = (
                     str,
                     Field(
                         ...,

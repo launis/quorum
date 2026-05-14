@@ -161,15 +161,14 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                     if atom_id not in unique_atoms:
                         unique_atoms[atom_id] = text
 
-    # 4. Global Randomization (Blindness Requirement)
+    # 4. Global Deterministic Sort (Semantic Micro-Batching Requirement)
     if unique_atoms:
         model_list = [FlattenedAtom(atom_id=key, question=val) for key, val in unique_atoms.items()]
 
-        # Shuffle the aggregated pool so LLM cannot infer patterns (e.g. all 1s first, then 2s)
-        rng_global = random.Random(state.execution_id)
-        rng_global.shuffle(model_list)
+        # Deterministic sort based on atom_id hash to prevent LLM Context Fatigue and ensure reproducibility
+        model_list.sort(key=lambda x: x.atom_id)
 
-        logger.info("[AtomFlatteningHook] Flattened %d total atoms. Executing global blind shuffle.", len(model_list))
+        logger.info("[AtomFlatteningHook] Flattened %d total atoms. Executing deterministic sort.", len(model_list))
 
         # Enforce Rule 'No Naked Dicts': explicitly dump the structured model
         output_payload = FlatteningHookOutput(shuffled_atoms=model_list)

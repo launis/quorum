@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field, model_validator
 
@@ -51,6 +51,7 @@ class LightweightMatrixOutput(V2CoreBase):
             "step_1c_google_citation": "citation",
             "step_2_falsification": "falsification",
             "step_3_logical_friction": "justification",
+            "step_3_coaching": "coaching",
             "extension_coaching": "coaching",
             "extension_confidence": "confidence",
             "extension_missing_context": "missing_context",
@@ -83,6 +84,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
     post_quote_anchor: str = ""
     reasoning_trace: str = ""
     dlq_status: bool = False
+    mapped_state: Literal["PASSED", "FAILED", "DLQ"] | None = None
 
     @model_validator(mode="after")
     def validate_anti_laziness(self) -> AtomEvaluationItemDTO:

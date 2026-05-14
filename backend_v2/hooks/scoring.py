@@ -630,9 +630,8 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 ) from e
 
             atom_id = ev_dto.atom_id
-            boolean_val = ev_dto.rule_satisfied
             reasoning = ev_dto.reasoning_trace
-            dlq = getattr(ev_dto, "dlq_status", False)
+            mapped_state = ev_dto.mapped_state
 
             if not atom_id:
                 continue
@@ -641,12 +640,14 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 raw_states_by_atom[atom_id] = []
                 reasoning_by_atom[atom_id] = []
 
-            if dlq:
-                raw_states_by_atom[atom_id].append("DLQ")
-            elif boolean_val:
-                raw_states_by_atom[atom_id].append("PASSED")
+            if mapped_state:
+                raw_states_by_atom[atom_id].append(mapped_state)
             else:
-                raw_states_by_atom[atom_id].append("FAILED")
+                msg = f"Strict Fail-Fast Enforced: 'mapped_state' missing for atom '{atom_id}'. Accumulator failed."
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
 
             if reasoning:
                 reasoning_by_atom[atom_id].append(reasoning)

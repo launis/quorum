@@ -104,19 +104,15 @@ class LLMTaskExecutor:
                         detail=ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED,
                         original_error=e,
                     )
-                    err.details["validation_error_msg"] = error_msg
-                    err.details["raw_llm_payload"] = raw_payload
                     raise err from e
 
                 # Stuck Loop Detection
                 if raw_payload == previous_raw_payload or error_msg == previous_error_msg:
-                    logger.error("Stuck Loop Detected in Schema Validation. Breaking immediately.")
+                    logger.error("Stuck Loop Detected in Schema Validation. Breaking immediately.", extra={"error_code": ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED.name})
                     err = AgentExecutionError(
                         detail=ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED,
                         original_error=e,
                     )
-                    err.details["validation_error_msg"] = error_msg
-                    err.details["raw_llm_payload"] = raw_payload
                     raise err from e
 
                 previous_raw_payload = raw_payload
@@ -159,17 +155,15 @@ class LLMTaskExecutor:
                         detail=ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED,
                         original_error=e,
                     )
-                    err.details["validation_error_msg"] = error_msg
                     raise err from e
 
                 # Stuck Loop Detection
                 if error_msg == previous_error_msg:
-                    logger.error("Stuck Loop Detected in Logical Validation. Breaking immediately.")
+                    logger.error("Stuck Loop Detected in Logical Validation. Breaking immediately.", extra={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name})
                     err = AgentExecutionError(
                         detail=ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED,
                         original_error=e,
                     )
-                    err.details["validation_error_msg"] = error_msg
                     raise err from e
 
                 previous_error_msg = error_msg

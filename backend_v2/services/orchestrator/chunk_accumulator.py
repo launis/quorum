@@ -1,6 +1,11 @@
 import logging
 from typing import Any
 
+from pydantic import ValidationError
+
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.lightweight_matrix import AtomEvaluationItemDTO
+
 logger = logging.getLogger(__name__)
 
 
@@ -17,35 +22,78 @@ class ChunkAccumulator:
 
     def add(self, chunk: dict[str, Any]) -> None:
         """Merges a new chunk into the final result."""
-        if not self.final_result:
-            # First chunk, initialize state
-            self.final_result = chunk
-            return
-
         self._merge_evaluations(chunk)
         self._merge_string_traces(chunk)
         self._merge_xai_extensions(chunk)
 
     def _merge_evaluations(self, chunk: dict[str, Any]) -> None:
-        """Safely extends the evaluations array."""
-        if "evaluations" in chunk and "evaluations" in self.final_result:
-            chunk_evals = chunk["evaluations"]
-            final_evals = self.final_result["evaluations"]
-            if isinstance(chunk_evals, list) and isinstance(final_evals, list):
-                final_evals.extend(chunk_evals)
+        """Safely extends the evaluations array and enforces Fail-Fast validation."""
+        if "evaluations" not in chunk:
+            return
+
+        if "evaluations" not in self.final_result:
+            self.final_result["evaluations"] = []
+
+        chunk_evals = chunk["evaluations"]
+        final_evals = self.final_result["evaluations"]
+
+        if not isinstance(chunk_evals, list):
+            raise AppException(
+                message="Strict Fail-Fast: 'evaluations' chunk must be a list.",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
+        for raw_ev in chunk_evals:
+            if not isinstance(raw_ev, dict):
+                raise AppException(
+                    message="Invalid evaluation chunk: evaluation item is not a dictionary.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+
+            try:
+                ev_dto = AtomEvaluationItemDTO.model_validate(raw_ev)
+            except ValidationError as e:
+                logger.error("ChunkAccumulator: Validation failed, marking as DLQ. Error: %s", e)
+                raw_ev["dlq_status"] = True
+                raw_ev["mapped_state"] = "DLQ"
+                final_evals.append(raw_ev)
+                continue
+
+            dlq = getattr(ev_dto, "dlq_status", False)
+            if dlq:
+                raw_ev["mapped_state"] = "DLQ"
+            elif ev_dto.rule_satisfied is True:
+                raw_ev["mapped_state"] = "PASSED"
+            elif ev_dto.rule_satisfied is False:
+                raw_ev["mapped_state"] = "FAILED"
             else:
-                logger.warning("ChunkAccumulator: 'evaluations' is not a list. Skipping merge.")
+                raise AppException(
+                    message=f"Strict Fail-Fast: Unexpected rule_satisfied value: {ev_dto.rule_satisfied}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+
+            final_evals.append(raw_ev)
 
     def _merge_string_traces(self, chunk: dict[str, Any]) -> None:
         """Safely concatenates high-level string traces like reasoning_trace."""
         for key in ["reasoning_trace", "evaluation_notes"]:
-            if key in chunk and key in self.final_result:
+            if key in chunk:
                 c_val = chunk[key]
-                f_val = self.final_result[key]
-                if isinstance(c_val, str) and isinstance(f_val, str):
-                    self.final_result[key] = f"{f_val}\n\n[Chunk]: {c_val}"
+                if key not in self.final_result:
+                    self.final_result[key] = c_val
                 else:
-                    logger.warning("ChunkAccumulator: '%s' is not a string. Skipping merge.", key)
+                    f_val = self.final_result[key]
+                    if isinstance(c_val, str) and isinstance(f_val, str):
+                        self.final_result[key] = f"{f_val}\n\n[Chunk]: {c_val}"
+                    else:
+                        raise AppException(
+                            message=f"Strict Fail-Fast: Expected string for '{key}', got '{type(c_val)}'.",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        )
 
     def _merge_xai_extensions(self, chunk: dict[str, Any]) -> None:
         """Safely merges dynamic matrix or block-level XAI extensions."""
@@ -62,13 +110,11 @@ class ChunkAccumulator:
     def _merge_nested_dict(self, target: Any, source: Any, parent_key: str) -> None:
         """Merges two nested dictionaries, concatenating strings if there are collisions."""
         if not isinstance(target, dict) or not isinstance(source, dict):
-            logger.warning(
-                "ChunkAccumulator: Cannot merge non-dict XAI extensions for key '%s'. Target type: %s, Source type: %s",
-                parent_key,
-                type(target),
-                type(source),
+            raise AppException(
+                message=f"Strict Fail-Fast: Cannot merge non-dict XAI extensions for key '{parent_key}'.",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
-            return
 
         for s_key, s_val in source.items():
             if s_key not in target:
@@ -83,16 +129,17 @@ class ChunkAccumulator:
                     target[s_key] = f"{t_val} {s_val}"
                 elif isinstance(s_val, list) and isinstance(t_val, list):
                     t_val.extend(s_val)
+                elif isinstance(s_val, bool) and isinstance(t_val, bool):
+                    target[s_key] = t_val or s_val
+                elif isinstance(s_val, (int, float)) and isinstance(t_val, (int, float)):
+                    target[s_key] = min(t_val, s_val)
                 elif s_val == t_val:
                     continue
                 else:
-                    logger.warning(
-                        "ChunkAccumulator: Key collision on '%s.%s' with incompatible types. "
-                        "Target: %s, Source: %s. Skipping.",
-                        parent_key,
-                        s_key,
-                        type(t_val),
-                        type(s_val),
+                    raise AppException(
+                        message=f"Strict Fail-Fast: Unresolvable key collision on '{parent_key}.{s_key}'. Target: {t_val}, Source: {s_val}.",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
 
     def get_final_result(self) -> dict[str, Any]:

@@ -398,7 +398,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_1a2b3c4d5e6f7a8b",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an explicitly stated Warrant that articulates the underlying rule bridging the Data to the Claim. Look for lexical indicators (e.g., 'given the principle that', 'this demonstrates that mechanism X' or native equivalents). BANNED CONCEPTS: Do not accept simple 'because' statements without a structural rule. ENFORCEMENT RULE: Document the structural rule in reasoning_trace before extracting.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data, regardless of format. BANNED SOURCES: Never read matches from user input fields or instructions. BANNED LOGIC: Do not evaluate the quality of the bridging rule. STEP 1 (Lexical Anchor): Find 'given the principle that', 'this demonstrates that mechanism X' or native equivalents. STEP 2 (Bounding Box): Scan the sentence. If the bridging rule is explicitly stated -> ACCEPT. If the sentence uses 'because' without a structural rule -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -415,8 +415,8 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND epistemological humility where the author explicitly uses Qualifiers to limit the scope of their Claim.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_cafebabecafebabe",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND epistemological humility where the author defines specific boundaries for their Claim using conditional Qualifiers (e.g., 'under these specific conditions', 'in scenarios where', 'primarily when' or native equivalents). BANNED CONCEPTS: Do not accept vague filler words like 'maybe' or 'perhaps'. ENFORCEMENT RULE: Document the defined boundary in reasoning_trace before extracting.",
+                  "tda_id": "tda_617f0e1c869842e5",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'humility'. STEP 1 (Lexical Anchor): Find conditional qualifiers (e.g. 'under these specific conditions', 'primarily when' or native equivalents). STEP 2 (Bounding Box): Scan the paragraph. If boundaries are explicitly defined for the claim -> ACCEPT. If vague filler words ('maybe', 'perhaps') are used instead -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -464,7 +464,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an argument where the Warrant is fortified by explicit Backing from external expert sources.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c0ffee00c0ffee00",
+                  "tda_id": "tda_efe37feae9159e7b",
                   "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an argument where the Warrant is explicitly backed by a verifiable external methodology or study. Look for formal citations or methodological references (e.g., 'according to the methodology of', 'based on the study by' or native equivalents). BANNED CONCEPTS: Do not accept vague references like 'research shows'. ENFORCEMENT RULE: Map the external anchor in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -605,7 +605,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where facts are dumped abruptly without contextual framing.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c489292f2bc3465d",
+                  "tda_id": "tda_bd7d22ac4fd76da4",
                   "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a single sentence where a raw fact is dumped abruptly without any contextual framing. Look for sudden topic shifts without lexical transitions. ENFORCEMENT RULE: Explain the missing logical bridge in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept facts that are introduced with proper narrative framing.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -788,7 +788,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND an explicit structural breakdown where a complex whole is divided into parts.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c43193285e3d4a2f",
+                  "tda_id": "tda_116246044cec07a9",
                   "ai_rule_description": "CRITICAL DIRECTIVE: FIND an explicit structural breakdown where a complex whole is divided into its constituent parts. Look for structural markers (e.g., 'consists of', 'can be divided into'). ENFORCEMENT RULE: Document the deconstruction in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept simple bullet-point lists of features without systemic relation.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -825,7 +825,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_5370525dc4c143a4",
-                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): IDENTIFY a sentence that structurally breaks down data but treats its own analytical framework as absolute, unquestionable truth. ENFORCEMENT RULE: Document this framework-rigidity in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept analyses that acknowledge the limitations of their own models.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate framework rigidity subjectively. STEP 1 (Lexical Anchor): Find an absolute word (e.g. 'absolute', 'unquestionable', 'only'). STEP 2 (Bounding Box): Scan the paragraph. If the framework is presented without acknowledging its own limitations -> ACCEPT. If limitations are stated -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -892,7 +892,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_3e8b25b3f697450d",
-                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT an evaluation that delivers a final verdict but acts merely as a judge, failing to act as a prosecutor to dismantle limitations. Look for one-sided praise or condemnation. ENFORCEMENT RULE: Document the lack of dialectical balance in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept balanced verdicts that weigh both sides.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate balance subjectively. STEP 1 (Lexical Anchor): Find a final verdict sentence. STEP 2 (Bounding Box): Scan the preceding paragraph. If the verdict contains one-sided praise or condemnation without limitations being explicitly dismantled -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -1046,8 +1046,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of unexamined System 1 thinking. The output is instantaneous, automatic, and lacks analytical depth.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k1_1",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of unexamined System 1 thinking. Look for instantaneous or automatic conclusions without analytical depth. Document the lack of self-correction in reasoning_trace before extracting.",
+                  "tda_id": "tda_fa819d6681155ff0",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate analytical depth. STEP 1 (Lexical Anchor): Find an instantaneous conclusion sentence. STEP 2 (Bounding Box): Scan the paragraph. If the conclusion lacks step-by-step structural reasoning -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -1064,7 +1064,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT evidence of cognitive biases or mental shortcuts.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k1_2",
+                  "tda_id": "tda_c5997dc68796b76e",
                   "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT evidence of cognitive biases (confirmation bias, halo effect) or 'What You See Is All There Is' (WYSIATI) heuristic leaps. Document the detected bias in reasoning_trace before extracting the biased statement.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -1082,7 +1082,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY subjective views or initial reactions presented as absolute truth.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k1_3",
+                  "tda_id": "tda_e92c8231dfbcd34c",
                   "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY subjective views, initial reactions, or lazy extrapolations presented as absolute truth without epistemological humility. Document the hubris in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -1113,7 +1113,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND a weak or performative attempt to engage System 2 by questioning intuition.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k2_1",
+                  "tda_id": "tda_cc892e230bf21af7",
                   "ai_rule_description": "CRITICAL DIRECTIVE: FIND a weak, perhaps merely performative, attempt to engage System 2. The author questions intuition but fails to fully override System 1 defaults, resulting in superficial analysis. Map the incomplete transition in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -1131,8 +1131,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a one-sided argument that fails to systematically address alternative hypotheses.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k2_2",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY a one-sided argument that fails to systematically address alternative hypotheses. Lack of epistemological humility prevents progression. Document the missing alternatives in reasoning_trace before extracting.",
+                  "tda_id": "tda_01f3b09b2124c61f",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate epistemological humility. STEP 1 (Lexical Anchor): Find a conclusive argument. STEP 2 (Bounding Box): Scan the document. If the argument systematically addresses alternative hypotheses -> REJECT. If alternative hypotheses are completely missing -> ACCEPT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -1149,8 +1149,8 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT an instance where the text actively ignores or dismisses rebuttals.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k2_3",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT an instance where the text does not anticipate and engage with opposing arguments (rebuttals). Explain how counterarguments were ignored in reasoning_trace before extracting.",
+                  "tda_id": "tda_4a158f447d630763",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate engagement. STEP 1 (Lexical Anchor): Find a primary argument. STEP 2 (Bounding Box): Scan the document. If counterarguments (rebuttals) are explicitly addressed -> REJECT. If counterarguments are ignored -> ACCEPT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -1180,7 +1180,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE where the response systematically deconstructs the problem, explicitly overriding initial intuitions.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k3_1",
+                  "tda_id": "tda_a812697ed4908aa9",
                   "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE where the response systematically deconstructs the problem, consciously overriding initial intuitions and evaluating evidence with strict logical rigor. Map the cognitive friction ('how' and 'why') in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -1198,7 +1198,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence of the author acting as a prosecutor against their own ideas and thoughtfully engaging rebuttals.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k3_2",
+                  "tda_id": "tda_ea9a3f5c642e6d85",
                   "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT thoughtful identification of and response to rebuttals. The author acts as an antagonistic prosecutor against their own ideas, dismantling biases and engaging opposing arguments. Explain the dialectical synthesis in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -1216,7 +1216,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the structured logic is explicitly tethered to external expert references.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_k3_3",
+                  "tda_id": "tda_a722e18079664e7c",
                   "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY where the structured logic is explicitly tethered to external, verifiable expert references or data. True System 2 processing does not operate in a vacuum. Document the external anchor in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -1304,7 +1304,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY extreme goal-hacking where the user accepts the first response without structural challenge.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_g1_1",
+                  "tda_id": "tda_52fade6ba40cd51d",
                   "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY if the user accepts the first response without any structural challenge, allowing the interaction to be entirely driven by the AI's assumptions. Document the passive role in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -1322,7 +1322,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY if the user demonstrates zero critical oversight over logical errors.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_g1_2",
+                  "tda_id": "tda_142a4112706a154f",
                   "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY if the user demonstrates zero critical oversight, letting hallucinated or flawed logic pass through completely unchallenged. Document the logical oversight in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -1340,7 +1340,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY if the user treats the AI's probabilistic generation as an infallible source of truth.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_g1_3",
+                  "tda_id": "tda_cf4d237c7ecb517f",
                   "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY if the user treats the AI's probabilistic generation as an infallible source of truth without demanding evidence or source criticism. Document the hubris in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -1438,8 +1438,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively engages with the output but only targets symptoms rather than root causes.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_g3_1",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY where the user addresses the outputs (symptoms) and accepts minor tweaks, leaving the underlying generative logic or prompt architecture (root causes) unchallenged. Map the engagement in reasoning_trace before extracting.",
+                  "tda_id": "tda_e596ff88159b0825",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'minor tweaks'. STEP 1 (Lexical Anchor): Find an instruction modifying an output. STEP 2 (Bounding Box): Scan the interaction. If the user only modifies the final output without altering the generative logic or prompt architecture -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -1456,7 +1456,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user accepts stylistic or minor tweaks while leaving the substantive core argument unchallenged.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_g3_2",
+                  "tda_id": "tda_2e2f866dc6331dfa",
                   "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY where the user accepts stylistic or minor tweaks while leaving the substantive core argument unchallenged. Explain the superficial correction in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -1474,7 +1474,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY one-sided execution without demand for alternative models.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_g3_3",
+                  "tda_id": "tda_0fce4f8ed6309311",
                   "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY one-sided execution where the user does not demand alternative models or explore counterarguments (rebuttals). Explain the missing alternatives in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -1505,8 +1505,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively prevents Goodhart's Law by questioning the reliability of the metric and relating it to the ultimate goal.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_g4_1",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: The user successfully navigates the tension between the proxy metric and the true overarching goal, preventing Goodhart's Law. Map this explicit logic in reasoning_trace before extracting the insight.",
+                  "tda_id": "tda_8e999b0c5b70acd4",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'success'. STEP 1 (Lexical Anchor): Find explicit mention of a proxy metric versus an overarching goal. STEP 2 (Bounding Box): Scan the paragraph. If the tension between the proxy and the goal is explicitly mapped -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -1523,7 +1523,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user forces the AI to acknowledge foundational premises and edge cases.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_g4_2",
+                  "tda_id": "tda_372b415345145976",
                   "ai_rule_description": "CRITICAL DIRECTIVE: The user actively identifies and integrates boundary conditions, underlying assumptions, and exceptions into the analysis. Map this explicit logic in reasoning_trace before extracting the insight.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -1541,8 +1541,8 @@
               "ai_description": "ENFORCEMENT RULE: EPISTEMOLOGICAL HUMILITY REQUIRED. Verify that the user demands acknowledgment of uncertainties.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_g4_3",
-                  "ai_rule_description": "ENFORCEMENT RULE: EPISTEMOLOGICAL HUMILITY REQUIRED. Verify that the user demands acknowledgment of uncertainties. Map this explicit logic in reasoning_trace before extracting the insight.",
+                  "tda_id": "tda_44b553d2e0152ee9",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'humility'. STEP 1 (Lexical Anchor): Find explicit demands for uncertainty acknowledgment. STEP 2 (Bounding Box): Scan the instruction. If the user demands acknowledgment of uncertainties -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -1572,7 +1572,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user acts as an antagonistic prosecutor, challenging the AI's logic and restructuring the interaction.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_g5_1",
+                  "tda_id": "tda_05eadf25950b8030",
                   "ai_rule_description": "CRITICAL DIRECTIVE: ABSOLUTE ZERO-TRUST. The user acts as an antagonistic prosecutor, dismantling the AI's structural reasoning, demanding corrections, and delegating only execution while maintaining cognitive control. Map this explicit logic in reasoning_trace before extracting the insight.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -1590,8 +1590,8 @@
               "ai_description": "ENFORCEMENT RULE: SYSTEM 2 REQUIREMENT. The interaction MUST explicitly articulate 'how' and 'why' the user is challenging the AI.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_g5_2",
-                  "ai_rule_description": "ENFORCEMENT RULE: SYSTEM 2 REQUIREMENT. The interaction MUST explicitly articulate 'how' and 'why' the user is challenging the AI. It must show the slow, deliberate work of reasoning. Map this explicit logic in reasoning_trace before extracting the insight.",
+                  "tda_id": "tda_a8f829acd710b92a",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'deliberate work'. STEP 1 (Lexical Anchor): Find 'how' and 'why' the user is challenging the AI. STEP 2 (Bounding Box): Scan the paragraph. If explicit steps of reasoning are documented -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -1608,7 +1608,7 @@
               "ai_description": "ENFORCEMENT RULE: MANDATORY SOURCE ANCHORING. The user must demand external grounding and expert verification.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_g5_3",
+                  "tda_id": "tda_0e02eef8e123cedc",
                   "ai_rule_description": "ENFORCEMENT RULE: MANDATORY SOURCE ANCHORING. The user must demand external grounding and concrete expert verification. A perfect interaction without demonstrable anchoring in external reality is suspicious. Map this explicit logic in reasoning_trace before extracting the insight.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -1828,7 +1828,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY blatant fabrication where the output contradicts foundational constraints.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar1_1",
+                  "tda_id": "tda_2ef2909a5b811389",
                   "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY blatant fabrication where the output contradicts foundational constraints or explicitly disregards provided instructions. Look for lexical markers of autonomous hallucination (e.g., 'I created', 'Instead of'). Document the deviation in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -1846,7 +1846,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT an assertion presented as absolute truth without verifiable provenance.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar1_2",
+                  "tda_id": "tda_24ac4c33ac400e8a",
                   "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT an assertion presented as absolute truth without verifiable provenance or structural anchor (ARMA Integrity violation). Look for hubristic markers like 'it is guaranteed' or 'always'. Document the missing provenance in reasoning_trace before quoting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -1864,7 +1864,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where sensitive or restricted information is exposed or mishandled.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar1_3",
+                  "tda_id": "tda_98fdfa478461156c",
                   "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an instance where sensitive, restricted, or private information is mishandled, explicitly violating the ARMA Protection principle. Document the operational breach in reasoning_trace before extracting the violating text.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -1895,8 +1895,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of isolated compliance without overarching structural integrity.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar2_1",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of isolated compliance where scattered correct elements exist, but lack overarching structural integrity (ARMA Accountability). Document the fragmented adherence in reasoning_trace before extracting.",
+                  "tda_id": "tda_124b527ae45f5571",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'integrity'. STEP 1 (Lexical Anchor): Find scattered compliance elements. STEP 2 (Bounding Box): Scan the document. If elements exist without an overarching structural framework linking them -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -1913,7 +1913,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT evidence where a required standard operating procedure is explicitly bypassed.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar2_2",
+                  "tda_id": "tda_314d4beaeec7a13e",
                   "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT evidence where a required standard operating procedure or compliance rule is explicitly bypassed for convenience. Look for dismissive markers (e.g., 'we can skip', 'not strictly necessary'). Document the bypassed rule in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -1931,7 +1931,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an execution that blindly follows one rule while completely ignoring conflicting constraints.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar2_3",
+                  "tda_id": "tda_7f966092b2c6154e",
                   "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an execution that blindly follows a single rule while actively ignoring known conflicting constraints or alternative models. Map the ignored constraints in reasoning_trace before quoting the tunnel-visioned execution.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -1962,8 +1962,8 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence that the basic compliance process is followed in a mechanical, literal manner.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar3_1",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND evidence that the basic compliance process is followed in a mechanical, literal manner without strategic synthesis. Document the literal interpretation in reasoning_trace before extracting the compliant text.",
+                  "tda_id": "tda_d4d5a3eef60bc236",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'strategic synthesis'. STEP 1 (Lexical Anchor): Find a compliance process execution. STEP 2 (Bounding Box): Scan the paragraph. If it is executed mechanically without synthesizing multiple components -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -1980,8 +1980,8 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where the author avoids acknowledging operational risks or compliance ambiguities.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar3_2",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an instance where the author avoids acknowledging operational risks, compliance ambiguities, or necessary rebuttals. Look for sweeping generic statements that hide complexity. Explain the hidden risk in reasoning_trace before extracting.",
+                  "tda_id": "tda_c6631136c9b7f482",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'complexity'. STEP 1 (Lexical Anchor): Find a sweeping statement about compliance. STEP 2 (Bounding Box): Scan the paragraph. If operational risks or ambiguities are not explicitly acknowledged -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -1998,7 +1998,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a reliance on undocumented or unverified internal knowledge.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar3_3",
+                  "tda_id": "tda_3e89c652c234b878",
                   "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY a reliance on undocumented or unverified internal knowledge rather than established external guidelines (violating ARMA Transparency). Document the missing verifiability in reasoning_trace before quoting the unsupported claim.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -2029,7 +2029,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE explicit adherence to structured directives where the chain of reasoning is clearly verifiable.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar4_1",
+                  "tda_id": "tda_8dc12765ece41ca5",
                   "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE explicit adherence to structured directives where the chain of reasoning is clearly verifiable and transparent. Look for lexical markers like 'according to the guidelines' or 'based on the procedure'. Document the structural alignment in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -2047,7 +2047,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND epistemological humility where limitations and boundary conditions are explicitly stated.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar4_2",
+                  "tda_id": "tda_9df9f29bea8c2d52",
                   "ai_rule_description": "CRITICAL DIRECTIVE: FIND epistemological humility where limitations, operational constraints, and boundary conditions are explicitly stated. Look for scoping markers like 'within the scope of' or 'subject to'. Document the bounded context in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -2065,7 +2065,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT an instance where potential compliance conflicts are systematically addressed.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar4_3",
+                  "tda_id": "tda_981b86295fd5b20a",
                   "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT an instance where potential compliance conflicts or alternative operational models are systematically addressed and resolved. Document the conflict resolution logic in reasoning_trace before quoting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -2096,7 +2096,7 @@
               "ai_description": "ENFORCEMENT RULE: SYSTEM 2 REQUIREMENT. FIND evidence of 'System 2' deliberation detailing why specific compliance tradeoffs were made.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar5_1",
+                  "tda_id": "tda_a38407def6f21ab7",
                   "ai_rule_description": "ENFORCEMENT RULE: SYSTEM 2 REQUIREMENT. FIND evidence of 'System 2' deliberation detailing exactly why specific compliance tradeoffs were made. Look for complex dialectical reasoning ('we chose X over Y because'). Document the cognitive friction step-by-step in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -2114,7 +2114,7 @@
               "ai_description": "ENFORCEMENT RULE: MANDATORY SOURCE ANCHORING. LOCATE where the execution is fortified by explicit backing from external expert frameworks.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar5_2",
+                  "tda_id": "tda_344ac3b8cdfd549f",
                   "ai_rule_description": "ENFORCEMENT RULE: MANDATORY SOURCE ANCHORING. LOCATE where the execution is fortified by explicit backing from external expert frameworks (like ARMA Principles or ISO standards). Map the connection to the external anchor in reasoning_trace before extracting the definitively compliant quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -2132,7 +2132,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT a masterfully constructed resolution that seamlessly balances strict compliance with operational goals.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ar5_3",
+                  "tda_id": "tda_19e832bbd1191b16",
                   "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT a masterfully constructed resolution that seamlessly balances strict compliance (Integrity/Protection) with operational goals (Availability). Document the perfect equilibrium triad in reasoning_trace before extracting the definitive conclusion.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -2224,7 +2224,7 @@
               "ai_description": "FATAL FLAW DIRECTIVE: BOUNTY HUNTER MANDATE. LOCATE an explicit declaration that X caused Y solely because X preceded Y.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c1_1",
+                  "tda_id": "tda_2d15aa161e5c79cf",
                   "ai_rule_description": "FATAL FLAW DIRECTIVE: BOUNTY HUNTER MANDATE. LOCATE an explicit declaration that X caused Y solely because X preceded Y temporally. BANNED: Do not extract simple sequential descriptions. Find the active, false causal claim. Document the temporal logical leap in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -2242,7 +2242,7 @@
               "ai_description": "FATAL FLAW DIRECTIVE: BOUNTY HUNTER MANDATE. EXTRACT an outcome explicitly attributed to a variable, while ignoring the obvious common cause (Confounder).",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c1_2",
+                  "tda_id": "tda_f2f1ae58283bc28c",
                   "ai_rule_description": "FATAL FLAW DIRECTIVE: BOUNTY HUNTER MANDATE. EXTRACT an outcome explicitly attributed to a surface variable, while completely ignoring the obvious common cause (Confounder/Z-variable) that drives both. Map the ignored confounder in reasoning_trace before quoting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -2260,8 +2260,8 @@
               "ai_description": "FATAL FLAW DIRECTIVE: BOUNTY HUNTER MANDATE. IDENTIFY where passive observation (correlation) is forcefully asserted as intervention (causation).",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c1_3",
-                  "ai_rule_description": "FATAL FLAW DIRECTIVE: BOUNTY HUNTER MANDATE. IDENTIFY where passive observation (Pearl's Rung 1: Association) is forcefully asserted as active intervention (Rung 2). Anti-Proxies: The text treats 'associated with' as 'caused by'. Document the categorical error in reasoning_trace before extracting.",
+                  "tda_id": "tda_eadd720dc29212d9",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'forcefulness'. STEP 1 (Lexical Anchor): Find 'associated with' or similar correlations. STEP 2 (Bounding Box): Scan the sentence. If the text treats the association structurally as 'caused by' an intervention -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -2291,7 +2291,7 @@
               "ai_description": "FATAL FLAW DIRECTIVE: BOUNTY HUNTER MANDATE. LOCATE a superficial correlation treated as actionable intelligence.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c2_1",
+                  "tda_id": "tda_7e2cfc1b814939b0",
                   "ai_rule_description": "FATAL FLAW DIRECTIVE: BOUNTY HUNTER MANDATE. LOCATE a superficial correlation treated as actionable intelligence without any proposed mechanical bridge. Document the missing 'how' in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -2309,7 +2309,7 @@
               "ai_description": "FATAL FLAW DIRECTIVE: BOUNTY HUNTER MANDATE. EXTRACT an instance where Y causing X is completely unaddressed as an alternative.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c2_2",
+                  "tda_id": "tda_779f6fe3ca27a1d5",
                   "ai_rule_description": "FATAL FLAW DIRECTIVE: BOUNTY HUNTER MANDATE. EXTRACT an instance where the author asserts X causes Y, but completely fails to address the highly plausible alternative that Y causes X (Reverse Causation). Document the reverse potential in reasoning_trace before quoting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -2327,7 +2327,7 @@
               "ai_description": "FATAL FLAW DIRECTIVE: BOUNTY HUNTER MANDATE. IDENTIFY a direct causal claim that ignores the necessary intermediary step (Mediator).",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c2_3",
+                  "tda_id": "tda_a00f4b05b10cb119",
                   "ai_rule_description": "FATAL FLAW DIRECTIVE: BOUNTY HUNTER MANDATE. IDENTIFY a direct causal claim between distant variables that actively ignores the necessary intermediary step (Mediator variable). Map the missing mediator in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -2358,8 +2358,8 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY baseline evidence of an active intervention (doing) producing an expected outcome.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c3_1",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY baseline evidence of an active intervention (Pearl's Rung 2: 'Doing'). The text explicitly describes an action taken and its direct physical/logical outcome. Document the action-outcome pair in reasoning_trace before extracting.",
+                  "tda_id": "tda_ab08c163874ae363",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'active'. STEP 1 (Lexical Anchor): Find an explicit description of an action taken. STEP 2 (Bounding Box): Scan the sentence. If the action is paired with a direct physical/logical outcome -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -2376,7 +2376,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE causation that relies on unstated but plausible contextual mechanisms.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c3_2",
+                  "tda_id": "tda_7965bb6ad266d102",
                   "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an instance where causation is plausible but relies heavily on unstated background assumptions. The mechanism is implied rather than proven. Identify the hidden assumption in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -2394,7 +2394,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT a conclusion that establishes a basic link but fails to actively neutralize alternative paths.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c3_3",
+                  "tda_id": "tda_038cc6bc4cc3a964",
                   "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT a conclusion that establishes a basic Rung 2 link but fails to actively neutralize alternative paths or confounding factors. Document the unaddressed alternatives in reasoning_trace before extracting.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -2425,8 +2425,8 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE a robust argument where the step-by-step causal mechanism is explicitly detailed.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c4_1",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE a robust argument where the step-by-step causal mechanism linking input to outcome is explicitly detailed. The 'how' is fully mapped. Document the mechanism steps in reasoning_trace before extracting.",
+                  "tda_id": "tda_d682721fed98319c",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'robust'. STEP 1 (Lexical Anchor): Find a causal claim. STEP 2 (Bounding Box): Scan the paragraph. If a step-by-step mechanism linking input to outcome is explicitly detailed -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -2443,7 +2443,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence that confounding variables have been systematically identified and isolated.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c4_2",
+                  "tda_id": "tda_699402302382cfac",
                   "ai_rule_description": "CRITICAL DIRECTIVE: FIND evidence that potential confounding variables have been systematically acknowledged and explicitly neutralized. Document the isolated confounder in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -2461,8 +2461,8 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT an analysis where the certainty strictly matches the evidence, avoiding over-extrapolation.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c4_3",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT an analysis demonstrating epistemic humility. The author's certainty strictly matches the evidence provided, explicitly stating the boundaries of the causal claim. Document this boundary in reasoning_trace before quoting.",
+                  "tda_id": "tda_395d7ffff25de7ea",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'humility'. STEP 1 (Lexical Anchor): Find a causal claim. STEP 2 (Bounding Box): Scan the paragraph. If the boundaries of the claim are explicitly stated matching the evidence -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -2492,7 +2492,7 @@
               "ai_description": "ENFORCEMENT RULE: SYSTEM 2 REQUIREMENT. FIND explicit 'System 2' counterfactual reasoning (Pearl's Rung 3).",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c5_1",
+                  "tda_id": "tda_76de55fcbbc1912d",
                   "ai_rule_description": "ENFORCEMENT RULE: SYSTEM 2 REQUIREMENT. FIND explicit 'System 2' counterfactual reasoning (Pearl's Rung 3: 'What if X had not happened?'). The author must actively simulate the alternate timeline to prove necessary causation. Document the counterfactual test in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -2510,7 +2510,7 @@
               "ai_description": "ENFORCEMENT RULE: SYSTEM 2 REQUIREMENT. EXTRACT a definitive causal chain that perfectly isolates the true cause.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c5_2",
+                  "tda_id": "tda_21cb29eb65618a5e",
                   "ai_rule_description": "ENFORCEMENT RULE: SYSTEM 2 REQUIREMENT. EXTRACT a definitive causal chain that perfectly isolates the true cause, leaving zero room for post hoc rationalization or latent colliders. Map the flawless triad in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -2528,7 +2528,7 @@
               "ai_description": "ENFORCEMENT RULE: MANDATORY SOURCE ANCHORING. LOCATE where the causal mechanism is backed by established structural models.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c5_3",
+                  "tda_id": "tda_4ab4d58cfbcd2ce4",
                   "ai_rule_description": "ENFORCEMENT RULE: MANDATORY SOURCE ANCHORING. LOCATE where the causal mechanism is explicitly backed by established structural models, scientific laws, or formal logic, proving the intervention. Map the connection to the external anchor in reasoning_trace before extracting.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -2640,7 +2640,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_6a8398de7be844b9",
-                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author agrees with a premise using absolutist language (e.g., 'always', 'undeniably', 'proven', '100%') without providing any new empirical test data. ENFORCEMENT RULE: Document the lack of empirical testing in reasoning_trace before quoting. BANNED CONCEPTS: Do not accept simple agreement if new data or methodologies are actually introduced.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'agreement'. STEP 1 (Lexical Anchor): Find an absolutist word (e.g., 'always', 'undeniably', '100%'). STEP 2 (Bounding Box): Scan the paragraph. If the premise is agreed with without providing new empirical test data -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -2859,7 +2859,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_27e3e8856b034b45",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND evidence that the author formulates an explicit alternative hypothesis (or null hypothesis) to test against their primary claim (e.g., 'Alternatively, if Y is true, we should observe Z'). ENFORCEMENT RULE: Document the alternative hypothesis in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept simple 'what if' rhetorical questions.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not accept rhetorical 'what if'. STEP 1 (Lexical Anchor): Find an explicit alternative hypothesis (e.g., 'Alternatively, if Y is true'). STEP 2 (Bounding Box): Scan the paragraph. If the alternative is formulated to test the primary claim -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -2908,7 +2908,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_645f10d53cb04803",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND a masterful execution where the author designs a rigorous test or uses data explicitly intended to falsify their own core hypothesis. Look for destructive testing markers (e.g., 'To disprove this, we tested', 'We subjected the claim to'). ENFORCEMENT RULE: Document the destructive test in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept tests designed solely to confirm the hypothesis.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'masterful'. STEP 1 (Lexical Anchor): Find destructive testing markers (e.g., 'To disprove this', 'We subjected'). STEP 2 (Bounding Box): Scan the paragraph. If the data is explicitly intended to falsify the core hypothesis -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -2926,7 +2926,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_97fb8e0bd9904ed5",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an explicit integration where the strongest possible counterarguments ('steel-manning') are proactively presented and then dismantled with verifiable data. ENFORCEMENT RULE: Map the dismantled strong counterargument in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept the dismantling of weak or straw-man arguments.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'strongest'. STEP 1 (Lexical Anchor): Find a proactive presentation of a counterargument. STEP 2 (Bounding Box): Scan the paragraph. If the counterargument is dismantled with verifiable data -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -2944,7 +2944,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_241520d5fea74622",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT definitive 'System 2' deliberation demonstrating deep epistemic humility, explicitly stating the exact mathematical or logical conditions where the claim absolutely breaks down. ENFORCEMENT RULE: Document the cognitive friction and failure conditions in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept superficial humility or standard academic disclaimers.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'deep'. STEP 1 (Lexical Anchor): Find explicit mathematical or logical failure conditions. STEP 2 (Bounding Box): Scan the paragraph. If the conditions where the claim absolutely breaks down are stated -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -3053,7 +3053,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_bba97a5c45c44ff2",
-                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE an instance where the user allows the AI to completely dictate the workflow and output without any steering. ENFORCEMENT RULE: Document this total lack of executive control in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept simple conversational prompts without specific constraints as steering.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'control'. STEP 1 (Lexical Anchor): Find a user prompt. STEP 2 (Bounding Box): Scan the prompt. If the user allows the AI to dictate the workflow without any structural constraints -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -3205,7 +3205,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_811ed54064ad4d2f",
-                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE an instance where the user adequately guides the current step but fails to set up constraints or anticipate risks for the subsequent steps. ENFORCEMENT RULE: Document the missing foresight in reasoning_trace before extracting. BANNED CONCEPTS: Do not flag step-by-step guidance if it intentionally compartmentalizes risk.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'adequately'. STEP 1 (Lexical Anchor): Find a step-by-step instruction. STEP 2 (Bounding Box): Scan the instruction. If constraints for subsequent steps are missing -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -3223,7 +3223,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_be92d684b9c94c9f",
-                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT an instance where some operational constraints are enforced but others are forgotten or implicitly allowed to slip. ENFORCEMENT RULE: Map the forgotten constraint in reasoning_trace before quoting. BANNED CONCEPTS: Do not flag intentional relaxation of constraints.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'forgotten'. STEP 1 (Lexical Anchor): Find an operational constraint enforcement. STEP 2 (Bounding Box): Scan the subsequent execution. If a previously enforced constraint is implicitly dropped without justification -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -3272,7 +3272,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_da0ae668b0ce4e0f",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND evidence that the user forces the AI to output intermediate reasoning steps or milestones before accepting a final conclusion. ENFORCEMENT RULE: Document this forced 'Chain of Thought' control in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept implicit reasoning steps generated by the AI without prompt.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not accept unprompted intermediate steps. STEP 1 (Lexical Anchor): Find a user command. STEP 2 (Bounding Box): Scan the command. If the user forces intermediate reasoning steps before accepting a conclusion -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -3290,7 +3290,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_09b38057bf2d407e",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT a command where the user explicitly forces the AI to review or critique its own output against specific external criteria before proceeding. ENFORCEMENT RULE: Document the QA loop in reasoning_trace before quoting. BANNED CONCEPTS: Do not accept generic 'is this correct' queries.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not accept generic 'is this correct' queries. STEP 1 (Lexical Anchor): Find a user command. STEP 2 (Bounding Box): Scan the command. If the user forces a review against specific external criteria -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -3320,8 +3320,8 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND a masterful execution where the user decisively overrides the AI's logic with superior, externally verified reasoning.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ca019a1535cc455d",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: FIND a masterful execution where the user decisively overrides the AI's logic with superior, externally verified reasoning, asserting absolute executive control. ENFORCEMENT RULE: Document the authoritative override in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept simple overrides without superior reasoning.",
+                  "tda_id": "tda_dc1edec776f484a6",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'masterful'. STEP 1 (Lexical Anchor): Find a user override command. STEP 2 (Bounding Box): Scan the command. If the logic is overridden with explicitly stated external reasoning -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -3339,7 +3339,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_1f8680f324c24e70",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an explicit multi-turn sequence where the Deming PDCA (Plan, Do, Check, Act) phases are strictly governed by the user, leaving the AI as a pure processing engine. ENFORCEMENT RULE: Map the full cycle in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept partial adherence to the PDCA cycle.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'strictly governed'. STEP 1 (Lexical Anchor): Find a multi-turn sequence. STEP 2 (Bounding Box): Scan the sequence. If Plan, Do, Check, Act phases are explicitly commanded by the user -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -3357,7 +3357,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_de0afa003e6740ce",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT definitive evidence of 'System 2' oversight where the user enforces systemic architectural rules flawlessly, preventing any hallucination or drift. ENFORCEMENT RULE: Document the systemic enforcement in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept superficial enforcement of style guidelines.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'flawlessly'. STEP 1 (Lexical Anchor): Find an enforcement of architectural rules. STEP 2 (Bounding Box): Scan the enforcement. If systemic rules are explicitly cited to prevent drift -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -3544,7 +3544,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_bf4127529d844313",
-                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a single instance where definitive conclusions are drawn using subjective probabilistic views presented as absolute truths. Look for markers like 'probably', 'I think', or 'maybe' masked as facts in the native language. ENFORCEMENT RULE: Map the unverified assumption in reasoning_trace before quoting the exact_quote. BANNED CONCEPTS: Do not accept explicit, well-founded statistical probabilities as hallucinations.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'subjective'. STEP 1 (Lexical Anchor): Find probabilistic markers ('probably', 'I think'). STEP 2 (Bounding Box): Scan the sentence. If a definitive conclusion is drawn from these markers as an absolute truth -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -3611,7 +3611,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_25749796e4814c99",
-                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a single instance where the synthesis actively ignores or dismisses alternative hypotheses without evidence, failing the DARPA XAI 'Why not something else?' test. Look for dismissive markers like 'regardless' or 'anyway' in the native language. ENFORCEMENT RULE: Document this active dismissal in reasoning_trace before extracting the exact_quote. BANNED CONCEPTS: Do not flag explicit, evidence-based refutations of counterarguments.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'actively ignores'. STEP 1 (Lexical Anchor): Find dismissive markers ('regardless', 'anyway'). STEP 2 (Bounding Box): Scan the sentence. If alternative hypotheses are dismissed without empirical evidence -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -4427,7 +4427,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_4898df90eab94d7f",
-                  "ai_rule_description": "BOUNTY HUNTER MANDATE: Scan for lexical markers of blind trust. Locate a sentence where complex or unverified generative output is accepted as an undeniable fact. Document the lack of verification step-by-step before extracting the exact_quote.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'blind trust'. STEP 1 (Lexical Anchor): Find acceptance of unverified output. STEP 2 (Bounding Box): Scan the paragraph. If generative output is accepted as fact without a verification step -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -4579,7 +4579,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_b180a5f8e0ae4cd3",
-                  "ai_rule_description": "BOUNTY HUNTER MANDATE: Scan for explicit acknowledgment of boundaries. Locate a sentence where the system's epistemic limits are stated. Document the limitation boundary before extracting the exact_quote.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'explicit'. STEP 1 (Lexical Anchor): Find a boundary statement. STEP 2 (Bounding Box): Scan the sentence. If the system's epistemic limits are physically stated -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -4713,7 +4713,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_8b03f091930a4be3",
-                  "ai_rule_description": "BOUNTY HUNTER MANDATE: Scan for comprehensive security deliberation. Locate a sentence where the system or user explicitly articulates a security boundary, risk evaluation, and ethical constraint before proceeding. Map the cognitive friction step-by-step before extracting the exact_quote.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'comprehensive'. STEP 1 (Lexical Anchor): Find a security boundary or risk evaluation. STEP 2 (Bounding Box): Scan the paragraph. If the ethical constraint is explicitly articulated before proceeding -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -4947,7 +4947,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_7f5b3a2a3e814a09",
-                  "ai_rule_description": "BOUNTY HUNTER MANDATE: Scan for lexical markers of post-hoc justification. Locate a sentence where the user claims intent only AFTER the output was generated. Document the missing initial intent step-by-step before extracting the exact_quote.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'justification'. STEP 1 (Lexical Anchor): Find a statement of intent. STEP 2 (Bounding Box): Scan the sequence. If intent is claimed only after the output was generated -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -4983,7 +4983,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_eade2a3fa7024df1",
-                  "ai_rule_description": "BOUNTY HUNTER MANDATE: Scan for linear, unquestioned progression. Locate a major decision point where the first proposed solution is accepted without systemic questioning. Document the absence of abductive reasoning before extracting the exact_quote.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'unquestioned progression'. STEP 1 (Lexical Anchor): Find a proposed solution. STEP 2 (Bounding Box): Scan the decision point. If the first solution is accepted without documenting alternative reasoning -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -5050,7 +5050,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_972a71a708be44cb",
-                  "ai_rule_description": "BOUNTY HUNTER MANDATE: Scan for assumed causality. Locate a claim where the user states an action led to a result without documenting the intermediate mechanism. Document the missing proof before extracting the exact_quote.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'assumed'. STEP 1 (Lexical Anchor): Find an action-result claim. STEP 2 (Bounding Box): Scan the paragraph. If the intermediate mechanism linking action to result is missing -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -5183,7 +5183,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify end-to-end causal traceability.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_cfe3897efd454cdf",
+                  "tda_id": "tda_9cb8cacfaeb17b32",
                   "ai_rule_description": "BOUNTY HUNTER MANDATE: Scan for clear causal chains. Locate a sequence demonstrating a continuous, unbroken line from intent to verified outcome. Map the traceability before extracting the exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
@@ -5215,7 +5215,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_db9afee35a124c90",
-                  "ai_rule_description": "BOUNTY HUNTER MANDATE: Scan for markers of forward-planning (e.g. 'hypothesis is') BEFORE the output. Locate a sentence where the user articulates a clear structural boundary prior to execution. Map the friction step-by-step before extracting the exact_quote.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'forward-planning'. STEP 1 (Lexical Anchor): Find markers of forward-planning ('hypothesis is'). STEP 2 (Bounding Box): Scan the paragraph. If a structural boundary is articulated before execution -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -5439,7 +5439,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_3484498be2ce445a",
-                  "ai_rule_description": "BOUNTY HUNTER MANDATE: Scan for lexical markers of opaque jumps. Locate a sentence where a definitive conclusion is presented without any preceding logical steps. Document the missing logical trace step-by-step before extracting the exact_quote.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'opaque'. STEP 1 (Lexical Anchor): Find a definitive conclusion. STEP 2 (Bounding Box): Scan the preceding text. If the conclusion is presented without any preceding logical steps -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -5506,7 +5506,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_0ea6db6e838946f4",
-                  "ai_rule_description": "BOUNTY HUNTER MANDATE: Scan for non-specific justifications. Locate a sentence where the explanation could apply to any generic situation rather than the specific context at hand. Document the vagueness before extracting the exact_quote.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'vagueness'. STEP 1 (Lexical Anchor): Find a justification sentence. STEP 2 (Bounding Box): Scan the paragraph. If the explanation lacks specific context anchoring and applies generally -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -5523,7 +5523,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify selective transparency (hiding failures).",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c5644fa8db814aaa",
+                  "tda_id": "tda_43a045d46592f395",
                   "ai_rule_description": "BOUNTY HUNTER MANDATE: Scan for confirmation bias in explanations. Locate a sequence where positive outcomes are detailed but edge cases or uncertainties are omitted. Map the missing limitations before extracting the exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -5541,7 +5541,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify incomplete causal mapping.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_cf34571968024979",
+                  "tda_id": "tda_2d7f4fe7a1d15481",
                   "ai_rule_description": "BOUNTY HUNTER MANDATE: Scan for logical gaps. Locate a sentence where a major factor heavily influences the outcome but is left unexplained in the final summary. Document the missing variable before extracting the exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
@@ -5658,7 +5658,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_5fca56575d8b4cf2",
-                  "ai_rule_description": "BOUNTY HUNTER MANDATE: Scan for deliberate pause markers. Locate a sentence showing explicit deliberation or weighing of options prior to concluding. Document the friction before extracting the exact_quote.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'deliberate'. STEP 1 (Lexical Anchor): Find a pause marker or option weighing. STEP 2 (Bounding Box): Scan the paragraph. If options are explicitly weighed prior to concluding -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -6298,7 +6298,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify claims of absolute exhaustiveness.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c697f52b0e8545e8",
+                  "tda_id": "tda_31a464ccc6f1f545",
                   "ai_rule_description": "BOUNTY HUNTER MANDATE: Scan for declarations of complete knowledge. Locate a statement where the text explicitly leaves zero room for doubt or unknown variables, presenting its view as the only possible truth. Document the overreach before extracting the exact_quote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"

@@ -3,7 +3,7 @@ import json
 import logging
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, RootModel
+from pydantic import BaseModel, ConfigDict, RootModel, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
@@ -66,9 +66,11 @@ class ChunkWorker:
                             aid_model = AtomIdentifier.model_validate(item)
                             if aid_model.atom_id in atom_to_block_ids:
                                 chunk_matrix_ids.update(atom_to_block_ids[aid_model.atom_id])
-                        except Exception as e:
-                            msg = f"Strict Fail-Fast Enforced: Malformed atom item payload. {str(e)}"
-                            logger.error("[ChunkWorker] %s", msg, exc_info=True)
+                        except ValidationError as e:
+                            logger.error(
+                                "[ChunkWorker] Strict Fail-Fast Enforced: Malformed atom item payload.",
+                                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name}
+                            )
                             raise AppException(
                                 message="Atom item validation failed",
                                 status_code=500,
@@ -113,85 +115,49 @@ class ChunkWorker:
             chunk_traces: list[Any] = []
 
             if effective_mcp_tools:
-                try:
-                    executor = LLMTaskExecutor(prompt_compiler=compiler)
-                    loop_res = await execute_tool_loop(
-                        llm_client=bound_client,
-                        executor=executor,
+                executor = LLMTaskExecutor(prompt_compiler=compiler)
+                loop_res = await execute_tool_loop(
+                    llm_client=bound_client,
+                    executor=executor,
+                    messages=messages,
+                    response_model=local_dynamic_schema,
+                    allowed_tools=effective_mcp_tools,
+                    step_name=step_id,
+                    mock_identity=step_id,
+                    target_language=target_locale,
+                    synthesis_instructions=synthesis_instructions,
+                    validation_context={"strictness_level": strictness_level},
+                )
+                if isinstance(loop_res.result_data, BaseModel):
+                    chunk_final = loop_res.result_data.model_dump(mode="json")
+                else:
+                    chunk_final = dict(loop_res.result_data)
+                chunk_usage = loop_res.usage if loop_res.usage else None
+                if loop_res.audit_traces:
+                    chunk_traces.extend(loop_res.audit_traces)
+            else:
+                executor = LLMTaskExecutor(prompt_compiler=compiler)
+                if output_profile is not None:
+                    result, usage = await executor.execute_structured_task(
+                        client=bound_client,
                         messages=messages,
-                        response_model=local_dynamic_schema,
-                        allowed_tools=effective_mcp_tools,
-                        step_name=step_id,
+                        response_model=SduiResponseList,
                         mock_identity=step_id,
-                        target_language=target_locale,
-                        synthesis_instructions=synthesis_instructions,
+                        max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
                         validation_context={"strictness_level": strictness_level},
                     )
-                    if isinstance(loop_res.result_data, BaseModel):
-                        chunk_final = loop_res.result_data.model_dump(mode="json")
-                    else:
-                        chunk_final = dict(loop_res.result_data)
-                    chunk_usage = loop_res.usage if loop_res.usage else None
-                    if loop_res.audit_traces:
-                        chunk_traces.extend(loop_res.audit_traces)
-                except Exception as e:
-                    logger.error(
-                        "Execution of MCP tool loop failed.",
-                        extra={
-                            "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
-                            "step_id": step_id,
-                            "detail": str(e),
-                        },
-                        exc_info=True,
+                    chunk_final = {"blocks": result.model_dump(mode="json")}
+                else:
+                    result, usage = await executor.execute_structured_task(
+                        client=bound_client,
+                        messages=messages,
+                        response_model=local_dynamic_schema,
+                        mock_identity=step_id,
+                        max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
+                        validation_context={"strictness_level": strictness_level},
                     )
-                    if isinstance(e, AppException):
-                        raise
-                    raise AppException(
-                        message=f"MCP Tool Loop Execution failed: {str(e)}",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
-                    ) from e
-            else:
-                try:
-                    executor = LLMTaskExecutor(prompt_compiler=compiler)
-                    if output_profile is not None:
-                        result, usage = await executor.execute_structured_task(
-                            client=bound_client,
-                            messages=messages,
-                            response_model=SduiResponseList,
-                            mock_identity=step_id,
-                            max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
-                            validation_context={"strictness_level": strictness_level},
-                        )
-                        chunk_final = {"blocks": result.model_dump(mode="json")}
-                    else:
-                        result, usage = await executor.execute_structured_task(
-                            client=bound_client,
-                            messages=messages,
-                            response_model=local_dynamic_schema,
-                            mock_identity=step_id,
-                            max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
-                            validation_context={"strictness_level": strictness_level},
-                        )
-                        chunk_final = result.model_dump(mode="json")
+                    chunk_final = result.model_dump(mode="json")
 
-                    chunk_usage = usage if usage else None
-                except Exception as e:
-                    logger.error(
-                        "Execution of structured LLM task failed.",
-                        extra={
-                            "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
-                            "step_id": step_id,
-                            "detail": str(e),
-                        },
-                        exc_info=True,
-                    )
-                    if isinstance(e, AppException):
-                        raise
-                    raise AppException(
-                        message=f"Structured LLM execution failed: {str(e)}",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
-                    ) from e
+                chunk_usage = usage if usage else None
 
             return chunk_final, chunk_usage, chunk_traces

@@ -65,13 +65,12 @@ Jos esimerkiksi T1-tasolle on tietokannassa määritetty 3 ehtoa ja T5-tasolle 6
 
 Perinteinen LLM-pohjainen lausuntojen arviointi kykenee harvoin tuottamaan tiukkoja, luotettavia arvosanoja. Järjestelmä ratkaisee tämän pilkkomalla arvioinnin suoritusvaiheessa:
 
-1. **Rajoittamaton Otanta ja Globaali Sokkosekoitus (Runtime Flattening):**
-   Välttääksemme LLM:n rakenteellisen ennakkoasenteen (Hierarchy Bias), kaikki atomit viedään `atom_flattening.py` -hookkiin. Epic 23:n myötä olemme poistaneet keinotekoiset otantarajoittimet (kuten `STRATIFIED_3`), asettamalla globaaliksi vakioksi `SystemConcurrency.MATRIX_SAMPLING_LIMIT = 0` (ALL). Tämä mahdollistaa teoriassa rajattoman kysymysmassan sisäänluvun. Jos satunnaisotantaa poikkeuksellisesti vaaditaan (arvo > 0), haku ohjautuu deterministisesti:
-   - **Skaalan sisäinen satunnaistus:** Otanta käyttää kryptografista siemenlukua muodossa `secure_seed = f"{state.execution_id}_{block.id}_scale_{scale.score}"`.
-   - **Globaali sokkosekoitus:** Lopullinen atomilistan globaali sokkosekoitus purkaa data-alkiot täysin epäjärjestykseen sokeuttaen tekoälyn. Sekoitus sidotaan suorituksen globaaliin siemenlukuun `state.execution_id`.
+1. **Rajoittamaton Otanta ja Deterministinen Ryhmittely (Semantic Micro-Batching):**
+   Välttääksemme LLM:n rakenteellisen ennakkoasenteen (Hierarchy Bias) ilman satunnaisuutta, kaikki atomit viedään `atom_flattening.py` -hookkiin. Globaaliksi vakioksi on asetettu `SystemConcurrency.MATRIX_SAMPLING_LIMIT = 0` (ALL), mikä mahdollistaa rajattoman kysymysmassan sisäänluvun. Epic 52:n myötä globaali sokkosekoitus (random shuffle) on **ankarasti kielletty**. 
+   - **Deterministinen lajittelu:** Atomit lajitellaan staattisen ja deterministisen avaimen (esim. aakkosjärjestyksen) mukaan, jolloin samankaltaiset kysymykset muodostavat yhtenäisiä lohkoja (Semantic Grouping). Tämä estää Context Switching -uupumuksen ja varmistaa 100% testattavuuden.
    (Lähde: backend_v2/hooks/atom_flattening.py, funktio: process_matrix_flattening)
-2. **Asynkroninen Map-Reduce Orchestration (ChunkingService):**
-   Jotta satojen kysymysten yhtäaikainen sokea arviointi ei johtaisi Timeout/429 Rate Limit -kaatumisiin tai json-skeeman rikkoutumiseen LLM:n muistin loppuessa (Token Explosion), `LLMNodeStrategy` suorittaa Map-Reduce -operaation. Massiivinen kysymyslista luovutetaan `ChunkingService`-komponentille, joka pilkkoo sen turvallisiin Opaque Stripe ID -suojattuihin osiin (`SystemConcurrency.LLM_MAX_CHUNK_SIZE`-sääntöjen mukaisesti). Palikat ajetaan vahvasti rinnakkain `asyncio.TaskGroup` ja `Semaphore` -varmistuksin. Lopulta erilliset rakenteelliset vastaukset parsitaan takaisin yhtenäiseksi `List[FlattenedAtomResult]` -paketiksi täydellisellä 1:1 osumatarkkuudella.
+2. **Asynkroninen Map-Reduce Orchestration ja Semantic Micro-Batching (ChunkingService):**
+   Jotta satojen kysymysten yhtäaikainen sokea arviointi ei johtaisi "Lost in the Middle" -syndroomaan, Timeout/429 Rate Limit -kaatumisiin tai json-skeeman rikkoutumiseen, `LLMNodeStrategy` suorittaa Map-Reduce -operaation Semantic Micro-Batching -periaatteella. Massiivinen kysymyslista luovutetaan `ChunkingService`-komponentille, joka pilkkoo sen turvallisiin tiukkoihin osiin (maksimissaan 10 atomia / `SystemConcurrency.LLM_MAX_CHUNK_SIZE`). Palikat ajetaan vahvasti rinnakkain modernin `asyncio.TaskGroup`in, paikallisen Tenacity-mikroyrityksen (Exponential Backoff) sekä globaalin `Semaphore` + Token Bucket -rajoittimen (RPM Limiter) turvin. Lopulta erilliset vastaukset järjestetään uudelleen staattiseen input-järjestykseen ja parsitaan takaisin yhtenäiseksi `List[FlattenedAtomResult]` -paketiksi täydellisellä 1:1 osumatarkkuudella (Set-Based Verification).
 3. **Eristetty Runtime AI (T=0.0) ja Suoritusjärjestyksen Merkityksettömyys:**
    LLM suorittaa kunkin Map-Reduce -lohkon arvioinnin tiukassa "Strict Mode" -tilassa nollalämpötilalla (`temperature=0.0`), missä `LiteLLMProvider` vaatii koodilta absoluuttisesti TPM/RPM-rajoitusten määrittämistä. Tämä eristäminen poistaa aiemman arkkitehtuurin "huomiokyvyn harhautumisen" (Attention Drift): koska jokainen kysymyslohko arvioidaan omana eristettynä DAG-solmunaan TDA-sääntöjen (Bounty Hunter) avulla, **kysymysten suoritusjärjestyksellä ei ole enää mitään vaikutusta LLM:n vastauksiin**. Järjestelmä on matemaattisen deterministinen. Jos Pydantic-validaatio epäonnistuu yksittäisessä chunkissa, arkkitehtuuri ei yritä "arvailla" fallback-arvoja (Zero-Fallback), vaan nostaa välittömästi RFC 7807 `AppException` -virheen (Fail-Fast).
 4. **Three-State Logic ja MatrixReducer (O(N) Reduktio):**
@@ -104,13 +103,14 @@ Asynkronisen moottorin suorittama datan jäsennys tapahtuu Zero-Compromise Pydan
 
 Evaluointiarkkitehtuuri on kytketty "Zero-Trust" -kehikon taakse torjumaan LLM-mallien yleisimmät ongelmat: laiskuus, keksitty asiantuntijapuhe ja suorat hallusinaatiot.
 
-### A. Alphabetical Keys Hack (Micro-CoT)
-Tekoäly pyrkii usein luomaan päätöksen (`is_true: bool`) ensin, ja vasta sitten keksimään sille perustelut ("Post-Hoc Rationalization"). Tämä estetään arkkitehtuurissa pakottamalla LLM Pydantic `AtomResponse`-skeeman avulla tuottamaan päättelyketju tarkassa aakkosjärjestyksessä. Skeeman avaimet on nimetty fyysisesti numeerisin etuliittein:
+### A. Exhaustive Chain-of-Thought (CoT) ja Numerical Prefix Enforcing
+Tekoäly pyrkii usein luomaan päätöksen (`is_true: bool`) ensin ja vasta sitten keksimään sille perustelut ("Post-Hoc Rationalization"). Epic 52 -arkkitehtuurissa tämä estetään pakottamalla Pydantic-skeemat "Exhaustive Chain-of-Thought" (CoT) -rakenteeseen. Vaikka Pydantic V2 säilyttää kenttien järjestyksen, LLM:n JSON-generointi on sidottava fyysiseen numeeriseen järjestykseen aakkosjärjestyksen optimointiansojen ("Alphabetical Trap") välttämiseksi. Tämän vuoksi Pydantic-mallit käyttävät aliaksia: koodissa kentät ovat puhtaita (esim. `reasoning_trace`), mutta LLM saa skeeman fyysisillä etuliitteillä:
 1. `step_1_evidence_type`: Tekoäly valitsee evidenssin tason (`EXPLICIT_QUOTE`, `IMPLIED_INTENT`, `NO_EVIDENCE`).
 2. `step_2_quote`: Suora, muokkaamaton lainaus materiaalista.
 3. `step_3_implicit_justification`: Implisiittinen asiantuntijapäättely, jos suoraa lainausta ei ole.
-4. `step_4_reasoning`: Vapaa asiantuntijaharkinta.
-5. `step_5_boolean`: Vasta viimeisenä lopullinen päätös `is_true`.
+4. `step_4_reasoning`: Pakollinen vapaa asiantuntijaharkinta (Reasoning Trace), ennen päätöstä.
+5. `step_5_boolean`: Vasta aivan viimeisenä lopullinen päätös `is_true`.
+Tämä fysiologinen "ylhäältä alas" -JSON-luku pakottaa automaattisen Attention-mekanismin lukemaan omat perustelunsa ja poistaa mallin laiskan oikaisun (System 2 state pakotettu ennen päätöksentekoa).
 
 Tämä "Alphabetical Keys" -mekanismi pakottaa automaattisen Attention-mekanismin lukemaan omat perustelunsa (step 1-4) ennen arvion (step 5) generoimista, mikä tutkitusti eliminoi laiskan oikaisun ja vahvistaa determinismiä.
 

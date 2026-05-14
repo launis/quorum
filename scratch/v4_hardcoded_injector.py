@@ -1,0 +1,105 @@
+import json
+from pathlib import Path
+import sys
+
+# Pydantic models for validation
+sys.path.append('c:/src/quorum')
+from backend_v2.models.v2_core import PromptBlock
+
+V4_RULES = {
+  "tda_1a2b3c4d5e6f7a8b": "REQUIRED TARGET: Scan ONLY the Target Data, regardless of format. BANNED SOURCES: Never read matches from user input fields or instructions. BANNED LOGIC: Do not evaluate the quality of the bridging rule. STEP 1 (Lexical Anchor): Find 'given the principle that', 'this demonstrates that mechanism X' or native equivalents. STEP 2 (Bounding Box): Scan the sentence. If the bridging rule is explicitly stated -> ACCEPT. If the sentence uses 'because' without a structural rule -> REJECT.",
+  "tda_617f0e1c869842e5": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'humility'. STEP 1 (Lexical Anchor): Find conditional qualifiers (e.g. 'under these specific conditions', 'primarily when' or native equivalents). STEP 2 (Bounding Box): Scan the paragraph. If boundaries are explicitly defined for the claim -> ACCEPT. If vague filler words ('maybe', 'perhaps') are used instead -> REJECT.",
+  "tda_5370525dc4c143a4": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate framework rigidity subjectively. STEP 1 (Lexical Anchor): Find an absolute word (e.g. 'absolute', 'unquestionable', 'only'). STEP 2 (Bounding Box): Scan the paragraph. If the framework is presented without acknowledging its own limitations -> ACCEPT. If limitations are stated -> REJECT.",
+  "tda_3e8b25b3f697450d": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate balance subjectively. STEP 1 (Lexical Anchor): Find a final verdict sentence. STEP 2 (Bounding Box): Scan the preceding paragraph. If the verdict contains one-sided praise or condemnation without limitations being explicitly dismantled -> ACCEPT. Otherwise -> REJECT.",
+  "tda_fa819d6681155ff0": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate analytical depth. STEP 1 (Lexical Anchor): Find an instantaneous conclusion sentence. STEP 2 (Bounding Box): Scan the paragraph. If the conclusion lacks step-by-step structural reasoning -> ACCEPT. Otherwise -> REJECT.",
+  "tda_01f3b09b2124c61f": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate epistemological humility. STEP 1 (Lexical Anchor): Find a conclusive argument. STEP 2 (Bounding Box): Scan the document. If the argument systematically addresses alternative hypotheses -> REJECT. If alternative hypotheses are completely missing -> ACCEPT.",
+  "tda_4a158f447d630763": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate engagement. STEP 1 (Lexical Anchor): Find a primary argument. STEP 2 (Bounding Box): Scan the document. If counterarguments (rebuttals) are explicitly addressed -> REJECT. If counterarguments are ignored -> ACCEPT.",
+  "tda_e596ff88159b0825": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'minor tweaks'. STEP 1 (Lexical Anchor): Find an instruction modifying an output. STEP 2 (Bounding Box): Scan the interaction. If the user only modifies the final output without altering the generative logic or prompt architecture -> ACCEPT. Otherwise -> REJECT.",
+  "tda_8e999b0c5b70acd4": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'success'. STEP 1 (Lexical Anchor): Find explicit mention of a proxy metric versus an overarching goal. STEP 2 (Bounding Box): Scan the paragraph. If the tension between the proxy and the goal is explicitly mapped -> ACCEPT. Otherwise -> REJECT.",
+  "tda_44b553d2e0152ee9": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'humility'. STEP 1 (Lexical Anchor): Find explicit demands for uncertainty acknowledgment. STEP 2 (Bounding Box): Scan the instruction. If the user demands acknowledgment of uncertainties -> ACCEPT. Otherwise -> REJECT.",
+  "tda_a8f829acd710b92a": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'deliberate work'. STEP 1 (Lexical Anchor): Find 'how' and 'why' the user is challenging the AI. STEP 2 (Bounding Box): Scan the paragraph. If explicit steps of reasoning are documented -> ACCEPT. Otherwise -> REJECT.",
+  "tda_124b527ae45f5571": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'integrity'. STEP 1 (Lexical Anchor): Find scattered compliance elements. STEP 2 (Bounding Box): Scan the document. If elements exist without an overarching structural framework linking them -> ACCEPT. Otherwise -> REJECT.",
+  "tda_d4d5a3eef60bc236": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'strategic synthesis'. STEP 1 (Lexical Anchor): Find a compliance process execution. STEP 2 (Bounding Box): Scan the paragraph. If it is executed mechanically without synthesizing multiple components -> ACCEPT. Otherwise -> REJECT.",
+  "tda_c6631136c9b7f482": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'complexity'. STEP 1 (Lexical Anchor): Find a sweeping statement about compliance. STEP 2 (Bounding Box): Scan the paragraph. If operational risks or ambiguities are not explicitly acknowledged -> ACCEPT. Otherwise -> REJECT.",
+  "tda_eadd720dc29212d9": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'forcefulness'. STEP 1 (Lexical Anchor): Find 'associated with' or similar correlations. STEP 2 (Bounding Box): Scan the sentence. If the text treats the association structurally as 'caused by' an intervention -> ACCEPT. Otherwise -> REJECT.",
+  "tda_ab08c163874ae363": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'active'. STEP 1 (Lexical Anchor): Find an explicit description of an action taken. STEP 2 (Bounding Box): Scan the sentence. If the action is paired with a direct physical/logical outcome -> ACCEPT. Otherwise -> REJECT.",
+  "tda_d682721fed98319c": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'robust'. STEP 1 (Lexical Anchor): Find a causal claim. STEP 2 (Bounding Box): Scan the paragraph. If a step-by-step mechanism linking input to outcome is explicitly detailed -> ACCEPT. Otherwise -> REJECT.",
+  "tda_395d7ffff25de7ea": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'humility'. STEP 1 (Lexical Anchor): Find a causal claim. STEP 2 (Bounding Box): Scan the paragraph. If the boundaries of the claim are explicitly stated matching the evidence -> ACCEPT. Otherwise -> REJECT.",
+  "tda_6a8398de7be844b9": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'agreement'. STEP 1 (Lexical Anchor): Find an absolutist word (e.g., 'always', 'undeniably', '100%'). STEP 2 (Bounding Box): Scan the paragraph. If the premise is agreed with without providing new empirical test data -> ACCEPT. Otherwise -> REJECT.",
+  "tda_27e3e8856b034b45": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not accept rhetorical 'what if'. STEP 1 (Lexical Anchor): Find an explicit alternative hypothesis (e.g., 'Alternatively, if Y is true'). STEP 2 (Bounding Box): Scan the paragraph. If the alternative is formulated to test the primary claim -> ACCEPT. Otherwise -> REJECT.",
+  "tda_645f10d53cb04803": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'masterful'. STEP 1 (Lexical Anchor): Find destructive testing markers (e.g., 'To disprove this', 'We subjected'). STEP 2 (Bounding Box): Scan the paragraph. If the data is explicitly intended to falsify the core hypothesis -> ACCEPT. Otherwise -> REJECT.",
+  "tda_97fb8e0bd9904ed5": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'strongest'. STEP 1 (Lexical Anchor): Find a proactive presentation of a counterargument. STEP 2 (Bounding Box): Scan the paragraph. If the counterargument is dismantled with verifiable data -> ACCEPT. Otherwise -> REJECT.",
+  "tda_241520d5fea74622": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'deep'. STEP 1 (Lexical Anchor): Find explicit mathematical or logical failure conditions. STEP 2 (Bounding Box): Scan the paragraph. If the conditions where the claim absolutely breaks down are stated -> ACCEPT. Otherwise -> REJECT.",
+  "tda_bba97a5c45c44ff2": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'control'. STEP 1 (Lexical Anchor): Find a user prompt. STEP 2 (Bounding Box): Scan the prompt. If the user allows the AI to dictate the workflow without any structural constraints -> ACCEPT. Otherwise -> REJECT.",
+  "tda_811ed54064ad4d2f": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'adequately'. STEP 1 (Lexical Anchor): Find a step-by-step instruction. STEP 2 (Bounding Box): Scan the instruction. If constraints for subsequent steps are missing -> ACCEPT. Otherwise -> REJECT.",
+  "tda_be92d684b9c94c9f": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'forgotten'. STEP 1 (Lexical Anchor): Find an operational constraint enforcement. STEP 2 (Bounding Box): Scan the subsequent execution. If a previously enforced constraint is implicitly dropped without justification -> ACCEPT. Otherwise -> REJECT.",
+  "tda_da0ae668b0ce4e0f": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not accept unprompted intermediate steps. STEP 1 (Lexical Anchor): Find a user command. STEP 2 (Bounding Box): Scan the command. If the user forces intermediate reasoning steps before accepting a conclusion -> ACCEPT. Otherwise -> REJECT.",
+  "tda_09b38057bf2d407e": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not accept generic 'is this correct' queries. STEP 1 (Lexical Anchor): Find a user command. STEP 2 (Bounding Box): Scan the command. If the user forces a review against specific external criteria -> ACCEPT. Otherwise -> REJECT.",
+  "tda_dc1edec776f484a6": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'masterful'. STEP 1 (Lexical Anchor): Find a user override command. STEP 2 (Bounding Box): Scan the command. If the logic is overridden with explicitly stated external reasoning -> ACCEPT. Otherwise -> REJECT.",
+  "tda_1f8680f324c24e70": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'strictly governed'. STEP 1 (Lexical Anchor): Find a multi-turn sequence. STEP 2 (Bounding Box): Scan the sequence. If Plan, Do, Check, Act phases are explicitly commanded by the user -> ACCEPT. Otherwise -> REJECT.",
+  "tda_de0afa003e6740ce": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'flawlessly'. STEP 1 (Lexical Anchor): Find an enforcement of architectural rules. STEP 2 (Bounding Box): Scan the enforcement. If systemic rules are explicitly cited to prevent drift -> ACCEPT. Otherwise -> REJECT.",
+  "tda_bf4127529d844313": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'subjective'. STEP 1 (Lexical Anchor): Find probabilistic markers ('probably', 'I think'). STEP 2 (Bounding Box): Scan the sentence. If a definitive conclusion is drawn from these markers as an absolute truth -> ACCEPT. Otherwise -> REJECT.",
+  "tda_25749796e4814c99": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'actively ignores'. STEP 1 (Lexical Anchor): Find dismissive markers ('regardless', 'anyway'). STEP 2 (Bounding Box): Scan the sentence. If alternative hypotheses are dismissed without empirical evidence -> ACCEPT. Otherwise -> REJECT.",
+  "tda_4898df90eab94d7f": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'blind trust'. STEP 1 (Lexical Anchor): Find acceptance of unverified output. STEP 2 (Bounding Box): Scan the paragraph. If generative output is accepted as fact without a verification step -> ACCEPT. Otherwise -> REJECT.",
+  "tda_b180a5f8e0ae4cd3": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'explicit'. STEP 1 (Lexical Anchor): Find a boundary statement. STEP 2 (Bounding Box): Scan the sentence. If the system's epistemic limits are physically stated -> ACCEPT. Otherwise -> REJECT.",
+  "tda_8b03f091930a4be3": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'comprehensive'. STEP 1 (Lexical Anchor): Find a security boundary or risk evaluation. STEP 2 (Bounding Box): Scan the paragraph. If the ethical constraint is explicitly articulated before proceeding -> ACCEPT. Otherwise -> REJECT.",
+  "tda_7f5b3a2a3e814a09": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'justification'. STEP 1 (Lexical Anchor): Find a statement of intent. STEP 2 (Bounding Box): Scan the sequence. If intent is claimed only after the output was generated -> ACCEPT. Otherwise -> REJECT.",
+  "tda_eade2a3fa7024df1": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'unquestioned progression'. STEP 1 (Lexical Anchor): Find a proposed solution. STEP 2 (Bounding Box): Scan the decision point. If the first solution is accepted without documenting alternative reasoning -> ACCEPT. Otherwise -> REJECT.",
+  "tda_972a71a708be44cb": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'assumed'. STEP 1 (Lexical Anchor): Find an action-result claim. STEP 2 (Bounding Box): Scan the paragraph. If the intermediate mechanism linking action to result is missing -> ACCEPT. Otherwise -> REJECT.",
+  "tda_db9afee35a124c90": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'forward-planning'. STEP 1 (Lexical Anchor): Find markers of forward-planning ('hypothesis is'). STEP 2 (Bounding Box): Scan the paragraph. If a structural boundary is articulated before execution -> ACCEPT. Otherwise -> REJECT.",
+  "tda_3484498be2ce445a": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'opaque'. STEP 1 (Lexical Anchor): Find a definitive conclusion. STEP 2 (Bounding Box): Scan the preceding text. If the conclusion is presented without any preceding logical steps -> ACCEPT. Otherwise -> REJECT.",
+  "tda_0ea6db6e838946f4": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'vagueness'. STEP 1 (Lexical Anchor): Find a justification sentence. STEP 2 (Bounding Box): Scan the paragraph. If the explanation lacks specific context anchoring and applies generally -> ACCEPT. Otherwise -> REJECT.",
+  "tda_5fca56575d8b4cf2": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'deliberate'. STEP 1 (Lexical Anchor): Find a pause marker or option weighing. STEP 2 (Bounding Box): Scan the paragraph. If options are explicitly weighed prior to concluding -> ACCEPT. Otherwise -> REJECT."
+}
+
+def main():
+    seed_path = Path("c:/src/quorum/backend_v2/seed/seed_data.json")
+    print(f"Loading {seed_path}...")
+    
+    with open(seed_path, 'r', encoding='utf-8') as f:
+        seed_data = json.load(f)
+        
+    is_dry_run = "--dry-run" in sys.argv
+    if is_dry_run:
+        print("DRY RUN MODE ENABLED. No changes will be written to seed_data.json.")
+
+    cot_enforcement = " ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote."
+
+    updated_count = 0
+    for block in seed_data.get("prompt_blocks", []):
+        for scale in block.get("scales", []):
+            for claim in scale.get("claims", []):
+                for tda in claim.get("tda_assertions", []):
+                    if tda.get("tda_id") in V4_RULES:
+                        # Append the mandatory Rule 4 CoT enforcement to every rule
+                        tda["ai_rule_description"] = V4_RULES[tda["tda_id"]] + cot_enforcement
+                        updated_count += 1
+                        
+    print(f"Injected {updated_count} hardened V4 rules into memory.")
+    if updated_count != 43:
+        print(f"WARNING: Expected 43 updates but got {updated_count}. Some atoms might be missing.")
+        
+    print("Running Pydantic Zero-Compromise Validation...")
+    try:
+        for block in seed_data.get("prompt_blocks", []):
+            PromptBlock(**block)
+        print("Pydantic validation PASSED. Schema is perfectly intact.")
+    except Exception as e:
+        print(f"Pydantic validation FAILED! Aborting save. Error: {e}")
+        return
+        
+    if is_dry_run:
+        dry_run_output = "c:/src/quorum/scratch/dry_run_output.json"
+        with open(dry_run_output, 'w', encoding='utf-8') as f:
+            json.dump(V4_RULES, f, indent=2, ensure_ascii=False)
+        print(f"DRY RUN COMPLETE. Checked {updated_count} updates. See {dry_run_output} for the payload.")
+        print("To execute for real, run without --dry-run")
+    else:
+        # Save to disk
+        with open(seed_path, 'w', encoding='utf-8') as f:
+            json.dump(seed_data, f, indent=2, ensure_ascii=False)
+            
+        print("Successfully saved seed_data.json. Matrix Refactoring complete!")
+
+if __name__ == "__main__":
+    main()

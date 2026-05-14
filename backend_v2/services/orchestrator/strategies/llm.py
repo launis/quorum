@@ -336,30 +336,35 @@ class LLMNodeStrategy(NodeStrategy):
             else:
                 # Fallback to TaskGroup if Redis is not configured (e.g. tests)
                 tasks = []
-                async with asyncio.TaskGroup() as tg:
-                    for c in chunks_list:
-                        tasks.append(
-                            tg.create_task(
-                                ChunkWorker.process_chunk(
-                                    chunk=c,
-                                    sem=sem,
-                                    compiler=self.compiler,
-                                    criteria_blocks=criteria_blocks,
-                                    user_payload=user_payload,
-                                    base_system_prompt=base_system_prompt,
-                                    has_search=has_search,
-                                    has_shuffled_atoms=has_shuffled_atoms,
-                                    atom_to_block_ids=atom_to_block_ids,
-                                    effective_mcp_tools=effective_mcp_tools,
-                                    bound_client=bound_client,
-                                    step_id=step.id,
-                                    target_locale=target_locale,
-                                    synthesis_instructions=syn_instr,
-                                    output_profile=None,
-                                    strictness_level=context.strictness_level,
+                try:
+                    async with asyncio.TaskGroup() as tg:
+                        for c in chunks_list:
+                            tasks.append(
+                                tg.create_task(
+                                    ChunkWorker.process_chunk(
+                                        chunk=c,
+                                        sem=sem,
+                                        compiler=self.compiler,
+                                        criteria_blocks=criteria_blocks,
+                                        user_payload=user_payload,
+                                        base_system_prompt=base_system_prompt,
+                                        has_search=has_search,
+                                        has_shuffled_atoms=has_shuffled_atoms,
+                                        atom_to_block_ids=atom_to_block_ids,
+                                        effective_mcp_tools=effective_mcp_tools,
+                                        bound_client=bound_client,
+                                        step_id=step.id,
+                                        target_locale=target_locale,
+                                        synthesis_instructions=syn_instr,
+                                        output_profile=None,
+                                        strictness_level=context.strictness_level,
+                                    )
                                 )
                             )
-                        )
+                except* AppException as eg:
+                    raise eg.exceptions[0] from eg
+                except* Exception as eg:
+                    raise eg.exceptions[0] from eg
 
             latency_ms = int((time.time() - telemetry_start_time) * 1000)
 

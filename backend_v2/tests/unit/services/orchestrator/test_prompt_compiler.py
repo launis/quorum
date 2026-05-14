@@ -165,7 +165,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
 
     # Simulate LLM Response parsing
     llm_payload = {
-        "reasoning_trace": "Let's think...",
+        "step_1_reasoning_trace": "Let's think...",
         "evaluation_notes": "User was bad",
         "blk_2234567890abcdef": {
             "step_3_logical_friction": "I gave a 1 because...",

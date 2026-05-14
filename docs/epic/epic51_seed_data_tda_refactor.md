@@ -33,11 +33,11 @@ Jokainen matriisin `ai_description` ja `tda_assertions` -kenttä on tästä hetk
 * 🚫 **KIELLETTY:** *"Poimi exact_quote, joka osoittaa kausaalisuuden."*
 * ✅ **SALLITTU:** *"ENFORCEMENT RULE: Ennen exact_quote-lainauksen poimimista, dokumentoi syy-seurausmekanismi askeleittain. Vasta kun olet loogisesti perustellut päättelyn, poimi TÄSMÄLLINEN lainaus."*
 
-### 5. ANTI-TOKEN BLOAT & XML-RAKENNE
-**Ongelma:** Raskaat roolitukset ja XML-tagit mikrosäännöissä paisuttavat Map-Reduce -lohkojen promptit käyttökelvottomiksi.
-**Mandaatti:** Eristä globaali konteksti ja XML-tagit puhtaasti ylätason `ai_description` -kenttään (Makrotaso, max 1-2 lausetta per tagi). Mikrotason `tda_assertions` (`ai_rule_description`) on oltava puhdasta, konemaista ja XML-vapaata imperatiivista tekstiä. Koodaa toimintaverbit isoin kirjaimin.
-* 🚫 **KIELLETTY (Mikrotasolla XML-kohinaa):** `<rule>Etsi todiste...</rule> <cot>Perustele ensin...</cot>`
-* ✅ **SALLITTU (Puhdas imperatiivi):** *"CRITICAL DIRECTIVE: Etsi tekstistä leksikaalinen indikaattori vastaväitteelle (esim. 'kuitenkin'). Pura logiikka askeleittain ennen exact_quote-poimintaa."*
+### 5. ANTI-TOKEN BLOAT & HYBRID PROMPTING MANDAATTI (Arkkitehtuurilaki 05)
+**Ongelma:** Raskaat roolitukset ja XML-tagit mikrosäännöissä paisuttavat Map-Reduce -lohkojen promptit käyttökelvottomiksi. Toisaalta `05_llm_architecture.md` vaatii ehdotonta "Hybrid Prompting" -mallia (XML-tägejä).
+**Mandaatti:** Nämä kaksi sääntöä sovitetaan yhteen kerrostetusti: Eristä globaali konteksti ja `05_llm_architecture.md` mukaiset XML-tagit (kuten `<system_directive>`) puhtaasti ylätason `ai_description` -kenttään (Makrotaso). Mikrotason `tda_assertions` (`ai_rule_description`) on sen sijaan oltava puhdasta, konemaista ja XML-vapaata imperatiivista tekstiä, joka pudotetaan dynaamisesti backendin kääntäjän toimesta oikean XML-tägin sisään. Koodaa toimintaverbit isoin kirjaimin.
+* 🚫 **KIELLETTY (Mikrotasolla XML-kohinaa):** `<rule>Find evidence...</rule> <cot>Provide reasoning...</cot>`
+* ✅ **SALLITTU (Puhdas imperatiivi):** *"CRITICAL DIRECTIVE: Find a lexical indicator for a counter-argument. Document reasoning before extracting exact_quote."*
 
 ### 6. UNIVERSAL LANGUAGE PROTOCOL (Native English Mandate)
 * **Säännöt ovat 100% englantia:** Kaikki tekoälyn promptit (`ai_description`, `ai_rule_description`) kirjoitetaan tietokantaan yksinomaan englanniksi tekoälyn "Intelligence Dropping" -ilmiön välttämiseksi.
@@ -87,7 +87,7 @@ Jokainen matriisin `ai_description` ja `tda_assertions` -kenttä on tästä hetk
 
 ### 2.1 Epistemologiset ja Laadulliset Mandaatit (The Grounding Rules)
 Tämä on vain kerta-ajo, joten data on ankkuroitava oikeaan maailmaan huolellisesti.
-1. **Epistemic Anchoring:** Pelkkä tekoälyn "yleistieto" ei riitä. Jokaiseen `ai_description` -kenttään on injektoitava `<epistemic_anchor>` -tagi, joka sisältää verifioidun akateemisen tai rakenteellisen ankkurin (esim. suora viittaus Sitran megatrendi-metodologiaan tai Kahnemanin tiettyyn sivuun/käsitteeseen).
+1. **Epistemic Anchoring:** Pelkkä tekoälyn "yleistieto" ei riitä. Jokaiseen `ai_description` -kenttään on injektoitava `<epistemic_anchor>` -tagi, joka sisältää verifioidun akateemisen tai rakenteellisen ankkurin (esim. suora viittaus kohdedomainin vakiintuneeseen metodologiaan tai Kahnemanin tiettyyn sivuun/käsitteeseen).
 2. **Anti-Patternien Injektointi (Few-Shot):** Varsinkin `inverse_evidence: true` (Fatal Flaw) -säännöissä on pakko tarjota tekoälylle yksi mikroskooppinen reaalimaailman esimerkkilause siitä, miltä virhe näyttää käytännössä.
 3. **Kontekstuaalinen Jargon:** Säännöissä on huomioitava toimialakohtainen kieli käyttämällä `search_web` -työkalua esimerkiksi hallintojargonin tai strategiaslangin tunnistamiseen.
 
@@ -161,3 +161,46 @@ Tämä on vain kerta-ajo, joten data on ankkuroitava oikeaan maailmaan huolellis
 - Jokaisessa solussa on TASAN 3 toisistaan riippumatonta (MECE-periaatteella trianguloitua) EHDOTONTA `TDAAssertion` -sääntöä, optimaalisen tilastollisen validiteetin ja kognitiivisen kuorman tasapainon takaamiseksi.
 - Uusi data on ajettu menestyksekkäästi paikalliseen tietokantaan (`run_seed.py`).
 - Yksikään Pydantic-validointi ei kaadu, ja järjestelmä läpäisee Universal Quality Gaten (Tier 2).
+
+## 5. EPIC 53: COGNITIVE HARDENING & ANCHOR TUNING (V4-Päivitys)
+
+> [!WARNING]
+> **HISTORIALLINEN KONTEKSTI (EPIC 52:N JÄLKEEN):** Kun taustajärjestelmä (Map-Reduce) pakotettiin Epic 52:ssa 100% deterministiseksi, ristiinajotestaus paljasti silti **18.9% haamuvarianssia** kahden identtisen ajon välillä. Tämä johtui yksinomaan Epic 51:ssä luotujen TDA-sääntöjen semanttisesta epämääräisyydestä (LLM joutui tulkitsemaan subjektiivisia laatusanoja tai sekoitti käyttäjän ja tekoälyn roolit). 
+> 
+> Siksi Epic 53 laajentaa Epic 51:tä kolmella uudella EHDOTTOMALLA MANDAATILLA (V4-Kovetus). Kaikki tulevat matriisirefaktoroinnit MISTÄ TAHANSA vaiheesta on tehtävä noudattaen sääntöjä 1-15 SEKÄ näitä uusia sääntöjä 16-18.
+
+> [!IMPORTANT]
+> **V4 KOGNITIIVINEN FILOSOFIA (Zero-Interpretation Doctrine):** Varmista sääntöjen 16–18 toimivuus käsittelemällä `ai_rule_description` -kenttiä ikään kuin ne olisivat säännöllisiä lausekkeita (Regex) tai Python-funktioita luonnollisen kielen muodossa. Kielimallilta EVÄTÄÄN oikeus tulkita, ja sille annetaan vain oikeus suorittaa tarkka "If-This-Then-That" -tarkistuslista.
+
+### 16. EHDOTON ROOLIAUTENTIKOINTI JA KENTTÄ-ANKKUROINTI (Strict Role & Field Attribution)
+**Ongelma:** Tekoäly lukee käyttäjän (User) itsekritiikin ja tulkitsee sen vahingossa tekoälyn (Assistant) episteemiseksi nöyryydeksi, mikä kääntää atomin tuloksen virheelliseksi.
+**Mandaatti (Negative Prompting & Prefix Targeting):** Säännössä on EHDOTTOMASTI määriteltävä puhujan rooli ja sidottava se suoraan tekstissä käytettäviin roolietuliitteisiin (`user:` ja `ai:`). Älä vain kerro, mitä etsiä, vaan rajaa eksplisiittisesti pois kielletyt etuliitteet. Ota huomioon myös tekstit, joista etuliitteet puuttuvat.
+* 🚫 **KIELLETTY:** *"Find a sentence where limits of the analysis are admitted."* (Liian epämääräinen, altis roolisekaannukselle)
+* ✅ **SALLITTU:** *"REQUIRED TARGET: Find evidence. If role prefixes (`user:`, `ai:`) exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist (e.g. unified report), you may scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix or in user input fields (e.g. `reflection_text`) are automatically REJECTED."*
+
+### 17. SUBJEKTIIVISTEN ADJEKTIIVIEN KIELTO (The Ban of Subjectivity)
+**Ongelma:** Säännöissä käytettiin laatusanoja ("robusti kausaalisuhde", "mestarillinen suoritus"). LLM:n Ajo 1 piti tekstiä "robustina", mutta Ajo 2 päätti samasta tekstistä, ettei se ollut "tarpeeksi robusti".
+**Mandaatti (Operaationalisointi & Kynnykset):** Kaikki subjektiiviset laatusanat ja epämääräiset adjektiivit on EHDOTTOMASTI KIELLETTY mikrosäännöissä. Mielipiteet on muutettava boolen logiikaksi (True/False) tai määrällisiksi kriteereiksi (Thresholds). Kun arvioit tekstin yleispätevyyttä, älä sido sääntöä yksittäisen ajon sanastoon, vaan käytä yleisiä muuttujia. Voit myös nimenomaisesti kieltää mallia arvioimasta laatua.
+* 🚫 **KIELLETTY (Subjektiivinen):** *"Find a robust causal relationship or a generic argument."*
+* ✅ **SALLITTU (Fysikaalinen/Kvantitatiivinen):** *"Extract a causal chain containing at least three distinct steps (e.g. A -> B -> C). Reject if only two steps exist."*
+* ✅ **SALLITTU (Asiasanaluettelot / Yleiskäyttöiset):** *"Extract reasoning that DOES NOT contain any domain-specific proper nouns (e.g. specific organizations, years, names). If it contains them -> REJECT. If absent -> ACCEPT."*
+* ✅ **SALLITTU (Toiminnallinen rajaus / Action Boundary):** *"BANNED CONCEPTS: Do not evaluate 'flawlessness' or 'mastery'. STEP 1: Find a command that creates a new conceptual architecture. STEP 2: If it creates a new top-level concept -> ACCEPT. If it is merely a mechanical style correction -> REJECT."*
+* ✅ **SALLITTU (Implisiittisen käsitteen operationaalistaminen / Banned Logic):** *"BANNED LOGIC: Do not wait for explicit dismissive language (e.g. 'regardless'). STEP 1 (Lexical Anchor): Find an absolute sentence (e.g. 'the only way'). STEP 2 (Bounding Box): Scan the paragraph. If the absolute claim is presented without refuting alternatives with data in the same paragraph -> ACCEPT (interpreted as dismissal). Otherwise -> REJECT."*
+
+### 18. EKSPLISIITTISEN LAISKUUDEN TORJUNTA (Bounding Boxes & Lexical Anchors)
+**Ongelma:** LLM sivuuttaa dokumentin lopussa olevat todisteet, jos sitä ei ankkuroida riittävän voimakkaasti itse rakenteeseen (LLM laiskistuu ja haravoi vain alkua).
+**Mandaatti:** Kun haetaan tiettyä harvinaista lausetta isosta massasta, LLM:lle on annettava rakenteelliset rajauslaatikot (Bounding Boxes), jotka pakottavat mallin navigoimaan fyysisessä dokumenttirakenteessa. Käytä lexikaalisia skannausankkureita ennen semanttista hakua.
+* 🚫 **KIELLETTY:** *"Find a mention of an ethical constraint."*
+* ✅ **SALLITTU (Vaiheistettu skannaus):** 
+  *"STEP 1: Locate the Markdown header `## Evolution to Conflict`. STEP 2: Scan the text downwards from this header until the next header. STEP 3: Find the exact term 'irreversible' within this Bounding Box. Matches outside are rejected."*
+* ✅ **SALLITTU (Yhdistetty V4-Mandaatti dynaamisilla kentillä):** 
+  *"REQUIRED TARGET: Scan ONLY the Target Data, regardless of its format or dynamic field name. BANNED SOURCES: Never read matches from user input fields, instructions or reflections. STEP 1: Find absolute anchor words ('always', '100%'). STEP 2: If found, check if the same paragraph contains empirical measurement data. If no data exists -> ACCEPT (flaw proven). If anchor word is missing -> REJECT."*
+
+### 19. OPAQUE STRIPE ID -MANDAATTI (Säännön 2026 Arkkitehtuurilaki)
+**Ongelma V1-ajoilta:** Alkuperäiset säännöt käyttivät semanttisia, ihmissilmin luettavia tunnisteita (esim. `tda_ar2_1`, jossa ar=archivist, 2=skaala, 1=sääntö). Tämä rikkoo Single Source of Truth -periaatteen: jos sääntö siirretään skaalasta toiseen, ID valehtelee sen alkuperästä.
+**Mandaatti V4:** Kaikkien sääntöjen (uusien ja päivitettävien) `tda_id` on EHDOTTOMASTI oltava **Opaque Stripe ID -muodossa**. Sen täytyy olla 16-merkkinen satunnainen heksadesimaalikoodi, jota edeltää `tda_` (esim. `tda_8b03f091930a4be3`). 
+* 🚫 **KIELLETTY:** `tda_k1_1`, `tda_ar_2_3`, `tda_falsifier_5`
+* ✅ **SALLITTU:** `tda_` + `[a-f0-9]{16}` (esim. `tda_a1b2c3d4e5f60718`)
+* **Toimenpide:** Tekoälyn on generoita satunnainen heksakoodi luodessaan atomeja. Jos olemassa olevaa semanttista ID:tä refaktoroidaan, se on samalla vaihdettava Opaque ID -muotoon.
+
+**Epic 53 Definition of Done:** Kun nämä kolme uutta V4-sääntöä on injektoitu kaikkiin matriiseihin (erityisesti niihin 35 väitteeseen, jotka epäonnistuivat determinismitestissä), ja ristiinajotestin determinismi-aste ylittää 95.0%.

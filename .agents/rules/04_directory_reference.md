@@ -46,8 +46,8 @@
         <directory path="models/">
             <description>The Absolute SSOT (Single Source of Truth) schema configurations. Subdivided into domain, dtos, and view.</description>
             <file_rules>
-                <file path="enums.py">CENTRAL ENUM DEFINITIONS. The absolute source for system-wide constants and types enforcing the No-String Mandate.</file>
-                <file path="v2_core.py">Zero-Defaults AtomResponse ja DTO-skeemojen (Strictness Level) aukoton lähde. Määrittää tekoälyn "Alphabetical Keys" -säännöt.</file>
+                <file path="enums.py">CENTRAL ENUM DEFINITIONS. The absolute source for system-wide constants and types enforcing the No-String Mandate (esim. LLM_MAX_CHUNK_SIZE = 10 Semantic Micro-Batchingissä).</file>
+                <file path="v2_core.py">Zero-Defaults AtomResponse ja DTO-skeemojen (Strictness Level) aukoton lähde. Määrittää tekoälyn Exhaustive CoT ja numeeriset Pydantic Aliakset (step_1_ jne.).</file>
             </file_rules>
         </directory>
         <directory path="seed/">
@@ -62,9 +62,9 @@
         <directory path="services/">
             <description>Complex business orchestration processing logic routines. Subdivided into drivers, mcp, and orchestrator.</description>
             <file_rules>
-                <file path="llm_task_executor.py">Central orchestration point enforcing Fail-Fast structured execution for cognitive workflows. Sisältää dynaamisen Pydantic-kontekstivalidoinnin (Validation Context) sekä Prompt Topology ja Tail-End Injection -logiikan Prefix Cachingin eheyden säilyttämiseksi retry-luupeissa.</file>
+                <file path="llm_task_executor.py">Central orchestration point enforcing Fail-Fast structured execution for cognitive workflows. Sisältää dynaamisen Pydantic-kontekstivalidoinnin (Validation Context) sekä TaskGroup-pohjaisen Semantic Micro-Batchingin, Prompt Topology ja Tail-End Injection -logiikan Prefix Cachingin eheyden säilyttämiseksi mikroyritysluupeissa (Tenacity).</file>
                 <file path="orchestrator/anchor_validation_service.py">TDD-testattava palvelu deterministiseen O(N) RapidFuzz -ankkurointiin ja Semantic Fallback (NLI) -kaskadiin LLMTaskExecutorin tukena.</file>
-                <file path="orchestrator/matrix_reducer.py">Suorittaa Three-State Logic (PASSED, FAILED, DLQ) synkronisen reduktion Map-Reduce asynkronisista kimpaleista (chunks) TDA-sääntöjen aggregaatiomoodien (EXISTS vs ALL_MUST_COMPLY) mukaisesti.</file>
+                <file path="orchestrator/matrix_reducer.py">Suorittaa Three-State Logic (PASSED, FAILED, DLQ) synkronisen reduktion Map-Reduce asynkronisista kimpaleista (chunks) TDA-sääntöjen aggregaatiomoodien (EXISTS vs ALL_MUST_COMPLY) mukaisesti deterministisellä uudelleenlajittelulla.</file>
                 <file path="mcp/">Model Context Protocol loop execution directory for tool-based LLM routing.</file>
             </file_rules>
         </directory>
