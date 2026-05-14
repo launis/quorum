@@ -319,11 +319,8 @@ async def test_matrix_scoring_hook_ignores_instructions() -> None:
             "evaluations": [
                 {
                     "atom_id": atom_hash,
-                    "rule_satisfied": True,
-                    "evidence_found": True,
                     "exact_quote": "Ote",
-                    "reasoning_trace": "",
-                    "mapped_state": "PASSED",
+                    "mechanical_trace": "",
                 }
             ]
         },
@@ -355,11 +352,8 @@ async def test_matrix_scoring_hook_pass_all() -> None:
         evaluations.append(
             {
                 "atom_id": atom_hash,
-                "rule_satisfied": True,
-                "evidence_found": True,
                 "exact_quote": "Ote",
-                "reasoning_trace": "Hyväksytty",
-                "mapped_state": "PASSED",
+                "mechanical_trace": "Hyväksytty",
             }
         )
 
@@ -403,11 +397,8 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
         evaluations.append(
             {
                 "atom_id": atom_hash,
-                "rule_satisfied": is_hit,
-                "evidence_found": is_hit,
-                "exact_quote": "Ote" if is_hit else "",
-                "reasoning_trace": "",
-                "mapped_state": "PASSED" if is_hit else "FAILED",
+                "exact_quote": "Ote" if is_hit else "Not found",
+                "mechanical_trace": "",
             }
         )
 
@@ -454,11 +445,8 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
         evaluations.append(
             {
                 "atom_id": atom_hash,
-                "rule_satisfied": is_hit,
-                "evidence_found": is_hit,
-                "exact_quote": "Ote" if is_hit else "",
-                "reasoning_trace": reasoning,
-                "mapped_state": "PASSED" if is_hit else "FAILED",
+                "exact_quote": "Ote" if is_hit else "Not found",
+                "mechanical_trace": reasoning,
             }
         )
 
@@ -536,21 +524,15 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L1_A1", mandate),
-            "rule_satisfied": True,
-            "evidence_found": True,
             "exact_quote": "Ote",
-            "reasoning_trace": "Oikein",
-            "mapped_state": "PASSED",
+            "mechanical_trace": "Oikein",
         }  # noqa: E501
     )
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L1_A2", mandate),
-            "rule_satisfied": True,
-            "evidence_found": True,
             "exact_quote": "Ote",
-            "reasoning_trace": "Oikein",
-            "mapped_state": "PASSED",
+            "mechanical_trace": "Oikein",
         }  # noqa: E501
     )
 
@@ -558,21 +540,15 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L2_A1", mandate),
-            "rule_satisfied": True,
-            "evidence_found": True,
             "exact_quote": "Ote",
-            "reasoning_trace": "Oikein",
-            "mapped_state": "PASSED",
+            "mechanical_trace": "Oikein",
         }  # noqa: E501
     )
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L2_A2", mandate),
-            "rule_satisfied": True,
-            "evidence_found": True,
             "exact_quote": "Ote",
-            "reasoning_trace": "Oikein",
-            "mapped_state": "PASSED",
+            "mechanical_trace": "Oikein",
         }  # noqa: E501
     )
 
@@ -580,21 +556,15 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L3_A1", mandate),
-            "rule_satisfied": True,
-            "evidence_found": True,
             "exact_quote": "Ote",
-            "reasoning_trace": "Oikein",
-            "mapped_state": "PASSED",
+            "mechanical_trace": "Oikein",
         }  # noqa: E501
     )
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L3_A2", mandate),
-            "rule_satisfied": False,
-            "evidence_found": False,
-            "exact_quote": "",
-            "reasoning_trace": "Aihetodistetta EI esitetty.",
-            "mapped_state": "FAILED",
+            "exact_quote": "Not found",
+            "mechanical_trace": "Aihetodistetta EI esitetty.",
         }
     )
 
@@ -602,11 +572,8 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L4_A1", mandate),
-            "rule_satisfied": True,
-            "evidence_found": True,
             "exact_quote": "Ote",
-            "reasoning_trace": "Hieno oivallus!",
-            "mapped_state": "PASSED",
+            "mechanical_trace": "Hieno oivallus!",
         }
     )
 
@@ -614,11 +581,8 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L5_A1", mandate),
-            "rule_satisfied": False,
-            "evidence_found": False,
-            "exact_quote": "",
-            "reasoning_trace": "Ei yltänyt tälle tasolle.",
-            "mapped_state": "FAILED",
+            "exact_quote": "Not found",
+            "mechanical_trace": "Ei yltänyt tälle tasolle.",
         }
     )
 

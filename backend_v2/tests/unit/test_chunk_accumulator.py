@@ -12,70 +12,62 @@ def test_chunk_accumulator_first_chunk() -> None:
         "evaluations": [
             {
                 "atom_id": "a1",
-                "rule_satisfied": True,
-                "evidence_found": True,
                 "exact_quote": "Yes",
+                "mechanical_trace": "Traced",
             },
             {
                 "atom_id": "a2",
-                "rule_satisfied": False,
-                "evidence_found": False,
                 "exact_quote": "",
+                "mechanical_trace": "Traced 2",
             },
         ],
-        "reasoning_trace": "A reason",
+        "mechanical_trace": "A reason",
     }
     accumulator.add(chunk)
     res = accumulator.get_final_result()
-    assert res["evaluations"][0]["mapped_state"] == "PASSED"
-    assert res["evaluations"][1]["mapped_state"] == "FAILED"
-    assert res["reasoning_trace"] == "A reason"
+    assert res["evaluations"][0]["exact_quote"] == "Yes"
+    assert res["evaluations"][1]["exact_quote"] == ""
+    assert res["mechanical_trace"] == "A reason"
 
 
 def test_chunk_accumulator_merges_evaluations() -> None:
     accumulator = ChunkAccumulator()
-    chunk1: dict[str, Any] = {
-        "evaluations": [{"atom_id": "a1", "rule_satisfied": True, "evidence_found": True, "exact_quote": "Q1"}]
-    }
-    chunk2: dict[str, Any] = {
-        "evaluations": [{"atom_id": "a2", "rule_satisfied": False, "evidence_found": False, "exact_quote": ""}]
-    }
+    chunk1: dict[str, Any] = {"evaluations": [{"atom_id": "a1", "exact_quote": "Q1", "mechanical_trace": "M1"}]}
+    chunk2: dict[str, Any] = {"evaluations": [{"atom_id": "a2", "exact_quote": "", "mechanical_trace": "M2"}]}
     accumulator.add(chunk1)
     accumulator.add(chunk2)
     res = accumulator.get_final_result()["evaluations"]
     assert len(res) == 2
-    assert res[0]["mapped_state"] == "PASSED"
-    assert res[1]["mapped_state"] == "FAILED"
+    assert res[0]["exact_quote"] == "Q1"
+    assert res[1]["exact_quote"] == ""
 
 
 def test_chunk_accumulator_dlq_on_invalid() -> None:
     accumulator = ChunkAccumulator()
-    # Missing exact quote when evidence_found=True triggers Anti-Laziness Validation -> DLQ
+    # Providing an unknown field causes Pydantic to fail and marks it as DLQ
     chunk: dict[str, Any] = {
         "evaluations": [
             {
                 "atom_id": "a1",
-                "rule_satisfied": True,
-                "evidence_found": True,
-                "exact_quote": "",
+                "exact_quote": "Q",
+                "extra_field_not_allowed": "should fail",
             }
         ]
     }
     accumulator.add(chunk)
     res = accumulator.get_final_result()["evaluations"]
-    assert res[0]["mapped_state"] == "DLQ"
     assert res[0]["dlq_status"] is True
 
 
 def test_chunk_accumulator_merges_string_traces() -> None:
     accumulator = ChunkAccumulator()
-    chunk1: dict[str, Any] = {"reasoning_trace": "First chunk logic.", "evaluation_notes": "Note 1"}
-    chunk2: dict[str, Any] = {"reasoning_trace": "Second chunk logic.", "evaluation_notes": "Note 2"}
+    chunk1: dict[str, Any] = {"mechanical_trace": "First chunk logic.", "evaluation_notes": "Note 1"}
+    chunk2: dict[str, Any] = {"mechanical_trace": "Second chunk logic.", "evaluation_notes": "Note 2"}
     accumulator.add(chunk1)
     accumulator.add(chunk2)
 
     result = accumulator.get_final_result()
-    assert result["reasoning_trace"] == "First chunk logic.\n\n[Chunk]: Second chunk logic."
+    assert result["mechanical_trace"] == "First chunk logic.\n\n[Chunk]: Second chunk logic."
     assert result["evaluation_notes"] == "Note 1\n\n[Chunk]: Note 2"
 
 

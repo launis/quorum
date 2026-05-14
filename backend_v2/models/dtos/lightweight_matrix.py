@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import Field, model_validator
 
@@ -77,21 +77,43 @@ class AtomEvaluationItemDTO(V2CoreBase):
     """Strict schema for individual atom evaluations in the waterfall pipeline."""
 
     atom_id: str
-    rule_satisfied: bool
-    evidence_found: bool
+    mechanical_trace: str = ""
     exact_quote: str = ""
     pre_quote_anchor: str = ""
     post_quote_anchor: str = ""
-    reasoning_trace: str = ""
     dlq_status: bool = False
-    mapped_state: Literal["PASSED", "FAILED", "DLQ"] | None = None
+
+    @property
+    def evidence_found(self) -> bool:
+        """Phantom Boolean -esto: Sanitoi LLM:n tuottamat haamu-nullit."""
+        blacklist = {
+            "null",
+            "none",
+            "n/a",
+            "false",
+            "",
+            "ei löydy",
+            "not found",
+            "-",
+            "ei mainittu",
+            "none detected",
+            "[]",
+            "{}",
+            "ei sovelleta",
+            "ei lainausta",
+            "no quote",
+            "ei ole",
+        }
+        return self.exact_quote.strip().lower() not in blacklist
+
+    def calculate_rule_satisfied(self, inverse_evidence: bool) -> bool:
+        """Deterministinen tuomiovalta: Laskee rule_satisfied arvon kooditasolla."""
+        if inverse_evidence:
+            return not self.evidence_found
+        return self.evidence_found
 
     @model_validator(mode="after")
     def validate_anti_laziness(self) -> AtomEvaluationItemDTO:
-        if self.evidence_found:
-            if not self.exact_quote:
-                raise ValueError("Anti-Laziness: exact_quote cannot be empty if evidence_found is True.")
-        else:
-            if self.exact_quote:
-                raise ValueError("Anti-Hallucination: exact_quote MUST be empty if evidence_found is False.")
+        # exact_quote can naturally be empty and thus evidence_found will correctly be False.
+        # But if the LLM hallucinated something, the @computed_field handles it.
         return self

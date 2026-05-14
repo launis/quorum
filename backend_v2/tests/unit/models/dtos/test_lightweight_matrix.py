@@ -75,51 +75,33 @@ def test_lightweight_matrix_output_strictness() -> None:
 
 
 def test_atom_evaluation_item_dto_strictness() -> None:
-    """Test AtomEvaluationItemDTO enforces strict validation."""
+    """Test AtomEvaluationItemDTO enforces strict validation and V4.3 Blacklist."""
     item = AtomEvaluationItemDTO(
         atom_id="atom_123",
-        rule_satisfied=True,
-        evidence_found=True,
-        exact_quote="Some quote",
-        reasoning_trace="Because logic.",
+        mechanical_trace="Because logic.",
+        exact_quote="Some valid quote",
     )
     assert item.atom_id == "atom_123"
-    assert item.rule_satisfied is True
     assert item.evidence_found is True
+    assert item.calculate_rule_satisfied(inverse_evidence=False) is True
 
     # Test forbid extra
     with pytest.raises(ValidationError):
         AtomEvaluationItemDTO(
             atom_id="atom_123",
-            rule_satisfied=True,
-            evidence_found=True,
+            mechanical_trace="Logic",
             exact_quote="Quote",
             extra="not allowed",  # type: ignore
         )
 
-    # Test Anti-Laziness: exact_quote cannot be empty if evidence_found is True
-    with pytest.raises(ValidationError, match="Anti-Laziness"):
-        AtomEvaluationItemDTO(
-            atom_id="atom_laziness",
-            rule_satisfied=True,
-            evidence_found=True,
-            exact_quote="",
-        )
-
-    # Test Anti-Hallucination: exact_quote MUST be empty if evidence_found is False
-    with pytest.raises(ValidationError, match="Anti-Hallucination"):
-        AtomEvaluationItemDTO(
-            atom_id="atom_hallucination",
-            rule_satisfied=False,
-            evidence_found=False,
-            exact_quote="Oops text",
-        )
-
-    # Test valid evidence_found=False
-    item_valid_false = AtomEvaluationItemDTO(
-        atom_id="atom_valid",
-        rule_satisfied=False,
-        evidence_found=False,
-        exact_quote="",
+    # Test V4.3 Phantom Boolean Sanity Check
+    phantom = AtomEvaluationItemDTO(
+        atom_id="atom_phantom",
+        mechanical_trace="Logic.",
+        exact_quote="Not found",
     )
-    assert item_valid_false.exact_quote == ""
+    assert phantom.evidence_found is False
+
+    # Test inverse evidence logic
+    assert phantom.calculate_rule_satisfied(inverse_evidence=True) is True
+    assert phantom.calculate_rule_satisfied(inverse_evidence=False) is False

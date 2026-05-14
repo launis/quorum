@@ -12,8 +12,8 @@ def get_all_evals(path):
     return all_evals
 
 # Lataa 2 ristiinajon tulokset
-evals_1 = get_all_evals('data/files/executions/exe_ae646cba42ca4e5ca8411bbd841491e5/execution_trace2.json')
-evals_2 = get_all_evals('data/files/executions/exe_fab8ea579487462380819afec268e91e/execution_trace1.json')
+evals_1 = get_all_evals('data/files/executions/exe_4a629f699cf8487cb092a87e685c7a2b/execution_trace.json')
+evals_2 = get_all_evals('data/files/executions/exe_6c6366f0333540c786e2ae93f8c9aad4/execution_trace.json')
 
 # Etsi yhteiset atomit
 common_atoms = set(evals_1.keys()).intersection(set(evals_2.keys()))
@@ -31,12 +31,27 @@ for block in seed.get('prompt_blocks', []):
 # Tunnista mismatchit (jotka hajosivat kognitiiviseen epämääräisyyteen)
 mismatches = []
 summary_stats = {"PASSED->FAILED": 0, "FAILED->PASSED": 0, "Other": 0}
+
+def get_state(e):
+    if 'mapped_state' in e:
+        return str(e['mapped_state']).lower()
+    if 'exact_quote' in e:
+        return "true" if e['exact_quote'] != "" else "false"
+    return "unknown"
+
+def get_trace(e):
+    if 'reasoning_trace' in e:
+        return e['reasoning_trace']
+    if 'mechanical_trace' in e:
+        return e['mechanical_trace']
+    return ""
+
 for atom in common_atoms:
-    s1, s2 = evals_1[atom]['mapped_state'], evals_2[atom]['mapped_state']
+    s1, s2 = get_state(evals_1[atom]), get_state(evals_2[atom])
     if s1 != s2:
         mismatches.append(atom)
-        s1_str = str(s1).lower()
-        s2_str = str(s2).lower()
+        s1_str = s1
+        s2_str = s2
         
         # Mappaa sekä Pydanticin enumit että mahdolliset bool-arvot
         passed_states = ['true', 'passed', '1']
@@ -66,11 +81,11 @@ with open('scratch/mismatch_traces_raw.md', 'w', encoding='utf-8') as f:
         f.write(f'## Atom: {atom}\n')
         f.write(f'**Rule:** {atom_rules.get(atom, "Unknown")}\n\n')
         
-        f.write(f'**Run 1 [{evals_1[atom]["mapped_state"]}]**\n')
-        f.write(f'> {evals_1[atom].get("reasoning_trace", "").replace(chr(10), " ")}\n\n')
+        f.write(f'**Run 1 [{get_state(evals_1[atom])}]**\n')
+        f.write(f'> {get_trace(evals_1[atom]).replace(chr(10), " ")}\n\n')
         
-        f.write(f'**Run 2 [{evals_2[atom]["mapped_state"]}]**\n')
-        f.write(f'> {evals_2[atom].get("reasoning_trace", "").replace(chr(10), " ")}\n\n')
+        f.write(f'**Run 2 [{get_state(evals_2[atom])}]**\n')
+        f.write(f'> {get_trace(evals_2[atom]).replace(chr(10), " ")}\n\n')
         
         f.write('---\n\n')
 

@@ -53,33 +53,20 @@ class ChunkAccumulator:
                 )
 
             try:
-                ev_dto = AtomEvaluationItemDTO.model_validate(raw_ev)
+                AtomEvaluationItemDTO.model_validate(raw_ev)
             except ValidationError as e:
                 logger.error("ChunkAccumulator: Validation failed, marking as DLQ. Error: %s", e)
                 raw_ev["dlq_status"] = True
-                raw_ev["mapped_state"] = "DLQ"
                 final_evals.append(raw_ev)
                 continue
 
-            dlq = getattr(ev_dto, "dlq_status", False)
-            if dlq:
-                raw_ev["mapped_state"] = "DLQ"
-            elif ev_dto.rule_satisfied is True:
-                raw_ev["mapped_state"] = "PASSED"
-            elif ev_dto.rule_satisfied is False:
-                raw_ev["mapped_state"] = "FAILED"
-            else:
-                raise AppException(
-                    message=f"Strict Fail-Fast: Unexpected rule_satisfied value: {ev_dto.rule_satisfied}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
-
+            # We no longer explicitly write mapped_state here because rule_satisfied
+            # logic is fully delegated to calculate_rule_satisfied() in the scoring engine.
             final_evals.append(raw_ev)
 
     def _merge_string_traces(self, chunk: dict[str, Any]) -> None:
-        """Safely concatenates high-level string traces like reasoning_trace."""
-        for key in ["reasoning_trace", "evaluation_notes"]:
+        """Safely concatenates high-level string traces like mechanical_trace."""
+        for key in ["mechanical_trace", "evaluation_notes"]:
             if key in chunk:
                 c_val = chunk[key]
                 if key not in self.final_result:

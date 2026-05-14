@@ -422,32 +422,12 @@ class PromptCompiler:
             class AtomResponse(BaseModel):
                 model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
                 atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")
-                rule_satisfied: bool = Field(
-                    ..., alias="step_4_rule_satisfied", description="Is the rule fully satisfied? (True/False)"
-                )
-                evidence_found: bool = Field(
-                    ...,
-                    alias="step_5_evidence_found",
-                    description="Did you find explicit evidence for this? (True/False)",
-                )
                 exact_quote: str = Field(
                     ..., description="The exact quote if evidence was found, otherwise empty string."
                 )
                 pre_quote_anchor: str = Field(..., description="5 words before the exact quote, or empty.")
                 post_quote_anchor: str = Field(..., description="5 words after the exact quote, or empty.")
-                reasoning_trace: str = Field(..., alias="step_1_reasoning_trace", description="Your reasoning trace.")
-
-                @model_validator(mode="after")
-                def validate_evidence(self, info: ValidationInfo) -> Any:
-                    if self.evidence_found:
-                        if not self.exact_quote or not self.exact_quote.strip():
-                            raise ValueError("ANTI-LAZINESS MANDATE: Quote required if evidence_found is True")
-                    else:
-                        if self.exact_quote != "":
-                            raise ValueError(
-                                "SYSTEM MANDATE: exact_quote MUST be exactly empty string if evidence_found is False"
-                            )
-                    return self
+                mechanical_trace: str = Field(..., alias="step_1_mechanical_trace", description="Your reasoning trace.")
 
             fields["evaluations"] = (list[AtomResponse], Field(..., description="Array of blinded evaluations."))
 

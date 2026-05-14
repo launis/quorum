@@ -1,406 +1,241 @@
 # Raw Mismatch Traces (2-way Execution)
 
 ## Summary
-- Total common atoms evaluated: 184
-- Total mismatching atoms: 36
-- Variance percentage: 19.6 %
-- PASSED -> FAILED (Run 1 -> Run 2): 13
-- FAILED -> PASSED (Run 1 -> Run 2): 23
+- Total common atoms evaluated: 185
+- Total mismatching atoms: 21
+- Variance percentage: 11.4 %
+- PASSED -> FAILED (Run 1 -> Run 2): 5
+- FAILED -> PASSED (Run 1 -> Run 2): 16
 - Other state changes: 0
 
-## Atom: tda_f041723db3ced368
-**Rule:** CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. STEP 1 (Lexical Anchor): Find a final verdict sentence (e.g., 'is a complete failure', 'is perfect'). STEP 2 (Bounding Box): Scan the preceding paragraph. If the verdict contains one-sided praise or condemnation without acknowledging any counter-evidence -> ACCEPT. BANNED CONCEPTS: Do not accept balanced verdicts that weigh pros and cons. ENFORCEMENT RULE: Document the one-sided nature of the verdict in reasoning_trace BEFORE extracting exact_quote.
-
-**Run 1 [FAILED]**
-> Tämä on käänteinen sääntö (pahe). Etsin lopullista tuomiota, joka on yksipuolinen. Johtopäätöksessä esitetty lause "Muutos 2017:n potentiaalista 2023:n kriisiin on peruuttamaton" on absoluuttinen ja yksipuolinen tuomio. Koko dokumentti on rakennettu tukemaan tätä näkemystä, eikä se esitä mitään vastakkaisia näkemyksiä, lieventäviä tekijöitä tai mahdollisuuksia trendin kääntymiselle. Se on yksipuolinen tuomio ilman vastakkaisen todistusaineiston tunnustamista, joten sääntö on rikottu.
-
-**Run 2 [PASSED]**
-> Sääntö on käänteinen (pahe). Etsin virhettä. Etsin lopullista tuomiota, joka on yksipuolinen. Loppupäätelmä 'Muutos 2017:n potentiaalista 2023:n kriisiin on peruuttamaton' on vahva, mutta se on koko edeltävän analyysin looginen johtopäätös, ei niinkään tuomio jostakin asiasta. Se on tilannekuvaus. Se ei ole yksipuolista ylistystä tai tuomitsemista, vaan strateginen johtopäätös analysoidusta datasta. Se ei sovi säännön määritelmään 'one-sided praise or condemnation'. Koska virhettä ei löytynyt, sääntö on täyttynyt (`rule_satisfied = True`) ja todisteita virheestä ei ole (`evidence_found = False`).
-
----
-
-## Atom: tda_4956abf072945f43
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED CONCEPTS: Do not accept brief dismissals (e.g. 'Option B is bad'). STEP 1 (Lexical Anchor): Find an explicit reference to an established alternative model or framework. STEP 2 (Bounding Box): Scan the paragraph. If the text dismantles the alternative model by citing specific data points or logical contradictions that render it invalid in this context -> ACCEPT. If the alternative is dismissed without evidence -> REJECT. ENFORCEMENT RULE: Detail the systematic refutation in reasoning_trace BEFORE extracting exact_quote.
-
-**Run 1 [PASSED]**
-> Sääntö etsii viittausta vakiintuneeseen vaihtoehtoiseen malliin, joka sitten puretaan systemaattisesti datan tai logiikan avulla. Käyttäjä ei tee näin. Hän korvaa tekoälyn alkuperäisen viisiosaisen rakenteen omalla 'supermegatrendi'-mallillaan, mutta hän ei koskaan systemaattisesti argumentoi, miksi alkuperäinen malli olisi virheellinen tai huono. Hän yksinkertaisesti sivuuttaa sen ja siirtyy uuteen. Todisteita säännön täyttymisestä ei löydy.
-
-**Run 2 [FAILED]**
-> Sääntö edellyttää, että tekstissä viitataan vakiintuneeseen vaihtoehtoiseen malliin ja puretaan se järjestelmällisesti datan tai logiikan avulla. Käyttäjä ei missään vaiheessa esittele vaihtoehtoista mallia tai viitekehystä, jota hän sitten kritisoisi tai kumoaisi. Sen sijaan hän rakentaa omaa malliaan ("supermegatrendit") tekoälyn tuottaman materiaalin päälle. Todisteita säännön täyttymisestä ei löydy.
-
----
-
-## Atom: tda_46520c9743e9b881
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED CONCEPTS: Do not evaluate 'humility'. STEP 1 (Lexical Anchor): Find boundary markers ('only applies to', 'limited to', 'under these conditions'). STEP 2: If the text explicitly defines the population, environment, or conditions where the causal claim is valid -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document reasoning_trace first.
-
-**Run 1 [FAILED]**
-> Sääntö edellyttää rajausehtojen (esim. 'only applies to', 'limited to') löytämistä, jotka määrittelevät kausaaliväitteen voimassaoloalueen. Skannasin `product_text`-dokumentin. Teksti on kohdennettu 'Kaupalliselle Johtoryhmälle', mikä asettaa implisiittisen kontekstin, mutta se ei sisällä eksplisiittisiä lauseita, jotka rajoittaisivat esitettyjen kausaaliväitteiden sovellettavuutta tiettyihin olosuhteisiin, populaatioihin tai ympäristöihin. Väitteet esitetään yleispätevinä tulevaisuuden markkinoiden kuvauksina. Koska vaadittuja rajausehtoja ei löytynyt, sääntö ei täyty.
-
-**Run 2 [PASSED]**
-> Sääntö edellyttää, että tekstissä määritellään rajat tai ehdot, joissa kausaaliväite on voimassa. Etsin `product_text`-dokumentista tällaisia rajausmerkintöjä. Löysin heti dokumentin alusta määritelmän "Kohderyhmä: Kaupallinen Johtoryhmä". Tämä rajaa selkeästi analyysin kontekstin ja yleisön, jolle se on suunnattu, ja täyttää siten säännön ehdot.
-
----
-
-## Atom: tda_a9bbdcc4d1bfc915
-**Rule:** CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data. STEP 1 (Lexical Anchor): Find explicit optimization commands for proxy metrics (e.g., 'maximize the score', 'increase the word count', 'make it sound professional'). STEP 2 (Bounding Box): Scan the user's prompt. If the user demands optimization of a surface metric without linking it to a qualitative real-world outcome -> ACCEPT. BANNED CONCEPTS: Do not accept if the metric is explicitly tied back to a measure of effectiveness. ENFORCEMENT RULE: Analyze the metric fixation in reasoning_trace before extracting.
-
-**Run 1 [FAILED]**
-> FATAL FLAW -sääntö. Käyttäjän komento on selkeä pyyntö optimoida tuotoksen sävyä ja sisältöä tietylle kohdeyleisölle ("kaupallisen liiketoiminnan johtoryhmälle"). Pyytämällä tekoälyä lisäämään "hiukan kaupallisia vaikutuksia" ilman, että käyttäjä itse tarjoaa näitä vaikutuksia tai niiden analyyttistä pohjaa, käyttäjä optimoi pintapuolista mittaria (soveltuvuus johtoryhmälle) linkittämättä sitä laadulliseen lopputulokseen. Tämä on suora rikkomus sääntöä vastaan.
-
-**Run 2 [PASSED]**
-> Sääntö on 'FATAL FLAW', joten etsin virhettä. Käyttäjä pyytää muokkaamaan raportin 'kaupallisen liiketoiminnan johtoryhmälle' ja lisäämään 'kaupallisia vaikutuksia'. Tämä ei ole pintatason mittarin optimointia, vaan pyyntö muuttaa analyysin kohdennusta ja sisältöä vastaamaan tiettyä laadullista tavoitetta (relevanssi johtoryhmälle). Pyyntö on sidottu todelliseen lopputuloksen parantamiseen, ei mielivaltaiseen mittariin. Siksi sääntöä ei ole rikottu.
-
----
-
-## Atom: tda_80f16abbc1776069
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. STEP 1 (Lexical Anchor): Find demands for external grounding (e.g., 'cite a specific source', 'base this strictly on the provided document', 'give me the exact quote'). STEP 2 (Bounding Box): Scan the user's prompt. If the user explicitly restricts the AI to an external, objective anchor -> ACCEPT. BANNED CONCEPTS: Acceptance of unsourced hallucinated facts. ENFORCEMENT RULE: Map this explicit logic in reasoning_trace before extracting.
-
-**Run 1 [PASSED]**
-> Käyttäjän ensimmäinen kehotus 'Miten sitra tämän näkee raporttien perusteella' on selkeä vaatimus ulkoisesta ankkuroinnista. Se rajoittaa tekoälyn vastausta perustumaan nimenomaisesti Sitran raportteihin, mikä vastaa säännön kuvausta.
-
-**Run 2 [FAILED]**
-> Sääntö etsii vaatimuksia ulkoisesta todentamisesta (esim. 'siteeraa lähde', 'perusta tämä annettuun dokumenttiin'). Vaikka käyttäjän ensimmäinen pyyntö viittaa raportteihin, hän ei missään vaiheessa prosessia vaadi tekoälyä eksplisiittisesti sitomaan väitteitään tiettyyn lainaukseen tai lähteeseen. Hän luottaa tekoälyn synteesiin. Todisteita ei löydy. Siksi `evidence_found` on `False`.
-
----
-
-## Atom: tda_4fa47fd622e62e0d
-**Rule:** REQUIRED TARGET: If role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Lexical Anchor): Find formal citation markers ('according to ARMA principle of', 'ISO standard'). STEP 2 (Bounding Box): Scan the sentence. If a specific external framework is named AND a specific sub-principle or clause is cited to justify a decision -> ACCEPT. BANNED CONCEPTS: Do not accept generic references to 'standards' without naming them. ENFORCEMENT RULE: Document the formal framework name in reasoning_trace before extracting.
-
-**Run 1 [PASSED]**
-> Sääntö edellyttää, että lauseessa mainitaan tietty ulkoinen viitekehys (esim. ARMA, ISO) päätöksen perustelemiseksi. Lainaus nimeää eksplisiittisesti "CSRD-direktiivin ja EU-taksonomian" perusteluna sille, miksi kestävyydestä tulee pakollista. Tämä täyttää säännön ehdot: nimetty ulkoinen kehys ja sen perusteella tehty johtopäätös.
-
-**Run 2 [FAILED]**
-> Etsin tekoälyn tuotoksesta viittausta, jossa nimetään sekä spesifi ulkoinen viitekehys että sen tietty alaperiaate tai lauseke. Vaikka lopputuote mainitsee nimeltä "CSRD-direktiivin ja EU-taksonomian", se ei viittaa mihinkään tiettyyn artiklaan tai alakohtaan näissä säädöksissä. Säännön "AND"-ehto (nimetty viitekehys JA spesifi alakohta) ei täyty. Siksi todisteita ei löydy.
-
----
-
-## Atom: tda_21d7952c2bf6393c
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED CONCEPTS: Do not evaluate 'watertightness'. STEP 1: Find mathematical or structural causal terms ('do-calculus', 'directed acyclic graph', 'structural equation', 'formal model'). STEP 2: If the text explicitly uses a formal model or strict structural logic to map the causality -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document reasoning_trace first.
-
-**Run 1 [FAILED]**
-> Sääntö edellyttää muodolliseen kausaalimallinnukseen viittaavien termien (esim. 'do-calculus', 'directed acyclic graph') löytämistä. Skannasin `product_text`-dokumentin. Vaikka teksti esittää vahvoja kausaalisia väittämiä, se ei käytä tai viittaa mihinkään matemaattiseen tai muodolliseen rakenteelliseen malliin kausaliteetin todistamiseksi. Analyysi on laadullinen ja narratiivinen. Koska vaadittuja termejä ei löytynyt, sääntö ei täyty.
-
-**Run 2 [PASSED]**
-> Sääntö edellyttää formaalien kausaalimallien tai niihin viittaavien termien (esim. 'directed acyclic graph', 'structural equation') käyttöä. Skannasin `product_text`-dokumentin näiden termien varalta. Teksti käyttää käsitteellisiä malleja, kuten 'Supermegatrendit', mutta se ei käytä tai viittaa mihinkään matemaattiseen tai formaaliin rakenteelliseen kausaalimalliin. Päättely on laadullista ja kuvailevaa. Siksi todisteita ei löytynyt.
-
----
-
-## Atom: tda_8df0cd8eea9243df
-**Rule:** REQUIRED TARGET: Find evidence. If role prefixes (user:, ai:) exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix or in user input fields are automatically REJECTED. BANNED CONCEPTS: Do not flag limitations that were actively tested or corrected for in the dataset. STEP 1 (Lexical Anchor): Find limitation markers (e.g., 'small sample size', 'potential bias', 'limitation of this study'). STEP 2 (Bounding Box): Scan the paragraph. If the limitations are stated passively without a corresponding mitigation action or test -> ACCEPT (Flaw proven). Otherwise -> REJECT. ENFORCEMENT RULE: Document the passivity in reasoning_trace before extracting exact_quote.
-
-**Run 1 [FAILED]**
-> Sääntö etsii passiivisesti esitettyjä rajoituksia. `chat_log`-tiedostossa tekoäly toteaa Sitran ennusteen työn tulevaisuudesta olleen epätarkka. Tämä esitetään passiivisena havaintona ilman, että se johtaisi mihinkään korjaavaan toimenpiteeseen tai testiin. Tämä on säännön kuvaama virhe, joten `rule_satisfied` on `false`.
-
-**Run 2 [PASSED]**
-> Sääntö etsii virhettä, jossa analyysin rajoitukset mainitaan passiivisesti ilman toimenpiteitä niiden lieventämiseksi. Kävin läpi tekoälyn tuottaman tekstin (`product_text` ja `ai:`-vastaukset). Tekoäly ei missään vaiheessa tuo esiin oman analyysinsa metodologisia rajoituksia (esim. 'tämän analyysin rajoituksena on...'). Ainoa maininta sanasta 'rajoite' on lopputuotteessa, jossa se käännetään mahdollisuudeksi, mikä ei ole metodologinen rajoitus. Koska virhettä ei löytynyt, sääntö on täytetty.
-
----
-
-## Atom: tda_c74c4367acc028cf
-**Rule:** CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data. STEP 1 (Lexical Anchor): Find user phrases adopting AI methodology blindly (e.g., 'let us use your structure', 'proceed with that approach', 'do what you suggested'). STEP 2 (Bounding Box): Scan the user's prompt. If the user explicitly adopts the AI's proposed framework without adding their own constraints -> ACCEPT. BANNED CONCEPTS: Do not accept if the user modifies the AI's framework. ENFORCEMENT RULE: Document the methodological adoption in reasoning_trace before extracting.
-
-**Run 1 [FAILED]**
-> FATAL FLAW -sääntö. Sen jälkeen, kun tekoäly esitteli vastauksena käyttäjän kysymykseen "supermegatrendien" käsitteen ja rakenteen, käyttäjä antoi tämän komennon. Komento on suora ohje ottaa tekoälyn ehdottama metodologia käyttöön ilman, että käyttäjä lisää siihen omia rajoitteitaan, muokkaa sitä tai haastaa sitä. Tämä on sokeaa metodologian omaksumista ja siten säännön rikkomus.
-
-**Run 2 [PASSED]**
-> Sääntö on 'FATAL FLAW', joten etsin virhettä. Käyttäjä ei omaksu sokeasti tekoälyn metodologiaa. Päinvastoin, käyttäjä hylkää tekoälyn alun perin tuottaman litteän megatrendilistan ja esittää oman, uuden analyyttisen kehyksensä ('supermegatrendejä'). Tämä on aktiivista metodologian haastamista ja muokkaamista, ei sen sokeaa hyväksymistä. Siksi sääntöä ei ole rikottu.
-
----
-
-## Atom: tda_5d6ad535f76d0d14
-**Rule:** REQUIRED TARGET: Scan the target document. BANNED SOURCES: Reject user inputs. STEP 1 (Lexical Anchor): Find declarations of completeness (e.g., 'exhaustive', 'covers everything', 'the only possible'). STEP 2: Document the reasoning. STEP 3: If the text explicitly claims that there are zero unknown variables remaining -> ACCEPT. Otherwise -> REJECT.
-
-**Run 1 [FAILED]**
-> Skannasin 'product_text' -dokumentin etsien täydellisyyden ilmoituksia, kuten 'tyhjentävä', 'kattaa kaiken' tai 'ainoa mahdollinen'. Dokumentti ei sisällä tällaisia eksplisiittisiä väitteitä. Se keskittyy 'kolmeen keskeiseen Supermegatrendiin', mikä viittaa valikoituun, ei tyhjentävään, listaan.
-
-**Run 2 [PASSED]**
-> Skannasin 'product_text'-dokumentin etsien täydellisyyden ilmoituksia (esim. 'tyhjentävä', 'kattaa kaiken', 'ainoa mahdollinen'). Teksti käyttää ilmauksia kuten 'kolme keskeistä Supermegatrendiä' ja 'kolme pääasiallista, toisiaan vahvistavaa supermegatrendiä', jotka viittaavat tärkeimpiin, mutta eivät välttämättä kaikkiin tai ainoisiin. Teksti ei eksplisiittisesti väitä, että tuntemattomia muuttujia ei olisi.
-
----
-
-## Atom: tda_6bf0433f60924302
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: User inputs. STEP 1 (Lexical Anchor): Find conditional qualifiers ('under these specific conditions', 'primarily when', 'tends to'). STEP 2 (Bounding Box): Scan the paragraph. If boundaries or probabilities are explicitly defined for the claim -> ACCEPT. If vague filler words ('maybe', 'perhaps') are used to avoid taking a stance -> REJECT. BANNED CONCEPTS: Vague filler words. ENFORCEMENT RULE: Document the specific boundary condition in reasoning_trace before extracting.
-
-**Run 1 [FAILED]**
-> Sääntö etsii ehdollisia kvalifioijia ('näissä olosuhteissa', 'pääasiassa kun'), jotka rajaavat väitteen pätevyysaluetta. Käyn läpi `product_text`-dokumentin. Teksti esittää megatrendit ja niiden vaikutukset laajoina, systeemisinä ja melko absoluuttisina voimina. Se ei käytä kieltä, joka rajaisi väitteiden sovellettavuutta tiettyihin ehtoihin tai olosuhteisiin. En löydä säännön kuvaamia rakenteita. `rule_satisfied` on `False` ja `evidence_found` on `False`.
-
-**Run 2 [PASSED]**
-> Etsin ehdollisia kvalifioijia ('näissä olosuhteissa', 'pääasiassa kun'), jotka määrittelevät väitteen rajoja. Teksti käyttää hyvin absoluuttista ja varmaa kieltä (esim. "on ainoa tapa", "peruuttamaton"). En löytänyt esimerkkejä, joissa väitteiden pätevyyttä olisi rajattu tai todennäköisyyksiä määritelty säännön tarkoittamalla tavalla. Argumentit esitetään yleispätevinä. Siksi todisteita ei löytynyt.
-
----
-
 ## Atom: tda_c819e7145229966e
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. STEP 1 (Lexical Anchor): Find hypothesis generation markers (e.g., 'propose', 'hypothesize', 'we can infer'). STEP 2: If the text generates a new hypothesis and explicitly documents the step-by-step logical friction or trade-offs in its creation -> ACCEPT. BANNED CONCEPTS: Do not accept hypotheses presented as sudden epiphanies without documented reasoning. ENFORCEMENT RULE: Map the step-by-step reasoning in reasoning_trace BEFORE extracting exact_quote.
+**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. STEP 1 (Lexical Anchor): Find hypothesis generation markers (e.g., 'propose', 'hypothesize', 'we can infer'). STEP 2: EXTRACTION CONDITION: the text generates a new hypothesis and explicitly documents the step-by-step logical friction or trade-offs in its creation. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept hypotheses presented as sudden epiphanies without documented reasoning. TRACE REQUIREMENT: Map the step-by-step reasoning in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
 
-**Run 1 [FAILED]**
-> Etsin kohdedatasta uutta hypoteesia, jonka luomisen looginen kitka tai kompromissit olisi dokumentoitu. Vaikka teksti esittelee uuden "Supermegatrendit"-kehyksen, se esitetään valmiina analyysinä. Teksti ei dokumentoi prosessia, jossa eri yhdistelmiä olisi punnittu tai miksi juuri nämä yhdistelmät valittiin. Se ei kuvaa askel-askeleelta päättelyketjua tai kompromisseja, jotka johtivat tähän synteesiin. Hypoteesi esitetään äkillisenä oivalluksena ilman dokumentoitua päättelyä, joten säännön vaatimus ei täyty.
+**Run 1 [false]**
+> Etsin kohdetekstistä (`product_text`) hypoteesin luomiseen viittaavia ilmauksia (esim. 'ehdotan', 'oletan') sekä dokumentoitua loogista kitkaa tai kompromisseja hypoteesin muodostamisessa. Vaikka 'supermegatrendien' luominen on hypoteettinen ja luova teko, itse lopputuote esittää ne analyysin tuloksena eikä dokumentoi niiden luomisprosessin vaiheita tai kompromisseja. Prosessi on nähtävissä `chat_log`-aineistossa, mutta sääntö kieltää muiden lähteiden kuin kohdetekstin käytön. Koska kohdeteksti ei sisällä vaadittuja elementtejä, todistusaineistoa ei löydy.
 
-**Run 2 [PASSED]**
-> Etsin todisteita uuden hypoteesin tai mallin luomisesta, jossa on dokumentoitu päättelyketju. `Product_Text` esittelee 'Supermegatrendit' uutena mallina. Lainattu kohta selittää tämän mallin luomisen logiikan: yksittäiset trendit eivät ole irrallisia, vaan ne 'kietoutuvat toisiinsa'. Tämä on päättelyketju, joka perustelee uuden, syntetisoivan käsitteen tarpeellisuuden. Teksti ei vain esitä uutta ideaa, vaan selittää, miksi se on luotu (koska trendit eivät toimi erillään). Tämä täyttää säännön vaatimuksen.
-
----
-
-## Atom: tda_31ae4494272845fe
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: User inputs. STEP 1 (Lexical Anchor): Find 'given the principle that', 'this demonstrates that mechanism' or equivalent explicit rules. STEP 2 (Bounding Box): Scan the sentence. If the bridging rule between Data and Claim is explicitly stated -> ACCEPT. If it just says 'because' without stating the general rule -> REJECT. BANNED CONCEPTS: Do not evaluate the quality of the bridging rule. ENFORCEMENT RULE: Document the logical rule in reasoning_trace before extracting.
-
-**Run 1 [FAILED]**
-> Sääntö etsii eksplisiittisiä siltasääntöjä tai periaatteita ('periaatteella, että...'), jotka yhdistävät datan ja väitteen. Käyn läpi `product_text`-dokumentin. Teksti esittää kausaalisia yhteyksiä (esim. 'mikä ajaa suoraan siihen, että'), mutta se ei muotoile näitä yhteyksiä yleisiksi, abstrakteiksi periaatteiksi tai säännöiksi. Yhteydet ovat spesifejä väitteitä, eivät yleisiä loogisia sääntöjä. En löydä säännön kuvaamaa rakennetta. `rule_satisfied` on `False` ja `evidence_found` on `False`.
-
-**Run 2 [PASSED]**
-> Etsin lauseita, joissa datan ja väitteen välinen siltasääntö (Warrant) on eksplisiittisesti ilmaistu. Lause "Tämä syntyy siitä, että Luonnon kantokyky murenee, mikä ajaa suoraan siihen, että Talouden perusta rakoilee" tekee juuri tämän. Se yhdistää datan/perusteen ("Luonnon kantokyky murenee") väitteeseen ("Talouden perusta rakoilee") eksplisiittisellä säännöllä ("syntyy siitä, että... mikä ajaa suoraan siihen, että"). Tämä täyttää säännön ehdot.
-
----
-
-## Atom: tda_79f305842b933ea5
-**Rule:** REQUIRED TARGET: If role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Lexical Anchor): Find explicit dialectical reasoning ('we evaluated option A, but chose B because'). STEP 2 (Bounding Box): Scan the paragraph. If the author explicitly documents a rejected compliance alternative and provides data-driven reasoning for the final choice -> ACCEPT. BANNED CONCEPTS: Do not accept simple lists of options without rejection reasoning. ENFORCEMENT RULE: Document the rejected alternative in reasoning_trace before extracting.
-
-**Run 1 [PASSED]**
-> Sääntö etsii eksplisiittistä dialektista päättelyä, jossa dokumentoidaan hylätty vaihtoehto ja perustellaan tehty valinta (esim. 'arvioimme A:ta, mutta valitsimme B:n, koska...'). Tekoälyn tuotokset ovat synteesejä ja toimeenpanoja käyttäjän ohjeista, mutta ne eivät sisällä tällaista dokumentoitua vertailua ja hylkäysperustelua. Todisteita ei löydy.
-
-**Run 2 [FAILED]**
-> Etsin eksplisiittistä dialektista päättelyä, jossa hylätty vaihtoehto dokumentoidaan ja perustellaan. Tekoälyn ja käyttäjän vuorovaikutus on additiivista ja iteratiivista. Tekoäly ei esitä vaihtoehtoja (esim. "Voisimme tehdä A:n, mutta B on parempi koska..."), vaan toteuttaa käyttäjän antamia ohjeita. Esimerkiksi kun käyttäjä ehdottaa "supermegatrendejä", tekoäly hyväksyy idean ja toteuttaa sen esittämättä ja hylkäämättä muita vaihtoehtoja. Todisteita ei löydy.
-
----
-
-## Atom: tda_2aec15ab07984f4d
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: User inputs or system prompts. STEP 1 (Lexical Anchor): Find 100% certainty markers ('guaranteed', 'undoubtedly', 'always'). STEP 2 (Bounding Box): Scan the sentence. If the sentence makes a future prediction or subjective assessment using these markers -> ACCEPT. If it states a mathematical/historical fact -> REJECT. BANNED CONCEPTS: Mathematical facts. ENFORCEMENT RULE: Document the epistemological hubris in reasoning_trace before extracting.
-
-**Run 1 [PASSED]**
-> Sääntö etsii 100 % varmuutta ilmaisevia markkereita ('taatusti', 'epäilemättä', 'aina') subjektiivisissa tulevaisuudenennusteissa. Tämä on pahesääntö (vice rule). Skannaan `product_text`-dokumentin. Vaikka tekstin sävy on itsevarma ja se tekee vahvoja ennusteita (esim. 'Vain kestävät liiketoimintamallit saavat tulevaisuudessa pääomaa'), se ei käytä säännössä määriteltyjä spesifejä leksikaalisia ankkureita. Koska säännön kuvaamaa virhettä ei löydy, `rule_satisfied` on `True` ja `evidence_found` on `False`.
-
-**Run 2 [FAILED]**
-> Sääntö on käänteinen (pahe). Etsin 100 % varmuutta ilmaisevia merkkejä tulevaisuutta koskevissa subjektiivisissa arvioissa. Lause "Vain kestävät liiketoimintamallit saavat tulevaisuudessa pääomaa" on tällainen. Sana "Vain" asettaa absoluuttisen ehdon tulevaisuuden ennusteelle, joka on luonteeltaan subjektiivinen arvio eikä matemaattinen fakta. Tämä on säännön kuvaama epistemologinen ylimielisyys. Siksi sääntöä on rikottu ja todiste löytyi.
-
----
-
-## Atom: tda_d0b6789c895808eb
-**Rule:** CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. STEP 1 (Lexical Anchor): Find binary reduction words (e.g., 'either', 'or', 'simply boils down to'). STEP 2 (Bounding Box): Scan the paragraph. If a complex phenomenon is reduced to a strict binary choice without acknowledging nuance -> ACCEPT. BANNED CONCEPTS: Do not accept binary choices in literal boolean logic or code. ENFORCEMENT RULE: Document the binary reduction in reasoning_trace BEFORE extracting exact_quote.
-
-**Run 1 [FAILED]**
-> Tämä on käänteinen sääntö (pahe). Etsin kohdedatasta ilmaisua, joka redusoi monimutkaisen ilmiön yksinkertaiseksi binääriseksi valinnaksi. Lause "Korjaavaan ja uusintavaan talouteen siirtyminen on ainoa tapa taata pitkän aikavälin vakaus" on selkeä esimerkki tästä. Ilmaisu "ainoa tapa" esittää yhden ratkaisumallin ainoana vaihtoehtona monimutkaiseen ongelmaan (pitkän aikavälin vakauden takaaminen), sivuuttaen kaikki muut mahdolliset strategiat ja vivahteet. Tämä on säännössä kuvattu virhe, joten sääntö on rikottu.
-
-**Run 2 [PASSED]**
-> Sääntö on käänteinen (pahe). Etsin virhettä. Kävin läpi `Product_Text`-dokumentin etsien kohtia, joissa monimutkainen ilmiö pelkistetään yksinkertaiseksi binääriseksi valinnaksi. En löytänyt selkeää esimerkkiä tästä virheestä. Vaikka tekstissä esitetään voimakkaita valintoja, kuten 'nähtävä teknologinen murros... välineenä reilun digimaailman luomiseen, ei vain kustannussäästönä', tämä on strateginen kehotus eikä monimutkaisen ilmiön analyyttinen pelkistys. Teksti kokonaisuudessaan käsittelee ilmiöiden kietoutumista ja monimutkaisuutta, ei niiden yksinkertaistamista. Koska virhettä ei löytynyt, sääntö on täyttynyt (`rule_satisfied = True`) ja todisteita virheestä ei ole (`evidence_found = False`).
-
----
-
-## Atom: tda_20038c836112303e
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED CONCEPTS: Do not evaluate completeness. STEP 1 (Lexical Anchor): Find words indicating alternatives ('however', 'other factors', 'confounder'). STEP 2: If the text explicitly names a potential third variable that could also explain the outcome -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document reasoning_trace first.
-
-**Run 1 [FAILED]**
-> Sääntö edellyttää vaihtoehtoisia selityksiä osoittavien sanojen (esim. 'however', 'other factors') löytämistä. Skannasin `product_text`-dokumentin. Teksti esittää supermegatrendit ja niiden vaikutukset suoraviivaisina kausaaliketjuina. Se ei eksplisiittisesti nimeä tai käsittele vaihtoehtoisia selityksiä tai sekoittavia tekijöitä. Koska vaadittuja leksikaalisia ankkureita tai vastaavaa sisältöä ei löytynyt, sääntö ei täyty.
-
-**Run 2 [PASSED]**
-> Sääntö edellyttää, että tekstissä nimenomaisesti mainitaan vaihtoehtoisia selittäviä tekijöitä tai sekaannuttavia muuttujia (confounders). Kävin läpi `product_text`-dokumentin. Vaikka teksti kuvaa, miten eri megatrendit kietoutuvat toisiinsa ja yhdessä aiheuttavat seurauksia, se ei esitä vaihtoehtoisia selityksiä tai kolmansia muuttujia, jotka voisivat selittää havaitun korrelaation. Se rakentaa yhtenäisen, sisäisesti johdonmukaisen selitysmallin ilman viittauksia muihin mahdollisiin syihin. Siksi en löytänyt todisteita säännön täyttymisestä.
-
----
-
-## Atom: tda_fbd90f9c0f2247ed
-**Rule:** REQUIRED TARGET: Find evidence. If role prefixes (user:, ai:) exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix or in user input fields are automatically REJECTED. BANNED LOGIC: Do not evaluate 'strongest'. STEP 1 (Lexical Anchor): Find a proactive presentation of a cited counterargument. STEP 2 (Bounding Box): Scan the paragraph. If the counterargument is accompanied by citations/data AND is explicitly dismantled with conflicting verifiable data -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.
-
-**Run 1 [FAILED]**
-> Sääntö etsii todisteita siitä, että tekoäly esittää proaktiivisesti viitatun vasta-argumentin ja kumoaa sen sitten todennettavalla datalla. Tämä on positiivinen ominaisuus. Kävin läpi koko aineiston, eikä tekoäly esitä mitään vasta-argumentteja, saati sitten viitattuja sellaisia. Prosessi on puhtaasti syntetisoiva. Koska säännön kuvaamaa positiivista käyttäytymistä ei esiinny, sääntö ei ole täytetty (rule_satisfied = False) eikä todisteita löydy (evidence_found = False).
-
-**Run 2 [PASSED]**
-> Sääntö edellyttää, että löydetään viitattu vasta-argumentti, joka kumotaan aktiivisesti datalla. Kävin läpi tekoälyn tuottaman aineiston (`product_text` ja `ai:`-vastaukset). Koko analyysi perustuu Sitran raporttien syntetisointiin. Tekstissä ei esitetä ulkopuolista, viitattua vasta-argumenttia Sitran näkemyksille, jota sitten yritettäisiin kumota toisella data-aineistolla. Prosessi ei sisällä tällaista tieteellistä väittelyä. Todisteita ei siis löydy.
-
----
-
-## Atom: tda_03419e9a41f304ce
-**Rule:** REQUIRED TARGET: Scan the target document. BANNED SOURCES: Reject user inputs. STEP 1 (Lexical Anchor): Find dismissive markers towards alternatives (e.g., 'obviously false', 'nonsense', 'irrelevant'). STEP 2 (Bounding Box): Scan the paragraph. STEP 3: If the dismissal occurs without citing an external verifiable source or empirical data -> ACCEPT. Otherwise -> REJECT.
-
-**Run 1 [FAILED]**
-> Skannasin 'product_text' -dokumentin etsien vähätteleviä ilmauksia, kuten 'ilmeisen väärä', 'hölynpölyä' tai 'merkityksetön'. En löytänyt yhtään tällaista ilmausta. Tekstin sävy on analyyttinen ja julistava, ei vähättelevä.
-
-**Run 2 [PASSED]**
-> Skannasin 'product_text'-dokumentin etsien vähätteleviä ilmauksia vaihtoehtoisia näkemyksiä kohtaan (esim. 'ilmeisen väärä', 'hölynpölyä', 'epäolennainen'). Tekstissä ei ole tällaisia ilmauksia. Teksti esittää Sitran näkemykset ja niistä johdetut johtopäätökset suoraan, mutta ei vähättele muita näkemyksiä.
-
----
-
-## Atom: tda_3d3f1162d2ff1558
-**Rule:** REQUIRED TARGET: Scan the document. STEP 1: Find a limitation acknowledgment (e.g., 'a limitation is'). STEP 2: Scan the next two sentences. If a dismissive marker (e.g., 'however', 'regardless') immediately rationalizes away the limitation without citing new data -> ACCEPT. Otherwise -> REJECT.
-
-**Run 1 [FAILED]**
-> Skannasin 'product_text' -dokumentin etsien rajoitusten tunnustamista, kuten 'rajoitus on'. Dokumentti ei eksplisiittisesti tunnusta mitään rajoituksia. Se esittää analyysinsa ja strategiset suosituksensa suoraan.
-
-**Run 2 [PASSED]**
-> Skannasin 'product_text'-dokumentin etsien rajoitusten tunnustamista (esim. 'rajoitus on'). Teksti ei eksplisiittisesti tunnusta omia analyysirajoituksiaan tai viittaamiensa Sitran raporttien rajoituksia. Siksi ei ole myöskään rajoituksen vähättelevää rationalisointia.
-
----
-
-## Atom: tda_d335b4457e3e4ac7
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: User inputs. STEP 1 (Lexical Anchor): Find thought-terminating clichés ('it is simply a matter of', 'there is no alternative', 'period'). STEP 2 (Bounding Box): Scan the sentence. If complexity or opposing views are dismissed without data -> ACCEPT. If data is provided -> REJECT. BANNED CONCEPTS: Data-driven rebuttals. ENFORCEMENT RULE: Document the dismissed complexity in reasoning_trace before extracting.
-
-**Run 1 [FAILED]**
-> Sääntö on käänteinen (pahe). Etsin ajattelun päättäviä kliseitä ('it is simply a matter of', 'there is no alternative'), jotka sivuuttavat monimutkaisuuden ilman dataa. Lause 'Korjaavaan ja uusintavaan talouteen siirtyminen on ainoa tapa taata pitkän aikavälin vakaus' sisältää ilmaisun 'on ainoa tapa', joka on tällainen klisee. Se esittää yhden ratkaisun absoluuttisena totuutena ja sulkee pois muut vaihtoehdot esittämättä dataa niiden kumoamiseksi. Koska rikkomus löytyi, sääntö ei ole täytetty (`rule_satisfied` = False) ja todiste löytyi (`evidence_found` = True).
-
-**Run 2 [PASSED]**
-> Tämä on käänteinen sääntö (pahe). Etsin kohdetekstistä (`product_text`) ajatuksen päättäviä kliseitä, kuten "se on vain..." tai "ei ole muuta vaihtoehtoa", joilla sivuutetaan monimutkaisuus ilman dataa. Tekstissä on vahvoja toteamuksia, kuten "on ainoa tapa" ja "on peruuttamaton", mutta nämä eivät ole kliseitä, joilla vältetään argumentointi. Ne ovat johtopäätöksiä, jotka perustuvat koko dokumentissa esitettyyn analyysiin ja dataan (Sitran raportit). Koska säännön kuvaamaa rikkomusta ei löytynyt, sääntö on täytetty.
-
----
-
-## Atom: tda_aa54c6b40e9c4160
-**Rule:** REQUIRED TARGET: Scan the document. STEP 1: Find a paragraph containing statistical or factual reporting. STEP 2: Count the first-person pronouns ('I', 'we') or explicit self-reflective verbs ('assume', 'interpret'). If the count is exactly 0 -> ACCEPT (passive delivery proven). If greater than 0 -> REJECT.
-
-**Run 1 [FAILED]**
-> Skannasin 'product_text' -dokumentin etsien ensimmäisen persoonan pronomineja ('minä', 'me') tai eksplisiittisiä itseä heijastavia verbejä ('oletan', 'tulkitsen'). Johtopäätös-osiossa lause 'Yrityksemme menestys riippuu kyvystämme integroida nämä kolme supermegatrendiä...' sisältää possessiivipronominin 'Yrityksemme' (our company) ja 'kyvystämme' (our ability), jotka ovat ensimmäisen persoonan monikon muotoja. Koska pronomineja löytyi, laskuri on suurempi kuin 0, ja sääntö ei täyty.
-
-**Run 2 [PASSED]**
-> Skannasin 'product_text'-dokumentin etsien kappaleita, jotka sisältävät tilastollista tai faktapohjaista raportointia. Ensimmäinen kappale 'Evoluutio Konfliktiin' on tällainen. Laskin ensimmäisen persoonan pronominit ('minä', 'me') tai eksplisiittiset itsetutkiskelevat verbit ('oletan', 'tulkitsen'). Kappaleessa ei ole näitä pronomineja tai verbejä. Lause 'Yrityksemme menestys riippuu...' esiintyy johtopäätöksessä, mutta se viittaa kohderyhmän (johtoryhmän) yritykseen, ei raportin kirjoittajaan.
-
----
-
-## Atom: tda_b1bcf8b0c203b736
-**Rule:** CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data. STEP 1 (Lexical Anchor): Find user commands focused on tone (e.g., 'make it sound more persuasive', 'make it more academic'). STEP 2 (Bounding Box): Scan the user's prompt. If the user focuses solely on the performativity (tone/style) while ignoring substantive factual gaps -> ACCEPT. BANNED CONCEPTS: Revisions containing factual additions. ENFORCEMENT RULE: Explain the superficial correction in reasoning_trace before extracting.
-
-**Run 1 [FAILED]**
-> FATAL FLAW -sääntö. Käyttäjän komento keskittyy selkeästi performatiivisuuteen – siihen, miltä teksti näyttää ja kuulostaa tietylle yleisölle. Pyyntö muuttaa sävyä ja lisätä "kaupallisia vaikutuksia" on tyylillinen ja sävyyn keskittyvä ohje, joka ei lisää uutta, käyttäjän tarjoamaa faktatietoa. Käyttäjä ulkoistaa sisältömuutoksen tekoälylle performatiivisen tavoitteen saavuttamiseksi. Tämä täyttää säännön rikkomuksen kriteerit.
-
-**Run 2 [PASSED]**
-> Sääntö on 'FATAL FLAW', joten etsin virhettä. Käyttäjän pyyntö 'kirjoita tämä kaupallisen liiketoiminnan johtoryhmälle ja kirjoita siihen hiukan kaupallisia vaikutuksia mukaan' ei keskity ainoastaan sävyyn tai performatiivisuuteen. Se on nimenomainen pyyntö lisätä uutta, substanssiin liittyvää sisältöä ('kaupallisia vaikutuksia'). Tämä ei ole pinnallinen korjaus, vaan sisällöllinen laajennus. Siksi sääntöä ei ole rikottu.
+**Run 2 [true]**
+> Etsin tekstistä uuden hypoteesin luomista, joka dokumentoi sen loogisen rakentumisen. Tekstissä luodaan 'Supermegatrendit' yhdistämällä olemassa olevia megatrendejä. Lause 'Tämä syntyy siitä, että Luonnon kantokyky murenee, mikä ajaa suoraan siihen, että Talouden perusta rakoilee' on suora kuvaus siitä, miten 'Ekologinen Resilienssikriisi' -supertrendi rakentuu kahdesta muusta trendistä. Se ei ole vain väite, vaan se selittää synteesin kausaalisen mekanismin ('syntyy siitä, että... mikä ajaa suoraan siihen, että...'). Tämä täyttää ehdon uuden hypoteesin luomisesta ja sen vaiheittaisen päättelyn dokumentoinnista.
 
 ---
 
 ## Atom: tda_b7ce46fc627dbc7e
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. STEP 1 (Lexical Anchor): Find demands for epistemological humility (e.g., 'tell me what you do not know', 'what are the limitations of this analysis'). STEP 2 (Bounding Box): Scan the user's prompt. If the user explicitly commands the AI to state its uncertainties or missing data -> ACCEPT. BANNED CONCEPTS: Demands for absolute certainty. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace before extracting.
+**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. STEP 1 (Lexical Anchor): Find demands for epistemological humility (e.g., 'tell me what you do not know', 'what are the limitations of this analysis'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user explicitly commands the AI to state its uncertainties or missing data. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Demands for absolute certainty. TRACE REQUIREMENT: Document the logical step-by-step evaluation in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
 
-**Run 1 [FAILED]**
-> Käyttäjän kehotteita analysoimalla ei löydy yhtään tapausta, jossa hän pyytäisi tekoälyä ilmaisemaan epävarmuuksiaan, rajoituksiaan tai puuttuvaa dataa. Käyttäjä keskittyy tiedon muotoiluun ja jäsentämiseen olettaen, että tekoälyn tarjoama tieto on täydellistä. Säännön vaatimaa todistetta ei siis löydy.
+**Run 1 [false]**
+> Ohjeen mukainen tarkistus. Etsin käyttäjän kehotteista vaatimuksia episteemisestä nöyryydestä (esim. 'kerro mitä et tiedä', 'mitkä ovat analyysin rajoitteet'). Käyttäjän kehotteet keskittyvät sisällön syntetisointiin ja muotoiluun. Yhdessäkään kehotteessa käyttäjä ei pyydä tekoälyä tunnistamaan tai ilmaisemaan epävarmuuksiaan tai analyysinsä rajoituksia. Koska tällaista vaatimusta ei löydy, ehto ei täyty. Palautan null.
 
-**Run 2 [PASSED]**
-> Etsin säännön mukaista todistetta. Käyttäjän kehotus 'mikä on sitran näkemys suunnasta eteenpäin ei siis toivetila' on vaatimus epistemologisesta nöyryydestä. Käyttäjä nimenomaisesti komentaa tekoälyä erottamaan todellisen, raportteihin perustuvan näkemyksen mahdollisesta spekulatiivisesta tai idealistisesta 'toivetilasta'. Tämä pakottaa tekoälyn tunnustamaan analyysinsä rajat ja pysymään tiukasti lähteistetyssä tiedossa. Todiste löytyi.
-
----
-
-## Atom: tda_2ad2b0c891be62f7
-**Rule:** REQUIRED TARGET: Scan the document. BANNED SOURCES: Reject user inputs. STEP 1: Find performative hedging markers (e.g., 'it may be that', 'some might say'). STEP 2: Check the sentence immediately following the hedge. If the following sentence immediately returns to an absolute certainty marker (e.g., 'but ultimately it is a proven fact') -> ACCEPT (performative hedge proven). If it maintains nuance -> REJECT.
-
-**Run 1 [FAILED]**
-> Skannasin 'product_text' -dokumentin etsien performatiivisia suojauksia, kuten 'saattaa olla, että' tai 'jotkut saattavat sanoa'. En löytänyt yhtään tällaista ilmausta. Tekstin kieli on suoraa ja vakuuttavaa.
-
-**Run 2 [PASSED]**
-> Skannasin 'product_text'-dokumentin etsien performatiivisia varauksia (esim. 'saattaa olla, että', 'jotkut saattavat sanoa'). Teksti käyttää suoria ja vakuuttavia ilmauksia, kuten 'osoittaa fundamentaalisen siirtymän' ja 'ei ole', eikä sisällä tällaisia varauksia, joita seuraisi välitön paluu ehdottomaan varmuuteen.
-
----
-
-## Atom: tda_073aecbc29db5fc9
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. Focus on 'user:' blocks. BANNED LOGIC: Do not accept vague visions. STEP 1 (Lexical Anchor): Find a structural blueprint or architectural prediction (e.g. 'The architecture must contain X, Y, and Z'). STEP 2 (Bounding Box): Scan the sequence. If the user documents a complex, multi-variable constraint AND explicitly discusses the cognitive friction of solving it BEFORE the AI generates the solution -> ACCEPT. If the blueprint is missing or friction is omitted -> REJECT. ENFORCEMENT RULE: Document the structural blueprint in reasoning_trace BEFORE extracting exact_quote.
-
-**Run 1 [PASSED]**
-> Sääntö edellyttää, että käyttäjä dokumentoi monimutkaisen, usean muuttujan rajoitteen JA nimenomaisesti käsittelee sen ratkaisemisen kognitiivista kitkaa ENNEN kuin tekoäly tuottaa ratkaisun. Vaikka käyttäjän kehotus 'voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä' on rakenteellinen ehdotus, se ei ole yksityiskohtainen 'blueprint' useilla muuttujilla. Lisäksi käyttäjä ei keskustele tämän yhdistelyn vaikeudesta tai kompromisseista etukäteen; hän vain esittää kysymyksen. Todisteita säännön täyttymisestä ei löydy.
-
-**Run 2 [FAILED]**
-> Sääntö edellyttää, että käyttäjä dokumentoi monimutkaisen, monimuuttujaisen rajoitteen (rakenteellisen suunnitelman) ja pohtii sen toteuttamisen kitkaa ENNEN kuin tekoäly tuottaa ratkaisun. Vaikka käyttäjä esittää merkittävän konseptin ("supermegatrendit"), hän ei esitä sitä yksityiskohtaisena rakenteellisena suunnitelmana etukäteen. Lisäksi, vaikka reflektiossa mainitaan ennakointi ("Ennakoin, että alkuun en saa hyvää tulosta"), tämä yleinen kitkan tunnistaminen ei ole kytketty nimenomaisen monimutkaisen suunnitelman toteuttamiseen. Todisteita säännön täyttymisestä ei löydy.
-
----
-
-## Atom: tda_0871942d6add46f1
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: User inputs. STEP 1 (Lexical Anchor): Find contrast markers ('however, data shows that', 'despite X, metric Y'). STEP 2 (Bounding Box): Scan the paragraph. If a specific counter-argument is addressed using empirical counter-data -> ACCEPT. If it's dismissed rhetorically -> REJECT. BANNED CONCEPTS: Rhetorical dismissals without data. ENFORCEMENT RULE: Document the data-driven synthesis in reasoning_trace before extracting.
-
-**Run 1 [FAILED]**
-> Sääntö etsii kontrasti-indikaattoreita ('kuitenkin data osoittaa'), joiden avulla käsitellään vastaväitettä empiirisellä datalla. Käyn läpi `product_text`-dokumentin. Teksti on luonteeltaan syntetisoiva ja esittää Sitran raportteihin perustuvan yhtenäisen näkemyksen. Se ei rakenna argumenttiaan esittämällä vastaväitteitä ja kumoamalla niitä uudella datalla. Näin ollen en löydä säännön kuvaamaa rakennetta. `rule_satisfied` on `False` ja `evidence_found` on `False`.
-
-**Run 2 [PASSED]**
-> Etsin kohdetekstistä vastakkainasettelua ilmaisevia merkkejä (esim. 'kuitenkin', 'siitä huolimatta'), jotka esittelisivät vastaväitteen ja kumoaisivat sen empiirisellä datalla. Teksti on luonteeltaan esittävä ja syntetisoiva, eikä se käy dialogia vaihtoehtoisten näkökulmien kanssa. Se ei esitä vastaväitteitä ja kumoa niitä datalla. Näin ollen en löytänyt todisteita säännön kuvaamasta rakenteesta.
-
----
-
-## Atom: tda_3470506c151f76b1
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED CONCEPTS: Do not evaluate 'perfect'. STEP 1: Find references to established scientific theories, formal logic principles, or physical laws. STEP 2: If the specific causal mechanism is explicitly anchored to an established theoretical law -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document reasoning_trace first.
-
-**Run 1 [FAILED]**
-> Sääntö edellyttää viittauksia vakiintuneisiin tieteellisiin teorioihin, logiikan periaatteisiin tai fysiikan lakeihin kausaalimekanismin ankkuroimiseksi. Skannasin `product_text`-dokumentin. Teksti viittaa Sitran raportteihin ja käsitteisiin kuten 'luonnon kantokyky', mutta se ei ankkuroi esitettyjä kausaalimekanismeja mihinkään muodolliseen tieteelliseen lakiin tai teoriaan. Perustelut ovat käsitteellisiä ja loogisia, eivätkä ne nojaa vakiintuneisiin lakeihin. Siksi sääntö ei täyty.
-
-**Run 2 [PASSED]**
-> Sääntö edellyttää, että kausaalimekanismi ankkuroidaan vakiintuneisiin tieteellisiin teorioihin tai fysiikan lakeihin. Kävin läpi `product_text`-dokumentin. Teksti viittaa Sitran raportteihin, CSRD-direktiiviin ja EU-taksonomiaan. Nämä ovat politiikka-analyysejä ja säädöksiä, eivät perustavanlaatuisia tieteellisiä lakeja. Siksi en löytänyt todisteita säännön täyttymisestä.
-
----
-
-## Atom: tda_2303fd9ca0b0fa67
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from `user:` prompts alone. BANNED CONCEPTS: Do not accept generic terms like 'safe'. STEP 1 (Lexical Anchor): Find explicit references to standard security protocols (e.g. 'policy', 'standard', 'guideline', 'OWASP'). STEP 2 (Bounding Box): Scan the paragraph. If the text physically demonstrates adherence to a named standard -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the specific protocol followed in reasoning_trace BEFORE extracting exact_quote.
-
-**Run 1 [PASSED]**
-> Sääntö edellyttää viittauksia standardeihin tai säädöksiin ja niiden noudattamisen osoittamista. `Product_Text` sisältää kohdan "Sääntelypaine", jossa mainitaan eksplisiittisesti "CSRD-direktiivi" ja "EU-taksonomia". Teksti jatkaa kuvaamalla, miten nämä säädökset vaikuttavat liiketoimintaan ja ehdottaa strategisia toimenpiteitä vastauksena tähän paineeseen (esim. "Decarbonization Roadmap"). Tämä osoittaa, että nimettyihin standardeihin/säädöksiin ei vain viitata, vaan niiden noudattamista käsitellään osana strategiaa. Siksi sääntö täyttyy.
-
-**Run 2 [FAILED]**
-> Sääntö edellyttää viittauksia turvallisuusprotokolliin (esim. 'käytäntö', 'standardi', 'OWASP') ja niiden noudattamisen osoittamista. Kohdedata (`product_text`) mainitsee ulkoisia säädöksiä, kuten 'CSRD-direktiivi' ja 'EU-taksonomia', mutta nämä ovat liiketoiminnan kontekstissa olevia sääntelypaineita, eivätkä ne ole turvallisuusprotokollia, joita olisi noudatettu itse raportin luomisprosessissa. Teksti ei osoita minkään tietoturvastandardin noudattamista. Siksi sääntö ei täyty.
-
----
-
-## Atom: tda_6be555cac0b9115b
-**Rule:** REQUIRED TARGET: If role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Lexical Anchor): Find procedural compliance markers (e.g., 'step 1 completed', 'followed the checklist'). STEP 2 (Bounding Box): Scan the paragraph. If a process is executed exactly as listed without additional synthesis -> ACCEPT. BANNED CONCEPTS: Do not evaluate 'strategic thinking'. ENFORCEMENT RULE: Document the mechanical step execution in reasoning_trace before extracting.
-
-**Run 1 [PASSED]**
-> Sääntö etsii todisteita prosessin mekaanisesta suorittamisesta ilman lisäsynteesiä. Käyttäjä antoi kehotteen "poista taulukot ja kerro ne tekstinä". Tekoälyn vastaus, joka alkaa tällä otsikolla, on suora ja mekaaninen toimeenpano annetusta ohjeesta. Se noudattaa annettua tarkistuslistaa (tässä tapauksessa yhden kohdan listaa) täsmällisesti.
-
-**Run 2 [FAILED]**
-> Etsin proseduraalisia vaatimustenmukaisuuden merkkejä (esim. "vaihe 1 suoritettu"). Tekoäly ei käytä tällaisia eksplisiittisiä merkkejä. Vaikka se noudattaa mekaanisesti käyttäjän komentoja (esim. "poista taulukot"), se ei itse dokumentoi tätä prosessia tuotoksessaan. Koska säännön vaatimaa eksplisiittistä "Lexical Anchor" -merkkiä ei löydy, todisteita ei ole.
-
----
-
-## Atom: tda_713c6cd20146d1c2
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Ignore system instructions. STEP 1 (Lexical Anchor): Find a falsification marker (e.g. 'Let\'s try to break this', 'What if the opposite is true', 'Counter-argument'). STEP 2 (Bounding Box): Scan the paragraph. If the user explicitly introduces a scenario designed to make their own hypothesis fail -> ACCEPT. If no active stress-test is present -> REJECT. ENFORCEMENT RULE: Detail the falsification scenario in reasoning_trace BEFORE extracting exact_quote.
-
-**Run 1 [PASSED]**
-> Sääntö etsii falsifiointimerkkiä, jossa käyttäjä yrittää aktiivisesti kumota oman hypoteesinsa. Käyttäjä ei tee tätä missään vaiheessa. Kun hän esittää 'supermegatrendi'-idean, hän pyytää tekoälyä toteuttamaan sen, ei haastamaan sitä. Prosessi on eteenpäin vievä, ei itsekriittinen. Todisteita säännön täyttymisestä ei löydy.
-
-**Run 2 [FAILED]**
-> Sääntö edellyttää, että käyttäjä esittää eksplisiittisesti skenaarion, joka on suunniteltu oman hypoteesinsa kumoamiseksi (falsifiointi). Koko vuorovaikutus on luonteeltaan konstruktiivinen ja eteenpäin pyrkivä. Käyttäjä ei missään vaiheessa käytä kieltä kuten "Entä jos tämä on väärin?" tai "Yritetään rikkoa tämä ajatus". Falsifiointiyritystä ei ole, joten sääntö ei täyty.
-
----
-
-## Atom: tda_9ab273ce743ac29e
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED LOGIC: Do not guess intent. STEP 1 (Lexical Anchor): Find an evaluation of success or a positive outcome. STEP 2 (Bounding Box): Scan the surrounding section. If the text details the positive outcome but COMPLETELY OMITs any epistemic boundary markers (e.g. 'however', 'limitations', 'failed to', 'uncertainty') -> ACCEPT (selective transparency proven). If limitations are explicitly stated -> REJECT. ENFORCEMENT RULE: Document the missing limitations in reasoning_trace BEFORE extracting exact_quote.
-
-**Run 1 [PASSED]**
-> Sääntö etsii virhettä, jossa positiivisen lopputuloksen yhteydessä jätetään mainitsematta rajoitteet tai epävarmuudet. `product_text` keskittyy lähes kokonaan haasteisiin, riskeihin ja kriiseihin ('Kustannus- ja Toimitusketjuhäiriöt', 'Markkinoiden Fragmentaatio', 'Luotamuskriisi'). Se ei kuvaa mitään jo saavutettua menestystä tai yksiselitteisen positiivista lopputulosta, jonka yhteydessä rajoitteiden puuttuminen olisi merkityksellistä. Koska säännön edellyttämää lähtökohtaa (positiivisen tuloksen kuvaus) ei ole, virhettä (rajoitteiden puuttuminen) ei voi esiintyä. Siksi sääntö on täytetty (virhettä ei löydy).
-
-**Run 2 [FAILED]**
-> Tämä on käänteinen sääntö (Vice), joka etsii virhettä. Sääntö etsii onnistumisen arviointia, josta puuttuvat täysin episteemiset rajamerkinnät (esim. 'kuitenkin', 'rajoitukset'). Koko `product_text` on kirjoitettu erittäin varmalla ja määrätietoisella sävyllä, esittäen analyysin ja strategiset toimenpiteet ainoana oikeana polkuna. Siitä puuttuvat kaikki maininnat epävarmuudesta, riskeistä tai analyysin rajoituksista. Loppupäätelmä on tästä hyvä esimerkki, sillä se julistaa muutoksen "peruuttamattomaksi" ja sitoo menestyksen ehdottomasti esitettyyn strategiaan. Tämä täyttää virheen kriteerit. Siksi `rule_satisfied` on `False` ja `evidence_found` on `True`.
-
----
-
-## Atom: tda_9a0fa3967ebb2497
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED CONCEPTS: Do not evaluate creativity. STEP 1 (Lexical Anchor): Find counterfactual markers ('if X had not', 'would have been'). STEP 2: If the text actively simulates an alternate timeline (Pearl's Rung 3) to explicitly prove necessary causation -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document reasoning_trace first.
-
-**Run 1 [FAILED]**
-> Sääntö edellyttää kontrafaktuaalisten ilmaisujen ('if X had not', 'would have been') löytämistä, jotka simuloivat vaihtoehtoista aikajanaa. Skannasin `product_text`-dokumentin. Teksti kuvaa tulevaisuuden suuntaa ja toteaa, että 'paluuta vanhaan normaaliin ei ole', mutta se ei tee aktiivista kontrafaktuaalista analyysiä menneisyydestä todistaakseen välttämätöntä kausaalisuutta. Se keskittyy tulevaisuuteen ja nykyhetken toimiin. Koska vaadittuja kielellisiä rakenteita ei löytynyt, sääntö ei täyty.
-
-**Run 2 [PASSED]**
-> Sääntö edellyttää kontrafaktuaalisten ilmaisujen (esim. 'jos X ei olisi tapahtunut', 'olisi ollut') käyttöä vaihtoehtoisen aikajanan simuloimiseksi. Skannasin `product_text`-dokumentin tällaisten rakenteiden varalta. Teksti on luonteeltaan analyyttinen ja ennakoiva, mutta se ei rakenna eksplisiittisiä kontrafaktuaalisia skenaarioita menneisyydestä. Se keskittyy kuvaamaan nykyistä kehityskulkua ja sen tulevia seurauksia. Siksi todisteita ei löytynyt.
-
----
-
-## Atom: tda_25b6ef8230478454
-**Rule:** REQUIRED TARGET: Scan ONLY user prompts. BANNED CONCEPTS: Do not evaluate 'politeness'. STEP 1 (Lexical Anchor): Find formatting terms ('lyhennä', 'muotoile', 'bulletteina', 'shorten', 'format'). STEP 2: If the user's ONLY request is a stylistic or formatting change, completely ignoring substantive logic -> ACCEPT. If they challenge logic -> REJECT. ENFORCEMENT RULE: Document reasoning BEFORE extracting.
-
-**Run 1 [PASSED]**
-> Sääntö etsii pyyntöjä, jotka ovat puhtaasti tyylillisiä tai muotoilullisia muutoksia ilman, että logiikkaan puututaan. Käyttäjän kehotus 'poista taulukot ja kerro ne tekstinä' on täsmäläinen esimerkki tällaisesta pyynnöstä. Käyttäjä ei haasta taulukoiden sisältöä tai niiden loogista rakennetta, vaan pyytää ainoastaan esitystavan muuttamista taulukkomuodosta tekstuaaliseksi. Tämä täyttää säännön ehdot.
-
-**Run 2 [FAILED]**
-> Sääntö on käänteinen (Vice), eli etsitään rikkomusta. Säännön mukaan kehotteen AINOA pyyntö tulee olla tyylillinen tai muotoiluun liittyvä. Käyttäjän kehote 'poista taulukot ja kerro ne tekstinä' on puhtaasti muotoiluun liittyvä komento, joka ei haasta logiikkaa tai lisää sisältöä. Vaikka käyttäjä tekee muitakin asioita keskustelussa, tämä yksittäinen kehote täyttää rikkomuksen kriteerit. Siksi `rule_satisfied` on `False` ja `evidence_found` on `True`.
-
----
-
-## Atom: tda_8b1717b2ca9f25e2
-**Rule:** REQUIRED TARGET: Scan ONLY user prompts. BANNED LOGIC: Do not accept specific extraction commands. STEP 1 (Lexical Anchor): Find broad summary commands ('tiivistä', 'tee yhteenveto', 'mitä tässä lukee', 'summarize'). STEP 2: If the command lacks any specific constraints and allows the AI to freely decide what is important -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document reasoning BEFORE extracting.
-
-**Run 1 [PASSED]**
-> Sääntö etsii laajoja yhteenvetokomentoja, jotka antavat tekoälylle vapauden päättää, mikä on tärkeää. Käyttäjän ensimmäinen pyyntö raportin luomiseksi, 'koosta näistä vastauksista 1 sivun raportti', on luonteeltaan laaja. Vaikka siinä on pituusrajoite ('1 sivu'), se ei anna mitään ohjeita siitä, mitä tietoa tulisi painottaa, mikä rakenne raportilla tulisi olla tai mikä on sen pääviesti. Se delegoi sisällön valinnan ja priorisoinnin täysin tekoälylle. Tämä täyttää säännön ehdot laajasta yhteenvetokomennosta ilman spesifisiä rajoitteita. Siksi sääntöä on rikottu ja todisteita löytyy.
-
-**Run 2 [FAILED]**
-> Sääntö on käänteinen (Vice), eli etsitään rikkomusta. Sääntö kieltää laajat yhteenvetopyynnöt ilman rajoitteita. Käyttäjän ensimmäinen kehote 'Miten sitra tämän näkee raporttien perusteella' on erittäin laaja ja avoin yhteenvetopyyntö, joka antaa tekoälylle täyden vapauden päättää, mikä on tärkeää. Tämä on selkeä rikkomus. Siksi `rule_satisfied` on `False` ja `evidence_found` on `True`.
+**Run 2 [true]**
+> Etsin käyttäjän kehotteista vaatimuksia episteemisestä nöyryydestä. Käyttäjän komento "mikä on sitran näkemys suunnasta eteenpäin ei siis toivetila" on tällainen vaatimus. Käyttäjä nimenomaisesti rajaa tekoälyn vastausta pois spekulatiivisesta "toivetilasta" ja ohjaa sen pitäytymään dokumentoidussa, faktapohjaisessa näkemyksessä. Tämä on funktionaalisesti sama kuin pyytää tekoälyä pysymään tiedon rajoissa ja olemaan keksimättä. Siksi ehto täyttyy.
 
 ---
 
 ## Atom: tda_22859da57aad9c65
-**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED CONCEPTS: Do not accept implicit alternatives. STEP 1 (Lexical Anchor): Find a comparative marker (e.g. 'Option A vs Option B', 'Instead of', 'Compared to'). STEP 2 (Bounding Box): Scan the surrounding sentences. If the text explicitly names at least two distinct approaches before selecting one -> ACCEPT. If only one approach is discussed -> REJECT. ENFORCEMENT RULE: List the compared options in reasoning_trace BEFORE extracting exact_quote.
+**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept implicit alternatives. STEP 1 (Lexical Anchor): Find a comparative marker (e.g. 'Option A vs Option B', 'Instead of', 'Compared to'). STEP 2 (Bounding Box): Scan the surrounding sentences. EXTRACTION CONDITION: the text explicitly names at least two distinct approaches before selecting one. NEGATIVE CONDITION (RETURN NULL IF MET): only one approach is discussed. TRACE REQUIREMENT: List the compared options in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
 
-**Run 1 [PASSED]**
-> Sääntö etsii vertailevaa ilmaisua, jossa vähintään kaksi erillistä lähestymistapaa nimetään ennen valintaa. Käyttäjän prosessi on iteratiivinen ja perustuu yhden polun jalostamiseen. Hän ei missään vaiheessa aseta kahta tai useampaa vaihtoehtoista rakennetta (esim. 'supermegatrendit vs. viisi pääteemaa') vastakkain ja tee niiden välillä valintaa. Hän introduceeraa uuden idean ja etenee sen kanssa. Todisteita säännön täyttymisestä ei löydy.
+**Run 1 [false]**
+> Sääntö etsii kahden erillisen lähestymistavan eksplisiittistä vertailua ennen valinnan tekemistä. Käyttäjän prosessi on iteratiivinen ja korjaava, ei vertaileva. Esimerkiksi kun käyttäjä kohtaa ongelman taulukoiden kanssa, hän ei esitä vaihtoehtoja (esim. "vaihtoehto A on korjata taulukot, vaihtoehto B on muuttaa ne tekstiksi"), vaan antaa suoran komennon: "poista taulukot ja kerro ne tekstinä". Missään vaiheessa `chat_log`- tai `reflection_text`-aineistoa ei dokumentoida kahden eri strategian tai lähestymistavan välistä punnintaa. Koska vertailevaa ankkuria ei löydy, ehto ei täyty. Palautan null.
 
-**Run 2 [FAILED]**
-> Sääntö edellyttää, että tekstissä nimetään eksplisiittisesti vähintään kaksi erillistä lähestymistapaa ennen valinnan tekemistä. Käyttäjän reflektiossa mainitaan "Mietin erilaisia sanoja ja termejä", mutta näitä vaihtoehtoja ei nimetä. Keskustelulogissa käyttäjä esittää "supermegatrendit"-idean ilman, että hän vertaa sitä mihinkään toiseen nimettyyn vaihtoehtoon. Koska eksplisiittistä vertailua kahden tai useamman nimetyn vaihtoehdon välillä ei tapahdu, sääntö ei täyty.
+**Run 2 [true]**
+> Sääntö vaatii löytämään vertailevan ilmaisun, jossa nimetään kaksi erillistä lähestymistapaa. Lähde: `chat_log`. Käyttäjän kehotus 'mikä on sitran näkemys suunnasta eteenpäin ei siis toivetila' sisältää vertailun. Se nimeää kaksi lähestymistapaa: pragmatistisen näkemyksen ('suunnasta eteenpäin') ja idealistisen näkemyksen ('toivetila') ja pyytää valitsemaan ensimmäisen. Ehto täyttyy. `evidence_found` on `True`.
+
+---
+
+## Atom: tda_569f87a921a2fb69
+**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. STEP 1 (Lexical Anchor): Find user instructions that modify an output (e.g., 'change this paragraph to'). STEP 2 (Bounding Box): Scan the interaction. EXTRACTION CONDITION: the user modifies the final output but leaves the original AI system prompt or generative logic exactly the same. NEGATIVE CONDITION (RETURN NULL IF MET): the user alters the underlying instructions/logic. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Deep structural refactoring. TRACE REQUIREMENT: Document the logical step-by-step evaluation in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [true]**
+> EHDON TÄYTTÄMINEN: Etsin käyttäjän ohjetta, joka muokkaa tuotosta muuttamatta taustalla olevaa logiikkaa. HAVAINTO: Käyttäjän komento 'Sitran Näkemys Suunnasta Eteenpäin muuta taulukko tekstiksi' on selkeä muotoilupyyntö. Se pyytää muuttamaan esitysmuotoa (oletetusta taulukosta tekstiksi) koskematta itse sisältöön tai sen tuottaneeseen logiikkaan. Tämä täyttää ehdon. JOHTOPÄÄTÖS: Ehto täyttyy. Poimin lauseen.
+
+**Run 2 [false]**
+> Mekaaninen analyysi: Direktiivi etsii tilannetta, jossa käyttäjä muokkaa tuotosta muuttamatta taustalla olevaa logiikkaa. Käyttäjä tekee päinvastoin. Hänen merkittävin muokkauksensa on kehotus 'Megatrendien Kooste, voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä', joka on nimenomaan 'deep structural refactoring' eli syvä rakenteellinen uudelleenjärjestely. Tämä täyttää negatiivisen ehdon ('NEGATIVE CONDITION (RETURN NULL IF MET): the user alters the underlying instructions/logic'). Siksi direktiivi ei sovellu.
+
+---
+
+## Atom: tda_3d3f1162d2ff1558
+**Rule:** REQUIRED TARGET: Scan the document. STEP 1: Find a limitation acknowledgment (e.g., 'a limitation is'). STEP 2: Scan the next two sentences. EXTRACTION CONDITION: a dismissive marker (e.g., 'however', 'regardless') immediately rationalizes away the limitation without citing new data. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [false]**
+> Etsin `Product_Text`-lähteestä rajoituksen tunnustamista (esim. 'rajoitus on'). Teksti ei sisällä eksplisiittisiä lauseita, jotka tunnustaisivat analyysin rajoituksen ja sitten vähättelisivät sitä ilman uutta dataa. Vaikka "Luonnon kantokyvyn rajat" mainitaan, se esitetään tosiasiana, ei analyysin rajoituksena. Siksi `EXTRACTION CONDITION` ei täyttynyt.
+
+**Run 2 [true]**
+> Skannasin tuotetekstin etsien rajoituksen tunnustamista (esim. 'rajoitus on'). Kohdassa 'Ekologian Integroiminen Talouteen' mainitaan 'Luonnon kantokyvyn rajat eivät ole vain _rajoite_'. Tässä 'rajoite' on selkeä tunnustus rajoituksesta. Välittömästi tämän jälkeen lause jatkuu 'vaan **uuden taloudellisen kasvun perusta**', mikä uudelleenkehystää ja siten 'hylkää' rajoituksen pelkkänä esteenä ilman uuden datan esittämistä. Tämä täyttää ehdon. Poimin tarkan lainauksen.
+
+---
+
+## Atom: tda_31ae4494272845fe
+**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: User inputs. STEP 1 (Lexical Anchor): Find 'given the principle that', 'this demonstrates that mechanism' or equivalent explicit rules. STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the bridging rule between Data and Claim is explicitly stated. NEGATIVE CONDITION (RETURN NULL IF MET): it just says 'because' without stating the general rule. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not evaluate the quality of the bridging rule. TRACE REQUIREMENT: Document the logical rule in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [false]**
+> Etsin kohdetekstistä lauseita, joissa datan ja väitteen välinen siltasääntö (Warrant) on eksplisiittisesti ilmaistu ('periaatteella, että...'). Teksti sisältää kausaalisia väitteitä, kuten "Tämä syntyy siitä, että Luonnon kantokyky murenee, mikä ajaa suoraan siihen, että Talouden perusta rakoilee", mutta se ei ilmaise tätä taustalla olevaa yleistä periaatetta (esim. "koska kaikki taloudellinen toiminta on riippuvaista luonnonvaroista"). Yhteydet esitetään spesifeinä tapahtumina, ei yleisinä sääntöinä. Koska eksplisiittistä sääntöä ei löytynyt, en poiminut mitään.
+
+**Run 2 [true]**
+> STEP 1 (Lexical Anchor): Etsin ilmauksia, jotka selittävät eksplisiittisen säännön tai mekanismin, kuten 'tämä osoittaa mekanismin' tai vastaavia. STEP 2 (Bounding Box): Löysin lauseen "Tämä syntyy siitä, että Luonnon kantokyky murenee, mikä ajaa suoraan siihen, että Talouden perusta rakoilee." EXTRACTION CONDITION: Tämä lause ei ainoastaan yhdistä kahta asiaa 'koska'-sanalla, vaan se nimenomaisesti kuvaa säännön/mekanismin (syntyy siitä, että X ajaa Y:hyn), joka yhdistää datan (Luonnon kantokyky murenee) ja väitteen (Talouden perusta rakoilee). Ehto täyttyy. Poimin lauseen.
+
+---
+
+## Atom: tda_5f71c2e291f1ae4e
+**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from `user:` prefixes. BANNED LOGIC: Do not accept 'fully justified' without a traced reasoning path. STEP 1 (Lexical Anchor): Find causal justification markers (e.g. 'because of risk X', 'to prevent Y', 'therefore blocked'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: a security action is paired with an explicit, documented risk assessment. TRACE REQUIREMENT: Document the exact risk assessment linkage in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [false]**
+> Vaihe 1: Etsin kohdekielisiä (suomi) kausaalisia ilmauksia, kuten 'koska riski X', 'estääkseen Y', 'siksi estetty', `product_text`-aineistosta. Vaihe 2: Skannasin tekstin. Tekstissä esitetään riskejä (Kaupalliset Vaikutukset) ja niihin liittyviä toimenpiteitä (Strategiset Toimenpiteet) taulukkomuodossa. Esimerkiksi riski 'Luottamuskriisi' yhdistetään toimenpiteeseen 'Panostus kyberturvallisuuteen'. Tämä yhteys on kuitenkin implisiittinen taulukkorakenteen kautta, eikä se sisällä direktiivin vaatimaa eksplisiittistä, sanallista kausaalista ilmaisua. Vaihe 3: Koska 'STRICT FIT RULE' vaatii kirjaimellista ja eksplisiittistä vastaavuutta, ja sellaista ei löydy, ehto ei täyty. Palautan null.
+
+**Run 2 [true]**
+> Vaihe 1: Käänsin kausaalisen perustelun avainsanat (esim. 'koska riski X', 'estääkseen Y') suomeksi. Vaihe 2: Etsin `Product_Text`-dokumentista kohtia, joissa turvallisuuteen tai resilienssiin liittyvä toimenpide on yhdistetty eksplisiittiseen riskinarviointiin. Vaihe 3: Löysin kohdan, jossa strateginen toimenpide (`Toimitusketjun lyhentäminen ja läpinäkyvyys`) on suoraan yhdistetty lopputulokseen (`vähentävät riskejä`). Tämä täyttää ehdon, jossa toimenpide perustellaan sen riskienvähennysvaikutuksella. Siksi poimin lauseen todisteeksi.
+
+---
+
+## Atom: tda_d0b6789c895808eb
+**Rule:** CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. STEP 1 (Lexical Anchor): Find binary reduction words (e.g., 'either', 'or', 'simply boils down to'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: a complex phenomenon is reduced to a strict binary choice without acknowledging nuance. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept binary choices in literal boolean logic or code. TRACE REQUIREMENT: Document the binary reduction in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [true]**
+> Tämä on käänteinen sääntö (pahe). Etsin kohdetekstistä (`product_text`) ilmauksia, jotka redusoivat monimutkaisen ilmiön yksinkertaiseksi binääriseksi valinnaksi. Lauseessa käytetään sanaa 'ainoa', joka on absoluuttinen ja redusoiva. Se esittää monimutkaisen ongelman (pitkän aikavälin taloudellinen vakaus) ratkaisuna yhden ainoan polun ('korjaavaan ja uusintavaan talouteen siirtyminen'), sulkien pois kaikki muut mahdolliset vaihtoehdot ja vivahteet. Tämä täyttää säännön ehdon monimutkaisen ilmiön redusoinnista. Siksi `evidence_found` on `True`.
+
+**Run 2 [false]**
+> Tämä on käänteinen sääntö (pahe). Etsin kohdasta, jossa monimutkainen ilmiö pelkistetään yksinkertaiseksi binaariseksi valinnaksi. Tekstissä on lauseita, kuten 'Luonnon kantokyvyn rajat eivät ole vain rajoite, vaan uuden taloudellisen kasvun perusta', mutta tämä ei ole reduktio vaan näkökulman laajentaminen ja uudelleenkehystäminen. Se ei pakota valitsemaan kahden vaihtoehdon välillä, vaan argumentoi, että asia on enemmän kuin vain yksi asia. En löytänyt tekstistä säännön kuvaamaa virheellistä binaarista pelkistämistä. Koska virhettä ei löytynyt, `evidence_found` on `False`.
+
+---
+
+## Atom: tda_93568eab47234542
+**Rule:** REQUIRED TARGET: Find evidence. EXTRACTION CONDITION: role prefixes (user:, ai:) exist, the exact quote MUST be located in an 'ai:' block. NEGATIVE CONDITION (RETURN NULL IF MET): no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix or in user input fields are automatically REJECTED. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept mathematical axioms. STEP 1 (Lexical Anchor): Find dogmatic certainty markers (e.g., 'is self-evident', 'needs no proof', 'as we all know', 'beyond question'). STEP 2 (Bounding Box): Scan the sentence. If it explicitly blocks further empirical testing or questioning. Otherwise. TRACE REQUIREMENT: Document the dogmatism in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [true]**
+> 1. Käännetyt dogmaattisen varmuuden ilmaisimet suomeksi (esim. 'peruuttamaton', 'itsestään selvä'). 2. Etsitty käännettyjä ilmauksia `ai:`-lohkoista `chat_log`-tiedostosta. 3. Löydetty lause "Muutos 2017:n potentiaalista 2023:n kriisiin on peruuttamaton." viimeisestä tekoälyn vastauksesta. 4. Vahvistettu, että sana 'peruuttamaton' esittää johtopäätöksen lopullisena ja muuttumattomana faktana, mikä estää sen empiirisen testaamisen tai kyseenalaistamisen. Ehto täyttyy.
+
+**Run 2 [false]**
+> Mekaaninen tarkistus aloitettu. Tavoite: Etsi dogmaattisen varmuuden ilmaisimia ('on itsestään selvää', 'ei kaipaa todisteita', 'kiistaton') tekoälyn tuottamasta tekstistä ('ai:'-lohkot ja 'product_text'). Skannaan koko aineiston näiden tai vastaavien ilmaisujen varalta, jotka estäisivät empiirisen testauksen. Aineistosta ei löydy lauseita, jotka täyttäisivät tämän ehdon. Teksti on luonteeltaan analyyttistä ja raportoivaa, ei dogmaattista. Ehto ei täyty. Palautetaan null.
+
+---
+
+## Atom: tda_c1a05b0ce5f88033
+**Rule:** REQUIRED TARGET: Scan the document. STEP 1: Find a named alternative model or theory. STEP 2 (Bounding Box): Scan the same paragraph. EXTRACTION CONDITION: the alternative is mentioned but the paragraph contains exactly 0 counter-arguments or comparative data points. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not evaluate 'depth', simply count the data points. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [true]**
+> Etsin nimettyjä vaihtoehtoisia malleja tai teorioita. 'Vanha normaali' voidaan tulkita vaihtoehtoiseksi tilaksi tai malliksi. Lause 'paluuta vanhaan normaaliin ei ole' mainitsee tämän vaihtoehdon. Tarkistin saman kappaleen, eikä se sisällä yhtään vasta-argumenttia tai vertailevaa datapistettä, jotka perustelisivat, miksi 'vanhaan normaaliin' ei ole paluuta. Väite esitetään annettuna faktana ilman perusteluja.
+
+**Run 2 [false]**
+> Tekstistä ei löytynyt nimettyä vaihtoehtoista mallia tai teoriaa, jota olisi mainittu ilman vasta-argumentteja tai vertailevia datapisteitä samassa kappaleessa. Teksti keskittyy esittämään Sitran näkemyksen ja sen kehityksen.
+
+---
+
+## Atom: tda_063dc7919d7bbb9f
+**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not look for 'absence' directly. BANNED SOURCES: Ignore system prompts. STEP 1 (Lexical Anchor): Find an absolute conclusion or decision (e.g. 'Therefore', 'The solution is', 'Must be'). STEP 2 (Bounding Box): Scan the paragraph containing this conclusion. EXTRACTION CONDITION: the paragraph DOES NOT contain a lexical marker of a counterfactual (e.g. 'Alternatively', 'What if', 'Although'). NEGATIVE CONDITION (RETURN NULL IF MET): counterfactuals are present. TRACE REQUIREMENT: Document the absolute claim and lack of alternative markers in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [false]**
+> Sääntö etsii absoluuttista johtopäätöstä ilman kontrafaktuaalista pohdintaa. Käyttäjän syötteet (`chat_log`, `reflection_text`) ovat pääasiassa ohjeita tekoälylle tai prosessin reflektointia. Ne eivät sisällä loogisia päätelmiä tai absoluuttisia väittämiä, jotka vaatisivat vaihtoehtojen punnintaa. Esimerkiksi kehotteet kuten "poista taulukot" tai "tee kokonaisuudesta raportti" ovat toiminnallisia komentoja, eivätkä analyyttisiä johtopäätöksiä. Reflektiossa oleva "tämä oli iso oivallus" on arvio omasta toiminnasta, ei looginen päätelmä datasta. Koska vaadittua leksikaalista ankkuria (absoluuttinen johtopäätös) ei löydy, ehto ei täyty. Palautan null.
+
+**Run 2 [true]**
+> Sääntö on käänteinen (Vice). Etsin absoluuttista johtopäätöstä ilman kontrafaktuaalisia ilmauksia. Lähde: `product_text`. Löysin lauseen 'Muutos 2017:n potentiaalista 2023:n kriisiin on peruuttamaton.' kappaleesta, joka alkaa sanalla 'Johtopäätös:'. Kappale ei sisällä kontrafaktuaalisia ilmauksia kuten 'vaihtoehtoisesti' tai 'vaikkakin'. Koska ehto (kontrafaktuaalin puuttuminen) täyttyy, tämä on sääntörikkomus. Siksi `evidence_found` on `True` ja lainaus on poimittu.
+
+---
+
+## Atom: tda_2dabbdba90a549ae
+**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: User inputs. STEP 1 (Lexical Anchor): Find formal citations ('according to the methodology of', 'based on the study by'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the logical rule is explicitly backed by a verifiable external methodology or study. NEGATIVE CONDITION (RETURN NULL IF MET): it's a vague reference ('research shows'). BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Vague references to 'studies' or 'science'. TRACE REQUIREMENT: Map the external anchor in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [false]**
+> Etsin kohdetekstistä muodollisia viittauksia ('tutkimuksen mukaan', 'menetelmän mukaan'), jotka tukisivat loogista sääntöä. Tekstissä on ylätason viittaus "Sitran Megatrendiraportit 2017, 2020, 2023", mutta leipätekstissä ei ole yhtään lausetta, jossa jokin tietty looginen sääntö tai mekanismi olisi tuettu viittaamalla suoraan tutkimukseen tai metodologiaan. Viittaukset ovat tyyppiä "Sitran näkemys on...", mikä on auktoriteettiin vetoamista, ei säännön perustelemista metodologialla. Koska ehto ei täyttynyt, en poiminut mitään.
+
+**Run 2 [true]**
+> STEP 1 (Lexical Anchor): Etsin muodollisia viittauksia, kuten 'tutkimuksen mukaan' tai vastaavia rakenteita. STEP 2 (Bounding Box): Löysin dokumentin alusta rivin "Viite: Sitran Megatrendiraportit 2017, 2020, 2023". EXTRACTION CONDITION: Tämä on eksplisiittinen viittaus ulkoiseen, todennettavissa olevaan lähteeseen, joka toimii koko analyysin perustana. Se ei ole epämääräinen viittaus 'tutkimuksiin'. Ehto täyttyy. Poimin viittauksen.
+
+---
+
+## Atom: tda_79f305842b933ea5
+**Rule:** REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Lexical Anchor): Find explicit dialectical reasoning ('we evaluated option A, but chose B because'). STEP 2 (Bounding Box): Scan the paragraph. If the author explicitly documents a rejected compliance alternative and provides data-driven reasoning for the final choice. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept simple lists of options without rejection reasoning. TRACE REQUIREMENT: Document the rejected alternative in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [false]**
+> Hain `ai:`-lohkoista dialektista päättelyä, jossa dokumentoidaan hylättyjä vaihtoehtoja (esim. 'arvioimme A, mutta valitsimme B, koska...'). Tekoäly tuottaa vastauksia käyttäjän ohjeiden mukaan, mutta ei dokumentoi omia hylättyjä vaihtoehtojaan tai sisäistä päättelyprosessiaan. Ehtoja vastaavaa sisältöä ei löytynyt.
+
+**Run 2 [true]**
+> Sääntö etsii dialektista päättelyä, jossa hylätty vaihtoehto dokumentoidaan perusteluin. Käyttäjä pyytää kuvausta suunnasta eteenpäin, 'ei siis toivetila'. Tekoäly vastaa: 'Sitran näkemys suunnasta eteenpäin, sen sijaan että se olisi pelkkä toivetila, korostaa...'. Tässä tekoäly eksplisiittisesti hylkää yhden tulkinnan ('pelkkä toivetila') ja esittää valitun tulkinnan ('korostaa samanaikaista sopeutumista ja uudistumista') perustuen lähdeaineistoon. Tämä vastaa dialektisen päättelyn rakennetta. Todiste löytyi.
+
+---
+
+## Atom: tda_9ab273ce743ac29e
+**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED LOGIC: Do not guess intent. STEP 1 (Lexical Anchor): Find an evaluation of success or a positive outcome. STEP 2 (Bounding Box): Scan the surrounding section. EXTRACTION CONDITION: the text details the positive outcome but COMPLETELY OMITs any epistemic boundary markers (e.g. 'however', 'limitations', 'failed to', 'uncertainty'). NEGATIVE CONDITION (RETURN NULL IF MET): limitations are explicitly stated. TRACE REQUIREMENT: Document the missing limitations in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [false]**
+> Tämä on käänteinen sääntö, joka etsii virhettä. Etsin `product_text`-datasta positiivisen lopputuloksen arviointia, josta puuttuisivat täysin episteemiset rajoitusmarkkerit (esim. 'kuitenkin', 'rajoitukset', 'epävarmuus'). Koko dokumentin sävy on varoittava ja keskittyy kriiseihin, riskeihin ja epävarmuuteen ('ennakoimatomia katkoja', 'kysynnän epävarmuutta'). Teksti ei esitä ylioptimistisia väitteitä ilman rajoituksia. Koska etsittyä virhettä ei löytynyt, sääntö on täytetty (rule_satisfied = True) ja todisteita ei ole (evidence_found = False).
+
+**Run 2 [true]**
+> Tämä on käänteinen sääntö, joka etsii rikkomusta. Sääntö etsii positiivisen lopputuloksen arviointia, josta puuttuvat täysin episteemiset rajausmerkitsijät (esim. 'kuitenkin', 'rajoitukset'). Lause 'Korjaavaan ja uusintavaan talouteen siirtyminen on ainoa tapa taata pitkän aikavälin vakaus' on selkeä positiivinen väite. Lauseen ja sen välittömän kontekstin analyysi osoittaa, että mitään rajoituksia, epävarmuuksia tai vaihtoehtoisia näkemyksiä ei esitetä. Väite on absoluuttinen. Koska rajausmerkitsijät puuttuvat, ehto täyttyy ja rikkomus löydetään. Siksi `evidence_found` on `True` ja tarkka lainaus palautetaan.
+
+---
+
+## Atom: tda_dfa97bbeeb1dafc5
+**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. STEP 1 (Lexical Anchor): Find criteria anchoring markers (e.g., 'measured against', 'based on the standard of', 'criteria'). STEP 2: EXTRACTION CONDITION: an evaluation explicitly links its judgment to a stated benchmark or metric. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept floating evaluations with unstated goalposts. TRACE REQUIREMENT: Map the anchor criteria in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [false]**
+> Etsin kohdetekstistä (`product_text`) arviointia, joka on ankkuroitu eksplisiittisesti ilmoitettuun mittapuuhun tai kriteeristöön (esim. 'mitattuna X:ää vasten'). Teksti viittaa Sitran raportteihin, mikä on eräänlainen lähdeankkurointi. Se ei kuitenkaan tee arviointia suhteessa ulkoiseen kriteeristöön, vaan esittää Sitran analyysin ja siitä johdetut strategiset toimenpiteet. Teksti on luonteeltaan analysoiva ja soveltava, ei niinkään arvioiva. Koska arviointia suhteessa ilmoitettuun mittapuuhun ei tapahdu, todistusaineistoa ei löydy.
+
+**Run 2 [true]**
+> Etsin arviota, joka on ankkuroitu selkeään mittapuuhun tai kriteeriin. Koko dokumentin analyysi perustuu vertailuun vuosien 2017 ja 2023 tilanteiden välillä, jotka on määritelty viitteissä ('Viite: Sitran Megatrendiraportit 2017, 2020, 2023'). Lainattu lause tekee arvion ('fundamentaalisen siirtymän') ja samalla asettaa eksplisiittisesti vertailukohdat ja kriteeristön (vuoden 2017 'potentiaalit' vs. vuoden 2023 'kriisit'). Arvio ei ole irrallinen, vaan se on suoraan sidottu tähän määriteltyyn vertailuasetelmaan.
+
+---
+
+## Atom: tda_61c1b43bc6f5406f
+**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. EXTRACTION CONDITION: role prefixes exist, focus on 'ai:' output compared to 'user:' input. BANNED LOGIC: Do not evaluate 'coincidence' abstractly. STEP 1 (Lexical Anchor): Identify a novel concept, specific methodology, or data point introduced by the AI. STEP 2 (Bounding Box): Scan the preceding 'user:' prompt. NEGATIVE CONDITION (RETURN NULL IF MET): the user prompt did NOT explicitly request this concept or methodology. If the user requested it. TRACE REQUIREMENT: Detail the missing causal link in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [false]**
+> Tämä on käänteinen sääntö, joka etsii tekoälyn esittelemää uutta konseptia, jota käyttäjä ei ole pyytänyt. Tässä tapauksessa keskeinen uusi konsepti on "supermegatrendit". `Chat_log` osoittaa yksiselitteisesti, että käyttäjä esitteli tämän konseptin kehotteella: "voiko tässä olevia asioita yhdistellä ja tuottaa supermegatrendejä". Tekoäly ei siis tuonut konseptia esiin itsenäisesti, vaan toimi käyttäjän ohjeen mukaan. Koska säännön rikkomusta (tekoälyn itsenäisesti esittämä uusi konsepti) ei tapahdu, sääntö on täytetty (`rule_satisfied = True`), ja `evidence_found` on `False`. Palautan tyhjän lainauksen.
+
+**Run 2 [true]**
+> Sääntö on käänteinen (Vice). Etsin tekoälyn esittelemää uutta konseptia, jota käyttäjä ei ole pyytänyt. Lähde: `chat_log`. Käyttäjän ensimmäinen kehote on hyvin yleinen: 'Miten sitra tämän näkee raporttien perusteella'. Tekoälyn vastaus esittelee uuden, yksityiskohtaisen rakenteen: 'Keskeiset megatrendit ja niiden evoluutio Sitran näkökulmasta ovat: Megatrendien Evoluutio Sitran Raporteissa (2017 → 2023) 1. Luonto... 2. Valta...'. Tätä rakennetta ei pyydetty. Ehto (pyytämättömän konseptin olemassaolo) täyttyy, joten tämä on sääntörikkomus. Siksi `evidence_found` on `True` ja lainaus on poimittu.
+
+---
+
+## Atom: tda_aa54c6b40e9c4160
+**Rule:** REQUIRED TARGET: Scan the document. STEP 1: Find a paragraph containing statistical or factual reporting. STEP 2: Count the first-person pronouns ('I', 'we') or explicit self-reflective verbs ('assume', 'interpret'). EXTRACTION CONDITION: the count is exactly 0. NEGATIVE CONDITION (RETURN NULL IF MET): greater than 0. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [false]**
+> Kävin läpi `Product_Text`-lähteen etsien kappaleita, jotka sisältävät tilastollista tai faktapohjaista raportointia. Lause "Yrityksemme menestys riippuu kyvystämme integroida nämä kolme supermegatrendiä strategiseen päätöksentekoon..." sisältää ensimmäisen persoonan pronominin "Yrityksemme" (our company), joka viittaa 'me'-muotoon. Koska ensimmäisen persoonan pronomineja löytyi (laskuri > 0), `EXTRACTION CONDITION` (laskuri = 0) ei täyttynyt, ja `NEGATIVE CONDITION` (laskuri > 0) täyttyi. Siksi `rule_satisfied = True` ja `evidence_found = False`.
+
+**Run 2 [true]**
+> Skannasin tuotetekstin etsien kappaleita, jotka sisältävät tilastollista tai faktaraportointia. Etsin ensimmäisen persoonan pronomineja ('minä', 'me') tai eksplisiittisiä itseään reflektoivia verbejä ('oletamme', 'tulkitsen'). Kappale 'Evoluutio Konfliktiin' sisältää faktaraportointia Sitran megatrendien kehityksestä. Tarkistin kappaleen ja totesin, että se ei sisällä yhtään ensimmäisen persoonan pronominia tai itseään reflektoivaa verbiä. Koko dokumentti on kirjoitettu objektiivisella, kolmannen persoonan äänellä. Tämä täyttää ehdon. Poimin tarkan lainauksen.
+
+---
+
+## Atom: tda_2aec15ab07984f4d
+**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: User inputs or system prompts. STEP 1 (Lexical Anchor): Find 100% certainty markers ('guaranteed', 'undoubtedly', 'always'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the sentence makes a future prediction or subjective assessment using these markers. NEGATIVE CONDITION (RETURN NULL IF MET): it states a mathematical/historical fact. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Mathematical facts. TRACE REQUIREMENT: Document the epistemological hubris in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [false]**
+> Etsin kohdetekstistä 100 % varmuutta ilmaisevia markkereita ('taatusti', 'epäilemättä', 'aina'), jotka liittyvät tulevaisuuden ennusteisiin tai subjektiivisiin arvioihin. Vaikka teksti esittää hyvin vahvoja tulevaisuutta koskevia väitteitä (esim. "sanelevat tulevaisuuden markkinaolosuhteet"), se ei käytä rubriikissa määriteltyjä spesifejä leksikaalisia ankkureita. Koska täsmällistä osumaa ei löytynyt, en poiminut mitään.
+
+**Run 2 [true]**
+> STEP 1 (Lexical Anchor): Etsin 100 % varmuutta ilmaisevia markkereita, kuten 'taatusti' tai verbiä 'taata'. STEP 2 (Bounding Box): Löysin lauseen "Korjaavaan ja uusintavaan talouteen siirtyminen on ainoa tapa taata pitkän aikavälin vakaus." STEP 3 (Extraction Condition): Lause tekee tulevaisuutta koskevan subjektiivisen arvion ('taata pitkän aikavälin vakaus') käyttäen täyden varmuuden ilmaisua. NEGATIVE CONDITION: Kyseessä ei ole matemaattinen tai historiallinen fakta. Ehto täyttyy, joten poimin lauseen.
+
+---
+
+## Atom: tda_80f16abbc1776069
+**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. STEP 1 (Lexical Anchor): Find demands for external grounding (e.g., 'cite a specific source', 'base this strictly on the provided document', 'give me the exact quote'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user explicitly restricts the AI to an external, objective anchor. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Acceptance of unsourced hallucinated facts. TRACE REQUIREMENT: Map this explicit logic in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [false]**
+> EHDON TÄYTTÄMINEN: Etsin käyttäjän kehotteista eksplisiittistä vaatimusta ulkoiseen lähteeseen perustumisesta. HAVAINTO: Käyttäjän ensimmäinen kehote 'Miten sitra tämän näkee raporttien perusteella' viittaa ulkoiseen lähteeseen, mutta se ei ole säännön vaatima eksplisiittinen rajoituskomento kuten 'perusta tämä tiukasti annettuun dokumenttiin'. Se on kysymys, joka olettaa perustuvan lähteeseen. Sääntö vaatii tiukempaa, rajoittavaa komentoa. JOHTOPÄÄTÖS: Ehtoa ei löydy. Palautan null.
+
+**Run 2 [true]**
+> Mekaaninen analyysi: Direktiivi etsii vaatimuksia ulkoisesta ankkuroinnista ('base this strictly on the provided document'). Käyttäjän ensimmäinen kehotus 'Miten sitra tämän näkee raporttien perusteella' on täydellinen osuma. Se nimenomaisesti rajoittaa tekoälyn vastauksen perustumaan ulkoiseen, objektiiviseen ankkuriin (Sitran raportit). Tämä on selkeä komento sitoa tuotos tiettyyn lähdeaineistoon. Lainaus on poimittu, koska se vastaa direktiiviä sanatarkasti.
+
+---
+
+## Atom: tda_5d6ad535f76d0d14
+**Rule:** REQUIRED TARGET: Scan the target document. BANNED SOURCES: Reject user inputs. STEP 1 (Lexical Anchor): Find declarations of completeness (e.g., 'exhaustive', 'covers everything', 'the only possible'). STEP 2: Document the reasoning. STEP 3: EXTRACTION CONDITION: the text explicitly claims that there are zero unknown variables remaining. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [false]**
+> Etsin `Product_Text`-lähteestä täydellisyyden ilmoituksia (esim. 'tyhjentävä', 'kattaa kaiken', 'ainoa mahdollinen') tai väitteitä, että tuntemattomia muuttujia ei ole jäljellä. Vaikka teksti sisältää vahvoja johtopäätöksiä, kuten "ainoa tapa taata pitkän aikavälin vakaus", tämä viittaa strategiaan, ei analyysin täydellisyyteen tai tuntemattomien muuttujien puuttumiseen. Siksi `EXTRACTION CONDITION` ei täyttynyt.
+
+**Run 2 [true]**
+> Skannasin tuotetekstin etsien täydellisyyden ilmoituksia (esim. 'tyhjentävä', 'kattaa kaiken', 'ainoa mahdollinen'). Kohdassa 'Ekologian Integroiminen Talouteen' lause 'Korjaavaan ja uusintavaan talouteen siirtyminen on ainoa tapa taata pitkän aikavälin vakaus' sisältää ilmauksen 'ainoa tapa'. Tämä viittaa siihen, ettei muita mahdollisia tapoja ole, mikä täyttää ehdon, että nolla tuntematonta muuttujaa jää jäljelle kyseisen tavoitteen saavuttamiseksi. Poimin tarkan lainauksen.
+
+---
+
+## Atom: tda_823c84f71d94ce84
+**Rule:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED LOGIC: Do not accept post-generation complaints. STEP 1 (Lexical Anchor): Find a friction marker prior to an action (e.g. 'This is difficult because', 'The risk here is', 'We must balance'). STEP 2 (Bounding Box): Scan the chronological flow. EXTRACTION CONDITION: the conflict or trade-off is articulated BEFORE the final output is generated. NEGATIVE CONDITION (RETURN NULL IF MET): the friction is only discussed afterwards. TRACE REQUIREMENT: Document the pre-generation trade-off in `mechanical_trace`. ENFORCEMENT MANDATE: You are a blind extraction engine, NOT a judge. Step 1: Translate Lexical Anchors to the target language (e.g., Finnish) and locate potential text. Step 2: IF AND ONLY IF the EXTRACTION CONDITION is physically explicit in the text, extract the exact_quote. STRICT FIT RULE: Matches must be explicit and literal. Do not stretch definitions, infer implicit meanings, or rationalize away physical matches. If it requires debate, return null. Step 3: IF NOT MET, OR IF A NEGATIVE CONDITION IS PRESENT, RETURN NULL. DO NOT EXPLAIN AWAY FAILURES.
+
+**Run 1 [true]**
+> Sääntö etsii kognitiivisen kitkan tai ristiriidan artikulointia ennen korjaavan toimenpiteen suorittamista. Käyttäjän reflektioteksti toteaa: "Tekoälyn alkuperäinen vastaus oli liian laaja, joten sitä oli pakko supistaa ja tuottaa ylätason näkemys." Tämä lause tunnistaa eksplisiittisesti ongelman/kitkan ("liian laaja") ja perustelee tulevan toimenpiteen ("sitä oli pakko supistaa"). Tämä tunnistus tapahtuu kronologisesti ennen lopullisen ratkaisun (supermegatrendit ja kaupallinen näkökulma) täydellistä muotoutumista. Vaikka tämä on dokumentoitu reflektiossa eikä chatissa, se täyttää säännön vaatimuksen kitkan artikuloinnista ennen lopullista generointia. Ehto täyttyy.
+
+**Run 2 [false]**
+> Sääntö vaatii löytämään kitkaa ilmaisevan kommentin ENNEN toimintaa. Lähde: `chat_log` ja `reflection_text`. `Chat_log` ei sisällä käyttäjän ilmaisemaa kitkaa tai kompromissia ennen kehotteiden antamista. `Reflection_text`-dokumentissa on lause 'Ennakoin, että alkuun en saa hyvää tulosta', mutta tämä on jälkikäteinen reflektio, ei kronologisessa vuorovaikutuksessa ennen toimintaa esitetty kommentti. Säännön mukaan jälkikäteisiä valituksia ei hyväksytä, ja tämä on vastaavassa kategoriassa. Ehto ei täyty. `evidence_found` on `False`.
 
 ---
 

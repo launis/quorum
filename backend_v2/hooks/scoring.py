@@ -557,7 +557,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        atom_mapping: dict[str, tuple[str, float, str, str]] = {}
+        atom_mapping: dict[str, tuple[str, float, str, str, bool]] = {}
         blocks_meta: dict[str, dict[str, Any]] = {}
 
         # 1. Reverse extraction of Atom Hashes
@@ -588,7 +588,8 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                 pb_id,
                                 s_val,
                                 tda.ai_rule_description,
-                                getattr(tda, "aggregation_mode", "EXISTS"),
+                                str(getattr(tda, "aggregation_mode", "EXISTS")),
+                                tda.inverse_evidence,
                             )
 
             # Fail-fast: Ei fallbackeja. Korjattu normaalin virhehallinnan tyyliin.
@@ -630,24 +631,30 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 ) from e
 
             atom_id = ev_dto.atom_id
-            reasoning = ev_dto.reasoning_trace
-            mapped_state = ev_dto.mapped_state
+            reasoning = ev_dto.mechanical_trace
 
             if not atom_id:
                 continue
+
+            mapping = atom_mapping.get(atom_id)
+            if not mapping:
+                # If we can't map it, we skip it or log it
+                continue
+
+            pb_id, s_val, text, agg_mode, inverse_evidence = mapping
+
+            mapped_state: State
+            if ev_dto.dlq_status:
+                mapped_state = "DLQ"
+            else:
+                is_satisfied = ev_dto.calculate_rule_satisfied(inverse_evidence)
+                mapped_state = "PASSED" if is_satisfied else "FAILED"
 
             if atom_id not in raw_states_by_atom:
                 raw_states_by_atom[atom_id] = []
                 reasoning_by_atom[atom_id] = []
 
-            if mapped_state:
-                raw_states_by_atom[atom_id].append(mapped_state)
-            else:
-                msg = f"Strict Fail-Fast Enforced: 'mapped_state' missing for atom '{atom_id}'. Accumulator failed."
-                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                )
+            raw_states_by_atom[atom_id].append(mapped_state)
 
             if reasoning:
                 reasoning_by_atom[atom_id].append(reasoning)
@@ -658,7 +665,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             if not mapping:
                 continue
 
-            pb_id, s_val, text, agg_mode = mapping
+            pb_id, s_val, text, agg_mode, inverse_evidence = mapping
 
             if pb_id not in block_scale_stats:
                 block_scale_stats[pb_id] = {}
