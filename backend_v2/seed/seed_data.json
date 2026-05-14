@@ -1832,7 +1832,8 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY blatant fabrication where the output contradicts foundational constraints."
             },
             {
               "label": {
@@ -1849,7 +1850,8 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: EXTRACT an assertion presented as absolute truth without verifiable provenance."
             },
             {
               "label": {
@@ -1866,7 +1868,8 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where sensitive or restricted information is exposed or mishandled."
             }
           ]
         },
@@ -1896,7 +1899,8 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of isolated compliance without overarching structural integrity."
             },
             {
               "label": {
@@ -1913,7 +1917,8 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: EXTRACT evidence where a required standard operating procedure is explicitly bypassed."
             },
             {
               "label": {
@@ -1930,7 +1935,8 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: LOCATE an execution that blindly follows one rule while completely ignoring conflicting constraints."
             }
           ]
         },
@@ -1960,7 +1966,8 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: FIND evidence that the basic compliance process is followed in a mechanical, literal manner."
             },
             {
               "label": {
@@ -1977,7 +1984,8 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where the author avoids acknowledging operational risks or compliance ambiguities."
             },
             {
               "label": {
@@ -1994,7 +2002,8 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a reliance on undocumented or unverified internal knowledge."
             }
           ]
         },
@@ -2024,7 +2033,8 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: LOCATE explicit adherence to structured directives where the chain of reasoning is clearly verifiable."
             },
             {
               "label": {
@@ -2041,7 +2051,8 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: FIND epistemological humility where limitations and boundary conditions are explicitly stated."
             },
             {
               "label": {
@@ -2058,7 +2069,8 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: EXTRACT an instance where potential compliance conflicts are systematically addressed."
             }
           ]
         },
@@ -2088,7 +2100,8 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: FIND evidence of 'System 2' deliberation detailing why specific compliance tradeoffs were made."
             },
             {
               "label": {
@@ -2105,7 +2118,8 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: LOCATE where the execution is fortified by explicit backing from external expert frameworks."
             },
             {
               "label": {
@@ -2122,7 +2136,8 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
-              ]
+              ],
+              "ai_description": "CRITICAL DIRECTIVE: EXTRACT a masterfully constructed resolution that seamlessly balances strict compliance with operational goals."
             }
           ]
         }
