@@ -64,6 +64,8 @@ def get_seed_prompt_block() -> Any:
         "description": {"default_locale": "en", "translations": {"en": "Content"}},
         "category_id": "matrix",
         "type": "float",
+        "computed_min": 1,
+        "computed_max": 5,
     }
 
 

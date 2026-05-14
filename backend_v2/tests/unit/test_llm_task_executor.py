@@ -105,7 +105,8 @@ async def test_execute_structured_task_max_schema_retries_exceeded(
         )
 
     assert exc_info.value.error_code == str(ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED)
-    assert exc_info.value.details["validation_error_msg"] == "syntax error 2"
+    assert isinstance(exc_info.value.original_error, LLMSchemaValidationError)
+    assert exc_info.value.original_error.validation_error_msg == "syntax error 2"
 
 
 @pytest.mark.asyncio

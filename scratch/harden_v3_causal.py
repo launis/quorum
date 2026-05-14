@@ -1,8 +1,9 @@
 import json
 
+
 def harden_v3_causal():
     seed_path = "backend_v2/seed/seed_data.json"
-    with open(seed_path, "r", encoding="utf-8") as f:
+    with open(seed_path, encoding="utf-8") as f:
         data = json.load(f)
 
     # Pearl's Do-Calculus & Causal Inference
@@ -178,7 +179,7 @@ def harden_v3_causal():
     with open(seed_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
         f.write("\n")
-    
+
     print("Successfully deep-hardened blk_c5804a9143c34cb1")
 
 if __name__ == "__main__":

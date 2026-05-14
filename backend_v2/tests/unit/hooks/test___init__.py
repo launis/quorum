@@ -1,6 +1,6 @@
 """Test module to satisfy the backend audit loop for hooks/__init__.py."""
 
-import backend_v2.hooks.__init__ as hooks_init
+import backend_v2.hooks as hooks_init
 
 
 def test_interaction_hook_is_exported() -> None:

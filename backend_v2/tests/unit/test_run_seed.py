@@ -73,7 +73,9 @@ async def test_seed_database_no_file(mock_exit: Any, mock_exists: Any) -> None:
     """Test seed_database when file does not exist."""
     from backend_v2.seed.run_seed import seed_database
 
-    await seed_database("local")
+    mock_exit.side_effect = SystemExit(1)
+    with pytest.raises(SystemExit):
+        await seed_database("local")
     mock_exit.assert_called_once_with(1)
 
 

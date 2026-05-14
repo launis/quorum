@@ -225,53 +225,78 @@ class PromptBlock(V2CoreBase):
     computed_min: int | None = Field(default=None, description="Dynamically computed absolute minimum score")
     computed_max: int | None = Field(default=None, description="Dynamically computed absolute maximum score")
 
-    @model_validator(mode="after")
-    def validate_block_consistency(self) -> PromptBlock:
+    @model_validator(mode="before")
+    @classmethod
+    def pre_validate_block_consistency(cls, data: Any) -> Any:
         """Strict validation for PromptBlock relations and logical constraints."""
+        if not isinstance(data, dict):
+            return data
+
         new_min = None
         new_max = None
-        if self.scales:
-            new_min = min(s.score for s in self.scales)
-            new_max = max(s.score for s in self.scales)
+        scales = data.get("scales")
+        if scales and isinstance(scales, list) and len(scales) > 0:
+            scores = []
+            for s in scales:
+                if isinstance(s, dict) and "score" in s:
+                    scores.append(s["score"])
+                elif hasattr(s, "score"):
+                    scores.append(s.score)
+            if scores:
+                new_min = min(scores)
+                new_max = max(scores)
 
-        # Fail-fast: Cannot allow decimals on non-numeric types
-        # string permitted for BARS format
-        valid_numeric = [BlockDataType.FLOAT, BlockDataType.INT, BlockDataType.STRING]
-        if self.allow_decimals and self.type not in valid_numeric:
-            msg = f"PromptBlock '{self.id}': allow_decimals is only valid for numeric logic."
+        allow_decimals = data.get("allow_decimals", False)
+        block_type = data.get("type")
+        block_id = data.get("id", "Unknown")
+
+        valid_numeric = ["float", "int", "string", BlockDataType.FLOAT, BlockDataType.INT, BlockDataType.STRING]
+        if allow_decimals and block_type not in valid_numeric:
+            msg = f"PromptBlock '{block_id}': allow_decimals is only valid for numeric logic."
             raise ValueError(msg)
 
-        # Strict Business Logic Constraints from user rules
-        if self.scales is not None:
-            if self.scale_min is None or self.scale_max is None:
+        if scales is not None:
+            scale_min = data.get("scale_min")
+            scale_max = data.get("scale_max")
+            if scale_min is not None and scale_max is not None:
+                if scale_max <= scale_min:
+                    msg = (
+                        f"PromptBlock '{block_id}': scale_max ({scale_max}) "
+                        f"on oltava suurempi kuin scale_min ({scale_min})."
+                    )
+                    raise ValueError(msg)
+            if len(scales) == 0:
                 msg = (
-                    f"PromptBlock '{self.id}': Jos scales on valittu käyttöön, "
-                    "scale_min ja scale_max on oltava määriteltynä."
-                )
-                raise ValueError(msg)
-            if self.scale_max <= self.scale_min:
-                msg = (
-                    f"PromptBlock '{self.id}': scale_max ({self.scale_max}) "
-                    f"on oltava suurempi kuin scale_min ({self.scale_min})."
-                )
-                raise ValueError(msg)
-            if len(self.scales) == 0:
-                msg = (
-                    f"PromptBlock '{self.id}': Jos scales on valittu käyttöön, "
+                    f"PromptBlock '{block_id}': Jos scales on valittu käyttöön, "
                     "siellä on pakko olla vähintään yksi MatrixScale (len > 0)."
                 )
                 raise ValueError(msg)
-            for scale in self.scales:
-                if not scale.claims or len(scale.claims) == 0:
+            for scale in scales:
+                claims = scale.get("claims") if isinstance(scale, dict) else getattr(scale, "claims", None)
+                if not claims or len(claims) == 0:
+                    score_val = scale.get("score") if isinstance(scale, dict) else getattr(scale, "score", None)
                     msg = (
-                        f"PromptBlock '{self.id}' / Scale '{scale.score}': "
+                        f"PromptBlock '{block_id}' / Scale '{score_val}': "
                         "Jokaisella scorella pitää olla vähintään yksi claim."
                     )
                     logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise ValueError(msg)
-        if new_min != self.computed_min or new_max != self.computed_max:
-            return self.model_copy(update={"computed_min": new_min, "computed_max": new_max})
-        return self
+
+        if new_min is not None:
+            data["computed_min"] = new_min
+        if new_max is not None:
+            data["computed_max"] = new_max
+
+        category_id = data.get("category_id")
+        if category_id == "matrix":
+            if data.get("computed_min") is None or data.get("computed_max") is None:
+                msg = (
+                    f"PromptBlock '{block_id}': Kun category_id on 'matrix', "
+                    "computed_min ja computed_max on pakko pystyä laskemaan (scales-taulukosta)."
+                )
+                raise ValueError(msg)
+
+        return data
 
 
 class ChatMessageDTO(V2CoreBase):
@@ -570,7 +595,7 @@ class MatrixScorecardRowDTO(V2CoreBase):
     )
 
     is_evaluative: bool = Field(..., description="Whether this block contributes to global average.")
-    
+
     tda_state: dict[str, Any] | None = Field(default=None, description="TDAState union representation.")
 
 

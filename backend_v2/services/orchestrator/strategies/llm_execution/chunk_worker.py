@@ -69,7 +69,7 @@ class ChunkWorker:
                         except ValidationError as e:
                             logger.error(
                                 "[ChunkWorker] Strict Fail-Fast Enforced: Malformed atom item payload.",
-                                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name}
+                                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
                             )
                             raise AppException(
                                 message="Atom item validation failed",

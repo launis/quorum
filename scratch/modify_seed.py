@@ -1,11 +1,12 @@
 import json
 
+
 def apply_mece_to_matrix(block_id, consolidations):
     seed_path = "backend_v2/seed/seed_data.json"
-    
-    with open(seed_path, "r", encoding="utf-8") as f:
+
+    with open(seed_path, encoding="utf-8") as f:
         data = json.load(f)
-        
+
     for block in data.get("prompt_blocks", []):
         if block.get("id") == block_id:
             for scale_idx, new_claims in consolidations.items():
@@ -15,7 +16,7 @@ def apply_mece_to_matrix(block_id, consolidations):
     with open(seed_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
         f.write("\n")
-    
+
     print(f"Successfully applied MECE rule of 3 to {block_id}")
 
 # ---------------- Kahneman Consolidation (blk_109dab5b6b3f403a) ----------------

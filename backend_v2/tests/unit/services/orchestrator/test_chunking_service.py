@@ -12,14 +12,14 @@ def test_chunk_payload_exact_multiple() -> None:
         items=[1, 2, 3, 4, 5, 6],
         max_chunk_size=3,
     )
-    
+
     chunks = ChunkingService.chunk_payload(request)
-    
+
     assert len(chunks) == 2
     assert chunks[0].index == 0
     assert chunks[0].items == [1, 2, 3]
     assert chunks[0].parent_id == "wf_123"
-    
+
     assert chunks[1].index == 1
     assert chunks[1].items == [4, 5, 6]
     assert chunks[1].parent_id == "wf_123"
@@ -32,9 +32,9 @@ def test_chunk_payload_with_remainder() -> None:
         items=["a", "b", "c", "d", "e", "f", "g"],
         max_chunk_size=3,
     )
-    
+
     chunks = ChunkingService.chunk_payload(request)
-    
+
     assert len(chunks) == 3
     assert chunks[0].items == ["a", "b", "c"]
     assert chunks[1].items == ["d", "e", "f"]
@@ -49,9 +49,9 @@ def test_chunk_payload_single_chunk() -> None:
         items=[1, 2],
         max_chunk_size=10,
     )
-    
+
     chunks = ChunkingService.chunk_payload(request)
-    
+
     assert len(chunks) == 1
     assert chunks[0].index == 0
     assert chunks[0].items == [1, 2]
@@ -66,7 +66,7 @@ def test_chunking_request_empty_list() -> None:
             items=[],
             max_chunk_size=10,
         )
-    
+
     assert "Cannot chunk an empty list" in str(exc_info.value)
 
 

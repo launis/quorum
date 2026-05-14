@@ -176,7 +176,7 @@ updates = {
     }
 }
 
-with open(FILE_PATH, "r", encoding="utf-8") as f:
+with open(FILE_PATH, encoding="utf-8") as f:
     data = json.load(f)
 
 for block in data.get("prompt_blocks", []):

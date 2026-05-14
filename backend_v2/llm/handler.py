@@ -146,6 +146,7 @@ class LLMHandler:
                     )
 
                 import litellm
+
                 # Get all candidates
                 all_models = litellm.model_list
                 candidates = []

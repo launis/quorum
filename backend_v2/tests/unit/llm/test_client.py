@@ -122,8 +122,8 @@ async def test_semantic_self_healing_retry(mock_create_provider: MagicMock) -> N
     args, kwargs = mock_provider.generate.call_args_list[1]
     msgs = kwargs.get("messages", [])
 
-    # The self-healing loop appends [assistant (failure), user (correction)]
-    assert len(msgs) == 3
+    # The self-healing loop appends to the existing user message
+    assert len(msgs) == 1
     socratic_system = msgs[-1].get("content", "")
 
     # Confirm Semantic instruction strings

@@ -137,7 +137,10 @@ class ChunkAccumulator:
                     continue
                 else:
                     raise AppException(
-                        message=f"Strict Fail-Fast: Unresolvable key collision on '{parent_key}.{s_key}'. Target: {t_val}, Source: {s_val}.",
+                        message=(
+                            f"Strict Fail-Fast: Unresolvable key collision on '{parent_key}.{s_key}'. "
+                            f"Target: {t_val}, Source: {s_val}."
+                        ),
                         status_code=500,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )

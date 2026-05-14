@@ -52,7 +52,7 @@ async def test_chat_parser_role_segregation_and_success(
     assert res == mock_dto
 
     # Assert strictly that the roles were segregated correctly
-    mock_from_strategy.assert_called_once_with("fast", repository=mock_repository)
+    mock_from_strategy.assert_called_once_with("precise", repository=mock_repository)
     mock_client.run_structured_task.assert_called_once()
 
     call_kwargs = mock_client.run_structured_task.call_args.kwargs

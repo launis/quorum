@@ -157,7 +157,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 for turn in chat_dto.conversation:
                     # Deterministic Normalization: Crush all whitespace/newlines into single spaces
                     # This eliminates MoE tokenization variance caused by formatting differences.
-                    cleaned_content = re.sub(r'\s+', ' ', turn.content).strip()
+                    cleaned_content = re.sub(r"\s+", " ", turn.content).strip()
                     chat_lines.append(f"**{turn.role}**: {cleaned_content}")
                 resolved_text = "\n\n".join(chat_lines)
 

@@ -346,6 +346,8 @@ def test_compile_xml_rubrics_anti_sycophancy() -> None:
             "type": "float",
             "scale_min": 1,
             "scale_max": 5,
+            "computed_min": 1,
+            "computed_max": 5,
             "label": {"default_locale": "en", "translations": {"en": "Test"}},
             "ai_description": "Test description",
         }

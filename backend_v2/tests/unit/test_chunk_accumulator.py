@@ -1,4 +1,5 @@
 from typing import Any
+
 import pytest
 
 from backend_v2.exceptions import AppException
@@ -20,9 +21,9 @@ def test_chunk_accumulator_first_chunk() -> None:
                 "rule_satisfied": False,
                 "evidence_found": False,
                 "exact_quote": "",
-            }
+            },
         ],
-        "reasoning_trace": "A reason"
+        "reasoning_trace": "A reason",
     }
     accumulator.add(chunk)
     res = accumulator.get_final_result()
@@ -33,8 +34,12 @@ def test_chunk_accumulator_first_chunk() -> None:
 
 def test_chunk_accumulator_merges_evaluations() -> None:
     accumulator = ChunkAccumulator()
-    chunk1: dict[str, Any] = {"evaluations": [{"atom_id": "a1", "rule_satisfied": True, "evidence_found": True, "exact_quote": "Q1"}]}
-    chunk2: dict[str, Any] = {"evaluations": [{"atom_id": "a2", "rule_satisfied": False, "evidence_found": False, "exact_quote": ""}]}
+    chunk1: dict[str, Any] = {
+        "evaluations": [{"atom_id": "a1", "rule_satisfied": True, "evidence_found": True, "exact_quote": "Q1"}]
+    }
+    chunk2: dict[str, Any] = {
+        "evaluations": [{"atom_id": "a2", "rule_satisfied": False, "evidence_found": False, "exact_quote": ""}]
+    }
     accumulator.add(chunk1)
     accumulator.add(chunk2)
     res = accumulator.get_final_result()["evaluations"]
@@ -52,7 +57,7 @@ def test_chunk_accumulator_dlq_on_invalid() -> None:
                 "atom_id": "a1",
                 "rule_satisfied": True,
                 "evidence_found": True,
-                "exact_quote": "", 
+                "exact_quote": "",
             }
         ]
     }
@@ -92,10 +97,10 @@ def test_chunk_accumulator_fails_fast_on_incompatible_types() -> None:
     chunk2: dict[str, Any] = {"matrix_test": {"key": 123}}  # Incompatible integer type
 
     accumulator.add(chunk1)
-    
+
     with pytest.raises(AppException) as excinfo:
         accumulator.add(chunk2)
-    
+
     assert excinfo.value.status_code == 500
     assert "Strict Fail-Fast: Unresolvable key collision" in excinfo.value.message
 

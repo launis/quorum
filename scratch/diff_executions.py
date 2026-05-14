@@ -11,13 +11,12 @@ def get_all_evals(path):
                 all_evals[e['atom_id']] = e
     return all_evals
 
-# Lataa 3 ristiinajon tulokset
-evals_1 = get_all_evals('data/files/executions/exe_fd76e010f8e948d0928facb23be6575b/execution_trace.json')
-evals_2 = get_all_evals('data/files/executions/exe_a9168cefea7740eba3a096949331ee78/execution_trace.json')
-evals_3 = get_all_evals('data/files/executions/exe_e3b7bcb0c44946eb89261816f962cb6f/execution_trace.json')
+# Lataa 2 ristiinajon tulokset
+evals_1 = get_all_evals('data/files/executions/exe_05d9251b7a7d40e9a91c3de55956d9de/execution_trace.json')
+evals_2 = get_all_evals('data/files/executions/exe_d39896a05c34453094e6abdaf4122829/execution_trace.json')
 
 # Etsi yhteiset atomit
-common_atoms = set(evals_1.keys()).intersection(set(evals_2.keys())).intersection(set(evals_3.keys()))
+common_atoms = set(evals_1.keys()).intersection(set(evals_2.keys()))
 
 # Etsi säännön kuvaus tietokannasta
 with open('backend_v2/seed/seed_data.json', 'r', encoding='utf-8') as f:
@@ -32,26 +31,23 @@ for block in seed.get('prompt_blocks', []):
 # Tunnista mismatchit (jotka hajosivat kognitiiviseen epämääräisyyteen)
 mismatches = []
 for atom in common_atoms:
-    s1, s2, s3 = evals_1[atom]['mapped_state'], evals_2[atom]['mapped_state'], evals_3[atom]['mapped_state']
-    if not (s1 == s2 == s3):
+    s1, s2 = evals_1[atom]['mapped_state'], evals_2[atom]['mapped_state']
+    if not (s1 == s2):
         mismatches.append(atom)
 
 # Tallenna raakadata luettavaan Markdown-muotoon
 os.makedirs('scratch', exist_ok=True)
 with open('scratch/mismatch_traces_raw.md', 'w', encoding='utf-8') as f:
-    f.write('# Raw Mismatch Traces (3-way Execution)\n\n')
+    f.write('# Raw Mismatch Traces (2-way Execution)\n\n')
     for atom in mismatches:
         f.write(f'## Atom: {atom}\n')
         f.write(f'**Rule:** {atom_rules.get(atom, "Unknown")}\n\n')
         
-        f.write(f'**Run 1 (fd7) [{evals_1[atom]["mapped_state"]}]**\n')
+        f.write(f'**Run 1 [{evals_1[atom]["mapped_state"]}]**\n')
         f.write(f'> {evals_1[atom]["reasoning_trace"].replace(chr(10), " ")}\n\n')
         
-        f.write(f'**Run 2 (a91) [{evals_2[atom]["mapped_state"]}]**\n')
+        f.write(f'**Run 2 [{evals_2[atom]["mapped_state"]}]**\n')
         f.write(f'> {evals_2[atom]["reasoning_trace"].replace(chr(10), " ")}\n\n')
-        
-        f.write(f'**Run 3 (e3b) [{evals_3[atom]["mapped_state"]}]**\n')
-        f.write(f'> {evals_3[atom]["reasoning_trace"].replace(chr(10), " ")}\n\n')
         
         f.write('---\n\n')
 

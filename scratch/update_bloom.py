@@ -170,26 +170,26 @@ updates = {
     }
 }
 
-with open(FILE_PATH, "r", encoding="utf-8") as f:
+with open(FILE_PATH, encoding="utf-8") as f:
     data = json.load(f)
 
 for block in data.get("prompt_blocks", []):
     if block.get("id") == "blk_f921c7c0989b47e8":
         if "<system_directive>" not in block.get("ai_description", ""):
             block["ai_description"] = "<system_directive>\n  <epistemic_anchor>Bloom, B. S. (1956). Taxonomy of Educational Objectives. Higher-order thinking requires cognitive friction, structural decomposition, and novel synthesis over rote regurgitation.</epistemic_anchor>\n</system_directive>\n" + block.get("ai_description", "")
-        
+
         for scale in block.get("scales", []):
             for claim in scale.get("claims", []):
                 fi_label = claim.get("label", {}).get("translations", {}).get("fi", "")
                 if fi_label in updates:
                     upd = updates[fi_label]
-                    
+
                     if "new_fi_label" in upd:
                         claim["label"]["translations"]["fi"] = upd["new_fi_label"]
                         claim["label"]["translations"]["en"] = upd["new_en_label"]
 
                     claim["ai_description"] = upd["ai_description"]
-                    
+
                     new_assertions = []
                     for ass_upd in upd["assertions"]:
                         new_assertions.append({

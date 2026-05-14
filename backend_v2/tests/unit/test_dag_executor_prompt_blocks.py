@@ -45,6 +45,7 @@ def mock_repo() -> Any:
         "description": {"default_locale": "en", "translations": {"en": "Desc"}},
         "steps": [{"id": "step_1111111111111111", "task_blueprint": "task_bp"}],
     }
+    repo.get_output_profile_by_id.return_value = None
     return repo
 
 
@@ -89,7 +90,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
     with patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock) as mock_strategy:
         mock_bound_client = AsyncMock()
         mock_bound_client.run_structured_task.return_value = (
-            MagicMock(model_dump=lambda **kwargs: {"test_res": 1}),
+            MagicMock(model_dump=lambda **kwargs: {"blk_0123456789abcdef0123456789ab": 1}),
             {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30, "cost_usd": 0.05},
         )
         mock_strategy.return_value = mock_bound_client
@@ -121,8 +122,13 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
     assert record.status == ExecutionStatus.RUNNING
     from backend_v2.models.state import StateProjector
 
+    print(f"DEBUG TRACE: {record.execution_trace}")
     projector = StateProjector()
     results = projector.fold_trace(record.execution_trace)
+    print(f"DEBUG RESULTS: {results}")
     assert any(
-        dto.step_id == "step_1111111111111111" and dto.block_id == "test_res" and dto.payload == 1 for dto in results
+        dto.step_id == "step_1111111111111111"
+        and dto.block_id == "blk_0123456789abcdef0123456789ab"
+        and dto.payload == 1
+        for dto in results
     )

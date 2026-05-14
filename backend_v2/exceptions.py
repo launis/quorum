@@ -464,6 +464,7 @@ class AgentExecutionError(AppException):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details=error_details,
         )
+        self.original_error = original_error
 
     def _format_cause(self, exc: Exception) -> str:
         """Legacy wrapper for format_validation_error."""

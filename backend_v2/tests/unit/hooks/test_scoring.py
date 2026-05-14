@@ -315,7 +315,18 @@ async def test_matrix_scoring_hook_ignores_instructions() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": [{"atom_id": atom_hash, "rule_satisfied": True, "evidence_found": True, "exact_quote": "Ote", "reasoning_trace": ""}]},
+        inputs={
+            "evaluations": [
+                {
+                    "atom_id": atom_hash,
+                    "rule_satisfied": True,
+                    "evidence_found": True,
+                    "exact_quote": "Ote",
+                    "reasoning_trace": "",
+                    "mapped_state": "PASSED",
+                }
+            ]
+        },
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -341,7 +352,16 @@ async def test_matrix_scoring_hook_pass_all() -> None:
     evaluations = []
     for i in range(1, 6):
         atom_hash = generate_atom_hash(f"atom_{i}", mandate)
-        evaluations.append({"atom_id": atom_hash, "rule_satisfied": True, "evidence_found": True, "exact_quote": "Ote", "reasoning_trace": "Hyväksytty"})
+        evaluations.append(
+            {
+                "atom_id": atom_hash,
+                "rule_satisfied": True,
+                "evidence_found": True,
+                "exact_quote": "Ote",
+                "reasoning_trace": "Hyväksytty",
+                "mapped_state": "PASSED",
+            }
+        )
 
     state = HookState(
         execution_id="ex_1111111111111111",
@@ -380,7 +400,16 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
     for i in range(1, 6):
         atom_hash = generate_atom_hash(f"atom_{i}", mandate)
         is_hit = True if i != 2 else False
-        evaluations.append({"atom_id": atom_hash, "rule_satisfied": is_hit, "evidence_found": is_hit, "exact_quote": "Ote" if is_hit else "", "reasoning_trace": ""})
+        evaluations.append(
+            {
+                "atom_id": atom_hash,
+                "rule_satisfied": is_hit,
+                "evidence_found": is_hit,
+                "exact_quote": "Ote" if is_hit else "",
+                "reasoning_trace": "",
+                "mapped_state": "PASSED" if is_hit else "FAILED",
+            }
+        )
 
     state = HookState(
         execution_id="ex_2222222222222222",
@@ -422,7 +451,16 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
         atom_hash = generate_atom_hash(f"atom_{i}", mandate)
         is_hit = False if i == 3 else True
         reasoning = "Testivaste" if not is_hit else "OK"
-        evaluations.append({"atom_id": atom_hash, "rule_satisfied": is_hit, "evidence_found": is_hit, "exact_quote": "Ote" if is_hit else "", "reasoning_trace": reasoning})
+        evaluations.append(
+            {
+                "atom_id": atom_hash,
+                "rule_satisfied": is_hit,
+                "evidence_found": is_hit,
+                "exact_quote": "Ote" if is_hit else "",
+                "reasoning_trace": reasoning,
+                "mapped_state": "PASSED" if is_hit else "FAILED",
+            }
+        )
 
     state = HookState(
         execution_id="ex_3333333333333333",
@@ -502,6 +540,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "evidence_found": True,
             "exact_quote": "Ote",
             "reasoning_trace": "Oikein",
+            "mapped_state": "PASSED",
         }  # noqa: E501
     )
     evaluations.append(
@@ -511,6 +550,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "evidence_found": True,
             "exact_quote": "Ote",
             "reasoning_trace": "Oikein",
+            "mapped_state": "PASSED",
         }  # noqa: E501
     )
 
@@ -522,6 +562,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "evidence_found": True,
             "exact_quote": "Ote",
             "reasoning_trace": "Oikein",
+            "mapped_state": "PASSED",
         }  # noqa: E501
     )
     evaluations.append(
@@ -531,6 +572,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "evidence_found": True,
             "exact_quote": "Ote",
             "reasoning_trace": "Oikein",
+            "mapped_state": "PASSED",
         }  # noqa: E501
     )
 
@@ -542,6 +584,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "evidence_found": True,
             "exact_quote": "Ote",
             "reasoning_trace": "Oikein",
+            "mapped_state": "PASSED",
         }  # noqa: E501
     )
     evaluations.append(
@@ -551,6 +594,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "evidence_found": False,
             "exact_quote": "",
             "reasoning_trace": "Aihetodistetta EI esitetty.",
+            "mapped_state": "FAILED",
         }
     )
 
@@ -562,6 +606,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "evidence_found": True,
             "exact_quote": "Ote",
             "reasoning_trace": "Hieno oivallus!",
+            "mapped_state": "PASSED",
         }
     )
 
@@ -573,6 +618,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "evidence_found": False,
             "exact_quote": "",
             "reasoning_trace": "Ei yltänyt tälle tasolle.",
+            "mapped_state": "FAILED",
         }
     )
 

@@ -51,6 +51,7 @@ def _sync_diagnostic_dump(dump_file: str, model_name: str, payload_str: str) -> 
 def _is_transient_llm_error(e: BaseException) -> bool:
     """Check if the LiteLLM/asyncio exception is a transient rate limit or timeout."""
     import litellm
+
     return (
         isinstance(e, asyncio.TimeoutError)
         or (hasattr(e, "status_code") and e.status_code in (429, 502, 503, 504))

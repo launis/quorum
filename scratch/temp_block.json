@@ -1,0 +1,386 @@
+{
+  "id": "blk_b476f89fb732448c",
+  "label": {
+    "default_locale": "fi",
+    "translations": {
+      "fi": "Itsens\u00e4 haastaminen (Falsifioinnin Auditointi)",
+      "en": "Falsification Audit"
+    }
+  },
+  "description": {
+    "default_locale": "fi",
+    "translations": {
+      "fi": "Mittaa haluasi etsi\u00e4 virheit\u00e4 omista ajatuksistasi. Se arvioi, yrit\u00e4tk\u00f6 aktiivisesti todistaa omat v\u00e4itteesi v\u00e4\u00e4riksi vahvistaaksesi niit\u00e4.",
+      "en": "Measures the acknowledgment of counterarguments and active vulnerability testing."
+    }
+  },
+  "category_id": "matrix",
+  "type": "float",
+  "allow_decimals": true,
+  "scales": [
+    {
+      "score": 1,
+      "name": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "My\u00f6t\u00e4ilyvinouma (Sycophancy)",
+          "en": "Sycophancy"
+        }
+      },
+      "ai_label": "CATASTROPHIC FAILURE - COMPLETE SYCOPHANCY AND IMMUNIZATION",
+      "claims": [
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Sokea vahvistusvinouma (Blind Confirmation)",
+              "en": "Blind Confirmation"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where the author blindly confirms an assumption using absolutist language without introducing any new empirical testing.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_6a8398de7be844b9",
+              "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'agreement'. STEP 1 (Lexical Anchor): Find an absolutist word (e.g., 'always', 'undeniably', '100%'). STEP 2 (Bounding Box): Scan the paragraph. If the premise is agreed with without providing new empirical test data -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
+              "inverse_evidence": true,
+              "aggregation_mode": "EXISTS"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Ad-hoc immunisointi (Ad-hoc Immunization)",
+              "en": "Ad-hoc Immunization"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where the author dismisses a contradictory observation using an ad-hoc excuse to protect their theory.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_95376a8cd9904d69",
+              "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author actively dismisses a contrary observation or failed test using an ad-hoc excuse (e.g., 'doesn't really count', 'is an anomaly', 'was an exception'). ENFORCEMENT RULE: Explain how the theory was immunized in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept legitimate, statistically proven outlier exclusions.",
+              "inverse_evidence": true,
+              "aggregation_mode": "EXISTS"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Nollakritiikki (Zero Falsification)",
+              "en": "Zero Falsification"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: EXTRACT an explicit refusal to test boundaries or question the initial prompt/premise.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_393e9345a6894517",
+              "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a sentence where the author explicitly states that a premise requires no further testing or cannot be questioned (e.g., 'is self-evident', 'needs no proof', 'as we all know'). ENFORCEMENT RULE: Document the dogmatism in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept mathematical axioms.",
+              "inverse_evidence": true,
+              "aggregation_mode": "EXISTS"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "score": 2,
+      "name": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Kosmeettinen Korjaaja",
+          "en": "Aesthetic Refinement"
+        }
+      },
+      "ai_label": "FUNDAMENTALLY FLAWED - SUPERFICIAL OR STRAW-MAN CRITIQUE",
+      "claims": [
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Olkinukke-vasta-argumentti (Straw-Man Critique)",
+              "en": "Straw-Man Critique"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where the author presents a trivial counter-argument just to easily defeat it.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_2472a6d02b7d4975",
+              "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author presents a 'straw-man' counter-argument that is trivial, artificially weak, and easily defeated, avoiding the actual core vulnerabilities of their claim. ENFORCEMENT RULE: Explain why the counter-argument is trivial in reasoning_trace before extracting. BANNED CONCEPTS: Do not flag robust 'steel-manned' counterarguments.",
+              "inverse_evidence": true,
+              "aggregation_mode": "EXISTS"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Ehdollistettu my\u00f6t\u00e4ily (Conditional Sycophancy)",
+              "en": "Conditional Sycophancy"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: LOCATE a sentence where a minor caveat is used only to immediately return to unquestioning confirmation.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_78984ac0a3464812",
+              "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author uses a minor caveat (e.g., 'while it is true that X...') only to immediately return to unquestioning confirmation ('...ultimately it is perfect'). ENFORCEMENT RULE: Map the rhetorical bypass in reasoning_trace before extracting. BANNED CONCEPTS: Do not flag caveats that lead to a fundamental alteration of the conclusion.",
+              "inverse_evidence": true,
+              "aggregation_mode": "EXISTS"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Turvallinen kyseenalaistaminen (Safe Questioning)",
+              "en": "Safe Questioning"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: EXTRACT an instance where the author asks a critical question but immediately answers it themselves with the assumed opinion.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_614ba4f61b4c4c8e",
+              "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a sentence where the author asks a critical or falsifying question about the premise, but immediately answers it themselves with the assumed, prevailing opinion without any empirical test. ENFORCEMENT RULE: Document the 'safe questioning' loop in reasoning_trace before quoting. BANNED CONCEPTS: Do not flag open-ended questions left for future research.",
+              "inverse_evidence": true,
+              "aggregation_mode": "EXISTS"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "score": 3,
+      "name": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Neutraali",
+          "en": "Neutral"
+        }
+      },
+      "ai_label": "STRUCTURALLY DEFICIENT - PASSIVE OBSERVATION",
+      "claims": [
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Toteava tulkinta (Descriptive Interpretation)",
+              "en": "Descriptive Interpretation"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: FIND evidence that the author only describes the data without attempting to falsify the underlying mechanism.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_f609cce8ae494c3c",
+              "ai_rule_description": "CRITICAL DIRECTIVE: FIND a sentence where the author merely describes observed data or results (e.g., 'the data shows', 'we observed') without formulating a hypothesis that could be tested or disproven. ENFORCEMENT RULE: Document the lack of a falsifiable hypothesis in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept explicit hypothesis testing.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Rajoitteiden passiivinen listaus (Passive Limitation Listing)",
+              "en": "Passive Limitation Listing"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where the author lists limitations but takes no proactive steps to test them.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_b3cd1360d4c340e7",
+              "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author lists methodological limitations (e.g., 'small sample size', 'potential bias') as a passive disclaimer at the end of the text, without having taken any proactive steps to test or mitigate those limitations during the analysis. ENFORCEMENT RULE: Document the passivity in reasoning_trace before extracting. BANNED CONCEPTS: Do not flag limitations that were actively tested.",
+              "inverse_evidence": true,
+              "aggregation_mode": "EXISTS"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Konfliktin v\u00e4lttely (Conflict Avoidance)",
+              "en": "Conflict Avoidance"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: EXTRACT an instance where the author identifies contradictory data but leaves the conflict unresolved.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_ffe52547ddf440a4",
+              "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a sentence where the author identifies two contradictory pieces of data but leaves the conflict unresolved using passive synthesis (e.g., 'both sides have valid points', 'it is a complex issue') instead of attempting to falsify one of the claims. ENFORCEMENT RULE: Explain the unresolved conflict in reasoning_trace before extracting. BANNED CONCEPTS: Do not flag dialectical synthesis that actually resolves the conflict mathematically.",
+              "inverse_evidence": true,
+              "aggregation_mode": "EXISTS"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "score": 4,
+      "name": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Proaktiivinen",
+          "en": "Proactive"
+        }
+      },
+      "ai_label": "LOGICALLY SOUND - PROACTIVE BOUNDARY TESTING",
+      "claims": [
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Aktiivinen rajojen kokeilu (Active Boundary Testing)",
+              "en": "Active Boundary Testing"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: LOCATE an explicit instance where the author states the exact conditions under which their theory would fail.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_a842af9d91754c36",
+              "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an explicit instance where the author actively states a condition under which their theory or claim would be falsified. Look for boundary markers (e.g., 'this would be disproven if', 'the limit of this claim is'). ENFORCEMENT RULE: Document the defined boundary in reasoning_trace before extracting. BANNED CONCEPTS: Do not accept vague statements about future research.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Vastahypoteesien formulointi (Formulating Counter-Hypotheses)",
+              "en": "Formulating Counter-Hypotheses"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: FIND evidence that the author formulates an explicit alternative hypothesis to test against.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_27e3e8856b034b45",
+              "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not accept rhetorical 'what if'. STEP 1 (Lexical Anchor): Find an explicit alternative hypothesis (e.g., 'Alternatively, if Y is true'). STEP 2 (Bounding Box): Scan the paragraph. If the alternative is formulated to test the primary claim -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Rakenteellinen itsekritiikki (Structural Self-Criticism)",
+              "en": "Structural Self-Criticism"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: EXTRACT an explicit acknowledgment of the systemic biases in the author's own testing methodology.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_b9de82c6a6384731",
+              "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT an explicit acknowledgment of the limitations or potential biases of the current testing methodology, where the author recognizes how their test might be flawed. ENFORCEMENT RULE: Document the specific methodological critique in reasoning_trace before quoting. BANNED CONCEPTS: Do not accept generic 'more data is needed' statements.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "score": 5,
+      "name": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Tieteellinen",
+          "en": "Scientific"
+        }
+      },
+      "ai_label": "THEORETICALLY PERFECT - MASTERFUL FALSIFICATION",
+      "claims": [
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Systemaattinen falsifiointipyrkimys (Systematic Falsification Attempt)",
+              "en": "Systematic Falsification Attempt"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: FIND a masterful execution where the author designs a rigorous test explicitly intended to falsify their own core hypothesis.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_645f10d53cb04803",
+              "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'masterful'. STEP 1 (Lexical Anchor): Find destructive testing markers (e.g., 'To disprove this', 'We subjected'). STEP 2 (Bounding Box): Scan the paragraph. If the data is explicitly intended to falsify the core hypothesis -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Steel-Manning -vastav\u00e4itteet (Steel-Manning Counterarguments)",
+              "en": "Steel-Manning Counterarguments"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: LOCATE an explicit integration where the strongest possible counterarguments are proactively dismantled with verifiable data.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_97fb8e0bd9904ed5",
+              "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'strongest'. STEP 1 (Lexical Anchor): Find a proactive presentation of a counterargument. STEP 2 (Bounding Box): Scan the paragraph. If the counterargument is dismantled with verifiable data -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        },
+        {
+          "label": {
+            "default_locale": "fi",
+            "translations": {
+              "fi": "Kognitiivisen kitkan todentaminen (Verification of Cognitive Friction)",
+              "en": "Verification of Cognitive Friction"
+            }
+          },
+          "ai_description": "CRITICAL DIRECTIVE: EXTRACT definitive 'System 2' deliberation demonstrating deep epistemic humility regarding the limits of the claim.",
+          "tda_assertions": [
+            {
+              "tda_id": "tda_241520d5fea74622",
+              "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED LOGIC: Do not evaluate 'deep'. STEP 1 (Lexical Anchor): Find explicit mathematical or logical failure conditions. STEP 2 (Bounding Box): Scan the paragraph. If the conditions where the claim absolutely breaks down are stated -> ACCEPT. Otherwise -> REJECT. ENFORCEMENT RULE: Document the logical step-by-step evaluation in reasoning_trace BEFORE extracting exact_quote.",
+              "inverse_evidence": false,
+              "aggregation_mode": "ALL_MUST_COMPLY"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "theory_grounding": {
+    "source_url": "https://plato.stanford.edu/entries/popper/",
+    "citation_reference": "Popper, K. (1963). Conjectures and Refutations: The Growth of Scientific Knowledge. (Falsificationism)"
+  },
+  "rows": [
+    {
+      "label": {
+        "default_locale": "fi",
+        "translations": {
+          "fi": "Kriittinen Et\u00e4isyys",
+          "en": "Critical Distance"
+        }
+      },
+      "ai_description": "CRITICAL MANDATE: Start by evaluating every atomic claim as FALSE. You must enforce the Null Hypothesis."
+    }
+  ],
+  "scale_min": 1,
+  "scale_max": 5,
+  "ai_description": "<system_directive>\n<objective>Evaluate the author's epistemological rigor and their active attempts to falsify their own hypothesis, preventing confirmation bias.</objective>\n<epistemic_anchor>Karl Popper's Theory of Falsification (1963). A scientific claim must be inherently falsifiable. This matrix evaluates whether the author acts as a 'sycophant' (seeking only confirming evidence and using ad-hoc immunizations to dismiss anomalies) or a 'scientist' (proactively searching for evidence that disproves their own claim). Lexical markers for falsification include 'would be disproven if', 'contrary to', or 'failed to reject'.</epistemic_anchor>\n<rules>\n<rule>Enforce the Null Hypothesis: Assume the author is suffering from confirmation bias until explicit, proactive falsification attempts are identified.</rule>\n<rule>Bounty Hunter Paradigm: In FATAL FLAW directives (Scores 1-2), you only need to find ONE sentence that commits the described error (e.g. dismissing counter-data) to trigger extraction.</rule>\n<rule>Strict Boolean Logic: Evaluate claims as single-pole facts.</rule>\n</rules>\n</system_directive>",
+  "slug": "matrix_falsifier",
+  "output_extensions": [
+    "justification",
+    "falsification",
+    "coaching",
+    "remediation_steps",
+    "citation"
+  ],
+  "organization_id": "SYSTEM",
+  "is_evaluative": true
+}

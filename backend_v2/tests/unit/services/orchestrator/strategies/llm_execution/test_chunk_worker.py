@@ -123,7 +123,7 @@ async def test_chunk_worker_process_chunk_failure(mock_executor_class: Any) -> N
     mock_client = AsyncMock()
 
     mock_executor_instance = mock_executor_class.return_value
-    mock_executor_instance.execute_structured_task.side_effect = Exception("LLM connection error")
+    mock_executor_instance.execute_structured_task.side_effect = AppException("LLM connection error", status_code=500)
 
     sem = asyncio.Semaphore(1)
 
