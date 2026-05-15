@@ -642,13 +642,9 @@ class PromptCompiler:
 
             scales = crit.scales or []
             if scales:
-                xml_blocks.append("    <SCALES>")
                 mandate_str = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+                claims_texts = []
                 for s in scales:
-                    s_val = s.score
-                    s_lbl = self.resolve_i18n(s.name, target_locale) if s.name else s.ai_label
-
-                    claims_texts = []
                     for c in s.claims:
                         for assertion in c.tda_assertions:
                             substance = (assertion.ai_rule_description or "").strip()
@@ -664,11 +660,9 @@ class PromptCompiler:
                                     )
                                 claims_texts.append(f"{rule_text} {mandate_str}")
 
+                if claims_texts:
                     claims = " ".join(claims_texts)
-                    xml_blocks.append(f'      <SCALE value="{s_val}" label="{s_lbl}">')
-                    xml_blocks.append(f"        <CRITICAL_DIRECTIVE>{claims}</CRITICAL_DIRECTIVE>")
-                    xml_blocks.append("      </SCALE>")
-                xml_blocks.append("    </SCALES>")
+                    xml_blocks.append(f"    <CRITICAL_DIRECTIVES>{claims}</CRITICAL_DIRECTIVES>")
 
             xml_blocks.append("  </MATRIX>")
         xml_blocks.append("</EVALUATION_RUBRICS>")

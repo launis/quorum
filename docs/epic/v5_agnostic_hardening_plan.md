@@ -60,7 +60,7 @@ Koska olemme tekemässä massiivisia asenne- ja sääntömuutoksia (`seed_data.j
     *   *Varmennus:* Ajetaan diffaus (`scratch\diff_executions.py`) vertailemaan uutta ajoa vanhaan. Tavoitteena on nähdä haamuvarianssin putoaminen 0 %:iin.
     *   *Peruutussuunnitelma (Rollback):* Jos TDA-tulokset hajoavat täysin, suorita Vaiheen 2 ja Vaiheen 1 rollbackit peruuttaaksesi koko Epicin.
 
-- [ ] **Vaihe 4: PromptCompiler Eristys (The Absolute Blindfold)**
+- [x] **Vaihe 4: PromptCompiler Eristys (The Absolute Blindfold)**
     *   *Toiminto:* Vasta kun Vaihe 3 on todettu voittavaksi, siirrytään eristämään arviointiasteikko itse tekoälyltä (`backend_v2/services/orchestrator/prompt_compiler.py`).
     *   *Arkkitehtuurisäännöt:* **Prompt Compiler on jäädytetty arkkitehtuurin kulmakivi.** Sitä ei saa oletusarvoisesti muokata. Kaikkiin muutoksiin `prompt_compiler.py`-tiedostossa on pakollista kysyä käyttäjältä erikseen lupa (USER CONFIRMATION) ja liputtaa muutos selkeästi ennen toteutusta. Kaikkien tekoälylle syötettyjen dynaamisten parametrien tulee olla suljettuna nimenomaisiin XML-tageihin (kuten `<execution_parameters>`) ja järjestelmäohjeiden tulee olla pelkästään englanniksi.
     *   *Peruutussuunnitelma (Rollback):* Palauta `prompt_compiler.py` aiempaan tilaansa.
