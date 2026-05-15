@@ -31,30 +31,40 @@ Nämä kolme sääntöä lisätään jokaisen `PromptBlock`:in `ai_description`-
     *   *Konsepti:* Varmistetaan `PromptCompiler` -tasolla, ettei LLM näe lainkaan arvioitavan matriisin skaaloja tai otsikoita. Sille syötetään ainoastaan irrallisia TDA-atomeita. LLM tuottaa pelkkää dataa, ja Python-tason `Tripartite Calculation Boundary` laskee lopullisen arvosanan matematiikalla.
 
 ## Turvallinen Askel-Askeleelta Toteutussuunnitelma (Stepped Rollout)
+
+**Pikasuoritusohje (Kriittinen järjestys):**
+1. `python scratch\v5_mass_refactor.py` (Päivittää `seed_data.json` -tiedoston)
+2. `python backend_v2\seed\run_seed.py local` (Vie muutokset lokaaliin kantaan)
+
 Koska olemme tekemässä massiivisia asenne- ja sääntömuutoksia (`seed_data.json`), etenemme yhden loogisen kokonaisuuden kerrallaan ja varmistamme peruutettavuuden ilman git-haarautumista (käyttäen manuaalisia tiedostokopioita).
 
-1.  **Vaihe 1: Datan Mutatoiminen ja JSON-eheyden Varmistus**
+- [x] **Vaihe 1: Datan Mutatoiminen ja JSON-eheyden Varmistus**
     *   *Toiminto:* Ajetaan refaktorointi, joka muokkaa `backend_v2/seed/seed_data.json` -tiedostoa. Skripti tekee automaattisesti kopion nimellä `seed_data_pre_v5.json`.
+    *   *Arkkitehtuurisäännöt:* Livenä pyörivän tietokannan suora muokkaaminen on ankarasti kielletty. Kaikki rakenteelliset datamuutokset on tehtävä master-lähdetiedostoon (`seed_data.json`). Apuskriptin (`v5_mass_refactor.py`) täytyy käyttää yksinomaan `json.load()` ja `json.dump(..., indent=2)` -metodeja tiedoston eheyden säilyttämiseksi. Uusien ID-arvojen on ehdottomasti noudatettava Opaque Stripe ID -mallia (esim. `blk_xxx`), semanttisia merkkijonoja ei sallita.
     *   *Komento:* `python scratch\v5_mass_refactor.py`
     *   *Peruutussuunnitelma (Rollback):* Jos JSON näyttää korruptoituneelta, peruuta muutokset komennolla: 
         `Copy-Item backend_v2\seed\seed_data_pre_v5.json backend_v2\seed\seed_data.json -Force`
 
-2.  **Vaihe 2: Tietokannan Seeding ja Arkkitehtuuriauditointi**
+- [x] **Vaihe 2: Tietokannan Seeding ja Arkkitehtuuriauditointi**
     *   *Toiminto:* Tuodaan säännöt lokaaliin tietokantaan ja varmistetaan, etteivät uudet Pydantic-säännöt kaada olemassa olevaa arkkitehtuuria. Varmuuskopioidaan kanta ensin.
+    *   *Arkkitehtuurisäännöt:* Järjestelmä ei saa sisältää "duct-tape" fallback-purkkakoodia tai tyhjiä `dict`-palautuksia dataongelmien peittämiseksi. Pydantic V2 (`extra='forbid'`, `strict=True`) validoi tiedot armotta (Fail-Fast). Backendin varmennuksissa on aina käytettävä yhtenäistä `backend_audit_loop.py` -skriptiä pelkkien raakojen pytest-ajojen sijaan. Virheiden ilmetessä on ratkaistava juurisyy kiertämisen sijaan.
     *   *Komennot:*
         1. `Copy-Item data\db_v2.json data\db_v2_v4_backup.json`
         2. `python backend_v2\seed\run_seed.py local`
-        3. `uv run pytest backend_v2/tests/unit/test_seed_architectural_guardrails.py`
+        3. `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_seed_architectural_guardrails.py --test`
     *   *Peruutussuunnitelma (Rollback):* Jos testit kaatuvat (Pydantic ei hyväksy uusia sääntöjä), palauta vanha kanta komennolla: `Copy-Item data\db_v2_v4_backup.json data\db_v2.json -Force` (ja suorita lisäksi Vaiheen 1 peruutus).
 
-3.  **Vaihe 3: Tuotantoajo ja Varianssin Diffaus**
+- [ ] **Vaihe 3: Tuotantoajo ja Varianssin Diffaus**
     *   *Toiminto:* Ajetaan TDA-putki uutta konfiguraatiota vastaan (esim. Sitra-aineisto).
+    *   *Arkkitehtuurisäännöt:* Raskaat LLM-operaatiot eivät saa tukkia FastAPI:n pääsäiettä, vaan ne on ohjattava Arq-jonoon. Yhteyden aikakatkaisujen estämiseksi on käytettävä SSE-Heartbeatia pitkissä prosesseissa. Virhetilanteissa lokitetaan vain järjestelmän viite-ID (esim. `req_abc123`) ja poikkeuksen tyyppi. Asiakasdataa (PII) tai raakoja kehotteita ei saa koskaan kirjata lokiin.
     *   *Varmennus:* Ajetaan diffaus (`scratch\diff_executions.py`) vertailemaan uutta ajoa vanhaan. Tavoitteena on nähdä haamuvarianssin putoaminen 0 %:iin.
     *   *Peruutussuunnitelma (Rollback):* Jos TDA-tulokset hajoavat täysin, suorita Vaiheen 2 ja Vaiheen 1 rollbackit peruuttaaksesi koko Epicin.
 
-4.  **Vaihe 4: PromptCompiler Eristys (The Absolute Blindfold)**
+- [ ] **Vaihe 4: PromptCompiler Eristys (The Absolute Blindfold)**
     *   *Toiminto:* Vasta kun Vaihe 3 on todettu voittavaksi, siirrytään eristämään arviointiasteikko itse tekoälyltä (`backend_v2/services/orchestrator/prompt_compiler.py`).
+    *   *Arkkitehtuurisäännöt:* **Prompt Compiler on jäädytetty arkkitehtuurin kulmakivi.** Sitä ei saa oletusarvoisesti muokata. Kaikkiin muutoksiin `prompt_compiler.py`-tiedostossa on pakollista kysyä käyttäjältä erikseen lupa (USER CONFIRMATION) ja liputtaa muutos selkeästi ennen toteutusta. Kaikkien tekoälylle syötettyjen dynaamisten parametrien tulee olla suljettuna nimenomaisiin XML-tageihin (kuten `<execution_parameters>`) ja järjestelmäohjeiden tulee olla pelkästään englanniksi.
     *   *Peruutussuunnitelma (Rollback):* Palauta `prompt_compiler.py` aiempaan tilaansa.
 
-5.  **Vaihe 5: Backend Lexical Verifier (Mekaaninen TDA)**
+- [ ] **Vaihe 5: Backend Lexical Verifier (Mekaaninen TDA)**
     *   *Toiminto:* Kytketään backend-tason fyysinen tarkistus (`AnchorValidationService`), joka hylkää LLM:n palauttaman osuman välittömästi, jos sitä ei löydy normalisoidusta lähdetekstistä.
+    *   *Arkkitehtuurisäännöt:* Universal Fail-Fast -vaatimus. Dataa ei saa koskaan niellä hiljaisesti tyhjillä `try...except` -lohkoilla. Jos leksikaalinen vertailu epäonnistuu, prosessin tulee pysähtyä, virhe tulee lokittaa natiivisti `logger.error`:lla ja palauttaa eksplisiittisenä `AppException`-virheenä RFC 7807 -muodossa. Leksikaalinen vertailija ei saa käyttää naiivia purkkakoodia.

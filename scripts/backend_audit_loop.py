@@ -55,11 +55,14 @@ def run_tests_with_strict_coverage(target):
     
     if target.endswith(".py"):
         parts = target.replace("\\", "/").split("/")
-        parts[-1] = "test_" + parts[-1]
-        if parts[0] == "backend_v2":
-            test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
+        if parts[-1].startswith("test_") or "tests" in parts:
+            test_path = target.replace("\\", "/")
         else:
-            test_path = "tests/" + "/".join(parts)
+            parts[-1] = "test_" + parts[-1]
+            if parts[0] == "backend_v2":
+                test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
+            else:
+                test_path = "tests/" + "/".join(parts)
         
         # 1. Ajetaan Pytest ja kerätään kattavuusdata (ei kaatumista fail-underiin vielä)
         cmd = ["uv", "run", "pytest", test_path, "-v", "--tb=short", f"--cov={cov_target}", "--cov-fail-under=0"]
@@ -73,10 +76,13 @@ def run_tests_with_strict_coverage(target):
             result = subprocess.run(coverage_cmd)
     else:
         parts = target.replace("\\", "/").strip("/").split("/")
-        if parts[0] == "backend_v2":
-            test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
+        if "tests" in parts:
+            test_path = target.replace("\\", "/")
         else:
-            test_path = "tests/" + "/".join(parts)
+            if parts[0] == "backend_v2":
+                test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
+            else:
+                test_path = "tests/" + "/".join(parts)
             
         cmd = ["uv", "run", "pytest", test_path, "-v", "--tb=short", f"--cov={cov_target}", "--cov-fail-under=30", "--cov-report=term-missing"]
         result = subprocess.run(cmd)
