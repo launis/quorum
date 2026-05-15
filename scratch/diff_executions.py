@@ -1,5 +1,7 @@
 import json
 import os
+import sys
+import glob
 
 def get_all_evals(path):
     with open(path, 'r', encoding='utf-8') as f:
@@ -11,9 +13,22 @@ def get_all_evals(path):
                 all_evals[e['atom_id']] = e
     return all_evals
 
-# Lataa 2 ristiinajon tulokset
-evals_1 = get_all_evals('data/files/executions/exe_4a629f699cf8487cb092a87e685c7a2b/execution_trace.json')
-evals_2 = get_all_evals('data/files/executions/exe_6c6366f0333540c786e2ae93f8c9aad4/execution_trace.json')
+# Automaattinen viimeisimpien ajojen haku
+exe_dirs = glob.glob('data/files/executions/exe_*')
+exe_dirs.sort(key=os.path.getmtime, reverse=True)
+
+if len(sys.argv) == 3:
+    exe_1_id = sys.argv[1]
+    exe_2_id = sys.argv[2]
+    evals_1 = get_all_evals(f'data/files/executions/{exe_1_id}/execution_trace.json')
+    evals_2 = get_all_evals(f'data/files/executions/{exe_2_id}/execution_trace.json')
+elif len(exe_dirs) >= 2:
+    print(f"Löydettiin automaattisesti kaksi tuoreinta ajoa: {os.path.basename(exe_dirs[1])} ja {os.path.basename(exe_dirs[0])}")
+    evals_1 = get_all_evals(os.path.join(exe_dirs[1], 'execution_trace.json'))
+    evals_2 = get_all_evals(os.path.join(exe_dirs[0], 'execution_trace.json'))
+else:
+    print("Ei löydetty tarpeeksi ajoja. Määritä ID:t komentoriviltä tai aja ensin kaksi ajoa.")
+    sys.exit(1)
 
 # Etsi yhteiset atomit
 common_atoms = set(evals_1.keys()).intersection(set(evals_2.keys()))

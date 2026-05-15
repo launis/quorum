@@ -54,7 +54,7 @@ Koska olemme tekemässä massiivisia asenne- ja sääntömuutoksia (`seed_data.j
         3. `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_seed_architectural_guardrails.py --test`
     *   *Peruutussuunnitelma (Rollback):* Jos testit kaatuvat (Pydantic ei hyväksy uusia sääntöjä), palauta vanha kanta komennolla: `Copy-Item data\db_v2_v4_backup.json data\db_v2.json -Force` (ja suorita lisäksi Vaiheen 1 peruutus).
 
-- [ ] **Vaihe 3: Tuotantoajo ja Varianssin Diffaus**
+- [x] **Vaihe 3: Tuotantoajo ja Varianssin Diffaus**
     *   *Toiminto:* Ajetaan TDA-putki uutta konfiguraatiota vastaan (esim. Sitra-aineisto).
     *   *Arkkitehtuurisäännöt:* Raskaat LLM-operaatiot eivät saa tukkia FastAPI:n pääsäiettä, vaan ne on ohjattava Arq-jonoon. Yhteyden aikakatkaisujen estämiseksi on käytettävä SSE-Heartbeatia pitkissä prosesseissa. Virhetilanteissa lokitetaan vain järjestelmän viite-ID (esim. `req_abc123`) ja poikkeuksen tyyppi. Asiakasdataa (PII) tai raakoja kehotteita ei saa koskaan kirjata lokiin.
     *   *Varmennus:* Ajetaan diffaus (`scratch\diff_executions.py`) vertailemaan uutta ajoa vanhaan. Tavoitteena on nähdä haamuvarianssin putoaminen 0 %:iin.

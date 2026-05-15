@@ -25,6 +25,7 @@ def refactor_to_blind_syntax_v5_3():
         "<rule>MORPHO-SYNTACTIC DETERMINISM: You are a deterministic pattern-matching engine. "
         "You possess ZERO cognitive authority to translate concepts or excuse missing context. "
         "Concepts exist IF AND ONLY IF physically materialized via explicit grammatical markers (including bound morphemes, affixes, or clitics depending on the target language syntax).</rule>\n"
+        "<rule>TOPOLOGICAL DETERMINISM (FIRST MATCH MANDATE): If multiple instances of a syntactic anchor exist in the text, you MUST extract and evaluate the FIRST chronological occurrence from the top of the text. Never skip to later examples. This guarantees 100% deterministic parity.</rule>\n"
         "<rule>STRUCTURAL TOPOLOGY & BRIDGING: Arbitrary paragraph breaks completely sever grammatical chains. "
         "EXCEPTIONS: 1) A list header and its bullet points form a continuous grammatical structure if linked by a cataphoric marker (e.g., ':'). 2) Sentences bridged by explicit anaphora or discourse markers (e.g., 'This implies', 'Therefore'). "
         "3) In structured tables or key-value lists, the column divider (|) or layout acts as an implicit relational verb (e.g., IS, HAS, CAUSES). "
@@ -43,60 +44,59 @@ def refactor_to_blind_syntax_v5_3():
     updated_atoms = 0
 
     for block in data.get('prompt_blocks', []):
-        if block.get('is_evaluative'):
-            desc = block.get('ai_description', '')
+        desc = block.get('ai_description', '')
+        
+        # Puhdistetaan aiemmat injektiot (Täysin idempotentti ajo)
+        desc = re.sub(r'<global_framework>.*?</global_framework>\s*', '', desc, flags=re.DOTALL)
+        # Puhdistetaan myös mahdolliset aiemmat V5.1/V5.2 kokeilut varmuuden vuoksi
+        desc = re.sub(r'<rule>MORPHO-SYNTACTIC.*?</rule>\s*', '', desc, flags=re.DOTALL)
+        desc = re.sub(r'<rule>TOPOLOGICAL.*?</rule>\s*', '', desc, flags=re.DOTALL)
+        desc = re.sub(r'<rule>STRUCTURAL TOPOLOGY.*?</rule>\s*', '', desc, flags=re.DOTALL)
+        desc = re.sub(r'<rule>ANTI-LAWYER.*?</rule>\s*', '', desc, flags=re.DOTALL)
+        desc = re.sub(r'<rule>CONSTRAINED PARSING.*?</rule>\s*', '', desc, flags=re.DOTALL)
+        desc = re.sub(r'<rule>GRAMMAR-BASED.*?</rule>\s*', '', desc, flags=re.DOTALL)
+        desc = re.sub(r'<rules>\s*</rules>\s*', '', desc, flags=re.DOTALL)
+
+        # Injektoidaan uusi framework blokin alkuun
+        desc = f"{global_framework}\n\n{desc.strip()}"
             
-            # Puhdistetaan aiemmat injektiot (Täysin idempotentti ajo)
-            desc = re.sub(r'<global_framework>.*?</global_framework>\s*', '', desc, flags=re.DOTALL)
-            # Puhdistetaan myös mahdolliset aiemmat V5.1/V5.2 kokeilut varmuuden vuoksi
-            desc = re.sub(r'<rule>MORPHO-SYNTACTIC.*?</rule>\s*', '', desc, flags=re.DOTALL)
-            desc = re.sub(r'<rule>TOPOLOGICAL.*?</rule>\s*', '', desc, flags=re.DOTALL)
-            desc = re.sub(r'<rule>STRUCTURAL TOPOLOGY.*?</rule>\s*', '', desc, flags=re.DOTALL)
-            desc = re.sub(r'<rule>ANTI-LAWYER.*?</rule>\s*', '', desc, flags=re.DOTALL)
-            desc = re.sub(r'<rule>CONSTRAINED PARSING.*?</rule>\s*', '', desc, flags=re.DOTALL)
-            desc = re.sub(r'<rule>GRAMMAR-BASED.*?</rule>\s*', '', desc, flags=re.DOTALL)
-            desc = re.sub(r'<rules>\s*</rules>\s*', '', desc, flags=re.DOTALL)
+        block['ai_description'] = desc
+        updated_blocks += 1
 
-            # Injektoidaan uusi framework blokin alkuun
-            desc = f"{global_framework}\n\n{desc.strip()}"
-                
-            block['ai_description'] = desc
-            updated_blocks += 1
-
-            # 2. TDA-ATOMIEN MUDONMUUTOS
-            if 'scales' in block:
-                for scale in block.get('scales', []):
-                    for claim in scale.get('claims', []):
-                        for tda in claim.get('tda_assertions', []):
-                            rule = tda.get('ai_rule_description', '')
-                            original_rule = rule
-                            
-                            rule = rule.replace("STEP 1 (Lexical Anchor):", "STEP 1 (Syntactic Anchor):")
-                            
-                            # Turvallinen regex TRACE REQUIREMENT ja ENFORCEMENT MANDATE poistamiseen
-                            split_regex = r'(?i)\s*(?:TRACE REQUIREMENT|ENFORCEMENT MANDATE|ENFORCEMENT RULE):'
-                            parts = re.split(split_regex, rule)
-                            
-                            base_rule = parts[0].strip()
-                            
-                            # Kahlittu lokitus
-                            new_trace = (
-                                "TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework."
-                            )
-                            
-                            # UUSI MANDAATTI (Tukee negatiivisia Vice-sääntöjä)
-                            new_mandate = (
-                                "ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. "
-                                "IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. "
-                                "If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. "
-                                "Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails."
-                            )
-                            
-                            new_full_rule = f"{base_rule} {new_trace} {new_mandate}"
-                            
-                            if new_full_rule != original_rule:
-                                tda['ai_rule_description'] = new_full_rule
-                                updated_atoms += 1
+        # 2. TDA-ATOMIEN MUDONMUUTOS
+        if 'scales' in block:
+            for scale in block.get('scales', []):
+                for claim in scale.get('claims', []):
+                    for tda in claim.get('tda_assertions', []):
+                        rule = tda.get('ai_rule_description', '')
+                        original_rule = rule
+                        
+                        rule = rule.replace("STEP 1 (Lexical Anchor):", "STEP 1 (Syntactic Anchor):")
+                        
+                        # Turvallinen regex TRACE REQUIREMENT ja ENFORCEMENT MANDATE poistamiseen
+                        split_regex = r'(?i)\s*(?:TRACE REQUIREMENT|ENFORCEMENT MANDATE|ENFORCEMENT RULE):'
+                        parts = re.split(split_regex, rule)
+                        
+                        base_rule = parts[0].strip()
+                        
+                        # Kahlittu lokitus
+                        new_trace = (
+                            "TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework."
+                        )
+                        
+                        # UUSI MANDAATTI (Tukee negatiivisia Vice-sääntöjä)
+                        new_mandate = (
+                            "ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. "
+                            "IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. "
+                            "If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. "
+                            "Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails."
+                        )
+                        
+                        new_full_rule = f"{base_rule} {new_trace} {new_mandate}"
+                        
+                        if new_full_rule != original_rule:
+                            tda['ai_rule_description'] = new_full_rule
+                            updated_atoms += 1
 
     with open(db_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
