@@ -40,6 +40,9 @@ Järjestelmän arviointi luottaa atomisaatioon, missä matriisin kriteerit on va
 **Pydantic-mallinnus ja Deterministinen TDA-Seeding:**
 Arviointiohjeistukset perustuvat nykyään asiantuntijoiden valmiiksi kirjoittamiin `TDAAssertion` (Test-Driven Assertion) -sääntöihin, jotka ladataan suoraan `seed_data.json` -tiedostosta ilman lennosta tapahtuvaa AI-atomisointia. `PromptAtomizer` on täysin riisuttu LLM-riippuvuuksista, ja se tuottaa ajon aikana asiantuntijoiden `TDAAssertion`-säännöille ainoastaan satunnaiset, kryptografiset Opaque Stripe ID:t (esim. `tda_a1b2c3d4`). Aiempi tekoälyllä suoritettu "Deep Atomization" -vaihe ja sen purkkavirityksenä toiminut `atomization_cache.json` on tuhottu (Epic 48). Tämä takaa absoluuttisen matemaattisen determinismin ja täydellisen Fail-Fast -yhteensopivuuden.
 
+**Blind Extraction Doctrine (Epic 51 & 52):**
+Järjestelmä siirtyi V4.3-päivityksessä täydelliseen "Sokean Poimijan" arkkitehtuuriin. Tekoälyltä on **riistetty kognitiivinen tuomiovalta** (ACCEPT/REJECT). LLM ei enää palauta totuusarvoa (`rule_satisfied`), vaan se palauttaa ainoastaan fyysisiä todisteita: `mechanical_trace` (perusteluloki) ja `exact_quote` (suora lainaus). Lopullinen arvioinnin laskenta (esim. `calculate_rule_satisfied()`) suoritetaan 100 % deterministisesti kooditasolla Pydantic-backendissä. Tämä eliminoi LLM:n taipumuksen toimia "puolustusasianajajana", joka rationalisoi huonot osumat oikeiksi.
+
 ### TDA-väitteiden Optimaalinen Lukumäärä (Matemaattinen Triangulaatio)
 Järjestelmän lainsäädäntö pakottaa jokaiselle arviointisolulle **tasan kolme (3)** toisistaan riippumatonta (MECE) TDA-väitettä. Tämä arkkitehtuurinen rajoite on matemaattinen ja taloudellinen "sweet spot", joka perustuu kolmeen tieteelliseen pääperiaatteeseen:
 
@@ -114,11 +117,12 @@ Tämä fysiologinen "ylhäältä alas" -JSON-luku pakottaa automaattisen Attenti
 
 Tämä "Alphabetical Keys" -mekanismi pakottaa automaattisen Attention-mekanismin lukemaan omat perustelunsa (step 1-4) ennen arvion (step 5) generoimista, mikä tutkitusti eliminoi laiskan oikaisun ja vahvistaa determinismiä.
 
-### B. Anti-Laziness Pydantic Validations
-Kun LLM palauttaa vastauksen, Pydantic V2 `@model_validator(mode='after')` tekee ankaran ristitarkastuksen suoritetun työnkulun ankaruustason (`strictness_level`) ja `validation_context` -objektin avulla:
-* **Explicit Quote Check:** Jos `step_1_evidence_type` on `EXPLICIT_QUOTE`, järjestelmä vaatii, että `step_2_quote` on täytetty. Muutoin se hylkää vastauksen.
+### B. Anti-Laziness ja Phantom Boolean -estot (Pydantic Validations)
+Kun LLM palauttaa vastauksen, Pydantic V2 tekee ankaran ristitarkastuksen suoritetun työnkulun ankaruustason (`strictness_level`) ja fyysisten todisteiden avulla:
+* **Phantom Boolean -esto (Haamuarvojen Sanitointi):** Estää LLM-hallusinaatiot, joissa malli ei löydä lainausta ja "vuotaa" kenttään merkkijonoja kuten `"null"`, `"N/A"`, tai `"Ei löydy"`. Järjestelmä käyttää `@computed_field evidence_found` -sanitointia: jos `exact_quote.strip().lower()` osuu sulkulistalle (`["none", "ei löydy", "[]", "false", ...]`), osuma tulkitaan automaattisesti arvoon `False`.
+* **Explicit Quote Check:** Jos sääntö vaatii suoran lainauksen, järjestelmä vaatii, että `exact_quote` on täytetty Pydantic-mallissa (`AtomEvaluationItemDTO`). Jos lainausta ei ole (tai se sanitoitiin pois), tila on deterministisesti `False` (`calculate_rule_satisfied()`).
 * **Physical Word-Count Blocker:** Jos näyttö perustuu implisiittiseen päättelyyn (`IMPLIED_INTENT`), järjestelmä estää "konsulttipuheen" asettamalla fyysisen sanamäärärajan (esim. vähintään 20 sanaa). Jos selitys on laiska (esim. "Perustuu rivien välistä luettuun dataan"), Pydantic nostaa `ValueError` -virheen.
-* **Strictness Threshold (>= 70):** Mikäli työnkulun käyttäjä on asettanut ankaruustasoksi vähintään 70, `IMPLIED_INTENT` hylätään automaattisesti kokonaan. Tällöin vain `EXPLICIT_QUOTE` tai `NO_EVIDENCE` hyväksytään järjestelmään, mikä muuttaa koko tekoälyn laskennan armottoman faktapohjaiseksi auditointikoneeksi ilman tulkinnanvaraisuuksia.
+* **Strictness Threshold (>= 70):** Mikäli työnkulun käyttäjä on asettanut ankaruustasoksi vähintään 70, `IMPLIED_INTENT` hylätään automaattisesti kokonaan. Tällöin vain eksakti lainaus hyväksytään järjestelmään, mikä muuttaa koko tekoälyn laskennan armottoman faktapohjaiseksi auditointikoneeksi ilman tulkinnanvaraisuuksia.
 
 ## 4. Pisteytyslogiikka: Soft Scoring V3 (Lerp, Sigmoid, MAD) ja Kireystasot
 
