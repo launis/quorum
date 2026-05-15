@@ -3,11 +3,11 @@
 Tämä seurantatiedosto sisältää ne askeleet (matriisit/skaalat) ja atomit, joissa ilmeni semanttista varianssia kolmen identtisen ajon (fd7, a91, e3b) välillä.
 Kaikki alla olevat rakenteet tulee refaktoroida noudattamaan V4-sääntöjä (adjektiivien kielto, roolien lukitus, no-lazy ankkurointi).
 
-## Rakenne: matrix_archivist (Scale 1, Claim 0) [NOK-V4]
-- [ ] Atomi: tda_124b527ae45f5571
+## Rakenne: matrix_archivist (Scale 1, Claim 0) [OK]
+- [x] Atomi: tda_124b527ae45f5571
 
-## Rakenne: matrix_archivist (Scale 2, Claim 0) [NOK-V4]
-- [ ] Atomi: tda_d4d5a3eef60bc236
+## Rakenne: matrix_archivist (Scale 2, Claim 0) [OK]
+- [x] Atomi: tda_6be555cac0b9115b
 
 ## Rakenne: matrix_archivist (Scale 2, Claim 1) [NOK-V4]
 - [ ] Atomi: tda_c6631136c9b7f482
