@@ -9,8 +9,8 @@ Kaikki alla olevat rakenteet tulee refaktoroida noudattamaan V4-sääntöjä (ad
 ## Rakenne: matrix_archivist (Scale 2, Claim 0) [OK]
 - [x] Atomi: tda_6be555cac0b9115b
 
-## Rakenne: matrix_archivist (Scale 2, Claim 1) [NOK-V4]
-- [ ] Atomi: tda_c6631136c9b7f482
+## Rakenne: matrix_archivist (Scale 2, Claim 1) [OK]
+- [x] Atomi: tda_50d614006cd53384
 
 ## Rakenne: matrix_bloom (Scale 3, Claim 2) [NOK-V4]
 - [ ] Atomi: tda_5370525dc4c143a4
