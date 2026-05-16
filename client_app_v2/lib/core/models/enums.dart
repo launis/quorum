@@ -143,3 +143,17 @@ enum AggregationMode {
   @JsonValue('ALL_MUST_COMPLY')
   allMustComply,
 }
+
+/// Epic 55: Execution Personas
+@JsonEnum()
+enum ExecutionPersona {
+  @JsonValue('DETERMINISTIC_PARSER')
+  deterministicParser,
+  @JsonValue('GENERATIVE_ASSISTANT')
+  generativeAssistant,
+  @JsonValue('XAI_REPORTER')
+  xaiReporter,
+  @JsonValue('COACH')
+  coach,
+}
+

@@ -46,6 +46,7 @@ class LightweightMatrixOutput(V2CoreBase):
             extensions = {}
 
         mapping = {
+            "step_1_reasoning_trace": "justification",
             "step_1_evidence_quote": "citation",
             "step_1b_cited_source_id": "source_id",
             "step_1c_google_citation": "citation",
@@ -78,14 +79,17 @@ class AtomEvaluationItemDTO(V2CoreBase):
 
     atom_id: str
     mechanical_trace: str = ""
-    exact_quote: str = ""
-    pre_quote_anchor: str = ""
-    post_quote_anchor: str = ""
+    exact_quote: str | None = None
+    pre_quote_anchor: str | None = None
+    post_quote_anchor: str | None = None
     dlq_status: bool = False
 
     @property
     def evidence_found(self) -> bool:
         """Phantom Boolean -esto: Sanitoi LLM:n tuottamat haamu-nullit."""
+        if self.exact_quote is None:
+            return False
+            
         blacklist = {
             "null",
             "none",

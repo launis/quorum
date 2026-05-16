@@ -1,3 +1,4 @@
+import hashlib
 from collections.abc import Awaitable
 from typing import Any, cast
 
@@ -7,7 +8,10 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.scoring import normalize_matrix_scores_hook
 from backend_v2.models.enums import XaiExtensionType
-from backend_v2.utils.hashing import generate_atom_hash
+
+
+def generate_atom_hash(text: str, mandate: Any = None) -> str:
+    return f"tda_{hashlib.md5(text.encode()).hexdigest()[:16]}"
 
 
 def _build_valid_scale(score: Any, micro_atoms: list[str] | None = None) -> dict[str, Any]:
@@ -19,7 +23,7 @@ def _build_valid_scale(score: Any, micro_atoms: list[str] | None = None) -> dict
                 "ai_description": "Test Claim Desc",
                 "tda_assertions": [
                     {
-                        "tda_id": f"atom_{atom}",
+                        "tda_id": f"tda_{hashlib.md5(atom.encode()).hexdigest()[:16]}",
                         "ai_rule_description": atom,
                         "inverse_evidence": False,
                         "aggregation_mode": "EXISTS",

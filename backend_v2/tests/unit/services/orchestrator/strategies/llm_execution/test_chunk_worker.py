@@ -60,13 +60,13 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
                                 "ai_description": "Claim 1 Desc",
                                 "tda_assertions": [
                                     {
-                                        "tda_id": "atom_1",
+                                        "tda_id": "tda_1111111111111111",
                                         "ai_rule_description": "Atom 1",
                                         "inverse_evidence": False,
                                         "aggregation_mode": "EXISTS",
                                     },
                                     {
-                                        "tda_id": "atom_2",
+                                        "tda_id": "tda_2222222222222222",
                                         "ai_rule_description": "Atom 2",
                                         "inverse_evidence": False,
                                         "aggregation_mode": "EXISTS",

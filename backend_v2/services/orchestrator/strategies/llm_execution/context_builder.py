@@ -134,7 +134,7 @@ class ContextBuilder:
                         pruned_steps[s_id] = ContextBuilder._process_trace_dtos(
                             step_dtos, output_profile, step_type, schema_map
                         )
-                    return f"<matrix_data>\n{json.dumps(pruned_steps)}\n</matrix_data>"
+                    return f"<matrix_data>\n{json.dumps(pruned_steps, ensure_ascii=False)}\n</matrix_data>"
 
                 if clean_path == "steps":
                     dto_list = state_data.get("steps", [])
@@ -157,7 +157,7 @@ class ContextBuilder:
 
                     if len(parts) == 2:
                         pruned_dict = ContextBuilder._process_trace_dtos(dtos, output_profile, step_type, schema_map)
-                        resolved_value = f"<matrix_data>\n{json.dumps(pruned_dict)}\n</matrix_data>"
+                        resolved_value = f"<matrix_data>\n{json.dumps(pruned_dict, ensure_ascii=False)}\n</matrix_data>"
                     elif len(parts) == 3:
                         # Exact block match
                         block_key = parts[2]

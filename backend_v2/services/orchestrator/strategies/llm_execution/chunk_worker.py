@@ -105,6 +105,8 @@ class ChunkWorker:
                 f"{strictness_instruction}\n</STRICTNESS_CALIBRATION>\n</execution_parameters>"
             )
 
+            persona = chunk_criteria[0].execution_persona if chunk_criteria else None
+            
             messages = [
                 {"role": "system", "content": local_system_prompt},
                 {"role": "user", "content": user_msg},
@@ -126,7 +128,7 @@ class ChunkWorker:
                     mock_identity=step_id,
                     target_language=target_locale,
                     synthesis_instructions=synthesis_instructions,
-                    validation_context={"strictness_level": strictness_level},
+                    validation_context={"strictness_level": strictness_level, "source_text": local_payload, "persona": persona},
                 )
                 if isinstance(loop_res.result_data, BaseModel):
                     chunk_final = loop_res.result_data.model_dump(mode="json")
@@ -144,7 +146,7 @@ class ChunkWorker:
                         response_model=SduiResponseList,
                         mock_identity=step_id,
                         max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
-                        validation_context={"strictness_level": strictness_level},
+                        validation_context={"strictness_level": strictness_level, "source_text": local_payload, "persona": persona},
                     )
                     chunk_final = {"blocks": result.model_dump(mode="json")}
                 else:
@@ -154,7 +156,7 @@ class ChunkWorker:
                         response_model=local_dynamic_schema,
                         mock_identity=step_id,
                         max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
-                        validation_context={"strictness_level": strictness_level},
+                        validation_context={"strictness_level": strictness_level, "source_text": local_payload, "persona": persona},
                     )
                     chunk_final = result.model_dump(mode="json")
 

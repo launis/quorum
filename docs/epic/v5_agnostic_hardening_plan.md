@@ -65,6 +65,6 @@ Koska olemme tekemässä massiivisia asenne- ja sääntömuutoksia (`seed_data.j
     *   *Arkkitehtuurisäännöt:* **Prompt Compiler on jäädytetty arkkitehtuurin kulmakivi.** Sitä ei saa oletusarvoisesti muokata. Kaikkiin muutoksiin `prompt_compiler.py`-tiedostossa on pakollista kysyä käyttäjältä erikseen lupa (USER CONFIRMATION) ja liputtaa muutos selkeästi ennen toteutusta. Kaikkien tekoälylle syötettyjen dynaamisten parametrien tulee olla suljettuna nimenomaisiin XML-tageihin (kuten `<execution_parameters>`) ja järjestelmäohjeiden tulee olla pelkästään englanniksi.
     *   *Peruutussuunnitelma (Rollback):* Palauta `prompt_compiler.py` aiempaan tilaansa.
 
-- [ ] **Vaihe 5: Backend Lexical Verifier (Mekaaninen TDA)**
+- [x] **Vaihe 5: Backend Lexical Verifier (Mekaaninen TDA)**
     *   *Toiminto:* Kytketään backend-tason fyysinen tarkistus (`AnchorValidationService`), joka hylkää LLM:n palauttaman osuman välittömästi, jos sitä ei löydy normalisoidusta lähdetekstistä.
     *   *Arkkitehtuurisäännöt:* Universal Fail-Fast -vaatimus. Dataa ei saa koskaan niellä hiljaisesti tyhjillä `try...except` -lohkoilla. Jos leksikaalinen vertailu epäonnistuu, prosessin tulee pysähtyä, virhe tulee lokittaa natiivisti `logger.error`:lla ja palauttaa eksplisiittisenä `AppException`-virheenä RFC 7807 -muodossa. Leksikaalinen vertailija ei saa käyttää naiivia purkkakoodia.

@@ -57,6 +57,11 @@ class ChunkAccumulator:
             except ValidationError as e:
                 logger.error("ChunkAccumulator: Validation failed, marking as DLQ. Error: %s", e)
                 raw_ev["dlq_status"] = True
+                # Sanitize nulls so that subsequent Fail-Fast validations (like ScoringHook)
+                # don't crash the entire execution, but correctly process the DLQ flag.
+                for key in ["mechanical_trace", "exact_quote", "pre_quote_anchor", "post_quote_anchor"]:
+                    if raw_ev.get(key) is None:
+                        raw_ev[key] = ""
                 final_evals.append(raw_ev)
                 continue
 

@@ -29,7 +29,7 @@ class LLMTaskExecutor:
         messages: list[dict[str, Any]],
         response_model: type[T],
         max_schema_retries: int = 2,
-        max_logical_retries: int = 1,
+        max_logical_retries: int = 2,
         validator_hook: Callable[[T], Awaitable[None]] | None = None,
         mock_identity: str | None = None,
         validation_context: dict[str, Any] | None = None,
@@ -77,6 +77,40 @@ class LLMTaskExecutor:
                 # Asynchronous Domain Validation
                 if validator_hook:
                     await validator_hook(validated_model)
+
+                # --- SYSTEM-WIDE LEXICAL VERIFIER (FAIL-FAST) ---
+                if validation_context and "source_text" in validation_context:
+                    source_text = validation_context["source_text"]
+                    persona = validation_context.get("persona")
+                    
+                    from backend_v2.models.enums import ExecutionPersona
+                    if not persona or persona == ExecutionPersona.DETERMINISTIC_PARSER:
+                        if hasattr(validated_model, "model_dump"):
+                            from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+
+                        def validate_recursive(data: Any, src_text: str) -> None:
+                            if isinstance(data, dict):
+                                for k, v in data.items():
+                                    # Target any extraction field known to contain verbatim quotes
+                                    is_quote_key = k in [
+                                        "exact_quote",
+                                        "step_2_quote",
+                                        "step_1_evidence_quote",
+                                    ]
+                                    if is_quote_key and isinstance(v, str) and v.strip():
+                                        from backend_v2.exceptions import LogicalValidationError, SemanticEvidenceError
+
+                                        try:
+                                            AnchorValidationService.validate_evidence(src_text, v)
+                                        except SemanticEvidenceError as e:
+                                            raise LogicalValidationError(validation_error_msg=e.message) from e
+                                    elif isinstance(v, (dict, list)):
+                                        validate_recursive(v, src_text)
+                            elif isinstance(data, list):
+                                for item in data:
+                                    validate_recursive(item, src_text)
+
+                        validate_recursive(validated_model.model_dump(), source_text)
 
                 # Success, log Healing Rate if applicable
                 if attempt > 0:

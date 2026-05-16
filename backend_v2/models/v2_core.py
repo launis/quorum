@@ -3,6 +3,7 @@ Implements dynamic, append-only, and I18N-capable models according to V2 specs.
 """
 
 import logging
+import secrets
 from datetime import datetime, timezone
 from typing import Annotated, Any, Literal, cast
 
@@ -15,10 +16,12 @@ from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import (
     BlockDataType,
     ComponentType,
+    ExecutionPersona,
     ExecutionStatus,
     HistoricalContextMode,
     LaxBlockDataType,
     LaxComponentType,
+    LaxExecutionPersona,
     LaxExecutionStatus,
     LaxHistoricalContextMode,
     LaxScoringStrategy,
@@ -127,7 +130,11 @@ class TheoryGrounding(V2CoreBase):
 class TDAAssertion(V2CoreBase):
     """Deterministic rule evaluated by the backend."""
 
-    tda_id: str = Field(description="Opaque Stripe ID for this assertion.")
+    tda_id: str = Field(
+        default_factory=lambda: f"tda_{secrets.token_hex(8)}",
+        pattern=r"^tda_[a-f0-9]{16}$",
+        description="Opaque Stripe ID for this assertion.",
+    )
     ai_rule_description: str = Field(description="Strict enforcement rule.")
     inverse_evidence: bool = Field(description="If True, acts as a poison/penalty detector.")
     aggregation_mode: Literal["EXISTS", "ALL_MUST_COMPLY"] = Field(description="Aggregation constraint.")
@@ -204,6 +211,10 @@ class PromptBlock(V2CoreBase):
     output_extensions: list[str] = Field(
         default_factory=list,
         description="List of requested XAI output extensions (e.g. 'justification', 'risk_flag').",
+    )
+    execution_persona: LaxExecutionPersona = Field(
+        default=ExecutionPersona.DETERMINISTIC_PARSER,
+        description="Epic 55 SSOT Directive Injection. Defines the global system prompt rules applied to this block."
     )
     theory_grounding: TheoryGrounding | None = Field(
         default=None,

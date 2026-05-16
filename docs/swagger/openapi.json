@@ -6511,6 +6511,7 @@
         "properties": {
           "tda_id": {
             "type": "string",
+            "pattern": "^tda_[a-f0-9]{16}$",
             "title": "Tda Id",
             "description": "Opaque Stripe ID for this assertion."
           },
@@ -6537,7 +6538,6 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "tda_id",
           "ai_rule_description",
           "inverse_evidence",
           "aggregation_mode"

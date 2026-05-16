@@ -373,6 +373,11 @@ class PromptCompiler:
 
         def make_micro_cot_base(_cid: str, _citation_ref: str | None = None) -> type[BaseModel]:
             class MicroCotBase(BaseModel):
+                step_1_reasoning_trace: str = Field(
+                    ...,
+                    description="Matrix-specific reasoning trace. If irrelevant, state 'Irrelevant'.",
+                )
+
                 @model_validator(mode="before")
                 @classmethod
                 def heal_citations(cls, data: Any) -> Any:
@@ -422,25 +427,38 @@ class PromptCompiler:
             class AtomResponse(BaseModel):
                 model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
                 atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")
-                exact_quote: str = Field(
-                    ..., description="The exact quote if evidence was found, otherwise empty string."
+                exact_quote: str | None = Field(
+                    default=None,
+                    description=(
+                        "The EXACT VERBATIM QUOTE if evidence was found. "
+                        "You MUST NOT add markdown (**), summarize, or alter the text. "
+                        "Must be a physically contiguous substring. Otherwise return null."
+                    ),
                 )
-                pre_quote_anchor: str = Field(..., description="5 words before the exact quote, or empty.")
-                post_quote_anchor: str = Field(..., description="5 words after the exact quote, or empty.")
+                pre_quote_anchor: str | None = Field(
+                    default=None, description="5 words before the exact quote, or null."
+                )
+                post_quote_anchor: str | None = Field(
+                    default=None, description="5 words after the exact quote, or null."
+                )
                 mechanical_trace: str = Field(..., alias="step_1_mechanical_trace", description="Your reasoning trace.")
 
             fields["evaluations"] = (list[AtomResponse], Field(..., description="Array of blinded evaluations."))
 
         for crit in criteria:
-            if crit.get("type") == "instruction":
-                continue
-
             crit_id_raw = crit.get("id")
             if not crit_id_raw or not isinstance(crit_id_raw, str):
                 logger.warning("[PromptCompiler] Found criterion without a valid string 'id': %s. Skipping.", crit)
                 continue
 
             crit_id = crit_id_raw
+
+            if crit.get("category_id") == "instruction":
+                fields[crit_id] = (
+                    str,
+                    Field(..., description=f"Execute the synthesis/reporting instruction. MANDATORY LANGUAGE: '{target_locale}'")
+                )
+                continue
 
             try:
                 _label_obj = crit["label"]
@@ -464,10 +482,10 @@ class PromptCompiler:
                     Field(
                         default=None,
                         description=(
-                            "Provide an exact verbatim quote or a strong semantic justification "
-                            "from the user's RAW INPUT TEXT that serves as empirical evidence. "
-                            "AI-generated pure hallucinations are strictly forbidden. "
-                            "If no evidence or connection exists, return null."
+                            "Provide an EXACT VERBATIM QUOTE from the user's RAW INPUT TEXT that serves as evidence. "
+                            "You MUST NOT alter the text, add markdown formatting, or write semantic summaries. "
+                            "It must be a physically contiguous substring of the original text. "
+                            "If no explicit verbatim evidence exists, return null."
                         ),
                     ),
                 )
@@ -537,7 +555,7 @@ class PromptCompiler:
                 sub_fields["extension_confidence"] = (
                     float,
                     Field(
-                        ..., ge=0.0, le=100.0, description="Numerical confidence from 0.0 to 100.0 based on evidence."
+                        ..., description="Numerical confidence from 0.0 to 100.0 based on evidence."
                     ),
                 )
             if "missing_context" in extensions:
@@ -545,7 +563,7 @@ class PromptCompiler:
                     str,
                     Field(
                         ...,
-                        description=f"Missing context from the provided text. MANDATORY LANGUAGE: '{target_locale}'.",
+                        description="Missing context from the provided text.",
                     ),
                 )
             if "risk_flag" in extensions:
@@ -559,8 +577,7 @@ class PromptCompiler:
                     Field(
                         ...,
                         description=(
-                            "Actionable textual remediation steps, formatted clearly and separated by newlines. "
-                            f"MANDATORY LANGUAGE: '{target_locale}'."
+                            "Actionable textual remediation steps, formatted clearly and separated by newlines."
                         ),
                     ),
                 )
@@ -570,7 +587,7 @@ class PromptCompiler:
                     Field(
                         ...,
                         description=(
-                            f"Analysis of author's emotional state or tone. MANDATORY LANGUAGE: '{target_locale}'."
+                            "Analysis of author's emotional state or tone."
                         ),
                     ),
                 )
@@ -580,8 +597,7 @@ class PromptCompiler:
                     Field(
                         ...,
                         description=(
-                            "Direct logical connection to the governing theory framework. "
-                            f"MANDATORY LANGUAGE: '{target_locale}'."
+                            "Direct logical connection to the governing theory framework."
                         ),
                     ),
                 )
@@ -594,7 +610,7 @@ class PromptCompiler:
                 __config__=ConfigDict(extra="forbid", strict=True),
                 **sub_fields,
             )
-            desc_val = f"Evaluation object for {crit_id}"
+            desc_val = f"Evaluation object for {crit_id}. Even if there is no relevance, you MUST return this object and state 'Irrelevant' in the reasoning_trace."
             fields[crit_id] = (NestedModel, Field(..., description=desc_val))
 
         if not fields:
@@ -626,8 +642,16 @@ class PromptCompiler:
             ) from e
 
     def compile_xml_rubrics(self, criteria: list[PromptBlock], target_locale: str) -> str:
-        """Epic 12: Generates Thick XML/Markdown rubrics for the System Prompt."""
-        xml_blocks = ["<EVALUATION_RUBRICS>"]
+        """Epic 12/55: Generates Thick XML/Markdown rubrics for the System Prompt with Persona SSOT."""
+        from backend_v2.core.system_directives import get_directive_for_persona
+        from backend_v2.models.enums import ExecutionPersona
+
+        persona = ExecutionPersona.DETERMINISTIC_PARSER
+        if criteria:
+            persona = criteria[0].execution_persona
+
+        xml_blocks = [get_directive_for_persona(persona)]
+        xml_blocks.append("<EVALUATION_RUBRICS>")
         for crit in criteria:
             if crit.type == "instruction":
                 continue
@@ -927,6 +951,9 @@ class PromptCompiler:
                 "Your previous response was structurally valid JSON, but failed domain-specific logical validation:\n"
                 f"Error: {error_msg}\n\n"
                 "You MUST adhere strictly to the cognitive directives and logical constraints. "
+                "CRITICAL: If the error mentions 'exact_quote', you MUST provide a physically contiguous, "
+                "VERBATIM substring from the source text (without ANY markdown or alterations). "
+                "If no such verbatim string exists, you MUST return null or an empty string.\n"
                 "Regenerate your response ensuring all logical validations pass."
             )
 

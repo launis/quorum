@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$I18nText {
 
- String get defaultLocale; Map<String, String> get translations;
+@JsonKey(name: 'default_locale') String get defaultLocale; Map<String, String> get translations;
 /// Create a copy of I18nText
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $I18nTextCopyWith<$Res>  {
   factory $I18nTextCopyWith(I18nText value, $Res Function(I18nText) _then) = _$I18nTextCopyWithImpl;
 @useResult
 $Res call({
- String defaultLocale, Map<String, String> translations
+@JsonKey(name: 'default_locale') String defaultLocale, Map<String, String> translations
 });
 
 
@@ -154,7 +154,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String defaultLocale,  Map<String, String> translations)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'default_locale')  String defaultLocale,  Map<String, String> translations)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _I18nText() when $default != null:
 return $default(_that.defaultLocale,_that.translations);case _:
@@ -175,7 +175,7 @@ return $default(_that.defaultLocale,_that.translations);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String defaultLocale,  Map<String, String> translations)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'default_locale')  String defaultLocale,  Map<String, String> translations)  $default,) {final _that = this;
 switch (_that) {
 case _I18nText():
 return $default(_that.defaultLocale,_that.translations);case _:
@@ -195,7 +195,7 @@ return $default(_that.defaultLocale,_that.translations);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String defaultLocale,  Map<String, String> translations)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'default_locale')  String defaultLocale,  Map<String, String> translations)?  $default,) {final _that = this;
 switch (_that) {
 case _I18nText() when $default != null:
 return $default(_that.defaultLocale,_that.translations);case _:
@@ -210,10 +210,10 @@ return $default(_that.defaultLocale,_that.translations);case _:
 @JsonSerializable()
 
 class _I18nText extends I18nText {
-  const _I18nText({this.defaultLocale = 'en', final  Map<String, String> translations = const {'en' : ''}}): _translations = translations,super._();
+  const _I18nText({@JsonKey(name: 'default_locale') this.defaultLocale = 'en', final  Map<String, String> translations = const {'en' : ''}}): _translations = translations,super._();
   factory _I18nText.fromJson(Map<String, dynamic> json) => _$I18nTextFromJson(json);
 
-@override@JsonKey() final  String defaultLocale;
+@override@JsonKey(name: 'default_locale') final  String defaultLocale;
  final  Map<String, String> _translations;
 @override@JsonKey() Map<String, String> get translations {
   if (_translations is EqualUnmodifiableMapView) return _translations;
@@ -255,7 +255,7 @@ abstract mixin class _$I18nTextCopyWith<$Res> implements $I18nTextCopyWith<$Res>
   factory _$I18nTextCopyWith(_I18nText value, $Res Function(_I18nText) _then) = __$I18nTextCopyWithImpl;
 @override @useResult
 $Res call({
- String defaultLocale, Map<String, String> translations
+@JsonKey(name: 'default_locale') String defaultLocale, Map<String, String> translations
 });
 
 

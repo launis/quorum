@@ -9,23 +9,26 @@ def test_tda_assertion_validation() -> None:
     """Strict test verifying the inverse_evidence mathematical logic constraint."""
     # Should pass
     valid = TDAAssertion(
-        tda_id="tda_12345678",
+        tda_id="tda_1234567812345678",
         ai_rule_description="Test rule",
         inverse_evidence=False,
         aggregation_mode="ALL_MUST_COMPLY",
     )
-    assert valid.tda_id == "tda_12345678"
+    assert valid.tda_id == "tda_1234567812345678"
 
     # Should pass
     valid_inverse = TDAAssertion(
-        tda_id="tda_87654321", ai_rule_description="Poison test", inverse_evidence=True, aggregation_mode="EXISTS"
+        tda_id="tda_8765432187654321",
+        ai_rule_description="Poison test",
+        inverse_evidence=True,
+        aggregation_mode="EXISTS",
     )
     assert valid_inverse.aggregation_mode == "EXISTS"
 
     # Should fail-fast
     with pytest.raises(ValidationError) as exc:
         TDAAssertion(
-            tda_id="tda_bad123",
+            tda_id="tda_abcdef1234567890",
             ai_rule_description="Invalid poison test",
             inverse_evidence=True,
             aggregation_mode="ALL_MUST_COMPLY",
@@ -38,14 +41,13 @@ async def test_atomizer_deterministic_mapping() -> None:
     """Test the O(1) deterministic mapping of TDA assertions in PromptAtomizer."""
     # Arrange
     tda1 = TDAAssertion(
-        tda_id="",  # Intentionally empty to test entropy generation
         ai_rule_description="Rule 1",
         inverse_evidence=False,
         aggregation_mode="ALL_MUST_COMPLY",
     )
 
     tda2 = TDAAssertion(
-        tda_id="tda_preset12",  # Intentionally preset to test persistence
+        tda_id="tda_1234123412341234",  # Intentionally preset to test persistence
         ai_rule_description="Rule 2",
         inverse_evidence=True,
         aggregation_mode="EXISTS",
@@ -90,4 +92,4 @@ async def test_atomizer_deterministic_mapping() -> None:
     assert len(updated_claim.tda_assertions[0].tda_id) >= 12
 
     # tda2 should retain its preset ID
-    assert updated_claim.tda_assertions[1].tda_id == "tda_preset12"
+    assert updated_claim.tda_assertions[1].tda_id == "tda_1234123412341234"

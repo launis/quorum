@@ -1,6 +1,7 @@
 // ignore_for_file: invalid_annotation_target
 import 'dart:convert';
 import 'dart:isolate';
+import 'package:uuid/uuid.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/utils/json_converters.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -68,6 +69,21 @@ abstract class TDAAssertion with _$TDAAssertion {
 
   factory TDAAssertion.fromJson(Map<String, dynamic> json) =>
       _$TDAAssertionFromJson(json);
+
+  /// Phase 2: Generates an Opaque Stripe ID automatically
+  factory TDAAssertion.create({
+    required String aiRuleDescription,
+    required bool inverseEvidence,
+    required AggregationMode aggregationMode,
+  }) {
+    final uuidHex = const Uuid().v4().replaceAll('-', '');
+    return TDAAssertion(
+      tdaId: 'tda_${uuidHex.substring(0, 16)}',
+      aiRuleDescription: aiRuleDescription,
+      inverseEvidence: inverseEvidence,
+      aggregationMode: aggregationMode,
+    );
+  }
 }
 
 @Freezed(equal: false)
@@ -136,6 +152,7 @@ abstract class PromptBlock with _$PromptBlock {
     @Default(BlockDataType.stringType) BlockDataType type,
     @Default(false) bool allowDecimals,
     @Default([]) List<String> outputExtensions,
+    @Default(ExecutionPersona.deterministicParser) ExecutionPersona executionPersona,
     TheoryGrounding? theoryGrounding,
     int? scaleMin,
     int? scaleMax,

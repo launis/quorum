@@ -54,7 +54,7 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
                         "ai_description": "bad",
                         "tda_assertions": [
                             {
-                                "tda_id": "tda_1",
+                                "tda_id": "tda_1111111111111111",
                                 "ai_rule_description": "bad",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "EXISTS",
@@ -72,7 +72,7 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
                         "ai_description": "good",
                         "tda_assertions": [
                             {
-                                "tda_id": "tda_2",
+                                "tda_id": "tda_2222222222222222",
                                 "ai_rule_description": "good",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "EXISTS",

@@ -144,6 +144,15 @@ class SystemLocale(str, Enum):
     FI = "fi"
 
 
+class ExecutionPersona(str, Enum):
+    """Execution Personas to inject SSOT global directives directly into System Prompts."""
+
+    DETERMINISTIC_PARSER = "DETERMINISTIC_PARSER"
+    GENERATIVE_ASSISTANT = "GENERATIVE_ASSISTANT"
+    XAI_REPORTER = "XAI_REPORTER"
+    COACH = "COACH"
+
+
 class SystemConcurrency(int, Enum):
     """Global concurrency limits for DAG Execution to prevent API Rate Limits."""
 
@@ -367,3 +376,4 @@ LaxComponentType = Annotated[ComponentType, Field(strict=False)]
 LaxHistoricalContextMode = Annotated[HistoricalContextMode, Field(strict=False)]
 LaxScoringStrategy = Annotated[ScoringStrategy, Field(strict=False)]
 LaxVirtualSystemStepID = Annotated[VirtualSystemStepID, Field(strict=False)]
+LaxExecutionPersona = Annotated[ExecutionPersona, Field(strict=False)]

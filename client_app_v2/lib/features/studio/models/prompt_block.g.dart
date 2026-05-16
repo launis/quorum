@@ -195,6 +195,7 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
         'type',
         'allow_decimals',
         'output_extensions',
+        'execution_persona',
         'theory_grounding',
         'scale_min',
         'scale_max',
@@ -241,6 +242,12 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
+      executionPersona: $checkedConvert(
+        'execution_persona',
+        (v) =>
+            $enumDecodeNullable(_$ExecutionPersonaEnumMap, v) ??
+            ExecutionPersona.deterministicParser,
+      ),
       theoryGrounding: $checkedConvert(
         'theory_grounding',
         (v) => v == null
@@ -279,6 +286,7 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
     'isEvaluative': 'is_evaluative',
     'allowDecimals': 'allow_decimals',
     'outputExtensions': 'output_extensions',
+    'executionPersona': 'execution_persona',
     'theoryGrounding': 'theory_grounding',
     'scaleMin': 'scale_min',
     'scaleMax': 'scale_max',
@@ -287,26 +295,28 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
   },
 );
 
-Map<String, dynamic> _$PromptBlockToJson(_PromptBlock instance) =>
-    <String, dynamic>{
-      'id': const StrictOpaqueIdConverter().toJson(instance.id),
-      'slug': instance.slug,
-      'organization_id': instance.organizationId,
-      'label': instance.label.toJson(),
-      'description': instance.description.toJson(),
-      'ai_description': instance.aiDescription,
-      'category_id': instance.categoryId,
-      'is_evaluative': instance.isEvaluative,
-      'type': _$BlockDataTypeEnumMap[instance.type]!,
-      'allow_decimals': instance.allowDecimals,
-      'output_extensions': instance.outputExtensions,
-      'theory_grounding': instance.theoryGrounding?.toJson(),
-      'scale_min': instance.scaleMin,
-      'scale_max': instance.scaleMax,
-      'scales': instance.scales?.map((e) => e.toJson()).toList(),
-      'rows': instance.rows?.map((e) => e.toJson()).toList(),
-      'columns': instance.columns?.map((e) => e.toJson()).toList(),
-    };
+Map<String, dynamic> _$PromptBlockToJson(
+  _PromptBlock instance,
+) => <String, dynamic>{
+  'id': const StrictOpaqueIdConverter().toJson(instance.id),
+  'slug': instance.slug,
+  'organization_id': instance.organizationId,
+  'label': instance.label.toJson(),
+  'description': instance.description.toJson(),
+  'ai_description': instance.aiDescription,
+  'category_id': instance.categoryId,
+  'is_evaluative': instance.isEvaluative,
+  'type': _$BlockDataTypeEnumMap[instance.type]!,
+  'allow_decimals': instance.allowDecimals,
+  'output_extensions': instance.outputExtensions,
+  'execution_persona': _$ExecutionPersonaEnumMap[instance.executionPersona]!,
+  'theory_grounding': instance.theoryGrounding?.toJson(),
+  'scale_min': instance.scaleMin,
+  'scale_max': instance.scaleMax,
+  'scales': instance.scales?.map((e) => e.toJson()).toList(),
+  'rows': instance.rows?.map((e) => e.toJson()).toList(),
+  'columns': instance.columns?.map((e) => e.toJson()).toList(),
+};
 
 const _$BlockDataTypeEnumMap = {
   BlockDataType.floatType: 'float',
@@ -317,4 +327,11 @@ const _$BlockDataTypeEnumMap = {
   BlockDataType.compliance: 'compliance',
   BlockDataType.question: 'question',
   BlockDataType.criteria: 'criteria',
+};
+
+const _$ExecutionPersonaEnumMap = {
+  ExecutionPersona.deterministicParser: 'DETERMINISTIC_PARSER',
+  ExecutionPersona.generativeAssistant: 'GENERATIVE_ASSISTANT',
+  ExecutionPersona.xaiReporter: 'XAI_REPORTER',
+  ExecutionPersona.coach: 'COACH',
 };

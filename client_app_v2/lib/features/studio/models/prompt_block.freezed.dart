@@ -1362,7 +1362,7 @@ $I18nTextCopyWith<$Res>? get name {
 /// @nodoc
 mixin _$PromptBlock {
 
-@StrictOpaqueIdConverter() String get id; String get slug; String? get organizationId; I18nText get label; I18nText get description; String? get aiDescription; String get categoryId; bool get isEvaluative; BlockDataType get type; bool get allowDecimals; List<String> get outputExtensions; TheoryGrounding? get theoryGrounding; int? get scaleMin; int? get scaleMax;@JsonKey(includeToJson: false) int? get computedMin;@JsonKey(includeToJson: false) int? get computedMax; List<MatrixScale>? get scales; List<MatrixRow>? get rows; List<I18nText>? get columns;
+@StrictOpaqueIdConverter() String get id; String get slug; String? get organizationId; I18nText get label; I18nText get description; String? get aiDescription; String get categoryId; bool get isEvaluative; BlockDataType get type; bool get allowDecimals; List<String> get outputExtensions; ExecutionPersona get executionPersona; TheoryGrounding? get theoryGrounding; int? get scaleMin; int? get scaleMax;@JsonKey(includeToJson: false) int? get computedMin;@JsonKey(includeToJson: false) int? get computedMax; List<MatrixScale>? get scales; List<MatrixRow>? get rows; List<I18nText>? get columns;
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1377,7 +1377,7 @@ $PromptBlockCopyWith<PromptBlock> get copyWith => _$PromptBlockCopyWithImpl<Prom
 
 @override
 String toString() {
-  return 'PromptBlock(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, categoryId: $categoryId, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, scaleMin: $scaleMin, scaleMax: $scaleMax, computedMin: $computedMin, computedMax: $computedMax, scales: $scales, rows: $rows, columns: $columns)';
+  return 'PromptBlock(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, categoryId: $categoryId, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, executionPersona: $executionPersona, theoryGrounding: $theoryGrounding, scaleMin: $scaleMin, scaleMax: $scaleMax, computedMin: $computedMin, computedMax: $computedMax, scales: $scales, rows: $rows, columns: $columns)';
 }
 
 
@@ -1388,7 +1388,7 @@ abstract mixin class $PromptBlockCopyWith<$Res>  {
   factory $PromptBlockCopyWith(PromptBlock value, $Res Function(PromptBlock) _then) = _$PromptBlockCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, String categoryId, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding, int? scaleMin, int? scaleMax,@JsonKey(includeToJson: false) int? computedMin,@JsonKey(includeToJson: false) int? computedMax, List<MatrixScale>? scales, List<MatrixRow>? rows, List<I18nText>? columns
+@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, String categoryId, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, ExecutionPersona executionPersona, TheoryGrounding? theoryGrounding, int? scaleMin, int? scaleMax,@JsonKey(includeToJson: false) int? computedMin,@JsonKey(includeToJson: false) int? computedMax, List<MatrixScale>? scales, List<MatrixRow>? rows, List<I18nText>? columns
 });
 
 
@@ -1405,7 +1405,7 @@ class _$PromptBlockCopyWithImpl<$Res>
 
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? categoryId = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? computedMin = freezed,Object? computedMax = freezed,Object? scales = freezed,Object? rows = freezed,Object? columns = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? categoryId = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? executionPersona = null,Object? theoryGrounding = freezed,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? computedMin = freezed,Object? computedMax = freezed,Object? scales = freezed,Object? rows = freezed,Object? columns = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1418,7 +1418,8 @@ as String,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative
 as bool,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as BlockDataType,allowDecimals: null == allowDecimals ? _self.allowDecimals : allowDecimals // ignore: cast_nullable_to_non_nullable
 as bool,outputExtensions: null == outputExtensions ? _self.outputExtensions : outputExtensions // ignore: cast_nullable_to_non_nullable
-as List<String>,theoryGrounding: freezed == theoryGrounding ? _self.theoryGrounding : theoryGrounding // ignore: cast_nullable_to_non_nullable
+as List<String>,executionPersona: null == executionPersona ? _self.executionPersona : executionPersona // ignore: cast_nullable_to_non_nullable
+as ExecutionPersona,theoryGrounding: freezed == theoryGrounding ? _self.theoryGrounding : theoryGrounding // ignore: cast_nullable_to_non_nullable
 as TheoryGrounding?,scaleMin: freezed == scaleMin ? _self.scaleMin : scaleMin // ignore: cast_nullable_to_non_nullable
 as int?,scaleMax: freezed == scaleMax ? _self.scaleMax : scaleMax // ignore: cast_nullable_to_non_nullable
 as int?,computedMin: freezed == computedMin ? _self.computedMin : computedMin // ignore: cast_nullable_to_non_nullable
@@ -1541,10 +1542,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding,  int? scaleMin,  int? scaleMax, @JsonKey(includeToJson: false)  int? computedMin, @JsonKey(includeToJson: false)  int? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  ExecutionPersona executionPersona,  TheoryGrounding? theoryGrounding,  int? scaleMin,  int? scaleMax, @JsonKey(includeToJson: false)  int? computedMin, @JsonKey(includeToJson: false)  int? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PromptBlock() when $default != null:
-return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
+return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.executionPersona,_that.theoryGrounding,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
   return orElse();
 
 }
@@ -1562,10 +1563,10 @@ return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.descr
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding,  int? scaleMin,  int? scaleMax, @JsonKey(includeToJson: false)  int? computedMin, @JsonKey(includeToJson: false)  int? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  ExecutionPersona executionPersona,  TheoryGrounding? theoryGrounding,  int? scaleMin,  int? scaleMax, @JsonKey(includeToJson: false)  int? computedMin, @JsonKey(includeToJson: false)  int? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)  $default,) {final _that = this;
 switch (_that) {
 case _PromptBlock():
-return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
+return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.executionPersona,_that.theoryGrounding,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1582,10 +1583,10 @@ return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.descr
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding,  int? scaleMin,  int? scaleMax, @JsonKey(includeToJson: false)  int? computedMin, @JsonKey(includeToJson: false)  int? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  String categoryId,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  ExecutionPersona executionPersona,  TheoryGrounding? theoryGrounding,  int? scaleMin,  int? scaleMax, @JsonKey(includeToJson: false)  int? computedMin, @JsonKey(includeToJson: false)  int? computedMax,  List<MatrixScale>? scales,  List<MatrixRow>? rows,  List<I18nText>? columns)?  $default,) {final _that = this;
 switch (_that) {
 case _PromptBlock() when $default != null:
-return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
+return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.categoryId,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.executionPersona,_that.theoryGrounding,_that.scaleMin,_that.scaleMax,_that.computedMin,_that.computedMax,_that.scales,_that.rows,_that.columns);case _:
   return null;
 
 }
@@ -1597,7 +1598,7 @@ return $default(_that.id,_that.slug,_that.organizationId,_that.label,_that.descr
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _PromptBlock extends PromptBlock {
-  const _PromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.aiDescription, this.categoryId = 'system', this.isEvaluative = true, this.type = BlockDataType.stringType, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, this.scaleMin, this.scaleMax, @JsonKey(includeToJson: false) this.computedMin, @JsonKey(includeToJson: false) this.computedMax, final  List<MatrixScale>? scales, final  List<MatrixRow>? rows, final  List<I18nText>? columns}): _outputExtensions = outputExtensions,_scales = scales,_rows = rows,_columns = columns,super._();
+  const _PromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.aiDescription, this.categoryId = 'system', this.isEvaluative = true, this.type = BlockDataType.stringType, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.executionPersona = ExecutionPersona.deterministicParser, this.theoryGrounding, this.scaleMin, this.scaleMax, @JsonKey(includeToJson: false) this.computedMin, @JsonKey(includeToJson: false) this.computedMax, final  List<MatrixScale>? scales, final  List<MatrixRow>? rows, final  List<I18nText>? columns}): _outputExtensions = outputExtensions,_scales = scales,_rows = rows,_columns = columns,super._();
   factory _PromptBlock.fromJson(Map<String, dynamic> json) => _$PromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1617,6 +1618,7 @@ class _PromptBlock extends PromptBlock {
   return EqualUnmodifiableListView(_outputExtensions);
 }
 
+@override@JsonKey() final  ExecutionPersona executionPersona;
 @override final  TheoryGrounding? theoryGrounding;
 @override final  int? scaleMin;
 @override final  int? scaleMax;
@@ -1665,7 +1667,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'PromptBlock(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, categoryId: $categoryId, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, scaleMin: $scaleMin, scaleMax: $scaleMax, computedMin: $computedMin, computedMax: $computedMax, scales: $scales, rows: $rows, columns: $columns)';
+  return 'PromptBlock(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, categoryId: $categoryId, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, executionPersona: $executionPersona, theoryGrounding: $theoryGrounding, scaleMin: $scaleMin, scaleMax: $scaleMax, computedMin: $computedMin, computedMax: $computedMax, scales: $scales, rows: $rows, columns: $columns)';
 }
 
 
@@ -1676,7 +1678,7 @@ abstract mixin class _$PromptBlockCopyWith<$Res> implements $PromptBlockCopyWith
   factory _$PromptBlockCopyWith(_PromptBlock value, $Res Function(_PromptBlock) _then) = __$PromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, String categoryId, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding, int? scaleMin, int? scaleMax,@JsonKey(includeToJson: false) int? computedMin,@JsonKey(includeToJson: false) int? computedMax, List<MatrixScale>? scales, List<MatrixRow>? rows, List<I18nText>? columns
+@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, String categoryId, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, ExecutionPersona executionPersona, TheoryGrounding? theoryGrounding, int? scaleMin, int? scaleMax,@JsonKey(includeToJson: false) int? computedMin,@JsonKey(includeToJson: false) int? computedMax, List<MatrixScale>? scales, List<MatrixRow>? rows, List<I18nText>? columns
 });
 
 
@@ -1693,7 +1695,7 @@ class __$PromptBlockCopyWithImpl<$Res>
 
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? categoryId = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? computedMin = freezed,Object? computedMax = freezed,Object? scales = freezed,Object? rows = freezed,Object? columns = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? categoryId = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? executionPersona = null,Object? theoryGrounding = freezed,Object? scaleMin = freezed,Object? scaleMax = freezed,Object? computedMin = freezed,Object? computedMax = freezed,Object? scales = freezed,Object? rows = freezed,Object? columns = freezed,}) {
   return _then(_PromptBlock(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1706,7 +1708,8 @@ as String,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative
 as bool,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as BlockDataType,allowDecimals: null == allowDecimals ? _self.allowDecimals : allowDecimals // ignore: cast_nullable_to_non_nullable
 as bool,outputExtensions: null == outputExtensions ? _self._outputExtensions : outputExtensions // ignore: cast_nullable_to_non_nullable
-as List<String>,theoryGrounding: freezed == theoryGrounding ? _self.theoryGrounding : theoryGrounding // ignore: cast_nullable_to_non_nullable
+as List<String>,executionPersona: null == executionPersona ? _self.executionPersona : executionPersona // ignore: cast_nullable_to_non_nullable
+as ExecutionPersona,theoryGrounding: freezed == theoryGrounding ? _self.theoryGrounding : theoryGrounding // ignore: cast_nullable_to_non_nullable
 as TheoryGrounding?,scaleMin: freezed == scaleMin ? _self.scaleMin : scaleMin // ignore: cast_nullable_to_non_nullable
 as int?,scaleMax: freezed == scaleMax ? _self.scaleMax : scaleMax // ignore: cast_nullable_to_non_nullable
 as int?,computedMin: freezed == computedMin ? _self.computedMin : computedMin // ignore: cast_nullable_to_non_nullable
