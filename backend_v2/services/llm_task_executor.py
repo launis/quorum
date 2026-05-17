@@ -4,9 +4,17 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from backend_v2.exceptions import AgentExecutionError, ErrorCodes, LLMSchemaValidationError, LogicalValidationError
+from backend_v2.exceptions import (
+    AgentExecutionError,
+    ErrorCodes,
+    LLMSchemaValidationError,
+    LogicalValidationError,
+    SemanticEvidenceError,
+)
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.enums import ExecutionPersona
+from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 logger = logging.getLogger(__name__)
@@ -82,35 +90,36 @@ class LLMTaskExecutor:
                 if validation_context and "source_text" in validation_context:
                     source_text = validation_context["source_text"]
                     persona = validation_context.get("persona")
-                    
-                    from backend_v2.models.enums import ExecutionPersona
+
                     if not persona or persona == ExecutionPersona.DETERMINISTIC_PARSER:
                         if hasattr(validated_model, "model_dump"):
-                            from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 
-                        def validate_recursive(data: Any, src_text: str) -> None:
-                            if isinstance(data, dict):
-                                for k, v in data.items():
-                                    # Target any extraction field known to contain verbatim quotes
-                                    is_quote_key = k in [
-                                        "exact_quote",
-                                        "step_2_quote",
-                                        "step_1_evidence_quote",
-                                    ]
-                                    if is_quote_key and isinstance(v, str) and v.strip():
-                                        from backend_v2.exceptions import LogicalValidationError, SemanticEvidenceError
+                            def validate_recursive(data: Any, src_text: str) -> None:
+                                if isinstance(data, dict):
+                                    trace_val = data.get("reasoning_trace") or data.get("mechanical_trace")
+                                    reasoning_trace = trace_val if isinstance(trace_val, str) else None
 
-                                        try:
-                                            AnchorValidationService.validate_evidence(src_text, v)
-                                        except SemanticEvidenceError as e:
-                                            raise LogicalValidationError(validation_error_msg=e.message) from e
-                                    elif isinstance(v, (dict, list)):
-                                        validate_recursive(v, src_text)
-                            elif isinstance(data, list):
-                                for item in data:
-                                    validate_recursive(item, src_text)
+                                    for k, v in data.items():
+                                        # Target any extraction field known to contain verbatim quotes
+                                        is_quote_key = k in [
+                                            "exact_quote",
+                                            "step_2_quote",
+                                            "step_1_evidence_quote",
+                                        ]
+                                        if is_quote_key and isinstance(v, str) and v.strip():
+                                            try:
+                                                AnchorValidationService.validate_evidence(
+                                                    src_text, v, reasoning_trace=reasoning_trace
+                                                )
+                                            except SemanticEvidenceError as e:
+                                                raise LogicalValidationError(validation_error_msg=e.message) from e
+                                        elif isinstance(v, (dict, list)):
+                                            validate_recursive(v, src_text)
+                                elif isinstance(data, list):
+                                    for item in data:
+                                        validate_recursive(item, src_text)
 
-                        validate_recursive(validated_model.model_dump(), source_text)
+                            validate_recursive(validated_model.model_dump(), source_text)
 
                 # Success, log Healing Rate if applicable
                 if attempt > 0:
@@ -185,26 +194,30 @@ class LLMTaskExecutor:
 
                 if logical_attempts >= max_logical_retries:
                     logger.error(
-                        "Max logical retries exceeded.",
+                        f"Max self-healing retries ({max_logical_retries}) exhausted for {response_model.__name__}. "
+                        "Injecting Null Object Fallback.",
                         extra={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name},
                     )
-                    err = AgentExecutionError(
-                        detail=ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED,
-                        original_error=e,
+                    fallback = response_model.model_construct(
+                        score=None,
+                        exact_quote=None,
+                        justification="[SYSTEM ERROR: LLM Unable to verify.]",
                     )
-                    raise err from e
+                    return fallback, cumulative_usage
 
                 # Stuck Loop Detection
                 if error_msg == previous_error_msg:
                     logger.error(
-                        "Stuck Loop Detected in Logical Validation. Breaking immediately.",
+                        f"Stuck Loop Detected in Logical Validation for {response_model.__name__}. "
+                        "Injecting Null Object Fallback.",
                         extra={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name},
                     )
-                    err = AgentExecutionError(
-                        detail=ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED,
-                        original_error=e,
+                    fallback = response_model.model_construct(
+                        score=None,
+                        exact_quote=None,
+                        justification="[SYSTEM ERROR: LLM Unable to verify.]",
                     )
-                    raise err from e
+                    return fallback, cumulative_usage
 
                 previous_error_msg = error_msg
                 logical_attempts += 1
@@ -216,6 +229,22 @@ class LLMTaskExecutor:
                 )
 
                 failed_json = validated_model.model_dump_json() if validated_model else "{}"
+
+                # Epic 54: Smart Coaching for Semantic Extraction Failures
+                coaching_notes = []
+                if "..." in failed_json:
+                    coaching_notes.append(
+                        "COACHING: You used ellipses (...) to bridge or shorten text. This is STRICTLY FORBIDDEN. "
+                        "You must extract a continuous, unbroken, verbatim string of text."
+                    )
+                if "[" in failed_json or "]" in failed_json:
+                    coaching_notes.append(
+                        "COACHING: You injected square brackets [...] to add context. This is STRICTLY FORBIDDEN. "
+                        "Do not alter the text. Extract exactly what is written."
+                    )
+
+                if coaching_notes:
+                    correction_prompt += "\n\n" + "\n".join(coaching_notes)
 
                 # Quality-First Retries (Tail-End Injection)
                 for i in range(len(current_messages) - 1, -1, -1):

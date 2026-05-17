@@ -204,6 +204,11 @@ Järjestelmän tekoälynhallinta on rajattu poikkeuksellisen tiukilla, järjeste
 * **Peruste (Architecture):** Vaikka PEP 8 suosittelee importteja tiedoston alkuun, olemme tehneet poikkeuksen. C/Rust-pohjaiset riippuvuudet aiheuttavat massiivisen Cold Start -viiveen FastAPI/Serverless -ympäristöissä. Tämän lisäksi raskaat PyO3-sillat, kuten `tokenizers`, aiheuttavat kohtalokkaita `ImportError`-kaatumisia Python 3.14:n tiukassa `pytest-cov` testikattavuusraportoinnissa yrittäessään alustua useaan kertaan rinnakkaisesti monitoroinnin varjo-säikeissä.
 * **Vaikutus (Impact):** Viivästämällä importit suoritettavien metodien sisään (`__init__`, `generate`), saavutamme Zero Cold Start -viiveen työnkulkujen logiikkasolmuissa ja turvaamme "Fail-Fast" CI/CD-testiputken stabiiliuden sataprosenttisesti. Kirjastot herätetään eloon vasta juuri ennen verkko/API-pyyntöä.
 
+### 7. Graceful Degradation ja Circuit Breaker (Null Object Pattern)
+* **Kielto Työnkulkujen Kaatamiselle:** LLM:n epäonnistuessa loogisessa validoinnissa (esim. max_logical_retries ylittyy), järjestelmä ei saa kaataa koko työnkulkua `AgentExecutionError` -poikkeuksella.
+* **Peruste (Architecture):** Järjestelmä hyödyntää "Circuit Breaker" -mallia. Kun tekoäly jää jumiin "Self-Healing" -luuppiin ja kuluttaa budjettinsa loppuun, `LLMTaskExecutor` palauttaa Null Object -fallbackin, joka noudattaa vaadittua Pydantic-skeemaa (`model_construct()`). Fallback asettaa arvoiksi turvalliset tyhjät tyypit (esim. `score=None`) ja dokumentoi epäonnistumisen.
+* **Vaikutus (Impact):** Tämä "Graceful Degradation" varmistaa, että yksittäisen solmun hallusinaatio ei keskeytä massiivista työnkulkua. Post-Hookit on ohjelmoitu sivuuttamaan `None`-arvoiset pisteet, jolloin epäonnistuminen ei korruptoi aggregoitua matematiikkaa.
+
 <br><hr>
 
 ➡️ **Seuraavaksi:** Kun tiedät missä Hookeissa asiat tapahtuvat, lue [06_evaluation_and_scoring.md](./06_evaluation_and_scoring.md), joka pureutuu siihen raskaaseen matematiikkaan ja rangaistuksiin, joita nämä Hookit laskevat LLM:n tuottamasta datasta.

@@ -189,3 +189,42 @@ async def test_execute_chat_task(mock_prompt_compiler: MagicMock, mock_client: A
     res = await executor.execute_chat_task(client=mock_client, messages=[])
     assert res == "chat response"
     mock_client.run_chat.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_execute_structured_task_system_wide_lexical_verifier(
+    mock_prompt_compiler: MagicMock, mock_client: AsyncMock
+) -> None:
+    executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
+
+    class TestResponseModel(BaseModel):
+        exact_quote: str | None = None
+        reasoning_trace: str
+        score: int | None = None
+        justification: str | None = None
+
+    expected_model = TestResponseModel(exact_quote="fake quote", reasoning_trace="fake trace")
+
+    mock_client.run_structured_task.side_effect = [
+        (expected_model, {"total_tokens": 10}),
+        (expected_model, {"total_tokens": 15}),
+    ]
+
+    from unittest.mock import patch
+    from backend_v2.exceptions import SemanticEvidenceError
+
+    with patch("backend_v2.services.llm_task_executor.AnchorValidationService.validate_evidence") as mock_validate:
+        mock_validate.side_effect = SemanticEvidenceError(message="fail fast")
+
+        res_model, res_usage = await executor.execute_structured_task(
+            client=mock_client,
+            messages=[{"role": "user", "content": "test"}],
+            response_model=TestResponseModel,
+            max_logical_retries=1,
+            validation_context={"source_text": "real text"}
+        )
+
+        assert res_model.score is None
+        assert res_model.exact_quote is None
+        assert res_model.justification == "[SYSTEM ERROR: LLM Unable to verify.]"
+        mock_validate.assert_called_with("real text", "fake quote", reasoning_trace="fake trace")
