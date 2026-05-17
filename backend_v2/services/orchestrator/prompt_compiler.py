@@ -380,13 +380,25 @@ class PromptCompiler:
 
                 @model_validator(mode="before")
                 @classmethod
-                def heal_citations(cls, data: Any) -> Any:
-                    if isinstance(data, dict) and _citation_ref:
-                        # Pydantic fails if the LLM arbitrarily truncates or splits the long citation string.
-                        # Self-healing: if the returned string is a valid substring of the full citation, auto-fix it.
-                        val = data.get("step_1b_cited_source_id")
-                        if val and isinstance(val, str) and len(val) > 10 and val in _citation_ref:
-                            data["step_1b_cited_source_id"] = _citation_ref
+                def heal_citations_and_reject_haamu_nulls(cls, data: Any) -> Any:
+                    if isinstance(data, dict):
+                        if _citation_ref:
+                            # Pydantic fails if the LLM arbitrarily truncates or splits the long citation string.
+                            # Self-healing: if the returned string is a valid substring of the full citation, auto-fix it.
+                            val = data.get("step_1b_cited_source_id")
+                            if val and isinstance(val, str) and len(val) > 10 and val in _citation_ref:
+                                data["step_1b_cited_source_id"] = _citation_ref
+                        
+                        # Strict Fail-Fast for 'none' / 'N/A' strings
+                        for k, v in data.items():
+                            if k in ["step_1_evidence_quote", "step_1c_google_citation"] and isinstance(v, str):
+                                lower_v = v.strip().lower()
+                                blacklist = {
+                                    "null", "none", "n/a", "false", "ei löydy", "not found", "-", "ei mainittu",
+                                    "none detected", "[]", "{}", "ei sovelleta", "ei lainausta", "no quote", "ei ole"
+                                }
+                                if lower_v in blacklist or lower_v == "":
+                                    raise ValueError(f"BANNED STRING VALUE: You output '{v}' for {k}. If there is no evidence, you MUST output JSON null, not a string.")
                     return data
 
             return MicroCotBase
@@ -442,6 +454,21 @@ class PromptCompiler:
                     default=None, description="5 words after the exact quote, or null."
                 )
                 mechanical_trace: str = Field(..., alias="step_1_mechanical_trace", description="Your reasoning trace.")
+
+                @model_validator(mode="before")
+                @classmethod
+                def reject_haamu_nulls(cls, data: Any) -> Any:
+                    if isinstance(data, dict):
+                        for k, v in data.items():
+                            if k == "exact_quote" and isinstance(v, str):
+                                lower_v = v.strip().lower()
+                                blacklist = {
+                                    "null", "none", "n/a", "false", "ei löydy", "not found", "-", "ei mainittu",
+                                    "none detected", "[]", "{}", "ei sovelleta", "ei lainausta", "no quote", "ei ole"
+                                }
+                                if lower_v in blacklist or lower_v == "":
+                                    raise ValueError(f"BANNED STRING VALUE: You output '{v}' for {k}. If there is no evidence, you MUST output JSON null, not a string.")
+                    return data
 
             fields["evaluations"] = (list[AtomResponse], Field(..., description="Array of blinded evaluations."))
 

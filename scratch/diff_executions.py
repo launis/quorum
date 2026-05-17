@@ -51,7 +51,15 @@ def get_state(e):
     if 'mapped_state' in e:
         return str(e['mapped_state']).lower()
     if 'exact_quote' in e:
-        return "true" if e['exact_quote'] != "" else "false"
+        eq = e['exact_quote']
+        if eq is None:
+            return "false"
+        eq_lower = str(eq).strip().lower()
+        blacklist = {
+            "null", "none", "n/a", "false", "", "ei löydy", "not found", "-", "ei mainittu",
+            "none detected", "[]", "{}", "ei sovelleta", "ei lainausta", "no quote", "ei ole"
+        }
+        return "true" if eq_lower not in blacklist else "false"
     return "unknown"
 
 def get_trace(e):
