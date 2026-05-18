@@ -97,8 +97,8 @@
     </rule_block>
     
     <rule_block id="llm_structured_execution_mandate">
-        <banned_pattern>Asking LLM to "output valid JSON" in text and parsing it with Regex/json.loads, or using LLMClient to handle validation retry loops directly.</banned_pattern>
-        <mandatory_pattern>Rely ONLY on `LLMTaskExecutor.execute_structured_task()` to force execution via API native Structural Constraining and centralized Fail-Fast Pydantic healing.</mandatory_pattern>
+        <banned_pattern>Asking LLM to "output valid JSON" in text and parsing it with Regex/json.loads, using LLMClient to handle validation retry loops directly, or using manual syntactic self-healing.</banned_pattern>
+        <mandatory_pattern>Rely ONLY on `LLMTaskExecutor.execute_structured_task()` to force execution via Native Structured Outputs API (e.g., passing Pydantic schema to `response_schema`). Syntactic self-healing loops MUST be completely removed from the codebase, as API-level constrained decoding guarantees 100% Pydantic-compatible JSON on the first try.</mandatory_pattern>
         <code_example>
             <anti_pattern>data = json.loads(await client.run_chat(prompt))</anti_pattern>
             <pro_pattern>result, usage = await executor.execute_structured_task(client=client, messages=messages, response_model=UserDTO)</pro_pattern>

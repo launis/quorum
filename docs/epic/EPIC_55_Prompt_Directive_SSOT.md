@@ -1,5 +1,7 @@
 # Epic 55: Prompt Directive SSOT (Persona Isolation Refactor)
 
+> [!IMPORTANT]
+> **THE CLEAN SLATE MANDATE (`the_duct_tape_ban` & `the_no_legacy_mandate`)**: Toteutamme tämän puhtaalta pöydältä (Clean Slate). Emme huomioi vanhoja ajoja tai historiallisia tietokantarakenteita. Kaikki "fallback"-ominaisuudet (esim. `obj.get('old_field')`), purkkakoodi (duct tape) ja kovakoodaus ovat ANKARASTI KIELLETTYJÄ. Jos data puuttuu, järjestelmän tulee kaatua välittömästi (Fail-Fast). Rakennamme puhdasta arkkitehtuuria ilman kompromisseja.
 ## 1. Yhteenveto ja Tavoite (Objective)
 Tämän Epicin tavoitteena on poistaa kriittinen arkkitehtuurinen velka, jossa laajat järjestelmätason ohjeet (kuten `<global_framework>`, "Zero-Interpretation Doctrine" ja tarkan 5-vaiheisen `mechanical_trace`-lokin formaatti) on kopioitu kymmeniin eri `PromptBlock`-objekteihin tietokannassa.
 
@@ -36,9 +38,9 @@ Toteutamme turvallisen ohjelmallisen injektion (Kooditason SSOT), joka takaa abs
 * **Toimenpide 4:** Ajetaan `run_seed.py local` ja varmistetaan unit-testien (`backend_audit_loop.py`) läpimeno.
 
 ### Phase 3: Frontend (Admin Studio UI) Päivitys
-* **Toimenpide 1:** Päivitetään `client_app_v2/lib/features/studio/models/prompt_block.dart` sisältämään uuden Enum-kentän.
-* **Toimenpide 2:** Muokataan Admin Studion matriisin muokkausnäkymää (Edit Prompt Block). Lisätään pudotusvalikko `Execution Persona` valinnalle.
-* **Toimenpide 3:** (Valinnainen mutta suositeltu) Varmistetaan, että `ai_description` -tekstikentän ohjeistaa käyttäjää syöttämään *vain asiasisältöä*, ei ohjelmallisia LLM-sääntöjä.
+* **Toimenpide 1 (Ylätaso / Matrix):** Päivitetään `client_app_v2/lib/features/studio/models/prompt_block.dart` sisältämään uusi Enum-kenttä (`execution_persona`). 
+* **Toimenpide 2:** Muokataan Admin Studion matriisin muokkausnäkymää: poistetaan raskaat sääntölaatikot ja lisätään pudotusvalikko `Execution Persona`.
+* Tämän vaiheen myötä Ylätason (Matrix) Admin Studion LLM-hallinta siirtyy vapaamuotoisesta "prompt-koodailusta" tiukasti jäsenneltyyn, pudotusvalikko-ohjattuun Data-Driven -käyttöliittymään.
 
 ### Phase 4 (Tulevaisuuden Evoluutio): SystemConfigs Multiplexing
 Tämä on tulevaisuuden tavoite, jota ei välttämättä toteuteta tässä Epicissä:
@@ -51,3 +53,4 @@ Tämä on tulevaisuuden tavoite, jota ei välttämättä toteuteta tässä Epici
 1. **SSOT Toteutuu:** Tietokanta (`seed_data.json` tai `db_v2.json`) ei sisällä missään matriisissa laajoja "Zero-Interpretation", "Trace format" tai "Morpho-Syntactic" -sääntöjä, vaan ne ladataan yhdestä backendin tiedostosta lennossa.
 2. **PromptCompiler Injektointi:** Pydantic / PromptCompiler kerää promptit oikein siten, että token-määrä ja ohjeistus OpenAI:lle/Anthropicille pysyy 100 % identtisenä vanhaan verrattuna (testataan vertailuajolla).
 3. **Käyttöliittymä (Flutter):** Matriisin luonti sisältää Persona-Enumin, ja ohjaus on turvallisesti eristetty käyttöliittymästä koodin puolelle (Fail-Safe).
+4. **Dokumentaatio:** `docs/architecture/` -hakemiston dokumentit ja `.agents/rules/04_directory_reference.md` on EHDOTTOMASTI päivitettävä vastaamaan uutta arkkitehtuuria (esim. kun `system_directives.py` ja muut uudet tiedostot on luotu).
