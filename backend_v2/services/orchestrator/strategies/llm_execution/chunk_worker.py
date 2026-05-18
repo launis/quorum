@@ -154,8 +154,8 @@ class ChunkWorker:
                             messages=messages,
                             response_model=SduiResponseList,
                             mock_identity=step_id,
-                            max_schema_retries=1,
-                            max_logical_retries=1,
+                            max_schema_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
+                            max_logical_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
                             validation_context={
                                 "strictness_level": strictness_level,
                                 "source_text": local_payload,
@@ -169,8 +169,8 @@ class ChunkWorker:
                             messages=messages,
                             response_model=local_dynamic_schema,
                             mock_identity=step_id,
-                            max_schema_retries=1,
-                            max_logical_retries=1,
+                            max_schema_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
+                            max_logical_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
                             validation_context={
                                 "strictness_level": strictness_level,
                                 "source_text": local_payload,
