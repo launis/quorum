@@ -37,7 +37,7 @@
         <directory path="llm/">
             <description>Standardized interface API proxies connecting internal systems to LLM SDKs (LiteLLM, GenAI).</description>
             <file_rules>
-                <file path="client.py">CORE ENTRYPOINT. Contains `LLMClient.from_strategy()`. ALWAYS use this to invoke LLMs via `run_structured_task()` or `run_chat()`.</file>
+                <file path="client.py">CORE ENTRYPOINT. Contains `LLMClient.from_strategy()`. ALWAYS use this to invoke LLMs via `run_structured_task()` or `run_chat()`. Sisältää API 400 -virheiden estomekanismin (Dynamic Schema Stripping maxLength-rajoitteille) Pydantic V2 -natiivissa rajapinnassa.</file>
                 <file path="provider.py">LOW-LEVEL ABSTRACTION. Direct usage of this file to bypass `client.py` is BANNED.</file>
                 <file path="mock.py">Mandatory mock framework for LLM unit testing.</file>
                 <file path="mock_data.py">Mandatory JSON mock fixtures for deterministic Pytest runs.</file>
@@ -47,7 +47,7 @@
             <description>The Absolute SSOT (Single Source of Truth) schema configurations. Subdivided into domain, dtos, and view.</description>
             <file_rules>
                 <file path="enums.py">CENTRAL ENUM DEFINITIONS. The absolute source for system-wide constants and types enforcing the No-String Mandate (esim. LLM_MAX_CHUNK_SIZE = 10 Semantic Micro-Batchingissä).</file>
-                <file path="v2_core.py">Zero-Defaults AtomResponse ja DTO-skeemojen (Strictness Level) aukoton lähde. Määrittää tekoälyn Exhaustive CoT ja numeeriset Pydantic Aliakset (step_1_ jne.).</file>
+                <file path="v2_core.py">Zero-Defaults AtomResponse ja DTO-skeemojen (Strictness Level) aukoton lähde. Määrittää tekoälyn Exhaustive CoT, numeeriset Pydantic Aliakset (step_1_ jne.) sekä BaseTDAExtraction -luokan deterministisine Fail-Fast ristiinvalidointeineen (contextual_override vs exact_quote).</file>
             </file_rules>
         </directory>
         <directory path="seed/">
@@ -63,7 +63,7 @@
             <description>Complex business orchestration processing logic routines. Subdivided into drivers, mcp, and orchestrator.</description>
             <file_rules>
                 <file path="llm_task_executor.py">Central orchestration point enforcing Fail-Fast structured execution for cognitive workflows. Sisältää dynaamisen Pydantic-kontekstivalidoinnin (Validation Context) sekä TaskGroup-pohjaisen Semantic Micro-Batchingin, Prompt Topology ja Tail-End Injection -logiikan Prefix Cachingin eheyden säilyttämiseksi mikroyritysluupeissa (Tenacity).</file>
-                <file path="orchestrator/anchor_validation_service.py">TDD-testattava palvelu deterministiseen O(N) RapidFuzz -ankkurointiin ja Semantic Fallback (NLI) -kaskadiin LLMTaskExecutorin tukena.</file>
+                <file path="orchestrator/anchor_validation_service.py">TDD-testattava palvelu deterministiseen 1D Index Mapping & O(N) RapidFuzz -ankkurointiin. Mahdollistaa alkuperäisen raakatekstin tarkan poiminnan ja Semantic Fallback (NLI) -kaskadin LLMTaskExecutorin tukena.</file>
                 <file path="orchestrator/matrix_reducer.py">Suorittaa Three-State Logic (PASSED, FAILED, DLQ) synkronisen reduktion Map-Reduce asynkronisista kimpaleista (chunks) TDA-sääntöjen aggregaatiomoodien (EXISTS vs ALL_MUST_COMPLY) mukaisesti deterministisellä uudelleenlajittelulla.</file>
                 <file path="mcp/">Model Context Protocol loop execution directory for tool-based LLM routing.</file>
             </file_rules>
@@ -85,7 +85,7 @@
             </file_rules>
         </directory>
         <file path="main.py">FastAPI framework server execution point instantiating web boundaries and hook registries.</file>
-        <file path="worker.py">ARQ Worker loop driving automated DAG task resolutions concurrently. Vastaa Virtuaalisten Järjestelmäaskeleiden (esim. sys_render_) suorittamisesta (Decoupled Scoring) sekä 'evaluate_chunk_job' -operaatioista osana skaalautuvaa Map-Reduce arkkitehtuuria.</file>
+        <file path="worker.py">ARQ Worker loop driving automated DAG task resolutions concurrently. Vastaa Virtuaalisten Järjestelmäaskeleiden (esim. sys_render_) suorittamisesta (Decoupled Scoring) sekä 'evaluate_chunk_job' -operaatioista osana skaalautuvaa Map-Reduce arkkitehtuuria. Sisältää sekventiaalisen suorituksen ja "Fail-Fast DLQ Routing" -logiikan retry-myrskyjen estämiseksi.</file>
     </layer>
 
     <layer id="frontend" path="client_app_v2/">

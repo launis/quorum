@@ -306,7 +306,12 @@ Sen sijaan, että turvauduttaisiin epävarmaan regex-korjailuun tai siirrettäis
 
 ### C. Kaskadoituva O(N) Anchoring (AnchorValidationService)
 Epic 48 esitteli deterministisen kaskadiarkkitehtuurin (`AnchorValidationService`) täydentämään Pydantic-validointia ja estämään puhtaasti ohjelmallisten lainausvirheiden päätymisen DLQ:hun:
-1. **O(N) RapidFuzz Anchoring:** Järjestelmä etsii eksaktia lainausta tekstistä nopealla fuzzy-match -algoritmilla (RapidFuzz), sen jälkeen kun molemmat tekstit on normalisoitu (NFKC, lowercase, regex `[^a-z0-9]`). Tämä on matemaattisesti deterministinen Fast-Path.
+
+1. **1D Index Mapping & RapidFuzz Anchoring (Fast-Path):** Jotta alkuperäisen tekstin (joka saattaa sisältää sekavia välilyöntejä tai ligatuureja) täydellinen todistusketju säilyy, järjestelmä käyttää **1D Index Mapping** -strategiaa:
+   * **Normalisointi:** Alkuperäinen teksti normalisoidaan (NFKC, lowercase, regex `[^a-z0-9]`) ja samaan aikaan luodaan 1D-kartta (array), joka yhdistää normalisoidun merkkijonon indeksit takaisin fyysisiin raakatekstin sijainteihin.
+   * **O(N) Alignment:** LLM:n palauttama lainaus normalisoidaan ja ajetaan RapidFuzz `fuzz.partial_ratio_alignment` -algoritmin läpi. Jos osumatarkkuus on >= 85.0%, algoritmi palauttaa normalisoidun tekstin alku- ja loppuindeksit.
+   * **Eksakti Fallback (Exact Fallback):** Nämä indeksit syötetään 1D-karttaan, josta poimitaan alkuperäinen, alkuperäisillä välilyönneillä varustettu katkelma suoraan raakadokumentista ohittaen tekoälyn aiheuttaman kosmeettisen varianssin.
+
 2. **Semantic Fallback Cascade (NLI):** Jos O(N) fuzzy-match epäonnistuu, kaskadi ei hylkää väitettä suoraan. Järjestelmä laukaisee halvan tason NLI-mallin (esim. GPT-4o-mini), jolta kysytään onko eristetty väite samaa tarkoittava PDF-kontekstin kanssa. Tämä pelastaa OCR-virheistä tai vahvoista lyhenteistä kärsivät tekstiosat DLQ-hylkäykseltä.
 
 <br><hr>

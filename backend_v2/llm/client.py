@@ -226,11 +226,37 @@ class LLMClient:
 
         response = None
         try:
+            # Epic 56 Phase 3: Dynamic Schema Stripping
+            adapter_schema = response_model
+            if isinstance(response_model, type) and issubclass(response_model, BaseModel):
+                json_schema = response_model.model_json_schema()
+
+                def strip_unsupported_constraints(schema_dict: Any) -> None:
+                    if isinstance(schema_dict, dict):
+                        schema_dict.pop("maxLength", None)
+                        schema_dict.pop("minLength", None)
+                        for v in schema_dict.values():
+                            strip_unsupported_constraints(v)
+                    elif isinstance(schema_dict, list):
+                        for item in schema_dict:
+                            strip_unsupported_constraints(item)
+
+                strip_unsupported_constraints(json_schema)
+                schema_name = response_model.__name__
+                adapter_schema = {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": schema_name,
+                        "schema": json_schema,
+                        "strict": True
+                    }
+                }
+
             try:
                 # 3. Generate with Structured Output (Caching tags active if final_messages manipulated)
                 response = await provider.generate(
                     messages=final_messages,
-                    response_schema=response_model,
+                    response_schema=adapter_schema,
                     temperature=temperature,
                     max_tokens=max_tokens,
                     top_p=top_p,

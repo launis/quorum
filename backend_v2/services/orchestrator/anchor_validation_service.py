@@ -17,26 +17,31 @@ class AnchorValidationService:
     """
 
     @staticmethod
-    def normalize_text(text: str) -> str:
-        """Phase 1: Normalization (NFKC, lowercasing, Regex [^a-z0-9])."""
+    def normalize_text_with_mapping(text: str) -> tuple[str, list[int]]:
+        """Normalizes text and returns a mapping from normalized index to original index."""
         if not text:
-            return ""
-        # 1. NFKC normalization
-        text = unicodedata.normalize("NFKC", text)
-        # 2. Lowercase
-        text = text.lower()
-        # 3. Regex: remove non-word characters and underscores (keeps unicode letters)
-        text = re.sub(r"[\W_]+", "", text)
-        return text
+            return "", []
+        
+        norm_chars = []
+        index_map = []
+        for i, char in enumerate(text):
+            norm_char = unicodedata.normalize("NFKC", char).lower()
+            norm_char = re.sub(r"[\W_]+", "", norm_char)
+            if norm_char:
+                for nc in norm_char:
+                    norm_chars.append(nc)
+                    index_map.append(i)
+                    
+        return "".join(norm_chars), index_map
 
     @staticmethod
-    def fuzzy_match(pdf_text: str, exact_quote: str, threshold: float = 90.0) -> bool:
+    def fuzzy_match(pdf_text: str, exact_quote: str, threshold: float = 85.0) -> bool:
         """Phase 2: O(N) Anchoring using RapidFuzz partial_ratio."""
         if not exact_quote or not pdf_text:
             return False
 
-        norm_pdf = AnchorValidationService.normalize_text(pdf_text)
-        norm_quote = AnchorValidationService.normalize_text(exact_quote)
+        norm_pdf, _ = AnchorValidationService.normalize_text_with_mapping(pdf_text)
+        norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(exact_quote)
 
         if not norm_quote:
             return False
@@ -45,21 +50,28 @@ class AnchorValidationService:
         return score >= threshold
 
     @staticmethod
-    def validate_evidence(pdf_text: str, exact_quote: str, reasoning_trace: str | None = None) -> str:
-        """Validates evidence with RapidFuzz.
+    def validate_evidence(pdf_text: str, exact_quote: str | None, reasoning_trace: str | None = None, contextual_override: bool = False) -> str | None:
+        """Validates evidence with RapidFuzz and extracts the exact physical string.
 
         Args:
             pdf_text: The source text context.
             exact_quote: The quote extracted by the LLM.
             reasoning_trace: Optional trace containing the LLM's logical breakdown.
+            contextual_override: If True, skips lexical validation.
 
         Returns:
-            The exact_quote if valid.
+            The exact_quote (overridden with original whitespace) if valid, or None if overridden.
 
         Raises:
             SemanticEvidenceError: If lexical validation or logical Trace consistency fails.
         """
-        if reasoning_trace and exact_quote:
+        if contextual_override:
+            return None
+
+        if not exact_quote:
+            raise SemanticEvidenceError(message="Lexical validation failed: exact_quote is required when contextual_override is False.")
+
+        if reasoning_trace:
             trace_lower = reasoning_trace.lower()
 
             # 1. Trace Contradiction Ban
@@ -82,7 +94,7 @@ class AnchorValidationService:
             if anchor_match:
                 parsed_anchor = anchor_match.group(1)
                 if parsed_anchor.lower() not in ["none", "n/a"]:
-                    if not AnchorValidationService.fuzzy_match(pdf_text, parsed_anchor):
+                    if not AnchorValidationService.fuzzy_match(pdf_text, parsed_anchor, threshold=85.0):
                         logger.warning(
                             "Lexical Verifier failed: Hallucinated Anchor.",
                             extra={"parsed_anchor": parsed_anchor},
@@ -93,8 +105,19 @@ class AnchorValidationService:
                             )
                         )
 
-        if AnchorValidationService.fuzzy_match(pdf_text, exact_quote):
-            return exact_quote
+        norm_pdf, pdf_map = AnchorValidationService.normalize_text_with_mapping(pdf_text)
+        norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(exact_quote)
+
+        if not norm_quote:
+            raise SemanticEvidenceError(message="Lexical validation failed: exact_quote normalized to empty string.")
+
+        # Use partial_ratio_alignment to find the exact indices
+        alignment = fuzz.partial_ratio_alignment(norm_quote, norm_pdf)
+        if alignment is not None and alignment.score >= 85.0:
+            start_idx = pdf_map[alignment.dest_start]
+            end_idx = pdf_map[alignment.dest_end - 1]
+            extracted = pdf_text[start_idx:end_idx + 1]
+            return extracted
 
         logger.warning(
             "Backend Lexical Verifier failed: exact_quote not found in source text.", extra={"exact_quote": exact_quote}

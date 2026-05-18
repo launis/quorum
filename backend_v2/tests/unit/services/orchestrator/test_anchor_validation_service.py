@@ -6,10 +6,21 @@ from backend_v2.services.orchestrator.anchor_validation_service import AnchorVal
 
 def test_normalization() -> None:
     """Test Phase 1 Normalization."""
-    assert AnchorValidationService.normalize_text("") == ""
-    assert AnchorValidationService.normalize_text("Hello World! 123") == "helloworld123"
-    assert AnchorValidationService.normalize_text("Tämä on testi.") == "tämäontesti"
-    assert AnchorValidationService.normalize_text("ﬃ") == "ffi"  # ligature
+    norm, index = AnchorValidationService.normalize_text_with_mapping("")
+    assert norm == ""
+    assert index == []
+    norm, index = AnchorValidationService.normalize_text_with_mapping("Hello World! 123")
+    assert norm == "helloworld123"
+    norm, index = AnchorValidationService.normalize_text_with_mapping("Tämä on testi.")
+    assert norm == "tämäontesti"
+    norm, index = AnchorValidationService.normalize_text_with_mapping("ﬃ")
+    assert norm == "ffi"  # ligature
+
+def test_lcs_normalization_retains_raw_pdf_mapping() -> None:
+    chunk = "Tämä  on\n\t tär\xadkeä \u00ADsopimus."
+    quote = "Tämä on tärkeä sopimus."
+    extracted = AnchorValidationService.validate_evidence(chunk, quote)
+    assert extracted == "Tämä  on\n\t tär\xadkeä \u00ADsopimus"
 
 
 def test_fuzzy_match() -> None:
@@ -47,10 +58,10 @@ def test_validate_evidence_trace_contradiction_ban() -> None:
     pdf_text = "This is a valid quote."
     quote = "valid quote"
     trace = "Here is my reasoning: [5. VALIDATION DECISION: Fail]"
-    
+
     with pytest.raises(SemanticEvidenceError) as exc:
         AnchorValidationService.validate_evidence(pdf_text, quote, reasoning_trace=trace)
-        
+
     assert "Logical contradiction: Trace concluded Fail, but exact_quote was populated" in str(exc.value)
 
 
@@ -58,10 +69,10 @@ def test_validate_evidence_empty_anchor_ban() -> None:
     pdf_text = "This is a valid quote."
     quote = "valid quote"
     trace = "We found it. [2. SYNTACTIC ANCHOR: none]"
-    
+
     with pytest.raises(SemanticEvidenceError) as exc:
         AnchorValidationService.validate_evidence(pdf_text, quote, reasoning_trace=trace)
-        
+
     assert "Anchorless Extraction: Cannot pass validation without a physical syntactic anchor" in str(exc.value)
 
 
@@ -69,10 +80,10 @@ def test_validate_evidence_lexical_reality_ban_hallucinated() -> None:
     pdf_text = "The quick brown fox jumps over the lazy dog."
     quote = "quick brown fox"
     trace = "[2. SYNTACTIC ANCHOR: 'slow white cat']"
-    
+
     with pytest.raises(SemanticEvidenceError) as exc:
         AnchorValidationService.validate_evidence(pdf_text, quote, reasoning_trace=trace)
-        
+
     assert "Hallucinated Anchor: The anchor 'slow white cat' does not exist in the source text" in str(exc.value)
 
 
@@ -80,6 +91,6 @@ def test_validate_evidence_lexical_reality_ban_success() -> None:
     pdf_text = "The quick brown fox jumps over the lazy dog."
     quote = "quick brown fox"
     trace = "[2. SYNTACTIC ANCHOR: 'quick brown fox']"
-    
+
     final_quote = AnchorValidationService.validate_evidence(pdf_text, quote, reasoning_trace=trace)
     assert final_quote == quote

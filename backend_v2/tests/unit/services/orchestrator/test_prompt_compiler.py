@@ -112,7 +112,10 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
     compiled_desc = field_info.description
 
     # Target Snapshot format
-    expected_snapshot = "Evaluation object for blk_1234567890abcdef"
+    expected_snapshot = (
+        "Evaluation object for blk_1234567890abcdef. Even if there is no relevance, "
+        "you MUST return this object and state 'Irrelevant' in the reasoning_trace."
+    )
 
     assert compiled_desc == expected_snapshot, (
         f"Snapshot mismatch!\nEXPECTED:\n{expected_snapshot}\n\nACTUAL:\n{compiled_desc}"
@@ -168,6 +171,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
         "step_1_reasoning_trace": "Let's think...",
         "evaluation_notes": "User was bad",
         "blk_2234567890abcdef": {
+            "step_1_reasoning_trace": "Inner trace",
             "step_3_logical_friction": "I gave a 1 because...",
             "extension_remediation_steps": "Step 1\nStep 2",
             "extension_confidence": 95.5,

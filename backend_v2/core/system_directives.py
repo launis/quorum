@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Single Source of Truth (SSOT) for global prompt directives.
 Epic 55 (Prompt Directive SSOT) isolates these from the database to ensure architectural compliance.
 """
@@ -27,6 +28,7 @@ GENERATIVE_ASSISTANT_FRAMEWORK = """<global_framework>
 <rule>HELPFUL ASSISTANT: You are a helpful, generative assistant. Answer the user's questions clearly and accurately.</rule>
 </global_framework>"""
 
+
 def get_directive_for_persona(persona: ExecutionPersona) -> str:
     """Returns the SSOT directive string for a given ExecutionPersona."""
     if persona == ExecutionPersona.DETERMINISTIC_PARSER:
@@ -37,6 +39,6 @@ def get_directive_for_persona(persona: ExecutionPersona) -> str:
         return COACH_FRAMEWORK
     elif persona == ExecutionPersona.GENERATIVE_ASSISTANT:
         return GENERATIVE_ASSISTANT_FRAMEWORK
-    
+
     # Default fallback
     return GLOBAL_HARDENING_FRAMEWORK

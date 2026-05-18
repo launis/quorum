@@ -19,13 +19,13 @@ state by the downstream evaluator.
 
 from __future__ import annotations
 
-from typing import List, Type
-
 import secrets
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from typing import Any, cast
+
+from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 
 
-def _standard_fields() -> dict:
+def _standard_fields() -> dict[str, Any]:
     """Base fields that exist on every extraction model.
 
     ``chunk_index`` is required for deterministic *First‑Wins* merging.
@@ -53,7 +53,7 @@ def _standard_fields() -> dict:
     }
 
 
-def create_extraction_model(facts_to_find: List[str]) -> Type[BaseModel]:
+def create_extraction_model(facts_to_find: list[str]) -> type[BaseModel]:
     """Create a strict Pydantic model for a given list of facts.
 
     The function sorts ``facts_to_find`` alphabetically to ensure a **deterministic
@@ -71,7 +71,7 @@ def create_extraction_model(facts_to_find: List[str]) -> Type[BaseModel]:
             poikkeus_B=None,
         )
 
-    Returns
+    Returns:
     -------
     Type[BaseModel]
         A dynamically generated subclass of ``BaseModel`` ready for ``model_validate``.
@@ -80,32 +80,34 @@ def create_extraction_model(facts_to_find: List[str]) -> Type[BaseModel]:
     unique_facts = sorted(set(facts_to_find))
 
     # Prepare the field definitions dict expected by ``create_model``
-    fields: dict = _standard_fields()
+    fields: dict[str, Any] = _standard_fields()
     for fact in unique_facts:
         # Each fact is optional (nullable) – LLM may legitimately return null.
         fields[fact] = (str | None, Field(None, description=f"Extracted value for '{fact}'"))
 
     # Dynamically build the model class
     model_name = f"ExtractionSchema_{secrets.token_hex(4)}"
-    DynamicModel = BaseModel.__class__.create_model(  # type: ignore[attr-defined]
+    DynamicModel = create_model(
         model_name,
         __config__=ConfigDict(extra="forbid", strict=True),
         **fields,
     )
 
     # Post‑validation normalisation: treat common placeholder strings as ``None``.
-    @model_validator(mode="after")
-    def _canonicalise_nulls(cls, values):  # noqa: N802 (pydantic expects ``cls``)
-        placeholder_set = {"none", "n/a", "", None}
-        for key, val in values.items():
-            if isinstance(val, str) and val.strip().lower() in placeholder_set:
-                values[key] = None
-        return values
+    @model_validator(mode="before")
+    def _canonicalise_nulls(cls: Any, data: Any) -> Any:
+        if isinstance(data, dict):
+            placeholder_set = {"none", "n/a", "", None}
+            for key, val in list(data.items()):
+                if isinstance(val, str) and val.strip().lower() in placeholder_set:
+                    data[key] = None
+        return data
 
     # Attach the validator to the generated class
-    setattr(DynamicModel, "_canonicalise_nulls", _canonicalise_nulls)
+    DynamicModel._canonicalise_nulls = _canonicalise_nulls
 
-    return DynamicModel
+    return cast(type[BaseModel], DynamicModel)
+
 
 # The factory is deliberately lightweight – import it wherever a chunk is processed
 # (e.g. in ``worker.py``) and call ``model_validate`` with the appropriate context:

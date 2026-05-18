@@ -98,15 +98,19 @@ class ChunkWorker:
             )
 
             strictness_instruction = compiler.calibrate_strictness(strictness_level)
+            language_mandate = compiler.get_critical_language_mandate(target_locale)
 
             user_msg = (
-                f"System Context & Reference Data:\n\n{local_payload}\n\n"
-                f"<execution_parameters>\n<STRICTNESS_CALIBRATION>\n"
-                f"{strictness_instruction}\n</STRICTNESS_CALIBRATION>\n</execution_parameters>"
+                f"<source_data>\n{local_payload}\n</source_data>\n\n"
+                f"<execution_parameters>\n"
+                f"<STRICTNESS_CALIBRATION>\n{strictness_instruction}\n</STRICTNESS_CALIBRATION>\n"
+                f"{language_mandate}\n"
+                f"</execution_parameters>\n\n"
+                f"<task>Analyze the provided <source_data> and execute the extraction strictly according to instructions.</task>"
             )
 
             persona = chunk_criteria[0].execution_persona if chunk_criteria else None
-            
+
             messages = [
                 {"role": "system", "content": local_system_prompt},
                 {"role": "user", "content": user_msg},
@@ -116,50 +120,74 @@ class ChunkWorker:
             chunk_usage: TokenUsage | None = None
             chunk_traces: list[Any] = []
 
-            if effective_mcp_tools:
-                executor = LLMTaskExecutor(prompt_compiler=compiler)
-                loop_res = await execute_tool_loop(
-                    llm_client=bound_client,
-                    executor=executor,
-                    messages=messages,
-                    response_model=local_dynamic_schema,
-                    allowed_tools=effective_mcp_tools,
-                    step_name=step_id,
-                    mock_identity=step_id,
-                    target_language=target_locale,
-                    synthesis_instructions=synthesis_instructions,
-                    validation_context={"strictness_level": strictness_level, "source_text": local_payload, "persona": persona},
-                )
-                if isinstance(loop_res.result_data, BaseModel):
-                    chunk_final = loop_res.result_data.model_dump(mode="json")
-                else:
-                    chunk_final = dict(loop_res.result_data)
-                chunk_usage = loop_res.usage if loop_res.usage else None
-                if loop_res.audit_traces:
-                    chunk_traces.extend(loop_res.audit_traces)
-            else:
-                executor = LLMTaskExecutor(prompt_compiler=compiler)
-                if output_profile is not None:
-                    result, usage = await executor.execute_structured_task(
-                        client=bound_client,
-                        messages=messages,
-                        response_model=SduiResponseList,
-                        mock_identity=step_id,
-                        max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
-                        validation_context={"strictness_level": strictness_level, "source_text": local_payload, "persona": persona},
-                    )
-                    chunk_final = {"blocks": result.model_dump(mode="json")}
-                else:
-                    result, usage = await executor.execute_structured_task(
-                        client=bound_client,
+            try:
+                if effective_mcp_tools:
+                    executor = LLMTaskExecutor(prompt_compiler=compiler)
+                    loop_res = await execute_tool_loop(
+                        llm_client=bound_client,
+                        executor=executor,
                         messages=messages,
                         response_model=local_dynamic_schema,
+                        allowed_tools=effective_mcp_tools,
+                        step_name=step_id,
                         mock_identity=step_id,
-                        max_schema_retries=SystemConcurrency.LLM_MAX_RETRIES.value,
-                        validation_context={"strictness_level": strictness_level, "source_text": local_payload, "persona": persona},
+                        target_language=target_locale,
+                        synthesis_instructions=synthesis_instructions,
+                        validation_context={
+                            "strictness_level": strictness_level,
+                            "source_text": local_payload,
+                            "persona": persona,
+                        },
                     )
-                    chunk_final = result.model_dump(mode="json")
+                    if isinstance(loop_res.result_data, BaseModel):
+                        chunk_final = loop_res.result_data.model_dump(mode="json")
+                    else:
+                        chunk_final = dict(loop_res.result_data)
+                    chunk_usage = loop_res.usage if loop_res.usage else None
+                    if loop_res.audit_traces:
+                        chunk_traces.extend(loop_res.audit_traces)
+                else:
+                    executor = LLMTaskExecutor(prompt_compiler=compiler)
+                    if output_profile is not None:
+                        result, usage = await executor.execute_structured_task(
+                            client=bound_client,
+                            messages=messages,
+                            response_model=SduiResponseList,
+                            mock_identity=step_id,
+                            max_schema_retries=1,
+                            max_logical_retries=1,
+                            validation_context={
+                                "strictness_level": strictness_level,
+                                "source_text": local_payload,
+                                "persona": persona,
+                            },
+                        )
+                        chunk_final = {"blocks": result.model_dump(mode="json")}
+                    else:
+                        result, usage = await executor.execute_structured_task(
+                            client=bound_client,
+                            messages=messages,
+                            response_model=local_dynamic_schema,
+                            mock_identity=step_id,
+                            max_schema_retries=1,
+                            max_logical_retries=1,
+                            validation_context={
+                                "strictness_level": strictness_level,
+                                "source_text": local_payload,
+                                "persona": persona,
+                            },
+                        )
+                        chunk_final = result.model_dump(mode="json")
 
-                chunk_usage = usage if usage else None
+                    chunk_usage = usage if usage else None
 
-            return chunk_final, chunk_usage, chunk_traces
+                return chunk_final, chunk_usage, chunk_traces
+
+            except Exception as e:
+                logger.error(
+                    f"[ChunkWorker] Caught error: {e}. Routing to DLQ.",
+                    extra={"error_code": "DLQ_ROUTING"},
+                    exc_info=True
+                )
+                chunk_final = {"_dlq_status": "FAILED/DLQ", "reason": str(e)}
+                return chunk_final, None, []

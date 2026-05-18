@@ -153,16 +153,18 @@ class PromptCompiler:
 
         compiled = "\n\n".join(xml_blocks)
 
-        # Add the CRITICAL MANDATE required by the architecture
-        compiled += (
-            f"\n\n<CRITICAL_LANGUAGE_MANDATE>\n"
-            f"You must process the input and generate all your output text, reasoning, "
-            f"and source justifications exclusively in the '{target_locale}' language, regardless of the language "
-            f"used in the instructions or source materials.\n"
+        return compiled
+
+    def get_critical_language_mandate(self, target_locale: str) -> str:
+        """Epic 56 Phase 3: Exposes the mandate so ChunkWorker can place it at the exact end of the prompt."""
+        return (
+            f"<CRITICAL_LANGUAGE_MANDATE>\n"
+            f"You must process the input and generate your general output text exclusively in the "
+            f"'{target_locale}' language. However, for specific fields like 'step_1_evidence_scan' and "
+            f"'step_2_mitigating_context', you MUST output the text in the ORIGINAL language of the source "
+            f"document to preserve exact fidelity. All JSON keys must strictly remain in English.\n"
             f"</CRITICAL_LANGUAGE_MANDATE>"
         )
-
-        return compiled
 
     def _extract_value_from_state(self, path: str, state_data: dict[str, Any]) -> str:
         """Extract a value from workflow state using a path like '$inputs.history_text'."""
@@ -384,21 +386,38 @@ class PromptCompiler:
                     if isinstance(data, dict):
                         if _citation_ref:
                             # Pydantic fails if the LLM arbitrarily truncates or splits the long citation string.
-                            # Self-healing: if the returned string is a valid substring of the full citation, auto-fix it.
+                            # Self-healing: if the returned string is a valid substring
+                            # of the full citation, auto-fix it.
                             val = data.get("step_1b_cited_source_id")
                             if val and isinstance(val, str) and len(val) > 10 and val in _citation_ref:
                                 data["step_1b_cited_source_id"] = _citation_ref
-                        
+
                         # Strict Fail-Fast for 'none' / 'N/A' strings
                         for k, v in data.items():
                             if k in ["step_1_evidence_quote", "step_1c_google_citation"] and isinstance(v, str):
                                 lower_v = v.strip().lower()
                                 blacklist = {
-                                    "null", "none", "n/a", "false", "ei löydy", "not found", "-", "ei mainittu",
-                                    "none detected", "[]", "{}", "ei sovelleta", "ei lainausta", "no quote", "ei ole"
+                                    "null",
+                                    "none",
+                                    "n/a",
+                                    "false",
+                                    "ei löydy",
+                                    "not found",
+                                    "-",
+                                    "ei mainittu",
+                                    "none detected",
+                                    "[]",
+                                    "{}",
+                                    "ei sovelleta",
+                                    "ei lainausta",
+                                    "no quote",
+                                    "ei ole",
                                 }
                                 if lower_v in blacklist or lower_v == "":
-                                    raise ValueError(f"BANNED STRING VALUE: You output '{v}' for {k}. If there is no evidence, you MUST output JSON null, not a string.")
+                                    raise ValueError(
+                                        f"BANNED STRING VALUE: You output '{v}' for {k}. "
+                                        "If there is no evidence, you MUST output JSON null, not a string."
+                                    )
                     return data
 
             return MicroCotBase
@@ -463,11 +482,27 @@ class PromptCompiler:
                             if k == "exact_quote" and isinstance(v, str):
                                 lower_v = v.strip().lower()
                                 blacklist = {
-                                    "null", "none", "n/a", "false", "ei löydy", "not found", "-", "ei mainittu",
-                                    "none detected", "[]", "{}", "ei sovelleta", "ei lainausta", "no quote", "ei ole"
+                                    "null",
+                                    "none",
+                                    "n/a",
+                                    "false",
+                                    "ei löydy",
+                                    "not found",
+                                    "-",
+                                    "ei mainittu",
+                                    "none detected",
+                                    "[]",
+                                    "{}",
+                                    "ei sovelleta",
+                                    "ei lainausta",
+                                    "no quote",
+                                    "ei ole",
                                 }
                                 if lower_v in blacklist or lower_v == "":
-                                    raise ValueError(f"BANNED STRING VALUE: You output '{v}' for {k}. If there is no evidence, you MUST output JSON null, not a string.")
+                                    raise ValueError(
+                                        f"BANNED STRING VALUE: You output '{v}' for {k}. "
+                                        "If there is no evidence, you MUST output JSON null, not a string."
+                                    )
                     return data
 
             fields["evaluations"] = (list[AtomResponse], Field(..., description="Array of blinded evaluations."))
@@ -483,7 +518,12 @@ class PromptCompiler:
             if crit.get("category_id") == "instruction":
                 fields[crit_id] = (
                     str,
-                    Field(..., description=f"Execute the synthesis/reporting instruction. MANDATORY LANGUAGE: '{target_locale}'")
+                    Field(
+                        ...,
+                        description=(
+                            f"Execute the synthesis/reporting instruction. MANDATORY LANGUAGE: '{target_locale}'"
+                        ),
+                    ),
                 )
                 continue
 
@@ -581,9 +621,7 @@ class PromptCompiler:
             if "confidence" in extensions:
                 sub_fields["extension_confidence"] = (
                     float,
-                    Field(
-                        ..., description="Numerical confidence from 0.0 to 100.0 based on evidence."
-                    ),
+                    Field(..., description="Numerical confidence from 0.0 to 100.0 based on evidence."),
                 )
             if "missing_context" in extensions:
                 sub_fields["extension_missing_context"] = (
@@ -613,9 +651,7 @@ class PromptCompiler:
                     str,
                     Field(
                         ...,
-                        description=(
-                            "Analysis of author's emotional state or tone."
-                        ),
+                        description=("Analysis of author's emotional state or tone."),
                     ),
                 )
             if "theory_link" in extensions:
@@ -623,9 +659,7 @@ class PromptCompiler:
                     str,
                     Field(
                         ...,
-                        description=(
-                            "Direct logical connection to the governing theory framework."
-                        ),
+                        description=("Direct logical connection to the governing theory framework."),
                     ),
                 )
 
@@ -637,7 +671,10 @@ class PromptCompiler:
                 __config__=ConfigDict(extra="forbid", strict=True),
                 **sub_fields,
             )
-            desc_val = f"Evaluation object for {crit_id}. Even if there is no relevance, you MUST return this object and state 'Irrelevant' in the reasoning_trace."
+            desc_val = (
+                f"Evaluation object for {crit_id}. Even if there is no relevance, "
+                "you MUST return this object and state 'Irrelevant' in the reasoning_trace."
+            )
             fields[crit_id] = (NestedModel, Field(..., description=desc_val))
 
         if not fields:

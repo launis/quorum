@@ -7,7 +7,7 @@ import secrets
 from datetime import datetime, timezone
 from typing import Annotated, Any, Literal, cast
 
-from pydantic import Field, RootModel, model_validator
+from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -61,6 +61,7 @@ __all__ = [
     "JobAcceptedDTO",
     "TDAAssertion",
     "MatrixClaim",
+    "BaseTDAExtraction",
 ]
 
 
@@ -214,7 +215,7 @@ class PromptBlock(V2CoreBase):
     )
     execution_persona: LaxExecutionPersona = Field(
         default=ExecutionPersona.DETERMINISTIC_PARSER,
-        description="Epic 55 SSOT Directive Injection. Defines the global system prompt rules applied to this block."
+        description="Epic 55 SSOT Directive Injection. Defines the global system prompt rules applied to this block.",
     )
     theory_grounding: TheoryGrounding | None = Field(
         default=None,
@@ -1003,3 +1004,34 @@ class JobAcceptedDTO(V2CoreBase):
 
 class WorkflowSchemaResponse(RootModel[dict[str, Any]]):
     pass
+
+
+class BaseTDAExtraction(BaseModel):
+    """Core Pydantic model for Micro-CoT extraction with deterministic cross-validation."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    step_1_evidence_scan: str = Field(
+        description="Listaa havainnot ja lainaukset, jotka tukevat säännön täyttymistä (dokumentin kielellä)."
+    )
+    step_2_mitigating_context: str = Field(
+        description="Listaa havainnot, jotka kumoavat säännön tai ovat poikkeuksia (dokumentin kielellä)."
+    )
+    contextual_override: bool = Field(
+        description=(
+            "Aseta True VAIN, jos fyysistä sanatarkkaa lainausta ei ole olemassa, "
+            "mutta asiayhteys absoluuttisesti todistaa säännön. Älä käytä laiskuuden takia."
+        )
+    )
+    exact_quote: str | None = Field(
+        default=None,
+        max_length=1500,
+        description="Sanatarkka lainaus alkuperäisestä tekstistä. Pakko olla Null, jos override on True.",
+    )
+    extracted_data: Any = Field(description="Spesifit poimitut arvot (boolean, taulukko, päivämäärä).")
+
+    @model_validator(mode="after")
+    def validate_override_logic(self) -> BaseTDAExtraction:
+        if self.contextual_override and self.exact_quote is not None:
+            raise ValueError("Cross-validation failed: exact_quote MUST be null if contextual_override is True.")
+        return self

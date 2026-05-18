@@ -211,6 +211,7 @@ async def test_execute_structured_task_system_wide_lexical_verifier(
     ]
 
     from unittest.mock import patch
+
     from backend_v2.exceptions import SemanticEvidenceError
 
     with patch("backend_v2.services.llm_task_executor.AnchorValidationService.validate_evidence") as mock_validate:
@@ -221,7 +222,7 @@ async def test_execute_structured_task_system_wide_lexical_verifier(
             messages=[{"role": "user", "content": "test"}],
             response_model=TestResponseModel,
             max_logical_retries=1,
-            validation_context={"source_text": "real text"}
+            validation_context={"source_text": "real text"},
         )
 
         assert res_model.score is None

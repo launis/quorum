@@ -3600,6 +3600,17 @@
         "title": "ErrorTraceEvent",
         "description": "Specific event representing a fail-fast error katkos."
       },
+      "ExecutionPersona": {
+        "type": "string",
+        "enum": [
+          "DETERMINISTIC_PARSER",
+          "GENERATIVE_ASSISTANT",
+          "XAI_REPORTER",
+          "COACH"
+        ],
+        "title": "ExecutionPersona",
+        "description": "Execution Personas to inject SSOT global directives directly into System Prompts."
+      },
       "ExecutionRecord": {
         "properties": {
           "id": {
@@ -5362,6 +5373,11 @@
             "title": "Output Extensions",
             "description": "List of requested XAI output extensions (e.g. 'justification', 'risk_flag')."
           },
+          "execution_persona": {
+            "$ref": "#/components/schemas/ExecutionPersona",
+            "description": "Epic 55 SSOT Directive Injection. Defines the global system prompt rules applied to this block.",
+            "default": "DETERMINISTIC_PARSER"
+          },
           "theory_grounding": {
             "anyOf": [
               {
@@ -5572,6 +5588,11 @@
             "type": "array",
             "title": "Output Extensions",
             "description": "List of requested XAI output extensions (e.g. 'justification', 'risk_flag')."
+          },
+          "execution_persona": {
+            "$ref": "#/components/schemas/ExecutionPersona",
+            "description": "Epic 55 SSOT Directive Injection. Defines the global system prompt rules applied to this block.",
+            "default": "DETERMINISTIC_PARSER"
           },
           "theory_grounding": {
             "anyOf": [

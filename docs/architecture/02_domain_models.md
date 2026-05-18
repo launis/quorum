@@ -351,6 +351,10 @@ Järjestelmän taustakoukuissa (hooks) toteutetaan "Zero-Duck-Typing" ja Fail-Fa
    * Legacy-aikakauden dictionary-pohjaiset pisteytykset on korvattu RootModeliin perustuvalla `StrictMatrixPayload` -injektiolla ja `LightweightMatrixOutput` -mallilla. Tämä varmistaa, että matriisin suoritteet – mukaan lukien dynaamisesti luodut `MicroCotDTO` (Micro Chain of Thought) erittelyt – on validoitu ennalta.
    * Moduuleissa kuten falsifier ja guard käytetään `StepGuardDTO`, `StepFalsifierDTO` ja `StepPanelDTO` malleja, jotka perivät `ReasoningTrace` -pohjan lukiten mallien rakenteen Fail-Fast periaatteen mukaiseksi.
 
+3. **BaseTDAExtraction ja Micro-CoT Ristiinvalidoinnit:**
+   * `BaseTDAExtraction` on ydinmalli Micro-CoT -poiminnoille ja se sisältää deterministiset ristiinvalidoinnit. Se vaatii kentät kuten `step_1_evidence_scan`, `step_2_mitigating_context`, `contextual_override` (boolean), `exact_quote` ja `extracted_data`.
+   * **Fail-Fast Cross-Validation Sääntö:** Malli soveltaa ankaraa `@model_validator(mode="after")` -sääntöä. Jos `contextual_override` on asetettu arvoon `True`, malli pakottaa deterministisesti, että `exact_quote` ON OLTAVA `None` (null). Kaikki sääntörikkomukset aiheuttavat välittömän `ValueError` -poikkeuksen, taaten absoluuttisen loogisen determinismin poimintaputken läpi.
+
 ## Polymorfinen XAI-injektio (Discriminated Unions)
 
 Tekoälyn tuottamat selittävyyskomponentit ("Explainable AI") toteutetaan **Discriminated Union** -rakenteella (`models/domain/xai.py`).

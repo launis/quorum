@@ -74,8 +74,26 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
             trace_events = res.execution_trace
 
             if not trace_events:
-                logger.warning(f"Execution {res.id} has no trace events. Skipping.")
-                continue
+                # Fallback levylle (data/files/executions) jos tietokannan kenttä on tyhjä
+                try:
+                    import json
+                    from backend_v2.services.storage import get_storage_driver
+                    from backend_v2.models.state import TraceEvent
+                    
+                    driver = get_storage_driver()
+                    trace_path = f"executions/{res.id}/execution_trace.json"
+                    
+                    if await driver.exists(trace_path):
+                        raw_trace = await driver.read(trace_path)
+                        trace_data = json.loads(raw_trace)
+                        # Inflate dicts back to TraceEvent objects
+                        trace_events = [inflate(event, TraceEvent) for event in trace_data]
+                    else:
+                        logger.warning(f"Execution {res.id} has no trace events in DB or Disk. Skipping.")
+                        continue
+                except Exception as e:
+                    logger.warning(f"Failed to load trace events from disk for {res.id}: {e}")
+                    continue
 
             judge_outputs: dict[str, JudgeOutput] = {}
 

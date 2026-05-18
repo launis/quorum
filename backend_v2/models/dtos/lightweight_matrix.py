@@ -89,7 +89,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
         """Phantom Boolean -esto: Sanitoi LLM:n tuottamat haamu-nullit."""
         if self.exact_quote is None:
             return False
-            
+
         blacklist = {
             "null",
             "none",
