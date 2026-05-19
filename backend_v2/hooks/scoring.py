@@ -644,7 +644,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             pb_id, s_val, text, agg_mode, inverse_evidence = mapping
 
             mapped_state: State
-            if ev_dto.dlq_status:
+            if ev_dto.status == "DLQ":
                 mapped_state = "DLQ"
             else:
                 is_satisfied = ev_dto.calculate_rule_satisfied(inverse_evidence)

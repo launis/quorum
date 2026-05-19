@@ -47,7 +47,7 @@
             <description>The Absolute SSOT (Single Source of Truth) schema configurations. Subdivided into domain, dtos, and view.</description>
             <file_rules>
                 <file path="enums.py">CENTRAL ENUM DEFINITIONS. The absolute source for system-wide constants and types enforcing the No-String Mandate (esim. LLM_MAX_CHUNK_SIZE = 10 Semantic Micro-Batchingissä).</file>
-                <file path="v2_core.py">Zero-Defaults AtomResponse ja DTO-skeemojen (Strictness Level) aukoton lähde. Määrittää tekoälyn Exhaustive CoT, numeeriset Pydantic Aliakset (step_1_ jne.) sekä BaseTDAExtraction -luokan deterministisine Fail-Fast ristiinvalidointeineen (contextual_override vs exact_quote).</file>
+                <file path="v2_core.py">Zero-Defaults AtomResponse ja DTO-skeemojen (Strictness Level) aukoton lähde. Määrittää tekoälyn Exhaustive CoT sekä 4-kenttäisen BaseTDAExtraction -luokan (localized_anchors_found, semantic_reasoning, exact_quote, contextual_override) deterministisine Fail-Fast ristiinvalidointeineen.</file>
             </file_rules>
         </directory>
         <directory path="seed/">
@@ -85,7 +85,7 @@
             </file_rules>
         </directory>
         <file path="main.py">FastAPI framework server execution point instantiating web boundaries and hook registries.</file>
-        <file path="worker.py">ARQ Worker loop driving automated DAG task resolutions concurrently. Vastaa Virtuaalisten Järjestelmäaskeleiden (esim. sys_render_) suorittamisesta (Decoupled Scoring) sekä 'evaluate_chunk_job' -operaatioista osana skaalautuvaa Map-Reduce arkkitehtuuria. Sisältää sekventiaalisen suorituksen ja "Fail-Fast DLQ Routing" -logiikan retry-myrskyjen estämiseksi.</file>
+        <file path="worker.py">ARQ Worker loop driving automated DAG task resolutions concurrently. Vastaa Virtuaalisten Järjestelmäaskeleiden (esim. sys_render_) suorittamisesta (Decoupled Scoring) sekä 'evaluate_chunk_job' -operaatioista osana skaalautuvaa Map-Reduce arkkitehtuuria. Sisältää sekventiaalisen suorituksen (max_tries=1) ja Extract-and-Justify "Fail-Fast DLQ Routing" -logiikan retry-myrskyjen estämiseksi.</file>
     </layer>
 
     <layer id="frontend" path="client_app_v2/">

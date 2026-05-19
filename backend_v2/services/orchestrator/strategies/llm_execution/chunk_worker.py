@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, RootModel, ValidationError
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes, SemanticEvidenceError
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import SystemConcurrency
@@ -13,6 +13,7 @@ from backend_v2.models.v2_core import PromptBlock
 from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
+from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,41 @@ logger = logging.getLogger(__name__)
 class AtomIdentifier(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
     atom_id: str
+
+
+def evaluate_extraction(extraction: BaseModel, source_text: str, is_negative_rule: bool) -> str:
+    """Evaluates the deterministic extraction with dual-track validation.
+    Returns PASS, FAIL, or DLQ.
+    """
+    exact_quote = getattr(extraction, "exact_quote", None)
+    contextual_override = getattr(extraction, "contextual_override", False)
+
+    # Track A: Physical Match
+    if exact_quote is not None:
+        try:
+            AnchorValidationService.validate_evidence(
+                pdf_text=source_text,
+                exact_quote=exact_quote,
+                contextual_override=contextual_override,
+            )
+            status = "PASS"
+        except SemanticEvidenceError:
+            status = "FAIL"
+    # Track B: Semantic Override
+    else:
+        if contextual_override:
+            status = "DLQ"
+        else:
+            status = "FAIL"
+
+    # Negative condition handling
+    if is_negative_rule:
+        if status == "PASS":
+            status = "FAIL"
+        elif status == "FAIL":
+            status = "PASS"
+
+    return status
 
 
 class SduiResponseList(RootModel):  # type: ignore[type-arg]
@@ -106,7 +142,8 @@ class ChunkWorker:
                 f"<STRICTNESS_CALIBRATION>\n{strictness_instruction}\n</STRICTNESS_CALIBRATION>\n"
                 f"{language_mandate}\n"
                 f"</execution_parameters>\n\n"
-                f"<task>Analyze the provided <source_data> and execute the extraction strictly according to instructions.</task>"
+                f"<task>Analyze the provided <source_data> and execute the extraction "
+                f"strictly according to instructions.</task>"
             )
 
             persona = chunk_criteria[0].execution_persona if chunk_criteria else None
@@ -179,6 +216,33 @@ class ChunkWorker:
                         )
                         chunk_final = result.model_dump(mode="json")
 
+                        # Step 4: Map-Merge Orchestration
+                        is_negative_rule = False
+                        if chunk_criteria:
+                            first_block = chunk_criteria[0]
+                            if first_block.scales:
+                                for scale in first_block.scales:
+                                    for claim in getattr(scale, "claims", []):
+                                        for tda in getattr(claim, "tda_assertions", []):
+                                            if getattr(tda, "inverse_evidence", False):
+                                                is_negative_rule = True
+                                                break
+                                        if is_negative_rule:
+                                            break
+                                    if is_negative_rule:
+                                        break
+                            elif hasattr(first_block, "inverse_evidence"):
+                                is_negative_rule = getattr(first_block, "inverse_evidence", False)
+
+                        status = evaluate_extraction(result, local_payload, is_negative_rule)
+
+                        # Trace Continuity Injection
+                        semantic_reasoning = getattr(result, "semantic_reasoning", "")
+                        final_reasoning = f"{semantic_reasoning}\n\n[5. VALIDATION DECISION: {status}]"
+
+                        chunk_final["status"] = status
+                        chunk_final["semantic_reasoning"] = final_reasoning
+
                     chunk_usage = usage if usage else None
 
                 return chunk_final, chunk_usage, chunk_traces
@@ -187,7 +251,7 @@ class ChunkWorker:
                 logger.error(
                     f"[ChunkWorker] Caught error: {e}. Routing to DLQ.",
                     extra={"error_code": "DLQ_ROUTING"},
-                    exc_info=True
+                    exc_info=True,
                 )
                 chunk_final = {"_dlq_status": "FAILED/DLQ", "reason": str(e)}
                 return chunk_final, None, []

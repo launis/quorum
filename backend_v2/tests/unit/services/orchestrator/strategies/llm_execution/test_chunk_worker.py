@@ -99,7 +99,9 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
         output_profile=None,
     )
 
-    assert final == {"answer": "42"}
+    assert final.get("answer") == "42"
+    assert final.get("status") in ["PASS", "FAIL", "DLQ"]
+    assert "VALIDATION DECISION:" in final.get("semantic_reasoning", "")
     assert usage is not None
     assert usage.prompt_tokens == 10
     assert usage.completion_tokens == 5
@@ -118,7 +120,7 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
 
 @pytest.mark.asyncio
 async def test_chunk_worker_process_chunk_failure(mock_executor_class: Any) -> None:
-    """Test that execution failure correctly raises AppException."""
+    """Test that execution failure correctly routes to DLQ."""
     mock_compiler = MagicMock()
     mock_client = AsyncMock()
 
@@ -127,24 +129,67 @@ async def test_chunk_worker_process_chunk_failure(mock_executor_class: Any) -> N
 
     sem = asyncio.Semaphore(1)
 
-    with pytest.raises(AppException) as exc_info:
-        await ChunkWorker.process_chunk(
-            chunk=None,
-            sem=sem,
-            compiler=mock_compiler,
-            criteria_blocks=[],
-            user_payload="<payload>",
-            base_system_prompt="Base prompt",
-            has_search=False,
-            has_shuffled_atoms=False,
-            atom_to_block_ids={},
-            effective_mcp_tools=[],
-            bound_client=mock_client,
-            step_id="step1",
-            target_locale="en",
-            synthesis_instructions=None,
-            output_profile=None,
-        )
+    final, usage, traces = await ChunkWorker.process_chunk(
+        chunk=None,
+        sem=sem,
+        compiler=mock_compiler,
+        criteria_blocks=[],
+        user_payload="<payload>",
+        base_system_prompt="Base prompt",
+        has_search=False,
+        has_shuffled_atoms=False,
+        atom_to_block_ids={},
+        effective_mcp_tools=[],
+        bound_client=mock_client,
+        step_id="step1",
+        target_locale="en",
+        synthesis_instructions=None,
+        output_profile=None,
+    )
 
-    assert exc_info.value.status_code == 500
-    assert "LLM connection error" in str(exc_info.value.message)
+    assert final.get("_dlq_status") == "FAILED/DLQ"
+    assert "LLM connection error" in final.get("reason", "")
+    assert usage is None
+    assert traces == []
+
+
+def test_deterministic_extraction_scoring() -> None:
+    """Test the evaluate_extraction pure function."""
+    from unittest.mock import patch
+
+    from pydantic import BaseModel
+
+    from backend_v2.exceptions import SemanticEvidenceError
+    from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker import evaluate_extraction
+
+    class MockExtraction(BaseModel):
+        exact_quote: str | None = None
+        contextual_override: bool = False
+
+    # Track B (Semantic Override = False, No quote) -> FAIL
+    ext1 = MockExtraction(exact_quote=None, contextual_override=False)
+    assert evaluate_extraction(ext1, "test text", False) == "FAIL"
+
+    # Track B (Semantic Override = True, No quote) -> DLQ
+    ext2 = MockExtraction(exact_quote=None, contextual_override=True)
+    assert evaluate_extraction(ext2, "test text", False) == "DLQ"
+
+    # Track A (Physical Match) -> PASS
+    ext3 = MockExtraction(exact_quote="matched quote", contextual_override=False)
+    with patch(
+        "backend_v2.services.orchestrator.anchor_validation_service.AnchorValidationService.validate_evidence"
+    ) as mock_val:
+        assert evaluate_extraction(ext3, "test text", False) == "PASS"
+
+    # Track A (Physical Match - but fails lexical verification) -> FAIL
+    with patch(
+        "backend_v2.services.orchestrator.anchor_validation_service.AnchorValidationService.validate_evidence"
+    ) as mock_val:
+        mock_val.side_effect = SemanticEvidenceError(message="Not found")
+        assert evaluate_extraction(ext3, "test text", False) == "FAIL"
+
+    # Negative condition
+    # Track B -> FAIL becomes PASS
+    assert evaluate_extraction(ext1, "test text", True) == "PASS"
+    # Track B -> DLQ remains DLQ
+    assert evaluate_extraction(ext2, "test text", True) == "DLQ"

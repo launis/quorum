@@ -77,15 +77,17 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
                 # Fallback levylle (data/files/executions) jos tietokannan kenttä on tyhjä
                 try:
                     from pydantic import TypeAdapter
-                    from backend_v2.services.storage import get_storage_driver
+
                     from backend_v2.models.state import TraceEvent
-                    
+                    from backend_v2.services.storage import get_storage_driver
+
                     driver = get_storage_driver()
                     trace_path = f"executions/{res.id}/execution_trace.json"
-                    
+
                     if await driver.exists(trace_path):
                         raw_trace = await driver.read(trace_path)
-                        # EPIC 56 Best Practice: Pydantic native Rust parsing, avoids strict=True UUID/datetime coercion issues
+                        # EPIC 56 Best Practice: Pydantic native Rust parsing, avoids strict=True
+                        # UUID/datetime coercion issues
                         ta = TypeAdapter(list[TraceEvent])
                         trace_events = ta.validate_json(raw_trace)
                     else:

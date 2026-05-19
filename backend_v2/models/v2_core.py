@@ -1024,7 +1024,7 @@ class BaseTDAExtraction(BaseModel):
         )
     )
     exact_quote: str | None = Field(
-        default=None,
+        ...,
         max_length=1500,
         description="Sanatarkka lainaus alkuperäisestä tekstistä. Pakko olla Null, jos override on True.",
     )

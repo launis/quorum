@@ -21,7 +21,7 @@ class AnchorValidationService:
         """Normalizes text and returns a mapping from normalized index to original index."""
         if not text:
             return "", []
-        
+
         norm_chars = []
         index_map = []
         for i, char in enumerate(text):
@@ -31,7 +31,7 @@ class AnchorValidationService:
                 for nc in norm_char:
                     norm_chars.append(nc)
                     index_map.append(i)
-                    
+
         return "".join(norm_chars), index_map
 
     @staticmethod
@@ -50,7 +50,12 @@ class AnchorValidationService:
         return score >= threshold
 
     @staticmethod
-    def validate_evidence(pdf_text: str, exact_quote: str | None, reasoning_trace: str | None = None, contextual_override: bool = False) -> str | None:
+    def validate_evidence(
+        pdf_text: str,
+        exact_quote: str | None,
+        reasoning_trace: str | None = None,
+        contextual_override: bool = False,
+    ) -> str | None:
         """Validates evidence with RapidFuzz and extracts the exact physical string.
 
         Args:
@@ -69,7 +74,9 @@ class AnchorValidationService:
             return None
 
         if not exact_quote:
-            raise SemanticEvidenceError(message="Lexical validation failed: exact_quote is required when contextual_override is False.")
+            raise SemanticEvidenceError(
+                message="Lexical validation failed: exact_quote is required when contextual_override is False."
+            )
 
         if reasoning_trace:
             trace_lower = reasoning_trace.lower()
@@ -116,7 +123,7 @@ class AnchorValidationService:
         if alignment is not None and alignment.score >= 85.0:
             start_idx = pdf_map[alignment.dest_start]
             end_idx = pdf_map[alignment.dest_end - 1]
-            extracted = pdf_text[start_idx:end_idx + 1]
+            extracted = pdf_text[start_idx : end_idx + 1]
             return extracted
 
         logger.warning(

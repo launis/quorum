@@ -11,7 +11,7 @@ import json
 import logging
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, create_model, model_validator
 
@@ -160,8 +160,8 @@ class PromptCompiler:
         return (
             f"<CRITICAL_LANGUAGE_MANDATE>\n"
             f"You must process the input and generate your general output text exclusively in the "
-            f"'{target_locale}' language. However, for specific fields like 'step_1_evidence_scan' and "
-            f"'step_2_mitigating_context', you MUST output the text in the ORIGINAL language of the source "
+            f"'{target_locale}' language. However, for specific fields like 'semantic_reasoning' and "
+            f"'exact_quote', you MUST output the text in the ORIGINAL language of the source "
             f"document to preserve exact fidelity. All JSON keys must strictly remain in English.\n"
             f"</CRITICAL_LANGUAGE_MANDATE>"
         )
@@ -371,60 +371,13 @@ class PromptCompiler:
         has_shuffled_atoms: bool,
         target_locale: str,
     ) -> type[BaseModel]:
-        """Build a dynamic Pydantic V2 model for LLM Structured Outputs."""
+        """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
+        Radically stripped to enforce BaseTDAExtraction determinism.
+        """
+        from backend_v2.models.v2_core import BaseTDAExtraction, PromptBlock
 
-        def make_micro_cot_base(_cid: str, _citation_ref: str | None = None) -> type[BaseModel]:
-            class MicroCotBase(BaseModel):
-                step_1_reasoning_trace: str = Field(
-                    ...,
-                    description="Matrix-specific reasoning trace. If irrelevant, state 'Irrelevant'.",
-                )
+        criteria: list[PromptBlock] = [PromptBlock.model_validate(c) for c in json.loads(criteria_json)]
 
-                @model_validator(mode="before")
-                @classmethod
-                def heal_citations_and_reject_haamu_nulls(cls, data: Any) -> Any:
-                    if isinstance(data, dict):
-                        if _citation_ref:
-                            # Pydantic fails if the LLM arbitrarily truncates or splits the long citation string.
-                            # Self-healing: if the returned string is a valid substring
-                            # of the full citation, auto-fix it.
-                            val = data.get("step_1b_cited_source_id")
-                            if val and isinstance(val, str) and len(val) > 10 and val in _citation_ref:
-                                data["step_1b_cited_source_id"] = _citation_ref
-
-                        # Strict Fail-Fast for 'none' / 'N/A' strings
-                        for k, v in data.items():
-                            if k in ["step_1_evidence_quote", "step_1c_google_citation"] and isinstance(v, str):
-                                lower_v = v.strip().lower()
-                                blacklist = {
-                                    "null",
-                                    "none",
-                                    "n/a",
-                                    "false",
-                                    "ei löydy",
-                                    "not found",
-                                    "-",
-                                    "ei mainittu",
-                                    "none detected",
-                                    "[]",
-                                    "{}",
-                                    "ei sovelleta",
-                                    "ei lainausta",
-                                    "no quote",
-                                    "ei ole",
-                                }
-                                if lower_v in blacklist or lower_v == "":
-                                    raise ValueError(
-                                        f"BANNED STRING VALUE: You output '{v}' for {k}. "
-                                        "If there is no evidence, you MUST output JSON null, not a string."
-                                    )
-                    return data
-
-            return MicroCotBase
-
-        criteria = json.loads(criteria_json)
-
-        # Dictionary of fields to define for create_model
         fields: dict[str, Any] = {
             "reasoning_trace": (
                 str,
@@ -452,70 +405,20 @@ class PromptCompiler:
             ),
         }
 
-        # Epic 20 Phase 7 Hybrid Fix: Inject AtomResponse mapping directly into dynamic schema!
         if has_shuffled_atoms:
 
-            class AtomResponse(BaseModel):
-                model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+            class AtomResponse(BaseTDAExtraction):
                 atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")
-                exact_quote: str | None = Field(
-                    default=None,
-                    description=(
-                        "The EXACT VERBATIM QUOTE if evidence was found. "
-                        "You MUST NOT add markdown (**), summarize, or alter the text. "
-                        "Must be a physically contiguous substring. Otherwise return null."
-                    ),
-                )
-                pre_quote_anchor: str | None = Field(
-                    default=None, description="5 words before the exact quote, or null."
-                )
-                post_quote_anchor: str | None = Field(
-                    default=None, description="5 words after the exact quote, or null."
-                )
-                mechanical_trace: str = Field(..., alias="step_1_mechanical_trace", description="Your reasoning trace.")
-
-                @model_validator(mode="before")
-                @classmethod
-                def reject_haamu_nulls(cls, data: Any) -> Any:
-                    if isinstance(data, dict):
-                        for k, v in data.items():
-                            if k == "exact_quote" and isinstance(v, str):
-                                lower_v = v.strip().lower()
-                                blacklist = {
-                                    "null",
-                                    "none",
-                                    "n/a",
-                                    "false",
-                                    "ei löydy",
-                                    "not found",
-                                    "-",
-                                    "ei mainittu",
-                                    "none detected",
-                                    "[]",
-                                    "{}",
-                                    "ei sovelleta",
-                                    "ei lainausta",
-                                    "no quote",
-                                    "ei ole",
-                                }
-                                if lower_v in blacklist or lower_v == "":
-                                    raise ValueError(
-                                        f"BANNED STRING VALUE: You output '{v}' for {k}. "
-                                        "If there is no evidence, you MUST output JSON null, not a string."
-                                    )
-                    return data
 
             fields["evaluations"] = (list[AtomResponse], Field(..., description="Array of blinded evaluations."))
 
         for crit in criteria:
-            crit_id_raw = crit.get("id")
-            if not crit_id_raw or not isinstance(crit_id_raw, str):
+            crit_id = crit.id
+            if not crit_id:
                 logger.warning("[PromptCompiler] Found criterion without a valid string 'id': %s. Skipping.", crit)
                 continue
 
-            crit_id = crit_id_raw
-
-            if crit.get("category_id") == "instruction":
+            if crit.category_id == "instruction":
                 fields[crit_id] = (
                     str,
                     Field(
@@ -527,155 +430,19 @@ class PromptCompiler:
                 )
                 continue
 
-            try:
-                _label_obj = crit["label"]
-                extensions = crit.get("output_extensions", [])
-            except KeyError as e:
-                msg = f"PromptBlock '{crit_id}' is missing strict evaluation parameter: {str(e)}."
+            if not crit.label:
+                msg = f"PromptBlock '{crit_id}' is missing strict evaluation parameter: label."
                 logger.error(
                     "PromptBlock structurally invalid.",
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": crit_id},
                 )
-                raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}) from e
+                raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
-            theory_grounding = crit.get("theory_grounding", {})
-            citation_ref = theory_grounding.get("citation_reference") if isinstance(theory_grounding, dict) else None
-
-            sub_fields: dict[str, tuple[Any, Any]] = {}
-
-            if "citation" in extensions:
-                sub_fields["step_1_evidence_quote"] = (
-                    str | None,
-                    Field(
-                        default=None,
-                        description=(
-                            "Provide an EXACT VERBATIM QUOTE from the user's RAW INPUT TEXT that serves as evidence. "
-                            "You MUST NOT alter the text, add markdown formatting, or write semantic summaries. "
-                            "It must be a physically contiguous substring of the original text. "
-                            "If no explicit verbatim evidence exists, return null."
-                        ),
-                    ),
-                )
-
-                if citation_ref:
-                    sub_fields["step_1b_cited_source_id"] = (
-                        Literal[citation_ref] | None,
-                        Field(
-                            default=None,
-                            description=(
-                                "If your justification relies on authorized theory, "
-                                "you MUST RETURN THIS EXACT ENTIRE STRING "
-                                "(do not split or truncate it): "
-                                f"'{citation_ref}'. Otherwise return null."
-                            ),
-                        ),
-                    )
-
-                if has_search_result:
-                    sub_fields["step_1c_google_citation"] = (
-                        str | None,
-                        Field(
-                            default=None,
-                            description=(
-                                "CRITICAL FACT CHECK: Mirror your output against the 'search_result' XML element. "
-                                "Does the Google data support or refute the claim? If unrelated, return null."
-                            ),
-                        ),
-                    )
-
-            if "falsification" in extensions:
-                sub_fields["step_2_falsification"] = (
-                    str,
-                    Field(
-                        ...,
-                        description=(
-                            "Devil's advocate formulation argument. Why might your initial assumption be wrong? "
-                            f"MANDATORY LANGUAGE: '{target_locale}'."
-                        ),
-                    ),
-                )
-
-            if "justification" in extensions:
-                sub_fields["step_3_logical_friction"] = (
-                    str,
-                    Field(
-                        ...,
-                        description=(
-                            f"Detailed reasoning bridging the evidence to <MATRIX id='{crit_id}'>. "
-                            f"MANDATORY LANGUAGE: '{target_locale}'."
-                        ),
-                    ),
-                )
-
-            if "coaching" in extensions:
-                sub_fields["step_3_coaching"] = (
-                    str,
-                    Field(
-                        ...,
-                        description=(
-                            "Concrete coaching tip/remediation advice to the subject. "
-                            f"MANDATORY LANGUAGE: '{target_locale}'."
-                        ),
-                    ),
-                )
-            if "confidence" in extensions:
-                sub_fields["extension_confidence"] = (
-                    float,
-                    Field(..., description="Numerical confidence from 0.0 to 100.0 based on evidence."),
-                )
-            if "missing_context" in extensions:
-                sub_fields["extension_missing_context"] = (
-                    str,
-                    Field(
-                        ...,
-                        description="Missing context from the provided text.",
-                    ),
-                )
-            if "risk_flag" in extensions:
-                sub_fields["extension_risk_flag"] = (
-                    bool,
-                    Field(..., description="True if there is a severe risk present; False otherwise."),
-                )
-            if "remediation_steps" in extensions:
-                sub_fields["extension_remediation_steps"] = (
-                    str,
-                    Field(
-                        ...,
-                        description=(
-                            "Actionable textual remediation steps, formatted clearly and separated by newlines."
-                        ),
-                    ),
-                )
-            if "emotional_sentiment" in extensions:
-                sub_fields["extension_emotional_sentiment"] = (
-                    str,
-                    Field(
-                        ...,
-                        description=("Analysis of author's emotional state or tone."),
-                    ),
-                )
-            if "theory_link" in extensions:
-                sub_fields["extension_theory_link"] = (
-                    str,
-                    Field(
-                        ...,
-                        description=("Direct logical connection to the governing theory framework."),
-                    ),
-                )
-
-            MicroCotBase = make_micro_cot_base(crit_id, citation_ref)
-
-            NestedModel = create_model(  # type: ignore[call-overload]
-                f"{crit_id}_Evaluation",
-                __base__=MicroCotBase,
-                __config__=ConfigDict(extra="forbid", strict=True),
-                **sub_fields,
-            )
             desc_val = (
                 f"Evaluation object for {crit_id}. Even if there is no relevance, "
-                "you MUST return this object and state 'Irrelevant' in the reasoning_trace."
+                "you MUST return this object and state 'Irrelevant' in the semantic_reasoning."
             )
-            fields[crit_id] = (NestedModel, Field(..., description=desc_val))
+            fields[crit_id] = (BaseTDAExtraction, Field(..., description=desc_val))
 
         if not fields:
             fields["acknowledged_instruction"] = (
@@ -945,12 +712,19 @@ class PromptCompiler:
         """Create a Micro-CoT Prompt-block for the system role forcing full blindness."""
         instruction = (
             "<system_directive>\n"
-            "<objective>Tekoäly toimii mekaanisena, empatiattomana data-erottelijana.</objective>\n"
+            "<objective>You are a Blind Extraction Engine. Your task is to scan the text "
+            "for the markers defined in the rule.</objective>\n"
+            "<language_mandate>The physical markers in the rules are in English, but the "
+            "source text is in Finnish. You MUST strictly map the English markers to their "
+            "EXACT semantic physical equivalents in Finnish before scanning. Do not extract "
+            "if the localized marker is missing.</language_mandate>\n"
             "<rules>\n"
-            "  <rule>Täysi sokeus on pakotettu. Matrix-sarakkeiden ryhmittely on ehdottomasti kielletty.</rule>\n"
-            "  <rule>Sovella 'Duck-Typing Token Shield' -konseptia. Käsittele atomit irrallisina.</rule>\n"
-            "  <rule>CONSTRUCTIVE LENIENCY: Anna vastaajalle 'Benefit of the Doubt'. "
-            "Jos ratkaisu on teknisesti mahdollinen vaikkakin epätäydellinen, hyväksy se.</rule>\n"
+            "  <rule>If the exact marker is not physically present, return null for "
+            "exact_quote.</rule>\n"
+            "  <rule>Keep your semantic_reasoning strictly under 2 sentences.</rule>\n"
+            "  <rule>Use contextual_override=true ONLY as a last resort if the target "
+            "concept is clearly present but physically impossible to extract as an "
+            "exact continuous quote.</rule>\n"
             "</rules>\n"
             "</system_directive>"
         )

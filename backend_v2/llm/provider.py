@@ -360,7 +360,7 @@ class LiteLLMProvider(LLMProvider):
             response = None
 
             async for attempt in AsyncRetrying(
-                stop=stop_after_attempt(max_rate_limit_retries),
+                stop=stop_after_attempt(max_rate_limit_retries + 1),
                 wait=wait_combine(
                     wait_fixed(SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value),
                     wait_random(1, 15),

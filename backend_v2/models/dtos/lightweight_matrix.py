@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field, model_validator
 
@@ -82,7 +82,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
     exact_quote: str | None = None
     pre_quote_anchor: str | None = None
     post_quote_anchor: str | None = None
-    dlq_status: bool = False
+    status: Literal["PASS", "FAIL", "DLQ"] | None = None
 
     @property
     def evidence_found(self) -> bool:
@@ -110,8 +110,13 @@ class AtomEvaluationItemDTO(V2CoreBase):
         }
         return self.exact_quote.strip().lower() not in blacklist
 
-    def calculate_rule_satisfied(self, inverse_evidence: bool) -> bool:
+    def calculate_rule_satisfied(self, inverse_evidence: bool) -> bool | str:
         """Deterministinen tuomiovalta: Laskee rule_satisfied arvon kooditasolla."""
+        if self.status:
+            if self.status == "DLQ":
+                return "DLQ"
+            return self.status == "PASS"
+
         if inverse_evidence:
             return not self.evidence_found
         return self.evidence_found

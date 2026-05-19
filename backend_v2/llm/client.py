@@ -227,7 +227,7 @@ class LLMClient:
         response = None
         try:
             # Epic 56 Phase 3: Dynamic Schema Stripping
-            adapter_schema = response_model
+            adapter_schema: type[T] | dict[str, Any] = response_model
             if isinstance(response_model, type) and issubclass(response_model, BaseModel):
                 json_schema = response_model.model_json_schema()
 
@@ -245,11 +245,7 @@ class LLMClient:
                 schema_name = response_model.__name__
                 adapter_schema = {
                     "type": "json_schema",
-                    "json_schema": {
-                        "name": schema_name,
-                        "schema": json_schema,
-                        "strict": True
-                    }
+                    "json_schema": {"name": schema_name, "schema": json_schema, "strict": True},
                 }
 
             try:

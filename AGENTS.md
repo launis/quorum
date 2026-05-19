@@ -23,6 +23,12 @@
         <mandatory_pattern>ALWAYS use `dart run` instead.</mandatory_pattern>
         <catastrophic_reason>Deprecated tooling breaks the modern Flutter 3 pipeline and Quality Gate logic.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="naked_python_execution_ban">
+        <banned_pattern>Instructing the user to run `python`, `pytest`, or `pip install` nakedly (without `uv run`).</banned_pattern>
+        <mandatory_pattern>ALWAYS prefix python tooling with `uv run ` (e.g. `uv run pytest`, `uv run python scripts/...`).</mandatory_pattern>
+        <catastrophic_reason>Naked python execution targets the global Windows environment, missing local `.venv` dependencies and causing cascade module errors.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>

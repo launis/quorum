@@ -43,7 +43,7 @@ class MatrixFieldsMixin(BaseDTO):
     justification: str | None = None
     normalized_score: float | None = None
     raw_score: float | None = None
-    evaluated_atoms: dict[str, bool] | None = None
+    evaluated_atoms: dict[str, bool | str] | None = None
     extensions: dict[str, str] | None = None
     level_breakdown: dict[str, dict[str, int]] | None = None
     xai_log: dict[str, Any] | None = None
@@ -249,5 +249,5 @@ class TraceMatrixPayloadDTO(BaseDTO):
 
     level_breakdown: dict[str, Any] | None = None
     extensions: dict[str, Any] | None = None
-    evaluated_atoms: dict[str, bool] | None = None
+    evaluated_atoms: dict[str, bool | str] | None = None
     xai_log: dict[str, Any] | None = None

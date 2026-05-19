@@ -114,7 +114,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
     # Target Snapshot format
     expected_snapshot = (
         "Evaluation object for blk_1234567890abcdef. Even if there is no relevance, "
-        "you MUST return this object and state 'Irrelevant' in the reasoning_trace."
+        "you MUST return this object and state 'Irrelevant' in the semantic_reasoning."
     )
 
     assert compiled_desc == expected_snapshot, (
@@ -171,18 +171,19 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
         "step_1_reasoning_trace": "Let's think...",
         "evaluation_notes": "User was bad",
         "blk_2234567890abcdef": {
-            "step_1_reasoning_trace": "Inner trace",
-            "step_3_logical_friction": "I gave a 1 because...",
-            "extension_remediation_steps": "Step 1\nStep 2",
-            "extension_confidence": 95.5,
+            "step_1_evidence_scan": "Inner trace",
+            "step_2_mitigating_context": "None",
+            "exact_quote": "I gave a 1 because...",
+            "contextual_override": False,
+            "extracted_data": 1,
         },
     }
 
     parsed = DynamicSchema.model_validate(llm_payload)
-    assert parsed.blk_2234567890abcdef.extension_remediation_steps == "Step 1\nStep 2"  # type: ignore[attr-defined]
-    assert parsed.blk_2234567890abcdef.extension_confidence == 95.5  # type: ignore[attr-defined]
+    assert parsed.blk_2234567890abcdef.step_1_evidence_scan == "Inner trace"  # type: ignore[attr-defined]
+    assert parsed.blk_2234567890abcdef.step_2_mitigating_context == "None"  # type: ignore[attr-defined]
     assert parsed.reasoning_trace == "Let's think..."  # type: ignore[attr-defined]
-    assert parsed.blk_2234567890abcdef.step_3_logical_friction == "I gave a 1 because..."  # type: ignore[attr-defined]
+    assert parsed.blk_2234567890abcdef.exact_quote == "I gave a 1 because..."  # type: ignore[attr-defined]
 
 
 def test_generate_mcp_instruction() -> None:
@@ -313,7 +314,7 @@ def test_atom_response_fail_fast_anti_laziness() -> None:
 def test_compile_blind_system_instruction() -> None:
     compiler = PromptCompiler()
     instruction_en = compiler.compile_blind_system_instruction("en")
-    assert "Duck-Typing Token Shield" in instruction_en
+    assert "Blind Extraction Engine" in instruction_en
     assert "exclusively in the 'en' language" in instruction_en
 
     instruction_fi = compiler.compile_blind_system_instruction("fi")

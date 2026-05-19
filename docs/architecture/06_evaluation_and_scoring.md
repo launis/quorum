@@ -106,23 +106,20 @@ Asynkronisen moottorin suorittama datan jäsennys tapahtuu Zero-Compromise Pydan
 
 Evaluointiarkkitehtuuri on kytketty "Zero-Trust" -kehikon taakse torjumaan LLM-mallien yleisimmät ongelmat: laiskuus, keksitty asiantuntijapuhe ja suorat hallusinaatiot.
 
-### A. Exhaustive Chain-of-Thought (CoT) ja Numerical Prefix Enforcing
-Tekoäly pyrkii usein luomaan päätöksen (`is_true: bool`) ensin ja vasta sitten keksimään sille perustelut ("Post-Hoc Rationalization"). Epic 52 -arkkitehtuurissa tämä estetään pakottamalla Pydantic-skeemat "Exhaustive Chain-of-Thought" (CoT) -rakenteeseen. Vaikka Pydantic V2 säilyttää kenttien järjestyksen, LLM:n JSON-generointi on sidottava fyysiseen numeeriseen järjestykseen aakkosjärjestyksen optimointiansojen ("Alphabetical Trap") välttämiseksi. Tämän vuoksi Pydantic-mallit käyttävät aliaksia: koodissa kentät ovat puhtaita (esim. `reasoning_trace`), mutta LLM saa skeeman fyysisillä etuliitteillä:
-1. `step_1_evidence_type`: Tekoäly valitsee evidenssin tason (`EXPLICIT_QUOTE`, `IMPLIED_INTENT`, `NO_EVIDENCE`).
-2. `step_2_quote`: Suora, muokkaamaton lainaus materiaalista.
-3. `step_3_implicit_justification`: Implisiittinen asiantuntijapäättely, jos suoraa lainausta ei ole.
-4. `step_4_reasoning`: Pakollinen vapaa asiantuntijaharkinta (Reasoning Trace), ennen päätöstä.
-5. `step_5_boolean`: Vasta aivan viimeisenä lopullinen päätös `is_true`.
-Tämä fysiologinen "ylhäältä alas" -JSON-luku pakottaa automaattisen Attention-mekanismin lukemaan omat perustelunsa ja poistaa mallin laiskan oikaisun (System 2 state pakotettu ennen päätöksentekoa).
+### A. Zero-Variance Decoupling ja Extract-and-Justify Arkkitehtuuri (Epic 56)
+Tekoäly pyrkii usein luomaan päätöksen ensin ja vasta sitten keksimään sille perustelut ("Post-Hoc Rationalization"). Epic 56 -arkkitehtuurissa tämä estetään täydellisesti viemällä LLM:ltä päätösvalta kokonaan pois. LLM pakotetaan "Extract-and-Justify" -arkkitehtuuriin hyödyntäen `BaseTDAExtraction` 4-kenttäistä mallia:
+1. `localized_anchors_found`: Pakottaa tekoälyn etsimään ja mäppäämään englanninkieliset säännöt natiivikieliseen tekstiin.
+2. `semantic_reasoning`: Lyhyt (<2 lausetta) perustelu sille, miksi teksti vastaa sääntöä.
+3. `exact_quote`: Suora, muokkaamaton lainaus materiaalista (Tämä on ratkaisevin fyysinen todiste).
+4. `contextual_override`: Ainoa "Escape Hatch" (hätäuloskäynti) niille tilanteille, joissa sääntö täyttyy implisiittisesti mutta tarkkaa lainausta ei fyysisesti voi irrottaa (DLQ-reititys).
 
-Tämä "Alphabetical Keys" -mekanismi pakottaa automaattisen Attention-mekanismin lukemaan omat perustelunsa (step 1-4) ennen arvion (step 5) generoimista, mikä tutkitusti eliminoi laiskan oikaisun ja vahvistaa determinismiä.
+Näiden kenttien avulla asynkroninen moottori (Python) suorittaa **deterministisen kolmitilaisen reduktion (PASS, FAIL, DLQ)** `evaluate_extraction` -funktiossa käyttäen 1D Index Mapping ja RapidFuzz -ankkurointia (Track A) tai kontekstuaalista yliajoa (Track B). Tekoäly on alennettu sokeaksi tekstinlukijaksi.
 
-### B. Anti-Laziness ja Phantom Boolean -estot (Pydantic Validations)
-Kun LLM palauttaa vastauksen, Pydantic V2 tekee ankaran ristitarkastuksen suoritetun työnkulun ankaruustason (`strictness_level`) ja fyysisten todisteiden avulla:
-* **Phantom Boolean -esto (Haamuarvojen Sanitointi):** Estää LLM-hallusinaatiot, joissa malli ei löydä lainausta ja "vuotaa" kenttään merkkijonoja kuten `"null"`, `"N/A"`, tai `"Ei löydy"`. Järjestelmä käyttää `@computed_field evidence_found` -sanitointia: jos `exact_quote.strip().lower()` osuu sulkulistalle (`["none", "ei löydy", "[]", "false", ...]`), osuma tulkitaan automaattisesti arvoon `False`.
-* **Explicit Quote Check:** Jos sääntö vaatii suoran lainauksen, järjestelmä vaatii, että `exact_quote` on täytetty Pydantic-mallissa (`AtomEvaluationItemDTO`). Jos lainausta ei ole (tai se sanitoitiin pois), tila on deterministisesti `False` (`calculate_rule_satisfied()`).
-* **Physical Word-Count Blocker:** Jos näyttö perustuu implisiittiseen päättelyyn (`IMPLIED_INTENT`), järjestelmä estää "konsulttipuheen" asettamalla fyysisen sanamäärärajan (esim. vähintään 20 sanaa). Jos selitys on laiska (esim. "Perustuu rivien välistä luettuun dataan"), Pydantic nostaa `ValueError` -virheen.
-* **Strictness Threshold (>= 70):** Mikäli työnkulun käyttäjä on asettanut ankaruustasoksi vähintään 70, `IMPLIED_INTENT` hylätään automaattisesti kokonaan. Tällöin vain eksakti lainaus hyväksytään järjestelmään, mikä muuttaa koko tekoälyn laskennan armottoman faktapohjaiseksi auditointikoneeksi ilman tulkinnanvaraisuuksia.
+### B. Anti-Laziness ja Deterministiset Fallbackit (Pydantic Validations & Native Structured Outputs)
+Kun LLM palauttaa vastauksen Native Structured Outputs -mallin (strict: true) läpi, Pydantic V2 ja taustajärjestelmä suorittavat ankaran ristitarkastuksen:
+* **Native Structured Outputs Mandate:** Pydantic-kenttä `exact_quote` on pakotettu tyyppiin `str | None` eksplisiittisesti ilman `default=None` -arvoa, joka takaa täyden yhteensopivuuden OpenAI/Vertex JSON Schema strict-rajoitteiden kanssa.
+* **Dual-Track Evaluation:** Jos `exact_quote` löytyy, `AnchorValidationService` varmentaa sen (Physical Match). Jos lainausta ei löydy, mutta `contextual_override=True` on kytketty päälle, osuma siirretään **DLQ (Dead Letter Queue)** -tilaan asiantuntijoiden arvioitavaksi. Yhtäkään "False"-vastausta ei "arvota" LLM:n toimesta.
+* **Sokea Tekstinlukija (Prompt Compiler):** Tekoäly ei saa enää filosofisia arviointiohjeita (kuten "evaluate user intent"). Sille annetaan sokea sääntö: "Olet Blind Extraction Engine. Etsi tarkka fyysinen lainaus. Jos ei ole, palauta null".
 
 ## 4. Pisteytyslogiikka: Soft Scoring V3 (Lerp, Sigmoid, MAD) ja Kireystasot
 

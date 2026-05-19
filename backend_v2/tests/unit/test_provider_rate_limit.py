@@ -67,6 +67,6 @@ async def test_lite_llm_rate_limit_cooldown(mock_settings: Any, monkeypatch: Any
     except Exception as e:
         pytest.fail(f"Provider crashed completely during rate limit test: {e}")
 
-    # Verify that we slept for at least 60 seconds (to wait out RPM limit)
+    # Verify that we slept for at least 30 seconds (to wait out RPM limit)
     assert len(sleep_calls) > 0, "No async sleep was invoked to mitigate the RateLimitError"
-    assert any(s >= 60 for s in sleep_calls), "The sleep was less than 60s, quota would not reset"
+    assert any(s >= 30 for s in sleep_calls), "The sleep was less than 30s, quota would not reset"

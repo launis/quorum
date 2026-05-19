@@ -108,9 +108,9 @@ Koodarien on EHDOTTOMASTI rakennettava seuraavat 100 % kattavuuden testitapaukse
 ---
 
 ## **3. Hyväksymiskriteerit (Definition of Done)**
-* [ ] Koodikannassa ei ole yhtäkään viittausta vanhoihin AST-parsereihin tai omatekoisiin tekoälyn retry-luuppeihin.
-* [ ] `BaseTDAExtraction` (Micro-CoT) on täysin käytössä koko putkessa.
-* [ ] Arq-worker (`evaluate_tda_atom`) suorittaa LLM-haun ja LCS-validoinnin synkronisesti ja fail-fast tyylillä ilman yritysten toistamista.
-* [ ] Prompt Compiler -topologia järjestää viestit 1. System (Static), 2. Source Data (Static), 3. Task (Dynamic).
-* [ ] Kaikki Pydantic-mallit on lukittu `strict=True` ja `extra='forbid'`.
-* [ ] Koodissa ei ole yhtäkään `except Exception: pass` tai `.get("key", default)` purkkaviritystä TDA-putkessa.
+* [x] Koodikannassa ei ole yhtäkään viittausta vanhoihin AST-parsereihin tai omatekoisiin tekoälyn retry-luuppeihin.
+* [x] `BaseTDAExtraction` (Micro-CoT) on täysin käytössä koko putkessa.
+* [x] Arq-worker (`evaluate_tda_atom`) suorittaa LLM-haun ja LCS-validoinnin synkronisesti ja fail-fast tyylillä ilman yritysten toistamista.
+* [x] Prompt Compiler -topologia järjestää viestit 1. System (Static), 2. Source Data (Static), 3. Task (Dynamic).
+* [x] Kaikki Pydantic-mallit on lukittu `strict=True` ja `extra='forbid'`.
+* [x] Koodissa ei ole yhtäkään `except Exception: pass` tai `.get("key", default)` purkkaviritystä TDA-putkessa.

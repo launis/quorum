@@ -16,11 +16,12 @@ def test_normalization() -> None:
     norm, index = AnchorValidationService.normalize_text_with_mapping("ﬃ")
     assert norm == "ffi"  # ligature
 
+
 def test_lcs_normalization_retains_raw_pdf_mapping() -> None:
-    chunk = "Tämä  on\n\t tär\xadkeä \u00ADsopimus."
+    chunk = "Tämä  on\n\t tär\xadkeä \u00adsopimus."
     quote = "Tämä on tärkeä sopimus."
     extracted = AnchorValidationService.validate_evidence(chunk, quote)
-    assert extracted == "Tämä  on\n\t tär\xadkeä \u00ADsopimus"
+    assert extracted == "Tämä  on\n\t tär\xadkeä \u00adsopimus"
 
 
 def test_fuzzy_match() -> None:

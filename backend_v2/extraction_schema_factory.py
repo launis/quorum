@@ -29,26 +29,19 @@ def _standard_fields() -> dict[str, Any]:
     """Base fields that exist on every extraction model.
 
     ``chunk_index`` is required for deterministic *First‑Wins* merging.
-    ``context_scan_trace`` stores the LLM's internal reasoning (max 400 chars).
-    ``search_context_anchor`` is optional and can be used for manual
-    verification of the extracted snippet.
+    The remaining 4 fields enforce the Zero-Variance Extract-and-Justify schema.
     """
     return {
         "chunk_index": (int, Field(..., description="Zero‑based index of the chunk")),
-        "context_scan_trace": (
+        "step_1_evidence_scan": (
             str,
-            Field(
-                ...,  # required
-                max_length=400,
-                description="LLM reasoning trace for this chunk (≤400 chars)",
-            ),
+            Field(..., description="Forces LLM to map English rules to Finnish text."),
         ),
-        "search_context_anchor": (
-            (str | None),
-            Field(
-                None,
-                description="Optional raw quote used for debugging the extraction",
-            ),
+        "step_2_mitigating_context": (str, Field(..., description="LLM explains its mapping logic briefly.")),
+        "exact_quote": ((str | None), Field(..., description="The physical extraction.")),
+        "contextual_override": (
+            bool,
+            Field(..., description="Escape hatch for implicit matches when exact_quote is None."),
         ),
     }
 
@@ -66,7 +59,10 @@ def create_extraction_model(facts_to_find: list[str]) -> type[BaseModel]:
         Model = create_extraction_model(["vaatimus_A", "poikkeus_B"])
         payload = Model(
             chunk_index=0,
-            context_scan_trace="...",
+            step_1_evidence_scan="sääntö",
+            step_2_mitigating_context="reasoning text...",
+            exact_quote="matched quote",
+            contextual_override=False,
             vaatimus_A="some text",
             poikkeus_B=None,
         )

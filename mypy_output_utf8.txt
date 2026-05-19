@@ -1,0 +1,23 @@
+﻿backend_v2\tests\unit\hooks\test_archival_fallback.py:4: error: Function is missing a return type annotation  [no-untyped-def]
+backend_v2\tests\unit\hooks\test_archival_fallback.py:4: note: Use "-> None" if function does not return a value
+backend_v2\tests\unit\test_extraction_schema_factory.py:8: error: Function is missing a return type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_extraction_schema_factory.py:8: note: Use "-> None" if function does not return a value
+backend_v2\tests\unit\test_extraction_schema_factory.py:23: error: "BaseModel" has no attribute "chunk_index"  [attr-defined]
+backend_v2\tests\unit\test_extraction_schema_factory.py:24: error: "BaseModel" has no attribute "step_1_evidence_scan"  [attr-defined]
+backend_v2\tests\unit\test_extraction_schema_factory.py:25: error: "BaseModel" has no attribute "step_2_mitigating_context"  [attr-defined]
+backend_v2\tests\unit\test_extraction_schema_factory.py:26: error: "BaseModel" has no attribute "exact_quote"  [attr-defined]
+backend_v2\tests\unit\test_extraction_schema_factory.py:27: error: "BaseModel" has no attribute "contextual_override"  [attr-defined]
+backend_v2\tests\unit\test_extraction_schema_factory.py:28: error: "BaseModel" has no attribute "fact_A"  [attr-defined]
+backend_v2\tests\unit\test_extraction_schema_factory.py:29: error: "BaseModel" has no attribute "fact_B"  [attr-defined]
+backend_v2\tests\unit\test_extraction_schema_factory.py:32: error: Function is missing a return type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_extraction_schema_factory.py:32: note: Use "-> None" if function does not return a value
+backend_v2\tests\unit\test_extraction_schema_factory.py:51: error: Function is missing a return type annotation  [no-untyped-def]
+backend_v2\tests\unit\test_extraction_schema_factory.py:51: note: Use "-> None" if function does not return a value
+backend_v2\tests\unit\llm\test_client_schema.py:15: error: Function is missing a return type annotation  [no-untyped-def]
+backend_v2\tests\unit\llm\test_client_schema.py:15: note: Use "-> None" if function does not return a value
+backend_v2\tests\integration\test_worker_dlq.py:16: error: Function is missing a return type annotation  [no-untyped-def]
+backend_v2\tests\integration\test_worker_dlq.py:16: note: Use "-> None" if function does not return a value
+backend_v2\tests\integration\test_worker_dlq.py:19: error: Function is missing a type annotation  [no-untyped-def]
+backend_v2\tests\integration\test_worker_dlq.py:22: error: Call to untyped function "DummyChunk" in typed context  [no-untyped-call]
+backend_v2\tests\integration\test_worker_dlq.py:66: error: Unsupported right operand type for in ("Any | None")  [operator]
+Found 16 errors in 4 files (checked 365 source files)
