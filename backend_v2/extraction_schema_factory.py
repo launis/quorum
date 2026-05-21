@@ -33,15 +33,18 @@ def _standard_fields() -> dict[str, Any]:
     """
     return {
         "chunk_index": (int, Field(..., description="Zero‑based index of the chunk")),
-        "step_1_evidence_scan": (
-            str,
-            Field(..., description="Forces LLM to map English rules to Finnish text."),
+        "localized_anchors_found": (
+            list[str],
+            Field(
+                ...,
+                description="Keywords in target language mapping English rule.",
+            ),
         ),
-        "step_2_mitigating_context": (str, Field(..., description="LLM explains its mapping logic briefly.")),
-        "exact_quote": ((str | None), Field(..., description="The physical extraction.")),
+        "semantic_reasoning": (str, Field(..., description="LLM explains its mapping logic briefly.")),
+        "exact_quote": ((str | None), Field(..., description="The physical extraction verbatim quote.")),
         "contextual_override": (
             bool,
-            Field(..., description="Escape hatch for implicit matches when exact_quote is None."),
+            Field(..., description="Escape hatch for implicit matches."),
         ),
     }
 
@@ -59,8 +62,8 @@ def create_extraction_model(facts_to_find: list[str]) -> type[BaseModel]:
         Model = create_extraction_model(["vaatimus_A", "poikkeus_B"])
         payload = Model(
             chunk_index=0,
-            step_1_evidence_scan="sääntö",
-            step_2_mitigating_context="reasoning text...",
+            localized_anchors_found=["sääntö"],
+            semantic_reasoning="reasoning text...",
             exact_quote="matched quote",
             contextual_override=False,
             vaatimus_A="some text",

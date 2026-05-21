@@ -152,7 +152,8 @@ abstract class PromptBlock with _$PromptBlock {
     @Default(BlockDataType.stringType) BlockDataType type,
     @Default(false) bool allowDecimals,
     @Default([]) List<String> outputExtensions,
-    @Default(ExecutionPersona.deterministicParser) ExecutionPersona executionPersona,
+    @Default(ExecutionPersona.deterministicParser)
+    ExecutionPersona executionPersona,
     TheoryGrounding? theoryGrounding,
     int? scaleMin,
     int? scaleMax,

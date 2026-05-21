@@ -113,8 +113,8 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
 
     # Target Snapshot format
     expected_snapshot = (
-        "Evaluation object for blk_1234567890abcdef. Even if there is no relevance, "
-        "you MUST return this object and state 'Irrelevant' in the semantic_reasoning."
+        "Evaluation field for matrix block 'blk_1234567890abcdef' (Critical Distance Score). "
+        "Objective: ROLE: ADVERSARIAL AUDITOR... Evaluate the user's intellectual effort..."
     )
 
     assert compiled_desc == expected_snapshot, (
@@ -171,19 +171,15 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
         "step_1_reasoning_trace": "Let's think...",
         "evaluation_notes": "User was bad",
         "blk_2234567890abcdef": {
-            "step_1_evidence_scan": "Inner trace",
-            "step_2_mitigating_context": "None",
-            "exact_quote": "I gave a 1 because...",
-            "contextual_override": False,
-            "extracted_data": 1,
+            "semantic_reasoning": "None",
+            "remediation_steps": "Do better",
+            "confidence": "High",
         },
     }
 
     parsed = DynamicSchema.model_validate(llm_payload)
-    assert parsed.blk_2234567890abcdef.step_1_evidence_scan == "Inner trace"  # type: ignore[attr-defined]
-    assert parsed.blk_2234567890abcdef.step_2_mitigating_context == "None"  # type: ignore[attr-defined]
+    assert parsed.blk_2234567890abcdef.semantic_reasoning == "None"  # type: ignore[attr-defined]
     assert parsed.reasoning_trace == "Let's think..."  # type: ignore[attr-defined]
-    assert parsed.blk_2234567890abcdef.exact_quote == "I gave a 1 because..."  # type: ignore[attr-defined]
 
 
 def test_generate_mcp_instruction() -> None:
@@ -365,3 +361,160 @@ def test_compile_xml_rubrics_anti_sycophancy() -> None:
     assert "<ANTI_SYCOPHANCY_MANDATE>" in result
     assert "ANTI-SYCOPHANCY MANDATE:" in result
     assert "Speak like a strict professional auditor." in result
+
+
+def test_dynamic_schema_descriptions_are_present() -> None:
+    """Ensure dynamic schemas are enriched with semantic descriptions to guide the LLM."""
+    from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+
+    compiler = PromptCompiler()
+
+    # 1. Test build_blind_evaluation_schema
+    BlindSchema = compiler.build_blind_evaluation_schema("BlindTest")
+    assert BlindSchema.model_fields["evaluations"].description == "List of blind atomic evaluations."
+
+    atom_response_model = BlindSchema.model_fields["evaluations"].annotation.__args__[0]
+    assert atom_response_model.model_fields["atom_id"].description == "Unique system identifier of the target evaluation atom."
+    assert atom_response_model.model_fields["step_1_evidence_type"].description == "Type of evidence discovered (EXPLICIT_QUOTE, IMPLIED_INTENT, or NO_EVIDENCE)."
+    assert atom_response_model.model_fields["step_2_quote"].description == "Literal verbatim quote containing the exact physical evidence from the source document. REQUIRED if evidence type is EXPLICIT_QUOTE."
+    assert atom_response_model.model_fields["step_3_implicit_justification"].description == "Conclusive justification if intent is implied. Must be at least 20 words. Allowed ONLY if strictness < 70."
+    assert atom_response_model.model_fields["step_4_reasoning"].description == "Strict analytical reasoning trace explaining the presence or absence of evidence."
+    assert atom_response_model.model_fields["step_5_boolean"].description == "Final Boolean determination: True if rule is satisfied, False if violated or unsupported."
+
+    # 2. Test build_chunk_response_schema
+    from pydantic import BaseModel
+    class MockItem(BaseModel):
+        val: str
+
+    ChunkSchema = compiler.build_chunk_response_schema("ChunkTest", MockItem)
+    assert ChunkSchema.model_fields["chunk_id"].description == "The unique system identifier of the current execution chunk."
+    assert ChunkSchema.model_fields["records"].description == "List of records contained in this execution chunk."
+
+    chunk_record_model = ChunkSchema.model_fields["records"].annotation.__args__[0]
+    assert chunk_record_model.model_fields["original_id"].description == "The original system identifier of the source record."
+    assert chunk_record_model.model_fields["payload"].description == "The validated item payload matching the target data schema."
+
+    # 3. Assert max_length constraints exist to limit LLM schema serving states
+    from backend_v2.models.enums import SystemConcurrency
+    from backend_v2.services.orchestrator.prompt_compiler import StrippedBaseTDAExtraction
+    tda_schema = StrippedBaseTDAExtraction.model_json_schema()
+    assert tda_schema["properties"]["localized_anchors_found"]["maxItems"] == SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS
+
+    blind_json_schema = BlindSchema.model_json_schema()
+    assert blind_json_schema["properties"]["evaluations"]["maxItems"] == SystemConcurrency.SCHEMA_MAX_EVALUATIONS
+
+    chunk_json_schema = ChunkSchema.model_json_schema()
+    assert chunk_json_schema["properties"]["records"]["maxItems"] == SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS
+
+
+def test_fsm_serving_state_safety_limits() -> None:
+    """Varmistaa, että FSM-tilojen räjähdyksen estävät rajoitukset ovat riittävän tiukat."""
+    from backend_v2.models.enums import SystemConcurrency
+
+    # Vertex AI FSM -kääntäjä ei hyväksy liian suuria sisäkkäisiä taulukkorajoja.
+    # Varmistetaan matemaattinen yläraja tilojen määrälle.
+    assert SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS <= 5
+    assert SystemConcurrency.SCHEMA_MAX_EVALUATIONS <= 15
+    assert SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS <= 15
+
+
+def test_tda_extraction_schema_has_semantic_descriptions() -> None:
+    """Varmistaa, että StrippedBaseTDAExtraction-luokan kentissä on semanttinen ohjeistus."""
+    from backend_v2.services.orchestrator.prompt_compiler import StrippedBaseTDAExtraction
+
+    override_desc = StrippedBaseTDAExtraction.model_fields["contextual_override"].description or ""
+    quote_desc = StrippedBaseTDAExtraction.model_fields["exact_quote"].description or ""
+
+    assert "exact_quote MUST be empty if True" in override_desc
+    assert "MUST be empty if contextual_override is True" in quote_desc
+
+
+def test_prompt_compiler_extreme_description_truncation() -> None:
+    """Epic 56 Phase 4: Varmistaa, että erittäin pitkät ai_description-kentät säilytetään
+    täydellisinä dynamic schema -kenttien kuvauksissa ilman keinotekoista typistämistä.
+    """
+    compiler = PromptCompiler()
+    from backend_v2.models.enums import BlockDataType
+    from backend_v2.models.v2_core import PromptBlock
+
+    extreme_desc = "X" * 1000  # 1000 merkin pituinen ohjeistus
+    mock_block = {
+        "id": "blk_1234567890abcdef",
+        "slug": "extreme_test",
+        "category_id": "matrix",
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "type": BlockDataType.FLOAT,
+        "allow_decimals": True,
+        "scale_min": 1,
+        "scale_max": 5,
+        "label": {"default_locale": "en", "translations": {"en": "Extreme Score"}},
+        "ai_description": extreme_desc,
+        "scales": [
+            {
+                "score": 1,
+                "ai_label": "ONE",
+                "claims": [
+                    {
+                        "label": {
+                            "default_locale": "en",
+                            "translations": {
+                                "en": "Minimal Claim"
+                            }
+                        },
+                        "ai_description": "Minimal claim AI description",
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_1111111111111111",
+                                "ai_rule_description": "Assertion rule",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "ALL_MUST_COMPLY"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+    }
+
+    DynamicSchema = compiler.build_dynamic_schema(
+        schema_name="ExtremeSchema", criteria=[PromptBlock.model_validate(mock_block)]
+    )
+
+    field_info = DynamicSchema.model_fields["blk_1234567890abcdef"]
+    compiled_desc = field_info.description
+
+    # Kuvauksen tulee sisältää koko extreme_desc ilman typistystä
+    assert extreme_desc in compiled_desc
+    assert len(compiled_desc) > 1000
+def test_build_dynamic_schema_instruction_with_custom_category() -> None:
+    compiler = PromptCompiler()
+    from backend_v2.models.v2_core import PromptBlock
+
+    mock_block = {
+        "id": "blk_599645bd5baf44e2",
+        "slug": "custom_instruction",
+        "category_id": "system_rule",
+        "type": "instruction",
+        "label": {"default_locale": "en", "translations": {"en": "Instruction Label"}},
+        "description": {"default_locale": "en", "translations": {"en": "Instruction Description"}},
+        "ai_description": "Custom instruction details.",
+    }
+
+    DynamicSchema = compiler.build_dynamic_schema(
+        schema_name="CustomInstructionSchema",
+        criteria=[PromptBlock.model_validate(mock_block)],
+    )
+
+    # The field type must be a simple string (str), NOT a nested Pydantic model class
+    field_info = DynamicSchema.model_fields["blk_599645bd5baf44e2"]
+    assert field_info.annotation is str
+
+    # The schema must parse valid string payloads perfectly
+    llm_payload = {
+        "step_1_reasoning_trace": "Some reasoning trace.",
+        "evaluation_notes": "Qualitative evaluation notes.",
+        "blk_599645bd5baf44e2": "Verification completed successfully.",
+    }
+    parsed = DynamicSchema.model_validate(llm_payload)
+    assert parsed.blk_599645bd5baf44e2 == "Verification completed successfully."  # type: ignore[attr-defined]
+

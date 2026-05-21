@@ -9,11 +9,87 @@ from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import StepRule
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
+MOCK_MATRIX_BLOCK = {
+    "id": "comp_1234567890abcdef1234567890abcdef",
+    "slug": "block-slug",
+    "label": {"default_locale": "en", "translations": {"en": "Block Label"}},
+    "description": {"default_locale": "en", "translations": {"en": "Block Description"}},
+    "category_id": "matrix",
+    "type": "string",
+    "is_evaluative": True,
+    "scale_min": 1,
+    "scale_max": 5,
+    "scales": [
+        {
+            "score": 1,
+            "ai_label": "FAIL",
+            "claims": [
+                {
+                    "label": {"default_locale": "en", "translations": {"en": "Claim 1"}},
+                    "ai_description": "Claim 1 desc",
+                    "tda_assertions": [
+                        {
+                            "tda_id": "tda_1234567890abcdef",
+                            "ai_rule_description": "Rule 1",
+                            "inverse_evidence": False,
+                            "aggregation_mode": "EXISTS",
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "score": 5,
+            "ai_label": "EXCELLENT",
+            "claims": [
+                {
+                    "label": {"default_locale": "en", "translations": {"en": "Claim 5"}},
+                    "ai_description": "Claim 5 desc",
+                    "tda_assertions": [
+                        {
+                            "tda_id": "tda_abcdef1234567890",
+                            "ai_rule_description": "Rule 5",
+                            "inverse_evidence": False,
+                            "aggregation_mode": "EXISTS",
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+
+MOCK_INSTRUCTION_BLOCK = {
+    "id": "comp_1234567890abcdef1234567890abcdef",
+    "slug": "block-slug",
+    "label": {"default_locale": "en", "translations": {"en": "Block Label"}},
+    "description": {"default_locale": "en", "translations": {"en": "Block Description"}},
+    "category_id": "instruction",
+    "type": "string",
+    "is_evaluative": True,
+}
+
 
 @pytest.mark.asyncio
 async def test_llm_strategy_concurrent_chunks_semaphore() -> None:
     """Epic 23/27: Test that LLM execution limits concurrency via Semaphore."""
-    strategy = LLMNodeStrategy(repository=AsyncMock(), prompt_compiler=MagicMock())
+    exec_repo = AsyncMock()
+    workflow_repo = AsyncMock()
+    comp_repo = AsyncMock()
+    identity_repo = AsyncMock()
+    audit_repo = AsyncMock()
+    system_repo = AsyncMock()
+    prompt_compiler = MagicMock()
+    
+    strategy = LLMNodeStrategy(
+        exec_repo=exec_repo,
+        workflow_repo=workflow_repo,
+        comp_repo=comp_repo,
+        identity_repo=identity_repo,
+        audit_repo=audit_repo,
+        system_repo=system_repo,
+        prompt_compiler=prompt_compiler,
+    )
     
     # 1. Setup minimal inputs
     step_rule = MagicMock(spec=StepRule)
@@ -23,21 +99,31 @@ async def test_llm_strategy_concurrent_chunks_semaphore() -> None:
     step_rule.allowed_mcp_tools = []
     
     projector = MagicMock(spec=StateProjector)
-    projector.snapshot = {"shuffled_atoms": [{"atom_id": str(i), "boolean": True} for i in range(5)]}
+    projector.snapshot = []
     
-    context = MagicMock(spec=StrategyContext)
-    context.execution_id = "exec_1"
-    context.workflow_id = "wf_1"
-    context.model_strategy = "test_mock_strategy"
-    context.metadata = {"profile_id": "prof_1", "target_locale": "en"}
-    context.expected_inputs = None
+    context = StrategyContext(
+        execution_id="exec_1",
+        workflow_id="wf_1",
+        model_strategy="test_mock_strategy",
+        metadata={"profile_id": "prof_1", "target_locale": "en"},
+        expected_inputs=None,
+    )
     
-    mock_step_def = {"id": "step_1111222233334444", "slug": "test", "name": {"default_locale": "en", "translations": {"en": "test"}}, "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["block_123"]}
-    strategy.repository.get_step_by_id = AsyncMock(return_value=mock_step_def)
-    strategy.repository.get_all_prompt_blocks = AsyncMock(return_value=[{"id": "block_123"}])
+    mock_step_def = {
+        "id": "step_11112222333344445555666677778888",
+        "slug": "test",
+        "name": {"default_locale": "en", "translations": {"en": "test"}},
+        "type": "llm",
+        "model_strategy": "test_mock",
+        "prompt_blocks": ["comp_1234567890abcdef1234567890abcdef"]
+    }
+    workflow_repo.get_step_by_id = AsyncMock(return_value=mock_step_def)
+    workflow_repo.get_workflow = AsyncMock(return_value=None)
+    comp_repo.get_all_prompt_blocks = AsyncMock(return_value=[MOCK_MATRIX_BLOCK])
     
-    strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=projector.snapshot))
-    strategy.run_post_hooks = AsyncMock(return_value={"final": "output"})
+    pre_hook_inputs = {"shuffled_atoms": [{"atom_id": str(i), "boolean": True} for i in range(5)]}
+    strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=pre_hook_inputs))
+    strategy.run_post_hooks = AsyncMock(return_value=MagicMock(inputs={"final": "output"}))
     
     # 2. Track concurrency
     concurrent_executions = 0
@@ -75,7 +161,23 @@ async def test_llm_strategy_concurrent_chunks_semaphore() -> None:
 @pytest.mark.asyncio
 async def test_llm_strategy_context_pruning() -> None:
     """Epic 27 Phase 1: Test that input context mapping pruning successfully strips heavy keys."""
-    strategy = LLMNodeStrategy(repository=AsyncMock(), prompt_compiler=MagicMock())
+    exec_repo = AsyncMock()
+    workflow_repo = AsyncMock()
+    comp_repo = AsyncMock()
+    identity_repo = AsyncMock()
+    audit_repo = AsyncMock()
+    system_repo = AsyncMock()
+    prompt_compiler = MagicMock()
+    
+    strategy = LLMNodeStrategy(
+        exec_repo=exec_repo,
+        workflow_repo=workflow_repo,
+        comp_repo=comp_repo,
+        identity_repo=identity_repo,
+        audit_repo=audit_repo,
+        system_repo=system_repo,
+        prompt_compiler=prompt_compiler,
+    )
     
     step_rule = MagicMock(spec=StepRule)
     step_rule.id = "step_prune_test"
@@ -84,25 +186,35 @@ async def test_llm_strategy_context_pruning() -> None:
     step_rule.allowed_mcp_tools = []
     
     projector = MagicMock(spec=StateProjector)
-    projector.snapshot = {
+    projector.snapshot = []
+    
+    context = StrategyContext(
+        execution_id="exec_1",
+        workflow_id="wf_1",
+        model_strategy="test_strategy",
+        metadata={"profile_id": "prof_1", "target_locale": "en"},
+        expected_inputs=None,
+    )
+    
+    mock_step_def = {
+        "id": "step_11112222333344445555666677778888",
+        "slug": "test",
+        "name": {"default_locale": "en", "translations": {"en": "test"}},
+        "type": "llm",
+        "model_strategy": "test_mock",
+        "prompt_blocks": ["comp_1234567890abcdef1234567890abcdef"]
+    }
+    workflow_repo.get_step_by_id = AsyncMock(return_value=mock_step_def)
+    workflow_repo.get_workflow = AsyncMock(return_value=None)
+    comp_repo.get_all_prompt_blocks = AsyncMock(return_value=[MOCK_MATRIX_BLOCK])
+    
+    pre_hook_inputs = {
         "shuffled_atoms": [{"atom_id": "1", "quote": "heavy", "reasoning": "heavy", "boolean": True}],
         "heavy_root_field": "should_be_pruned",
         "inputs": {"good_data": "keep"}
     }
-    
-    context = MagicMock(spec=StrategyContext)
-    context.execution_id = "exec_1"
-    context.workflow_id = "wf_1"
-    context.model_strategy = "test_strategy"
-    context.metadata = {"profile_id": "prof_1", "target_locale": "en"}
-    context.expected_inputs = None
-    
-    mock_step_def = {"id": "step_1111222233334444", "slug": "test", "name": {"default_locale": "en", "translations": {"en": "test"}}, "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["block_123"]}
-    strategy.repository.get_step_by_id = AsyncMock(return_value=mock_step_def)
-    strategy.repository.get_all_prompt_blocks = AsyncMock(return_value=[{"id": "block_123"}])
-    
-    strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=projector.snapshot))
-    strategy.run_post_hooks = AsyncMock(return_value={"final": "output"})
+    strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=pre_hook_inputs))
+    strategy.run_post_hooks = AsyncMock(return_value=MagicMock(inputs={"final": "output"}))
     
     mock_client = MagicMock()
     mock_result = MagicMock()
@@ -131,7 +243,23 @@ from backend_v2.exceptions import TokenLimitExceededError
 @pytest.mark.asyncio
 async def test_llm_strategy_token_limit_breach() -> None:
     """Epic 35 Phase 3: Test that token max breach raises TokenLimitExceededError."""
-    strategy = LLMNodeStrategy(repository=AsyncMock(), prompt_compiler=MagicMock())
+    exec_repo = AsyncMock()
+    workflow_repo = AsyncMock()
+    comp_repo = AsyncMock()
+    identity_repo = AsyncMock()
+    audit_repo = AsyncMock()
+    system_repo = AsyncMock()
+    prompt_compiler = MagicMock()
+    
+    strategy = LLMNodeStrategy(
+        exec_repo=exec_repo,
+        workflow_repo=workflow_repo,
+        comp_repo=comp_repo,
+        identity_repo=identity_repo,
+        audit_repo=audit_repo,
+        system_repo=system_repo,
+        prompt_compiler=prompt_compiler,
+    )
     
     step_rule = MagicMock(spec=StepRule)
     step_rule.id = "step_token_limit"
@@ -140,23 +268,26 @@ async def test_llm_strategy_token_limit_breach() -> None:
     step_rule.allowed_mcp_tools = []
     
     projector = MagicMock(spec=StateProjector)
-    projector.snapshot = {
+    projector.snapshot = []
+    
+    context = StrategyContext(
+        execution_id="exec_1",
+        workflow_id="wf_1",
+        model_strategy="test_strategy",
+        metadata={"profile_id": "prof_1", "target_locale": "en"},
+        expected_inputs=None,
+    )
+    
+    workflow_repo.get_step_by_id = AsyncMock(return_value={"id": "step_11112222333344445555666677778888", "slug": "test", "name": {"default_locale": "en", "translations": {"en": "test"}}, "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["comp_1234567890abcdef1234567890abcdef"]})
+    workflow_repo.get_workflow = AsyncMock(return_value=None)
+    comp_repo.get_all_prompt_blocks = AsyncMock(return_value=[MOCK_MATRIX_BLOCK])
+    
+    pre_hook_inputs = {
         "inputs": {"huge_data": "A" * 500000}
     }
+    strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=pre_hook_inputs))
     
-    context = MagicMock(spec=StrategyContext)
-    context.execution_id = "exec_1"
-    context.workflow_id = "wf_1"
-    context.model_strategy = "test_strategy"
-    context.metadata = {"profile_id": "prof_1", "target_locale": "en"}
-    context.expected_inputs = None
-    
-    strategy.repository.get_step_by_id = AsyncMock(return_value={"id": "step_1111222233334444", "slug": "test", "name": {"default_locale": "en", "translations": {"en": "test"}}, "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["block_123"]})
-    strategy.repository.get_all_prompt_blocks = AsyncMock(return_value=[{"id": "block_123"}])
-    
-    strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=projector.snapshot))
-    
-    with patch("litellm.token_counter", return_value=100001):
+    with patch("litellm.token_counter", return_value=1000001):
         with pytest.raises(TokenLimitExceededError):
             await strategy.execute(step_rule, projector, context, None, None)
 
@@ -164,7 +295,23 @@ async def test_llm_strategy_token_limit_breach() -> None:
 @pytest.mark.asyncio
 async def test_llm_strategy_synthesis_output_profile() -> None:
     """Epic 35 Phase 3: Test that Synthesis tasks use SduiResponseList schema and map chunks."""
-    strategy = LLMNodeStrategy(repository=AsyncMock(), prompt_compiler=MagicMock())
+    exec_repo = AsyncMock()
+    workflow_repo = AsyncMock()
+    comp_repo = AsyncMock()
+    identity_repo = AsyncMock()
+    audit_repo = AsyncMock()
+    system_repo = AsyncMock()
+    prompt_compiler = MagicMock()
+    
+    strategy = LLMNodeStrategy(
+        exec_repo=exec_repo,
+        workflow_repo=workflow_repo,
+        comp_repo=comp_repo,
+        identity_repo=identity_repo,
+        audit_repo=audit_repo,
+        system_repo=system_repo,
+        prompt_compiler=prompt_compiler,
+    )
     
     step_rule = MagicMock(spec=StepRule)
     step_rule.id = "step_synthesis"
@@ -173,25 +320,45 @@ async def test_llm_strategy_synthesis_output_profile() -> None:
     step_rule.allowed_mcp_tools = []
     
     projector = MagicMock(spec=StateProjector)
-    projector.snapshot = {}
+    projector.snapshot = []
     
-    context = MagicMock(spec=StrategyContext)
-    context.execution_id = "exec_1"
-    context.workflow_id = "wf_1"
-    context.model_strategy = "test_strategy"
-    context.metadata = {"profile_id": "prof_1", "target_locale": "en"}
-    context.output_profile = MagicMock()
-    context.expected_inputs = None
+    context = StrategyContext(
+        execution_id="exec_1",
+        workflow_id="wf_1",
+        model_strategy="test_strategy",
+        metadata={"profile_id": "prof_1", "target_locale": "en"},
+        expected_inputs=None,
+    )
     
-    strategy.repository.get_step_by_id = AsyncMock(return_value={"id": "step_1111222233334444", "slug": "test", "name": {"default_locale": "en", "translations": {"en": "test"}}, "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["block_123"]})
-    strategy.repository.get_all_prompt_blocks = AsyncMock(return_value=[{"id": "block_123"}])
+    workflow_repo.get_step_by_id = AsyncMock(return_value={"id": "step_11112222333344445555666677778888", "slug": "test", "name": {"default_locale": "en", "translations": {"en": "test"}}, "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["comp_1234567890abcdef1234567890abcdef"]})
     
-    strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=projector.snapshot))
-    strategy.run_post_hooks = AsyncMock(return_value={"final": "output"})
+    mock_workflow_def = {
+        "id": "wf_1234567890abcdef1234567890abcdef",
+        "slug": "test-workflow",
+        "name": "Test Workflow",
+        "description": "Test description",
+        "status": "active",
+        "version": 1,
+        "default_profile_id": "prof_1",
+        "output_profiles": {
+            "prof_1": {
+                "name": {"default_locale": "en", "translations": {"en": "Management Summary"}},
+                "description": {"default_locale": "en", "translations": {"en": "Summary desc"}},
+                "layouts": []
+            }
+        },
+        "steps": []
+    }
+    workflow_repo.get_workflow = AsyncMock(return_value=mock_workflow_def)
+    comp_repo.get_all_prompt_blocks = AsyncMock(return_value=[MOCK_MATRIX_BLOCK])
+    
+    pre_hook_inputs = {}
+    strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=pre_hook_inputs))
+    strategy.run_post_hooks = AsyncMock(return_value=MagicMock(inputs={"final": "output"}))
     
     mock_client = MagicMock()
     mock_result = MagicMock()
-    mock_result.model_dump.return_value = [{"block_type": "hero_insight"}]
+    mock_result.model_dump.return_value = {"blocks": [{"block_type": "hero_insight"}]}
     mock_client.run_structured_task = AsyncMock(return_value=(mock_result, {}))
     
     mock_from_strategy = AsyncMock(return_value=mock_client)
@@ -209,7 +376,23 @@ async def test_llm_strategy_synthesis_output_profile() -> None:
 @pytest.mark.asyncio
 async def test_llm_strategy_state_leakage_prevention() -> None:
     """Epic 32: Test that State Leakage (Zombie Map-Reduce) is prevented if step has no matrices."""
-    strategy = LLMNodeStrategy(repository=AsyncMock(), prompt_compiler=MagicMock())
+    exec_repo = AsyncMock()
+    workflow_repo = AsyncMock()
+    comp_repo = AsyncMock()
+    identity_repo = AsyncMock()
+    audit_repo = AsyncMock()
+    system_repo = AsyncMock()
+    prompt_compiler = MagicMock()
+    
+    strategy = LLMNodeStrategy(
+        exec_repo=exec_repo,
+        workflow_repo=workflow_repo,
+        comp_repo=comp_repo,
+        identity_repo=identity_repo,
+        audit_repo=audit_repo,
+        system_repo=system_repo,
+        prompt_compiler=prompt_compiler,
+    )
     
     step_rule = MagicMock(spec=StepRule)
     step_rule.id = "step_leakage"
@@ -218,26 +401,34 @@ async def test_llm_strategy_state_leakage_prevention() -> None:
     step_rule.allowed_mcp_tools = []
     
     projector = MagicMock(spec=StateProjector)
-    # Simulate leaked atoms from a previous step
-    projector.snapshot = {
-        "shuffled_atoms": [{"atom_id": "1", "boolean": True}]
-    }
+    projector.snapshot = []
     
-    context = MagicMock(spec=StrategyContext)
-    context.execution_id = "exec_1"
-    context.workflow_id = "wf_1"
-    context.model_strategy = "test_strategy"
-    context.metadata = {"profile_id": "prof_1", "target_locale": "en"}
-    context.output_profile = None
-    context.expected_inputs = None
+    context = StrategyContext(
+        execution_id="exec_1",
+        workflow_id="wf_1",
+        model_strategy="test_strategy",
+        metadata={"profile_id": "prof_1", "target_locale": "en"},
+        expected_inputs=None,
+    )
     
     # Mock block without 'category_id' == 'matrix'
-    mock_step_def = {"id": "step_1", "slug": "t", "name": {"default_locale": "en", "translations": {}}, "type": "llm", "model_strategy": "test_mock", "prompt_blocks": ["block_non_matrix"]}
-    strategy.repository.get_step_by_id = AsyncMock(return_value=mock_step_def)
-    strategy.repository.get_all_prompt_blocks = AsyncMock(return_value=[{"id": "block_non_matrix", "category_id": "instruction"}])
+    mock_step_def = {
+        "id": "step_11112222333344445555666677778888", 
+        "slug": "t", 
+        "name": {"default_locale": "en", "translations": {"en": "Test Step"}}, 
+        "type": "llm", 
+        "model_strategy": "test_mock", 
+        "prompt_blocks": ["comp_1234567890abcdef1234567890abcdef"]
+    }
+    workflow_repo.get_step_by_id = AsyncMock(return_value=mock_step_def)
+    workflow_repo.get_workflow = AsyncMock(return_value=None)
+    comp_repo.get_all_prompt_blocks = AsyncMock(return_value=[MOCK_INSTRUCTION_BLOCK])
     
-    strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=projector.snapshot))
-    strategy.run_post_hooks = AsyncMock(return_value={"final": "output"})
+    pre_hook_inputs = {
+        "shuffled_atoms": [{"atom_id": "1", "boolean": True}]
+    }
+    strategy.run_pre_hooks = AsyncMock(return_value=MagicMock(inputs=pre_hook_inputs))
+    strategy.run_post_hooks = AsyncMock(return_value=MagicMock(inputs={"final": "output"}))
     
     mock_client = MagicMock()
     mock_result = MagicMock()

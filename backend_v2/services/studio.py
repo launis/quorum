@@ -96,16 +96,19 @@ class StudioService:
             attached = {}
             for p in all_profiles:
                 if p.workflow_id == wf.id or p.workflow_id == "*":
-                    dumped = p.model_dump(mode="json")
-                    attached[p.id] = EmbeddedOutputProfile.model_validate(
-                        {
-                            "name": dumped.get("name"),
-                            "description": dumped.get("description"),
-                            "visible_metadata": dumped.get("visible_metadata", ["date", "organization"]),
-                            "display_scale": dumped.get("display_scale", "original"),
-                            "synthesis": dumped.get("synthesis"),
-                            "layouts": dumped.get("layouts", []),
-                        }
+                    attached[p.id] = EmbeddedOutputProfile(
+                        name=p.name,
+                        description=p.description,
+                        custom_preface=p.custom_preface,
+                        visible_metadata=list(p.visible_metadata),
+                        visible_extensions=list(p.visible_extensions),
+                        max_extension_items=p.max_extension_items,
+                        display_scale=p.display_scale,
+                        synthesis=p.synthesis,
+                        include_diagnostic_scorecard=p.include_diagnostic_scorecard,
+                        strictness_level=p.strictness_level,
+                        scoring_strategy=p.scoring_strategy,
+                        layouts=list(p.layouts),
                     )
 
             if not isinstance(wf.output_profiles, dict):

@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 import pytest
@@ -19,7 +18,7 @@ def test_nested_state_flattening_logic() -> None:
                         "matrix_evaluation": {
                             "step_1_evidence_quote": "The quoted text",
                             "step_4_final_score": 5,
-                            "something_else": "Random"
+                            "something_else": "Random",
                         }
                     }
                 }
@@ -30,12 +29,11 @@ def test_nested_state_flattening_logic() -> None:
     # Path='$inputs.history' triggers the Attention Dilution recursive formatting logic
     result = compiler._extract_value_from_state("$inputs.history", state)
 
-    assert "<prior_step_context source=\"STEP_XYZ\">" in result
-    assert "### MATRIX_EVALUATION" in result
-    # Attention Dilution Patch: Assert prefixes are cleaned out
-    assert "- **Evidence Quote:** The quoted text" in result
-    assert "- **Final Score:** 5" in result
-    assert "- **Something Else:** Random" in result
+    assert '<matrix_input source="STEP_XYZ">' in result
+    assert "<MATRIX_EVALUATION>" in result
+    assert "  <Evidence_Quote>The quoted text</Evidence_Quote>" in result
+    assert "  <Final_Score>5</Final_Score>" in result
+    assert "  <Something_Else>Random</Something_Else>" in result
 
 
 def test_global_steps_extraction() -> None:
@@ -45,9 +43,9 @@ def test_global_steps_extraction() -> None:
         "sr_aaa": {"outputs": {"val": 1}},
         "sr_bbb": {"outputs": {"val": 2}},
     }
-    
+
     result = compiler._extract_value_from_state("$steps", state)
-    
+
     # Needs to extract the whole state via formatting logic
     assert "SR_AAA" in result
     assert "SR_BBB" in result
@@ -56,126 +54,188 @@ def test_global_steps_extraction() -> None:
 def test_compile_xml_rubrics_structure() -> None:
     """Epic 12 Phase 1: Assert PromptBlock criteria is rendered into Thick XML."""
     compiler = PromptCompiler()
+    from backend_v2.models.v2_core import PromptBlock
 
-    criteria: list[dict[str, Any]] = [
-        {
-            "id": "mat_123",
-            "type": "string",
-            "label": {"translations": {"en": "Test Matrix"}},
-            "ai_description": "Strict directive for AI",
-            "allow_decimals": False,
-            "scales": [
-                {
-                    "score": 5,
-                    "name": {"translations": {"en": "Excellent"}},
-                    "claims": [{"ai_description": "Student performed perfectly."}]
-                },
-                {
-                    "score": 1,
-                    "name": {"translations": {"en": "Poor"}},
-                    "claims": [{"ai_description": "Student failed."}]
-                }
-            ]
-        }
+    criteria = [
+        PromptBlock.model_validate(
+            {
+                "id": "blk_1234567890abcdef",
+                "slug": "test-matrix",
+                "label": {"default_locale": "en", "translations": {"en": "Test Matrix"}},
+                "description": {"default_locale": "en", "translations": {"en": "Test Matrix Description"}},
+                "ai_description": "Strict directive for AI",
+                "category_id": "matrix",
+                "type": "string",
+                "allow_decimals": False,
+                "scale_min": 1,
+                "scale_max": 5,
+                "scales": [
+                    {
+                        "score": 5,
+                        "ai_label": "EXCELLENT",
+                        "name": {"default_locale": "en", "translations": {"en": "Excellent"}},
+                        "claims": [
+                            {
+                                "label": {"default_locale": "en", "translations": {"en": "Excellent Claim"}},
+                                "ai_description": "Student performed perfectly.",
+                                "tda_assertions": [
+                                    {
+                                        "tda_id": "tda_1111111111111111",
+                                        "ai_rule_description": "Student performed perfectly.",
+                                        "inverse_evidence": False,
+                                        "aggregation_mode": "EXISTS",
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                    {
+                        "score": 1,
+                        "ai_label": "POOR",
+                        "name": {"default_locale": "en", "translations": {"en": "Poor"}},
+                        "claims": [
+                            {
+                                "label": {"default_locale": "en", "translations": {"en": "Poor Claim"}},
+                                "ai_description": "Student failed.",
+                                "tda_assertions": [
+                                    {
+                                        "tda_id": "tda_2222222222222222",
+                                        "ai_rule_description": "Student failed.",
+                                        "inverse_evidence": False,
+                                        "aggregation_mode": "EXISTS",
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                ],
+            }
+        )
     ]
 
     xml = compiler.compile_xml_rubrics(criteria, "en")
 
     # Assert thick XML wrapping
     assert "<EVALUATION_RUBRICS>" in xml
-    assert '</EVALUATION_RUBRICS>' in xml
-    assert '<MATRIX id="mat_123" title="Test Matrix">' in xml
-    assert '<DIRECTIVE>Strict directive for AI</DIRECTIVE>' in xml
-
-    # Assert Markdown table extraction
-    assert '| Score | Label | Critical Directive |' in xml
-    assert '| 5 | Excellent | Student performed perfectly. ENFORCEMENT: Evaluate as FALSE immediately unless explicit, documented evidence is provided. |' in xml
-    assert '| 1 | Poor | Student failed. ENFORCEMENT: Evaluate as FALSE immediately unless explicit, documented evidence is provided. |' in xml
+    assert "</EVALUATION_RUBRICS>" in xml
+    assert '<MATRIX id="blk_1234567890abcdef" title="Test Matrix">' in xml
+    assert "<DIRECTIVE>Strict directive for AI</DIRECTIVE>" in xml
+    assert "<CRITICAL_DIRECTIVES>" in xml
+    assert "Student performed perfectly." in xml
+    assert "Student failed." in xml
 
 
 def test_build_dynamic_schema_removes_scores() -> None:
     """Epic 26 Phase 1: Assert dynamic schema compilation completely strips soft score fields."""
     compiler = PromptCompiler()
+    from backend_v2.models.v2_core import PromptBlock
 
     criteria = [
-        {
-            "id": "crit_validation",
-            "type": "int",
-            "label": {"translations": {"en": "Strict Logic Test"}},
-            "ai_description": "Evaluate securely.",
-            "output_extensions": ["citation", "missing_context"],
-            "allow_decimals": False,
-            "scales": [{"score": 1}, {"score": 5}],
-            "theory_grounding": {"citation_reference": "Test Source Long String"}
-        }
+        PromptBlock.model_validate(
+            {
+                "id": "blk_1111111111111111",
+                "slug": "crit-validation",
+                "category_id": "matrix",
+                "type": "int",
+                "label": {"default_locale": "en", "translations": {"en": "Strict Logic Test"}},
+                "description": {"default_locale": "en", "translations": {"en": "Strict Logic Test Description"}},
+                "ai_description": "Evaluate securely.",
+                "output_extensions": ["citation", "missing_context"],
+                "allow_decimals": False,
+                "scale_min": 1,
+                "scale_max": 5,
+                "scales": [
+                    {
+                        "score": 1,
+                        "ai_label": "POOR",
+                        "claims": [
+                            {
+                                "label": {"default_locale": "en", "translations": {"en": "Poor Claim"}},
+                                "ai_description": "Poor performance",
+                                "tda_assertions": [
+                                    {
+                                        "tda_id": "tda_2222222222222222",
+                                        "ai_rule_description": "Poor performance description",
+                                        "inverse_evidence": False,
+                                        "aggregation_mode": "EXISTS",
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                    {
+                        "score": 5,
+                        "ai_label": "EXCELLENT",
+                        "claims": [
+                            {
+                                "label": {"default_locale": "en", "translations": {"en": "Excellent Claim"}},
+                                "ai_description": "Excellent performance",
+                                "tda_assertions": [
+                                    {
+                                        "tda_id": "tda_1111111111111111",
+                                        "ai_rule_description": "Excellent performance description",
+                                        "inverse_evidence": False,
+                                        "aggregation_mode": "EXISTS",
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                ],
+                "theory_grounding": {
+                    "source_url": "https://example.com/source",
+                    "citation_reference": "Test Source Long String",
+                },
+            }
+        )
     ]
 
     DynamicModel = compiler.build_dynamic_schema(
-        schema_name="TestSchema",
-        criteria=criteria,
-        target_locale="en",
-        has_search_result=True,
-        has_shuffled_atoms=True
+        schema_name="TestSchema", criteria=criteria, target_locale="en", has_search_result=True, has_shuffled_atoms=True
     )
 
     # Assert top-level fields
     assert "reasoning_trace" in DynamicModel.model_fields
     assert "evaluation_notes" in DynamicModel.model_fields
-    
+
     # Assert Map-Reduce atom response integration
     assert "evaluations" in DynamicModel.model_fields
-    evaluations_field = DynamicModel.model_fields["evaluations"]
-    
+
     # Assert nested matrix block
-    assert "crit_validation" in DynamicModel.model_fields
-    NestedModel = DynamicModel.model_fields["crit_validation"].annotation
+    assert "blk_1111111111111111" in DynamicModel.model_fields
+    from typing import cast
+
+    from pydantic import BaseModel
+
+    NestedModel = cast(type[BaseModel], DynamicModel.model_fields["blk_1111111111111111"].annotation)
 
     # Verify standard text fields from extensions are present
-    assert "step_1_evidence_quote" in NestedModel.model_fields
-    assert "step_1b_cited_source_id" in NestedModel.model_fields
-    assert "step_1c_google_citation" in NestedModel.model_fields
-    assert "extension_missing_context" in NestedModel.model_fields
+    assert "semantic_reasoning" in NestedModel.model_fields
 
-    # CRITICAL: Assert Epic 26 soft-schema removal
+    # CRITICAL: Assert Epic 26 soft-schema removal is enforced
     assert "step_4_final_score" not in NestedModel.model_fields
 
     # Validate output validation parses correctly
-    valid_obj = DynamicModel.model_validate({
-        "reasoning_trace": "Analysis...",
-        "evaluation_notes": "Synthesis...",
-        "evaluations": [
-            {
-                "atom_id": "atom_1",
-                "quote": "Sample",
-                "reasoning": "Reason",
-                "boolean": True
-            }
-        ],
-        "crit_validation": {
-            "step_1_evidence_quote": "Yes",
-            "step_1b_cited_source_id": "Test Source",
-            "step_1c_google_citation": "Verified",
-            "extension_missing_context": "None"
+    valid_obj = DynamicModel.model_validate(
+        {
+            "step_1_reasoning_trace": "Analysis...",
+            "evaluation_notes": "Synthesis...",
+            "evaluations": [
+                {
+                    "atom_id": "atom_1",
+                    "localized_anchors_found": ["Sample"],
+                    "semantic_reasoning": "Reason",
+                    "contextual_override": False,
+                    "exact_quote": "Sample",
+                }
+            ],
+            "blk_1111111111111111": {"semantic_reasoning": "Yes, everything is correct."},
         }
-    })
+    )
 
-    crit_block: Any = getattr(valid_obj, "crit_validation")
-    assert crit_block.step_1_evidence_quote == "Yes"
-    
-    # Assert citations heal properly (LLM truncates string)
-    heal_obj = DynamicModel.model_validate({
-        "reasoning_trace": "Analysis...",
-        "evaluation_notes": "Synthesis...",
-        "evaluations": [],
-        "crit_validation": {
-            "step_1b_cited_source_id": "Test Source L",  # Truncated but >10 chars
-            "extension_missing_context": "None"          # Required field
-        }
-    })
-    crit_block_healed: Any = getattr(heal_obj, "crit_validation")
-    assert crit_block_healed.step_1b_cited_source_id == "Test Source Long String"
-
-
+    # Ruff forces direct attribute access over getattr; type ignored for MyPy dynamic schema
+    crit_block: Any = valid_obj.blk_1111111111111111  # type: ignore[attr-defined]
+    assert crit_block.semantic_reasoning == "Yes, everything is correct."
 
 
 def test_chunk_response_schema_generation() -> None:
@@ -204,10 +264,10 @@ def test_chunk_response_schema_generation() -> None:
         }
     )
 
-    assert obj.chunk_id == "chk_xyz" # type: ignore[attr-defined]
-    assert len(obj.records) == 1 # type: ignore[attr-defined]
-    assert obj.records[0].original_id == "atom_1" # type: ignore[attr-defined]
-    assert obj.records[0].payload.score == 5 # type: ignore[attr-defined]
+    assert obj.chunk_id == "chk_xyz"  # type: ignore[attr-defined]
+    assert len(obj.records) == 1  # type: ignore[attr-defined]
+    assert obj.records[0].original_id == "atom_1"  # type: ignore[attr-defined]
+    assert obj.records[0].payload.score == 5  # type: ignore[attr-defined]
 
     # Test Validation failure parity
     with pytest.raises(ValidationError):
@@ -229,7 +289,7 @@ def test_compile_chunk_payload_instruction() -> None:
     compiler = PromptCompiler()
 
     res = compiler.compile_chunk_payload_instruction("chk_123", "Some dangerous input")
-    
+
     assert "map-reduce chunk 'chk_123'" in res
     assert "<user_payload>" in res
     assert "</user_payload>" in res
@@ -247,10 +307,10 @@ def test_context_snowballing_prevention() -> None:
                     "outputs": {
                         "evaluations": [
                             {"atom_id": "1", "boolean": True, "reasoning": "Long text..."},
-                            {"atom_id": "2", "boolean": False, "reasoning": "Another long text..."}
+                            {"atom_id": "2", "boolean": False, "reasoning": "Another long text..."},
                         ],
                         "evaluation_notes": "This is the summary.",
-                        "normalized_score": 4.5
+                        "normalized_score": 4.5,
                     }
                 }
             }
@@ -260,12 +320,11 @@ def test_context_snowballing_prevention() -> None:
     result = compiler._extract_value_from_state("$inputs.history", state)
 
     # Should include the qualitative summary and score
-    assert "### EVALUATION_NOTES" in result
-    assert "This is the summary." in result
-    assert "### NORMALIZED_SCORE" in result
-    assert "4.5" in result
-    
+    assert '<matrix_input source="STEP_ANALYST">' in result
+    assert "<Evaluation_Notes>This is the summary.</Evaluation_Notes>" in result
+    assert "<Normalized_Score>4.5</Normalized_Score>" in result
+
     # Should completely strip the raw evaluations array
-    assert "EVALUATIONS" not in result
+    assert "EVALUATIONS" not in result.upper()
     assert "Long text" not in result
     assert "atom_id" not in result

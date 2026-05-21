@@ -94,20 +94,16 @@ class ReasoningTraceDTO(V2CoreBase):
 
     thought_process: str = Field(
         ...,
-        min_length=1,
         description="Step-by-step thinking process leading to the result.",
         json_schema_extra={"x-ui-label": "Reasoning Process"},
     )
     conclusion: str = Field(
         ...,
-        min_length=1,
         description="Synthesized conclusion or summary of the reasoning.",
         json_schema_extra={"x-ui-label": "Conclusion"},
     )
     confidence_score: float = Field(
         ...,
-        ge=0.0,
-        le=1.0,
         description="Self-assessed confidence score (0.0 - 1.0).",
         json_schema_extra={"x-ui-label": "Confidence Score"},
     )
@@ -120,14 +116,25 @@ class ReasoningTraceDTO(V2CoreBase):
     @field_validator("thought_process", "conclusion")
     @classmethod
     def validate_hallucinations(cls, v: str | None) -> str:
-        if not v:
-            return ""
+        if not v or not str(v).strip():
+            msg = "Field cannot be empty."
+            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise ValueError(msg)
         clean_v = str(v).strip().lower()
         if clean_v in {"null", "none", "n/a", "ei saatavilla"}:
             msg = f"LLM returned an invalid empty-equivalent string: '{v}'"
             logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise ValueError(msg)
         return str(v).strip()
+
+    @field_validator("confidence_score")
+    @classmethod
+    def validate_confidence_score(cls, v: float) -> float:
+        if not (0.0 <= v <= 1.0):
+            msg = f"Confidence score must be between 0.0 and 1.0, got {v}"
+            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise ValueError(msg)
+        return v
 
 
 class ReasoningTrace(ReasoningTraceDTO):

@@ -148,21 +148,21 @@
 
 
         {% if report_data and report_data.synthesized_markdown %}
-        <div class="card" style="border-left: 4px solid #1E88E5; padding: 20px; margin-bottom: 20px;">
+        <div class="card" style="border-left: 4px solid #1E88E5; padding: 20px; margin-bottom: 0px; page-break-after: avoid;">
             <h2 style="color: #1a237e; margin-top: 0;">Yhteenveto</h2>
             <div style="font-size: 13px; line-height: 1.6; color: #333;">{{ report_data.synthesized_markdown | md | safe }}</div>
         </div>
         {% endif %}
 
         {% if report_data and report_data.global_score != None %}
-        <div style="background-color: #e6e0f8; border: 1px solid #d1c4e9; border-radius: 8px; padding: 15px 20px; margin-bottom: 25px; page-break-inside: avoid;">
+        <div style="background-color: #e6e0f8; border: 1px solid #d1c4e9; border-radius: 0 0 8px 8px; padding: 15px 20px; margin-bottom: 25px; margin-top: 0px; page-break-inside: avoid; page-break-before: avoid;">
             <table style="width: 100%; border: none; margin: 0; padding: 0;">
                 <tr>
                     <td style="text-align: left; vertical-align: middle;">
                         <strong style="color: #1a1a1a; font-size: 18px;">Kokonaiskeskiarvo</strong>
                     </td>
                     <td style="text-align: right; vertical-align: middle;">
-                        <span style="font-size: 24px; font-weight: 800; color: #1a1a1a;">{{ "%.2f"|format(report_data.global_score) }}</span>
+                        <span style="font-size: 24px; font-weight: 800; color: #1a1a1a;">{{ "%.2f"|format(report_data.global_score) }}/100</span>
                     </td>
                 </tr>
             </table>

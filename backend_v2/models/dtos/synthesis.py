@@ -43,5 +43,6 @@ class SynthesisOutputDTO(V2CoreBase):
         default_factory=list, description="List of synthesized sections, mapped by their Layout ID."
     )
     xai_highlights: list[XaiHighlightItem] = Field(
-        default_factory=list, description="Top 3 deduplicated items per extension category across all steps."
+        default_factory=list,
+        description=("The deduplicated insight items per extension category, up to the requested maximum count."),
     )

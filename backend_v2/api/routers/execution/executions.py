@@ -111,7 +111,15 @@ async def stream_execution_status(
             logger.error("SSE Error for execution %s: %s", execution_id, str(e), exc_info=True)
             yield f'data: {{"error": "SSE Stream Interrupted: {str(e)}"}}\n\n'
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.delete("/{execution_id}", status_code=status.HTTP_204_NO_CONTENT)

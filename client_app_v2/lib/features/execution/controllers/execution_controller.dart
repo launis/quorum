@@ -57,6 +57,7 @@ Future<List<Map<String, dynamic>>> executionList(Ref ref) async {
 @riverpod
 class ExecutionController extends _$ExecutionController {
   StreamSubscription? _sseSubscription;
+  int _retryCount = 0;
 
   @override
   Stream<Map<String, dynamic>?> build() async* {
@@ -76,6 +77,7 @@ class ExecutionController extends _$ExecutionController {
   }) async {
     state = const AsyncValue.loading();
     await _sseSubscription?.cancel();
+    _retryCount = 0;
 
     try {
       final client = ref.read(executionClientProvider);
@@ -111,6 +113,7 @@ class ExecutionController extends _$ExecutionController {
   Future<void> resumeExecution(String executionId) async {
     state = const AsyncValue<Map<String, dynamic>?>.loading();
     await _sseSubscription?.cancel();
+    _retryCount = 0;
 
     _connectToStream(executionId);
   }
@@ -121,6 +124,7 @@ class ExecutionController extends _$ExecutionController {
     // Preserve existing state while loading to prevent UI flicker
     state = const AsyncValue<Map<String, dynamic>?>.loading();
     await _sseSubscription?.cancel();
+    _retryCount = 0;
     try {
       final client = ref.read(executionClientProvider);
       final resumedRecord = await client.resumeExecution(executionId);
@@ -211,6 +215,7 @@ class ExecutionController extends _$ExecutionController {
         .subscribeToExecution(executionId)
         .listen(
           (update) {
+            _retryCount = 0;
             final currentState = state.value;
             bool needsHeavyFetch = false;
 
@@ -259,6 +264,29 @@ class ExecutionController extends _$ExecutionController {
             }
           },
           onError: (e, stack) {
+            final currentState = state.value;
+            final status = (currentState?['status'] as String?)?.toLowerCase();
+            final isTerminal = status == 'completed' || status == 'failed';
+
+            if (currentState != null && !isTerminal && _retryCount < 5) {
+              _retryCount++;
+              ref
+                  .read(loggerServiceProvider)
+                  .warning(
+                    'ExecutionController',
+                    'SSE connection lost abruptly for execution $executionId. Reconnecting (attempt $_retryCount/5)... Error: $e',
+                  );
+              _sseSubscription?.cancel();
+              Future.delayed(const Duration(seconds: 2), () {
+                if (!ref.mounted) return;
+                final currentId = state.value?['id'] as String?;
+                if (currentId == executionId) {
+                  _connectToStream(executionId);
+                }
+              });
+              return;
+            }
+
             ref
                 .read(loggerServiceProvider)
                 .error(

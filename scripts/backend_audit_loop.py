@@ -37,6 +37,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Force pure Python Protobuf implementation to prevent duplicate descriptor pool crashes in Python 3.14+
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+
 # Force UTF-8 encoding for stdout to support emojis on Windows
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -61,11 +64,25 @@ def run_tests_with_strict_coverage(target):
             parts[-1] = "test_" + parts[-1]
             if parts[0] == "backend_v2":
                 test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
+                if not os.path.exists(test_path):
+                    flat_path = "backend_v2/tests/unit/" + parts[-1]
+                    if os.path.exists(flat_path):
+                        test_path = flat_path
             else:
                 test_path = "tests/" + "/".join(parts)
+                if not os.path.exists(test_path):
+                    flat_path = "tests/" + parts[-1]
+                    if os.path.exists(flat_path):
+                        test_path = flat_path
         
         # 1. Ajetaan Pytest ja kerätään kattavuusdata (ei kaatumista fail-underiin vielä)
-        cmd = ["uv", "run", "pytest", test_path, "-v", "--tb=short", f"--cov={cov_target}", "--cov-fail-under=0"]
+        cmd = [
+            "uv",
+            "run",
+            "python",
+            "-c",
+            f"import sys\ntry: import numpy\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main(['{test_path}', '-v', '--tb=short', '--cov={cov_target}', '--cov-fail-under=0']))",
+        ]
         print("Executing:", " ".join(cmd))
         result = subprocess.run(cmd)
         
@@ -84,7 +101,13 @@ def run_tests_with_strict_coverage(target):
             else:
                 test_path = "tests/" + "/".join(parts)
             
-        cmd = ["uv", "run", "pytest", test_path, "-v", "--tb=short", f"--cov={cov_target}", "--cov-fail-under=30", "--cov-report=term-missing"]
+        cmd = [
+            "uv",
+            "run",
+            "python",
+            "-c",
+            f"import sys\ntry: import numpy\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main(['{test_path}', '-v', '--tb=short', '--cov={cov_target}', '--cov-fail-under=30', '--cov-report=term-missing']))",
+        ]
         result = subprocess.run(cmd)
     
     if result.returncode != 0:

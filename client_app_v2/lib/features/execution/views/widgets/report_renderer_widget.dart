@@ -75,7 +75,7 @@ class ReportRendererWidget extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(
         top: 16.0,
-        bottom: 8.0,
+        bottom: 0.0,
         left: 16.0,
         right: 16.0,
       ),
@@ -124,7 +124,7 @@ class ReportRendererWidget extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.only(
-        top: 8.0,
+        top: 0.0,
         bottom: 16.0,
         left: 16.0,
         right: 16.0,
@@ -154,7 +154,7 @@ class ReportRendererWidget extends ConsumerWidget {
               ),
             ),
             Text(
-              globalAverage.toStringAsFixed(2),
+              '${globalAverage.toStringAsFixed(2)}/100',
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.w900,
                 color: theme.colorScheme.onPrimaryContainer,

@@ -514,7 +514,8 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     global_mapping = ContextMapper.build_global_mapping(workflow_data, layouts) if workflow_data else ""
     raw_input_text = (
-        f"<source_data>\n{historical_context_text}{global_mapping}\n{chr(10).join(combined_text_parts)}\n</source_data>"
+        f"{historical_context_text}\n"
+        f"<source_data>\n{global_mapping}\n{chr(10).join(combined_text_parts)}\n</source_data>"
     )
 
     if enable_masking:
@@ -604,17 +605,30 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         "dumps. If you mention internal findings, state them directly without using it.</rule>\n"
     )
 
+    sys_prompt += (
+        "  <rule>STATE ISOLATION MANDATE: If <HistoricalContext> is provided, use it ONLY to understand "
+        "the user's past trajectory, growth, or recurring blind spots. YOU MUST NOT synthesize, summarize, "
+        "or report on the substantive topics, subjects, or domains discussed in the historical context. "
+        "Your output must be STRICTLY based on the current <source_data>.</rule>\n"
+    )
+
     if active_exts:
         sys_prompt += (
             "  <rule>CRITICAL XAI EXTENSION SYNTHESIS MANDATE:\n"
             "Your task is to act as the Chief Editor. Scan the flattened JSON outputs of the matrices for any "
             "localized extensions they produced. In the V2 schema, these extensions are always appended as suffixes "
             "to the matrix Stripe IDs (e.g., 'blk_22e3598e06414409_coaching', 'blk_80732a33fe1947ee_falsification').\n"
-            "You must HARVEST these fragmented, atomized insights and SYNTHESIZE them into the most critical, "
-            "high-impact global highlights per target extension category, limited to the count specified in "
-            "<max_extension_items_per_category>. "
-            "Do not simply copy-paste them blindly; elevate and merge overlapping insights to create a "
-            "coherent executive summary. "
+            "You must HARVEST these fragmented, atomized insights and SYNTHESIZE them into multiple distinct, "
+            "high-impact global highlights per target extension category. "
+            "Filter the insights and select the Top N most important items (where N is the number specified "
+            "in <max_extension_items_per_category>). "
+            "Define 'importance' based on: 1) Strategic impact (reveals systemic patterns or critical risks), "
+            "2) Actionability (provides actionable value), and "
+            "3) Grounding (strictly supported by the provided data). "
+            "ZERO-HALLUCINATION MANDATE: Do NOT invent, hallucinate, or mock specific examples, topics, "
+            "domains, or user quotes (e.g., do not invent mock conversation starters). If the source data "
+            "is abstract, your synthesis MUST remain abstract. ONLY use facts explicitly present in the data. "
+            "Create a distinct JSON object for each selected item. Do not merge everything into one giant item. "
             "Output these items strictly into the `xai_highlights` array, "
             "using the EXACT target extension name from <target_extensions_to_harvest> in `extension_type`. "
             '(e.g. "coaching")\n'

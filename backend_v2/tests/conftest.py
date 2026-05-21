@@ -8,6 +8,7 @@ import pytest
 # Removed global mock of backend_v2.llm.client to allow unit tests to run.
 
 os.environ["DISABLE_LOGFIRE"] = "true"
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
 
 @pytest.fixture(autouse=True, scope="session")

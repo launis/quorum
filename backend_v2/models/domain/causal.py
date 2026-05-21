@@ -6,7 +6,7 @@ including counterfactual testing and abductive reasoning.
 
 from __future__ import annotations
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
@@ -49,14 +49,21 @@ class CounterfactualTest(V2CoreBase):
     )
     plausibility_numeric: float = Field(
         ...,
-        ge=1.0,
-        le=3.0,
         description=(
             "Numeric plausibility (1.0 to 3.0), required 1-decimal precision. "
             "USE DECIMALS (e.g., 2.5) to reflect nuance."
         ),
         json_schema_extra={"x-ui-label": "Plausibility Numeric"},
     )
+
+    @field_validator("plausibility_numeric")
+    @classmethod
+    def validate_plausibility_numeric(cls, v: float) -> float:
+        """Enforce strict plausibility score boundaries between 1.0 and 3.0."""
+        if not (1.0 <= v <= 3.0):
+            raise ValueError("plausibility_numeric must be between 1.0 and 3.0 inclusive")
+        return v
+
     actual_scenario: str = Field(
         ..., min_length=1, description="Actual outcome.", json_schema_extra={"x-ui-label": "Actual Scenario"}
     )
@@ -75,14 +82,21 @@ class CausalAnalysis(V2CoreBase):
     )
     abductive_score: float = Field(
         ...,
-        ge=1.0,
-        le=3.0,
         description=(
             "Numeric abductive score (1.0 to 3.0), required 1-decimal precision. "
             "USE DECIMALS (e.g., 2.5) to reflect nuance."
         ),
         json_schema_extra={"x-ui-label": "Abductive Score"},
     )
+
+    @field_validator("abductive_score")
+    @classmethod
+    def validate_abductive_score(cls, v: float) -> float:
+        """Enforce strict abductive score boundaries between 1.0 and 3.0."""
+        if not (1.0 <= v <= 3.0):
+            raise ValueError("abductive_score must be between 1.0 and 3.0 inclusive")
+        return v
+
     counterfactual_test: CounterfactualTest = Field(
         ...,
         description="Counterfactual analysis.",

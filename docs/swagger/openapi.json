@@ -7502,7 +7502,8 @@
           "remediation_steps",
           "emotional_sentiment",
           "confidence",
-          "source_id"
+          "source_id",
+          "contextual_override"
         ],
         "title": "XaiExtensionType",
         "description": "Supported XAI Output Extensions for global visibility."

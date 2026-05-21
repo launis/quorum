@@ -13,6 +13,7 @@ Nykyaikainen tulostusarkkitehtuuri nojaa seuraaviin kerroksiin:
    
 2. **Osiokohtainen Synteesivälimuisti (`profile_syntheses`):**
    `ExecutionRecord` on varustettu dynaamisella sanakirjalla (`dict[str, RenderedSynthesisCache]`). Yhdellä työnkululla (DAG) kerätty puhdas "Event Sourced" -tieto voidaan ajaa satojen erilaisten profiilien (esim. lyhyt Executive Summary tai pitkä 3D-data) läpi täysin toisistaan riippumatta ylikirjoittamatta synteesejä.
+   * Tämän välimuistin kenttä `section_syntheses` (`dict[str, str]`) sisältää layout-kohtaiset LLM-tekstit. Kun `BlueprintTransformer` rakentaa layoutteja, se hakee `layout_id = f"layout_{idx}_{preset_view}"` avaimella tarkan osiokohtaisen synteesin ja injektoi sen `ReportLayoutDTO.synthesis_md` -kenttään.
 
 3. **Arq Worker (`render_profile_job`):**
    Jos pyydetyn profiilin mukaista synteesiä ei vielä löydy tietokannasta, pyyntö palautetaan välittömästi HTTP `202 Accepted` ("pending") -tilassa (SSE/Polling rajapintaedellytys). Taustatyöntekijä hyödyntää puhtaasti "CPU-bound algorithmic logic" -komponenttina toimivaa `HookRegistry`ä (erityisesti determinististä `text_consolidation_hook` asynkronista suoritusta), tuottaakseen raskaat LLM-tekstit sekoittamatta synkronisia I/O -kutsuja API-kerrokseen, ja liittää ne vasta paikalleen. Tämän synteesin valmistuttua, `render_profile_job` päätteeksi Arq Worker enqueuettaa automaattisesti PDF-tuotannon uuteen työhön (`await redis.enqueue_job("generate_pdf_job", ...)`).
@@ -128,7 +129,7 @@ Tulostusmoottorin vienti- ja raportointiarkkitehtuuri noudattaa "HTML First" ja 
 * **Eksplisiittinen Tyyppikastaus:** Matriisien syvädataa luettaessa vältetään Mypy:n hylkäämä dynaaminen `union-attr` duck-typing. Tieto tyypitetään eksplisiittisesti (esim. `dict[str, Any]`), jotta varmistutaan tiedon virheettömästä siirtymisestä tietokannasta tulostusmoottorille ilman tiedonhäviötä. Kaikki validointivirheet (`ValidationError`) lokitetaan välittömästi, mikä estää viallisen tiedon päätymisen asiakasraportteihin.
 
 ### 6.2 Raporttien Tulostus-API ja HTML Pariteetti (HTML-First Export Strategy)
-* **HTML First ja PDF:n Selaindelegointi:** Paikallisten Weasyprint (GTK3) -kaatumisten estämiseksi Windows-ympäristöissä tulostusmoottori tukee formaattia `format=html` suoraan `ExecutionService` -reitittimestä (`/render`). Tämä eriyttää HTML-templatoinnin raskaasta PDF-renderöinnistä, jolloin backend voi palauttaa raa'an HTML:n ja delegoida PDF-konversion suoraan selaimelle (esim. Flutter `url_launcher` tai natiivi print-to-pdf). Tämä ohittaa backendin Weasyprint-rajoitteet lokaalissa kehityksessä täysin ja takaa nopeat, kaatumattomat testausiteraatiot.
+* **HTML First ja PDF:n Selaindelegointi:** Paikallisten Weasyprint (GTK3) -kaatumisten estämiseksi Windows-ympäristöissä tulostusmoottori tukee formaattia `format=html` suoraan `ExecutionService` -reitittimestä (`/render`). Tämä eriyttää HTML-templatoinnin raskaasta PDF-renderöinnistä, jolloin backend voi palauttaa raa'an HTML:n ja delegoida PDF-konversion suoraan selaimelle (esim. Flutter `url_launcher` tai natiivi print-to-pdf). Tämä ohittaa backendin Weasyprint-rajoitteet lokaalissa kehityksessä täysin ja takaa nopeat, kaatumattomat testausiteraatiot. Tämä kutsuu taustalla `PdfReportService.generate_execution_html` -metodia, joka kokoaa DTO-datan valmiiksi itsenäiseksi HTML-dokumentiksi (`text/html`) ja palauttaa sen tiedostona `execution_{execution_id}.html`.
 * **Yhtenäinen API-rajapinta:** PDF:n tai kauniin HTML-raportin generointiin ei tueta erillisiä lokaaleja CLI-purkkaskriptejä. Kaikki raportit tuotetaan yksinomaan järjestelmän ydinrajapintojen (`BlueprintTransformer` + `HtmlReportService` / `PdfReportService`) kautta, jotta tulosteiden visuaalinen ja tietosisällöllinen renderöinti on aina täydellisesti linjassa tuotannon kanssa.
 * **Fail-Fast Badges (Epic 42):** PDF-generaattorin Jinja2-raporttipohjat (`report_template.jinja2`) lukevat suoraan `ReportDataDTO`:n paljastamaa `strictness_level` ja `axis.evidence_type` -dataa. Näin PDF-raportit renderöivät samat visuaaliset badget (esim. "✅ Explicit Quote" tai "⚠️ Implied Intent") ja ankaruustason ilmoitukset identtisesti Flutter-työpöytäsovelluksen (SDUI) kanssa, tuoden Zero-Math UI:n myös paperitulosteisiin.
 
@@ -157,9 +158,10 @@ Tämä takaa, että sisäiset diagnostiikkakentät (`reasoning_trace`, `_step_me
 ### B. Grand Unification & Zero-Math UI Mandate (Phase 9)
 Raportointiarkkitehtuuri on yhdistetty täydellisesti (Grand Unification), mikä tarkoittaa absoluuttista Fail-Fast-pariteettia Backendin ja Frontendin (sekä PDF-moottorin) välillä:
 1. **Zero-Math UI:** Frontend (Flutter) ja PDF-generaattori eivät suorita lainkaan matemaattisia operaatioita. Kaikki UI:n tarvitsemat laskennalliset arvot (esim. `uiPlotRatio`, numeerinen skaalaus ja prosentit) on esilaskettu backendissä.
-2. **Dynaamiset Tasojakaumat:** Matriisien jakaumat (esim. pisteet 1-6 ja niitä vastaavat selitteet) iteroidaan suoraan backendin tarjoamasta `levelBreakdown`-kartasta (esim. `Map<String, String>`). Käyttöliittymään ei kovakoodata käännösavaimia "Level 1", "Level 2" jne., vaan sisältö tulee 100% backendiltä Pydantic-mallien läpi.
+2. **Dynaamiset Tasojakaumat ja Selitteet:** Matriisien jakaumat ja selitteet iteroidaan 100 % dynaamisesti backendin tarjoamista kentistä `level_breakdown` (DINA-osumat vs kokonaismäärä per taso, esim. `{"1": "5/5", "2": "1/3"}`) ja `level_names` (pre-lokalisoitu tason nimi, esim. `{"1": "Heikko", "2": "Kohtalainen"}`). Käyttöliittymään ei kovakoodata käännösavaimia tai tasoja, vaan sisältö ja kielen lokalisointi tulee suoraan Pydantic-mallien kautta.
 3. **Fail-Fast Pydantic V2:** Frontendin DTO:t noudattavat strict-tilassa Pydantic V2:n sääntöjä (esim. `extra="forbid"`). "Graceful degradation" eli oletusarvojen (esim. `score ?? 0.0`) käyttö käyttöliittymässä on kielletty (The Anti-TDD Trap). Jos tieto on viallista, järjestelmän tulee kaatua backendissä, eikä paikata virheitä UI-tason null-checkeillä.
 4. **Ei Hallusinoitua Matematiikkaa:** Kielelliset perustelut (`justification`) puhdistetaan Regex-suodattimilla, jotta LLM:n hallusinoimat raakapisteet (esim. "[Pisteet: 4/5]") eivät vuoda tekstin sekaan. Pisteet näytetään vain determinististen DTO-kenttien kautta (esim. `score` ja `scaleMax`).
+5. **Osiokohtainen synthesis_md:** Jokainen raportin layout (`ReportLayoutDTO`) saa oman osiokohtaisen LLM-synteesinsä `synthesis_md` -kenttään, joka kaivetaan välimuistista (`section_syntheses`) dynaamisen yksilöllisen avaimen `f"layout_{idx}_{preset_view}"` kautta. Jos asettelulle on määritelty `synthesis`-konfiguraatio, tämä osiokohtainen markdown siirtyy suoraan asiakassovellukselle ja PDF-tulosteelle ilman monimutkaista yhdistelyä.
 
 ### C. Skaalauksen kolme tilaa (`display_scale`)
 
@@ -169,11 +171,14 @@ Raportointiarkkitehtuuri on yhdistetty täydellisesti (Grand Unification), mikä
 | `custom` | `raw_score` | DB:n `scale_min` / `scale_max` |
 | `normalized_100` | `normalized_score` | 0 – 100 |
 
-Backend laskee `ui_plot_ratio` valmiiksi:
+Backend laskee `ui_plot_ratio` valmiiksi matemaattisesti tarkan kaavan mukaan:
 ```python
-ui_plot_ratio = (score_float - scale_min) / (scale_max - scale_min)
+# Laskennassa käytetään AINA alkuperäisiä matemaattisia ekstremumeja (computed_min/computed_max scales-taulukosta),
+# riippumatta valitusta display_scale-kosmetiikasta. Arvo rajataan välille [0.0, 1.0].
+ratio = (float(raw_score) - math_min) / (math_max - math_min)
+ui_plot_ratio = float(max(0.0, min(1.0, ratio)))
 ```
-Flutter ei tee matematiikkaa — se renderöi suoraan saadun suhdeluvun (Zero-Math UI -mandaatti).
+Flutter ja PDF eivät tee lainkaan laskentaa, vaan ne piirtävät visualisoinnit (kuten sliderit tai 3D-pisteet) suoraan tämän valmiin `ui_plot_ratio` [0.0 - 1.0] suhdeluvun mukaan (Zero-Math UI).
 
 ### C. Akselijärjestys — `target_blocks` määrää
 `OutputProfile.layouts[n].target_blocks` -lista määrää akselijärjestyksen **täsmälleen** Admin Studion määrittämässä järjestyksessä:
@@ -203,12 +208,20 @@ grouped_extensions = {ext: [] for ext in visible_extensions}
 ```
 Extension-data poimitaan V2-skeemasta nested dict -rakenteesta:
 ```python
-ext_dict = v.get("extensions", {})
-coaching = ext_dict.get("coaching")     # 11 extension-kenttää
+ext_dict = matrix_payload.extensions or {}
+coaching = ext_dict.get("coaching")     # Laajennuskentät
 falsification = ext_dict.get("falsification")
 risk_flag = ext_dict.get("risk_flag")
 # ...
 ```
+
+**Map-Reduce Arkkitehtuuri XAI-laajennuksissa:**
+XAI-laajennukset noudattavat tiukkaa Map-Reduce -suoritusmallia, joka erottaa tiedonkeruun (Ajoprofiili) ja yhdistämisen (Tulostusprofiili):
+1. **Map (Ajoprofiili/Chunk Workers):** Kun työnkulku arvioi matriiseja, Pydantic V2 -skeema määrittelee kunkin laajennuksen muodoksi `str` (ei lista). Tämä tarkoittaa, että tekoäly tuottaa tismalleen **yhden (1) havainnon per arvioitava kriteeri/lohko**. Esimerkiksi 5 valmennusvinkkiä sisältävä työnkulku luo aluksi 5 erillistä JSON-merkkijonoa hajautetusti.
+2. **Reduce (Tulostusprofiili/SynthesisHook):** Pääsynteesivaihe ottaa vastaan kaikki ajovaiheen hajautetut raakahavainnot. Se lukee tulostusprofiilista arvon `max_extension_items` (OutputProfile) ja ohjeistaa Chief Editor -tekoälyä suodattamaan ja tiivistämään (Top N) datan asetetun maksimikoon sisään.
+3. **Globaalit synteesikohokohdat ja tyhjennysmandaatti (Zero-Compromise override):**
+   * Jos synteesivälimuistista löytyy valmiiksi generoitu globaali kohokohta (`xai_highlights`), se siirretään kyseiseen laajennuskategoriaan `_is_synthesized=True` -lipulla ja se ottaa kategorian kokonaan haltuunsa (rajoitetaan `max_extension_items` mukaan).
+   * **TÄRKEÄ TURVAMANDAATTI:** Mikäli globaalia synteettistä kohokohtaa ei löydy tästä kategoriasta, Järjestelmä suppressaa ja tyhjentää kaikki kyseisen ryhmän yksittäiset, pirstaloituneet matriisitason raakamerkinnät kokonaan (`grouped_extensions[ext_key] = []`). Ei sallita "puolittaista" tai sekavaa pirstaledataa loppuraportissa, jos keskitetty LLM-kooste puuttuu.
 
 ### F. XSS-suojaus (bleach) ennen PDF/SDUI
 Synthesisoitu markdown sanitoidaan Bleach-kirjastolla ennen `ReportDataDTO`-konstruktiota:

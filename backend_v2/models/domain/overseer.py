@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 
-from pydantic import Field, computed_field
+from pydantic import Field, computed_field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
@@ -40,7 +40,6 @@ class FactCheckRFI(V2CoreBase):
 
     claim: str = Field(
         ...,
-        min_length=1,
         description="Claim to check.",
         json_schema_extra={"x-ui-label": "Claim"},
     )
@@ -51,10 +50,16 @@ class FactCheckRFI(V2CoreBase):
     )
     source_or_reasoning: str = Field(
         ...,
-        min_length=1,
         description="Source or reasoning.",
         json_schema_extra={"x-ui-label": "Source/Reasoning"},
     )
+
+    @field_validator("claim", "source_or_reasoning")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty")
+        return v.strip()
 
     @computed_field  # type: ignore[prop-decorator]  # Pydantic computed_field with @property
     @property
@@ -68,7 +73,6 @@ class EthicalObservation(V2CoreBase):
 
     issue_type: str = Field(
         ...,
-        min_length=1,
         description="Type of ethical issue.",
         json_schema_extra={"x-ui-label": "Issue Type"},
     )
@@ -79,10 +83,16 @@ class EthicalObservation(V2CoreBase):
     )
     description: str = Field(
         ...,
-        min_length=1,
         description="Description.",
         json_schema_extra={"x-ui-label": "Description"},
     )
+
+    @field_validator("issue_type", "description")
+    @classmethod
+    def validate_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be empty")
+        return v.strip()
 
     @computed_field  # type: ignore[prop-decorator]  # Pydantic computed_field with @property
     @property
@@ -101,10 +111,16 @@ class OverseerData(V2CoreBase):
     )
     ethical_issues: list[EthicalObservation] = Field(
         ...,
-        min_length=1,
         description="Ethical audit report.",
         json_schema_extra={"x-ui-label": "Ethical Issues"},
     )
+
+    @field_validator("ethical_issues")
+    @classmethod
+    def validate_ethical_issues(cls, v: list[EthicalObservation]) -> list[EthicalObservation]:
+        if not v:
+            raise ValueError("Ethical issues list cannot be empty")
+        return v
 
 
 class OverseerDTO(ReasoningTraceDTO):

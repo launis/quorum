@@ -123,6 +123,18 @@ async def evaluate_chunk_job(
         output_profile=None,
         strictness_level=strictness_level,
     )
+    
+    if isinstance(c_final, dict) and c_final.get("_dlq_status") == "FAILED/DLQ":
+        reason = c_final.get("reason", "Unknown DLQ Failure")
+        logger.error(
+            f"[Job] Chunk execution failed and routed to DLQ. Aborting worker task. Reason: {reason}",
+            extra={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.name},
+        )
+        raise AppException(
+            message=f"Chunk execution failed and routed to DLQ. Reason: {reason}",
+            status_code=500,
+            details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.value},
+        )
 
     # 2. Redis Lua Script to update State without Race Conditions
     redis = ctx.get("redis")

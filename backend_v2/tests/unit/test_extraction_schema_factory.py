@@ -11,8 +11,8 @@ def test_create_extraction_model_success() -> None:
 
     payload = {
         "chunk_index": 0,
-        "step_1_evidence_scan": "anchor 1",
-        "step_2_mitigating_context": "Reasoning logic",
+        "localized_anchors_found": ["anchor 1"],
+        "semantic_reasoning": "Reasoning logic",
         "exact_quote": "Found quote",
         "contextual_override": False,
         "fact_A": "yes",
@@ -21,8 +21,8 @@ def test_create_extraction_model_success() -> None:
 
     instance = Model.model_validate(payload)
     assert instance.chunk_index == 0  # type: ignore[attr-defined]
-    assert instance.step_1_evidence_scan == "anchor 1"  # type: ignore[attr-defined]
-    assert instance.step_2_mitigating_context == "Reasoning logic"  # type: ignore[attr-defined]
+    assert instance.localized_anchors_found == ["anchor 1"]  # type: ignore[attr-defined]
+    assert instance.semantic_reasoning == "Reasoning logic"  # type: ignore[attr-defined]
     assert instance.exact_quote == "Found quote"  # type: ignore[attr-defined]
     assert instance.contextual_override is False  # type: ignore[attr-defined]
     assert instance.fact_A == "yes"  # type: ignore[attr-defined]
@@ -35,8 +35,8 @@ def test_create_extraction_model_strict_fail_fast() -> None:
 
     payload_extra = {
         "chunk_index": 0,
-        "step_1_evidence_scan": "anchor 1",
-        "step_2_mitigating_context": "Reasoning logic",
+        "localized_anchors_found": ["anchor 1"],
+        "semantic_reasoning": "Reasoning logic",
         "exact_quote": "Found quote",
         "contextual_override": False,
         "fact_A": "yes",
@@ -51,23 +51,21 @@ def test_create_extraction_model_strict_fail_fast() -> None:
 def test_basetdaextraction_override_logic() -> None:
     """Test cross-validation in BaseTDAExtraction."""
     payload_valid = {
-        "step_1_evidence_scan": "anchor 1",
-        "step_2_mitigating_context": "Reasoning logic",
-        "exact_quote": None,
+        "localized_anchors_found": ["anchor 1"],
+        "semantic_reasoning": "Reasoning logic",
+        "exact_quote": "",
         "contextual_override": True,
-        "extracted_data": {"val": 1},
     }
     instance = BaseTDAExtraction.model_validate(payload_valid)
     assert instance.contextual_override is True
 
     payload_invalid = {
-        "step_1_evidence_scan": "anchor 1",
-        "step_2_mitigating_context": "Reasoning logic",
+        "localized_anchors_found": ["anchor 1"],
+        "semantic_reasoning": "Reasoning logic",
         "exact_quote": "quote",
         "contextual_override": True,
-        "extracted_data": {"val": 1},
     }
 
     with pytest.raises(ValidationError) as exc:
         BaseTDAExtraction.model_validate(payload_invalid)
-    assert "exact_quote MUST be null if contextual_override is True" in str(exc.value)
+    assert "exact_quote MUST be empty if contextual_override is True" in str(exc.value)

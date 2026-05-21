@@ -16,7 +16,7 @@ from typing import Any, cast
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, create_model, model_validator
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
-from backend_v2.models.enums import EvaluationMandate
+from backend_v2.models.enums import EvaluationMandate, SystemConcurrency
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.web_fetcher import WebFetcher
 
@@ -27,6 +27,45 @@ class EvidenceType(str, Enum):
     EXPLICIT_QUOTE = "EXPLICIT_QUOTE"
     IMPLIED_INTENT = "IMPLIED_INTENT"
     NO_EVIDENCE = "NO_EVIDENCE"
+
+
+class StrippedBaseMatrixXAI(BaseModel):
+    """Pydantic model for matrix XAI qualitative extensions with stripped descriptions."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    semantic_reasoning: str = Field(
+        default="",
+        description="Analytical reasoning and qualitative justification for the assigned matrix score.",
+    )
+
+
+class StrippedBaseTDAExtraction(BaseModel):
+    """Core Pydantic model for Micro-CoT extraction with deterministic cross-validation and stripped descriptions."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    localized_anchors_found: list[str] = Field(
+        max_length=SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS,
+        description="Physical text anchors found in the localized target text.",
+    )
+    semantic_reasoning: str = Field(description="Strict semantic justification for the extraction decision.")
+    contextual_override: bool = Field(
+        description=(
+            "Set to True only if no literal evidence exists but the rule is implicitly matched. "
+            "exact_quote MUST be empty if True."
+        )
+    )
+    exact_quote: str | None = Field(
+        default="",
+        description="Verbatim quote from the original text. MUST be empty if contextual_override is True.",
+    )
+
+    @model_validator(mode="after")
+    def validate_override_logic(self) -> StrippedBaseTDAExtraction:
+        if self.contextual_override and self.exact_quote:
+            raise ValueError("Cross-validation failed: exact_quote MUST be empty if contextual_override is True.")
+        return self
 
 
 class PromptCompiler:
@@ -372,9 +411,9 @@ class PromptCompiler:
         target_locale: str,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
-        Radically stripped to enforce BaseTDAExtraction determinism.
+        Radically stripped to enforce BaseTDAExtraction determinism and prevent Vertex AI state limits.
         """
-        from backend_v2.models.v2_core import BaseTDAExtraction, PromptBlock
+        from backend_v2.models.v2_core import PromptBlock
 
         criteria: list[PromptBlock] = [PromptBlock.model_validate(c) for c in json.loads(criteria_json)]
 
@@ -384,48 +423,53 @@ class PromptCompiler:
                 Field(
                     ...,
                     alias="step_1_reasoning_trace",
-                    description=(
-                        "Mandatory Chain-of-Thought. Analyze the user's logic, guidance, and "
-                        "strategic intent step-by-step BEFORE assigning any final values."
-                    ),
+                    description="Detailed step-by-step reasoning trace of the audit process.",
                 ),
             ),
             "evaluation_notes": (
                 str,
                 Field(
                     ...,
-                    description=(
-                        "Comprehensive qualitative synthesis. CRITICAL: You MUST write this strictly "
-                        "from the unique perspective of your assigned Role and Matrices. Do not write a "
-                        "through your specific analytical lens. "
-                        "STRICT MANDATE: You MUST write this specific field exclusively "
-                        f"in the '{target_locale}' language."
-                    ),
+                    description="General qualitative evaluation notes and analytical synthesis.",
                 ),
             ),
         }
 
         if has_shuffled_atoms:
 
-            class AtomResponse(BaseTDAExtraction):
-                atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")
+            class AtomResponse(StrippedBaseTDAExtraction):
+                atom_id: str = Field(..., description="The unique system identifier of the target evaluation atom.")
 
-            fields["evaluations"] = (list[AtomResponse], Field(..., description="Array of blinded evaluations."))
+            fields["evaluations"] = (
+                list[AtomResponse],
+                Field(
+                    ...,
+                    max_length=SystemConcurrency.SCHEMA_MAX_EVALUATIONS,
+                    description="List of atomic evaluations mapped strictly to specific test criteria items.",
+                ),
+            )
 
-        for crit in criteria:
+        # Epic 56 Phase 4 / Bugfix: We must include matrix blocks for XAI extensions,
+        # but we MUST filter out standard "criteria" blocks if has_shuffled_atoms is True.
+        # Otherwise, the LLM is forced to output them both in `evaluations` AND at the root level,
+        # which causes a "too many states for serving" Vertex AI Bad Request error.
+        if has_shuffled_atoms:
+            schema_criteria = [c for c in criteria if c.category_id != "criteria"]
+        else:
+            schema_criteria = criteria
+
+        for crit in schema_criteria:
             crit_id = crit.id
             if not crit_id:
                 logger.warning("[PromptCompiler] Found criterion without a valid string 'id': %s. Skipping.", crit)
                 continue
 
-            if crit.category_id == "instruction":
+            if getattr(crit, "type", None) == "instruction":
                 fields[crit_id] = (
                     str,
                     Field(
                         ...,
-                        description=(
-                            f"Execute the synthesis/reporting instruction. MANDATORY LANGUAGE: '{target_locale}'"
-                        ),
+                        description="Instruction-based response and verification synthesis.",
                     ),
                 )
                 continue
@@ -438,16 +482,52 @@ class PromptCompiler:
                 )
                 raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
-            desc_val = (
-                f"Evaluation object for {crit_id}. Even if there is no relevance, "
-                "you MUST return this object and state 'Irrelevant' in the semantic_reasoning."
-            )
-            fields[crit_id] = (BaseTDAExtraction, Field(..., description=desc_val))
+            # Phase 1, Step 4: Use stripped base models to resolve Vertex AI state limit
+            base_class = StrippedBaseMatrixXAI if crit.category_id == "matrix" else StrippedBaseTDAExtraction
+
+            # Dynamic short and concise description for the LLM to understand this specific evaluation field
+            label_str = self.resolve_i18n(crit.label, target_locale) if crit.label else ""
+            desc_val = f"Evaluation field for {crit.category_id or 'criteria'} block '{crit_id}' ({label_str})."
+            # plan: Restore full ai_description without truncation since FSM
+            # serving limit is bypassed via strict=False.
+            if crit.ai_description:
+                desc_val += f" Objective: {crit.ai_description}"
+
+            if crit.output_extensions:
+                dynamic_fields: dict[str, Any] = {}
+                # Skip legacy aliases that are natively handled by BaseTDAExtraction fields.
+                core_aliases = {"justification", "citation", "missing_context", "contextual_override"}
+
+                for ext in crit.output_extensions:
+                    if ext in core_aliases:
+                        continue
+
+                    dynamic_fields[ext] = (
+                        str,
+                        Field(
+                            default="",
+                            description=f"Qualitative extension for '{ext}' based on the matrix evaluation.",
+                        ),
+                    )
+
+                # Only create dynamic subclass if there are still extensions left
+                if dynamic_fields:
+                    DynamicBlock = create_model(
+                        f"BlockExtraction_{crit_id}",
+                        __base__=base_class,
+                        __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
+                        **dynamic_fields,
+                    )
+                    fields[crit_id] = (DynamicBlock, Field(..., description=desc_val))
+                else:
+                    fields[crit_id] = (base_class, Field(..., description=desc_val))
+            else:
+                fields[crit_id] = (base_class, Field(..., description=desc_val))
 
         if not fields:
             fields["acknowledged_instruction"] = (
                 str,
-                Field(default="yes", description="Acknowledge completion of the instruction."),
+                Field(default="yes", description="Fallback confirmation that all instructions have been acknowledged."),
             )
 
         try:
@@ -484,7 +564,7 @@ class PromptCompiler:
         xml_blocks = [get_directive_for_persona(persona)]
         xml_blocks.append("<EVALUATION_RUBRICS>")
         for crit in criteria:
-            if crit.type == "instruction":
+            if crit.category_id != "matrix":
                 continue
 
             crit_id = crit.id
@@ -586,7 +666,7 @@ class PromptCompiler:
         """
         compiled_lines = []
         for block in blocks:
-            if block.type == "instruction" and block.category_id != "runtime_variables":
+            if block.category_id != "matrix" and block.category_id != "runtime_variables":
                 label = self.resolve_i18n(block.label, target_locale)
                 desc = block.ai_description
                 if not desc:
@@ -622,7 +702,7 @@ class PromptCompiler:
 
         compiled_lines = []
         for block in blocks:
-            if block.type == "instruction" and block.category_id == "runtime_variables":
+            if block.category_id == "runtime_variables":
                 label = self.resolve_i18n(block.label, target_locale)
                 desc = block.ai_description
                 if not desc:
@@ -660,23 +740,33 @@ class PromptCompiler:
 
         class AtomResponse(BaseModel):
             model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
-            atom_id: str = Field(..., description="Suora yhdiste Flattening-hookin generoimaan hash-avaimeen.")
+            atom_id: str = Field(..., description="Unique system identifier of the target evaluation atom.")
             step_1_evidence_type: EvidenceType = Field(
-                ..., description="CRITICAL: You MUST choose your strategy first."
+                ...,
+                description="Type of evidence discovered (EXPLICIT_QUOTE, IMPLIED_INTENT, or NO_EVIDENCE).",
             )
             step_2_quote: str | None = Field(
                 default=None,
-                description="Required if evidence_type is EXPLICIT_QUOTE. The exact verbatim quote.",
+                description=(
+                    "Literal verbatim quote containing the exact physical evidence from the "
+                    "source document. REQUIRED if evidence type is EXPLICIT_QUOTE."
+                ),
             )
             step_3_implicit_justification: str | None = Field(
                 default=None,
                 description=(
-                    "Required ONLY if evidence_type is IMPLIED_INTENT. "
-                    "Provide an exhaustive 20+ word justification to prove the implied intent."
+                    "Conclusive justification if intent is implied. Must be at least 20 words. "
+                    "Allowed ONLY if strictness < 70."
                 ),
             )
-            step_4_reasoning: str = Field(..., description="Final cognitive friction and evaluation reasoning.")
-            step_5_boolean: bool = Field(..., description="The final True/False decision.")
+            step_4_reasoning: str = Field(
+                ...,
+                description="Strict analytical reasoning trace explaining the presence or absence of evidence.",
+            )
+            step_5_boolean: bool = Field(
+                ...,
+                description="Final Boolean determination: True if rule is satisfied, False if violated or unsupported.",
+            )
 
             @model_validator(mode="after")
             def validate_evidence(self, info: ValidationInfo) -> Any:
@@ -703,7 +793,14 @@ class PromptCompiler:
         DynamicModel = create_model(
             schema_name,
             __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
-            evaluations=(list[AtomResponse], Field(..., description="Array of blinded evaluations.")),
+            evaluations=(
+                list[AtomResponse],
+                Field(
+                    ...,
+                    max_length=SystemConcurrency.SCHEMA_MAX_EVALUATIONS,
+                    description="List of blind atomic evaluations.",
+                ),
+            ),
         )
 
         return DynamicModel
@@ -715,9 +812,9 @@ class PromptCompiler:
             "<objective>You are a Blind Extraction Engine. Your task is to scan the text "
             "for the markers defined in the rule.</objective>\n"
             "<language_mandate>The physical markers in the rules are in English, but the "
-            "source text is in Finnish. You MUST strictly map the English markers to their "
-            "EXACT semantic physical equivalents in Finnish before scanning. Do not extract "
-            "if the localized marker is missing.</language_mandate>\n"
+            f"source text is in the language defined by '{target_locale}'. You MUST strictly map "
+            f"the English markers to their EXACT semantic physical equivalents in the '{target_locale}' "
+            "language before scanning. Do not extract if the localized marker is missing.</language_mandate>\n"
             "<rules>\n"
             "  <rule>If the exact marker is not physically present, return null for "
             "exact_quote.</rule>\n"
@@ -742,16 +839,32 @@ class PromptCompiler:
         ChunkRecordModel = create_model(
             f"{schema_name}Record",
             __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
-            original_id=(str, Field(..., description="The unique ID of the mapped item.")),
-            payload=(item_schema, Field(..., description="The generated/evaluated payload for this specific item.")),
+            original_id=(
+                str,
+                Field(..., description="The original system identifier of the source record."),
+            ),
+            payload=(
+                item_schema,
+                Field(..., description="The validated item payload matching the target data schema."),
+            ),
         )
 
         DynamicModel = create_model(
             schema_name,
             __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
-            chunk_id=(str, Field(..., description="The Opaque Stripe ID of the current chunk.")),
+            chunk_id=(
+                str,
+                Field(..., description="The unique system identifier of the current execution chunk."),
+            ),
             # dynamically generated type aliases aren't parsed statically by mypy
-            records=(list[ChunkRecordModel], Field(..., description="Array of processed map-reduce records.")),  # type: ignore[valid-type]
+            records=(
+                list[ChunkRecordModel],  # type: ignore[valid-type]
+                Field(
+                    ...,
+                    max_length=SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS,
+                    description="List of records contained in this execution chunk.",
+                ),
+            ),
         )
 
         return DynamicModel

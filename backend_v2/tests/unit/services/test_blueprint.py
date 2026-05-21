@@ -725,3 +725,47 @@ async def test_blueprint_virtual_matrix_allows_missing_justification(mock_repo_t
     axis = dto.layouts[0].axes[0]
     assert axis.score == 50.0
     assert axis.row_explanation == ""  # Should default to empty string, not crash
+
+
+@pytest.mark.asyncio
+async def test_blueprint_xai_extensions_type_coercion(mock_repo_transformer: Any) -> None:
+    """Verifies that invalid/empty types inside LLM dynamic extensions are coerced cleanly."""
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000007",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.COMPLETED,
+        execution_trace=[
+            TraceEvent(
+                step_name="step_xai_coercion",
+                event_type="output",
+                content={
+                    "blk_1234abcd1234abcd": {
+                        "raw_score": 90.0,
+                        "justification": "Checked with coercions.",
+                        "extensions": {
+                            "confidence": "",  # Empty string float coercion test
+                            "risk_flag": "OWASP LLM09 (Overreliance) - Warning here.",  # Text description boolean coercion test
+                            "remediation_steps": ["Step 1", "Step 2"],  # List array string coercion test
+                            "coaching": None,
+                        },
+                    }
+                },
+            )
+        ],
+        active_profile_id="prf_dddd1111dddd1111",
+        metadata={"target_locale": "en"},
+    )
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+    )
+    # This should succeed without raising any Pydantic ValidationError.
+    dto = await transformer.build_report_dto("exe_0000000000000007", accept_language="en")
+
+    assert len(dto.layouts) == 1
+    axis = dto.layouts[0].axes[0]
+    assert axis.confidence is None
+    assert axis.risk_flag is True
+    assert axis.remediation_steps == "Step 1\nStep 2"

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
@@ -94,14 +94,21 @@ class PerformativityAnalysis(V2CoreBase):
     )
     authenticity_score: float = Field(
         ...,
-        ge=1.0,
-        le=3.0,
         description=(
             "Numeric authenticity score (1.0 to 3.0), required 1-decimal precision. "
             "USE DECIMALS (e.g., 2.5) to reflect nuance."
         ),
         json_schema_extra={"x-ui-label": "Authenticity Score"},
     )
+
+    @field_validator("authenticity_score")
+    @classmethod
+    def validate_authenticity_score(cls, v: float) -> float:
+        """Enforce strict authenticity score boundaries between 1.0 and 3.0."""
+        if not (1.0 <= v <= 3.0):
+            raise ValueError("authenticity_score must be between 1.0 and 3.0 inclusive")
+        return v
+
     description_key: str = Field(
         default="authenticity_desc",
         description="Localization key.",

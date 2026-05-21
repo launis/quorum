@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, WorkflowCompilationError
 from backend_v2.models.v2_core import ExpectedInput, StepRule, Workflow
@@ -45,19 +46,19 @@ def test_cyclic_dependency_rejected() -> None:
         StepRule(id="stp_1111222233334444", task_blueprint="a", depends_on=["stp_2222333344445555"]),
         StepRule(id="stp_2222333344445555", task_blueprint="b", depends_on=["stp_1111222233334444"]),
     ]
-    with pytest.raises(AppException) as exc_info:
+    with pytest.raises(ValidationError) as exc_info:
         _create_base_workflow(steps)
 
-    assert "Circular dependency" in str(exc_info.value.message)
+    assert "Circular dependency" in str(exc_info.value)
 
 def test_cyclic_dependency_self_rejected() -> None:
     steps = [
         StepRule(id="stp_1111222233334444", task_blueprint="a", depends_on=["stp_1111222233334444"]),
     ]
-    with pytest.raises(AppException) as exc_info:
+    with pytest.raises(ValidationError) as exc_info:
         _create_base_workflow(steps)
 
-    assert "Circular dependency" in str(exc_info.value.message)
+    assert "Circular dependency" in str(exc_info.value)
 
 def test_dangling_input_reference_rejected() -> None:
     # Expects "doc_id" but references "user_id"

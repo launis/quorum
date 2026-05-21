@@ -3,8 +3,6 @@ import json
 import logging
 from typing import Any
 
-import litellm
-
 from backend_v2.exceptions import AppException, ErrorCodes, TokenLimitExceededError
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.services.orchestrator.context_router import ContextRouter
@@ -179,6 +177,8 @@ class ContextBuilder:
                 val_str = str(resolved_value)
                 # Task 2: Rigorous token checks
                 try:
+                    import litellm
+
                     tokens = litellm.token_counter(model="gpt-4o", text=val_str)
                     limit = SystemConcurrency.MAX_SAFE_TOKENS.value
                     if tokens > limit:

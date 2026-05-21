@@ -55,6 +55,7 @@ class XaiExtensionType(str, Enum):
     EMOTIONAL_SENTIMENT = "emotional_sentiment"
     CONFIDENCE = "confidence"
     SOURCE_ID = "source_id"
+    CONTEXTUAL_OVERRIDE = "contextual_override"
 
 
 class SelfHealingThresholdRatio(float, Enum):
@@ -157,7 +158,7 @@ class SystemConcurrency(int, Enum):
     """Global concurrency limits for DAG Execution to prevent API Rate Limits."""
 
     MAX_CONCURRENT_WORKFLOWS = 1
-    MAX_CONCURRENT_LLM_STEPS = 3
+    MAX_CONCURRENT_LLM_STEPS = 1
     LLM_MAX_RETRIES = 1
     FAIL_FAST_MAX_RETRIES = 1
     LLM_MAX_CHUNK_SIZE = 20
@@ -165,6 +166,11 @@ class SystemConcurrency(int, Enum):
     LLM_DEFAULT_TIMEOUT_SECONDS = 600
     RATE_LIMIT_COOLDOWN_SECONDS = 30
     MAX_SAFE_TOKENS = 1000000
+    SCHEMA_MAX_LOCALIZED_ANCHORS = 5
+    SCHEMA_MAX_EVALUATIONS = 15
+    SCHEMA_MAX_CHUNK_RECORDS = 15
+
+
 
 
 # --- Restored V1 Enums ---

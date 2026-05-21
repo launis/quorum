@@ -205,6 +205,13 @@ class LLMNodeStrategy(NodeStrategy):
         input_mappings = new_input_mappings
 
         # Step 2 - Prompt Construction
+        has_shuffled_atoms = False
+        is_matrix_step = any(b.category_id == "matrix" for b in criteria_blocks_models)
+        if is_matrix_step and "shuffled_atoms" in state_data:
+            shuffled_atoms = state_data["shuffled_atoms"]
+            if isinstance(shuffled_atoms, list) and len(shuffled_atoms) > 0:
+                has_shuffled_atoms = True
+
         prompt_payload = PromptFactory.build(
             compiler=self.compiler,
             criteria_blocks=criteria_blocks,
@@ -213,6 +220,7 @@ class LLMNodeStrategy(NodeStrategy):
             input_mappings=input_mappings,
             llm_context_data=llm_context_data,
             expected_inputs=context.expected_inputs,
+            has_shuffled_atoms=has_shuffled_atoms,
         )
 
         user_payload = prompt_payload.user_payload
@@ -220,14 +228,10 @@ class LLMNodeStrategy(NodeStrategy):
         atom_to_block_ids = prompt_payload.atom_to_block_ids
 
         # Step 3 - Chunk execution setup
-        has_shuffled_atoms = False
         chunks_list: list[Any] = []
 
         # Epic 32: Prevent state leakage. Only chunk if the current step actually contains matrix blocks.
-        is_matrix_step = any(b.category_id == "matrix" for b in criteria_blocks_models)
-
         if is_matrix_step and "shuffled_atoms" in state_data:
-            has_shuffled_atoms = True
             shuffled_atoms = state_data["shuffled_atoms"]
 
             if not isinstance(shuffled_atoms, list) or len(shuffled_atoms) == 0:
@@ -296,8 +300,8 @@ class LLMNodeStrategy(NodeStrategy):
 
             syn_instr = state_data["synthesis_instructions"] if "synthesis_instructions" in state_data else None
 
-            # Map Phase: Distribute to Arq Workers
-            redis = self.arq_pool
+            # Map Phase: Distribute to Arq Workers (Bypassed to execute locally on 1 job/process)
+            redis = None
             hkey = f"exec:{context.execution_id}:step:{step.id}"
 
             # Reset Redis accumulator state just in case of retry
@@ -356,7 +360,7 @@ class LLMNodeStrategy(NodeStrategy):
                                         step_id=step.id,
                                         target_locale=target_locale,
                                         synthesis_instructions=syn_instr,
-                                        output_profile=None,
+                                        output_profile=output_profile,
                                         strictness_level=context.strictness_level,
                                     )
                                 )
@@ -386,6 +390,19 @@ class LLMNodeStrategy(NodeStrategy):
                     c_usage_dict = chunk_data.get("usage")
                     c_traces_dict = chunk_data.get("traces", [])
 
+                    if isinstance(c_final, dict) and c_final.get("_dlq_status") == "FAILED/DLQ":
+                        reason = c_final.get("reason", "Unknown DLQ Failure")
+                        logger.error(
+                            f"[Orchestrator] Step execution failed in chunk {i} and routed to DLQ. "
+                            f"Aborting orchestrator run. Reason: {reason}",
+                            extra={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.name},
+                        )
+                        raise AppException(
+                            message=f"Chunk execution failed and routed to DLQ. Reason: {reason}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.value},
+                        )
+
                     accumulator.add(c_final)
 
                     if c_usage_dict:
@@ -402,6 +419,19 @@ class LLMNodeStrategy(NodeStrategy):
             else:
                 for t in tasks:
                     c_final, c_usage, c_traces = t.result()
+
+                    if isinstance(c_final, dict) and c_final.get("_dlq_status") == "FAILED/DLQ":
+                        reason = c_final.get("reason", "Unknown DLQ Failure")
+                        logger.error(
+                            "[Orchestrator] Step execution failed in task chunk and routed to DLQ. "
+                            f"Aborting orchestrator run. Reason: {reason}",
+                            extra={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.name},
+                        )
+                        raise AppException(
+                            message=f"Chunk execution failed and routed to DLQ. Reason: {reason}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.value},
+                        )
 
                     accumulator.add(c_final)
 

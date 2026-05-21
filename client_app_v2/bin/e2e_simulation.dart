@@ -58,9 +58,11 @@ void main(List<String> args) async {
   }
 
   final rawInputs = {
-    "product_text": "Sample product text for E2E",
-    "chat_log": "Sample chat log data",
-    "reflection_text": "Sample reflection",
+    "dynamic_inputs": {
+      "product_text": "Sample product text for E2E",
+      "chat_log": "Sample chat log data",
+      "reflection_text": "Sample reflection",
+    },
   };
 
   logInfo('EXECUTION', 'Triggering execution for workflow: $workflowId');

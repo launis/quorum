@@ -101,6 +101,50 @@ class BlueprintTransformer:
 
             return " ".join(cleaned).strip()
 
+        def _coerce_str(val: Any) -> str | None:
+            """Flatten list elements and convert mixed types to prevent string validation errors."""
+            if val is None:
+                return None
+            if isinstance(val, list):
+                return "\n".join(str(item) for item in val if item is not None)
+            if isinstance(val, (dict, set)):
+                return str(val)
+            s_val = str(val).strip()
+            return s_val
+
+        def _coerce_float(val: Any) -> float | None:
+            """Coerce percentage marks and empty strings to prevent strict float crashes."""
+            if val is None:
+                return None
+            if isinstance(val, (int, float)):
+                return float(val)
+            s_val = str(val).strip()
+            if not s_val:
+                return None
+            s_val = s_val.replace("%", "").strip()
+            try:
+                return float(s_val)
+            except ValueError:
+                logger.warning("[BlueprintTransformer] Could not coerce value '%s' to float, returning None.", val)
+                return None
+
+        def _coerce_bool(val: Any) -> bool | None:
+            """Translate descriptive risk text or truthy constants into a clean boolean."""
+            if val is None:
+                return None
+            if isinstance(val, bool):
+                return val
+            if isinstance(val, (int, float)):
+                return bool(val)
+            s_val = str(val).strip().lower()
+            if not s_val:
+                return None
+            if s_val in ("false", "no", "0", "none", "null", "undefined"):
+                return False
+            if s_val in ("true", "yes", "1"):
+                return True
+            return True
+
         # Fetch the selected output profile from repository
         default_profile_ref = workflow_obj.default_profile_id
 
@@ -433,20 +477,18 @@ class BlueprintTransformer:
                 true_atoms=true_atoms,
                 total_atoms=total_atoms,
                 row_explanation=_clean_hallucinated_numbers(final_explanation),
-                evidence_type=ext_dict["evidence_type"] if "evidence_type" in ext_dict else None,
-                missing_context=(
-                    ext_dict["missing_context"] if "missing_context" in ext_dict and ext_dict["missing_context"] else ""
-                ),
-                cited_source_id=ext_dict["source_id"] if "source_id" in ext_dict else None,
-                cited_text_quote=ext_dict["citation"] if "citation" in ext_dict else None,
-                cited_web_citation=ext_dict["google_citation"] if "google_citation" in ext_dict else None,
-                coaching=ext_dict["coaching"] if "coaching" in ext_dict else None,
-                confidence=ext_dict["confidence"] if "confidence" in ext_dict else None,
-                falsification=ext_dict["falsification"] if "falsification" in ext_dict else None,
-                risk_flag=ext_dict["risk_flag"] if "risk_flag" in ext_dict else None,
-                remediation_steps=ext_dict["remediation_steps"] if "remediation_steps" in ext_dict else None,
-                emotional_sentiment=ext_dict["emotional_sentiment"] if "emotional_sentiment" in ext_dict else None,
-                theory_link=ext_dict["theory_link"] if "theory_link" in ext_dict else None,
+                evidence_type=_coerce_str(ext_dict.get("evidence_type")),
+                missing_context=_coerce_str(ext_dict.get("missing_context")) or "",
+                cited_source_id=_coerce_str(ext_dict.get("source_id")),
+                cited_text_quote=_coerce_str(ext_dict.get("citation")),
+                cited_web_citation=_coerce_str(ext_dict.get("google_citation")),
+                coaching=_coerce_str(ext_dict.get("coaching")),
+                confidence=_coerce_float(ext_dict.get("confidence")),
+                falsification=_coerce_str(ext_dict.get("falsification")),
+                risk_flag=_coerce_bool(ext_dict.get("risk_flag")),
+                remediation_steps=_coerce_str(ext_dict.get("remediation_steps")),
+                emotional_sentiment=_coerce_str(ext_dict.get("emotional_sentiment")),
+                theory_link=_coerce_str(ext_dict.get("theory_link")),
                 level_breakdown=axis_level_breakdown,
                 level_names=level_names,
                 ui_boundary_labels=ui_boundary_labels,

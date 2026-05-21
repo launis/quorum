@@ -902,6 +902,27 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             if pb_id not in new_payload:
                 continue
 
+            pb_data = await deps.comp_repo.get_prompt_block_by_id(pb_id)
+            if not pb_data:
+                msg = f"Strict Fail-Fast Enforced: Missing PromptBlock '{pb_id}' during score normalization."
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+                )
+
+            try:
+                pb_model = PromptBlock.model_validate(pb_data)
+            except ValidationError as e:
+                msg = f"Strict Fail-Fast Enforced: Invalid PromptBlock format for '{pb_id}': {e}"
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                ) from e
+
+            # Skip non-matrix blocks! They have different schemas (e.g. they include 'status' from ChunkWorker)
+            if pb_model.category_id != "matrix":
+                continue
+
             # The Anti-TDD Trap & Zero-Compromise Pledge: We intercept the payload with a strict Pydantic adapter
             raw_input_val = new_payload[pb_id]
 
@@ -927,23 +948,6 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
             if not isinstance(raw_val, (int, float)):
                 continue
-
-            pb_data = await deps.comp_repo.get_prompt_block_by_id(pb_id)
-            if not pb_data:
-                msg = f"Strict Fail-Fast Enforced: Missing PromptBlock '{pb_id}' during score normalization."
-                logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
-                )
-
-            try:
-                pb_model = PromptBlock.model_validate(pb_data)
-            except ValidationError as e:
-                msg = f"Strict Fail-Fast Enforced: Invalid PromptBlock format for '{pb_id}': {e}"
-                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                ) from e
 
             logger.debug(
                 "[ScoringHook] Found PromptBlock '%s' with allowed decimals: %s",

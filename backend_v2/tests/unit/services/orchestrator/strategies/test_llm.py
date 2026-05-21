@@ -260,7 +260,7 @@ async def test_execute_success_path_structured_output(
         mock_client.run_structured_task.return_value = (mock_result, {"total_tokens": 100})
 
         with patch(
-            "backend_v2.services.orchestrator.strategies.llm_execution.context_builder.litellm.token_counter",
+            "litellm.token_counter",
             return_value=10,
         ):
             with patch(
@@ -380,3 +380,100 @@ def test_configure_llm_context_hook_error() -> None:
                 system_repo=MagicMock(),
             ),
         )
+
+
+@pytest.mark.asyncio
+async def test_execute_raises_app_exception_if_chunk_routes_to_dlq(
+    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
+) -> None:
+    """Test that LLMNodeStrategy raises an AppException if process_chunk returns a DLQ failure status."""
+    step = MagicMock()
+    step.id = "step_dlq"
+    step.task_blueprint = "bp_dlq"
+    step.input_mappings = {}
+    step.allowed_mcp_tools = []
+
+    projector = MagicMock()
+    projector.snapshot = []
+
+    context = MagicMock()
+    context.execution_id = "exec_1"
+    context.workflow_id = "wf_1"
+    context.metadata = {"profile_id": "prof_123", "target_locale": "en"}
+    context.model_strategy = "standard"
+    context.expected_inputs = []
+
+    mock_repo.get_step_by_id.return_value = {
+        "id": "stp_0123456789abcdef0123456789abcdef",
+        "slug": "test_step",
+        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Test"}},
+        "prompt_blocks": ["blk_0123456789abcdef0123456789abcdef"],
+        "model_strategy": "standard",
+    }
+
+    mock_repo.get_all_prompt_blocks.return_value = [
+        {
+            "id": "blk_0123456789abcdef0123456789abcdef",
+            "slug": "test_block",
+            "category_id": "llm",
+            "type": "string",
+            "label": {"default_locale": "en", "translations": {"en": "Label"}},
+            "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        }
+    ]
+    mock_repo.get_workflow.return_value = {
+        "id": "wf_0123456789abcdef0123456789abcdef",
+        "slug": "test",
+        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Test"}},
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "prf_123",
+    }
+
+    # Bypass pre-hooks
+    mock_hook_state = MagicMock()
+    mock_hook_state.inputs = {}
+
+    from unittest.mock import patch
+
+    with patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre:
+        mock_pre.return_value = mock_hook_state
+
+        # Mock Compiler
+        mock_compiler.compile_static_instructions.return_value = "static"
+        mock_compiler.compile_dynamic_instructions.return_value = "dynamic"
+        mock_compiler.compile_blind_system_instruction.return_value = "blind"
+        mock_compiler.generate_mcp_instruction.return_value = ""
+        mock_compiler.build_xml_context.return_value = "<xml></xml>"
+        mock_compiler.build_dynamic_schema.return_value = MagicMock()
+        mock_compiler.compile_xml_rubrics.return_value = "rubrics"
+
+        # Mock LLM Client setup
+        mock_client = AsyncMock()
+        with patch(
+            "backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy",
+            new_callable=AsyncMock,
+        ) as mock_from_strategy:
+            mock_from_strategy.return_value = mock_client
+
+            # Mock process_chunk to return a DLQ dictionary directly
+            with patch(
+                "backend_v2.services.orchestrator.strategies.llm.ChunkWorker.process_chunk",
+                new_callable=AsyncMock,
+            ) as mock_process_chunk:
+                mock_process_chunk.return_value = (
+                    {"_dlq_status": "FAILED/DLQ", "reason": "Test Aggregator DLQ Exception"},
+                    None,
+                    [],
+                )
+
+                with pytest.raises(AppException) as exc_info:
+                    await llm_strategy.execute(
+                        step=step, projector=projector, context=context, frozen_ctx=None, trace=[]
+                    )
+
+                assert exc_info.value.status_code == 500
+                assert "Chunk execution failed and routed to DLQ" in exc_info.value.message
+

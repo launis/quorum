@@ -216,6 +216,19 @@ Järjestelmän tekoälynhallinta on rajattu poikkeuksellisen tiukilla, järjeste
 * **Peruste (Architecture):** Järjestelmä hyödyntää "Circuit Breaker" -mallia. Kun tekoäly jää jumiin "Self-Healing" -luuppiin ja kuluttaa budjettinsa loppuun, `LLMTaskExecutor` palauttaa Null Object -fallbackin, joka noudattaa vaadittua Pydantic-skeemaa (`model_construct()`). Fallback asettaa arvoiksi turvalliset tyhjät tyypit (esim. `score=None`) ja dokumentoi epäonnistumisen.
 * **Vaikutus (Impact):** Tämä "Graceful Degradation" varmistaa, että yksittäisen solmun hallusinaatio ei keskeytä massiivista työnkulkua. Post-Hookit on ohjelmoitu sivuuttamaan `None`-arvoiset pisteet, jolloin epäonnistuminen ei korruptoi aggregoitua matematiikkaa.
 
+### 8. Skeemarajojen ja Paloittelun Matemaattiset Turvakoot (FSM Optimization)
+* **Kielto Rajattomille Sisäkkäisille Listoille:** JSON Structured Output -skeemoissa ei saa koskaan käyttää rajattomia dynaamisia listoja (`list[T]` ilman `max_length`-rajoitinta) syvissä sisäkkäisissä tietorakenteissa.
+* **Peruste (Architecture):** Rinnakkaisuus- ja pituusrajoitukset on ankkuroitu keskitetysti `SystemConcurrency`-enumluokkaan (`enums.py`). Listat rajataan skeematasolla matemaattisilla `max_length` (JSON Schema `maxItems`) rajoitteilla:
+  * `SCHEMA_MAX_LOCALIZED_ANCHORS = 20` – Tekstilainaukset / evidenssiankkurit per atomi.
+  * `SCHEMA_MAX_EVALUATIONS = 25` – Matriisien evaluoinnit per kutsu (atominäyte).
+  * `SCHEMA_MAX_CHUNK_RECORDS = 25` – Chunk-lohkojen record-tietueet Map-vaiheessa.
+  
+  Näiden suhde on sidottu Map-Reduce -paloittelun invarianttiin:
+  $$\text{LLM\_MAX\_CHUNK\_SIZE} \le \text{SCHEMA\_MAX\_CHUNK\_RECORDS} \quad (20 \le 25)$$
+  Tämä takaa, että syötteen maksimikoko (`LLM_MAX_CHUNK_SIZE = 20`) alittaa aina skeeman palautusrajan, jättäen turvamarginaalin ja estäen työnkulun kaatumisen Pydantic-validaatioon.
+* **Vaikutus (Impact):** Rajoittamalla sisäkkäisten listojen enimmäispituudet lakkautetaan äärettömien silmukoiden tarve tekoälytarjoajien (esim. Vertex AI) token-tason dekoodausrajoittimessa (Constrained Decoding FSM). Tämä estää tilakoneen koon eksponentiaalisen räjähtämisen (*state space explosion*), nopeuttaa LLM:n suoritusaikaista kääntämistä ja eliminoi kokonaan kriittiset `400 Bad Request: Serving State Count Limit` -virheet.
+
 <br><hr>
 
 ➡️ **Seuraavaksi:** Kun tiedät missä Hookeissa asiat tapahtuvat, lue [06_evaluation_and_scoring.md](./06_evaluation_and_scoring.md), joka pureutuu siihen raskaaseen matematiikkaan ja rangaistuksiin, joita nämä Hookit laskevat LLM:n tuottamasta datasta.
+

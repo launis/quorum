@@ -174,7 +174,7 @@ class LLMProviderConfig(BaseDTO):
     parsing_mode: Annotated[
         str | None,
         Field(
-            description="Instructor parsing mode (e.g. 'GEMINI_JSON', 'JSON').",
+            description="Instructor parsing mode (e.g. 'STRUCTURED_JSON', 'JSON').",
             json_schema_extra={"x-ui-label": "Parsing Mode"},
         ),
     ] = None

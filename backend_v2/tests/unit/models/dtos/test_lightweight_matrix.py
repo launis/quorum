@@ -118,3 +118,21 @@ def test_atom_evaluation_item_dto_rejects_nulls() -> None:
     }
     with pytest.raises(ValidationError):
         AtomEvaluationItemDTO.model_validate(raw_data)
+
+
+def test_map_llm_extensions_with_base_tda_extraction_keys() -> None:
+    """Test that Phase 4 BaseTDAExtraction fields map without raising extra_forbidden errors."""
+    raw_data = {
+        "raw_score": 50.0,
+        "normalized_score": 50.0,
+        "localized_anchors_found": ["avainsana1", "avainsana2"],
+        "semantic_reasoning": "Käyttäjä ohjasi aktiivisesti...",
+        "step_2_mitigating_context": "Prosessi alkoi...",
+        "contextual_override": False,
+        "exact_quote": "Megatrendien Kooste...",
+    }
+
+    mapped = LightweightMatrixOutput.map_llm_extensions_to_domain(raw_data)
+
+    # This will fail with 'Extra inputs are not permitted' if the mapping doesn't strip the BaseTDA fields
+    LightweightMatrixOutput.model_validate(mapped)

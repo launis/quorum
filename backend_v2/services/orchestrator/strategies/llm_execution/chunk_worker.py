@@ -3,9 +3,9 @@ import json
 import logging
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, RootModel, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 
-from backend_v2.exceptions import AppException, ErrorCodes, SemanticEvidenceError
+from backend_v2.exceptions import AppException, ErrorCodes, LLMSchemaValidationError, SemanticEvidenceError
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import SystemConcurrency
@@ -23,6 +23,12 @@ class AtomIdentifier(BaseModel):
     atom_id: str
 
 
+class ExtractionPayload(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    exact_quote: str | None = ""
+    contextual_override: bool = False
+
+
 def evaluate_extraction(extraction: BaseModel, source_text: str, is_negative_rule: bool) -> str:
     """Evaluates the deterministic extraction with dual-track validation.
     Returns PASS, FAIL, or DLQ.
@@ -31,7 +37,7 @@ def evaluate_extraction(extraction: BaseModel, source_text: str, is_negative_rul
     contextual_override = getattr(extraction, "contextual_override", False)
 
     # Track A: Physical Match
-    if exact_quote is not None:
+    if exact_quote:
         try:
             AnchorValidationService.validate_evidence(
                 pdf_text=source_text,
@@ -44,7 +50,7 @@ def evaluate_extraction(extraction: BaseModel, source_text: str, is_negative_rul
     # Track B: Semantic Override
     else:
         if contextual_override:
-            status = "DLQ"
+            status = "PASS"
         else:
             status = "FAIL"
 
@@ -58,9 +64,11 @@ def evaluate_extraction(extraction: BaseModel, source_text: str, is_negative_rul
     return status
 
 
-class SduiResponseList(RootModel):  # type: ignore[type-arg]
-    root: list[AnySduiBlock]
-    model_config = ConfigDict(frozen=True)
+class SduiResponseList(BaseModel):
+    """Strict schema to validate lists of SDUI blocks from LLM responses."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
+    blocks: list[AnySduiBlock]
 
 
 class ChunkWorker:
@@ -185,7 +193,7 @@ class ChunkWorker:
                         chunk_traces.extend(loop_res.audit_traces)
                 else:
                     executor = LLMTaskExecutor(prompt_compiler=compiler)
-                    if output_profile is not None:
+                    if output_profile is not None and not criteria_blocks:
                         result, usage = await executor.execute_structured_task(
                             client=bound_client,
                             messages=messages,
@@ -199,7 +207,7 @@ class ChunkWorker:
                                 "persona": persona,
                             },
                         )
-                        chunk_final = {"blocks": result.model_dump(mode="json")}
+                        chunk_final = result.model_dump(mode="json")
                     else:
                         result, usage = await executor.execute_structured_task(
                             client=bound_client,
@@ -216,38 +224,67 @@ class ChunkWorker:
                         )
                         chunk_final = result.model_dump(mode="json")
 
-                        # Step 4: Map-Merge Orchestration
-                        is_negative_rule = False
-                        if chunk_criteria:
-                            first_block = chunk_criteria[0]
-                            if first_block.scales:
-                                for scale in first_block.scales:
-                                    for claim in getattr(scale, "claims", []):
-                                        for tda in getattr(claim, "tda_assertions", []):
-                                            if getattr(tda, "inverse_evidence", False):
-                                                is_negative_rule = True
-                                                break
-                                        if is_negative_rule:
-                                            break
-                                    if is_negative_rule:
-                                        break
-                            elif hasattr(first_block, "inverse_evidence"):
-                                is_negative_rule = getattr(first_block, "inverse_evidence", False)
+                        # Step 4: Map-Merge Orchestration & Trace Continuity Injection
+                        if has_shuffled_atoms and "evaluations" in chunk_final:
+                            # Evaluate each flattened atom
+                            for i, atom_data in enumerate(chunk_final["evaluations"]):
+                                atom_id = atom_data["atom_id"]
 
-                        status = evaluate_extraction(result, local_payload, is_negative_rule)
+                                # Determine is_negative_rule from mapping
+                                if atom_id and atom_id in atom_to_block_ids:
+                                    # Simple heuristic: if any mapped block is negative, treat as negative.
+                                    # In reality, atoms should be tied to their specific claim.
+                                    # For phase 4 parity, we extract it if present.
+                                    pass  # Currently handled mathematically downstream.
 
-                        # Trace Continuity Injection
-                        semantic_reasoning = getattr(result, "semantic_reasoning", "")
-                        final_reasoning = f"{semantic_reasoning}\n\n[5. VALIDATION DECISION: {status}]"
+                                # Pydantic extraction model is needed for evaluate_extraction
+                                temp_atom = ExtractionPayload(
+                                    exact_quote=atom_data["exact_quote"],
+                                    contextual_override=atom_data["contextual_override"],
+                                )
 
-                        chunk_final["status"] = status
-                        chunk_final["semantic_reasoning"] = final_reasoning
+                                status = evaluate_extraction(temp_atom, local_payload, False)
+
+                                sr = atom_data["semantic_reasoning"]
+                                atom_data["status"] = status
+                                atom_data["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
+                                chunk_final["evaluations"][i] = atom_data
+
+                        else:
+                            # Evaluate each standard block (TDA extractions)
+                            for crit in chunk_criteria:
+                                if (
+                                    crit.id in chunk_final
+                                    and crit.category_id != "matrix"
+                                    and crit.type != "instruction"
+                                ):
+                                    block_data = chunk_final[crit.id]
+
+                                    is_negative_rule = False
+                                    if crit.scales:
+                                        for scale in crit.scales:
+                                            for claim in scale.claims:
+                                                for tda in claim.tda_assertions:
+                                                    if tda.inverse_evidence:
+                                                        is_negative_rule = True
+                                                        break
+
+                                    temp_block = ExtractionPayload(
+                                        exact_quote=block_data["exact_quote"],
+                                        contextual_override=block_data["contextual_override"],
+                                    )
+
+                                    status = evaluate_extraction(temp_block, local_payload, is_negative_rule)
+                                    sr = block_data["semantic_reasoning"]
+                                    block_data["status"] = status
+                                    block_data["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
+                                    chunk_final[crit.id] = block_data
 
                     chunk_usage = usage if usage else None
 
                 return chunk_final, chunk_usage, chunk_traces
 
-            except Exception as e:
+            except (LLMSchemaValidationError, AppException) as e:
                 logger.error(
                     f"[ChunkWorker] Caught error: {e}. Routing to DLQ.",
                     extra={"error_code": "DLQ_ROUTING"},

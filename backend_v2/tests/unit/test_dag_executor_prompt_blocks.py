@@ -89,8 +89,15 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
     # We mock LLMClient.from_strategy to avoid actual LLM calls
     with patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock) as mock_strategy:
         mock_bound_client = AsyncMock()
+        mock_payload = {
+            "exact_quote": "",
+            "contextual_override": True,
+            "semantic_reasoning": "Because",
+            "localized_anchors_found": ["mock anchor"],
+            "status": "PASS",
+        }
         mock_bound_client.run_structured_task.return_value = (
-            MagicMock(model_dump=lambda **kwargs: {"blk_0123456789abcdef0123456789ab": 1}),
+            MagicMock(model_dump=lambda **kwargs: {"blk_0123456789abcdef0123456789ab": mock_payload}),
             {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30, "cost_usd": 0.05},
         )
         mock_strategy.return_value = mock_bound_client
@@ -126,9 +133,12 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
     projector = StateProjector()
     results = projector.fold_trace(record.execution_trace)
     print(f"DEBUG RESULTS: {results}")
-    assert any(
-        dto.step_id == "step_1111111111111111"
-        and dto.block_id == "blk_0123456789abcdef0123456789ab"
-        and dto.payload == 1
-        for dto in results
-    )
+
+    # We check that the payload is a dict and has the mocked values
+    found = False
+    for dto in results:
+        if dto.step_id == "step_1111111111111111" and dto.block_id == "blk_0123456789abcdef0123456789ab":
+            if isinstance(dto.payload, dict) and dto.payload.get("contextual_override") is True:
+                found = True
+                break
+    assert found

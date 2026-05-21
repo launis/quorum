@@ -46,21 +46,15 @@ class LightweightMatrixOutput(V2CoreBase):
             extensions = {}
 
         mapping = {
-            "step_1_reasoning_trace": "justification",
-            "step_1_evidence_quote": "citation",
-            "step_1b_cited_source_id": "source_id",
-            "step_1c_google_citation": "citation",
-            "step_2_falsification": "falsification",
-            "step_3_logical_friction": "justification",
-            "step_3_coaching": "coaching",
-            "extension_coaching": "coaching",
-            "extension_confidence": "confidence",
-            "extension_missing_context": "missing_context",
-            "extension_risk_flag": "risk_flag",
-            "extension_remediation_steps": "remediation_steps",
-            "extension_emotional_sentiment": "emotional_sentiment",
-            "extension_theory_link": "theory_link",
+            "step_1_evidence_scan": "justification",
+            "semantic_reasoning": "justification",
+            "step_2_mitigating_context": "missing_context",
+            "contextual_override": "contextual_override",
+            "exact_quote": "citation",
         }
+
+        # Phase 4 Zero-Variance: Drop structural list fields that do not belong in matrix extensions
+        mapped_data.pop("localized_anchors_found", None)
 
         for flat_key, enum_str in mapping.items():
             if flat_key in mapped_data:
@@ -69,6 +63,27 @@ class LightweightMatrixOutput(V2CoreBase):
                     if enum_str == "justification":
                         mapped_data["justification"] = val
                     extensions[enum_str] = val
+
+        # Phase 4 Option B: Dynamically injected Zero-Compromise XAI extensions
+        # Any remaining key that wasn't mapped above is treated as a dynamic extension.
+        # This guarantees any new output_extension from seed_data works automatically.
+        for remaining_key in list(mapped_data.keys()):
+            # Prevent moving known base fields if they are somehow still here
+            known_fields = [
+                "justification",
+                "extensions",
+                "raw_score",
+                "normalized_score",
+                "evaluated_atoms",
+                "level_breakdown",
+                "xai_log",
+            ]
+            if remaining_key in known_fields:
+                continue
+
+            val = mapped_data.pop(remaining_key)
+            if val is not None:
+                extensions[remaining_key] = val
 
         mapped_data["extensions"] = extensions
         return mapped_data
@@ -83,6 +98,10 @@ class AtomEvaluationItemDTO(V2CoreBase):
     pre_quote_anchor: str | None = None
     post_quote_anchor: str | None = None
     status: Literal["PASS", "FAIL", "DLQ"] | None = None
+    localized_anchors_found: list[str] = Field(default_factory=list)
+    semantic_reasoning: str = ""
+    contextual_override: bool = False
+    dlq_status: bool | None = None
 
     @property
     def evidence_found(self) -> bool:

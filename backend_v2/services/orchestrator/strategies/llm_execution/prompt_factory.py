@@ -30,10 +30,15 @@ class PromptFactory:
         input_mappings: dict[str, Any],
         llm_context_data: dict[str, Any],
         expected_inputs: list[Any] | None,
+        has_shuffled_atoms: bool = False,
     ) -> PromptPayload:
         static_instructions = compiler.compile_static_instructions(criteria_blocks, target_locale)
         dynamic_instructions = compiler.compile_dynamic_instructions(criteria_blocks, target_locale)
-        blind_instruction = compiler.compile_blind_system_instruction(target_locale)
+        
+        blind_instruction = None
+        if has_shuffled_atoms:
+            blind_instruction = compiler.compile_blind_system_instruction(target_locale)
+            
         mcp_instruction = compiler.generate_mcp_instruction(effective_mcp_tools)
 
         base_system_prompt = "Complete the evaluation according to the provided schema."

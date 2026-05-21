@@ -70,6 +70,7 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
         input_mappings={},
         llm_context_data={},
         expected_inputs=None,
+        has_shuffled_atoms=True,
     )
 
     assert "Complete the evaluation according to the provided schema." in payload.base_system_prompt
@@ -83,6 +84,40 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
 
     # Check atom hashing
     assert len(payload.atom_to_block_ids) == 2
+
+
+def test_prompt_factory_flat_instruction_no_blind_contamination(mock_compiler: MagicMock) -> None:
+    """Test that when has_shuffled_atoms=False, blind_instruction is not compiled/injected."""
+    from backend_v2.models.v2_core import PromptBlock
+
+    criteria_blocks = [
+        PromptBlock.model_validate(
+            {
+                "id": "blk_12345678901234567890123456789012",
+                "slug": "test_slug",
+                "label": {"default_locale": "en", "translations": {"en": "Test Label", "fi": "Testi"}},
+                "description": {"default_locale": "en", "translations": {"en": "Test Desc", "fi": "Testi"}},
+                "type": "string",
+                "category_id": "text",
+            }
+        )
+    ]
+
+    payload = PromptFactory.build(
+        compiler=mock_compiler,
+        criteria_blocks=criteria_blocks,
+        target_locale="en",
+        effective_mcp_tools=None,
+        input_mappings={},
+        llm_context_data={},
+        expected_inputs=None,
+        has_shuffled_atoms=False,
+    )
+
+    assert "Complete the evaluation according to the provided schema." in payload.base_system_prompt
+    assert "Static Instructions" in payload.base_system_prompt
+    assert "Blind Instruction" not in payload.base_system_prompt
+    assert "MCP Instruction" in payload.base_system_prompt
 
 
 def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock) -> None:
@@ -111,6 +146,7 @@ def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock) -> None
             input_mappings={},
             llm_context_data={},
             expected_inputs=None,
+            has_shuffled_atoms=True,
         )
 
     assert exc_info.value.status_code == 500

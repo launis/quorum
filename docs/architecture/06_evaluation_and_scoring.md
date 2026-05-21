@@ -76,12 +76,26 @@ Perinteinen LLM-pohjainen lausuntojen arviointi kykenee harvoin tuottamaan tiukk
    Jotta satojen kysymysten yhtäaikainen sokea arviointi ei johtaisi "Lost in the Middle" -syndroomaan, Timeout/429 Rate Limit -kaatumisiin tai json-skeeman rikkoutumiseen, `LLMNodeStrategy` suorittaa Map-Reduce -operaation Semantic Micro-Batching -periaatteella. Massiivinen kysymyslista luovutetaan `ChunkingService`-komponentille, joka pilkkoo sen turvallisiin tiukkoihin osiin (maksimissaan 10 atomia / `SystemConcurrency.LLM_MAX_CHUNK_SIZE`). Palikat ajetaan vahvasti rinnakkain modernin `asyncio.TaskGroup`in, paikallisen Tenacity-mikroyrityksen (Exponential Backoff) sekä globaalin `Semaphore` + Token Bucket -rajoittimen (RPM Limiter) turvin. Lopulta erilliset vastaukset järjestetään uudelleen staattiseen input-järjestykseen ja parsitaan takaisin yhtenäiseksi `List[FlattenedAtomResult]` -paketiksi täydellisellä 1:1 osumatarkkuudella (Set-Based Verification).
 3. **Eristetty Runtime AI (T=0.0) ja Suoritusjärjestyksen Merkityksettömyys:**
    LLM suorittaa kunkin Map-Reduce -lohkon arvioinnin tiukassa "Strict Mode" -tilassa nollalämpötilalla (`temperature=0.0`), missä `LiteLLMProvider` vaatii koodilta absoluuttisesti TPM/RPM-rajoitusten määrittämistä. Tämä eristäminen poistaa aiemman arkkitehtuurin "huomiokyvyn harhautumisen" (Attention Drift): koska jokainen kysymyslohko arvioidaan omana eristettynä DAG-solmunaan TDA-sääntöjen (Bounty Hunter) avulla, **kysymysten suoritusjärjestyksellä ei ole enää mitään vaikutusta LLM:n vastauksiin**. Järjestelmä on matemaattisen deterministinen. Jos Pydantic-validaatio epäonnistuu yksittäisessä chunkissa, arkkitehtuuri ei yritä "arvailla" fallback-arvoja (Zero-Fallback), vaan nostaa välittömästi RFC 7807 `AppException` -virheen (Fail-Fast).
-4. **Three-State Logic ja MatrixReducer (O(N) Reduktio):**
+4. **Three-State Logic, DLQ (Dead Letter Queue) -käsittely ja Konfidenssikatto (O(N) Reduktio):**
    Koska atomit on pilkottu N-määrään asynkronisia chunkkeja, järjestelmä voi kohdata konfliktin: chunk A löytää osuman (PASSED), mutta chunk B ei löydä (FAILED). Matemaattinen tila reduktoidaan `MatrixReducer`in avulla noudattaen TDA-säännön `aggregation_mode`-attribuuttia:
    - `EXISTS`: Yksikin "PASSED" chunkkien välillä riittää koko säännön läpäisyyn (ANY(Passed) -> Passed). Muuten tutkitaan FAILED/DLQ -enemmistö.
    - `ALL_MUST_COMPLY`: Yksikin "FAILED" (tai DLQ) pudottaa koko säännön tilaan FAILED/DLQ. Kaikkien chunkkien on oltava puhtaasti "PASSED".
-   DLQ (Dead Letter Queue) on kolmas tila, johon väite siirretään, jos se on teknisesti viallinen (esim. korruptoitunut lainaus), eikä sitä lasketa nimittäjään (Denominator) lopullisessa Compliance Scoressa.
-4. **Paluu Rakennetilaan ja Käänteinen Hajautus (Reverse Hash Mapping):**
+   DLQ (Dead Letter Queue) on kolmas tila, johon väite siirretään, jos se on teknisesti viallinen (esim. korruptoitunut lainaus) tai jos validointi epäonnistuu mutta `contextual_override = True` -tila sallii poikkeuskäsittelyn kaatumisen sijaan.
+
+   **DLQ-matematiikka ja Nimittäjän Käsittely:**
+   Jokaisen tason osumatarkkuuden (`hit_rate`) matemaattisessa laskennassa (esim. eri pisteytysmoottoreissa) DLQ-tilaiset sokeat väitteet **ohitetaan/poistetaan nimittäjästä** (Denominator), jotta tekniset poikkeukset tai kontekstuaaliset yliajot eivät keinotekoisesti alenna tason arvosanaa:
+   $$\text{Level Hit Rate} = \frac{\text{Level Hits}}{\text{Level Total} - \text{Level DLQs}}$$
+
+   *Historiallinen ja nykyisen koodin välinen suhde:*
+   - **Mitä dokumentaatio aiemmin kuvasi:** DLQ-tilaiset sokeat väitteet ohitetaan nimittäjästä (Denominator) ja siirretään poikkeuskäsittelyyn.
+   - **Mitä koodi tekee (`scoring.py`):** Koodi tarkistaa, että DLQ-osumien määrä ei ylitä tiettyä rajaa. Jos DLQ-tilaisten (eli teknisesti viallisten / lainaamattomien, mutta `contextual_override = true` -tilassa olevien) väitteiden suhde on liian suuri ja järjestelmän konfidenssi putoaa alle 90 prosentin, koodi heittää välittömästi `AppException`-virheen (Fail-Fast) koodilla `AGENT_LOGICAL_VALIDATION_FAILED` (HTTP 500) sen sijaan, että se vain jatkaisi hiljaisesti poikkeuskäsittelyä.
+
+   **Ankara Fail-Fast ja Konfidenssikatto (90 % raja):**
+   Vaikka yksittäiset DLQ-väitteet poistetaan nimittäjästä pisteytystilanteessa, järjestelmä estää viallisen tai riittämättömän lähdenäytön hiljaisen myrkyttämisen ankaralla **Fail-Fast -suojalla**:
+   - `matrix_scoring_hook` laskee globaalin konfidenssitason askeleen päätepisteessä: `system_confidence = (global_total - global_dlqs) / global_total`.
+   - Jos DLQ-tilaisten väitteiden suhde on liian suuri ja järjestelmän konfidenssi alittaa **90 %** (eli DLQ-osuus ylittää 10 %), arviointimoottori **keskeyttää suorituksen välittömästi** heittämällä `AppException`-virheen (koodilla `AGENT_LOGICAL_VALIDATION_FAILED` / HTTP 500). Järjestelmä ei yritä suorittaa pisteytystä loppuun eikä suodata tuloksia hiljaisesti.
+
+5. **Paluu Rakennetilaan ja Käänteinen Hajautus (Reverse Hash Mapping):**
    Kun kaikki asynkroniset LLM-palat on suoritettu ja vastaukset (True/False & Micro-CoT -perustelut) on sulatettu massiiviseksi yhteiseksi Boolean-listaksi, asynkronisen moottorin on osattava palauttaa sokeat osumat takaisin alkuperäisiin matriiseihinsa ja vaatimustasoilleen. 
    Tämä ratkaistaan nojaten dynaamiseen **Ephemeral Runtime ID -mäppäykseen (In-Memory)**:
    - Aiemmin (V1) järjestelmä käytti lennosta generoitua MD5-tiivistettä tekstin perusteella ("Content-Addressable ID"). Tämä on nyt **ankarasti kielletty** (Epic 48: MD5 Hashery-Deprekaatio), sillä se aiheutti Hash Collision -haavoittuvuuksia samankaltaisilla kysymyksillä ja turhaa kryptografista kuormaa.
@@ -99,7 +113,7 @@ Vaikka arvioidut lauseet ovat nykyään deterministisiä `TDAAssertion`-säänt�
 
 ### Laajennuskäsittely ja Pydantic-purku (Extensions & Evaluations)
 Asynkronisen moottorin suorittama datan jäsennys tapahtuu Zero-Compromise Pydantic V2 -hengessä. 
-* **Laajennusten Tiukennus (`output_extensions`):** `PromptBlock` (blk_) `output_extensions` (kuten `scoring_matrix`, `tda_assertions`) luetaan tiukasti Pydantic-olioihin ajon aikana. Järjestelmä ei salli "graceful degradation" -tilaa: mikäli tekoäly palauttaa viallista dataa näiden laajennusten osalta, dataa ei hiljaisesti ohiteta `.get()` -purkalla tai pudoteta pois, vaan rajapinta nostaa virheen heti.
+* **SSOT-Puhdistus ja Dynaamiset Laajennukset (`output_extensions`):** Epic 56 "Zero-Variance" -mandaatin myötä pakolliset ydinkentät (justification, citation, missing_context) on poistettu dynaamisista `output_extensions` -määrityksistä, sillä ne on kovakoodattu suoraan natiiviin `BaseTDAExtraction`-mallin moottoriin. Vain aidosti vapaaehtoiset XAI-laajennukset (kuten `coaching`, `falsification`) sallitaan `output_extensions`-listassa. Ne generoidaan lennosta tiukasti tyypitettynä Pydantic-skeemana, josta tekoälyn on pakko vastata. Järjestelmä ei salli "graceful degradation" -tilaa vialliselle datalle (Fail-Fast), mutta Flutter UI osaa nätisti suodattaa pois ne otsikot, joihin LLM ei kyennyt rehellistä vastausta antamaan.
 * **Evaluations Dict Parsing:** Myös `evaluations`-vastausten jäsentely on ehdottoman tiukkaa. Järjestelmä ei hyväksy löysää parserointia. Pienikin poikkeama mallinnetuista `tda_assertions` -kentistä kaataa asynkronisen kerroksen (RFC 7807), eikä oletuksena yritetä tarjota "tyhjää dictiä `{}`" pelastamaan LLM:n rakenteellista hallusinaatiota. Tällä taataan, että jatkolaskenta ei koskaan operoi korruptoituneella aineistolla.
 
 ## 3. Zero-Trust Pydantic Validation & Anti-Laziness Mandate (Epic 42)
@@ -241,6 +255,25 @@ Tekoälyn rakenteistettu XAI-synteesi pakotetaan seuraavaan Pydantic-malliin, jo
 (Lähde: backend_v2/models/domain/xai.py, luokka: XAIOutputDTO)
 
 Jokaista lasketun tuloksen taustaa varten luodaan ihmiskieliset lokit ja ne tallennetaan `frozen_context.json` -tiedostoon. Nämä perustelut ovat Native English Generation -säännön alaisia, minimoiden satunnaisen harhautumisen lokituksessa ja antaen käyttäjälle absoluuttista todistettavuutta tulosten synnystä.
+
+### Kognitiiviset Erikoisasiantuntijat ja niiden Tuotosten Käyttö (Causal & Performativity)
+
+Järjestelmän erikoistuneet asiantuntija-agentit (Causal Analyst ja Performativity Detector) tuottavat rikasta analyysidataa, jota hyödynnetään kolmella arkkitehtonisella tasolla:
+
+1. **Päättelyketjut (`ReasoningTraceDTO`) XAI-synteesissä:**
+   * Agenttien lennosta generoimat CoT-perusteluketjut (`reasoning_trace`) yhdistetään asynkronisen suorituksen päätteeksi.
+   * `text_consolidation_hook` poimii nämä asiantuntijahavainnot ja injektoi ne globaalin Chief Editor -synteesityön alle.
+   * Tästä dynaamisesta in-context -aineistosta syntyy loppuraportin `causal_chain` (kausaalinen syysuhde-arviointi) ja `cognitive_behavior` (aitous- ja heuristiikka-arviointi) -osioiden korkealaatuinen ihmiskielinen sisältö.
+
+2. **Numeeristen asiantuntijapisteiden matemaattinen käyttö (Dampening & Penalty):**
+   * Agenttien tuottamat numeeriset arvosanat (`plausibility_numeric`, `abductive_score`, `authenticity_score` välillä 1.0–3.0) toimivat kognitiivisina portinvartijoina (Cognitive Diagnostic Dampening).
+   * Jos performatiivinen aitousarvio tai kausaalinen uskottavuusarvio romahtaa (pisteet lähellä arvoa 1.0), se laukaisee kooditasolla dynaamiset **vaimennuskertoimet (Progressive Dampening / CDM)** ja rangaistukset (`enforce_passivity_penalty` / `_calculate_falsifier_penalty`).
+   * Tämä suojelee kokonaispisteitä siten, ettei pelkästään kosmeettisesti laadukas mutta loogisesti tyhjä tai manipuloiva aineisto voi saada korkeaa arvosanaa. Jos aitousarvio alittaa kriittisen rajan, arvosana lukitaan tai vaimennetaan eksponentiaalisesti.
+
+3. **Zero-Math SDUI -matriisit ja PDF-visualisointi:**
+   * Nämä numeeriset pisteet ja asiantuntijaväitteet muunnetaan Python-backendillä suoraan valmiiksi käyttöliittymäkelpoiseksi esitysdataksi (`LightweightMatrixOutput` ja `ReportDataDTO`).
+   * Tämä säästää Flutter-asiakasohjelman ja PDF-raportointimoottorin kaikelta liukulukulaskennalta (Zero-Math UI -mandaatti).
+   * Käyttöliittymä kykenee piirtämään dynaamisia visualisointeja (kuten Causal flows tai 3D Illusion Detector) suoraan backendin valmiiksi laskemien ja normalisoimien (1–100) arvojen pohjalta.
 
 ## 5. UI Rendering ja Zero-Math Pariteetti
 

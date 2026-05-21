@@ -3,7 +3,7 @@ import json
 import logging
 import re
 import uuid
-from typing import Any
+from typing import Any, cast
 
 import pydantic
 from pydantic import BaseModel
@@ -229,24 +229,58 @@ class LLMClient:
             # Epic 56 Phase 3: Dynamic Schema Stripping
             adapter_schema: type[T] | dict[str, Any] = response_model
             if isinstance(response_model, type) and issubclass(response_model, BaseModel):
-                json_schema = response_model.model_json_schema()
+                if self._config and getattr(self._config, "parsing_mode", None) == "STRUCTURED_JSON":
+                    adapter_schema = {"type": "json_object"}
+                    schema_json = json.dumps(response_model.model_json_schema(), indent=2)
+                    schema_instruction = (
+                        "\n\n[SYSTEM: STRICT JSON STRUCTURE MANDATE]\n"
+                        "You MUST output a valid JSON object matching the following JSON Schema. "
+                        "All keys listed in the schema properties are absolutely required and case-sensitive. "
+                        "Do NOT omit any keys and do NOT add extra keys not listed in the schema.\n"
+                        f"Required JSON Schema:\n{schema_json}"
+                    )
 
-                def strip_unsupported_constraints(schema_dict: Any) -> None:
-                    if isinstance(schema_dict, dict):
-                        schema_dict.pop("maxLength", None)
-                        schema_dict.pop("minLength", None)
-                        for v in schema_dict.values():
-                            strip_unsupported_constraints(v)
-                    elif isinstance(schema_dict, list):
-                        for item in schema_dict:
-                            strip_unsupported_constraints(item)
+                    system_msg_found = False
+                    for msg in final_messages:
+                        if msg.get("role") == "system":
+                            content = msg.get("content")
+                            if isinstance(content, str):
+                                msg["content"] = content + schema_instruction
+                                system_msg_found = True
+                                break
+                            elif isinstance(content, list):
+                                for part in content:
+                                    if isinstance(part, dict) and part.get("type") == "text":
+                                        part["text"] = (part.get("text") or "") + schema_instruction
+                                        system_msg_found = True
+                                        break
+                                if system_msg_found:
+                                    break
+                    if not system_msg_found:
+                        final_messages.insert(0, {"role": "system", "content": schema_instruction.strip()})
+                else:
+                    json_schema = response_model.model_json_schema()
 
-                strip_unsupported_constraints(json_schema)
-                schema_name = response_model.__name__
-                adapter_schema = {
-                    "type": "json_schema",
-                    "json_schema": {"name": schema_name, "schema": json_schema, "strict": True},
-                }
+                    def strip_unsupported_constraints(schema_dict: Any) -> None:
+                        if isinstance(schema_dict, dict):
+                            schema_dict.pop("maxLength", None)
+                            schema_dict.pop("minLength", None)
+                            for v in schema_dict.values():
+                                strip_unsupported_constraints(v)
+                        elif isinstance(schema_dict, list):
+                            for item in schema_dict:
+                                strip_unsupported_constraints(item)
+
+                    strip_unsupported_constraints(json_schema)
+                    schema_name = response_model.__name__
+                    adapter_schema = {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": schema_name,
+                            "schema": json_schema,
+                            "strict": True,
+                        },
+                    }
 
             try:
                 # 3. Generate with Structured Output (Caching tags active if final_messages manipulated)
@@ -306,7 +340,8 @@ class LLMClient:
 
                 raw_content = raw_content.strip()
 
-                validated_model = response_model.model_validate_json(raw_content, context=validation_context)
+                parsed_json = response_model.model_validate_json(raw_content, context=validation_context)
+                validated_model = cast(T, parsed_json)  # type: ignore[redundant-cast]
 
                 return validated_model, token_usage
 

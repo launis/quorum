@@ -347,7 +347,7 @@ class ModelProfile(V2CoreBase):
     allowed_tools: list[str] = Field(default_factory=list, description="Enabled tools")
     supports_grounding: bool = Field(default=False, description="Supports Google Search Grounding")
     api_key: str | None = Field(default=None, description="Optional override API key")
-    parsing_mode: str | None = Field(default=None, description="Parser logic flag (e.g. 'GEMINI_JSON')")
+    parsing_mode: str | None = Field(default=None, description="Parser logic flag (e.g. 'STRUCTURED_JSON')")
     caching_strategy: str | None = Field(
         default=None, description="Cache strategy identifier (e.g. 'anthropic_ephemeral')"
     )
@@ -1006,32 +1006,32 @@ class WorkflowSchemaResponse(RootModel[dict[str, Any]]):
     pass
 
 
+class BaseMatrixXAI(BaseModel):
+    """Pydantic model for matrix XAI qualitative extensions without physical extraction guarantees."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    semantic_reasoning: str = Field(
+        default="",
+        description="Matrix-level assessment explanation.",
+    )
+
+
 class BaseTDAExtraction(BaseModel):
     """Core Pydantic model for Micro-CoT extraction with deterministic cross-validation."""
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    step_1_evidence_scan: str = Field(
-        description="Listaa havainnot ja lainaukset, jotka tukevat säännön täyttymistä (dokumentin kielellä)."
-    )
-    step_2_mitigating_context: str = Field(
-        description="Listaa havainnot, jotka kumoavat säännön tai ovat poikkeuksia (dokumentin kielellä)."
-    )
-    contextual_override: bool = Field(
-        description=(
-            "Aseta True VAIN, jos fyysistä sanatarkkaa lainausta ei ole olemassa, "
-            "mutta asiayhteys absoluuttisesti todistaa säännön. Älä käytä laiskuuden takia."
-        )
-    )
+    localized_anchors_found: list[str] = Field(description="Keywords in target language mapping English rule.")
+    semantic_reasoning: str = Field(description="Mapping logic explanation in target language.")
+    contextual_override: bool = Field(description="Escape hatch for implicit matches.")
     exact_quote: str | None = Field(
-        ...,
-        max_length=1500,
-        description="Sanatarkka lainaus alkuperäisestä tekstistä. Pakko olla Null, jos override on True.",
+        default="",
+        description="Verbatim quote from original text.",
     )
-    extracted_data: Any = Field(description="Spesifit poimitut arvot (boolean, taulukko, päivämäärä).")
 
     @model_validator(mode="after")
     def validate_override_logic(self) -> BaseTDAExtraction:
-        if self.contextual_override and self.exact_quote is not None:
-            raise ValueError("Cross-validation failed: exact_quote MUST be null if contextual_override is True.")
+        if self.contextual_override and self.exact_quote:
+            raise ValueError("Cross-validation failed: exact_quote MUST be empty if contextual_override is True.")
         return self
