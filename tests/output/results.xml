@@ -1,1 +1,94 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="11" time="0.742" timestamp="2026-05-21T10:07:52.816717+03:00" hostname="Laptop-Risto"><testcase classname="backend_v2.tests.unit.services.test_blueprint" name="test_build_report_dto_maps_correctly" time="0.089" /><testcase classname="backend_v2.tests.unit.services.test_blueprint" name="test_graceful_degradation_missing_fields" time="0.003" /><testcase classname="backend_v2.tests.unit.services.test_blueprint" name="test_blueprint_crashes_on_naked_microcot_dict" time="0.003" /><testcase classname="backend_v2.tests.unit.services.test_blueprint" name="test_blueprint_zero_math_rounding" time="0.003" /><testcase classname="backend_v2.tests.unit.services.test_blueprint" name="test_blueprint_synthesis_markdown_packaging" time="0.014" /><testcase classname="backend_v2.tests.unit.services.test_blueprint" name="test_xai_extraction_works_for_nested_dict" time="0.003" /><testcase classname="backend_v2.tests.unit.services.test_blueprint" name="test_mcp_audit_deduplication_uses_strict_model_attrs" time="0.004" /><testcase classname="backend_v2.tests.unit.services.test_blueprint" name="test_mcp_audit_fails_fast_on_incomplete_data" time="0.002" /><testcase classname="backend_v2.tests.unit.services.test_blueprint" name="test_blueprint_scoring_payload_validation_succeeds_with_extra_fields" time="0.003" /><testcase classname="backend_v2.tests.unit.services.test_blueprint" name="test_blueprint_virtual_matrix_allows_missing_justification" time="0.003" /><testcase classname="backend_v2.tests.unit.services.test_blueprint" name="test_blueprint_xai_extensions_type_coercion" time="0.003" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.307" timestamp="2026-05-22T08:49:46.452159+03:00" hostname="Laptop-Risto"><testcase classname="backend_v2.tests.unit.services.test_llm_task_executor" name="test_execute_structured_task_dynamic_model_fallback" time="0.108"><failure message="AttributeError: 'DynamicResponseModel' object has no attribute 'evaluations'">mock_prompt_compiler = &lt;MagicMock spec='PromptCompiler' id='2352920142112'&gt;
+mock_client = &lt;AsyncMock id='2352920143792'&gt;
+
+    @pytest.mark.asyncio
+    async def test_execute_structured_task_dynamic_model_fallback(
+        mock_prompt_compiler: MagicMock, mock_client: AsyncMock
+    ) -&gt; None:
+        executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
+    
+        class AtomResponse(BaseModel):
+            atom_id: str
+            exact_quote: str | None = None
+            localized_anchors_found: list[str] = []
+            contextual_override: bool = False
+            semantic_reasoning: str = ""
+    
+        class DynamicResponseModel(BaseModel):
+            reasoning_trace: str
+            evaluation_notes: str
+            evaluations: list[AtomResponse]
+    
+        expected_model = DynamicResponseModel(
+            reasoning_trace="fake trace",
+            evaluation_notes="fake notes",
+            evaluations=[
+                AtomResponse(
+                    atom_id="atom_1",
+                    exact_quote="hallucinated quote",
+                    localized_anchors_found=[],
+                    contextual_override=False,
+                    semantic_reasoning="some reasoning",
+                )
+            ],
+        )
+    
+        mock_client.run_structured_task.side_effect = [
+            (expected_model, {"total_tokens": 10}),
+            (expected_model, {"total_tokens": 15}),
+        ]
+    
+        from unittest.mock import patch
+    
+        from backend_v2.exceptions import SemanticEvidenceError
+    
+        with patch("backend_v2.services.llm_task_executor.AnchorValidationService.validate_evidence") as mock_validate:
+            mock_validate.side_effect = SemanticEvidenceError(message="fail fast")
+    
+            res_model, res_usage = await executor.execute_structured_task(
+                client=mock_client,
+                messages=[{"role": "user", "content": "test"}],
+                response_model=DynamicResponseModel,
+                max_logical_retries=1,
+                validation_context={"source_text": "real text"},
+            )
+    
+&gt;           assert len(res_model.evaluations) == 1
+                       ^^^^^^^^^^^^^^^^^^^^^
+
+backend_v2\tests\unit\services\test_llm_task_executor.py:286: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = DynamicResponseModel(), item = 'evaluations'
+
+    def __getattr__(self, item: str) -&gt; Any:
+        private_attributes = object.__getattribute__(self, '__private_attributes__')
+        if item in private_attributes:
+            attribute = private_attributes[item]
+            if hasattr(attribute, '__get__'):
+                return attribute.__get__(self, type(self))  # type: ignore
+    
+            try:
+                # Note: self.__pydantic_private__ cannot be None if self.__private_attributes__ has items
+                return self.__pydantic_private__[item]  # type: ignore
+            except KeyError as exc:
+                raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}') from exc
+        else:
+            # `__pydantic_extra__` can fail to be set if the model is not yet fully initialized.
+            # See `BaseModel.__repr_args__` for more details
+            try:
+                pydantic_extra = object.__getattribute__(self, '__pydantic_extra__')
+            except AttributeError:
+                pydantic_extra = None
+    
+            if pydantic_extra and item in pydantic_extra:
+                return pydantic_extra[item]
+            else:
+                if hasattr(self.__class__, item):
+                    return super().__getattribute__(item)  # Raises AttributeError if appropriate
+                else:
+                    # this is the current error
+&gt;                   raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+E                   AttributeError: 'DynamicResponseModel' object has no attribute 'evaluations'
+
+.venv\Lib\site-packages\pydantic\main.py:1026: AttributeError</failure></testcase></testsuite></testsuites>

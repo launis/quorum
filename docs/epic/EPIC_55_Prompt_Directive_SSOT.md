@@ -1,56 +1,131 @@
-# Epic 55: Prompt Directive SSOT (Persona Isolation Refactor)
+# Epic 55: Prompt Directive SSOT (Persona Isolation & Single-Injection Architecture)
 
 > [!IMPORTANT]
 > **THE CLEAN SLATE MANDATE (`the_duct_tape_ban` & `the_no_legacy_mandate`)**: Toteutamme tämän puhtaalta pöydältä (Clean Slate). Emme huomioi vanhoja ajoja tai historiallisia tietokantarakenteita. Kaikki "fallback"-ominaisuudet (esim. `obj.get('old_field')`), purkkakoodi (duct tape) ja kovakoodaus ovat ANKARASTI KIELLETTYJÄ. Jos data puuttuu, järjestelmän tulee kaatua välittömästi (Fail-Fast). Rakennamme puhdasta arkkitehtuuria ilman kompromisseja.
-## 1. Yhteenveto ja Tavoite (Objective)
-Tämän Epicin tavoitteena on poistaa kriittinen arkkitehtuurinen velka, jossa laajat järjestelmätason ohjeet (kuten `<global_framework>`, "Zero-Interpretation Doctrine" ja tarkan 5-vaiheisen `mechanical_trace`-lokin formaatti) on kopioitu kymmeniin eri `PromptBlock`-objekteihin tietokannassa.
-
-Tämä "copy-paste" -malli rikkoo Single Source of Truth (SSOT) -periaatetta, paisuttaa tietokantaa, vaikeuttaa järjestelmän ohjeistuksien päivittämistä lennossa ja altistaa järjestelmän kriittisille regressioille, mikäli ihmiskäyttäjä vahingossa poistaa tai muokkaa turvamekanismeja Admin Studion käyttöliittymästä.
-
-**Tavoite:** Erottaa "Asenne/Käyttäytyminen" (System Framework) puhtaasta "Substanssista" (Matrix Domain Logic).
-* **Framework (Miten):** Siirretään ohjelmalliseksi Enum-reititetyksi vakioksi backendin ytimeen.
-* **Substanssi (Mitä):** Jätetään `PromptBlockin` `ai_description`-kenttään vain ja ainoastaan kyseistä matriisia koskeva asiantuntijaohje.
 
 ---
 
-## 2. Arkkitehtuurinen Linjaus: Enum & PromptCompiler Injection
+## 1. Arkkitehtuurinen Ongelma (The Core Issue)
 
-Toteutamme turvallisen ohjelmallisen injektion (Kooditason SSOT), joka takaa absoluuttisen suojan (Fail-Safe) kriittisille säännöille:
+Nykyisessä arkkitehtuurissa massiivinen globaali ohjeistus (`<global_framework>` sisältäen säännöt kuten *Morpho-Syntactic Determinism*, *Topological Determinism*, *Structural Topology* ja tarkan 5-vaiheisen *Constrained Parsing Protocol* -määrittelyn) on monistettu käsin kymmeniin eri `PromptBlock`- ja rooliohje-objekteihin tietokannan seeder-tiedostossa (`seed_data.json`).
 
-1. **Backend Vakioistaminen:** Luodaan `ExecutionPersona` (tai `FrameworkDirective`) Enum. Backendin uuteen ytimeen (esim. `backend_v2/core/system_directives.py`) tallennetaan massiiviset prompt-osiot, kuten `DETERMINISTIC_PARSER_FRAMEWORK`.
-2. **Dynaaminen Injektio:** `PromptCompiler` tarkistaa suoritettavan `PromptBlockin` Enum-arvon ja liittää sen vastaavan järjestelmäohjeen automaattisesti LLM:n system-promptiin.
-3. **Käyttöliittymän Rajoitus:** Flutter Admin Studiossa käyttäjä ei näe enää koko jättimäistä sääntötekstiä, vaan pelkän pudotusvalikon: "Select Persona: Deterministic Parsing Engine".
-
----
-
-## 3. Toteutuksen Vaiheet (Työnkulku)
-
-### Phase 1: Backendin Core-Injektio (Arkkitehtuuri)
-* **Toimenpide 1:** Luodaan `backend_v2/core/system_directives.py`, jonne tallennetaan `<global_framework>` muuttumattomana merkkijonovakiona (String Constant).
-* **Toimenpide 2:** Luodaan `ExecutionPersona` Enum (esim. `DETERMINISTIC_PARSER`, `GENERATIVE_ASSISTANT`).
-* **Toimenpide 3:** Päivitetään `v2_core.py` -> `PromptBlock`-malliin uusi kenttä `execution_persona: ExecutionPersona`.
-* **Toimenpide 4:** Muokataan `PromptCompiler` (`compile_xml_rubrics` / context builder) lukemaan tämä kenttä ja liimaamaan `system_directives.py`:n sisältö promptin ylälaitaan.
-
-### Phase 2: Datan Siivous ja Migraatio (Seed Data Mass Refactor)
-* **Toimenpide 1:** Kirjoitetaan skripti (esim. `scratch/v5_1_prompt_slimming.py`), joka käy läpi `seed_data.json`-tiedoston kaikki `PromptBlockit`.
-* **Toimenpide 2:** Skripti asettaa kaikkiin matriiseihin kentän `"execution_persona": "DETERMINISTIC_PARSER"`.
-* **Toimenpide 3:** Skripti etsii ja poistaa `ai_description`-kentistä koko massiivisen `<global_framework>` -tekstin, jättäen jäljelle vain alkuperäisen matriisikohtaisen työnkuvauksen.
-* **Toimenpide 4:** Ajetaan `run_seed.py local` ja varmistetaan unit-testien (`backend_audit_loop.py`) läpimeno.
-
-### Phase 3: Frontend (Admin Studio UI) Päivitys
-* **Toimenpide 1 (Ylätaso / Matrix):** Päivitetään `client_app_v2/lib/features/studio/models/prompt_block.dart` sisältämään uusi Enum-kenttä (`execution_persona`). 
-* **Toimenpide 2:** Muokataan Admin Studion matriisin muokkausnäkymää: poistetaan raskaat sääntölaatikot ja lisätään pudotusvalikko `Execution Persona`.
-* Tämän vaiheen myötä Ylätason (Matrix) Admin Studion LLM-hallinta siirtyy vapaamuotoisesta "prompt-koodailusta" tiukasti jäsenneltyyn, pudotusvalikko-ohjattuun Data-Driven -käyttöliittymään.
-
-### Phase 4 (Tulevaisuuden Evoluutio): SystemConfigs Multiplexing
-Tämä on tulevaisuuden tavoite, jota ei välttämättä toteuteta tässä Epicissä:
-* Kun järjestelmä vakautuu, Pythonin sisään koodatut `system_directives.py` vakiot voidaan siirtää V7.5 arkkitehtuurin mukaisesti tietokantaan `SystemConfig`-dokumenteiksi ("Global Prompt Components").
-* Tämä mahdollistaisi pääkäyttäjien muokata jopa `<global_framework>`-sääntöjä lennossa käyttöliittymän kautta ilman backend-päivityksiä.
+Tämä luo useita kriittisiä arkkitehtuurisia ja suorituskyvyllisiä ongelmia:
+1. **Rikkoo SSOT-periaatetta (Single Source of Truth)**: Jos globaaliin toimintaraamiin (kuten deterministisen parserin 5-vaiheiseen sääntöön) halutaan tehdä muutos, se pitää päivittää manuaalisesti kymmeniin kohtiin `seed_data.json`-tiedostossa.
+2. **Token-kustannuksen ja Context Bloatin räjähdys**: Kun yhdessä työnkulun vaiheessa (Step) ajetaan useita matriiseja tai ohjeita samanaikaisesti, `PromptCompiler` kerää kaikkien valittujen lohkojen kuvaukset. Tällöin `<global_framework>` monistuu system-promptiin useita kertoja peräkkäin, mikä kuormittaa turhaan LLM:n konteksti-ikkunaa ja nostaa token-kustannuksia.
+3. **Pydantic-skeeman paisuminen ja Vertex AI -rajat**: Kun `PromptCompiler.build_dynamic_schema()` rakentaa dynaamista Pydantic-mallia, se asettaa jokaisen PromptBlockin `ai_description`-kentän suoraan Pydantic-kentän `description`-arvoksi. Koska kuvaus sisältää massiivisen globaalin ohjelohkon, Vertex AI:n strukturoidun ulostulon tila- ja parserikäsittelijät ylittävät herkästi sallitut rajat ("too many states for serving"), aiheuttaen virheitä heti suorituksen alussa.
 
 ---
 
-## 4. Definition of Done (DoD)
-1. **SSOT Toteutuu:** Tietokanta (`seed_data.json` tai `db_v2.json`) ei sisällä missään matriisissa laajoja "Zero-Interpretation", "Trace format" tai "Morpho-Syntactic" -sääntöjä, vaan ne ladataan yhdestä backendin tiedostosta lennossa.
-2. **PromptCompiler Injektointi:** Pydantic / PromptCompiler kerää promptit oikein siten, että token-määrä ja ohjeistus OpenAI:lle/Anthropicille pysyy 100 % identtisenä vanhaan verrattuna (testataan vertailuajolla).
-3. **Käyttöliittymä (Flutter):** Matriisin luonti sisältää Persona-Enumin, ja ohjaus on turvallisesti eristetty käyttöliittymästä koodin puolelle (Fail-Safe).
-4. **Dokumentaatio:** `docs/architecture/` -hakemiston dokumentit ja `.agents/rules/04_directory_reference.md` on EHDOTTOMASTI päivitettävä vastaamaan uutta arkkitehtuuria (esim. kun `system_directives.py` ja muut uudet tiedostot on luotu).
+## 2. Visio ja Arkkitehtuurinen Ratkaisu (The Target Architecture)
+
+Erotamme järjestelmän **Käyttäytymisen/Asenteen** (System Framework) puhtaasta **Substanssista** (Domain Logic/Rules).
+
+```mermaid
+graph TD
+    A[Step Execution Workflow] --> B[Resolve ExecutionPersona]
+    B --> C[PromptCompiler]
+    C -->|Inject ONCE to Top| D[System Prompt Base]
+    C -->|Fetch Database Blocks| E[Slimmed PromptBlocks]
+    E -->|Matrix A - Toulmin| F[pure domain rules]
+    E -->|Matrix B - Bloom| G[pure domain rules]
+    F -->|Clean Injection| D
+    G -->|Clean Injection| D
+    E -->|Generate Lightweight Schema| H[Pydantic Dynamic Schema]
+```
+
+### Arkkitehtuuriset Pääsäännöt (Invariants)
+1. **Single-Injection Rule (Kerta-injektio)**: `<global_framework>`-lohko injektoidaan LLM:n suorituksessa tasan **yhden kerran** ja se sijoitetaan System Promptin ylälaitaan ohjelmallisesti.
+2. **Zero-Duplication Mandate (Nollamonistus)**: Yksikään tietokannan `PromptBlock` (mukaan lukien matriisit ja roolikohtaiset ohjeet) ei saa sisältää `<global_framework>`-lohkoa omassa `ai_description`-kentässään.
+3. **Lightweight Pydantic Schema**: Pydantic-mallien kenttien kuvaukset (`Field(description=...)`) saavat sisältää vain ja ainoastaan kyseisen lohkon substanssikuvauksen (esim. Stephen Toulminin argumentation säännöt), jotta Vertex AI:n tilarajoitukset eivät koskaan paukkuisi.
+
+---
+
+## 3. Tarkka Kääntämisen Topologia (Compilation Flow)
+
+Kun workflow:n tietty suoritusvaihe (Step) käynnistyy, promptin kasaaminen tapahtuu seuraavassa järjestyksessä:
+
+```
+[System Prompt]
++-----------------------------------------------------------------------+
+| 1. Global Persona Framework (injektoitu get_directive_for_persona)   |
+|    - Morpho-Syntactic Determinism                                     |
+|    - Topological Determinism                                          |
+|    - Structural Topology & Bridging                                   |
+|    - Constrained Parsing Protocol (5-step trace format)               |
++-----------------------------------------------------------------------+
+| 2. Static General Instructions (compile_static_instructions)          |
+|    - Esim. Ingestion / Analysis -roolien puhtaat ydintehtävät         |
++-----------------------------------------------------------------------+
+| 3. Evaluation Rubrics (compile_xml_rubrics)                           |
+|    - <EVALUATION_RUBRICS>                                             |
+|        - <MATRIX id="pb_toulmin">                                     |
+|            <DIRECTIVE>Pure Toulmin Matrix Rules...</DIRECTIVE>        |
+|        - <MATRIX id="pb_bloom">                                       |
+|            <DIRECTIVE>Pure Bloom Matrix Rules...</DIRECTIVE>          |
+|    - </EVALUATION_RUBRICS>                                            |
++-----------------------------------------------------------------------+
+```
+
+### 3.1 PromptCompilerin Muutokset
+* **Persona-pohjainen injektio**: `PromptCompiler.compile_xml_rubrics` lukee suoritettavien lohkojen `execution_persona`-kentän (esim. `DETERMINISTIC_PARSER`) ja hakee siihen sidotun vakion tiedostosta `backend_v2/core/system_directives.py`.
+* **Skeeman siivous**: `build_dynamic_schema` kasaa dynaamisen mallin kentät siten, että `desc_val`-muuttujaan liitetään vain puhtaan substanssin sisältävä `crit.ai_description`.
+* **Static Instructions siivous**: Roolikohtaiset ohjeet (kuten *Critical Analyst*, *Critical Auditor* tai *Socratic Coach*) tallennetaan tietokantaan ilman globaalia kehystä. `compile_static_instructions` lukee ne sellaisenaan, jolloin ne injektoituvat järjestelmäpromptiin ilman turhaa painolastia.
+
+---
+
+## 4. Datan Migraatio ja Siivousohjelma (Mass Refactor Plan)
+
+Tietokannan siivous suoritetaan hallitusti ja deterministisesti dedikoidulla Python-skriptillä (`scratch/v5_1_prompt_slimming.py`). Skripti toimii seuraavien sääntöjen mukaisesti:
+
+1. **Varmistus**: Skripti lukee tiedoston `backend_v2/seed/seed_data.json`.
+2. **Regex- ja merkkijonopuhdistus**: Skripti etsii jokaisesta `PromptBlock`-objektista (sekä matriiseista että ohjeista) merkkijonon, joka alkaa `<global_framework>`-tagilla ja päättyy `</global_framework>`-tagiin (huomioiden rivinvaihdot ja koodaukset).
+3. **Puhdistus**:
+   * Etsitty globaali kehys poistetaan kokonaan `ai_description`-kentästä.
+   * Kentästä poistetaan myös mahdolliset ylimääräiset johtavat tai lopettavat rivinvaihdot (`.strip()`).
+   * Mikäli lohko edustaa determinististä parserointia, sen `execution_persona`-kentäksi asetetaan `"DETERMINISTIC_PARSER"`.
+4. **Validointi**: Skripti varmistaa, että puhdistetussa tekstissä ei ole enää jäljellä `<global_framework>`-merkintöjä, mutta lohkon substanssi (kuten `<system_directive>` tai roolimandaatin ydin) säilyy täysin koskemattomana.
+5. **Kirjoitus**: Päivitetty data kirjoitetaan takaisin tiedostoon `backend_v2/seed/seed_data.json`.
+
+### Havainnollistava Esimerkki Siivouksesta (Before -> After)
+
+#### [BEFORE] Matriisin `ai_description` tietokannassa:
+```json
+"ai_description": "<global_framework>\n<rule>MORPHO-SYNTACTIC DETERMINISM: ...</rule>\n<rule>CONSTRAINED PARSING PROTOCOL: ...</rule>\n</global_framework>\n\n<system_directive>\n<objective>Evaluate using Stephen Toulmin's Model...</objective>\n...</system_directive>"
+```
+
+#### [AFTER] Matriisin `ai_description` tietokannassa:
+```json
+"ai_description": "<system_directive>\n<objective>Evaluate using Stephen Toulmin's Model...</objective>\n...</system_directive>"
+```
+
+Tämän myötä tietokantadokumentti kevenee huomattavasti ja sääntöjen hallinta siirtyy 100 % kooditason vakioihin.
+
+---
+
+## 5. Laadunvarmistus ja Testaus (Verification & Auditing)
+
+Koska promptit ovat kriittinen osa tekoälyttömän suorituksen deterministisyyttä, muutoksen toimivuus todennetaan tiukalla kolmiportaisella verifiointiohjelmalla ennen tuotantoon viemistä:
+
+### 1. Kääntämisvertailu (Diff Audit)
+* Kirjoitetaan yksikkötesti (`tests/unit/services/orchestrator/test_prompt_ssot_parity.py`), joka generoi esimerkkipromptin sekä legacy-tyyliin (manuaalisesti kasatulla globaalilla kehyksellä) että uudella SSOT-kääntäjällä.
+* Testi varmistaa merkkijonovertailulla (string diff), että lopullinen LLM:lle lähetettävä System Prompt sisältää täysin identtiset säännöt täsmälleen oikeissa kohdissa ja oikeilla XML-tageilla ympäröitynä, eikä mikään kriittinen sääntö ole kadonnut matkan varrella.
+
+### 2. Pydantic-skeeman Kevyysvalidointi (Schema Volume Audit)
+* Testi varmistaa, että `PromptCompiler.build_dynamic_schema()`-metodilla luodun Pydantic-mallin JSON-kuvaukset eivät sisällä `<global_framework>` tai `<rule>` -merkintöjä.
+* Testataan, että malli kääntyy Vertex AI -yhteensopivaksi ilman tilarajoitusvirheitä.
+
+### 3. Integraatiotestien Ajo (Quality Loop)
+* Suoritetaan paikallinen auditointilooppi:
+  ```powershell
+  uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/prompt_compiler.py --test
+  ```
+* Varmistetaan, että kaikki olemassa olevat työnkulkujen suoritustestit (kuten `test_synthesis.py` ja testit, jotka ajavat dynaamista analyysiä seeder-datalla) menevät puhtaasti läpi ilman regressioita.
+
+---
+
+## 6. Definition of Done (DoD)
+
+1. **SSOT-yhteensopivuus**: Järjestelmän globaalit säännöt sijaitsevat vain ja ainoastaan tiedostossa `backend_v2/core/system_directives.py`. `seed_data.json` tai live-tietokanta ei sisällä yhtäkään monistettua `<global_framework>`-lohkoa.
+2. **Kerta-injektointi toimii**: Lopullinen suoritettava System Prompt sisältää globaalin raamin täsmälleen kerran suorituksen alussa.
+3. **Pydantic-skeemat ovat puhtaita**: Dynaamisten mallien kenttien kuvaukset ovat lyhyitä ja tiiviitä, mikä estää tekoälyalustojen ("Serving Limits") kaatumisen.
+4. **Laatuportti (Quality Gate) läpäisty**: Kaikki yksikkö- ja integraatiotestit menevät läpi, ja Ruff-linttaus sekä Mypy-tyyppitarkastukset antavat 100 % puhtaan tuloksen ilman huomautuksia.

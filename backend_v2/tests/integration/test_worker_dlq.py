@@ -93,9 +93,7 @@ async def test_programmatic_errors_bubble_up_and_crash_fail_fast() -> None:
         "backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker.LLMTaskExecutor"
     ) as mock_executor:
         mock_instance = mock_executor.return_value
-        mock_instance.execute_structured_task = AsyncMock(
-            side_effect=TypeError("string indices must be integers")
-        )
+        mock_instance.execute_structured_task = AsyncMock(side_effect=TypeError("string indices must be integers"))
 
         # Execute process_chunk and assert TypeError bubbles up
         with pytest.raises(TypeError) as exc_info:
@@ -126,9 +124,7 @@ async def test_worker_evaluate_chunk_job_aborts_on_dlq_status() -> None:
     from backend_v2.worker import evaluate_chunk_job
 
     # Mock ChunkWorker.process_chunk to return a DLQ status dict
-    with patch(
-        "backend_v2.worker.ChunkWorker.process_chunk"
-    ) as mock_process_chunk:
+    with patch("backend_v2.worker.ChunkWorker.process_chunk") as mock_process_chunk:
         mock_process_chunk.return_value = (
             {"_dlq_status": "FAILED/DLQ", "reason": "Test DLQ Trigger"},
             None,
@@ -159,4 +155,3 @@ async def test_worker_evaluate_chunk_job_aborts_on_dlq_status() -> None:
 
         assert exc_info.value.status_code == 500
         assert "Chunk execution failed and routed to DLQ" in exc_info.value.message
-

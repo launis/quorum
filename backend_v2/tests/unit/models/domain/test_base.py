@@ -48,12 +48,12 @@ def test_reasoning_trace_native_confidence_bounds() -> None:
     # Invalid high
     with pytest.raises(ValidationError) as exc:
         ReasoningTraceDTO(thought_process="Valid reasoning.", conclusion="Valid conclusion.", confidence_score=1.5)
-    assert "Input should be less than or equal to 1" in str(exc.value)
+    assert "Confidence score must be between 0.0 and 1.0" in str(exc.value)
 
     # Invalid low
     with pytest.raises(ValidationError) as exc:
         ReasoningTraceDTO(thought_process="Valid reasoning.", conclusion="Valid conclusion.", confidence_score=-0.1)
-    assert "Input should be greater than or equal to 0" in str(exc.value)
+    assert "Confidence score must be between 0.0 and 1.0" in str(exc.value)
 
 
 def test_reasoning_trace_hallucination_guard() -> None:

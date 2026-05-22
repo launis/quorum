@@ -134,7 +134,10 @@ class AtomEvaluationItemDTO(V2CoreBase):
         if self.status:
             if self.status == "DLQ":
                 return "DLQ"
-            return self.status == "PASS"
+            evidence_found = (self.status == "PASS")
+            if inverse_evidence:
+                return not evidence_found
+            return evidence_found
 
         if inverse_evidence:
             return not self.evidence_found

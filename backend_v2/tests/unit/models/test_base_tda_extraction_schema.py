@@ -36,4 +36,3 @@ def test_exact_quote_can_be_none() -> None:
 
     stripped_inst = StrippedBaseTDAExtraction.model_validate(payload)
     assert stripped_inst.exact_quote is None
-

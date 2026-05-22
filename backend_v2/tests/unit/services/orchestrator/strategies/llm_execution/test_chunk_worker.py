@@ -256,7 +256,7 @@ async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_c
             "exact_quote": "yes",
             "contextual_override": False,
             "semantic_reasoning": "Standard justification",
-        }
+        },
     }
 
     final, usage, traces = await ChunkWorker.process_chunk(
@@ -279,4 +279,3 @@ async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_c
 
     assert final["inst_12345678901234567890123456789012"] == "This is raw instruction text"
     assert final["crit_12345678901234567890123456789012"]["status"] in ["PASS", "FAIL", "DLQ"]
-

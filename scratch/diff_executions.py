@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import glob
+import math
 
 def get_all_evals(path):
     with open(path, 'r', encoding='utf-8') as f:
@@ -13,25 +14,121 @@ def get_all_evals(path):
                 all_evals[e['atom_id']] = e
     return all_evals
 
+def calculate_entropy(states):
+    """Laskee Shannonin entropian (base 2) annetuille tiloille."""
+    if not states:
+        return 0.0
+    counts = {}
+    for s in states:
+        counts[s] = counts.get(s, 0) + 1
+    total = len(states)
+    entropy = 0.0
+    for count in counts.values():
+        p = count / total
+        if p > 0:
+            entropy -= p * math.log2(p)
+    return entropy
+
+def calculate_pairwise_consistency(states):
+    """Laskee kuinka suuri osa parivertailuista on yhtäpitäviä."""
+    M = len(states)
+    if M < 2:
+        return 1.0
+    counts = {}
+    for s in states:
+        counts[s] = counts.get(s, 0) + 1
+    agreed_pairs = sum(c * (c - 1) / 2 for c in counts.values())
+    total_pairs = M * (M - 1) / 2
+    return agreed_pairs / total_pairs
+
+def calculate_fleiss_kappa(atom_states_list, categories):
+    """
+    Laskee Fleissin kapan annetuille syötteille (atomit) ja niiden tiloille eri ajoissa.
+    atom_states_list: list of lists, missä jokainen sisempi lista sisältää atomin tilat eri ajoissa.
+    categories: lista kaikista mahdollisista kategorioista/tiloista (esim. ['true', 'false']).
+    """
+    N = len(atom_states_list)
+    if N == 0:
+        return 0.0
+    M = len(atom_states_list[0])
+    if M < 2:
+        return 1.0
+
+    cat_to_idx = {cat: idx for idx, cat in enumerate(categories)}
+    num_classes = len(categories)
+
+    count_matrix = [[0] * num_classes for _ in range(N)]
+    for i, states in enumerate(atom_states_list):
+        for s in states:
+            if s in cat_to_idx:
+                count_matrix[i][cat_to_idx[s]] += 1
+
+    # 1. Havaittu yhtäpitävyys per syöte (P_i)
+    P_i = []
+    for i in range(N):
+        sum_sq = sum(count_matrix[i][c] ** 2 for c in range(num_classes))
+        P_i.append((sum_sq - M) / (M * (M - 1)))
+    P_mean = sum(P_i) / N
+
+    # 2. Odotettu sattumanvarainen yhtäpitävyys (p_j)
+    p_j = [0.0] * num_classes
+    for j in range(num_classes):
+        col_sum = sum(count_matrix[i][j] for i in range(N))
+        p_j[j] = col_sum / (N * M)
+    P_e = sum(p ** 2 for p in p_j)
+
+    if P_e >= 1.0:
+        return 1.0
+
+    kappa = (P_mean - P_e) / (1.0 - P_e)
+    return kappa
+
 # Automaattinen viimeisimpien ajojen haku
 exe_dirs = glob.glob('data/files/executions/exe_*')
 exe_dirs.sort(key=os.path.getmtime, reverse=True)
 
-if len(sys.argv) == 3:
-    exe_1_id = sys.argv[1]
-    exe_2_id = sys.argv[2]
-    evals_1 = get_all_evals(f'data/files/executions/{exe_1_id}/execution_trace.json')
-    evals_2 = get_all_evals(f'data/files/executions/{exe_2_id}/execution_trace.json')
-elif len(exe_dirs) >= 2:
-    print(f"Löydettiin automaattisesti kaksi tuoreinta ajoa: {os.path.basename(exe_dirs[1])} ja {os.path.basename(exe_dirs[0])}")
-    evals_1 = get_all_evals(os.path.join(exe_dirs[1], 'execution_trace.json'))
-    evals_2 = get_all_evals(os.path.join(exe_dirs[0], 'execution_trace.json'))
+loaded_runs = []
+evals_list = []
+
+if len(sys.argv) > 1:
+    for exe_id in sys.argv[1:]:
+        if os.path.isdir(exe_id):
+            path = os.path.join(exe_id, 'execution_trace.json')
+            name = os.path.basename(exe_id)
+        else:
+            path = f'data/files/executions/{exe_id}/execution_trace.json'
+            name = exe_id
+
+        if os.path.exists(path):
+            evals_list.append(get_all_evals(path))
+            loaded_runs.append(name)
+        else:
+            print(f"Polkua ei löydy: {path}")
 else:
-    print("Ei löydetty tarpeeksi ajoja. Määritä ID:t komentoriviltä tai aja ensin kaksi ajoa.")
+    for d in exe_dirs[:2]:
+        path = os.path.join(d, 'execution_trace.json')
+        if os.path.exists(path):
+            evals_list.append(get_all_evals(path))
+            loaded_runs.append(os.path.basename(d))
+
+if len(evals_list) < 2:
+    print("Virhe: Vertailuun tarvitaan vähintään kaksi ajoa.")
+    if len(exe_dirs) < 2:
+        print("Luo uusia ajoja suorittamalla arviointeja ensin.")
     sys.exit(1)
 
-# Etsi yhteiset atomit
-common_atoms = set(evals_1.keys()).intersection(set(evals_2.keys()))
+print(f"Vertailuun ladattiin {len(evals_list)} ajoa:")
+for idx, name in enumerate(loaded_runs):
+    print(f"  Run {idx + 1}: {name}")
+
+# Etsi yhteiset atomit, jotka löytyvät kaikista ladatuista ajoista
+common_atoms = set(evals_list[0].keys())
+for evals in evals_list[1:]:
+    common_atoms = common_atoms.intersection(set(evals.keys()))
+
+if not common_atoms:
+    print("Virhe: Ladatuilla ajoilla ei ole yhtään yhteistä atomia.")
+    sys.exit(1)
 
 # Etsi säännön kuvaus tietokannasta
 with open('backend_v2/seed/seed_data.json', 'r', encoding='utf-8') as f:
@@ -42,10 +139,6 @@ for block in seed.get('prompt_blocks', []):
         for c_idx, claim in enumerate(scale.get('claims', [])):
             for tda in claim.get('tda_assertions', []):
                 atom_rules[tda.get('tda_id')] = tda.get('ai_rule_description')
-
-# Tunnista mismatchit (jotka hajosivat kognitiiviseen epämääräisyyteen)
-mismatches = []
-summary_stats = {"PASSED->FAILED": 0, "FAILED->PASSED": 0, "Other": 0}
 
 def get_state(e):
     if 'mapped_state' in e:
@@ -69,51 +162,101 @@ def get_trace(e):
         return e['mechanical_trace']
     return ""
 
+# Lasketaan metriikat jokaiselle atomille
+atom_states = {}
+atom_entropies = {}
+atom_consistencies = {}
+all_atom_states = []
+unique_categories = set()
+
+for atom in common_atoms:
+    states = [get_state(evals[atom]) for evals in evals_list]
+    for s in states:
+        unique_categories.add(s)
+    
+    entropy = calculate_entropy(states)
+    consistency = calculate_pairwise_consistency(states)
+    
+    atom_states[atom] = states
+    atom_entropies[atom] = entropy
+    atom_consistencies[atom] = consistency
+    all_atom_states.append(states)
+
+# Globaalit metriikat
+categories_list = sorted(list(unique_categories))
+global_kappa = calculate_fleiss_kappa(all_atom_states, categories_list)
+global_consistency = sum(atom_consistencies.values()) / len(common_atoms)
+global_entropy = sum(atom_entropies.values()) / len(common_atoms)
+
+# Etsi ne, joissa on vähintään jonkin verran vaihtelua (entropia > 0)
+mismatching_atoms = [atom for atom, entropy in atom_entropies.items() if entropy > 0]
+mismatching_atoms.sort(key=lambda a: atom_entropies[a], reverse=True)
+
+# Lasketaan 2-way siirtymätilastot kahden ensimmäisen (tuoreimman) ajon välillä yhteensopivuuden vuoksi
+summary_2way = {"PASSED->FAILED": 0, "FAILED->PASSED": 0, "Other": 0}
+evals_1 = evals_list[0]
+evals_2 = evals_list[1]
+passed_states = ['true', 'passed', '1']
+failed_states = ['false', 'failed', '0']
+
 for atom in common_atoms:
     s1, s2 = get_state(evals_1[atom]), get_state(evals_2[atom])
     if s1 != s2:
-        mismatches.append(atom)
-        s1_str = s1
-        s2_str = s2
-        
-        # Mappaa sekä Pydanticin enumit että mahdolliset bool-arvot
-        passed_states = ['true', 'passed', '1']
-        failed_states = ['false', 'failed', '0']
-
-        if s1_str in passed_states and s2_str in failed_states:
-            summary_stats["PASSED->FAILED"] += 1
-        elif s1_str in failed_states and s2_str in passed_states:
-            summary_stats["FAILED->PASSED"] += 1
+        if s1 in passed_states and s2 in failed_states:
+            summary_2way["PASSED->FAILED"] += 1
+        elif s1 in failed_states and s2 in passed_states:
+            summary_2way["FAILED->PASSED"] += 1
         else:
-            summary_stats["Other"] += 1
+            summary_2way["Other"] += 1
 
-# Tallenna raakadata luettavaan Markdown-muotoon
+# Tallenna raportti luettavaan Markdown-muotoon
 os.makedirs('scratch', exist_ok=True)
-with open('scratch/mismatch_traces_raw.md', 'w', encoding='utf-8') as f:
-    f.write('# Raw Mismatch Traces (2-way Execution)\n\n')
-    f.write('## Summary\n')
-    f.write(f'- Total common atoms evaluated: {len(common_atoms)}\n')
-    f.write(f'- Total mismatching atoms: {len(mismatches)}\n')
-    if len(common_atoms) > 0:
-        f.write(f'- Variance percentage: {(len(mismatches)/len(common_atoms))*100:.1f} %\n')
-    f.write(f'- PASSED -> FAILED (Run 1 -> Run 2): {summary_stats["PASSED->FAILED"]}\n')
-    f.write(f'- FAILED -> PASSED (Run 1 -> Run 2): {summary_stats["FAILED->PASSED"]}\n')
-    f.write(f'- Other state changes: {summary_stats["Other"]}\n\n')
+report_path = 'scratch/mismatch_traces_raw.md'
+
+with open(report_path, 'w', encoding='utf-8') as f:
+    f.write('# Mittauksen Luotettavuus ja Vakausraportti (Reliability & Consistency)\n\n')
     
-    for atom in mismatches:
-        f.write(f'## Atom: {atom}\n')
-        f.write(f'**Rule:** {atom_rules.get(atom, "Unknown")}\n\n')
+    f.write('## Globaalit Metriikat\n')
+    f.write(f'- **Arvioitujen ajojen määrä ($M$):** {len(evals_list)}\n')
+    f.write(f'- **Yhteisten arvioitujen atomien määrä ($N$):** {len(common_atoms)}\n')
+    f.write(f'- **Havaittujen luokkien kirjo:** {", ".join(categories_list)}\n')
+    f.write(f'- **Parittainen konsistenssi (Self-Consistency):** {global_consistency * 100:.2f} %\n')
+    f.write(f'  > *Kuvaa mallin itse-konsistenssia eli kuinka todennäköisesti kaksi satunnaista ajoa päätyy samaan lopputulokseen samalla syötteellä.*\n')
+    f.write(f'- **Fleissin Kappa ($\kappa$):** {global_kappa:.4f}\n')
+    f.write(f'  > *Tieteellinen/akateeminen sopivuuskerroin, joka eliminoi puhtaan sattuman vaikutuksen arvioinnissa. Arvo > 0.8 on erinomainen, 0.6–0.8 hyvä.*\n')
+    f.write(f'- **Keskimääräinen Shannonin Entropia:** {global_entropy:.4f}\n')
+    f.write(f'  > *Mittaa vastausten yleistä epävarmuutta ja hajontaa. Lähellä nollaa oleva arvo tarkoittaa erittäin stabiilia mallia.*\n\n')
+    
+    f.write('## Kahden viimeisimmän ajon siirtymätilat (Run 1 -> Run 2)\n')
+    f.write(f'- **Erimielisyyttä näiden välillä:** {len([a for a in common_atoms if get_state(evals_1[a]) != get_state(evals_2[a])])} kpl\n')
+    f.write(f'- **PASSED -> FAILED:** {summary_2way["PASSED->FAILED"]}\n')
+    f.write(f'- **FAILED -> PASSED:** {summary_2way["FAILED->PASSED"]}\n')
+    f.write(f'- **Muut siirtymät:** {summary_2way["Other"]}\n\n')
+    
+    f.write('## Epävakaimmat Testitapaukset / Prompt-säännöt (Järjestetty Entropian mukaan)\n')
+    f.write('Alla on listattu kaikki säännöt, joissa ilmeni erimielisyyttä tai epävakautta eri ajokertojen välillä. Kaikkein vaihtelevimmat/epävakaimmat tapaukset (korkein entropia) ovat listan alussa.\n\n')
+    
+    for atom in mismatching_atoms:
+        entropy = atom_entropies[atom]
+        consistency = atom_consistencies[atom]
+        states = atom_states[atom]
+        f.write(f'### Atom-ID: `{atom}` (Entropia: {entropy:.3f}, Konsistenssi: {consistency*100:.1f}%)\n')
+        f.write(f'**Arviointisääntö:** {atom_rules.get(atom, "Unknown")}\n\n')
         
-        f.write(f'**Run 1 [{get_state(evals_1[atom])}]**\n')
-        f.write(f'> {get_trace(evals_1[atom]).replace(chr(10), " ")}\n\n')
-        
-        f.write(f'**Run 2 [{get_state(evals_2[atom])}]**\n')
-        f.write(f'> {get_trace(evals_2[atom]).replace(chr(10), " ")}\n\n')
-        
-        f.write('---\n\n')
+        f.write('**Havaitut tilat ajoittain:**\n')
+        for run_idx, (run_name, state) in enumerate(zip(loaded_runs, states)):
+            eval_item = evals_list[run_idx][atom]
+            trace_content = get_trace(eval_item).replace('\n', ' ')
+            f.write(f'- **Run {run_idx+1} ({run_name}) - [{state.upper()}]:**\n')
+            f.write(f'  > *{trace_content}*\n')
+        f.write('\n---\n\n')
 
 print(f'Done! Evaluated {len(common_atoms)} common atoms.')
-print(f'Mismatching atoms: {len(mismatches)}')
+print(f'Mismatching atoms: {len(mismatching_atoms)}')
 if len(common_atoms) > 0:
-    print(f'Variance: {(len(mismatches)/len(common_atoms))*100:.1f} %')
-print(f'PASSED->FAILED: {summary_stats["PASSED->FAILED"]}, FAILED->PASSED: {summary_stats["FAILED->PASSED"]}, Other: {summary_stats["Other"]}')
+    print(f'Variance: {(len(mismatching_atoms)/len(common_atoms))*100:.1f} %')
+print(f'PASSED->FAILED: {summary_2way["PASSED->FAILED"]}, FAILED->PASSED: {summary_2way["FAILED->PASSED"]}, Other: {summary_2way["Other"]}')
+print(f'Global Self-Consistency: {global_consistency * 100:.2f}%')
+print(f'Fleiss Kappa: {global_kappa:.4f}')
+print(f'Average Entropy: {global_entropy:.4f}')
+print(f'Report written to: {report_path}')

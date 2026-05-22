@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+
 from pydantic import BaseModel
 
 from backend_v2.models.v2_core import PromptBlock
@@ -65,11 +66,11 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
                                     "tda_id": "tda_1111222233334444",
                                     "ai_rule_description": "Assertion rule causal details...",
                                     "inverse_evidence": False,
-                                    "aggregation_mode": "ALL_MUST_COMPLY"
+                                    "aggregation_mode": "ALL_MUST_COMPLY",
                                 }
-                            ]
+                            ],
                         }
-                    ]
+                    ],
                 }
             ],
         }
@@ -78,10 +79,7 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
     block = PromptBlock.model_validate(causal_block_data)
 
     # 1. Build dynamic schema (which contains the compiled XML rubric and schema keys)
-    DynamicSchema = compiler.build_dynamic_schema(
-        schema_name="CausalAnalystSchema",
-        criteria=[block]
-    )
+    DynamicSchema = compiler.build_dynamic_schema(schema_name="CausalAnalystSchema", criteria=[block])
 
     # 2. Assert schema structure integrity
     assert issubclass(DynamicSchema, BaseModel)
@@ -89,6 +87,8 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
 
     # Check that description was compiled with full description (no truncation)
     field_info = DynamicSchema.model_fields[block.id]
-    compiled_desc = field_info.description or ""
+    compiled_desc = field_info.description
+    assert compiled_desc is not None
+    assert block.ai_description is not None
     assert block.ai_description in compiled_desc
     assert len(compiled_desc) > len(block.ai_description)

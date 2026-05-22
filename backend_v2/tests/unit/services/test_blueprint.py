@@ -744,7 +744,7 @@ async def test_blueprint_xai_extensions_type_coercion(mock_repo_transformer: Any
                         "justification": "Checked with coercions.",
                         "extensions": {
                             "confidence": "",  # Empty string float coercion test
-                            "risk_flag": "OWASP LLM09 (Overreliance) - Warning here.",  # Text description boolean coercion test
+                            "risk_flag": "OWASP LLM09 (Overreliance) - Warning here.",  # Text description boolean coercion test  # noqa: E501
                             "remediation_steps": ["Step 1", "Step 2"],  # List array string coercion test
                             "coaching": None,
                         },

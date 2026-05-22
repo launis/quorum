@@ -106,6 +106,25 @@ def test_atom_evaluation_item_dto_strictness() -> None:
     assert phantom.calculate_rule_satisfied(inverse_evidence=True) is True
     assert phantom.calculate_rule_satisfied(inverse_evidence=False) is False
 
+    # Test status-based inverse evidence logic
+    pass_item = AtomEvaluationItemDTO(
+        atom_id="atom_pass",
+        mechanical_trace="Logic.",
+        exact_quote="Found",
+        status="PASS",
+    )
+    assert pass_item.calculate_rule_satisfied(inverse_evidence=True) is False
+    assert pass_item.calculate_rule_satisfied(inverse_evidence=False) is True
+
+    fail_item = AtomEvaluationItemDTO(
+        atom_id="atom_fail",
+        mechanical_trace="Logic.",
+        exact_quote="None",
+        status="FAIL",
+    )
+    assert fail_item.calculate_rule_satisfied(inverse_evidence=True) is True
+    assert fail_item.calculate_rule_satisfied(inverse_evidence=False) is False
+
 
 def test_atom_evaluation_item_dto_rejects_nulls() -> None:
     """Test that null values for strict string fields raise ValidationError (caught by ChunkAccumulator)."""

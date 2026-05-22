@@ -476,4 +476,3 @@ async def test_execute_raises_app_exception_if_chunk_routes_to_dlq(
 
                 assert exc_info.value.status_code == 500
                 assert "Chunk execution failed and routed to DLQ" in exc_info.value.message
-

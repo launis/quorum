@@ -1510,15 +1510,15 @@
               "label": {
                 "default_locale": "fi",
                 "translations": {
-                  "fi": "Rajaehtojen käsittely",
-                  "en": "Boundary Integration"
+                  "fi": "Few-shot-ohjaus esimerkeillä",
+                  "en": "Few-shot Coaching"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user forces the AI to acknowledge foundational premises and edge cases.",
+              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively coaches the AI by providing concrete examples of desired formats or styles.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_a2d1fa749b77d3de",
-                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. STEP 1 (Syntactic Anchor): Find boundary conditions (e.g., 'assuming that', 'only if', 'the exception is'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user explicitly forces the AI to acknowledge a specific edge case or foundational premise. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Broad, unconditional statements. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.",
+                  "tda_id": "tda_8c7b6a9f0d8e411b",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. STEP 1 (Syntactic Anchor): Find examples or model structures provided by the user (e.g., 'Esimerkki:', 'Kuten tässä:', 'esimerkiksi'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: The user provides a concrete linguistic model or structurally detailed template to direct the AI. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -1577,15 +1577,15 @@
               "label": {
                 "default_locale": "fi",
                 "translations": {
-                  "fi": "Kognitiivisen kitkan dokumentointi",
-                  "en": "Documentation of Cognitive Friction"
+                  "fi": "Sokraattinen ohjaus",
+                  "en": "Socratic Steering"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user explicitly documents the 'how' and 'why' they are challenging the AI.",
+              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user acts as a Socratic steer, probing assumptions and demanding logical arguments.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_47219840710895f0",
-                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. STEP 1 (Syntactic Anchor): Find explicit reasoning markers by the user (e.g., 'I am challenging this because', 'the reason this is wrong is'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user explicitly documents the 'why' behind their challenge to the AI. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept unreasoned rejections ('this is bad'). TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.",
+                  "tda_id": "tda_4b9a2c1f38e7456d",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. STEP 1 (Syntactic Anchor): Find Socratic conceptual questions by the user (e.g., 'mihin oletukseen', 'mitä jos muuttaisimme', 'perustele miksi', 'miksi päädyit'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: The user actively probes the foundational reasoning or forces the AI to defend its logic. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -3337,15 +3337,15 @@
               "label": {
                 "default_locale": "fi",
                 "translations": {
-                  "fi": "Kognitiivisen arkkitehtuurin ohjaus",
-                  "en": "Directing cognitive architecture"
+                  "fi": "Aktiivinen ristiintarkastus",
+                  "en": "Active Cross-Verification"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: LOCATE an advanced command where the user explicitly programs the AI's internal behavior or cognitive posture for the entire session.",
+              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively cross-checks the AI's generated output against target sources.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_3439b21adfe2376a",
-                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. STEP 1 (Syntactic Anchor): Find meta-programming anchors ('sääntö on', 'tästä lähtien', 'järjestelmätason ohje', 'kognitiivinen asento', 'from now on', 'rule is'). STEP 2: EXTRACTION CONDITION: the user sets global architectural constraints or meta-rules that govern the AI's behavior across multiple turns. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.",
+                  "tda_id": "tda_f5a8b7c2d9e144a1",
+                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. STEP 1 (Syntactic Anchor): Find active verification markers comparing output against raw documents (e.g., 'kirjoitit... mutta lähteessä', 'ei vastaa sivua', 'alkuperäisessä lukee'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: The user actively flags discrepancies between AI claims and source materials. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }

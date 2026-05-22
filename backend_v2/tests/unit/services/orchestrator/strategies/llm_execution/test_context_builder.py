@@ -10,7 +10,7 @@ from backend_v2.services.orchestrator.strategies.llm_execution.context_builder i
 def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that atoms, history_text, and extracted_text are pruned correctly."""
     monkeypatch.setattr(
-        "backend_v2.services.orchestrator.strategies.llm_execution.context_builder.litellm.token_counter",
+        "litellm.token_counter",
         lambda model, text: 10,
     )
 
@@ -63,7 +63,7 @@ def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -
 def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test successful building of context data."""
     monkeypatch.setattr(
-        "backend_v2.services.orchestrator.strategies.llm_execution.context_builder.litellm.token_counter",
+        "litellm.token_counter",
         lambda model, text: 10,
     )
 
@@ -129,7 +129,7 @@ def test_context_builder_build_token_limit_exceeded(monkeypatch: pytest.MonkeyPa
 
     limit = SystemConcurrency.MAX_SAFE_TOKENS.value
     monkeypatch.setattr(
-        "backend_v2.services.orchestrator.strategies.llm_execution.context_builder.litellm.token_counter",
+        "litellm.token_counter",
         lambda model, text: limit + 1,
     )
 
@@ -153,7 +153,7 @@ def test_context_builder_build_token_limit_exceeded(monkeypatch: pytest.MonkeyPa
 def test_context_builder_build_trace_pruning_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that an exception during trace pruning raises AppException (Fail-Fast)."""
     monkeypatch.setattr(
-        "backend_v2.services.orchestrator.strategies.llm_execution.context_builder.litellm.token_counter",
+        "litellm.token_counter",
         lambda model, text: 10,
     )
 
@@ -198,7 +198,7 @@ def test_context_builder_build_token_counting_fails_fast(monkeypatch: pytest.Mon
         raise Exception("LiteLLM crashed")
 
     monkeypatch.setattr(
-        "backend_v2.services.orchestrator.strategies.llm_execution.context_builder.litellm.token_counter",
+        "litellm.token_counter",
         mock_counter,
     )
 
@@ -216,7 +216,7 @@ def test_context_builder_build_token_counting_fails_fast(monkeypatch: pytest.Mon
 def test_context_builder_build_resolution_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that an exception during dot notation resolution raises AppException (Fail-Fast)."""
     monkeypatch.setattr(
-        "backend_v2.services.orchestrator.strategies.llm_execution.context_builder.litellm.token_counter",
+        "litellm.token_counter",
         lambda model, text: 10,
     )
 

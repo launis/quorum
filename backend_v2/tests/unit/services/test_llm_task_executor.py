@@ -229,3 +229,62 @@ async def test_execute_structured_task_system_wide_lexical_verifier(
         assert res_model.exact_quote is None
         assert res_model.justification == "[SYSTEM ERROR: LLM Unable to verify.]"
         mock_validate.assert_called_with("real text", "fake quote", reasoning_trace="fake trace")
+
+
+@pytest.mark.asyncio
+async def test_execute_structured_task_dynamic_model_fallback(
+    mock_prompt_compiler: MagicMock, mock_client: AsyncMock
+) -> None:
+    executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
+
+    class AtomResponse(BaseModel):
+        atom_id: str
+        exact_quote: str | None = None
+        localized_anchors_found: list[str] = []
+        contextual_override: bool = False
+        semantic_reasoning: str = ""
+
+    class DynamicResponseModel(BaseModel):
+        reasoning_trace: str
+        evaluation_notes: str
+        evaluations: list[AtomResponse]
+
+    expected_model = DynamicResponseModel(
+        reasoning_trace="fake trace",
+        evaluation_notes="fake notes",
+        evaluations=[
+            AtomResponse(
+                atom_id="atom_1",
+                exact_quote="hallucinated quote",
+                localized_anchors_found=[],
+                contextual_override=False,
+                semantic_reasoning="some reasoning",
+            )
+        ],
+    )
+
+    mock_client.run_structured_task.side_effect = [
+        (expected_model, {"total_tokens": 10}),
+        (expected_model, {"total_tokens": 15}),
+    ]
+
+    from unittest.mock import patch
+
+    from backend_v2.exceptions import SemanticEvidenceError
+
+    with patch("backend_v2.services.llm_task_executor.AnchorValidationService.validate_evidence") as mock_validate:
+        mock_validate.side_effect = SemanticEvidenceError(message="fail fast")
+
+        res_model, res_usage = await executor.execute_structured_task(
+            client=mock_client,
+            messages=[{"role": "user", "content": "test"}],
+            response_model=DynamicResponseModel,
+            max_logical_retries=1,
+            validation_context={"source_text": "real text"},
+        )
+
+        assert len(res_model.evaluations) == 1
+        assert res_model.evaluations[0].atom_id == "atom_1"
+        assert res_model.evaluations[0].exact_quote is None
+        assert res_model.evaluations[0].semantic_reasoning == "[SYSTEM ERROR: LLM Unable to verify.]"
+

@@ -373,32 +373,72 @@ def test_dynamic_schema_descriptions_are_present() -> None:
     BlindSchema = compiler.build_blind_evaluation_schema("BlindTest")
     assert BlindSchema.model_fields["evaluations"].description == "List of blind atomic evaluations."
 
-    atom_response_model = BlindSchema.model_fields["evaluations"].annotation.__args__[0]
-    assert atom_response_model.model_fields["atom_id"].description == "Unique system identifier of the target evaluation atom."
-    assert atom_response_model.model_fields["step_1_evidence_type"].description == "Type of evidence discovered (EXPLICIT_QUOTE, IMPLIED_INTENT, or NO_EVIDENCE)."
-    assert atom_response_model.model_fields["step_2_quote"].description == "Literal verbatim quote containing the exact physical evidence from the source document. REQUIRED if evidence type is EXPLICIT_QUOTE."
-    assert atom_response_model.model_fields["step_3_implicit_justification"].description == "Conclusive justification if intent is implied. Must be at least 20 words. Allowed ONLY if strictness < 70."
-    assert atom_response_model.model_fields["step_4_reasoning"].description == "Strict analytical reasoning trace explaining the presence or absence of evidence."
-    assert atom_response_model.model_fields["step_5_boolean"].description == "Final Boolean determination: True if rule is satisfied, False if violated or unsupported."
+    evaluations_field = BlindSchema.model_fields["evaluations"]
+    assert evaluations_field.annotation is not None
+    annotation_args = getattr(evaluations_field.annotation, "__args__", None)
+    assert annotation_args is not None
+    atom_response_model = annotation_args[0]
+    assert (
+        atom_response_model.model_fields["atom_id"].description
+        == "Unique system identifier of the target evaluation atom."
+    )  # noqa: E501
+    assert (
+        atom_response_model.model_fields["step_1_evidence_type"].description
+        == "Type of evidence discovered (EXPLICIT_QUOTE, IMPLIED_INTENT, or NO_EVIDENCE)."
+    )  # noqa: E501
+    assert (
+        atom_response_model.model_fields["step_2_quote"].description
+        == "Literal verbatim quote containing the exact physical evidence from the source document. REQUIRED if evidence type is EXPLICIT_QUOTE."  # noqa: E501
+    )  # noqa: E501
+    assert (
+        atom_response_model.model_fields["step_3_implicit_justification"].description
+        == "Conclusive justification if intent is implied. Must be at least 20 words. Allowed ONLY if strictness < 70."  # noqa: E501
+    )  # noqa: E501
+    assert (
+        atom_response_model.model_fields["step_4_reasoning"].description
+        == "Strict analytical reasoning trace explaining the presence or absence of evidence."
+    )  # noqa: E501
+    assert (
+        atom_response_model.model_fields["step_5_boolean"].description
+        == "Final Boolean determination: True if rule is satisfied, False if violated or unsupported."
+    )  # noqa: E501
 
     # 2. Test build_chunk_response_schema
     from pydantic import BaseModel
+
     class MockItem(BaseModel):
         val: str
 
     ChunkSchema = compiler.build_chunk_response_schema("ChunkTest", MockItem)
-    assert ChunkSchema.model_fields["chunk_id"].description == "The unique system identifier of the current execution chunk."
+    assert (
+        ChunkSchema.model_fields["chunk_id"].description
+        == "The unique system identifier of the current execution chunk."
+    )  # noqa: E501
     assert ChunkSchema.model_fields["records"].description == "List of records contained in this execution chunk."
 
-    chunk_record_model = ChunkSchema.model_fields["records"].annotation.__args__[0]
-    assert chunk_record_model.model_fields["original_id"].description == "The original system identifier of the source record."
-    assert chunk_record_model.model_fields["payload"].description == "The validated item payload matching the target data schema."
+    records_field = ChunkSchema.model_fields["records"]
+    assert records_field.annotation is not None
+    records_annotation_args = getattr(records_field.annotation, "__args__", None)
+    assert records_annotation_args is not None
+    chunk_record_model = records_annotation_args[0]
+    assert (
+        chunk_record_model.model_fields["original_id"].description
+        == "The original system identifier of the source record."
+    )  # noqa: E501
+    assert (
+        chunk_record_model.model_fields["payload"].description
+        == "The validated item payload matching the target data schema."
+    )  # noqa: E501
 
     # 3. Assert max_length constraints exist to limit LLM schema serving states
     from backend_v2.models.enums import SystemConcurrency
     from backend_v2.services.orchestrator.prompt_compiler import StrippedBaseTDAExtraction
+
     tda_schema = StrippedBaseTDAExtraction.model_json_schema()
-    assert tda_schema["properties"]["localized_anchors_found"]["maxItems"] == SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS
+    assert (
+        tda_schema["properties"]["localized_anchors_found"]["maxItems"]
+        == SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS
+    )  # noqa: E501
 
     blind_json_schema = BlindSchema.model_json_schema()
     assert blind_json_schema["properties"]["evaluations"]["maxItems"] == SystemConcurrency.SCHEMA_MAX_EVALUATIONS
@@ -455,23 +495,18 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
                 "ai_label": "ONE",
                 "claims": [
                     {
-                        "label": {
-                            "default_locale": "en",
-                            "translations": {
-                                "en": "Minimal Claim"
-                            }
-                        },
+                        "label": {"default_locale": "en", "translations": {"en": "Minimal Claim"}},
                         "ai_description": "Minimal claim AI description",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_1111111111111111",
                                 "ai_rule_description": "Assertion rule",
                                 "inverse_evidence": False,
-                                "aggregation_mode": "ALL_MUST_COMPLY"
+                                "aggregation_mode": "ALL_MUST_COMPLY",
                             }
-                        ]
+                        ],
                     }
-                ]
+                ],
             }
         ],
     }
@@ -482,10 +517,13 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
 
     field_info = DynamicSchema.model_fields["blk_1234567890abcdef"]
     compiled_desc = field_info.description
+    assert compiled_desc is not None
 
     # Kuvauksen tulee sisältää koko extreme_desc ilman typistystä
     assert extreme_desc in compiled_desc
     assert len(compiled_desc) > 1000
+
+
 def test_build_dynamic_schema_instruction_with_custom_category() -> None:
     compiler = PromptCompiler()
     from backend_v2.models.v2_core import PromptBlock
@@ -517,4 +555,3 @@ def test_build_dynamic_schema_instruction_with_custom_category() -> None:
     }
     parsed = DynamicSchema.model_validate(llm_payload)
     assert parsed.blk_599645bd5baf44e2 == "Verification completed successfully."  # type: ignore[attr-defined]
-

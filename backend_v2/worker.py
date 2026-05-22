@@ -123,7 +123,7 @@ async def evaluate_chunk_job(
         output_profile=None,
         strictness_level=strictness_level,
     )
-    
+
     if isinstance(c_final, dict) and c_final.get("_dlq_status") == "FAILED/DLQ":
         reason = c_final.get("reason", "Unknown DLQ Failure")
         logger.error(
