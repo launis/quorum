@@ -2121,7 +2121,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get adminAiDescriptionHint =>
-      'PAKOLLINEN: On kirjoitettava englanniksi. Tämä on kognitiivinen syöte tekoälylle, ei käyttäjädataa.';
+      'PAKOLLINEN: On kirjoitettava englanniksi. Tämä on kognitiivinen syöte tekoälylle, ei käyttäjädataa. Syötä vain liiketoimintalogiikkaa, ÄLÄ järjestelmäsääntöjä.';
 
   @override
   String get adminBilingualPromptHint =>

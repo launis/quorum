@@ -2112,7 +2112,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminAiDescriptionHint =>
-      'MANDATORY: Must be written in English. Cognitive prompt, not user data.';
+      'MANDATORY: Must be written in English. Cognitive prompt, not user data. Only input business logic, NOT system rules.';
 
   @override
   String get adminBilingualPromptHint =>

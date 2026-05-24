@@ -42,6 +42,16 @@ Suorituksen jälkeen LLM:n tuottama JSON-tulos ajetaan **Integrity Hookien** (es
 
 *(Huom: Natiiveissa Python-logiikka-askeleissa (ei LLM) sidonta tehdään suoraan `TaskRegistry`n kautta koodissa `input_schema` / `output_schema` -määrityksillä.)*
 
+## Persona-eristys ja Kerta-injektio (Persona Isolation & Single-Injection)
+
+Epic 55:n myötä järjestelmässä toteutetaan **Hybrid Sovereignty** -malli, joka erottaa tekoälyn rakenteelliset/syntaktiset säännöt (kooditaso) ja korkean tason asenteelliset suuntaviivat (tietokantataso):
+
+1. **Immutable Syntax (Kooditaso):** Säännöt, kuten *Morpho-Syntactic Determinism* ja *Topological Determinism* (5-vaiheinen trace-parserointi), on lukittu tiedostoon `backend_v2/core/system_directives.py`. Tämä takaa, ettei ylläpitäjän tekemä kirjoitusvirhe tietokannassa riko parseria.
+2. **Dynamic Behavior Guidelines (Tietokantataso):** Asennetta ja arviointilogiikkaa ohjaava globaali konteksti on eristetty omaan tietokantalohkoonsa (`blk_9e44687dff884ff6`), jota voidaan muokata vapaasti käyttöliittymästä.
+
+### Kerta-injektio (Single-Injection Rule)
+Kun työnkulku suoritetaan, `PromptCompiler` päättelee askeleen matriisilohkojen perusteella tarvittavan `ExecutionPersona`-tyypin (esim. `DETERMINISTIC_PARSER` tai `XAI_REPORTER`) ja hakee siihen liittyvän kooditason sääntökehyksen. Tämä sääntökehys injektoidaan LLM-promptiin tasan **kerran** suorituksen alussa. Matriisien tai muiden lohkojen omista `ai_description`-kentistä poistetaan kaikki monistettu globaali ohjeistus, mikä pitää dynaamisen Pydantic-skeeman kevyenä ja estää Vertex AI:n tilarajat (FSM limits).
+
 ## Tripartite Matrix Scoring (Matematiikan Eristäminen)
 
 Moottoriarkkitehtuuri eristää myös LLM:n ja matemaattisen pisteytyksen toisistaan **Tripartite (Kolmiosaisella)** rakenteella. Tekoälyä ei koskaan päästetä keksimään numeerisia arvosanoja hatusta.

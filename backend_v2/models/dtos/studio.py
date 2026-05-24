@@ -40,7 +40,10 @@ class ModelRegistryDeleteResponse(BaseResponseDTO):
 
 
 class PromptBlockSimulationResponse(BaseResponseDTO):
-    trace: dict[str, Any] = Field(default_factory=dict)
+    valid: bool = Field(default=True, description="Indicates if the prompt block simulation is successful.")
+    errors: list[str] = Field(default_factory=list, description="Validation errors found during simulation.")
+    rendered_prompt: str = Field(default="", description="The simulated rendered prompt template.")
+    trace: dict[str, Any] = Field(default_factory=dict, description="Execution trace metadata.")
 
 
 class PromptBlockDeleteResponse(BaseResponseDTO):
@@ -54,7 +57,10 @@ class PromptBlockSimulationRequest(BaseDTO):
 
 
 class StepSimulationResponse(BaseResponseDTO):
-    trace: dict[str, Any] = Field(default_factory=dict)
+    valid: bool = Field(default=True, description="Indicates if the step simulation is successful.")
+    errors: list[str] = Field(default_factory=list, description="Validation errors found during simulation.")
+    rendered_prompt: str = Field(default="", description="The simulated rendered step prompts.")
+    trace: dict[str, Any] = Field(default_factory=dict, description="Execution trace metadata.")
 
 
 class StepDeleteResponse(BaseResponseDTO):
@@ -68,7 +74,11 @@ class StepSimulationRequest(BaseDTO):
 
 
 class WorkflowSimulationResponse(BaseResponseDTO):
-    trace: dict[str, Any] = Field(default_factory=dict)
+    valid: bool = Field(default=True, description="Indicates if the workflow DAG simulation is successful.")
+    errors: list[str] = Field(default_factory=list, description="Structure and wiring errors.")
+    step_status: dict[str, str] = Field(default_factory=dict, description="Compilation status per step.")
+    execution_order: list[str] = Field(default_factory=list, description="Topologically sorted execution order.")
+    trace: dict[str, Any] = Field(default_factory=dict, description="Execution trace metadata.")
 
 
 class WorkflowDeleteResponse(BaseResponseDTO):

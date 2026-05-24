@@ -973,7 +973,7 @@
   "barsRisk2": "Medium risk (Warning)",
   "barsRisk3": "High risk (Lazy prompt)",
   "rawOutputFallbackTitle": "Raw Output (UI Missing)",
-  "adminAiDescriptionHint": "MANDATORY: Must be written in English. Cognitive prompt, not user data.",
+  "adminAiDescriptionHint": "MANDATORY: Must be written in English. Cognitive prompt, not user data. Only input business logic, NOT system rules.",
   "adminBilingualPromptHint": "MANDATORY: English translation required. Use EXTREME PRECISION. This text directly dictates the AI's cognitive reasoning and structural rules.",
   "adminPromptBestPracticesHint": "BEST PRACTICE: Use command keywords like ROLE:, TASK:, RULE: and CONTEXT:. NEVER translate these keywords into Finnish inside the text.",
   "blueprintEditorTitle": "Blueprint Editor",

@@ -3935,7 +3935,7 @@ abstract class AppLocalizations {
   /// No description provided for @adminAiDescriptionHint.
   ///
   /// In en, this message translates to:
-  /// **'MANDATORY: Must be written in English. Cognitive prompt, not user data.'**
+  /// **'MANDATORY: Must be written in English. Cognitive prompt, not user data. Only input business logic, NOT system rules.'**
   String get adminAiDescriptionHint;
 
   /// No description provided for @adminBilingualPromptHint.

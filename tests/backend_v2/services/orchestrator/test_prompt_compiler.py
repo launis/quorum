@@ -328,3 +328,73 @@ def test_context_snowballing_prevention() -> None:
     assert "EVALUATIONS" not in result.upper()
     assert "Long text" not in result
     assert "atom_id" not in result
+
+
+def test_execution_persona_injection() -> None:
+    """Epic 55 Phase 1: Verify that different ExecutionPersonas correctly inject their corresponding SSOT directives."""
+    compiler = PromptCompiler()
+    from backend_v2.models.enums import ExecutionPersona
+    from backend_v2.models.v2_core import PromptBlock
+    from backend_v2.core.system_directives import get_directive_for_persona
+
+    def build_test_criteria(persona: ExecutionPersona) -> list[PromptBlock]:
+        return [
+            PromptBlock.model_validate(
+                {
+                    "id": "blk_1234567890abcdef",
+                    "slug": "test-matrix",
+                    "label": {"default_locale": "en", "translations": {"en": "Test Matrix"}},
+                    "description": {"default_locale": "en", "translations": {"en": "Test Matrix Description"}},
+                    "ai_description": "Test directive description",
+                    "category_id": "matrix",
+                    "type": "string",
+                    "allow_decimals": False,
+                    "execution_persona": persona,
+                    "scale_min": 1,
+                    "scale_max": 5,
+                    "scales": [
+                        {
+                            "score": 5,
+                            "ai_label": "EXCELLENT",
+                            "name": {"default_locale": "en", "translations": {"en": "Excellent"}},
+                            "claims": [
+                                {
+                                    "label": {"default_locale": "en", "translations": {"en": "Claim"}},
+                                    "ai_description": "Perfect performance",
+                                    "tda_assertions": [
+                                        {
+                                            "tda_id": "tda_1111111111111111",
+                                            "ai_rule_description": "Perfect assertion",
+                                            "inverse_evidence": False,
+                                            "aggregation_mode": "EXISTS",
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            )
+        ]
+
+    # Test DETERMINISTIC_PARSER
+    criteria_det = build_test_criteria(ExecutionPersona.DETERMINISTIC_PARSER)
+    xml_det = compiler.compile_xml_rubrics(criteria_det, "en")
+    expected_det = get_directive_for_persona(ExecutionPersona.DETERMINISTIC_PARSER)
+    assert xml_det.startswith(expected_det)
+    assert "MORPHO-SYNTACTIC DETERMINISM" in xml_det
+
+    # Test COACH
+    criteria_coach = build_test_criteria(ExecutionPersona.COACH)
+    xml_coach = compiler.compile_xml_rubrics(criteria_coach, "en")
+    expected_coach = get_directive_for_persona(ExecutionPersona.COACH)
+    assert xml_coach.startswith(expected_coach)
+    assert "ACTIONABLE REMEDIATION" in xml_coach
+
+    # Test XAI_REPORTER
+    criteria_rep = build_test_criteria(ExecutionPersona.XAI_REPORTER)
+    xml_rep = compiler.compile_xml_rubrics(criteria_rep, "en")
+    expected_rep = get_directive_for_persona(ExecutionPersona.XAI_REPORTER)
+    assert xml_rep.startswith(expected_rep)
+    assert "PEDAGOGICAL SYNTHESIS" in xml_rep
+

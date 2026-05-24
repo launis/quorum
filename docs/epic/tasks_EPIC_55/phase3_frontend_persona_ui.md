@@ -16,11 +16,11 @@ Epic Phase 3, Steps 1-3
 - **Rule 00 - universal_fail_fast**: Dart 3 Freezed schema must perfectly map to the Python backend Pydantic model. If it fails, let it crash.
 
 ## Implementation Steps
-1. **Model Definition**: Create the `ExecutionPersona` enum in Dart at `client_app_v2/lib/features/studio/models/execution_persona.dart`. Define the string values via annotations (`@JsonValue`).
-2. **Freezed Update**: Update the `PromptBlock` Freezed model in `prompt_block.dart` to include `ExecutionPersona executionPersona`.
-3. **Build Runner**: Run `dart run build_runner build -d` to generate the new `.g.dart` mappings.
-4. **UI Update**: Modify the Admin Studio matrix edit view (`edit_prompt_block_view.dart`) to include a dropdown/selection UI widget for `ExecutionPersona`.
-5. **Helper Text**: Ensure the `ai_description` text field clearly instructs users to only input business logic, not system rules.
+- [x] 1. **Model Definition**: Create the `ExecutionPersona` enum in Dart (defined in `enums.dart` in sync with system standards).
+- [x] 2. **Freezed Update**: Update the `PromptBlock` Freezed model in `prompt_block.dart` to include `ExecutionPersona executionPersona`.
+- [x] 3. **Build Runner**: Run `dart run build_runner build -d` to generate the new `.g.dart` mappings.
+- [x] 4. **UI Update**: Modify the Admin Studio matrix edit view (`prompt_block_builder_view.dart`) to include a dropdown/selection UI widget for `ExecutionPersona`.
+- [x] 5. **Helper Text**: Ensure the `ai_description` text field clearly instructs users to only input business logic, not system rules (updated in `app_en.arb` and `app_fi.arb`).
 
 ## Testing & Quality Gate Plan
 - **Unit Tests**: Update parsing tests if any in `flutter test`.

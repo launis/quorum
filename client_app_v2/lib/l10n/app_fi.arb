@@ -677,7 +677,7 @@
   "barsRisk2": "Keskisuuri riski (Medium)",
   "barsRisk3": "Korkea riski (Lazy prompt)",
   "rawOutputFallbackTitle": "Raaka-data (Käyttöliittymä puuttuu)",
-  "adminAiDescriptionHint": "PAKOLLINEN: On kirjoitettava englanniksi. Tämä on kognitiivinen syöte tekoälylle, ei käyttäjädataa.",
+  "adminAiDescriptionHint": "PAKOLLINEN: On kirjoitettava englanniksi. Tämä on kognitiivinen syöte tekoälylle, ei käyttäjädataa. Syötä vain liiketoimintalogiikkaa, ÄLÄ järjestelmäsääntöjä.",
   "adminBilingualPromptHint": "PAKOLLINEN: Englanninkielinen ohjesääntö on annettava. Käytä ÄÄRIMMÄISTÄ TARKKUUTTA, sillä tämä teksti ohjaa suoraan tekoälyn kognitiivista päättelyä ja muodostaa sen ratkaisulogiikan.",
   "adminPromptBestPracticesHint": "BEST PRACTICE: Käytä englanninkielisiä komentosanoja (ROLE:, TASK:, RULE:, CONTEXT:). ÄLÄ KOSKAAN käännä näitä sanoja suomeksi ohjeen sisällä.",
   "blueprintEditorTitle": "Blueprint Editori",
