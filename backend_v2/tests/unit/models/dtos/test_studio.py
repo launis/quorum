@@ -120,13 +120,12 @@ def test_core_response_dto_strictness() -> None:
 
 def test_step_simulation_response_with_actual_fields() -> None:
     # Represents the actual payload returned by studio_service.simulate_step
-    actual_payload = {
-        "valid": True,
-        "errors": [],
-        "rendered_prompt": "--- Prompt Block: blk_1 --- \n Hello world!"
-    }
-    # Currently, this will fail because Pydantic forbids extra fields
-    dto = StepSimulationResponse(**actual_payload)
+    # Pass arguments explicitly as keywords to avoid dictionary unpacking type variance warnings in mypy
+    dto = StepSimulationResponse(
+        valid=True,
+        errors=[],
+        rendered_prompt="--- Prompt Block: blk_1 --- \n Hello world!",
+    )
     assert dto.valid is True
     assert dto.errors == []
     assert "blk_1" in dto.rendered_prompt
@@ -134,12 +133,11 @@ def test_step_simulation_response_with_actual_fields() -> None:
 
 def test_prompt_block_simulation_response_with_actual_fields() -> None:
     # Represents the actual payload returned by studio_service.simulate_prompt_block
-    actual_payload = {
-        "valid": True,
-        "errors": [],
-        "rendered_prompt": "--- Prompt Block: blk_1 ---\nScale: 1\n"
-    }
-    dto = PromptBlockSimulationResponse(**actual_payload)
+    dto = PromptBlockSimulationResponse(
+        valid=True,
+        errors=[],
+        rendered_prompt="--- Prompt Block: blk_1 ---\nScale: 1\n",
+    )
     assert dto.valid is True
     assert dto.errors == []
     assert "blk_1" in dto.rendered_prompt
@@ -147,13 +145,12 @@ def test_prompt_block_simulation_response_with_actual_fields() -> None:
 
 def test_workflow_simulation_response_with_actual_fields() -> None:
     # Represents the actual payload returned by studio_service.simulate_workflow
-    actual_payload = {
-        "valid": True,
-        "errors": [],
-        "step_status": {"stp_1": "OK"},
-        "execution_order": ["stp_1"]
-    }
-    dto = WorkflowSimulationResponse(**actual_payload)
+    dto = WorkflowSimulationResponse(
+        valid=True,
+        errors=[],
+        step_status={"stp_1": "OK"},
+        execution_order=["stp_1"],
+    )
     assert dto.valid is True
     assert dto.errors == []
     assert dto.step_status == {"stp_1": "OK"}

@@ -323,8 +323,8 @@ async def test_matrix_scoring_hook_ignores_instructions() -> None:
             "evaluations": [
                 {
                     "atom_id": atom_hash,
-                    "exact_quote": "Ote",
-                    "mechanical_trace": "",
+                    "status": "PASS",
+                    "semantic_reasoning": "",
                 }
             ]
         },
@@ -356,8 +356,8 @@ async def test_matrix_scoring_hook_pass_all() -> None:
         evaluations.append(
             {
                 "atom_id": atom_hash,
-                "exact_quote": "Ote",
-                "mechanical_trace": "Hyväksytty",
+                "status": "PASS",
+                "semantic_reasoning": "Hyväksytty",
             }
         )
 
@@ -401,8 +401,8 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
         evaluations.append(
             {
                 "atom_id": atom_hash,
-                "exact_quote": "Ote" if is_hit else "Not found",
-                "mechanical_trace": "",
+                "status": "PASS" if is_hit else "FAIL",
+                "semantic_reasoning": "",
             }
         )
 
@@ -449,8 +449,8 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
         evaluations.append(
             {
                 "atom_id": atom_hash,
-                "exact_quote": "Ote" if is_hit else "Not found",
-                "mechanical_trace": reasoning,
+                "status": "PASS" if is_hit else "FAIL",
+                "semantic_reasoning": reasoning,
             }
         )
 
@@ -528,47 +528,47 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L1_A1", mandate),
-            "exact_quote": "Ote",
-            "mechanical_trace": "Oikein",
-        }  # noqa: E501
+            "status": "PASS",
+            "semantic_reasoning": "Oikein",
+        }
     )
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L1_A2", mandate),
-            "exact_quote": "Ote",
-            "mechanical_trace": "Oikein",
-        }  # noqa: E501
+            "status": "PASS",
+            "semantic_reasoning": "Oikein",
+        }
     )
 
     # Taso 2 (100% osuma)
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L2_A1", mandate),
-            "exact_quote": "Ote",
-            "mechanical_trace": "Oikein",
-        }  # noqa: E501
+            "status": "PASS",
+            "semantic_reasoning": "Oikein",
+        }
     )
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L2_A2", mandate),
-            "exact_quote": "Ote",
-            "mechanical_trace": "Oikein",
-        }  # noqa: E501
+            "status": "PASS",
+            "semantic_reasoning": "Oikein",
+        }
     )
 
     # Taso 3 (50% osuma -> Hit Rate < 90% -> VESIPUTOUS PYSÄHTYY)
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L3_A1", mandate),
-            "exact_quote": "Ote",
-            "mechanical_trace": "Oikein",
-        }  # noqa: E501
+            "status": "PASS",
+            "semantic_reasoning": "Oikein",
+        }
     )
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L3_A2", mandate),
-            "exact_quote": "Not found",
-            "mechanical_trace": "Aihetodistetta EI esitetty.",
+            "status": "FAIL",
+            "semantic_reasoning": "Aihetodistetta EI esitetty.",
         }
     )
 
@@ -576,8 +576,8 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L4_A1", mandate),
-            "exact_quote": "Ote",
-            "mechanical_trace": "Hieno oivallus!",
+            "status": "PASS",
+            "semantic_reasoning": "Hieno oivallus!",
         }
     )
 
@@ -585,8 +585,8 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     evaluations.append(
         {
             "atom_id": generate_atom_hash("L5_A1", mandate),
-            "exact_quote": "Not found",
-            "mechanical_trace": "Ei yltänyt tälle tasolle.",
+            "status": "FAIL",
+            "semantic_reasoning": "Ei yltänyt tälle tasolle.",
         }
     )
 

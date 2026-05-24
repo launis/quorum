@@ -65,6 +65,11 @@ abstract class TDAAssertion with _$TDAAssertion {
     @JsonKey(name: 'ai_rule_description') required String aiRuleDescription,
     @JsonKey(name: 'inverse_evidence') required bool inverseEvidence,
     @JsonKey(name: 'aggregation_mode') required AggregationMode aggregationMode,
+    @JsonKey(name: 'evaluation_track')
+    @Default(EvaluationTrack.extractiveSensor)
+    EvaluationTrack evaluationTrack,
+    @JsonKey(name: 'facts_to_find') @Default([]) List<String> factsToFind,
+    @JsonKey(name: 'logical_expression') String? logicalExpression,
   }) = _TDAAssertion;
 
   factory TDAAssertion.fromJson(Map<String, dynamic> json) =>
@@ -75,6 +80,9 @@ abstract class TDAAssertion with _$TDAAssertion {
     required String aiRuleDescription,
     required bool inverseEvidence,
     required AggregationMode aggregationMode,
+    EvaluationTrack evaluationTrack = EvaluationTrack.extractiveSensor,
+    List<String> factsToFind = const [],
+    String? logicalExpression,
   }) {
     final uuidHex = const Uuid().v4().replaceAll('-', '');
     return TDAAssertion(
@@ -82,6 +90,9 @@ abstract class TDAAssertion with _$TDAAssertion {
       aiRuleDescription: aiRuleDescription,
       inverseEvidence: inverseEvidence,
       aggregationMode: aggregationMode,
+      evaluationTrack: evaluationTrack,
+      factsToFind: factsToFind,
+      logicalExpression: logicalExpression,
     );
   }
 }

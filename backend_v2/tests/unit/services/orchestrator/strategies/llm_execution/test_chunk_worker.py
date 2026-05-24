@@ -179,9 +179,9 @@ def test_deterministic_extraction_scoring() -> None:
     ext1 = MockExtraction(exact_quote=None, contextual_override=False)
     assert evaluate_extraction(ext1, "test text", False) == "FAIL"
 
-    # Track B (Semantic Override = True, No quote) -> PASS
+    # Track B (Semantic Override = True, No quote) -> DLQ
     ext2 = MockExtraction(exact_quote=None, contextual_override=True)
-    assert evaluate_extraction(ext2, "test text", False) == "PASS"
+    assert evaluate_extraction(ext2, "test text", False) == "DLQ"
 
     # Track A (Physical Match) -> PASS
     ext3 = MockExtraction(exact_quote="matched quote", contextual_override=False)
@@ -200,8 +200,8 @@ def test_deterministic_extraction_scoring() -> None:
     # Negative condition
     # Track B -> FAIL becomes PASS
     assert evaluate_extraction(ext1, "test text", True) == "PASS"
-    # Track B -> PASS becomes FAIL for negative rules
-    assert evaluate_extraction(ext2, "test text", True) == "FAIL"
+    # Track B -> DLQ stays DLQ for negative rules
+    assert evaluate_extraction(ext2, "test text", True) == "DLQ"
 
 
 @pytest.mark.asyncio

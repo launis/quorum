@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import LaxXaiExtensionType
@@ -89,13 +89,18 @@ class LightweightMatrixOutput(V2CoreBase):
         return mapped_data
 
 
+class MergedFactsDTO(V2CoreBase):
+    """Holds global aggregation results safely with ConfigDict(extra='allow')."""
+
+    model_config = ConfigDict(extra="allow", frozen=True)
+
+
 class AtomEvaluationItemDTO(V2CoreBase):
     """Strict schema for individual atom evaluations in the waterfall pipeline."""
 
     atom_id: str
-    mechanical_trace: str = ""
+    extracted_facts: dict[str, str | None] = Field(default_factory=dict)
     exact_quote: str | None = None
-    pre_quote_anchor: str | None = None
     post_quote_anchor: str | None = None
     status: Literal["PASS", "FAIL", "DLQ"] | None = None
     localized_anchors_found: list[str] = Field(default_factory=list)
@@ -106,9 +111,6 @@ class AtomEvaluationItemDTO(V2CoreBase):
     @property
     def evidence_found(self) -> bool:
         """Phantom Boolean -esto: Sanitoi LLM:n tuottamat haamu-nullit."""
-        if self.exact_quote is None:
-            return False
-
         blacklist = {
             "null",
             "none",
@@ -127,14 +129,19 @@ class AtomEvaluationItemDTO(V2CoreBase):
             "no quote",
             "ei ole",
         }
-        return self.exact_quote.strip().lower() not in blacklist
+        if self.exact_quote is not None and self.exact_quote.strip().lower() not in blacklist:
+            return True
+        for val in self.extracted_facts.values():
+            if val is not None and val.strip().lower() not in blacklist:
+                return True
+        return False
 
     def calculate_rule_satisfied(self, inverse_evidence: bool) -> bool | str:
         """Deterministinen tuomiovalta: Laskee rule_satisfied arvon kooditasolla."""
         if self.status:
             if self.status == "DLQ":
                 return "DLQ"
-            evidence_found = (self.status == "PASS")
+            evidence_found = self.status == "PASS"
             if inverse_evidence:
                 return not evidence_found
             return evidence_found
@@ -145,6 +152,5 @@ class AtomEvaluationItemDTO(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_anti_laziness(self) -> AtomEvaluationItemDTO:
-        # exact_quote can naturally be empty and thus evidence_found will correctly be False.
-        # But if the LLM hallucinated something, the @computed_field handles it.
+        # extracted_facts can naturally be empty and thus evidence_found will correctly be False.
         return self

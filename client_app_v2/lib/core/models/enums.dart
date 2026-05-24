@@ -156,3 +156,12 @@ enum ExecutionPersona {
   @JsonValue('COACH')
   coach,
 }
+
+/// Decoupled evaluation track for TDA Assertions: extractive logic vs cognitive judgement.
+@JsonEnum()
+enum EvaluationTrack {
+  @JsonValue('EXTRACTIVE_SENSOR')
+  extractiveSensor,
+  @JsonValue('COGNITIVE_JUDGEMENT')
+  cognitiveJudgement,
+}

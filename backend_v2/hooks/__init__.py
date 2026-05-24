@@ -4,6 +4,7 @@
 from . import (  # pragma: no cover
     archival,
     atom_flattening,
+    dlq_guard,
     hydration,
     input_processing,
     integrity,
@@ -24,6 +25,7 @@ from . import (  # pragma: no cover
 __all__ = [  # pragma: no cover
     "archival",
     "atom_flattening",
+    "dlq_guard",
     "hydration",
     "input_processing",
     "integrity",

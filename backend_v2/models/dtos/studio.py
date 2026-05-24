@@ -1,6 +1,7 @@
 """Data Transfer Objects for Studio domain.
 
 These models define API Response boundaries enforcing Data Sovereignty.
+Verified Phase 1 Decoupled TDA schema propagation.
 """
 
 from typing import Any

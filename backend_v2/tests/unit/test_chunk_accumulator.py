@@ -1,110 +1,217 @@
+"""Unit tests for the refactored EPIC 56 ChunkAccumulator Reducer logic."""
+
 from typing import Any
 
 import pytest
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import AppException
 from backend_v2.services.orchestrator.chunk_accumulator import ChunkAccumulator
 
 
-def test_chunk_accumulator_first_chunk() -> None:
-    accumulator = ChunkAccumulator()
-    chunk: dict[str, Any] = {
-        "evaluations": [
-            {
-                "atom_id": "a1",
-                "exact_quote": "Yes",
-                "mechanical_trace": "Traced",
-            },
-            {
-                "atom_id": "a2",
-                "exact_quote": "",
-                "mechanical_trace": "Traced 2",
-            },
-        ],
-        "mechanical_trace": "A reason",
+class MockResponseSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    chunk_index: int
+    extracted_facts: dict[str, str | None] = Field(default_factory=dict)
+    mechanical_trace: str = ""
+    evaluation_notes: str = ""
+
+
+def test_chunk_accumulator_reducer_deterministic_sorting() -> None:
+    """Verify that chunks are sorted chronologically by chunk_index during reduction."""
+    accumulator = ChunkAccumulator(response_model=MockResponseSchema)
+
+    chunk_2: dict[str, Any] = {
+        "chunk_index": 2,
+        "mechanical_trace": "Trace 3",
+        "evaluation_notes": "Note 3",
+        "extracted_facts": {"fact_a": "Value C"},
     }
-    accumulator.add(chunk)
-    res = accumulator.get_final_result()
-    assert res["evaluations"][0]["exact_quote"] == "Yes"
-    assert res["evaluations"][1]["exact_quote"] == ""
-    assert res["mechanical_trace"] == "A reason"
-
-
-def test_chunk_accumulator_merges_evaluations() -> None:
-    accumulator = ChunkAccumulator()
-    chunk1: dict[str, Any] = {"evaluations": [{"atom_id": "a1", "exact_quote": "Q1", "mechanical_trace": "M1"}]}
-    chunk2: dict[str, Any] = {"evaluations": [{"atom_id": "a2", "exact_quote": "", "mechanical_trace": "M2"}]}
-    accumulator.add(chunk1)
-    accumulator.add(chunk2)
-    res = accumulator.get_final_result()["evaluations"]
-    assert len(res) == 2
-    assert res[0]["exact_quote"] == "Q1"
-    assert res[1]["exact_quote"] == ""
-
-
-def test_chunk_accumulator_dlq_on_invalid() -> None:
-    accumulator = ChunkAccumulator()
-    # Providing an unknown field causes Pydantic to fail and marks it as DLQ
-    chunk: dict[str, Any] = {
-        "evaluations": [
-            {
-                "atom_id": "a1",
-                "exact_quote": "Q",
-                "extra_field_not_allowed": "should fail",
-            }
-        ]
+    chunk_0: dict[str, Any] = {
+        "chunk_index": 0,
+        "mechanical_trace": "Trace 1",
+        "evaluation_notes": "Note 1",
+        "extracted_facts": {"fact_a": "Value A"},
     }
-    accumulator.add(chunk)
-    res = accumulator.get_final_result()["evaluations"]
-    assert res[0]["dlq_status"] is True
+    chunk_1: dict[str, Any] = {
+        "chunk_index": 1,
+        "mechanical_trace": "Trace 2",
+        "evaluation_notes": "Note 2",
+        "extracted_facts": {"fact_a": "Value B"},
+    }
 
-
-def test_chunk_accumulator_merges_string_traces() -> None:
-    accumulator = ChunkAccumulator()
-    chunk1: dict[str, Any] = {"mechanical_trace": "First chunk logic.", "evaluation_notes": "Note 1"}
-    chunk2: dict[str, Any] = {"mechanical_trace": "Second chunk logic.", "evaluation_notes": "Note 2"}
-    accumulator.add(chunk1)
-    accumulator.add(chunk2)
+    # Add chunks out of chronological order
+    accumulator.add(chunk_2)
+    accumulator.add(chunk_0)
+    accumulator.add(chunk_1)
 
     result = accumulator.get_final_result()
-    assert result["mechanical_trace"] == "First chunk logic.\n\n[Chunk]: Second chunk logic."
-    assert result["evaluation_notes"] == "Note 1\n\n[Chunk]: Note 2"
+
+    # Traces must be concatenated in chronological order: 0 -> 1 -> 2
+    assert result["mechanical_trace"] == "Trace 1\n\n[Chunk]: Trace 2\n\n[Chunk]: Trace 3"
+    assert result["evaluation_notes"] == "Note 1\n\n[Chunk]: Note 2\n\n[Chunk]: Note 3"
 
 
-def test_chunk_accumulator_merges_nested_xai_extensions() -> None:
-    accumulator = ChunkAccumulator()
-    chunk1: dict[str, Any] = {"matrix_toulmin": {"falsification": "Claim is weak.", "citations": ["doc1"]}}
-    chunk2: dict[str, Any] = {"matrix_toulmin": {"falsification": "And contradicts itself.", "citations": ["doc2"]}}
-    accumulator.add(chunk1)
-    accumulator.add(chunk2)
+def test_chunk_accumulator_reducer_first_wins() -> None:
+    """Verify the 'First-Wins' strategy for extracted facts merging."""
+    accumulator = ChunkAccumulator(response_model=MockResponseSchema)
+
+    # fact_a is present in chunk 0.
+    # fact_b is None in chunk 0, present in chunk 1, present in chunk 2. (Chunk 1 should win).
+    # fact_c is "" in chunk 0, None in chunk 1, present in chunk 2. (Chunk 2 should win).
+    chunk_0: dict[str, Any] = {
+        "chunk_index": 0,
+        "extracted_facts": {
+            "fact_a": "First Fact A",
+            "fact_b": None,
+            "fact_c": "",
+        },
+    }
+    chunk_1: dict[str, Any] = {
+        "chunk_index": 1,
+        "extracted_facts": {
+            "fact_a": "Second Fact A",
+            "fact_b": "First Fact B",
+            "fact_c": None,
+        },
+    }
+    chunk_2: dict[str, Any] = {
+        "chunk_index": 2,
+        "extracted_facts": {
+            "fact_a": "Third Fact A",
+            "fact_b": "Second Fact B",
+            "fact_c": "First Fact C",
+        },
+    }
+
+    accumulator.add(chunk_1)
+    accumulator.add(chunk_2)
+    accumulator.add(chunk_0)
 
     result = accumulator.get_final_result()
-    assert result["matrix_toulmin"]["falsification"] == "Claim is weak. And contradicts itself."
-    assert result["matrix_toulmin"]["citations"] == ["doc1", "doc2"]
+    facts = result["extracted_facts"]
+
+    assert facts["fact_a"] == "First Fact A"
+    assert facts["fact_b"] == "First Fact B"
+    assert facts["fact_c"] == "First Fact C"
 
 
-def test_chunk_accumulator_fails_fast_on_incompatible_types() -> None:
+def test_chunk_accumulator_reducer_xai_extensions() -> None:
+    """Verify nested dynamic XAI extensions are successfully merged with collision handling."""
     accumulator = ChunkAccumulator()
-    chunk1: dict[str, Any] = {"matrix_test": {"key": "string value"}}
-    chunk2: dict[str, Any] = {"matrix_test": {"key": 123}}  # Incompatible integer type
 
-    accumulator.add(chunk1)
+    chunk_0: dict[str, Any] = {
+        "chunk_index": 0,
+        "matrix_toulmin": {
+            "falsification": "The model is unstable.",
+            "citations": ["doc1"],
+            "confidence": 0.85,
+            "flagged": True,
+        },
+    }
+    chunk_1: dict[str, Any] = {
+        "chunk_index": 1,
+        "matrix_toulmin": {
+            "falsification": "And lacks rigorous data.",
+            "citations": ["doc2"],
+            "confidence": 0.70,
+            "flagged": False,
+        },
+    }
+
+    accumulator.add(chunk_0)
+    accumulator.add(chunk_1)
+
+    result = accumulator.get_final_result()
+    toulmin = result["matrix_toulmin"]
+
+    # String should concatenate
+    assert toulmin["falsification"] == "The model is unstable. And lacks rigorous data."
+    # List should extend
+    assert toulmin["citations"] == ["doc1", "doc2"]
+    # Float/Int should keep minimum (0.70 < 0.85)
+    assert toulmin["confidence"] == 0.70
+    # Boolean should OR (True or False = True)
+    assert toulmin["flagged"] is True
+
+
+def test_chunk_accumulator_reducer_fail_fast_on_incompatible() -> None:
+    """Verify that type collisions in dynamic XAI extensions trigger strict fail-fast."""
+    accumulator = ChunkAccumulator()
+
+    chunk_0: dict[str, Any] = {"matrix_test": {"key": "string value"}}
+    chunk_1: dict[str, Any] = {"matrix_test": {"key": 123}}  # Type collision
+
+    accumulator.add(chunk_0)
+    accumulator.add(chunk_1)
 
     with pytest.raises(AppException) as excinfo:
-        accumulator.add(chunk2)
+        accumulator.reduce()
 
     assert excinfo.value.status_code == 500
     assert "Strict Fail-Fast: Unresolvable key collision" in excinfo.value.message
 
 
-def test_chunk_accumulator_handles_missing_keys_gracefully() -> None:
-    accumulator = ChunkAccumulator()
-    chunk1: dict[str, Any] = {"matrix_1": {"data": "A"}}
-    chunk2: dict[str, Any] = {"matrix_2": {"data": "B"}}
+def test_chunk_accumulator_reducer_schema_validation() -> None:
+    """Verify that the accumulator rejects chunks failing schema validation."""
+    accumulator = ChunkAccumulator(response_model=MockResponseSchema)
 
-    accumulator.add(chunk1)
-    accumulator.add(chunk2)
+    # Extra field in chunk
+    invalid_chunk = {
+        "chunk_index": 0,
+        "mechanical_trace": "Trace",
+        "extra_field_not_allowed": "should fail",
+    }
+
+    with pytest.raises(AppException) as excinfo:
+        accumulator.add(invalid_chunk)
+
+    assert excinfo.value.status_code == 500
+    assert "Strict Fail-Fast: Chunk validation failed" in excinfo.value.message
+
+
+def test_chunk_accumulator_reducer_evaluations_and_reasoning_trace() -> None:
+    """Verify that evaluations list is accumulated and reasoning_trace is concatenated during reduction."""
+    accumulator = ChunkAccumulator()
+
+    chunk_0: dict[str, Any] = {
+        "chunk_index": 0,
+        "reasoning_trace": "First reason.",
+        "evaluations": [
+            {
+                "atom_id": "atom_1",
+                "exact_quote": "Quote 1",
+                "contextual_override": False,
+                "status": "PASS",
+                "semantic_reasoning": "Reason 1",
+            }
+        ],
+    }
+    chunk_1: dict[str, Any] = {
+        "chunk_index": 1,
+        "reasoning_trace": "Second reason.",
+        "evaluations": [
+            {
+                "atom_id": "atom_2",
+                "exact_quote": "Quote 2",
+                "contextual_override": True,
+                "status": "DLQ",
+                "semantic_reasoning": "Reason 2",
+            }
+        ],
+    }
+
+    accumulator.add(chunk_0)
+    accumulator.add(chunk_1)
 
     result = accumulator.get_final_result()
-    assert result["matrix_1"]["data"] == "A"
-    assert result["matrix_2"]["data"] == "B"
+
+    # The evaluations should be accumulated
+    assert "evaluations" in result
+    assert len(result["evaluations"]) == 2
+    assert result["evaluations"][0]["atom_id"] == "atom_1"
+    assert result["evaluations"][1]["atom_id"] == "atom_2"
+
+    # The reasoning_trace should be concatenated
+    assert "reasoning_trace" in result
+    assert result["reasoning_trace"] == "First reason.\n\n[Chunk]: Second reason."

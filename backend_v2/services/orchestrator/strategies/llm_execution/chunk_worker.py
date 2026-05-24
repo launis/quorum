@@ -50,7 +50,7 @@ def evaluate_extraction(extraction: BaseModel, source_text: str, is_negative_rul
     # Track B: Semantic Override
     else:
         if contextual_override:
-            status = "PASS"
+            status = "DLQ"
         else:
             status = "FAIL"
 

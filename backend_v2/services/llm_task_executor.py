@@ -198,20 +198,20 @@ class LLMTaskExecutor:
                         "Injecting Null Object Fallback.",
                         extra={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name},
                     )
-                    
+
                     def build_fallback(model_cls: type[BaseModel], existing: Any | None = None) -> Any:
                         fallback_data: dict[str, Any] = {}
-                        
+
                         # Inspect all fields of the Pydantic model class
                         for name, field_info in model_cls.model_fields.items():
                             annotation = field_info.annotation
-                            
+
                             # Determine if this field is a list/sequence of BaseModels
                             is_list = False
                             inner_cls: type[BaseModel] | None = None
-                            
+
                             from typing import get_args, get_origin
-                            
+
                             origin = get_origin(annotation)
                             if origin is list or origin is collections.abc.Sequence:
                                 is_list = True
@@ -220,10 +220,11 @@ class LLMTaskExecutor:
                                     inner_cls = args[0]
                             elif isinstance(annotation, type) and issubclass(annotation, BaseModel):
                                 inner_cls = annotation
-                                
-                            # Retrieve the existing parsed value if present to retain structural attributes (like atom_ids)
+
+                            # Retrieve the existing parsed value if present to retain structural attributes
+                            # (like atom_ids)
                             existing_val = getattr(existing, name, None) if existing else None
-                            
+
                             if is_list and inner_cls:
                                 if existing_val and isinstance(existing_val, list):
                                     fallback_data[name] = [build_fallback(inner_cls, item) for item in existing_val]
@@ -237,12 +238,22 @@ class LLMTaskExecutor:
                                     fallback_data[name] = None
                                 elif name in ["score", "step_5_boolean"]:
                                     fallback_data[name] = None
-                                elif name in ["justification", "semantic_reasoning", "step_3_implicit_justification", "step_4_reasoning", "reasoning_trace", "step_1_reasoning_trace"]:
+                                elif name in [
+                                    "reasoning_trace",
+                                    "step_1_reasoning_trace",
+                                ]:
                                     # Preserve original trace if existing, otherwise mark as system error
                                     if existing_val and isinstance(existing_val, str):
                                         fallback_data[name] = existing_val
                                     else:
                                         fallback_data[name] = "[SYSTEM ERROR: LLM Unable to verify.]"
+                                elif name in [
+                                    "justification",
+                                    "semantic_reasoning",
+                                    "step_3_implicit_justification",
+                                    "step_4_reasoning",
+                                ]:
+                                    fallback_data[name] = "[SYSTEM ERROR: LLM Unable to verify.]"
                                 elif name in ["localized_anchors_found"]:
                                     fallback_data[name] = []
                                 elif name in ["contextual_override"]:
@@ -255,15 +266,16 @@ class LLMTaskExecutor:
                                         fallback_data[name] = field_info.default
                                     elif field_info.default_factory is not None:
                                         # Use getattr to bypass Pyright's incorrect method-binding type resolution
-                                        fallback_data[name] = getattr(field_info, "default_factory")()
+                                        fallback_data[name] = field_info.default_factory()  # type: ignore[call-arg]
                                     else:
                                         fallback_data[name] = None
-                        
+
                         return model_cls.model_construct(**fallback_data)
 
                     import collections.abc
+
                     from pydantic_core import PydanticUndefined
-                    
+
                     fallback = build_fallback(response_model, validated_model)
                     return fallback, cumulative_usage
 
@@ -274,19 +286,19 @@ class LLMTaskExecutor:
                         "Injecting Null Object Fallback.",
                         extra={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name},
                     )
-                    
+
                     def build_fallback(model_cls: type[BaseModel], existing: Any | None = None) -> Any:
                         fallback_data: dict[str, Any] = {}
-                        
+
                         # Inspect all fields of the Pydantic model class
                         for name, field_info in model_cls.model_fields.items():
                             annotation = field_info.annotation
-                            
+
                             is_list = False
                             inner_cls: type[BaseModel] | None = None
-                            
+
                             from typing import get_args, get_origin
-                            
+
                             origin = get_origin(annotation)
                             if origin is list or origin is collections.abc.Sequence:
                                 is_list = True
@@ -295,9 +307,9 @@ class LLMTaskExecutor:
                                     inner_cls = args[0]
                             elif isinstance(annotation, type) and issubclass(annotation, BaseModel):
                                 inner_cls = annotation
-                                
+
                             existing_val = getattr(existing, name, None) if existing else None
-                            
+
                             if is_list and inner_cls:
                                 if existing_val and isinstance(existing_val, list):
                                     fallback_data[name] = [build_fallback(inner_cls, item) for item in existing_val]
@@ -310,11 +322,22 @@ class LLMTaskExecutor:
                                     fallback_data[name] = None
                                 elif name in ["score", "step_5_boolean"]:
                                     fallback_data[name] = None
-                                elif name in ["justification", "semantic_reasoning", "step_3_implicit_justification", "step_4_reasoning", "reasoning_trace", "step_1_reasoning_trace"]:
+                                elif name in [
+                                    "reasoning_trace",
+                                    "step_1_reasoning_trace",
+                                ]:
+                                    # Preserve original trace if existing, otherwise mark as system error
                                     if existing_val and isinstance(existing_val, str):
                                         fallback_data[name] = existing_val
                                     else:
                                         fallback_data[name] = "[SYSTEM ERROR: LLM Unable to verify.]"
+                                elif name in [
+                                    "justification",
+                                    "semantic_reasoning",
+                                    "step_3_implicit_justification",
+                                    "step_4_reasoning",
+                                ]:
+                                    fallback_data[name] = "[SYSTEM ERROR: LLM Unable to verify.]"
                                 elif name in ["localized_anchors_found"]:
                                     fallback_data[name] = []
                                 elif name in ["contextual_override"]:
@@ -326,15 +349,16 @@ class LLMTaskExecutor:
                                         fallback_data[name] = field_info.default
                                     elif field_info.default_factory is not None:
                                         # Use getattr to bypass Pyright's incorrect method-binding type resolution
-                                        fallback_data[name] = getattr(field_info, "default_factory")()
+                                        fallback_data[name] = field_info.default_factory()  # type: ignore[call-arg]
                                     else:
                                         fallback_data[name] = None
-                        
+
                         return model_cls.model_construct(**fallback_data)
 
                     import collections.abc
+
                     from pydantic_core import PydanticUndefined
-                    
+
                     fallback = build_fallback(response_model, validated_model)
                     return fallback, cumulative_usage
 

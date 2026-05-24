@@ -140,10 +140,33 @@ class TDAAssertion(V2CoreBase):
     inverse_evidence: bool = Field(description="If True, acts as a poison/penalty detector.")
     aggregation_mode: Literal["EXISTS", "ALL_MUST_COMPLY"] = Field(description="Aggregation constraint.")
 
+    # Phase 1, Milestone 1: Add new properties for decoupled TDA
+    evaluation_track: Literal["EXTRACTIVE_SENSOR", "COGNITIVE_JUDGEMENT"] = Field(
+        default="COGNITIVE_JUDGEMENT",
+        description="Decoupled evaluation track: extractive logic vs cognitive judgement.",
+    )
+    facts_to_find: list[str] = Field(
+        default_factory=list,
+        description="The list of facts to extract for this assertion.",
+    )
+    logical_expression: str | None = Field(
+        default=None,
+        description="Whitelisted Boolean logical expression using extracted facts.",
+    )
+
     @model_validator(mode="after")
     def validate_math_logic(self) -> TDAAssertion:
         if self.inverse_evidence and self.aggregation_mode == "ALL_MUST_COMPLY":
             raise ValueError("Käänteinen sääntö (myrkyn etsintä) vaatii EHDOTTOMASTI 'EXISTS' -aggregaation...")
+
+        # Phase 1, Milestone 1: Enforce strict dual-track TDA validations
+        if self.evaluation_track == "EXTRACTIVE_SENSOR":
+            if not self.facts_to_find:
+                raise ValueError("EXTRACTIVE_SENSOR -rata vaatii vähintään yhden haettavan faktan (facts_to_find).")
+            if not self.logical_expression or not self.logical_expression.strip():
+                raise ValueError(
+                    "EXTRACTIVE_SENSOR -rata vaatii määrittämään loogisen lausekkeen (logical_expression)."
+                )
         return self
 
 
@@ -1026,7 +1049,7 @@ class BaseTDAExtraction(BaseModel):
     semantic_reasoning: str = Field(description="Mapping logic explanation in target language.")
     contextual_override: bool = Field(description="Escape hatch for implicit matches.")
     exact_quote: str | None = Field(
-        default="",
+        ...,
         description="Verbatim quote from original text.",
     )
 

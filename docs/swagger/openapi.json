@@ -4558,7 +4558,7 @@
               }
             ],
             "title": "Parsing Mode",
-            "description": "Parser logic flag (e.g. 'GEMINI_JSON')"
+            "description": "Parser logic flag (e.g. 'STRUCTURED_JSON')"
           },
           "caching_strategy": {
             "anyOf": [
@@ -5732,10 +5732,31 @@
       },
       "PromptBlockSimulationResponse": {
         "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid",
+            "description": "Indicates if the prompt block simulation is successful.",
+            "default": true
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors",
+            "description": "Validation errors found during simulation."
+          },
+          "rendered_prompt": {
+            "type": "string",
+            "title": "Rendered Prompt",
+            "description": "The simulated rendered prompt template.",
+            "default": ""
+          },
           "trace": {
             "additionalProperties": true,
             "type": "object",
-            "title": "Trace"
+            "title": "Trace",
+            "description": "Execution trace metadata."
           }
         },
         "additionalProperties": false,
@@ -6270,10 +6291,31 @@
       },
       "StepSimulationResponse": {
         "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid",
+            "description": "Indicates if the step simulation is successful.",
+            "default": true
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors",
+            "description": "Validation errors found during simulation."
+          },
+          "rendered_prompt": {
+            "type": "string",
+            "title": "Rendered Prompt",
+            "description": "The simulated rendered step prompts.",
+            "default": ""
+          },
           "trace": {
             "additionalProperties": true,
             "type": "object",
-            "title": "Trace"
+            "title": "Trace",
+            "description": "Execution trace metadata."
           }
         },
         "additionalProperties": false,
@@ -6554,6 +6596,36 @@
             ],
             "title": "Aggregation Mode",
             "description": "Aggregation constraint."
+          },
+          "evaluation_track": {
+            "type": "string",
+            "enum": [
+              "EXTRACTIVE_SENSOR",
+              "COGNITIVE_JUDGEMENT"
+            ],
+            "title": "Evaluation Track",
+            "description": "Decoupled evaluation track: extractive logic vs cognitive judgement.",
+            "default": "COGNITIVE_JUDGEMENT"
+          },
+          "facts_to_find": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Facts To Find",
+            "description": "The list of facts to extract for this assertion."
+          },
+          "logical_expression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logical Expression",
+            "description": "Whitelisted Boolean logical expression using extracted facts."
           }
         },
         "additionalProperties": false,
@@ -7479,10 +7551,41 @@
       },
       "WorkflowSimulationResponse": {
         "properties": {
+          "valid": {
+            "type": "boolean",
+            "title": "Valid",
+            "description": "Indicates if the workflow DAG simulation is successful.",
+            "default": true
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors",
+            "description": "Structure and wiring errors."
+          },
+          "step_status": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Step Status",
+            "description": "Compilation status per step."
+          },
+          "execution_order": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Execution Order",
+            "description": "Topologically sorted execution order."
+          },
           "trace": {
             "additionalProperties": true,
             "type": "object",
-            "title": "Trace"
+            "title": "Trace",
+            "description": "Execution trace metadata."
           }
         },
         "additionalProperties": false,

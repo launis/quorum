@@ -287,4 +287,3 @@ async def test_execute_structured_task_dynamic_model_fallback(
         assert res_model.evaluations[0].atom_id == "atom_1"
         assert res_model.evaluations[0].exact_quote is None
         assert res_model.evaluations[0].semantic_reasoning == "[SYSTEM ERROR: LLM Unable to verify.]"
-

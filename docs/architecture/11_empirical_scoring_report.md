@@ -120,17 +120,8 @@ Ennen matemaattisen pisteytyksen tarkistamista on varmistettava, että analysoit
 
 ### Vaihe 3: Matemaattisen Yhteismitallisen Keskiarvon (Commensurate Average) Laskenta
 Auditoijan on kyettävä toistamaan pisteytys käsin varmistaakseen backendin laskentakaavojen eheyden:
-1. **Varmista konfidenssikatto (Fail-Fast):** Ennen kunkin matriisin arvosanan laskemista varmista, ettei DLQ-tilaisten (viallisten/lainaamattomien) väitteiden suhde ole ylittänyt kynnysarvoa. Laske järjestelmän globaali konfidenssitaso:
-   $$\text{System Confidence} = \frac{\text{global\_total} - \text{global\_dlqs}}{\text{global\_total}}$$
-   
-   *Historiallinen ja nykyisen koodin välinen suhde:*
-   - **Mitä dokumentaatio aiemmin kuvasi:** DLQ-tilaiset sokeat väitteet ohitetaan nimittäjästä (Denominator) ja siirretään poikkeuskäsittelyyn.
-   - **Mitä koodi tekee (`scoring.py`):** Koodi tarkistaa, että DLQ-osumien määrä ei ylitä tiettyä rajaa. Jos DLQ-tilaisten (eli teknisesti viallisten / lainaamattomien, mutta `contextual_override = true` -tilassa olevien) väitteiden suhde on liian suuri ja järjestelmän konfidenssi putoaa alle 90 prosentin, koodi heittää välittömästi `AppException`-virheen (Fail-Fast) koodilla `AGENT_LOGICAL_VALIDATION_FAILED` (HTTP 500) sen sijaan, että se vain jatkaisi hiljaisesti poikkeuskäsittelyä.
-
-   Jos $\text{System Confidence} < 0.90$ (eli DLQ-tilaisten väitteiden suhde on yli 10 %), arviointimoottori on heittänyt ajon aikana ankarassa Fail-Fast -hengessä `AppException`-virheen (`AGENT_LOGICAL_VALIDATION_FAILED` / HTTP 500) eikä pisteytystä ole suoritettu.
-2. **Huomioi DLQ-väitteiden poisto nimittäjästä:** Jos konfidenssitaso on sallituissa rajoissa ($\ge 90$ %), laske kunkin matriisin yksittäisten tasojen osumatarkkuudet (`hit_rate`). Tasoilla mahdollisesti olevat DLQ-tilaiset sokeat väitteet **on ohitettava eli poistettava nimittäjästä** (Denominator):
-   $$\text{Level Hit Rate} = \frac{\text{Level Hits}}{\text{Level Total} - \text{Level DLQs}}$$
-   *Huom:* Tämä takaa, etteivät poikkeuskäsittelyyn (`contextual_override = true`) siirretyt tekniset lainausvirheet laske matriisin pisteitä.
+1. **Pessimistinen DLQ-osumatarkkuuden laskenta (0/1):** Varmista, ettei DLQ-tilaisten säännösten määrää poisteta nimittäjästä (Denominator), toisin kuin vanhassa arkkitehtuurissa optimistisesti tehtiin. Jokainen DLQ-tilaan päätynyt sääntö pisteytetään matemaattisesti nollana (0/1) pessimistic & reliable scoring -periaatteella. Tämä varmistaa, ettei matriisin arvosanaa paranneta silloin, kun data on viallista. Matriisille asetetaan käyttöliittymää varten keltainen "Puutteellinen data" -merkintä (Data Quality Flag).
+2. **Varmista Indeterminate-kynnysraja (10 % katto):** Ennen lopullista pisteytystä on varmistettava, ettei DLQ-tilaisten sääntöjen määrä ylitä 10 % rajapintaa. Jos `dlq_count / total > 0.10`, koko matriisi on asetettava suoraan tilaan `INDETERMINATE`. Järjestelmä ei tällöin yritä laskea numeerista arvosanaa, vaan matriisi merkitään määrittelemättömäksi laadun ja eheyden takaamiseksi.
 3. **Kerää evaluoitavat matriisit:** Etsi `step_states`-rakenteesta kaikki askeleet, joissa on lohko `_evaluative_matrices`. Nämä ovat matriiseja, joiden `is_evaluative` on tietokannassa määritetty arvoksi `true`.
 4. **Hae kunkin matriisin normalisoitu arvosana:** Jokaisesta evaluoitavasta matriisista on laskettu ja tallennettu normalisoitu arvosana (asteikolla 0–100) avaimella `normalized_score` (tai `score_normalized` riippuen Output Profilen projisoinnista).
 5. **Laske keskiarvo:** 

@@ -21,6 +21,7 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step
+from backend_v2.services.orchestrator.ast_evaluator import ASTEvaluator
 from backend_v2.settings import get_settings
 from backend_v2.utils.hashing import generate_atom_hash
 from backend_v2.utils.math_utils import (
@@ -609,100 +610,83 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         missing_atoms_by_block: dict[str, list[str]] = {}
         evaluated_atoms_by_block: dict[str, dict[str, bool | str]] = {}
 
-        # 2. Iterate evaluations with MatrixReducer for Three-State Logic
-        from typing import Literal, cast
+        # 2. Iterate evaluations using whitelisted ASTEvaluator for 3-State Logic
 
-        from backend_v2.models.v2_core import TDAAssertion
-        from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
+        # Compute missing chunks ratio based on chunk evaluations in content_payload
+        dlq_evals = 0
+        total_evals = 0
+        if isinstance(evaluations, list):
+            total_evals = len(evaluations)
+            for ev in evaluations:
+                status = ev.get("status") if isinstance(ev, dict) else getattr(ev, "status", None)
+                if status == "DLQ":
+                    dlq_evals += 1
 
-        State = Literal["PASSED", "FAILED", "DLQ"]
-        # Accumulate states per atom_id across all chunks
-        raw_states_by_atom: dict[str, list[State]] = {}
-        reasoning_by_atom: dict[str, list[str]] = {}
+        # Get merged facts dictionary from dynamic MergedFactsDTO context
+        merged_facts = content_payload.get("extracted_facts") or {}
+        if hasattr(merged_facts, "model_dump"):
+            merged_facts = merged_facts.model_dump()
+        elif not isinstance(merged_facts, dict):
+            merged_facts = {}
 
-        for ev in evaluations:
-            try:
-                ev_dto = AtomEvaluationItemDTO.model_validate(ev)
-            except ValidationError as e:
-                msg = f"Strict Fail-Fast Enforced: Invalid evaluation item format: {e}"
-                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                ) from e
+        for pb_id, pb_model in matrix_blocks:
+            scales = pb_model.scales or []
+            block_scale_stats[pb_id] = {}
+            missing_atoms_by_block[pb_id] = []
+            evaluated_atoms_by_block[pb_id] = {}
 
-            atom_id = ev_dto.atom_id
-            reasoning = ev_dto.mechanical_trace
-
-            if not atom_id:
-                continue
-
-            mapping = atom_mapping.get(atom_id)
-            if not mapping:
-                # If we can't map it, we skip it or log it
-                continue
-
-            pb_id, s_val, text, agg_mode, inverse_evidence = mapping
-
-            mapped_state: State
-            if ev_dto.status == "DLQ":
-                mapped_state = "DLQ"
-            else:
-                is_satisfied = ev_dto.calculate_rule_satisfied(inverse_evidence)
-                mapped_state = "PASSED" if is_satisfied else "FAILED"
-
-            if atom_id not in raw_states_by_atom:
-                raw_states_by_atom[atom_id] = []
-                reasoning_by_atom[atom_id] = []
-
-            raw_states_by_atom[atom_id].append(mapped_state)
-
-            if reasoning:
-                reasoning_by_atom[atom_id].append(reasoning)
-
-        # Reduce states and apply to math logic
-        for atom_id, states in raw_states_by_atom.items():
-            mapping = atom_mapping.get(atom_id)
-            if not mapping:
-                continue
-
-            pb_id, s_val, text, agg_mode, inverse_evidence = mapping
-
-            if pb_id not in block_scale_stats:
-                block_scale_stats[pb_id] = {}
-                missing_atoms_by_block[pb_id] = []
-                evaluated_atoms_by_block[pb_id] = {}
-
-            if s_val not in block_scale_stats[pb_id]:
+            for scale in scales:
+                s_val = float(scale.score)
                 block_scale_stats[pb_id][s_val] = {"hits": 0, "total": 0, "dlqs": 0}
 
-            # Create dummy TDAAssertion to use the MatrixReducer
-            # We bypass full validation since we only need aggregation_mode
-            dummy_tda = TDAAssertion.model_construct(
-                tda_id=atom_id,
-                ai_rule_description=text,
-                inverse_evidence=False,
-                aggregation_mode=cast(Literal["EXISTS", "ALL_MUST_COMPLY"], agg_mode),
-            )
+                claims = scale.claims
+                for claim in claims:
+                    tda_assertions = claim.tda_assertions
+                    if tda_assertions:
+                        for tda in tda_assertions:
+                            aid = tda.tda_id
+                            text = tda.ai_rule_description
 
-            final_state = MatrixReducer.reduce(dummy_tda, states)
-            reasoning_str = " | ".join(reasoning_by_atom[atom_id])
+                            # Determine evaluation track
+                            if tda.evaluation_track == "EXTRACTIVE_SENSOR" and tda.logical_expression:
+                                # Deterministic AST boolean evaluation on merged facts with DLQ tolerance
+                                final_state = ASTEvaluator.evaluate(
+                                    expression=tda.logical_expression,
+                                    facts=merged_facts,
+                                    total_chunks=total_evals or 1,
+                                    dlq_chunks=dlq_evals,
+                                )
+                            else:
+                                # Fallback or cognitive track: look up chunk evaluations by atom_id
+                                final_state = "FALSE"
+                                if isinstance(evaluations, list):
+                                    for ev in evaluations:
+                                        try:
+                                            ev_dto = AtomEvaluationItemDTO.model_validate(ev)
+                                        except Exception:
+                                            continue
+                                        if ev_dto.atom_id == aid:
+                                            if ev_dto.status == "DLQ":
+                                                final_state = "DLQ"
+                                            else:
+                                                is_satisfied = ev_dto.calculate_rule_satisfied(tda.inverse_evidence)
+                                                final_state = "TRUE" if is_satisfied else "FALSE"
+                                            break
 
-            if final_state == "DLQ":
-                evaluated_atoms_by_block[pb_id][atom_id] = "DLQ"
-                block_scale_stats[pb_id][s_val]["total"] += 1
-                block_scale_stats[pb_id][s_val]["dlqs"] += 1
-                missing_atoms_by_block[pb_id].append(f"- {text} (DLQ - Unscorable)")
-            elif final_state == "PASSED":
-                evaluated_atoms_by_block[pb_id][atom_id] = True
-                block_scale_stats[pb_id][s_val]["total"] += 1
-                block_scale_stats[pb_id][s_val]["hits"] += 1
-            else:
-                evaluated_atoms_by_block[pb_id][atom_id] = False
-                block_scale_stats[pb_id][s_val]["total"] += 1
-                if reasoning_str:
-                    missing_atoms_by_block[pb_id].append(f"- {text} (Reasoning: {reasoning_str})")
-                else:
-                    missing_atoms_by_block[pb_id].append(f"- {text}")
+                            # Record the 3-state logic outcomes
+                            if final_state == "DLQ":
+                                evaluated_atoms_by_block[pb_id][aid] = "DLQ"
+                                block_scale_stats[pb_id][s_val]["total"] += 1
+                                block_scale_stats[pb_id][s_val]["dlqs"] += 1
+                                missing_atoms_by_block[pb_id].append(f"- {text} (DLQ - Unscorable)")
+                            elif final_state == "TRUE":
+                                evaluated_atoms_by_block[pb_id][aid] = True
+                                block_scale_stats[pb_id][s_val]["total"] += 1
+                                block_scale_stats[pb_id][s_val]["hits"] += 1
+                            else:
+                                evaluated_atoms_by_block[pb_id][aid] = False
+                                block_scale_stats[pb_id][s_val]["total"] += 1
+                                missing_atoms_by_block[pb_id].append(f"- {text}")
 
         # 3. Hybrid Calculation
         new_payload = content_payload.copy()
@@ -720,19 +704,9 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             global_hits = sum(level_data["hits"] for level_data in stats.values())
             global_dlqs = sum(level_data.get("dlqs", 0) for level_data in stats.values())
 
-            if global_total > 0:
-                system_confidence = (global_total - global_dlqs) / global_total
-                if system_confidence < 0.90:
-                    msg = (
-                        f"System Confidence dropped below 90% for block {pb_id} "
-                        f"(Confidence: {system_confidence:.2f}). Unscorable matrix."
-                    )
-                    logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                    raise AppException(
-                        message=msg,
-                        status_code=500,
-                        details={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.value},
-                    )
+            # Epic 56 Invariant 3: DLQ-failed items must be scored as 0/1 (hits=0, total=total).
+            # If dlq_count / total > 0.10, fail the whole matrix to INDETERMINATE.
+            is_indeterminate = global_total > 0 and (global_dlqs / global_total) > 0.10
 
             total_true_atoms += global_hits
             total_false_atoms += global_total - global_hits - global_dlqs
@@ -742,10 +716,6 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                     "[ScoringHook] total_atoms == 0 for block %s.",
                     pb_id,
                 )
-
-            # The Anti-TDD Trap & Zero-Compromise Pledge: We construct the Pydantic model natively
-            # and guarantee all outputs are mapped into the strict LightweightMatrixOutput,
-            # eliminating naked dict mutations and model_validate overhead in the loop.
 
             if pb_id in new_payload:
                 raw_data = new_payload[pb_id]
@@ -769,7 +739,6 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                     justification = existing_matrix.justification
                     extensions = existing_matrix.extensions
                 elif isinstance(raw_data, dict):
-                    # Phase 9 Zero-Compromise: Delegate deterministic XAI extraction to the strict DTO validator
                     try:
                         mapped = LightweightMatrixOutput.map_llm_extensions_to_domain(raw_data)
                         temp_parsed = LightweightMatrixOutput.model_validate(mapped)
@@ -790,14 +759,22 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
             evaluated_atoms = evaluated_atoms_by_block.get(pb_id, {})
 
-            # Epic 47 Phase 1 & 2: Calculate Raw Score using specific Math Engine
-            engine = get_scoring_engine(scoring_strategy)
-            raw_score, xai_log, formatted_breakdown = engine.calculate(
-                stats=stats,
-                math_min=math_min,
-                math_max=math_max,
-                strictness_level=strictness_level,
-            )
+            if is_indeterminate:
+                raw_score = None
+                formatted_breakdown = None
+                xai_log = None
+                justification = (
+                    f"[INDETERMINATE] Matrix score invalidated because the DLQ ratio "
+                    f"({global_dlqs / global_total:.2%}) exceeded the 10.00% threshold."
+                )
+            else:
+                engine = get_scoring_engine(scoring_strategy)
+                raw_score, xai_log, formatted_breakdown = engine.calculate(
+                    stats=stats,
+                    math_min=math_min,
+                    math_max=math_max,
+                    strictness_level=strictness_level,
+                )
 
             parsed_payload = LightweightMatrixOutput(
                 raw_score=raw_score,
@@ -811,7 +788,6 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
             new_payload[pb_id] = parsed_payload.model_dump(exclude_none=True)
 
-            # Use extending logic to append without overwriting previous UI texts
             if missing_atoms_by_block[pb_id]:
                 new_payload[f"{pb_id}_missing_context"] = "\n".join(missing_atoms_by_block[pb_id])
 

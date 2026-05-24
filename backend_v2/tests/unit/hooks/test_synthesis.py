@@ -816,8 +816,9 @@ async def test_synthesis_hook_historical_context_mode(
 
 def test_row_exp_prompt_contains_human_centric_focus() -> None:
     """Test that text_consolidation_hook contains the human-centric focus directive."""
-    from backend_v2.hooks import synthesis
     import inspect
+
+    from backend_v2.hooks import synthesis
+
     source = inspect.getsource(synthesis.text_consolidation_hook)
     assert "HUMAN-CENTRIC FOCUS (CRITICAL)" in source
-

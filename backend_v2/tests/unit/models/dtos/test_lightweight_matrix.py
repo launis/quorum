@@ -78,8 +78,7 @@ def test_atom_evaluation_item_dto_strictness() -> None:
     """Test AtomEvaluationItemDTO enforces strict validation and V4.3 Blacklist."""
     item = AtomEvaluationItemDTO(
         atom_id="atom_123",
-        mechanical_trace="Because logic.",
-        exact_quote="Some valid quote",
+        extracted_facts={"fact_1": "Some valid quote"},
     )
     assert item.atom_id == "atom_123"
     assert item.evidence_found is True
@@ -89,16 +88,14 @@ def test_atom_evaluation_item_dto_strictness() -> None:
     with pytest.raises(ValidationError):
         AtomEvaluationItemDTO(
             atom_id="atom_123",
-            mechanical_trace="Logic",
-            exact_quote="Quote",
+            extracted_facts={"fact_1": "Quote"},
             extra="not allowed",  # type: ignore
         )
 
     # Test V4.3 Phantom Boolean Sanity Check
     phantom = AtomEvaluationItemDTO(
         atom_id="atom_phantom",
-        mechanical_trace="Logic.",
-        exact_quote="Not found",
+        extracted_facts={"fact_1": "Not found"},
     )
     assert phantom.evidence_found is False
 
@@ -109,8 +106,7 @@ def test_atom_evaluation_item_dto_strictness() -> None:
     # Test status-based inverse evidence logic
     pass_item = AtomEvaluationItemDTO(
         atom_id="atom_pass",
-        mechanical_trace="Logic.",
-        exact_quote="Found",
+        extracted_facts={"fact_1": "Found"},
         status="PASS",
     )
     assert pass_item.calculate_rule_satisfied(inverse_evidence=True) is False
@@ -118,22 +114,36 @@ def test_atom_evaluation_item_dto_strictness() -> None:
 
     fail_item = AtomEvaluationItemDTO(
         atom_id="atom_fail",
-        mechanical_trace="Logic.",
-        exact_quote="None",
+        extracted_facts={"fact_1": "None"},
         status="FAIL",
     )
     assert fail_item.calculate_rule_satisfied(inverse_evidence=True) is True
     assert fail_item.calculate_rule_satisfied(inverse_evidence=False) is False
 
 
+def test_atom_evaluation_item_dto_accepts_exact_quote() -> None:
+    """Test that AtomEvaluationItemDTO accepts exact_quote and correctly sanitises it against phantom boolean blacklist."""
+    item = AtomEvaluationItemDTO(
+        atom_id="atom_123",
+        exact_quote="This is an exact quote",
+    )
+    assert item.atom_id == "atom_123"
+    assert item.exact_quote == "This is an exact quote"
+    assert item.evidence_found is True
+
+    # Test phantom blacklist for exact_quote
+    phantom = AtomEvaluationItemDTO(
+        atom_id="atom_123",
+        exact_quote="None",
+    )
+    assert phantom.evidence_found is False
+
+
 def test_atom_evaluation_item_dto_rejects_nulls() -> None:
-    """Test that null values for strict string fields raise ValidationError (caught by ChunkAccumulator)."""
+    """Test that null values for strict non-nullable fields raise ValidationError."""
     raw_data = {
-        "atom_id": "atom_null_test",
-        "mechanical_trace": None,
-        "exact_quote": None,
-        "pre_quote_anchor": None,
-        "post_quote_anchor": None,
+        "atom_id": None,
+        "extracted_facts": None,
     }
     with pytest.raises(ValidationError):
         AtomEvaluationItemDTO.model_validate(raw_data)

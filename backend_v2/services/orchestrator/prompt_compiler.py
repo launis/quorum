@@ -57,7 +57,7 @@ class StrippedBaseTDAExtraction(BaseModel):
         )
     )
     exact_quote: str | None = Field(
-        default="",
+        ...,
         description="Verbatim quote from the original text. MUST be empty if contextual_override is True.",
     )
 
@@ -812,9 +812,9 @@ class PromptCompiler:
             "<objective>You are a Blind Extraction Engine. Your task is to scan the text "
             "for the markers defined in the rule.</objective>\n"
             "<language_mandate>The physical markers in the rules are in English, but the "
-            f"source text is in the language defined by '{target_locale}'. You MUST strictly map "
-            f"the English markers to their EXACT semantic physical equivalents in the '{target_locale}' "
-            "language before scanning. Do not extract if the localized marker is missing.</language_mandate>\n"
+            "source text is in Finnish. You MUST strictly map the English markers to their EXACT "
+            "semantic physical equivalents in Finnish before scanning. Do not extract if the "
+            "localized marker is missing.</language_mandate>\n"
             "<rules>\n"
             "  <rule>If the exact marker is not physically present, return null for "
             "exact_quote.</rule>\n"

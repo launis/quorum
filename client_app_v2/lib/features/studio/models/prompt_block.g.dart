@@ -36,44 +36,63 @@ Map<String, dynamic> _$TheoryGroundingToJson(_TheoryGrounding instance) =>
       'citation_reference': instance.citationReference,
     };
 
-_TDAAssertion _$TDAAssertionFromJson(Map<String, dynamic> json) =>
-    $checkedCreate(
-      '_TDAAssertion',
+_TDAAssertion _$TDAAssertionFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_TDAAssertion',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
       json,
-      ($checkedConvert) {
-        $checkKeys(
-          json,
-          allowedKeys: const [
-            'tda_id',
-            'ai_rule_description',
-            'inverse_evidence',
-            'aggregation_mode',
-          ],
-        );
-        final val = _TDAAssertion(
-          tdaId: $checkedConvert('tda_id', (v) => v as String),
-          aiRuleDescription: $checkedConvert(
-            'ai_rule_description',
-            (v) => v as String,
-          ),
-          inverseEvidence: $checkedConvert(
-            'inverse_evidence',
-            (v) => v as bool,
-          ),
-          aggregationMode: $checkedConvert(
-            'aggregation_mode',
-            (v) => $enumDecode(_$AggregationModeEnumMap, v),
-          ),
-        );
-        return val;
-      },
-      fieldKeyMap: const {
-        'tdaId': 'tda_id',
-        'aiRuleDescription': 'ai_rule_description',
-        'inverseEvidence': 'inverse_evidence',
-        'aggregationMode': 'aggregation_mode',
-      },
+      allowedKeys: const [
+        'tda_id',
+        'ai_rule_description',
+        'inverse_evidence',
+        'aggregation_mode',
+        'evaluation_track',
+        'facts_to_find',
+        'logical_expression',
+      ],
     );
+    final val = _TDAAssertion(
+      tdaId: $checkedConvert('tda_id', (v) => v as String),
+      aiRuleDescription: $checkedConvert(
+        'ai_rule_description',
+        (v) => v as String,
+      ),
+      inverseEvidence: $checkedConvert('inverse_evidence', (v) => v as bool),
+      aggregationMode: $checkedConvert(
+        'aggregation_mode',
+        (v) => $enumDecode(_$AggregationModeEnumMap, v),
+      ),
+      evaluationTrack: $checkedConvert(
+        'evaluation_track',
+        (v) =>
+            $enumDecodeNullable(_$EvaluationTrackEnumMap, v) ??
+            EvaluationTrack.extractiveSensor,
+      ),
+      factsToFind: $checkedConvert(
+        'facts_to_find',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      logicalExpression: $checkedConvert(
+        'logical_expression',
+        (v) => v as String?,
+      ),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'tdaId': 'tda_id',
+    'aiRuleDescription': 'ai_rule_description',
+    'inverseEvidence': 'inverse_evidence',
+    'aggregationMode': 'aggregation_mode',
+    'evaluationTrack': 'evaluation_track',
+    'factsToFind': 'facts_to_find',
+    'logicalExpression': 'logical_expression',
+  },
+);
 
 Map<String, dynamic> _$TDAAssertionToJson(_TDAAssertion instance) =>
     <String, dynamic>{
@@ -81,11 +100,19 @@ Map<String, dynamic> _$TDAAssertionToJson(_TDAAssertion instance) =>
       'ai_rule_description': instance.aiRuleDescription,
       'inverse_evidence': instance.inverseEvidence,
       'aggregation_mode': _$AggregationModeEnumMap[instance.aggregationMode]!,
+      'evaluation_track': _$EvaluationTrackEnumMap[instance.evaluationTrack]!,
+      'facts_to_find': instance.factsToFind,
+      'logical_expression': instance.logicalExpression,
     };
 
 const _$AggregationModeEnumMap = {
   AggregationMode.exists: 'EXISTS',
   AggregationMode.allMustComply: 'ALL_MUST_COMPLY',
+};
+
+const _$EvaluationTrackEnumMap = {
+  EvaluationTrack.extractiveSensor: 'EXTRACTIVE_SENSOR',
+  EvaluationTrack.cognitiveJudgement: 'COGNITIVE_JUDGEMENT',
 };
 
 _MatrixClaim _$MatrixClaimFromJson(Map<String, dynamic> json) => $checkedCreate(

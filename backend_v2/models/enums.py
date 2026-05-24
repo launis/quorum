@@ -157,11 +157,11 @@ class ExecutionPersona(str, Enum):
 class SystemConcurrency(int, Enum):
     """Global concurrency limits for DAG Execution to prevent API Rate Limits."""
 
-    MAX_CONCURRENT_WORKFLOWS = 1
-    MAX_CONCURRENT_LLM_STEPS = 1
+    MAX_CONCURRENT_WORKFLOWS = 2
+    MAX_CONCURRENT_LLM_STEPS = 4
     LLM_MAX_RETRIES = 1
     FAIL_FAST_MAX_RETRIES = 1
-    LLM_MAX_CHUNK_SIZE = 20
+    LLM_MAX_CHUNK_SIZE = 10
     MATRIX_SAMPLING_LIMIT = 0
     LLM_DEFAULT_TIMEOUT_SECONDS = 600
     RATE_LIMIT_COOLDOWN_SECONDS = 30

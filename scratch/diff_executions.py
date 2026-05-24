@@ -156,6 +156,10 @@ def get_state(e):
     return "unknown"
 
 def get_trace(e):
+    if 'context_scan_trace' in e:
+        return e['context_scan_trace']
+    if 'semantic_reasoning' in e:
+        return e['semantic_reasoning']
     if 'reasoning_trace' in e:
         return e['reasoning_trace']
     if 'mechanical_trace' in e:
