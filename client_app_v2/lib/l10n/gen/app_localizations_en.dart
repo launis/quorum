@@ -2486,6 +2486,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryProtocol => 'Execution Protocol';
 
   @override
+  String get categoryRuntimeVariables => 'Runtime Variables';
+
+  @override
   String get technicalDetails => 'Technical Details';
 
   @override

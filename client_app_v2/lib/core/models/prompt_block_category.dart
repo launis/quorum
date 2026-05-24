@@ -13,7 +13,9 @@ enum PromptBlockCategory {
   @JsonValue('system_rule')
   systemRule,
   @JsonValue('protocol')
-  protocol;
+  protocol,
+  @JsonValue('runtime_variables')
+  runtimeVariables;
 
   String get id {
     switch (this) {
@@ -27,6 +29,8 @@ enum PromptBlockCategory {
         return 'system_rule';
       case PromptBlockCategory.protocol:
         return 'protocol';
+      case PromptBlockCategory.runtimeVariables:
+        return 'runtime_variables';
     }
   }
 
@@ -53,6 +57,8 @@ extension PromptBlockCategoryL10n on PromptBlockCategory {
         return l10n.categorySystemRule;
       case PromptBlockCategory.protocol:
         return l10n.categoryProtocol;
+      case PromptBlockCategory.runtimeVariables:
+        return l10n.categoryRuntimeVariables;
     }
   }
 }

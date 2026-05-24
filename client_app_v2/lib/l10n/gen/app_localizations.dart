@@ -4604,6 +4604,12 @@ abstract class AppLocalizations {
   /// **'Execution Protocol'**
   String get categoryProtocol;
 
+  /// No description provided for @categoryRuntimeVariables.
+  ///
+  /// In en, this message translates to:
+  /// **'Runtime Variables'**
+  String get categoryRuntimeVariables;
+
   /// No description provided for @technicalDetails.
   ///
   /// In en, this message translates to:

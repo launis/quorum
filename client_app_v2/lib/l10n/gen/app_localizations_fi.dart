@@ -2497,6 +2497,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get categoryProtocol => 'Suoritusprotokolla';
 
   @override
+  String get categoryRuntimeVariables => 'Ajonaikaiset muuttujat';
+
+  @override
   String get technicalDetails => 'Tekniset tiedot';
 
   @override

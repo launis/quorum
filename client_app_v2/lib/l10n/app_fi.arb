@@ -832,6 +832,7 @@
   "categoryTaskDefinition": "Tehtävän Määrittely",
   "categorySystemRule": "Järjestelmäsääntö / Heuristiikka",
   "categoryProtocol": "Suoritusprotokolla",
+  "categoryRuntimeVariables": "Ajonaikaiset muuttujat",
   "technicalDetails": "Tekniset tiedot",
   "systemError": "Järjestelmävirhe",
   "signInSubtitle": "Kirjaudu sisään jatkaaksesi",

@@ -107,3 +107,8 @@ warn_unused_ignores = false
 
 [tool.logfire]
 ignore_no_config = true
+
+[tool.pyrefly]
+python-version = "3.13.0"
+preset = "legacy"
+ignore-missing-imports = ["*"]

@@ -24,9 +24,15 @@ Koska Pydantic-mallimme (`V2CoreBase`) käyttävät tiukkaa konfiguraatiota (`ex
 2. Varmistetaan OpenAPI-skeeman generointi.
 
 ### B. Laiskan tekoälyn riski (Lazy LLM Risk)
-Jos ohitusventtiili sallittaisiin kaikille väitteille, LLM alkaisi nopeasti käyttää sitä helppona oikotienä välttääkseen tarkkojen lainausten etsimistä. Tämän vuoksi:
-- Vain ne assertions, joiden kohdalla `allow_contextual_override` on eksplisiittisesti asetettu arvoon `True`, voivat käyttää ohitusta.
-- Jos LLM yrittää palauttaa `contextual_override = true` säännölle, jolle se ei ole sallittu, deterministinen sääntömoottori (`scoring.py` / `calculate_rule_satisfied`) hylkää ohituksen ja vaatii edelleen fyysistä lainausta (`exact_quote`).
+If the override valve were allowed for all claims, the LLM would quickly start using it as an easy shortcut to avoid searching for precise quotes. Therefore:
+- Only assertions where `allow_contextual_override` is explicitly set to `True` can utilize the override.
+- If the LLM tries to return `contextual_override = true` for a rule where it is not allowed, the deterministic rule engine (`scoring.py` / `calculate_rule_satisfied`) rejects the override and still demands a physical quote (`exact_quote`).
+
+### C. Global Workflow Master Switch (Workflown Ehdollisuus)
+Ohitustoiminnallisuuden suojaksi otetaan käyttöön työnkulkukohtainen pääkytkin `enable_contextual_overrides: bool = False` suoraan `Workflow`-mallissa:
+* Vaikka yksittäinen väite (Assertion) sallisi ohituksen (`allow_contextual_override = True`), ohituksia **ei koskaan suoriteta eikä hyväksytä**, jos työnkulun pääkytkin on pois päältä (`enable_contextual_overrides = False`).
+* Tämä toimii absoluuttisena suojamuurina: tehokas ohitusoikeus on `workflow.enable_contextual_overrides AND assertion.allow_contextual_override`.
+* Tämä antaa ylläpitäjille absoluuttisen globaalin kontrollin työnkulun suoritusvarmuudesta ja faktoihin ankkuroinnista ilman, että yksittäisiä väitteitä tarvitsee käydä muuttamassa.
 
 ---
 
@@ -61,8 +67,10 @@ graph TD
 ```
 
 ### A. Domain-mallien päivitys
-#### Tiedosto: `backend_v2/models/v2_core.py`
-Lisätään uusi kenttä `allow_contextual_override`:
+
+#### Tiedosto: `backend_v2/models/v2_core.py` (Python)
+Lisätään uusi kenttä `allow_contextual_override` sääntötason tarkistukseen sekä globaali pääkytkin `enable_contextual_overrides` työnkulkutasolle:
+
 ```python
 class TDAAssertion(V2CoreBase):
     """Deterministic rule evaluated by the backend."""
@@ -71,7 +79,21 @@ class TDAAssertion(V2CoreBase):
         default=False,
         description="If True, allows contextual or semantic justification instead of a strict exact quote citation."
     )
+
+class Workflow(V2CoreBase):
+    """Dynamic Directed Acyclic Graph orchestrator model."""
+    # ... nykyiset kentät ...
+    enable_contextual_overrides: bool = Field(
+        default=False,
+        description="Master switch to globally enable or disable claim-level contextual overrides for this entire workflow."
+    )
 ```
+
+#### Tiedostot: `client_app_v2` (Flutter/Dart)
+Päivitetään vastaavat Dart-mallit (`@freezed`) vastaamaan Python-rajapinnan skeemaa:
+* **`client_app_v2/lib/features/studio/models/workflow.dart`**: Lisätään `@Default(false) bool enableContextualOverrides`
+* **`client_app_v2/lib/features/studio/models/tda_assertion.dart`**: Lisätään `@Default(false) bool allowContextualOverride`
+
 
 #### Tiedosto: `backend_v2/models/dtos/lightweight_matrix.py`
 Päivitetään `calculate_rule_satisfied` ottamaan vastaan `allow_contextual_override` -lippu:
@@ -113,27 +135,32 @@ Päivitetään XML-pohjainen ohjeistuksen generointi siten, että jos assertion 
 
 ### C. Pisteytyskoukun (Scoring Hook) päivitys
 #### Tiedosto: `backend_v2/hooks/scoring.py`
-Päivitetään `atom_mapping` ja evaluation-looppi välittämään `allow_contextual_override` -tieto säännöistä DTO-laskentaan:
-1. Lisätään kenttä `atom_mapping`-tuplaan:
+Päivitetään suorituskonteksti ja evaluation-looppi siten, että ohitukset otetaan käyttöön vain silloin, kun **sekä työnkulku että yksittäinen väite** sallivat sen:
+
+1. Haetaan työnkulun (`workflow`) master-kytkin suorituskontekstista ja välitetään se atomilaskentaan.
+2. Lisätään kenttä `atom_mapping`-tuplaan:
 ```python
-                            atom_mapping[aid] = (
-                                pb_id,
-                                s_val,
-                                tda.ai_rule_description,
-                                str(getattr(tda, "aggregation_mode", "EXISTS")),
-                                tda.inverse_evidence,
-                                getattr(tda, "allow_contextual_override", False),
-                            )
+                             atom_mapping[aid] = (
+                                 pb_id,
+                                 s_val,
+                                 tda.ai_rule_description,
+                                 str(getattr(tda, "aggregation_mode", "EXISTS")),
+                                 tda.inverse_evidence,
+                                 getattr(tda, "allow_contextual_override", False),
+                             )
 ```
-2. Puretaan kenttä loopissa ja välitetään eteenpäin:
+3. Puretaan kenttä loopissa ja lasketaan lopullinen **tehokas ohitusoikeus** hyödyntäen työnkulun master-lippua (`workflow.enable_contextual_overrides`):
 ```python
             pb_id, s_val, text, agg_mode, inverse_evidence, allow_override = mapping
+            
+            # Tehokas ohitusoikeus vaatii sekä työnkulun että väitteen sallivan lipun
+            effective_allow_override = getattr(workflow, "enable_contextual_overrides", False) and allow_override
 
             mapped_state: State
             if ev_dto.status == "DLQ":
                 mapped_state = "DLQ"
             else:
-                is_satisfied = ev_dto.calculate_rule_satisfied(inverse_evidence, allow_contextual_override=allow_override)
+                is_satisfied = ev_dto.calculate_rule_satisfied(inverse_evidence, allow_contextual_override=effective_allow_override)
                 mapped_state = "PASSED" if is_satisfied else "FAILED"
 ```
 
@@ -160,3 +187,36 @@ uv run python backend_v2/seed/run_seed.py local
 3. **No Hallucinations**: Prompt Compiler syöttää selkeät ankkurointiohjeet LLM:lle, estäen olemattomien sitaattien keksimisen.
 4. **All Tests Pass**: Kaikki yksikkötestit `pytest` -ajossa menevät puhtaasti läpi ilman deprecation-varoituksia tai tyyppivirheitä.
 5. **No Legacy Fallbacks**: Muutokset noudattavat "Clean Slate" -periaatetta. Järjestelmä kaatuu välittömästi (Fail-Fast), jos skeemat ovat virheellisiä.
+
+---
+
+## 7. Käyttöliittymän Muutokset (UI & Administrative Studio Requirements)
+
+Jotta ylläpitäjillä on täysi hallinta ohitustoiminnallisuuteen, Admin Studio -käyttöliittymään toteutetaan kaksi uutta määritysvalintaa samoilla tiedoilla ja käännöksillä kuin muutkin vastaavat asetukset:
+
+### 7.1 Väite-editori (Assertion/Rule Editor UI)
+Väitekohtaisen säännön (TDAAssertion) muokkausnäkymään (osana matriisi- ja ohje-editoria) lisätään uusi valintakytkin (switch/checkbox) ohituksen sallimiseksi:
+
+* **Sijainti**: Jokaisen sääntörivin (Assertion) asetukset -osiossa.
+* **Kenttä**: `allow_contextual_override`
+* **Lokalisoidut tekstit**:
+  * **Otsikko (Label)**:
+    * FI: `"Salli kognitiivinen ohitus"`
+    * EN: `"Allow Contextual Override"`
+  * **Kuvaus / UI Vinkki (Tip/Description)**:
+    * FI: `"Sallii LLM:lle perustellun semanttisen hyväksynnän ilman kirjaimellista lainausta, jos tarkkaa tekstiä ei ole fyysisiä todisteita varten olemassa."`
+    * EN: `"Allows the LLM to justify semantic verification without a literal quotation if exact text evidence is physically absent."`
+
+### 7.2 Työnkulku-editori (Workflow Builder UI)
+Työnkulun yleisten asetusten hallintapaneeliin (sidebar tai workflow metadata panel) lisätään globaali pääkytkin koko suorituksen kattavalle ohituksen aktivoinnille:
+
+* **Sijainti**: Workflow metadata- ja strictness-asetusten yhteydessä.
+* **Kenttä**: `enable_contextual_overrides`
+* **Lokalisoidut tekstit**:
+  * **Otsikko (Label)**:
+    * FI: `"Kognitiiviset ohitukset käytössä"`
+    * EN: `"Enable Contextual Overrides"`
+  * **Kuvaus / UI Vinkki (Tip/Description)**:
+    * FI: `"Master-kytkin, joka sallii tai kieltää väitetasoiset semanttiset ohitukset koko tämän työnkulun ajon aikana."`
+    * EN: `"Master toggle that globally enables or disables claim-level semantic overrides for this entire workflow run."`
+

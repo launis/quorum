@@ -129,3 +129,63 @@ Koska promptit ovat kriittinen osa tekoälyttömän suorituksen deterministisyyt
 2. **Kerta-injektointi toimii**: Lopullinen suoritettava System Prompt sisältää globaalin raamin täsmälleen kerran suorituksen alussa.
 3. **Pydantic-skeemat ovat puhtaita**: Dynaamisten mallien kenttien kuvaukset ovat lyhyitä ja tiiviitä, mikä estää tekoälyalustojen ("Serving Limits") kaatumisen.
 4. **Laatuportti (Quality Gate) läpäisty**: Kaikki yksikkö- ja integraatiotestit menevät läpi, ja Ruff-linttaus sekä Mypy-tyyppitarkastukset antavat 100 % puhtaan tuloksen ilman huomautuksia.
+
+---
+
+## 7. Hybrid Sovereignty Model (Käyttäjän Muokattava Ohjeistus)
+
+Malli jakaa järjestelmän prompt-direktiivit kahteen erilliseen kerrokseen parhaan mahdollisen vakauden ja joustavuuden saavuttamiseksi:
+
+### 7.1 Immutable Syntax (Kooditaso)
+* **Kuvaus**: Ohjelmointitasolla jäädytetyt (frozen) rakenteelliset ja syntaktiset säännöt, joita LLM:n on ehdottomasti noudatettava varmistaakseen deterministisen toiminnan ja parseroinnin vakauden.
+* **Sijainti**: `backend_v2/core/system_directives.py`.
+* **Sisältö**:
+  - *Morpho-Syntactic Determinism* ja *Topological Determinism* -mandaatit.
+  - Viisivaiheisen trace-formaatin rakennevaatimukset (*Constrained Parsing Protocol*).
+* **Syy**: Estetään käyttäjien tai ylläpitäjien tekemiä kirjoitusvirheitä (typos) rikkomasta regex-hakuja tai Pydantic-tietomallien automaattista parserointia, mikä voisi lamauttaa koko järjestelmän suorituksen.
+
+### 7.2 Dynamic Behavior Guidelines (Tietokantataso)
+* **Kuvaus**: Ylläpitäjien vapaasti muokattavissa olevat, korkean tason arviointia ja asennetta ohjaavat suuntaviivat, jotka eivät vaikuta syntaktiseen parserointiin.
+* **Sijainti**: Yhdessä tietokantapohjaisessa globaalissa `PromptBlock`-objektissa (esim. `blk_9e44687dff884ff6` - "Critical System Context").
+* **Kerta-injektioperiaate (Single-Injection Rule)**: `PromptCompiler` hakee tämän dynaamisen lohkon ja injektoi sen **täsmälleen kerran** jokaisen suoritettavan askeleen (Step) järjestelmäpromptiin.
+* **Syy**: Mahdollistaa ylläpitäjille joustavan tavan muokata yleisiä laadullisia tavoitteita, ja pitää samalla dynaamiset Pydantic-skeemat erittäin kevyinä, koska ohjeet eivät monistu jokaisen yksittäisen arviointikriteerin (kuten Stephen Toulminin matriisin) kuvauksiin.
+
+### 7.3 Ajonaikaiset Temporal-Muuttujat
+* Dynaaminen ohjeistus lohkossa `blk_9e44687dff884ff6` hyödyntää ankkurointimuuttujia `{CURRENT_DATE}` ja `{DYNAMIC_TIME}` osana omaa `CORE MANDATE` -osiotaan (kehys-tagien ulkopuolella).
+* Nämä muuttujat suojataan EPIC 55:n migraatioskriptiltä (`scratch/v5_1_prompt_slimming.py`), jotta ajonaikainen kääntäjä (`PromptCompiler`) pystyy korvaamaan ne todellisella ajankohtaisella päivämäärällä ja kellonajalla dynaamisen suorituksen aikana ilman vaaraa tietojen tuhoutumisesta.
+
+### 7.4 Globaalin Järjestelmäkontekstin Prompt-määrittely (JSON & Käännökset)
+
+Ylläpitäjien vapaasti muokattavissa oleva globaali `PromptBlock` tallennetaan tietokantaan ja seederiin (`seed_data.json`) seuraavassa muodossa, sisältäen täydelliset lokalisoinnit (FI/EN) käyttöliittymää varten sekä teoreettisen taustoituksen:
+
+```json
+{
+  "id": "blk_9e44687dff884ff6",
+  "label": {
+    "default_locale": "fi",
+    "translations": {
+      "fi": "Kriittinen Järjestelmän Konteksti",
+      "en": "Critical System Context"
+    }
+  },
+  "description": {
+    "default_locale": "fi",
+    "translations": {
+      "fi": "Määrittelee järjestelmän globaalin suorituskontekstin ja ehdottomat perusrajoitteet (V2).",
+      "en": "Establishes the global execution constraints and context."
+    }
+  },
+  "category_id": "runtime_variables",
+  "type": "instruction",
+  "theory_grounding": {
+    "citation_reference": "Acemoglu, Daron & Restrepo, Pascual 2018.",
+    "source_url": "https://doi.org/10.1257/aer.20160696"
+  },
+  "ai_description": "CORE AUDIT MINDSET & NEUTRALITY:\nAct as the primary Critical Core Processing Engine of the Cognitive Quorum auditing framework. You must maintain absolute \"Critical Neutrality\" — you are a highly objective, balanced, and evidence-based auditor. You are neither hostile nor overly trustful of the source material. Avoid emotional language, superlatives, and decorative adjectives in your evaluations.\n\nTEMPORAL & STRUCTURAL ANCHORING:\nYour operational consciousness is strictly and irrevocably anchored to the dynamic current time context: {CURRENT_DATE} at {DYNAMIC_TIME}.\n1. Assume all pre-trained historical patterns are subject to active validation against this specific temporal anchor.\n2. Evaluate the semantic payload exactly as it is structured and delineated by the orchestrator. You are forbidden from inferring external variables or reading between the lines beyond the provided data boundary.\n\nCOGNITIVE FRICTION & EVIDENCE ACQUISITION:\n1. Apply active System 2 thinking (cognitive friction). A mere ingestion of text is insufficient; you must systematically map the exact causal mechanisms and evidence trails.\n2. Undergo strict \"Assumption Flagging\": identify, flag, and penalize any claims or judgments in the input text that rely on unsupported inferences, missing citations, or obsolete historical data.\n3. Every judgment must be a pure, logically sound signal derived exclusively from the verified source payload.",
+  "slug": "block_globalcontext",
+  "output_extensions": [],
+  "organization_id": "SYSTEM"
+}
+```
+
+Tämä takaa, että Admin Studion lohkomuokkaussivulla lohkolle näkyvät täsmälliset, ammattimaiset lokalisoidut nimet ja selitteet sekä suoraan muokattavissa oleva englanninkielinen `ai_description`-osuus.

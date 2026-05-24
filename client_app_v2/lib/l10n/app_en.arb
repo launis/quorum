@@ -1218,6 +1218,7 @@
   "categoryTaskDefinition": "Task Definition",
   "categorySystemRule": "System Rule / Heuristic",
   "categoryProtocol": "Execution Protocol",
+  "categoryRuntimeVariables": "Runtime Variables",
   "technicalDetails": "Technical Details",
   "systemError": "System Error",
   "signInSubtitle": "Sign in to continue",
