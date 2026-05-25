@@ -105,7 +105,38 @@ class ChunkAccumulator:
                     if k not in final_result:
                         final_result[k] = v
                     else:
-                        self._merge_nested_dict(final_result[k], v, parent_key=k)
+                        # Epic 59: Support dynamic primitive merge behavior for
+                        # non-dict blocks (e.g. instruction blocks as strings)
+                        if isinstance(final_result[k], dict) and isinstance(v, dict):
+                            self._merge_nested_dict(final_result[k], v, parent_key=k)
+                        elif isinstance(final_result[k], str) and isinstance(v, str):
+                            if final_result[k] == v:
+                                continue
+                            elif not final_result[k].strip():
+                                final_result[k] = v
+                            elif not v.strip():
+                                continue
+                            else:
+                                final_result[k] = f"{final_result[k]}\n\n[Chunk]: {v}"
+                        elif isinstance(final_result[k], list) and isinstance(v, list):
+                            final_result[k] = final_result[k] + v
+                        elif isinstance(final_result[k], bool) and isinstance(v, bool):
+                            final_result[k] = final_result[k] or v
+                        elif isinstance(final_result[k], (int, float)) and isinstance(v, (int, float)):
+                            final_result[k] = min(final_result[k], v)
+                        elif v is None:
+                            continue
+                        elif final_result[k] is None:
+                            final_result[k] = v
+                        else:
+                            raise AppException(
+                                message=(
+                                    f"Strict Fail-Fast: Cannot merge mismatched XAI extensions for key '{k}'. "
+                                    f"Target type: {type(final_result[k])}, Source type: {type(v)}."
+                                ),
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            )
 
         # Build MergedFactsDTO to enforce strict schemas and banish naked dicts in state transit
         merged_dto = MergedFactsDTO.model_validate(merged_facts_dict)

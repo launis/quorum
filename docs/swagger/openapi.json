@@ -6626,6 +6626,12 @@
             ],
             "title": "Logical Expression",
             "description": "Whitelisted Boolean logical expression using extracted facts."
+          },
+          "allow_contextual_override": {
+            "type": "boolean",
+            "title": "Allow Contextual Override",
+            "description": "If True, allows overriding this assertion with a contextual excuse.",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -7322,6 +7328,12 @@
             "description": "Fallback strategy.",
             "default": "AVERAGE"
           },
+          "enable_contextual_overrides": {
+            "type": "boolean",
+            "title": "Enable Contextual Overrides",
+            "description": "Global flag to enable contextual overrides across assertions.",
+            "default": false
+          },
           "expected_inputs": {
             "items": {
               "$ref": "#/components/schemas/ExpectedInput-Input"
@@ -7513,6 +7525,12 @@
             "$ref": "#/components/schemas/ScoringStrategy",
             "description": "Fallback strategy.",
             "default": "AVERAGE"
+          },
+          "enable_contextual_overrides": {
+            "type": "boolean",
+            "title": "Enable Contextual Overrides",
+            "description": "Global flag to enable contextual overrides across assertions.",
+            "default": false
           },
           "expected_inputs": {
             "items": {

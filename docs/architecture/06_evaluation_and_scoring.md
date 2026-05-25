@@ -349,8 +349,24 @@ Epic 48 esitteli deterministisen kaskadiarkkitehtuurin (`AnchorValidationService
    * **Normalisointi:** Alkuperäinen teksti normalisoidaan (NFKC, lowercase, regex `[^a-z0-9]`) ja samaan aikaan luodaan 1D-kartta (array), joka yhdistää normalisoidun merkkijonon indeksit takaisin fyysisiin raakatekstin sijainteihin.
    * **O(N) Alignment:** LLM:n palauttama lainaus normalisoidaan ja ajetaan RapidFuzz `fuzz.partial_ratio_alignment` -algoritmin läpi. Jos osumatarkkuus on >= 85.0%, algoritmi palauttaa normalisoidun tekstin alku- ja loppuindeksit.
    * **Eksakti Fallback (Exact Fallback):** Nämä indeksit syötetään 1D-karttaan, josta poimitaan alkuperäinen, alkuperäisillä välilyönneillä varustettu katkelma suoraan raakadokumentista ohittaen tekoälyn aiheuttaman kosmeettisen varianssin.
-
 2. **Semantic Fallback Cascade (NLI):** Jos O(N) fuzzy-match epäonnistuu, kaskadi ei hylkää väitettä suoraan. Järjestelmä laukaisee halvan tason NLI-mallin (esim. GPT-4o-mini), jolta kysytään onko eristetty väite samaa tarkoittava PDF-kontekstin kanssa. Tämä pelastaa OCR-virheistä tai vahvoista lyhenteistä kärsivät tekstiosat DLQ-hylkäykseltä.
+
+## 9. Phase 4: Zero-Variance Verification & Hardening (Claim-Level Contextual Override)
+
+Epic 59 Phase 4 toi arviointimoottoriin täydellisen loogisen vakauden ja suojamuurit kokeellisia ylilyöntejä vastaan:
+
+### A. Claim-Level Contextual Override (Ohitusventtiili)
+Arvioinnin tiukkaa nollahypoteesia (Evaluate as FALSE) voidaan lieventää yksittäisen kriteerin osalta asiantuntijan antaman valtuutuksen kautta:
+* **Kaksoislukitus (Double-Lock)**: Ohitus hyväksytään kooditasolla vain, jos sekä työnkulun globaali kytkin (`enable_contextual_overrides`) että kyseisen väitteen oma kytkin (`allow_contextual_override`) ovat aktiivisia. Luvattomat tekoälypoikkeukset ohjataan deterministisesti `FAILED`-tilaan.
+* **Anti-Laziness & Spatiaalisuus**: Pydantic-validointi pakottaa tekoälyn kirjoittamaan vähintään 50 merkin pituisen perustelun (`semantic_reasoning`), jonka on sisällettävä eksplisiittinen sijaintiviite (sivu, kappale tai luku), muuten validointi epäonnistuu.
+
+### B. Spatial Slicing & Kronomnesian esto
+Kronomnesia (aikamatkustus ja menneisyyden muuttaminen tulevaisuuden datalla) estetään fyysisellä **Spatial Slicing (spatiaalinen paloittelu)** -tekniikalla:
+* `ContextBuilder` leikkaa tekstistä kaiken rajamerkin (esim. `[PHASE 2]`) jälkeisen tiedon fyysisesti irti ennen LLM-syötettä.
+* Kielimalli antaa tyhjän havainnon, ja Boolean-inversio (`inverse_evidence`) kääntää tämän turvallisesti `PASSED`-tilaksi todistaen kaksikanavaisen falsifioinnin toiminnan.
+
+### C. Visuaalinen XAI Audit Trail käyttöliittymässä
+Kun atomilaskenta sisältää `contextual_override == true`, Flutter-käyttöliittymä korvaa perinteisen sitaattilaatikon korostetulla, oranssilla perustelulaatikolla (`reportSemanticExplanationTitle`). Tämä antaa asiantuntijalle aukottoman ja nopeasti skannattavan audit-trailin ohituksen todellisista perusteista.
 
 <br><hr>
 

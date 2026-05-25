@@ -119,13 +119,21 @@ def run_tests_with_strict_coverage(target):
         print("\n✅ Strict 30% Coverage Target Met.")
 
 def main():
-    if len(sys.argv) < 2:
-        print("Käyttö: python backend_audit_loop.py <kohdekansio> [--openapi] [--test]")
-        sys.exit(1)
+    targets = []
+    run_openapi = False
+    run_test = False
 
-    target_dir = sys.argv[1]
-    run_openapi = "--openapi" in sys.argv
-    run_test = "--test" in sys.argv
+    for arg in sys.argv[1:]:
+        if arg == "--openapi":
+            run_openapi = True
+        elif arg == "--test":
+            run_test = True
+        else:
+            targets.append(arg)
+
+    if not targets:
+        print("Käyttö: python backend_audit_loop.py <kohdekansio_tai_tiedostot...> [--openapi] [--test]")
+        sys.exit(1)
 
     # Varmista että olemme oikeassa hakemistossa (projektin juuressa)
     current_dir = Path(os.getcwd())
@@ -135,25 +143,26 @@ def main():
         print("Virhe: Skripti pitää ajaa projektin juuresta (jossa backend_v2 sijaitsee).")
         sys.exit(1)
 
-    print(f"\n🚀 Suoritetaan quality-loop kansiolle: {target_dir}")
+    targets_str = ", ".join(targets)
+    print(f"\n🚀 Suoritetaan quality-loop kohteille: {targets_str}")
     print("--------------------------------------------------")
 
     print("\n⏳ 1/3: Korjataan tiedostot (ruff check --fix)...")
-    res = subprocess.run(["uv", "run", "ruff", "check", target_dir, "--fix"])
+    res = subprocess.run(["uv", "run", "ruff", "check", *targets, "--fix"])
     if res.returncode != 0:
         print("❌ Ruff linter löysi automaattisesti korjaamattomia virheitä!")
         sys.exit(res.returncode)
     print("✅ Linttaus ja korjaus valmis.")
 
     print("\n⏳ 2/3: Formatoidaan koodi (ruff format)...")
-    res = subprocess.run(["uv", "run", "ruff", "format", target_dir])
+    res = subprocess.run(["uv", "run", "ruff", "format", *targets])
     if res.returncode != 0:
         print("❌ Ruff-formatointi epäonnistui!")
         sys.exit(res.returncode)
     print("✅ Formatointi valmis.")
 
     print("\n⏳ 3/3: Tyyppitarkastetaan koodi (mypy --strict)...")
-    res = subprocess.run(["uv", "run", "mypy", target_dir, "--strict"])
+    res = subprocess.run(["uv", "run", "mypy", *targets, "--strict"])
     if res.returncode != 0:
         print("\n❌ MyPy löysi tyyppivirheitä! Korjaa The Universal Quality Gaten rikkomukset.\n")
         sys.exit(res.returncode)
@@ -169,10 +178,12 @@ def main():
         
     if run_test:
         print("\n⏳ Optio: Ajetaan Pytest-yksikkötestit ja Coverage (--test)...")
-        run_tests_with_strict_coverage(target_dir)
+        for target in targets:
+            print(f"\n🏃 Ajetaan testit kohteelle: {target}")
+            run_tests_with_strict_coverage(target)
         print("✅ Yksikkötestit läpäisty.")
 
-    print("\n🏆 Kaikki puhdasta! Backend-kansio on Phase 9 asennossa.\n")
+    print("\n🏆 Kaikki puhdasta! Kohteet ovat Phase 9 asennossa.\n")
 
 if __name__ == "__main__":
     main()

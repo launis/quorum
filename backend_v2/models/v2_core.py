@@ -153,6 +153,10 @@ class TDAAssertion(V2CoreBase):
         default=None,
         description="Whitelisted Boolean logical expression using extracted facts.",
     )
+    allow_contextual_override: bool = Field(
+        default=False,
+        description="If True, allows overriding this assertion with a contextual excuse.",
+    )
 
     @model_validator(mode="after")
     def validate_math_logic(self) -> TDAAssertion:
@@ -612,6 +616,11 @@ class MatrixScorecardRowDTO(V2CoreBase):
     emotional_sentiment: str | None = None
     theory_link: str | None = None
 
+    contextual_override: bool | None = Field(default=None, description="Whether contextual override was applied.")
+    semantic_reasoning: str | None = Field(
+        default=None, description="Detailed semantic justification for the override."
+    )
+
     level_breakdown: dict[str, str] | None = Field(
         default=None,
         description="Epic 24 Breakdowns: DINA hits vs total per scale floor e.g. {'1.0': '5/5'}",
@@ -856,6 +865,10 @@ class Workflow(V2CoreBase):
     default_scoring_strategy: LaxScoringStrategy = Field(
         default=ScoringStrategy.AVERAGE, description="Fallback strategy."
     )
+    enable_contextual_overrides: bool = Field(
+        default=False,
+        description="Global flag to enable contextual overrides across assertions.",
+    )
     expected_inputs: list[ExpectedInput] = Field(
         default_factory=list,
         description="List of dynamic expected inputs required by the workflow",
@@ -1055,6 +1068,16 @@ class BaseTDAExtraction(BaseModel):
 
     @model_validator(mode="after")
     def validate_override_logic(self) -> BaseTDAExtraction:
-        if self.contextual_override and self.exact_quote:
-            raise ValueError("Cross-validation failed: exact_quote MUST be empty if contextual_override is True.")
+        if self.contextual_override:
+            if self.exact_quote not in (None, "", "[CONTEXTUAL_OVERRIDE_APPLIED]"):
+                raise ValueError(
+                    "Cross-validation failed: exact_quote MUST be empty, null, "
+                    "or '[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is True."
+                )
+        else:
+            if self.exact_quote == "[CONTEXTUAL_OVERRIDE_APPLIED]":
+                raise ValueError(
+                    "Cross-validation failed: exact_quote cannot be "
+                    "'[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False."
+                )
         return self

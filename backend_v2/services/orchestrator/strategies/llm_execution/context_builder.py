@@ -76,6 +76,58 @@ class ContextBuilder:
 
         return pruned_step_output
 
+    @staticmethod
+    def apply_spatial_slicing(text: str, criteria_blocks: list[Any] | None) -> str:
+        """Applies physical spatial slicing to document text if chronological rules are detected."""
+        if not criteria_blocks or not isinstance(text, str):
+            return text
+
+        # 1. Collect all rule descriptions
+        rule_descriptions = []
+        for block in criteria_blocks:
+            desc = getattr(block, "ai_description", None)
+            if desc:
+                rule_descriptions.append(desc)
+            scales = getattr(block, "scales", None) or []
+            for scale in scales:
+                claims = getattr(scale, "claims", None) or []
+                for claim in claims:
+                    tda_assertions = getattr(claim, "tda_assertions", None) or []
+                    for tda in tda_assertions:
+                        rule_desc = getattr(tda, "ai_rule_description", None)
+                        if rule_desc:
+                            rule_descriptions.append(rule_desc)
+
+        # 2. Scan descriptions for chronological bounds
+        import re
+        for desc in rule_descriptions:
+            desc_lower = desc.lower()
+            # Match patterns like: "ennen vaihetta 2", "before phase 2", "before stage Y"
+            match = re.search(
+                r"(?:ennen vaihetta|before phase|before stage)\s+([a-zA-Z0-9_]+)",
+                desc_lower
+            )
+            if match:
+                phase_id = match.group(1)
+                # Physical boundary markers
+                patterns = [
+                    f"[VAIHE {phase_id}]",
+                    f"[PHASE {phase_id}]",
+                    f"[STAGE {phase_id}]",
+                    f"VAIHE {phase_id}",
+                    f"PHASE {phase_id}",
+                    f"STAGE {phase_id}",
+                ]
+                for pat in patterns:
+                    idx = text.upper().find(pat.upper())
+                    if idx != -1:
+                        logger.warning(
+                            f"[SpatialSlicing] Chronology rule detected: '{desc}'. "
+                            f"Physically slicing context at delimiter '{pat}' (index {idx})."
+                        )
+                        return text[:idx].strip()
+        return text
+
     @classmethod
     def build(
         cls,
@@ -83,6 +135,7 @@ class ContextBuilder:
         state_data: dict[str, Any],
         output_profile: Any | None = None,
         schema_map: dict[str, str] | None = None,
+        criteria_blocks: list[Any] | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         """Extracts values based on mappings, prunes traces, and enforces token limits.
 
@@ -91,6 +144,7 @@ class ContextBuilder:
             state_data: The state dictionary.
             output_profile: Optional output profile to filter matrix extensions.
             schema_map: Optional map of step IDs to 'MATRIX' or 'TEXT' to dictate parsing logic.
+            criteria_blocks: Optional list of PromptBlocks for spatial slicing.
 
         Returns:
             A tuple of (llm_context_data, sanitized_input_mappings).
@@ -111,6 +165,9 @@ class ContextBuilder:
                     resolved_value = None
                 else:
                     resolved_value = resolve_dot_notation(state_data, clean_path)
+
+                if isinstance(resolved_value, str):
+                    resolved_value = ContextBuilder.apply_spatial_slicing(resolved_value, criteria_blocks)
 
                 # Epic 43 Phase 3: Strict List Filtering
                 def _prune_step_dtos(dtos_list: list[Any]) -> str:

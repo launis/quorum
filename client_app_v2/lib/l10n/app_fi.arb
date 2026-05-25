@@ -779,6 +779,7 @@
   "reportCognitiveWork": "Kognitiivinen työ (Tokens)",
   "reportTextSynthesis": "Teksti / Synteesi",
   "reportQuoteTitle": "💬 Ote alkuperäisestä tekstistä:\n{quote}",
+  "reportSemanticExplanationTitle": "💡 Tekoälyn semanttinen perustelu (Kontekstuaalinen ohitus):\n{reasoning}",
   "reportFrameworkReference": "⚖️ Viitekehys: {source}",
   "reportGoogleVerified": "Tarkistettu Googlen lähteistä:\n{citation}",
   "reportInteractionMatrix2D": "Vuorovaikutusmatriisi (2D)",
@@ -1128,5 +1129,9 @@
     }
   },
   "matrixEvaluativeAsteriskLegend": "* = Arvioiva matriisi (Vaikuttaa kokonaisarvosanaan)",
-  "eventLlmAnomalyRetry": "Laadunvarmistus: Tekoäly havaitsi epäjohdonmukaisuuden ja varmentaa päättelyketjuaan (Yritys 2)..."
+  "eventLlmAnomalyRetry": "Laadunvarmistus: Tekoäly havaitsi epäjohdonmukaisuuden ja varmentaa päättelyketjuaan (Yritys 2)...",
+  "allowContextualOverrideLabel": "Salli kognitiivinen ohitus",
+  "allowContextualOverrideDescription": "Sallii LLM:lle perustellun semanttisen hyväksynnän ilman kirjaimellista lainausta, jos tarkkaa tekstiä ei ole fyysisiä todisteita varten olemassa.",
+  "enableContextualOverridesLabel": "Kognitiiviset ohitukset käytössä",
+  "enableContextualOverridesDescription": "Master-kytkin, joka sallii tai kieltää väitetasoiset semanttiset ohitukset koko tämän työnkulun ajon aikana."
 }

@@ -70,6 +70,9 @@ abstract class TDAAssertion with _$TDAAssertion {
     EvaluationTrack evaluationTrack,
     @JsonKey(name: 'facts_to_find') @Default([]) List<String> factsToFind,
     @JsonKey(name: 'logical_expression') String? logicalExpression,
+    @JsonKey(name: 'allow_contextual_override')
+    @Default(false)
+    bool allowContextualOverride,
   }) = _TDAAssertion;
 
   factory TDAAssertion.fromJson(Map<String, dynamic> json) =>
@@ -83,6 +86,7 @@ abstract class TDAAssertion with _$TDAAssertion {
     EvaluationTrack evaluationTrack = EvaluationTrack.extractiveSensor,
     List<String> factsToFind = const [],
     String? logicalExpression,
+    bool allowContextualOverride = false,
   }) {
     final uuidHex = const Uuid().v4().replaceAll('-', '');
     return TDAAssertion(
@@ -93,6 +97,7 @@ abstract class TDAAssertion with _$TDAAssertion {
       evaluationTrack: evaluationTrack,
       factsToFind: factsToFind,
       logicalExpression: logicalExpression,
+      allowContextualOverride: allowContextualOverride,
     );
   }
 }

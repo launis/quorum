@@ -2345,6 +2345,11 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
+  String reportSemanticExplanationTitle(String reasoning) {
+    return '💡 Tekoälyn semanttinen perustelu (Kontekstuaalinen ohitus):\n$reasoning';
+  }
+
+  @override
   String reportFrameworkReference(String source) {
     return '⚖️ Viitekehys: $source';
   }
@@ -3441,4 +3446,19 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get strategyPainotettuKeskiarvo => 'Painotettu Keskiarvo';
+
+  @override
+  String get allowContextualOverrideLabel => 'Salli kognitiivinen ohitus';
+
+  @override
+  String get allowContextualOverrideDescription =>
+      'Sallii LLM:lle perustellun semanttisen hyväksynnän ilman kirjaimellista lainausta, jos tarkkaa tekstiä ei ole fyysisiä todisteita varten olemassa.';
+
+  @override
+  String get enableContextualOverridesLabel =>
+      'Kognitiiviset ohitukset käytössä';
+
+  @override
+  String get enableContextualOverridesDescription =>
+      'Master-kytkin, joka sallii tai kieltää väitetasoiset semanttiset ohitukset koko tämän työnkulun ajon aikana.';
 }

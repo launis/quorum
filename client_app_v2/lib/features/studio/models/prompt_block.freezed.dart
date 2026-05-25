@@ -267,7 +267,7 @@ as String,
 /// @nodoc
 mixin _$TDAAssertion {
 
-@JsonKey(name: 'tda_id') String get tdaId;@JsonKey(name: 'ai_rule_description') String get aiRuleDescription;@JsonKey(name: 'inverse_evidence') bool get inverseEvidence;@JsonKey(name: 'aggregation_mode') AggregationMode get aggregationMode;@JsonKey(name: 'evaluation_track') EvaluationTrack get evaluationTrack;@JsonKey(name: 'facts_to_find') List<String> get factsToFind;@JsonKey(name: 'logical_expression') String? get logicalExpression;
+@JsonKey(name: 'tda_id') String get tdaId;@JsonKey(name: 'ai_rule_description') String get aiRuleDescription;@JsonKey(name: 'inverse_evidence') bool get inverseEvidence;@JsonKey(name: 'aggregation_mode') AggregationMode get aggregationMode;@JsonKey(name: 'evaluation_track') EvaluationTrack get evaluationTrack;@JsonKey(name: 'facts_to_find') List<String> get factsToFind;@JsonKey(name: 'logical_expression') String? get logicalExpression;@JsonKey(name: 'allow_contextual_override') bool get allowContextualOverride;
 /// Create a copy of TDAAssertion
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -282,7 +282,7 @@ $TDAAssertionCopyWith<TDAAssertion> get copyWith => _$TDAAssertionCopyWithImpl<T
 
 @override
 String toString() {
-  return 'TDAAssertion(tdaId: $tdaId, aiRuleDescription: $aiRuleDescription, inverseEvidence: $inverseEvidence, aggregationMode: $aggregationMode, evaluationTrack: $evaluationTrack, factsToFind: $factsToFind, logicalExpression: $logicalExpression)';
+  return 'TDAAssertion(tdaId: $tdaId, aiRuleDescription: $aiRuleDescription, inverseEvidence: $inverseEvidence, aggregationMode: $aggregationMode, evaluationTrack: $evaluationTrack, factsToFind: $factsToFind, logicalExpression: $logicalExpression, allowContextualOverride: $allowContextualOverride)';
 }
 
 
@@ -293,7 +293,7 @@ abstract mixin class $TDAAssertionCopyWith<$Res>  {
   factory $TDAAssertionCopyWith(TDAAssertion value, $Res Function(TDAAssertion) _then) = _$TDAAssertionCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'ai_rule_description') String aiRuleDescription,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression
+@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'ai_rule_description') String aiRuleDescription,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression,@JsonKey(name: 'allow_contextual_override') bool allowContextualOverride
 });
 
 
@@ -310,7 +310,7 @@ class _$TDAAssertionCopyWithImpl<$Res>
 
 /// Create a copy of TDAAssertion
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? tdaId = null,Object? aiRuleDescription = null,Object? inverseEvidence = null,Object? aggregationMode = null,Object? evaluationTrack = null,Object? factsToFind = null,Object? logicalExpression = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? tdaId = null,Object? aiRuleDescription = null,Object? inverseEvidence = null,Object? aggregationMode = null,Object? evaluationTrack = null,Object? factsToFind = null,Object? logicalExpression = freezed,Object? allowContextualOverride = null,}) {
   return _then(_self.copyWith(
 tdaId: null == tdaId ? _self.tdaId : tdaId // ignore: cast_nullable_to_non_nullable
 as String,aiRuleDescription: null == aiRuleDescription ? _self.aiRuleDescription : aiRuleDescription // ignore: cast_nullable_to_non_nullable
@@ -319,7 +319,8 @@ as bool,aggregationMode: null == aggregationMode ? _self.aggregationMode : aggre
 as AggregationMode,evaluationTrack: null == evaluationTrack ? _self.evaluationTrack : evaluationTrack // ignore: cast_nullable_to_non_nullable
 as EvaluationTrack,factsToFind: null == factsToFind ? _self.factsToFind : factsToFind // ignore: cast_nullable_to_non_nullable
 as List<String>,logicalExpression: freezed == logicalExpression ? _self.logicalExpression : logicalExpression // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,allowContextualOverride: null == allowContextualOverride ? _self.allowContextualOverride : allowContextualOverride // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -404,10 +405,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'ai_rule_description')  String aiRuleDescription, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'ai_rule_description')  String aiRuleDescription, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TDAAssertion() when $default != null:
-return $default(_that.tdaId,_that.aiRuleDescription,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression);case _:
+return $default(_that.tdaId,_that.aiRuleDescription,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.allowContextualOverride);case _:
   return orElse();
 
 }
@@ -425,10 +426,10 @@ return $default(_that.tdaId,_that.aiRuleDescription,_that.inverseEvidence,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'ai_rule_description')  String aiRuleDescription, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'ai_rule_description')  String aiRuleDescription, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride)  $default,) {final _that = this;
 switch (_that) {
 case _TDAAssertion():
-return $default(_that.tdaId,_that.aiRuleDescription,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression);case _:
+return $default(_that.tdaId,_that.aiRuleDescription,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.allowContextualOverride);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -445,10 +446,10 @@ return $default(_that.tdaId,_that.aiRuleDescription,_that.inverseEvidence,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'ai_rule_description')  String aiRuleDescription, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'ai_rule_description')  String aiRuleDescription, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride)?  $default,) {final _that = this;
 switch (_that) {
 case _TDAAssertion() when $default != null:
-return $default(_that.tdaId,_that.aiRuleDescription,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression);case _:
+return $default(_that.tdaId,_that.aiRuleDescription,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.allowContextualOverride);case _:
   return null;
 
 }
@@ -460,7 +461,7 @@ return $default(_that.tdaId,_that.aiRuleDescription,_that.inverseEvidence,_that.
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _TDAAssertion extends TDAAssertion {
-  const _TDAAssertion({@JsonKey(name: 'tda_id') required this.tdaId, @JsonKey(name: 'ai_rule_description') required this.aiRuleDescription, @JsonKey(name: 'inverse_evidence') required this.inverseEvidence, @JsonKey(name: 'aggregation_mode') required this.aggregationMode, @JsonKey(name: 'evaluation_track') this.evaluationTrack = EvaluationTrack.extractiveSensor, @JsonKey(name: 'facts_to_find') final  List<String> factsToFind = const [], @JsonKey(name: 'logical_expression') this.logicalExpression}): _factsToFind = factsToFind,super._();
+  const _TDAAssertion({@JsonKey(name: 'tda_id') required this.tdaId, @JsonKey(name: 'ai_rule_description') required this.aiRuleDescription, @JsonKey(name: 'inverse_evidence') required this.inverseEvidence, @JsonKey(name: 'aggregation_mode') required this.aggregationMode, @JsonKey(name: 'evaluation_track') this.evaluationTrack = EvaluationTrack.extractiveSensor, @JsonKey(name: 'facts_to_find') final  List<String> factsToFind = const [], @JsonKey(name: 'logical_expression') this.logicalExpression, @JsonKey(name: 'allow_contextual_override') this.allowContextualOverride = false}): _factsToFind = factsToFind,super._();
   factory _TDAAssertion.fromJson(Map<String, dynamic> json) => _$TDAAssertionFromJson(json);
 
 @override@JsonKey(name: 'tda_id') final  String tdaId;
@@ -476,6 +477,7 @@ class _TDAAssertion extends TDAAssertion {
 }
 
 @override@JsonKey(name: 'logical_expression') final  String? logicalExpression;
+@override@JsonKey(name: 'allow_contextual_override') final  bool allowContextualOverride;
 
 /// Create a copy of TDAAssertion
 /// with the given fields replaced by the non-null parameter values.
@@ -492,7 +494,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'TDAAssertion(tdaId: $tdaId, aiRuleDescription: $aiRuleDescription, inverseEvidence: $inverseEvidence, aggregationMode: $aggregationMode, evaluationTrack: $evaluationTrack, factsToFind: $factsToFind, logicalExpression: $logicalExpression)';
+  return 'TDAAssertion(tdaId: $tdaId, aiRuleDescription: $aiRuleDescription, inverseEvidence: $inverseEvidence, aggregationMode: $aggregationMode, evaluationTrack: $evaluationTrack, factsToFind: $factsToFind, logicalExpression: $logicalExpression, allowContextualOverride: $allowContextualOverride)';
 }
 
 
@@ -503,7 +505,7 @@ abstract mixin class _$TDAAssertionCopyWith<$Res> implements $TDAAssertionCopyWi
   factory _$TDAAssertionCopyWith(_TDAAssertion value, $Res Function(_TDAAssertion) _then) = __$TDAAssertionCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'ai_rule_description') String aiRuleDescription,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression
+@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'ai_rule_description') String aiRuleDescription,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression,@JsonKey(name: 'allow_contextual_override') bool allowContextualOverride
 });
 
 
@@ -520,7 +522,7 @@ class __$TDAAssertionCopyWithImpl<$Res>
 
 /// Create a copy of TDAAssertion
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? tdaId = null,Object? aiRuleDescription = null,Object? inverseEvidence = null,Object? aggregationMode = null,Object? evaluationTrack = null,Object? factsToFind = null,Object? logicalExpression = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? tdaId = null,Object? aiRuleDescription = null,Object? inverseEvidence = null,Object? aggregationMode = null,Object? evaluationTrack = null,Object? factsToFind = null,Object? logicalExpression = freezed,Object? allowContextualOverride = null,}) {
   return _then(_TDAAssertion(
 tdaId: null == tdaId ? _self.tdaId : tdaId // ignore: cast_nullable_to_non_nullable
 as String,aiRuleDescription: null == aiRuleDescription ? _self.aiRuleDescription : aiRuleDescription // ignore: cast_nullable_to_non_nullable
@@ -529,7 +531,8 @@ as bool,aggregationMode: null == aggregationMode ? _self.aggregationMode : aggre
 as AggregationMode,evaluationTrack: null == evaluationTrack ? _self.evaluationTrack : evaluationTrack // ignore: cast_nullable_to_non_nullable
 as EvaluationTrack,factsToFind: null == factsToFind ? _self._factsToFind : factsToFind // ignore: cast_nullable_to_non_nullable
 as List<String>,logicalExpression: freezed == logicalExpression ? _self.logicalExpression : logicalExpression // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,allowContextualOverride: null == allowContextualOverride ? _self.allowContextualOverride : allowContextualOverride // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

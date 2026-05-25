@@ -209,6 +209,18 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         );
                       },
                     ),
+                    const SizedBox(height: 16),
+                    SwitchListTile(
+                      title: Text(l10n.enableContextualOverridesLabel),
+                      subtitle: Text(l10n.enableContextualOverridesDescription),
+                      value: workflow.enableContextualOverrides,
+                      onChanged: (val) {
+                        onChanged(
+                          workflow.copyWith(enableContextualOverrides: val),
+                        );
+                      },
+                      contentPadding: EdgeInsets.zero,
+                    ),
                   ],
                 ),
               ),

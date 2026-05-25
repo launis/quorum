@@ -34,13 +34,15 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
 
   Widget _buildMainContent(BuildContext context) {
     final hasRowExplanation = axis.rowExplanation.trim().isNotEmpty;
-    final hasQuote = showQuote;
+    final isOverride = axis.contextualOverride == true;
+    final hasExplanation = isOverride && axis.semanticReasoning != null && axis.semanticReasoning!.trim().isNotEmpty;
+    final hasQuote = showQuote && !isOverride;
     final hasWebCitation =
         axis.citedWebCitation != null && axis.citedWebCitation!.isNotEmpty;
     final hasSourceId =
         axis.citedSourceId != null && axis.citedSourceId!.isNotEmpty;
 
-    if (!hasRowExplanation && !hasQuote && !hasWebCitation && !hasSourceId) {
+    if (!hasRowExplanation && !hasQuote && !hasExplanation && !hasWebCitation && !hasSourceId) {
       return const SizedBox();
     }
 
@@ -80,6 +82,29 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
             ),
             child: Text(
               l10n.reportQuoteTitle(axis.citedTextQuote!),
+              style: const TextStyle(
+                fontSize: 14,
+                fontStyle: FontStyle.italic,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        if (hasExplanation)
+          Container(
+            margin: const EdgeInsets.only(top: 12.0),
+            padding: const EdgeInsets.all(12.0),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              border: const Border(
+                left: BorderSide(color: Colors.orange, width: 4),
+              ),
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(8.0),
+                bottomRight: Radius.circular(8.0),
+              ),
+            ),
+            child: Text(
+              l10n.reportSemanticExplanationTitle(axis.semanticReasoning!),
               style: const TextStyle(
                 fontSize: 14,
                 fontStyle: FontStyle.italic,

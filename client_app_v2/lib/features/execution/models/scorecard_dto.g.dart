@@ -116,6 +116,8 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
         'ui_boundary_labels',
         'ui_plot_ratio',
         'is_evaluative',
+        'contextual_override',
+        'semantic_reasoning',
       ],
     );
     final val = _MatrixScorecardRowDto(
@@ -188,6 +190,14 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
         (v) => (v as num?)?.toDouble(),
       ),
       isEvaluative: $checkedConvert('is_evaluative', (v) => v as bool? ?? true),
+      contextualOverride: $checkedConvert(
+        'contextual_override',
+        (v) => v as bool?,
+      ),
+      semanticReasoning: $checkedConvert(
+        'semantic_reasoning',
+        (v) => v as String?,
+      ),
     );
     return val;
   },
@@ -216,6 +226,8 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
     'uiBoundaryLabels': 'ui_boundary_labels',
     'uiPlotRatio': 'ui_plot_ratio',
     'isEvaluative': 'is_evaluative',
+    'contextualOverride': 'contextual_override',
+    'semanticReasoning': 'semantic_reasoning',
   },
 );
 
@@ -252,6 +264,8 @@ Map<String, dynamic> _$MatrixScorecardRowDtoToJson(
   'ui_boundary_labels': instance.uiBoundaryLabels,
   'ui_plot_ratio': instance.uiPlotRatio,
   'is_evaluative': instance.isEvaluative,
+  'contextual_override': instance.contextualOverride,
+  'semantic_reasoning': instance.semanticReasoning,
 };
 
 const _$EvidenceTypeEnumMap = {

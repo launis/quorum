@@ -485,7 +485,8 @@
                   "tda_id": "tda_e6a0c9d3eb6c443f",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: User inputs. STEP 1 (Syntactic Anchor): Find dialectical reasoning markers ('One might argue that X, but testing showed Y because'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the author explicitly attempts to falsify their own Claim with a test/data before accepting it. NEGATIVE CONDITION (RETURN NULL IF MET): it is just a pros/cons list. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Simple pros/cons lists. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.",
                   "inverse_evidence": false,
-                  "aggregation_mode": "ALL_MUST_COMPLY"
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "allow_contextual_override": true
                 }
               ]
             },
@@ -823,7 +824,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_58cbd7271f491351",
-                  "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find framework absolutism words (e.g., 'proves unequivocally', 'the model dictates', 'undeniable', 'certainty'). STEP 2 (Bounding Box & Negative Condition): Scan the paragraph containing the anchor. If the paragraph contains the absolutism anchor BUT does NOT contain mitigating vocabulary (e.g., 'however', 'potential limit', 'constraint', 'lens', 'maybe') -> ACCEPT. If it contains mitigating vocabulary -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, 'infallible truth', or epistemological humility subjectively. Do not accept mathematical proofs. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.",
+                  "ai_rule_description": "Extract exact quotes containing absolute declarations (e.g., 'proves unequivocally', 'the model dictates', 'undeniable', 'certainty') into List A. Extract exact quotes containing mitigating words or constraints (e.g., 'however', 'potential limit', 'constraint', 'lens', 'maybe') into List B.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS"
                 }
@@ -923,7 +924,8 @@
                   "tda_id": "tda_567ee46c35852f54",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. STEP 1 (Syntactic Anchor): Find synthesis verbs (e.g., 'design', 'formulate', 'invent', 'combining X and Y creates'). STEP 2: EXTRACTION CONDITION: the text explicitly merges at least two disparate elements into a completely new, named framework or solution. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept mere combinations of existing ideas without a novel theoretical leap. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.",
                   "inverse_evidence": false,
-                  "aggregation_mode": "ALL_MUST_COMPLY"
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "allow_contextual_override": true
                 }
               ]
             },
@@ -1433,7 +1435,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_569f87a921a2fb69",
-                  "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. STEP 1 (Syntactic Anchor): Find user instructions that modify an output (e.g., 'change this paragraph to'). STEP 2 (Bounding Box): Scan the interaction. EXTRACTION CONDITION: the user modifies the final output but leaves the original AI system prompt or generative logic exactly the same. NEGATIVE CONDITION (RETURN NULL IF MET): the user alters the underlying instructions/logic. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Deep structural refactoring. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.",
+                  "ai_rule_description": "Extract exact quotes containing user instructions to modify the final output (e.g., 'change this paragraph to') into List A. Extract exact quotes containing alterations to the underlying instructions or logic into List B.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }
@@ -1587,7 +1589,8 @@
                   "tda_id": "tda_4b9a2c1f38e7456d",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY the Target Data. STEP 1 (Syntactic Anchor): Find Socratic conceptual questions by the user (e.g., 'mihin oletukseen', 'mitä jos muuttaisimme', 'perustele miksi', 'miksi päädyit'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: The user actively probes the foundational reasoning or forces the AI to defend its logic. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log.",
                   "inverse_evidence": false,
-                  "aggregation_mode": "ALL_MUST_COMPLY"
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "allow_contextual_override": true
                 }
               ]
             },
@@ -6520,7 +6523,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_d204baf0bdf74ff7",
-                  "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find explicit boundary setting markers (e.g., 'this does not apply to', 'a key constraint is'). STEP 2: Document the constraint before extracting the exact_quote. EXTRACTION CONDITION: found. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.",
+                  "ai_rule_description": "Extract exact quotes containing boundary setting markers or key constraint definitions (e.g., 'this does not apply to', 'a key constraint is') into List A. Extract exact quotes containing counter-arguments or exceptions into List B.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY"
                 }

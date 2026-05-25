@@ -4328,6 +4328,12 @@ abstract class AppLocalizations {
   /// **'💬 Excerpt from original text:\n{quote}'**
   String reportQuoteTitle(String quote);
 
+  /// No description provided for @reportSemanticExplanationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'💡 AI Semantic Explanation (Contextual Override):\n{reasoning}'**
+  String reportSemanticExplanationTitle(String reasoning);
+
   /// No description provided for @reportFrameworkReference.
   ///
   /// In en, this message translates to:
@@ -6251,6 +6257,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Painotettu Keskiarvo (Weighted Average)'**
   String get strategyPainotettuKeskiarvo;
+
+  /// No description provided for @allowContextualOverrideLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Contextual Override'**
+  String get allowContextualOverrideLabel;
+
+  /// No description provided for @allowContextualOverrideDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Allows the LLM to justify semantic verification without a literal quotation if exact text evidence is physically absent.'**
+  String get allowContextualOverrideDescription;
+
+  /// No description provided for @enableContextualOverridesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Contextual Overrides'**
+  String get enableContextualOverridesLabel;
+
+  /// No description provided for @enableContextualOverridesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Master toggle that globally enables or disables claim-level semantic overrides for this entire workflow run.'**
+  String get enableContextualOverridesDescription;
 }
 
 class _AppLocalizationsDelegate

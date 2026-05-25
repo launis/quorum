@@ -489,6 +489,10 @@ class BlueprintTransformer:
                 remediation_steps=_coerce_str(ext_dict.get("remediation_steps")),
                 emotional_sentiment=_coerce_str(ext_dict.get("emotional_sentiment")),
                 theory_link=_coerce_str(ext_dict.get("theory_link")),
+                contextual_override=_coerce_bool(ext_dict.get("contextual_override")),
+                semantic_reasoning=(
+                    _coerce_str(ext_dict.get("semantic_reasoning")) or _coerce_str(ext_dict.get("justification"))
+                ),
                 level_breakdown=axis_level_breakdown,
                 level_names=level_names,
                 ui_boundary_labels=ui_boundary_labels,

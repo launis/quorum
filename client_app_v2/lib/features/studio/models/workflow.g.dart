@@ -410,6 +410,7 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'default_profile_id',
         'default_strictness_level',
         'default_scoring_strategy',
+        'enable_contextual_overrides',
         'expected_inputs',
         'steps',
       ],
@@ -461,6 +462,10 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
             $enumDecodeNullable(_$ScoringStrategyEnumMap, v) ??
             ScoringStrategy.average,
       ),
+      enableContextualOverrides: $checkedConvert(
+        'enable_contextual_overrides',
+        (v) => v as bool? ?? false,
+      ),
       expectedInputs: $checkedConvert(
         'expected_inputs',
         (v) =>
@@ -488,6 +493,7 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
     'defaultProfileId': 'default_profile_id',
     'defaultStrictnessLevel': 'default_strictness_level',
     'defaultScoringStrategy': 'default_scoring_strategy',
+    'enableContextualOverrides': 'enable_contextual_overrides',
     'expectedInputs': 'expected_inputs',
   },
 );
@@ -509,6 +515,7 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
   'default_strictness_level': instance.defaultStrictnessLevel,
   'default_scoring_strategy':
       _$ScoringStrategyEnumMap[instance.defaultScoringStrategy]!,
+  'enable_contextual_overrides': instance.enableContextualOverrides,
   'expected_inputs': instance.expectedInputs.map((e) => e.toJson()).toList(),
   'steps': instance.steps.map((e) => e.toJson()).toList(),
 };

@@ -101,6 +101,18 @@ class MockRepository:
     async def get_execution(self, execution_id: str) -> dict[str, Any]:
         return _build_valid_execution_dict(execution_id)
 
+    async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
+        return {
+            "id": "wflow_1234567890123456",
+            "slug": "test_workflow",
+            "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
+            "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+            "status": "active",
+            "version": 1,
+            "default_profile_id": "prof_123",
+            "enable_contextual_overrides": True,
+        }
+
     async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
         return {
             "id": profile_id,
@@ -169,6 +181,18 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
 
         async def get_execution(self, execution_id: str) -> dict[str, Any]:
             return _build_valid_execution_dict(execution_id)
+
+        async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
+            return {
+                "id": "wflow_1234567890123456",
+                "slug": "test_workflow",
+                "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
+                "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+                "status": "active",
+                "version": 1,
+                "default_profile_id": "prof_123",
+                "enable_contextual_overrides": True,
+            }
 
         async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
             return {
@@ -256,6 +280,18 @@ class MockRepoWaterfall:
     async def get_execution(self, execution_id: str) -> dict[str, Any]:
         return _build_valid_execution_dict(execution_id)
 
+    async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
+        return {
+            "id": "wflow_1234567890123456",
+            "slug": "test_workflow",
+            "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
+            "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+            "status": "active",
+            "version": 1,
+            "default_profile_id": "prof_123",
+            "enable_contextual_overrides": True,
+        }
+
     async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
         return {
             "id": profile_id,
@@ -291,6 +327,18 @@ class MockRepoWaterfallMixed:
 
     async def get_execution(self, execution_id: str) -> dict[str, Any]:
         return _build_valid_execution_dict(execution_id)
+
+    async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
+        return {
+            "id": "wflow_1234567890123456",
+            "slug": "test_workflow",
+            "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
+            "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+            "status": "active",
+            "version": 1,
+            "default_profile_id": "prof_123",
+            "enable_contextual_overrides": True,
+        }
 
     async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
         return {
@@ -502,6 +550,18 @@ class MockRepoWaterfallSimulation:
 
     async def get_execution(self, execution_id: str) -> dict[str, Any]:
         return _build_valid_execution_dict(execution_id, strategy="DAMPENING")
+
+    async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
+        return {
+            "id": "wflow_1234567890123456",
+            "slug": "test_workflow",
+            "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
+            "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+            "status": "active",
+            "version": 1,
+            "default_profile_id": "prof_123",
+            "enable_contextual_overrides": True,
+        }
 
     async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
         return {

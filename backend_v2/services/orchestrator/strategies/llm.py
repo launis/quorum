@@ -201,6 +201,7 @@ class LLMNodeStrategy(NodeStrategy):
             state_data=state_data,
             output_profile=output_profile,
             schema_map=schema_map,
+            criteria_blocks=criteria_blocks,
         )
         input_mappings = new_input_mappings
 

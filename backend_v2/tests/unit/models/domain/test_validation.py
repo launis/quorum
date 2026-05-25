@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.domain.validation import (
+    HardeningRetryDirectiveDTO,
     SystemWarningsStateDTO,
     ValidationHookPayloadDTO,
     ValidationResultDTO,
@@ -78,3 +79,47 @@ def test_system_warnings_state_extracts_and_ignores_extra() -> None:
     assert len(state.system_warnings) == 1
     with pytest.raises(AttributeError):
         _ = state.random_execution_state_field  # type: ignore[attr-defined]
+
+
+def test_validation_warning_telemetry() -> None:
+    """Test that ValidationWarningDTO accepts optional entropy and telemetry_code."""
+    data = {
+        "type": "Warning",
+        "title": "Low confidence score",
+        "error_code": "WARN_045",
+        "detail": "The LLM output exhibits high entropy.",
+        "entropy": 4.12,
+        "telemetry_code": "TELE_ENTROPY_HIGH",
+    }
+    warning = ValidationWarningDTO.model_validate(data)
+    assert warning.entropy == 4.12
+    assert warning.telemetry_code == "TELE_ENTROPY_HIGH"
+
+
+def test_hardening_retry_directive() -> None:
+    """Test that HardeningRetryDirectiveDTO enforces bounds and schemas."""
+    data = {
+        "retry_allowed": True,
+        "max_retries": 3,
+        "current_retry_count": 1,
+        "target_block_ids": ["blk_1234567890123456"],
+        "strictness_override": 80,
+        "reason": "Verify exact match quote failed.",
+    }
+    directive = HardeningRetryDirectiveDTO.model_validate(data)
+    assert directive.retry_allowed is True
+    assert directive.max_retries == 3
+    assert directive.current_retry_count == 1
+    assert directive.strictness_override == 80
+
+    # Test strictness validation constraint (>100 fails)
+    invalid_data = data.copy()
+    invalid_data["strictness_override"] = 150
+    with pytest.raises(ValidationError):
+        HardeningRetryDirectiveDTO.model_validate(invalid_data)
+
+    # Test max_retries limit bounds
+    invalid_max = data.copy()
+    invalid_max["max_retries"] = 10
+    with pytest.raises(ValidationError):
+        HardeningRetryDirectiveDTO.model_validate(invalid_max)

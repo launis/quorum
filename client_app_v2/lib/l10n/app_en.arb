@@ -1111,6 +1111,14 @@
       }
     }
   },
+  "reportSemanticExplanationTitle": "💡 AI Semantic Explanation (Contextual Override):\n{reasoning}",
+  "@reportSemanticExplanationTitle": {
+    "placeholders": {
+      "reasoning": {
+        "type": "String"
+      }
+    }
+  },
   "reportFrameworkReference": "⚖️ Reference framework: {source}",
   "@reportFrameworkReference": {
     "placeholders": {
@@ -1779,5 +1787,9 @@
   "strategyKoearvostelu": "Koearvostelu (Test Evaluation)",
   "strategySyvaarvostelu": "Syväarvostelu (Deep Evaluation)",
   "strategyLineaarinenKeskiarvo": "Lineaarinen Keskiarvo (Linear Average)",
-  "strategyPainotettuKeskiarvo": "Painotettu Keskiarvo (Weighted Average)"
+  "strategyPainotettuKeskiarvo": "Painotettu Keskiarvo (Weighted Average)",
+  "allowContextualOverrideLabel": "Allow Contextual Override",
+  "allowContextualOverrideDescription": "Allows the LLM to justify semantic verification without a literal quotation if exact text evidence is physically absent.",
+  "enableContextualOverridesLabel": "Enable Contextual Overrides",
+  "enableContextualOverridesDescription": "Master toggle that globally enables or disables claim-level semantic overrides for this entire workflow run."
 }

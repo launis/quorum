@@ -39,6 +39,8 @@ class ValidationWarningDTO(V2CoreBase):
     error_code: str = Field(..., min_length=1)
     detail: str = Field(..., min_length=1)
     meta: dict[str, Any] = Field(default_factory=dict)
+    entropy: float | None = Field(default=None, description="Optional Shannon entropy telemetry score.")
+    telemetry_code: str | None = Field(default=None, description="Optional telemetry status or routing code.")
 
 
 class ValidationResultDTO(V2CoreBase):
@@ -46,6 +48,17 @@ class ValidationResultDTO(V2CoreBase):
 
     is_valid: bool = Field(...)
     errors: list[ValidationWarningDTO] = Field(...)
+
+
+class HardeningRetryDirectiveDTO(V2CoreBase):
+    """Directive to orchestrate dynamic self-correction and retry loops."""
+
+    retry_allowed: bool = Field(..., description="Whether a hardening retry is permitted.")
+    max_retries: int = Field(default=3, ge=1, le=5, description="Maximum number of retries.")
+    current_retry_count: int = Field(default=0, ge=0, description="Current retry iteration.")
+    target_block_ids: list[str] = Field(default_factory=list, description="Target blocks that failed verification.")
+    strictness_override: int | None = Field(default=None, ge=0, le=100, description="Optional strictness override.")
+    reason: str = Field(..., description="Logical or mathematical reason triggering the retry.")
 
 
 class SystemWarningsStateDTO(V2CoreBase):

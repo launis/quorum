@@ -215,3 +215,24 @@ def test_chunk_accumulator_reducer_evaluations_and_reasoning_trace() -> None:
     # The reasoning_trace should be concatenated
     assert "reasoning_trace" in result
     assert result["reasoning_trace"] == "First reason.\n\n[Chunk]: Second reason."
+
+
+def test_chunk_accumulator_reducer_instruction_primitive_merge() -> None:
+    """Verify that instruction blocks (which are represented as strings, not dicts)
+    can be successfully merged without raising strict type exception.
+    """
+    accumulator = ChunkAccumulator()
+    chunk_0: dict[str, Any] = {
+        "chunk_index": 0,
+        "blk_9e44687dff884ff6": "First instruction text output.",
+    }
+    chunk_1: dict[str, Any] = {
+        "chunk_index": 1,
+        "blk_9e44687dff884ff6": "Second instruction text output.",
+    }
+    accumulator.add(chunk_0)
+    accumulator.add(chunk_1)
+
+    result = accumulator.get_final_result()
+    assert result["blk_9e44687dff884ff6"] == "First instruction text output.\n\n[Chunk]: Second instruction text output."
+

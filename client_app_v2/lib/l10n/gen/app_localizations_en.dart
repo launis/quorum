@@ -2336,6 +2336,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String reportSemanticExplanationTitle(String reasoning) {
+    return '💡 AI Semantic Explanation (Contextual Override):\n$reasoning';
+  }
+
+  @override
   String reportFrameworkReference(String source) {
     return '⚖️ Reference framework: $source';
   }
@@ -3418,4 +3423,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get strategyPainotettuKeskiarvo =>
       'Painotettu Keskiarvo (Weighted Average)';
+
+  @override
+  String get allowContextualOverrideLabel => 'Allow Contextual Override';
+
+  @override
+  String get allowContextualOverrideDescription =>
+      'Allows the LLM to justify semantic verification without a literal quotation if exact text evidence is physically absent.';
+
+  @override
+  String get enableContextualOverridesLabel => 'Enable Contextual Overrides';
+
+  @override
+  String get enableContextualOverridesDescription =>
+      'Master toggle that globally enables or disables claim-level semantic overrides for this entire workflow run.';
 }

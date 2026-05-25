@@ -67,6 +67,8 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
     @JsonKey(name: 'ui_plot_ratio') double? uiPlotRatio,
 
     @JsonKey(name: 'is_evaluative') @Default(true) bool isEvaluative,
+    @JsonKey(name: 'contextual_override') bool? contextualOverride,
+    @JsonKey(name: 'semantic_reasoning') String? semanticReasoning,
   }) = _MatrixScorecardRowDto;
 
   factory MatrixScorecardRowDto.fromJson(Map<String, dynamic> json) =>

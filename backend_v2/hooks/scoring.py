@@ -20,7 +20,7 @@ from backend_v2.models.enums import (
     ScoringCalibrationThresholds,
 )
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step
+from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
 from backend_v2.services.orchestrator.ast_evaluator import ASTEvaluator
 from backend_v2.settings import get_settings
 from backend_v2.utils.hashing import generate_atom_hash
@@ -513,6 +513,16 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
         execution_data = ExecutionRecord.model_validate(raw_exec_data, strict=False)
 
+        raw_workflow = await repository.get_workflow_by_id(execution_data.workflow_id)
+        if not raw_workflow:
+            msg = f"Strict Fail-Fast Enforced: Workflow {execution_data.workflow_id} missing from database."
+            logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+            raise AppException(
+                message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+            )
+        workflow = Workflow.model_validate(raw_workflow, strict=False)
+        enable_contextual_overrides = workflow.enable_contextual_overrides
+
         # Epic 47 Phase 2: Dynamic Orchestration & Scoring Resolution
         strictness_level = None
         scoring_strategy = None
@@ -558,7 +568,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        atom_mapping: dict[str, tuple[str, float, str, str, bool]] = {}
+        atom_mapping: dict[str, tuple[str, float, str, str, bool, bool]] = {}
         blocks_meta: dict[str, dict[str, Any]] = {}
 
         # 1. Reverse extraction of Atom Hashes
@@ -591,6 +601,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                 tda.ai_rule_description,
                                 str(getattr(tda, "aggregation_mode", "EXISTS")),
                                 tda.inverse_evidence,
+                                getattr(tda, "allow_contextual_override", False),
                             )
 
             # Fail-fast: Ei fallbackeja. Korjattu normaalin virhehallinnan tyyliin.
@@ -666,10 +677,15 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                         except Exception:
                                             continue
                                         if ev_dto.atom_id == aid:
-                                            if ev_dto.status == "DLQ":
+                                            allow_override = getattr(tda, "allow_contextual_override", False)
+                                            effective_override = enable_contextual_overrides and allow_override
+                                            is_satisfied = ev_dto.calculate_rule_satisfied(
+                                                inverse_evidence=tda.inverse_evidence,
+                                                allow_contextual_override=effective_override,
+                                            )
+                                            if is_satisfied == "DLQ":
                                                 final_state = "DLQ"
                                             else:
-                                                is_satisfied = ev_dto.calculate_rule_satisfied(tda.inverse_evidence)
                                                 final_state = "TRUE" if is_satisfied else "FALSE"
                                             break
 

@@ -122,7 +122,9 @@ def test_atom_evaluation_item_dto_strictness() -> None:
 
 
 def test_atom_evaluation_item_dto_accepts_exact_quote() -> None:
-    """Test that AtomEvaluationItemDTO accepts exact_quote and correctly sanitises it against phantom boolean blacklist."""
+    """Test that AtomEvaluationItemDTO accepts exact_quote and correctly sanitises it against
+    phantom boolean blacklist.
+    """
     item = AtomEvaluationItemDTO(
         atom_id="atom_123",
         exact_quote="This is an exact quote",
@@ -165,3 +167,181 @@ def test_map_llm_extensions_with_base_tda_extraction_keys() -> None:
 
     # This will fail with 'Extra inputs are not permitted' if the mapping doesn't strip the BaseTDA fields
     LightweightMatrixOutput.model_validate(mapped)
+
+
+def test_atom_evaluation_item_dto_zero_variance_quote_verification() -> None:
+    """Test quote verification under zero-variance protocol using context source text."""
+    # 1. Matching quote
+    item = AtomEvaluationItemDTO(
+        atom_id="atom_1",
+        contextual_override=False,
+        exact_quote="Megatrendien kooste osoittaa kriisejä",
+    )
+    context = {"source_text": "Tämä megatrendien kooste osoittaa kriisejä vuonna 2026."}
+    validated = AtomEvaluationItemDTO.model_validate(item.model_dump(), context=context)
+    assert validated.exact_quote == "Megatrendien kooste osoittaa kriisejä"
+
+    # 2. Fuzzy matching quote (similar enough >95%)
+    item_fuzzy = AtomEvaluationItemDTO(
+        atom_id="atom_2",
+        contextual_override=False,
+        exact_quote="Megatrendien  kooste-osoittaa\nkriisejä",  # extra space, punctuation, newline
+    )
+    validated_fuzzy = AtomEvaluationItemDTO.model_validate(item_fuzzy.model_dump(), context=context)
+    assert validated_fuzzy.atom_id == "atom_2"
+
+    # 3. Completely hallucinated quote (fails similarity <95%)
+    item_hallucinated = AtomEvaluationItemDTO(
+        atom_id="atom_3",
+        contextual_override=False,
+        exact_quote="Tätä lausetta ei löydy tekstistä lainkaan",
+    )
+    with pytest.raises(ValidationError) as exc:
+        AtomEvaluationItemDTO.model_validate(item_hallucinated.model_dump(), context=context)
+    assert "exact_quote not found in source text" in str(exc.value)
+
+
+def test_atom_evaluation_item_dto_anti_laziness_override() -> None:
+    """Test anti-laziness constraints on contextual overrides."""
+    # 1. Valid override with long reasoning and spatial location
+    item_valid = AtomEvaluationItemDTO(
+        atom_id="atom_override_1",
+        contextual_override=True,
+        semantic_reasoning=(
+            "This is a very long reasoning text that explicitly mentions page 42 "
+            "to satisfy the anti-laziness and spatial referencing rules."
+        ),
+    )
+    validated = AtomEvaluationItemDTO.model_validate(item_valid.model_dump())
+    assert validated.contextual_override is True
+
+    # 2. Fails anti-laziness due to short reasoning (<50 characters)
+    with pytest.raises(ValidationError) as exc:
+        AtomEvaluationItemDTO(
+            atom_id="atom_override_2",
+            contextual_override=True,
+            semantic_reasoning="Too short page 42.",
+        )
+    assert "at least 50 characters" in str(exc.value)
+
+    # 3. Fails anti-laziness due to missing spatial referencing/anchor
+    with pytest.raises(ValidationError) as exc:
+        AtomEvaluationItemDTO(
+            atom_id="atom_override_3",
+            contextual_override=True,
+            semantic_reasoning=(
+                "This is a very long reasoning text that completely lacks "
+                "any spatial referencing or structural location anchors at all."
+            ),
+        )
+    assert "spatial/structural location reference" in str(exc.value)
+
+
+def test_calculate_rule_satisfied_truth_table() -> None:
+    """Test calculate_rule_satisfied truth table for Double-Lock authorization and inverse evidence."""
+    # 1. Double-Lock is Active (allow_contextual_override=True, contextual_override=True)
+    # Regardless of status/evidence/inverse_evidence, should return True.
+    item = AtomEvaluationItemDTO(
+        atom_id="atom_1",
+        contextual_override=True,
+        semantic_reasoning="This reasoning is long enough and contains kappale structural reference.",
+    )
+    assert item.calculate_rule_satisfied(inverse_evidence=False, allow_contextual_override=True) is True
+    assert item.calculate_rule_satisfied(inverse_evidence=True, allow_contextual_override=True) is True
+
+    # 2. Double-Lock is Inactive (allow_contextual_override=False, contextual_override=True)
+    # Since status is not set, it should fall back to evidence_found.
+    # exact_quote is not set or blacklisted, so evidence_found is False.
+    # If inverse_evidence=False, should return False.
+    # If inverse_evidence=True, should return True.
+    assert item.calculate_rule_satisfied(inverse_evidence=False, allow_contextual_override=False) is False
+    assert item.calculate_rule_satisfied(inverse_evidence=True, allow_contextual_override=False) is True
+
+    # 3. status is DLQ
+    dlq_item = AtomEvaluationItemDTO(
+        atom_id="atom_2",
+        status="DLQ",
+        contextual_override=True,
+        semantic_reasoning="This reasoning is long enough and contains kappale structural reference.",
+    )
+    # If authorized: returns True
+    assert dlq_item.calculate_rule_satisfied(inverse_evidence=False, allow_contextual_override=True) is True
+    # If unauthorized: returns "DLQ"
+    assert dlq_item.calculate_rule_satisfied(inverse_evidence=False, allow_contextual_override=False) == "DLQ"
+
+    # 4. evidence_found is True (exact_quote is valid)
+    valid_item = AtomEvaluationItemDTO(
+        atom_id="atom_3",
+        exact_quote="This is a valid quote",
+    )
+    # If inverse_evidence=False: returns True
+    assert valid_item.calculate_rule_satisfied(inverse_evidence=False, allow_contextual_override=False) is True
+    # If inverse_evidence=True: returns False
+    assert valid_item.calculate_rule_satisfied(inverse_evidence=True, allow_contextual_override=False) is False
+
+    # 5. Sentinel quote is blacklisted and doesn't count as evidence
+    sentinel_item = AtomEvaluationItemDTO(
+        atom_id="atom_4",
+        exact_quote="[CONTEXTUAL_OVERRIDE_APPLIED]",
+    )
+    assert sentinel_item.evidence_found is False
+
+
+@pytest.mark.parametrize(
+    "workflow_switch, assertion_switch, llm_override, evidence_found, inverse_evidence",
+    [
+        (w, a, o, e, i)
+        for w in [True, False]
+        for a in [True, False]
+        for o in [True, False]
+        for e in [True, False]
+        for i in [True, False]
+    ],
+)
+def test_calculate_rule_satisfied_truth_table_32(
+    workflow_switch: bool,
+    assertion_switch: bool,
+    llm_override: bool,
+    evidence_found: bool,
+    inverse_evidence: bool,
+) -> None:
+    """Systematically test all 32 combinations of the double-lock and inverse evidence logic."""
+    # 1. Map evidence_found parameter to physical exact_quote value
+    exact_quote = "This is a valid quote" if evidence_found else "None"
+
+    # 2. Bypassing Pydantic validation: if contextual_override is True,
+    # semantic_reasoning must satisfy anti-laziness and spatial anchoring checks
+    semantic_reasoning = (
+        (
+            "This is a very long reasoning text that explicitly mentions page 42 "
+            "to satisfy the anti-laziness and spatial referencing rules."
+        )
+        if llm_override
+        else ""
+    )
+
+    item = AtomEvaluationItemDTO(
+        atom_id="test_atom",
+        contextual_override=llm_override,
+        exact_quote=exact_quote,
+        semantic_reasoning=semantic_reasoning,
+    )
+
+    # 3. Calculate the effective System 2 allow override
+    effective_allow_override = workflow_switch and assertion_switch
+
+    result = item.calculate_rule_satisfied(
+        inverse_evidence=inverse_evidence,
+        allow_contextual_override=effective_allow_override,
+    )
+
+    # 4. Calculate expected result using absolute System 2 rules
+    if effective_allow_override and llm_override:
+        expected = True
+    else:
+        if inverse_evidence:
+            expected = not evidence_found
+        else:
+            expected = evidence_found
+
+    assert result is expected

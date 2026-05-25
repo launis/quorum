@@ -1,6 +1,9 @@
+import re
+import unicodedata
 from typing import Any, Literal
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, ValidationInfo, model_validator
+from rapidfuzz import fuzz
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import LaxXaiExtensionType
@@ -128,6 +131,7 @@ class AtomEvaluationItemDTO(V2CoreBase):
             "ei lainausta",
             "no quote",
             "ei ole",
+            "[contextual_override_applied]",
         }
         if self.exact_quote is not None and self.exact_quote.strip().lower() not in blacklist:
             return True
@@ -136,8 +140,11 @@ class AtomEvaluationItemDTO(V2CoreBase):
                 return True
         return False
 
-    def calculate_rule_satisfied(self, inverse_evidence: bool) -> bool | str:
+    def calculate_rule_satisfied(self, inverse_evidence: bool, allow_contextual_override: bool = False) -> bool | str:
         """Deterministinen tuomiovalta: Laskee rule_satisfied arvon kooditasolla."""
+        if allow_contextual_override and self.contextual_override:
+            return True
+
         if self.status:
             if self.status == "DLQ":
                 return "DLQ"
@@ -151,6 +158,53 @@ class AtomEvaluationItemDTO(V2CoreBase):
         return self.evidence_found
 
     @model_validator(mode="after")
-    def validate_anti_laziness(self) -> AtomEvaluationItemDTO:
-        # extracted_facts can naturally be empty and thus evidence_found will correctly be False.
+    def _enforce_zero_variance_protocols(self, info: ValidationInfo) -> AtomEvaluationItemDTO:
+        if self.contextual_override:
+            # Milestone 4: Spatiaalinen ankkurointi & Anti-Laziness enforcement
+            reasoning = self.semantic_reasoning or ""
+            if len(reasoning) < 50:
+                raise ValueError("Contextual override requires semantic_reasoning to be at least 50 characters long.")
+
+            spatial_markers = [
+                "page",
+                "paragraph",
+                "section",
+                "kappale",
+                "sivu",
+                "chapter",
+                "luku",
+                "otsikko",
+                "line",
+                "rivi",
+            ]
+            reasoning_lower = reasoning.lower()
+            if not any(marker in reasoning_lower for marker in spatial_markers):
+                raise ValueError(
+                    "Contextual override reasoning must contain a spatial/structural location reference "
+                    "(e.g., page, paragraph, section, sivu, kappale)."
+                )
+        else:
+            # Milestone 3: Check quote integrity
+            if self.exact_quote:
+                context = info.context if info else None
+                source_text = context.get("source_text") if context else None
+                if source_text:
+                    # Normalize both source and quote using NFKC and collapsing whitespaces
+                    def normalize_text(text: str) -> str:
+                        if not text:
+                            return ""
+                        normalized = unicodedata.normalize("NFKC", text).lower()
+                        normalized = re.sub(r"\s+", " ", normalized).strip()
+                        return normalized
+
+                    norm_source = normalize_text(source_text)
+                    norm_quote = normalize_text(self.exact_quote)
+
+                    if norm_quote not in norm_source:
+                        score = fuzz.partial_ratio(norm_quote, norm_source)
+                        if score < 95.0:
+                            raise ValueError(
+                                f"exact_quote not found in source text with high enough similarity "
+                                f"(got {score:.1f}%, required >= 95.0%)."
+                            )
         return self

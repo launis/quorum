@@ -63,8 +63,12 @@ class StrippedBaseTDAExtraction(BaseModel):
 
     @model_validator(mode="after")
     def validate_override_logic(self) -> StrippedBaseTDAExtraction:
-        if self.contextual_override and self.exact_quote:
-            raise ValueError("Cross-validation failed: exact_quote MUST be empty if contextual_override is True.")
+        if self.contextual_override:
+            if self.exact_quote not in (None, "", "[CONTEXTUAL_OVERRIDE_APPLIED]"):
+                raise ValueError("Cross-validation failed: exact_quote MUST be empty, null, or '[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is True.")
+        else:
+            if self.exact_quote == "[CONTEXTUAL_OVERRIDE_APPLIED]":
+                raise ValueError("Cross-validation failed: exact_quote cannot be '[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False.")
         return self
 
 
@@ -592,6 +596,15 @@ class PromptCompiler:
                                         'return an empty string "" for exact_quote. If rule_satisfied = False '
                                         "(violation found), evidence_found MUST be True and you MUST quote "
                                         "the exact violation."
+                                    )
+                                if getattr(assertion, "allow_contextual_override", False):
+                                    rule_text += (
+                                        " [CONTEXTUAL OVERRIDE ALLOWED] If the assertion's criteria are satisfied "
+                                        "semantically or contextually across the text but no single exact verbatim quote "
+                                        "can be isolated, you MUST: 1) Set contextual_override = true. 2) Provide a detailed "
+                                        "explanation in semantic_reasoning with structural references. 3) Set exact_quote to exactly "
+                                        "'[CONTEXTUAL_OVERRIDE_APPLIED]'. Do NOT hallucinate a quote. Only use this override "
+                                        "if a direct literal quote is physically absent."
                                     )
                                 claims_texts.append(f"{rule_text} {mandate_str}")
 
