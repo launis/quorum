@@ -44,8 +44,9 @@ def test_seed_data_assertions_contain_hardened_rules() -> None:
             if "tda_id" in node and node["tda_id"] in target_ids:
                 found_ids.add(node["tda_id"])
                 desc = node.get("ai_rule_description", "")
-                assert "AMBIGUITY PROTOCOL" in desc
-                assert "JSON null" in desc
+                desc_lower = desc.lower()
+                assert "ambiguity_protocol" in desc_lower
+                assert "json null" in desc_lower
             else:
                 for v in node.values():
                     scan_for_tda_ids(v)

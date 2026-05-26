@@ -1,3 +1,4 @@
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -53,7 +54,7 @@ async def test_logic_strategy_missing_blueprint() -> None:
     context = MagicMock()
 
     with pytest.raises(AppException) as excinfo:
-        await strategy.execute(step, projector, context, None, [])
+        await strategy.execute(step, projector, context, None, [], semaphore=asyncio.Semaphore(2))
 
     assert "has no task_blueprint configured" in str(excinfo.value.message)
 
@@ -110,7 +111,7 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
         ) as mock_hook,
         patch("backend_v2.models.v2_core.Step.model_validate", return_value=v2_step_mock),
     ):
-        await strategy.execute(step, projector, context, None, [])
+        await strategy.execute(step, projector, context, None, [], semaphore=asyncio.Semaphore(2))
         hook_state = mock_hook.call_args[0][1]
 
     assert isinstance(hook_state.inputs["raw_inputs"], dict), (

@@ -54,6 +54,8 @@ class MCPSynthesisInstructionsDTO(V2CoreBase):
 
 
 class TavilyApiResultItemDTO(V2CoreBase):
+    model_config = ConfigDict(extra="ignore")
+
     title: str = Field(default="")
     url: str = Field(default="")
     content: str = Field(default="")
@@ -63,6 +65,8 @@ class TavilyApiResultItemDTO(V2CoreBase):
 
 
 class TavilyApiResponseDTO(V2CoreBase):
+    model_config = ConfigDict(extra="ignore")
+
     query: str = Field(default="")
     answer: str | None = Field(default="")
     response_time: float = Field(default=0.0)

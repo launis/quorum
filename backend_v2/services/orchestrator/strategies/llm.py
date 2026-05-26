@@ -45,6 +45,7 @@ class LLMNodeStrategy(NodeStrategy):
         context: StrategyContext,
         frozen_ctx: FrozenContext | None,
         trace: list[TraceEvent] | None,
+        semaphore: asyncio.Semaphore,
     ) -> list[TraceEvent]:
         # Epic 43 Phase 2 Fail-Fast Parity: Re-inject 'inputs' and 'raw_inputs' DTO payloads into the root state
         # so legacy dot-notation mappings resolve properly without Naked Dict violations.
@@ -281,7 +282,7 @@ class LLMNodeStrategy(NodeStrategy):
             )
         bound_client = await LLMClient.from_strategy(strategy_name, self.system_repo)
 
-        sem = asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS.value)
+        sem = semaphore
 
         # Step 4 & 5 - Map-Reduce and Accumulation with Anomaly Circuit Breaker
         MAX_RETRIES = 2

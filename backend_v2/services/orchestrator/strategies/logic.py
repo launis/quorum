@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Any
 
@@ -22,6 +23,7 @@ class LogicNodeStrategy(NodeStrategy):
         context: StrategyContext,
         frozen_ctx: FrozenContext | None,
         trace: list[TraceEvent] | None,
+        semaphore: asyncio.Semaphore,
     ) -> list[TraceEvent]:
         # 1. State Extraction
         # Epic 43 Phase 2 Fail-Fast Parity: Re-inject 'inputs' and 'raw_inputs' DTO payloads into the root state

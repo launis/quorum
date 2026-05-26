@@ -1,3 +1,4 @@
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -59,7 +60,14 @@ async def test_execute_fails_fast_if_no_blueprint(llm_strategy: LLMNodeStrategy)
     context.execution_id = "exec_1"
 
     with pytest.raises(AppException) as exc_info:
-        await llm_strategy.execute(step=step, projector=projector, context=context, frozen_ctx=None, trace=[])
+        await llm_strategy.execute(
+            step=step,
+            projector=projector,
+            context=context,
+            frozen_ctx=None,
+            trace=[],
+            semaphore=asyncio.Semaphore(2),
+        )
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
@@ -83,7 +91,14 @@ async def test_execute_fails_fast_if_blueprint_not_found(llm_strategy: LLMNodeSt
     mock_repo.get_step_by_id.return_value = None
 
     with pytest.raises(AppException) as exc_info:
-        await llm_strategy.execute(step=step, projector=projector, context=context, frozen_ctx=None, trace=[])
+        await llm_strategy.execute(
+            step=step,
+            projector=projector,
+            context=context,
+            frozen_ctx=None,
+            trace=[],
+            semaphore=asyncio.Semaphore(2),
+        )
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
@@ -125,7 +140,14 @@ async def test_execute_fails_fast_on_missing_profile_id(llm_strategy: LLMNodeStr
     with patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre:
         mock_pre.return_value = mock_hook_state
         with pytest.raises(ConfigurationError) as exc_info:
-            await llm_strategy.execute(step=step, projector=projector, context=context, frozen_ctx=None, trace=[])
+            await llm_strategy.execute(
+                step=step,
+                projector=projector,
+                context=context,
+                frozen_ctx=None,
+                trace=[],
+                semaphore=asyncio.Semaphore(2),
+            )
 
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
     assert "missing mandatory 'profile_id'" in exc_info.value.message
@@ -168,7 +190,14 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
     with patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre:
         mock_pre.return_value = mock_hook_state
         with pytest.raises(AppException) as exc_info:
-            await llm_strategy.execute(step=step, projector=projector, context=context, frozen_ctx=None, trace=[])
+            await llm_strategy.execute(
+                step=step,
+                projector=projector,
+                context=context,
+                frozen_ctx=None,
+                trace=[],
+                semaphore=asyncio.Semaphore(2),
+            )
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
@@ -269,7 +298,12 @@ async def test_execute_success_path_structured_output(
                 mock_from_strategy.return_value = mock_client
 
                 traces = await llm_strategy.execute(
-                    step=step, projector=projector, context=context, frozen_ctx=None, trace=[]
+                    step=step,
+                    projector=projector,
+                    context=context,
+                    frozen_ctx=None,
+                    trace=[],
+                    semaphore=asyncio.Semaphore(2),
                 )
 
     assert len(traces) == 1
@@ -471,7 +505,12 @@ async def test_execute_raises_app_exception_if_chunk_routes_to_dlq(
 
                 with pytest.raises(AppException) as exc_info:
                     await llm_strategy.execute(
-                        step=step, projector=projector, context=context, frozen_ctx=None, trace=[]
+                        step=step,
+                        projector=projector,
+                        context=context,
+                        frozen_ctx=None,
+                        trace=[],
+                        semaphore=asyncio.Semaphore(2),
                     )
 
                 assert exc_info.value.status_code == 500

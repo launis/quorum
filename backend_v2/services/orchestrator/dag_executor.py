@@ -105,6 +105,7 @@ class NodeExecutor:
         workflow_id: str,
         metadata: dict[str, Any],
         projector: StateProjector,
+        semaphore: asyncio.Semaphore,
         expected_inputs: list[Any] | None = None,
         frozen_ctx: FrozenContext | None = None,
         trace: list[TraceEvent] | None = None,
@@ -182,6 +183,7 @@ class NodeExecutor:
                 context=context,
                 frozen_ctx=frozen_ctx,
                 trace=trace,
+                semaphore=semaphore,
             )
             return emitted_events
 
@@ -355,86 +357,84 @@ class DAGExecutor:
             for dep in step_obj.depends_on:
                 await step_events[dep].wait()
 
-            async with semaphore:
-                try:
-                    async with _update_lock:
-                        new_state = exec_record.step_states[step_id].model_copy(
-                            update={"status": ExecutionStatus.RUNNING.value}
-                        )
-                        new_states = {**exec_record.step_states, step_id: new_state}
-                        exec_record = exec_record.model_copy(update={"step_states": new_states})
+            try:
+                async with _update_lock:
+                    new_state = exec_record.step_states[step_id].model_copy(
+                        update={"status": ExecutionStatus.RUNNING.value}
+                    )
+                    new_states = {**exec_record.step_states, step_id: new_state}
+                    exec_record = exec_record.model_copy(update={"step_states": new_states})
 
-                        # Proactive status push
-                        await self.committer.commit_trace(
-                            trace=exec_record.execution_trace,
-                            status=exec_record.status,
-                            step_states=exec_record.step_states,
-                            frozen_context=exec_record.frozen_context,
-                        )
-
-                    events = await self.node_executor.execute(
-                        step=step_obj,
-                        execution_id=execution_id,
-                        workflow_id=workflow.id,
-                        metadata=exec_record.metadata,
-                        projector=projector,
-                        expected_inputs=workflow.expected_inputs,
-                        frozen_ctx=exec_record.frozen_context,
+                    # Proactive status push
+                    await self.committer.commit_trace(
                         trace=exec_record.execution_trace,
-                        strictness_level=strictness_level,
+                        status=exec_record.status,
+                        step_states=exec_record.step_states,
+                        frozen_context=exec_record.frozen_context,
                     )
 
-                    for e in events:
-                        exec_record.execution_trace.append(e)
-                        projector.apply_delta(e)
+                events = await self.node_executor.execute(
+                    step=step_obj,
+                    execution_id=execution_id,
+                    workflow_id=workflow.id,
+                    metadata=exec_record.metadata,
+                    projector=projector,
+                    expected_inputs=workflow.expected_inputs,
+                    frozen_ctx=exec_record.frozen_context,
+                    trace=exec_record.execution_trace,
+                    strictness_level=strictness_level,
+                    semaphore=semaphore,
+                )
 
-                    # Error Catching Boundary
-                    if any(isinstance(e, ErrorTraceEvent) for e in events):
-                        async with _update_lock:
-                            new_state = exec_record.step_states[step_id].model_copy(
-                                update={"status": ExecutionStatus.FAILED.value}
-                            )
-                            new_states = {**exec_record.step_states, step_id: new_state}
-                            exec_record = exec_record.model_copy(update={"step_states": new_states})
-                        # Extract the error message from the event
-                        msg = [e.error_message for e in events if isinstance(e, ErrorTraceEvent)][0]
-                        raise AppException(
-                            message=f"Step {step_id} emitted ErrorTraceEvent: {msg}",
-                            status_code=500,
-                            details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
-                        )
+                for e in events:
+                    exec_record.execution_trace.append(e)
+                    projector.apply_delta(e)
 
-                    async with _update_lock:
-                        new_state = exec_record.step_states[step_id].model_copy(
-                            update={"status": ExecutionStatus.COMPLETED.value}
-                        )
-                        new_states = {**exec_record.step_states, step_id: new_state}
-                        exec_record = exec_record.model_copy(update={"step_states": new_states})
-                        await self.committer.commit_trace(
-                            trace=exec_record.execution_trace,
-                            status=exec_record.status,
-                            step_states=exec_record.step_states,
-                            frozen_context=exec_record.frozen_context,
-                        )
-                    step_events[step_id].set()
-
-                except Exception as e:
+                # Error Catching Boundary
+                if any(isinstance(e, ErrorTraceEvent) for e in events):
                     async with _update_lock:
                         new_state = exec_record.step_states[step_id].model_copy(
                             update={"status": ExecutionStatus.FAILED.value}
                         )
                         new_states = {**exec_record.step_states, step_id: new_state}
                         exec_record = exec_record.model_copy(update={"step_states": new_states})
-                        await self.committer.commit_trace(
-                            trace=exec_record.execution_trace,
-                            status=ExecutionStatus.FAILED,
-                            step_states=exec_record.step_states,
-                            error=str(e),
-                            frozen_context=exec_record.frozen_context,
-                        )
-                    raise WorkflowExecutionError(
-                        step_id=step_id, task_key=step_obj.task_blueprint, original_error=e
-                    ) from e
+                    # Extract the error message from the event
+                    msg = [e.error_message for e in events if isinstance(e, ErrorTraceEvent)][0]
+                    raise AppException(
+                        message=f"Step {step_id} emitted ErrorTraceEvent: {msg}",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
+                    )
+
+                async with _update_lock:
+                    new_state = exec_record.step_states[step_id].model_copy(
+                        update={"status": ExecutionStatus.COMPLETED.value}
+                    )
+                    new_states = {**exec_record.step_states, step_id: new_state}
+                    exec_record = exec_record.model_copy(update={"step_states": new_states})
+                    await self.committer.commit_trace(
+                        trace=exec_record.execution_trace,
+                        status=exec_record.status,
+                        step_states=exec_record.step_states,
+                        frozen_context=exec_record.frozen_context,
+                    )
+                step_events[step_id].set()
+
+            except Exception as e:
+                async with _update_lock:
+                    new_state = exec_record.step_states[step_id].model_copy(
+                        update={"status": ExecutionStatus.FAILED.value}
+                    )
+                    new_states = {**exec_record.step_states, step_id: new_state}
+                    exec_record = exec_record.model_copy(update={"step_states": new_states})
+                    await self.committer.commit_trace(
+                        trace=exec_record.execution_trace,
+                        status=ExecutionStatus.FAILED,
+                        step_states=exec_record.step_states,
+                        error=str(e),
+                        frozen_context=exec_record.frozen_context,
+                    )
+                raise WorkflowExecutionError(step_id=step_id, task_key=step_obj.task_blueprint, original_error=e) from e
 
         try:
             async with asyncio.TaskGroup() as tg:

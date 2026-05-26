@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from typing import Any
@@ -76,6 +77,7 @@ class NodeStrategy(ABC):
         context: StrategyContext,
         frozen_ctx: FrozenContext | None,
         trace: list[TraceEvent] | None,
+        semaphore: asyncio.Semaphore,
     ) -> list[TraceEvent]:
         """Executes the specific strategy implementation cleanly.
 
