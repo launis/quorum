@@ -6,7 +6,7 @@ with Model Context Protocol (MCP) tool loops.
 
 from typing import Any
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.usage import TokenUsage
@@ -19,6 +19,8 @@ class OpenAIFunctionCallDTO(V2CoreBase):
 
 
 class OpenAIToolCallDTO(V2CoreBase):
+    model_config = ConfigDict(frozen=True, strict=True, extra="ignore")
+
     index: int | None = None
     id: str
     type: str = "function"

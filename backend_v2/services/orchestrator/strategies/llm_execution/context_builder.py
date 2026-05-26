@@ -100,13 +100,11 @@ class ContextBuilder:
 
         # 2. Scan descriptions for chronological bounds
         import re
+
         for desc in rule_descriptions:
             desc_lower = desc.lower()
             # Match patterns like: "ennen vaihetta 2", "before phase 2", "before stage Y"
-            match = re.search(
-                r"(?:ennen vaihetta|before phase|before stage)\s+([a-zA-Z0-9_]+)",
-                desc_lower
-            )
+            match = re.search(r"(?:ennen vaihetta|before phase|before stage)\s+([a-zA-Z0-9_]+)", desc_lower)
             if match:
                 phase_id = match.group(1)
                 # Physical boundary markers
@@ -153,6 +151,15 @@ class ContextBuilder:
         new_input_mappings: dict[str, Any] = {}
 
         schema_map = schema_map or {}
+
+        # Always propagate raw_inputs.dynamic_inputs metadata if present in state_data["raw_inputs"]
+        # to ensure that PromptFactory.build has direct access to the original document_date timestamp.
+        if isinstance(state_data, dict) and "raw_inputs" in state_data:
+            state_raw = state_data["raw_inputs"]
+            if isinstance(state_raw, dict) and "dynamic_inputs" in state_raw:
+                if "raw_inputs" not in llm_context_data:
+                    llm_context_data["raw_inputs"] = {}
+                llm_context_data["raw_inputs"]["dynamic_inputs"] = copy.deepcopy(state_raw["dynamic_inputs"])
 
         for _logical_name, path in input_mappings.items():
             if not isinstance(path, str):

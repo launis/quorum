@@ -53,6 +53,7 @@ _TDAAssertion _$TDAAssertionFromJson(
         'facts_to_find',
         'logical_expression',
         'allow_contextual_override',
+        'high_entropy',
       ],
     );
     final val = _TDAAssertion(
@@ -85,6 +86,7 @@ _TDAAssertion _$TDAAssertionFromJson(
         'allow_contextual_override',
         (v) => v as bool? ?? false,
       ),
+      highEntropy: $checkedConvert('high_entropy', (v) => v as bool? ?? false),
     );
     return val;
   },
@@ -97,6 +99,7 @@ _TDAAssertion _$TDAAssertionFromJson(
     'factsToFind': 'facts_to_find',
     'logicalExpression': 'logical_expression',
     'allowContextualOverride': 'allow_contextual_override',
+    'highEntropy': 'high_entropy',
   },
 );
 
@@ -110,6 +113,7 @@ Map<String, dynamic> _$TDAAssertionToJson(_TDAAssertion instance) =>
       'facts_to_find': instance.factsToFind,
       'logical_expression': instance.logicalExpression,
       'allow_contextual_override': instance.allowContextualOverride,
+      'high_entropy': instance.highEntropy,
     };
 
 const _$AggregationModeEnumMap = {

@@ -1343,7 +1343,9 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WorkflowSchemaResponse"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Workflow Ui Schema Api V2 Execution Workflows  Workflow Id  Ui Schema Get"
                 }
               }
             }
@@ -6632,6 +6634,12 @@
             "title": "Allow Contextual Override",
             "description": "If True, allows overriding this assertion with a contextual excuse.",
             "default": false
+          },
+          "high_entropy": {
+            "type": "boolean",
+            "title": "High Entropy",
+            "description": "If True, enables multi-agent ensemble majority voting for this assertion.",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -7561,11 +7569,6 @@
         ],
         "title": "WorkflowResponseDTO",
         "description": "API Response boundary for Workflow ensuring Data Sovereignty."
-      },
-      "WorkflowSchemaResponse": {
-        "additionalProperties": true,
-        "type": "object",
-        "title": "WorkflowSchemaResponse"
       },
       "WorkflowSimulationResponse": {
         "properties": {

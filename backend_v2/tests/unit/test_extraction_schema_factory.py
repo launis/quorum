@@ -68,4 +68,6 @@ def test_basetdaextraction_override_logic() -> None:
 
     with pytest.raises(ValidationError) as exc:
         BaseTDAExtraction.model_validate(payload_invalid)
-    assert "exact_quote MUST be empty if contextual_override is True" in str(exc.value)
+    assert "exact_quote MUST be empty, null, or '[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is True" in str(
+        exc.value
+    )

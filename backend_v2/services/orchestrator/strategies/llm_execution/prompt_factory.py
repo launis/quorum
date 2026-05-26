@@ -31,9 +31,72 @@ class PromptFactory:
         llm_context_data: dict[str, Any],
         expected_inputs: list[Any] | None,
         has_shuffled_atoms: bool = False,
+        execution_id: str | None = None,
     ) -> PromptPayload:
         static_instructions = compiler.compile_static_instructions(criteria_blocks, target_locale)
-        dynamic_instructions = compiler.compile_dynamic_instructions(criteria_blocks, target_locale)
+
+        # 1. Try to find if the client explicitly passed the original document creation date (e.g., file.lastModified)
+        execution_time = None
+        if isinstance(llm_context_data, dict):
+            raw_inputs = llm_context_data.get("raw_inputs", {})
+            if isinstance(raw_inputs, dict):
+                dynamic_inputs = raw_inputs.get("dynamic_inputs", {})
+                if isinstance(dynamic_inputs, dict):
+                    # Check for explicit keys sent by the client (e.g., in UI uploads)
+                    execution_time = (
+                        dynamic_inputs.get("document_date")
+                        or dynamic_inputs.get("input_file_date")
+                        or dynamic_inputs.get("last_modified")
+                    )
+        if execution_time:
+            logger.info(
+                "[PromptFactory] Using client-supplied document date metadata for prompt timestamp: %s",
+                execution_time,
+            )
+
+        # 2. Try to find the exact modification time of the physical input file on disk (Genuine File Timestamp)
+        if not execution_time and execution_id:
+            import datetime
+            import os
+
+            for filename in ["input_chat_log.md", "input_product_text.md", "input_reflection_text.md"]:
+                file_path = f"data/files/executions/{execution_id}/inputs/{filename}"
+                if os.path.exists(file_path):
+                    try:
+                        mtime = os.path.getmtime(file_path)
+                        execution_time = datetime.datetime.fromtimestamp(mtime, datetime.UTC)
+                        logger.info(
+                            "[PromptFactory] Determined prompt date from file '%s' modification date: %s",
+                            filename,
+                            execution_time.isoformat(),
+                        )
+                        break
+                    except Exception:
+                        pass
+
+        # 3. Fall back to execution context/database timestamps if files are not present on disk (e.g., in unit tests)
+        if not execution_time and isinstance(llm_context_data, dict):
+            metadata = llm_context_data.get("metadata", {})
+            if isinstance(metadata, dict):
+                execution_time = metadata.get("created_at") or metadata.get("timestamp")
+
+            if not execution_time:
+                raw_inputs = llm_context_data.get("raw_inputs", {})
+                if isinstance(raw_inputs, dict):
+                    execution_time = raw_inputs.get("timestamp") or raw_inputs.get("metadata", {}).get("timestamp")
+
+            if not execution_time:
+                execution_time = llm_context_data.get("created_at") or llm_context_data.get("timestamp")
+
+            if execution_time:
+                logger.info(
+                    "[PromptFactory] Using fallback context/database execution timestamp for prompt timestamp: %s",
+                    execution_time,
+                )
+
+        dynamic_instructions = compiler.compile_dynamic_instructions(
+            criteria_blocks, target_locale, execution_time=execution_time
+        )
 
         blind_instruction = None
         if has_shuffled_atoms:

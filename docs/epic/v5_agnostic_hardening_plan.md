@@ -1,7 +1,7 @@
 # V5 Agnostic Hardening Plan (Epic)
 
 ## Tavoite
-Poistaa loput 11.4 % "haamuvarianssista" TDA (Task/Data Analysis) -putkesta. Tarkoituksena on estää tekoälyä toimimasta "lakimiehenä", joka perustelee miksi irtonaiset asiat liittyvät toisiinsa. Ratkaisun täytyy olla globaali, kieli- ja formaattiriippumaton, jotta sitä voidaan soveltaa yhtä lailla suomenkielisiin Sitra-raportteihin kuin englanninkieliseen koodiin tai lakitekstiin.
+Poistaa loput 11.4 % "haamuvarianssista" TDA (Task/Data Analysis) -putkesta. Tarkoituksena on estää tekoälyä toimimasta "lakimiehenä", joka perustelee miksi irtonaiset asiat liittyvät toisiinsa. Ratkaisun täytyy olla globaali, kieli- ja formaattiriippumaton, jotta sitä voidaan soveltaa yhtä lailla suomenkielisiin arviointiraportteihin kuin englanninkieliseen koodiin tai lakitekstiin.
 
 ## Lähestymistapa: Globaali Asenneviritys (`ai_description`)
 Emme muokkaa kaikkia 185 atomia (`ai_rule_description`) yksitellen. Sen sijaan muokkaamme `seed_data.json` -tiedoston `PromptBlock` -tasoisia `ai_description` -kenttiä. Tämä injektoi sokean ja ehdottoman asenteen koko analyysiputkeen jo ylätasolla.
@@ -55,7 +55,7 @@ Koska olemme tekemässä massiivisia asenne- ja sääntömuutoksia (`seed_data.j
     *   *Peruutussuunnitelma (Rollback):* Jos testit kaatuvat (Pydantic ei hyväksy uusia sääntöjä), palauta vanha kanta komennolla: `Copy-Item data\db_v2_v4_backup.json data\db_v2.json -Force` (ja suorita lisäksi Vaiheen 1 peruutus).
 
 - [x] **Vaihe 3: Tuotantoajo ja Varianssin Diffaus**
-    *   *Toiminto:* Ajetaan TDA-putki uutta konfiguraatiota vastaan (esim. Sitra-aineisto).
+    *   *Toiminto:* Ajetaan TDA-putki uutta konfiguraatiota vastaan (esim. kohdeaineisto).
     *   *Arkkitehtuurisäännöt:* Raskaat LLM-operaatiot eivät saa tukkia FastAPI:n pääsäiettä, vaan ne on ohjattava Arq-jonoon. Yhteyden aikakatkaisujen estämiseksi on käytettävä SSE-Heartbeatia pitkissä prosesseissa. Virhetilanteissa lokitetaan vain järjestelmän viite-ID (esim. `req_abc123`) ja poikkeuksen tyyppi. Asiakasdataa (PII) tai raakoja kehotteita ei saa koskaan kirjata lokiin.
     *   *Varmennus:* Ajetaan diffaus (`scratch\diff_executions.py`) vertailemaan uutta ajoa vanhaan. Tavoitteena on nähdä haamuvarianssin putoaminen 0 %:iin.
     *   *Peruutussuunnitelma (Rollback):* Jos TDA-tulokset hajoavat täysin, suorita Vaiheen 2 ja Vaiheen 1 rollbackit peruuttaaksesi koko Epicin.

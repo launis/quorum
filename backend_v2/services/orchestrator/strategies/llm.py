@@ -193,7 +193,9 @@ class LLMNodeStrategy(NodeStrategy):
             schema_map["inputs"] = _SCHEMA_BLOCK_TEXT
             schema_map["raw_inputs"] = _SCHEMA_BLOCK_TEXT
 
-        criteria_blocks = criteria_blocks_models
+        # Enforce strict deterministic sorting of PromptBlocks by ID to eliminate
+        # positional attention bias (Attention Drift)
+        criteria_blocks = sorted(criteria_blocks_models, key=lambda x: str(x.id or ""))
 
         # Step 1 - Context Building
         llm_context_data, new_input_mappings = ContextBuilder.build(
@@ -222,6 +224,7 @@ class LLMNodeStrategy(NodeStrategy):
             llm_context_data=llm_context_data,
             expected_inputs=context.expected_inputs,
             has_shuffled_atoms=has_shuffled_atoms,
+            execution_id=context.execution_id,
         )
 
         user_payload = prompt_payload.user_payload

@@ -73,6 +73,7 @@ abstract class TDAAssertion with _$TDAAssertion {
     @JsonKey(name: 'allow_contextual_override')
     @Default(false)
     bool allowContextualOverride,
+    @JsonKey(name: 'high_entropy') @Default(false) bool highEntropy,
   }) = _TDAAssertion;
 
   factory TDAAssertion.fromJson(Map<String, dynamic> json) =>

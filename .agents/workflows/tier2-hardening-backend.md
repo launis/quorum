@@ -27,7 +27,7 @@ Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus
 Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
 1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto TAI yksittäinen tiedosto.
 2. Lue tiukasti kyseisen kohteen `.py`-tiedostot (tai vain se yksittäinen annettu tiedosto) huomioiden sivuutettavat kansiot. Määrittele auditointitaulukko koskemaan Vain valittua laajuutta.
-3. **MANDATOITU TRACEABILITY MATRIX**: Sinun on **EHDOTTOMASTI** raportoitava havaintosi tulostamalla chattiin tarkka Markdown-taulukko ("Audit Matrix"). Taulukon on **PAKKO** sisältää oma erillinen rivinsä jokaiselle säännölle (yhteensä 49 kpl), ja jokainen on arvioitava (Pass/Fail/NA):
+3. **MANDATOITU TRACEABILITY MATRIX**: Sinun on **EHDOTTOMASTI** raportoitava havaintosi tulostamalla chattiin tarkka Markdown-taulukko ("Audit Matrix"). Taulukon on **PAKKO** sisältää oma erillinen rivinsä jokaiselle säännölle (yhteensä 50 kpl), ja jokainen on arvioitava (Pass/Fail/NA):
 
    **1. Pydantic V2 & Strict Nirvana**
    - **`1. the_zero_compromise_pledge`**: Ei `.get("default")` fallbackeja liiketoimintalogiikassa. Pydantic-validointi pakollinen.
@@ -38,63 +38,64 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
    - **`6. blind_extraction_null_hypothesis`**: TDA-poimintamalleissa pakotettava nollahypoteesi: jos `contextual_override == True`, `exact_quote` pakotetaan arvoon `None`.
    - **`7. zero_defaults_mandate`**: DTO-malleissa EI SAA käyttää oletusarvoja, jos tieto on arkkitehtuurille kriittistä.
    - **`8. duck_typing_token_shield_exception`**: `extra="ignore"` sallittu VAIN `SynthesisStepDataDTO` / Token Shield -luokissa.
+   - **`9. python_314_root_model_ban`**: `RootModel` on EHDOTTOMASTI KIELLETTY Python 3.14 -kattavuustestauksen yhteensopivuuden vuoksi. Käytä aina `TypeAdapter`-pohjaista käärintätyyliä (kuten `MetricsPayloadDTO`).
 
    **2. State Management & Data Flow**
-   - **`9. no_naked_dicts_in_state`**: Ei raakoja sanakirjoja (dict) tilanhallinnassa. Pydantic-mallit pakollisia.
-   - **`10. structured_state_envelopes_mandate`**: Tilaprojektiot ainoastaan `StepOutputDTO` listana, ei `dict` palautuksia.
-   - **`11. frozen_state_mutability`**: Domain-mallit muuttumattomia (`frozen=True`). Tilaa ei saa mutatoida in-place.
-   - **`12. append_only_state_mutation`**: Historiallista `execution_trace` tai `step_states` -dataa ei saa KOSKAAN ylikirjoittaa (in-place mutation).
-   - **`13. base64_amnesia_protocol`**: Raakaa base64-dataa ei saa säilyttää Pydantic-tiloissa asynkronisen ajon aikana.
+   - **`10. no_naked_dicts_in_state`**: Ei raakoja sanakirjoja (dict) tilanhallinnassa. Pydantic-mallit pakollisia.
+   - **`11. structured_state_envelopes_mandate`**: Tilaprojektiot ainoastaan `StepOutputDTO` listana, ei `dict` palautuksia.
+   - **`12. frozen_state_mutability`**: Domain-mallit muuttumattomia (`frozen=True`). Tilaa ei saa mutatoida in-place.
+   - **`13. append_only_state_mutation`**: Historiallista `execution_trace` tai `step_states` -dataa ei saa KOSKAAN ylikirjoittaa (in-place mutation).
+   - **`14. base64_amnesia_protocol`**: Raakaa base64-dataa ei saa säilyttää Pydantic-tiloissa asynkronisen ajon aikana.
 
    **3. Error Handling (Fail-Fast) & Reliability**
-   - **`14. the_duct_tape_ban` / `silent_failures`**: Ei "God Blockeja" (`except Exception: pass`). Virheet on lokitettava ja heitettävä.
-   - **`15. rfc7807_dual_reporting_strict`**: Koodi EI SAA heittää suoria `Exception`-virheitä. Käännä ne `AppException(ErrorCodes.XYZ)` muotoon (RFC 7807) ja `logger.error(exc_info=True)`.
-   - **`16. dlq_arq_fallback_routing`**: ChunkWorker-virheet on reititettävä DLQ-tilaan palauttamalla `{"_dlq_status": "FAILED/DLQ"}`.
-   - **`17. the_self_healing_ban`**: LLM-lainausten korjaaminen Regexillä lennosta on KIELLETTY. Validointi kuuluu Pydanticiin.
-   - **`18. zero_type_ignore_shortcuts`**: Ei `# type: ignore` merkintöjä ilman tarkkaa error codea ja perustelua.
-   - **`19. zero_legacy_fallback_hacks`**: Vanhoja fallback-viritelmiä (esim. or-ketjut) ei saa tukea.
+   - **`15. the_duct_tape_ban` / `silent_failures`**: Ei "God Blockeja" (`except Exception: pass`). Virheet on lokitettava ja heitettävä.
+   - **`16. rfc7807_dual_reporting_strict`**: Koodi EI SAA heittää suoria `Exception`-virheitä. Käännä ne `AppException(ErrorCodes.XYZ)` muotoon (RFC 7807) ja `logger.error(exc_info=True)`.
+   - **`17. dlq_arq_fallback_routing`**: ChunkWorker-virheet on reititettävä DLQ-tilaan palauttamalla `{"_dlq_status": "FAILED/DLQ"}`.
+   - **`18. the_self_healing_ban`**: LLM-lainausten korjaaminen Regexillä lennosta on KIELLETTY. Validointi kuuluu Pydanticiin.
+   - **`19. zero_type_ignore_shortcuts`**: Ei `# type: ignore` merkintöjä ilman tarkkaa error codea ja perustelua.
+   - **`20. zero_legacy_fallback_hacks`**: Vanhoja fallback-viritelmiä (esim. or-ketjut) ei saa tukea.
 
    **4. Architecture, Routing & LLM**
-   - **`20. python_314_modern_syntax`**: PEP 695 generics, modernit unionit (`X | None`), ei `Optional[X]`.
-   - **`21. opaque_stripe_id_mandate`**: Vain opaakkeja ID:itä (`usr_123`). Ei kokonaisluku-ID:itä tietoturvasyistä.
-   - **`22. md5_hashery_ban`**: `hashlib.md5` on KIELLETTY (Hash Collision). Käytä `uuid4().hex`.
-   - **`23. deferred_ai_initialization`**: EHDOTON POIKKEUS: Raskaat ML-kirjastot (litellm, vertexai, spacy) on tuotava paikallisesti (lazy load) VASTA funktioiden sisällä Zero Cold Startin turvaamiseksi. Muut importit tiedoston alussa.
-   - **`24. llm_structured_execution_mandate`**: LLM-kutsut vain keskitettyjen reititysten kautta (ei suoraa LLMClient-käyttöä).
-   - **`25. high_fidelity_prompting`**: Promptien dynaamiset parametrit eristetty `<execution_parameters>`-tagiin promptin hännille. Ei f-string sääntöjä.
-   - **`26. tripartite_rendering_boundary`**: Ei kovakoodattuja markdown-taulukoita backendissä. Palauta vain DTO-dataa.
-   - **`27. strict_math_display_isolation`**: Pisteiden laskenta `computed_min` perusteella. UI `scale_min` on vain näytölle.
-   - **`28. anemic_routers`**: Reitittimissä vain HTTP-käsittely ja tietoturva (`response_model` pakollinen). Ei business-logiikkaa.
-   - **`29. blocking_the_fastapi_thread`**: Raskaat I/O ja CPU ajot siirretty Arq-työjonoon.
-   - **`30. single_source_of_truth_mandate`**: Koodikannassa ei saa olla V1- ja V2-malleja rinnakkain. Poista armotta vanhentuneet V1 fallbackit.
-   - **`31. native_english_generation`**: Kognitio luodaan englanniksi (Intelligence Dropping -riski vältetty).
-   - **`32. pydantic_namespace_collisions`**: Ei inline-skeemoja reitittimissä. Kaikki `models/` kansiossa.
-   - **`33. security_logging_ban`**: Lokeihin ei saa printata käyttäjien prompteja (PII) tai API-avaimia.
-   - **`34. polymorphic_routing_o1`**: Käytä Discriminated Unioneita ja natiivia `match/case` syntaksia tilarakenteiden purkuun.
-   - **`35. no_string_l10n`**: Ei kovakoodattuja näyttötekstejä.
-   - **`36. ui_driven_synthesis_boundary`**: AI-raportointi suodatettava tiukasti UI-profiilin mukaan.
-   - **`37. zero_orm_bleed`**: Tietokantakerros palauttaa vain puhtaita Pydantic-malleja.
-   - **`38. strict_dependency_injection_isp`**: Palvelut ladataan `Depends()` kautta, käytä ISP-rajapintoja.
-   - **`39. global_settings_import`**: `get_settings` tuotava tiedoston alussa.
-   - **`40. cross_language_enum_parity`**: Pydantic Enum/Literal muuttujat pariteetissa Flutterin kanssa.
-   - **`41. schema_driven_routing`**: Reititys aina `schema_map`:in perusteella. Ei sokeaa "Duck Typingiä".
-   - **`42. zero_db_hardcoding_mandate`**: Tietokannan ID:itä tai nimiä ei saa vertailla logiikassa.
-   - **`43. prompt_compiler_immutability`**: Älä muokkaa `prompt_compiler.py` -tiedostoa purkalla.
-   - **`44. synthesis_pure_functions`**: Funktiot "Pure Functions" muodossa. Sisäkkäisten looppien tilalla O(1) haut.
+   - **`21. python_314_modern_syntax`**: PEP 695 generics, modernit unionit (`X | None`), ei `Optional[X]`.
+   - **`22. opaque_stripe_id_mandate`**: Vain opaakkeja ID:itä (`usr_123`). Ei kokonaisluku-ID:itä tietoturvasyistä.
+   - **`23. md5_hashery_ban`**: `hashlib.md5` on KIELLETTY (Hash Collision). Käytä `uuid4().hex`.
+   - **`24. deferred_ai_initialization`**: EHDOTON POIKKEUS: Raskaat ML-kirjastot (litellm, vertexai, spacy) on tuotava paikallisesti (lazy load) VASTA funktioiden sisällä Zero Cold Startin turvaamiseksi. Muut importit tiedoston alussa.
+   - **`25. llm_structured_execution_mandate`**: LLM-kutsut vain keskitettyjen reititysten kautta (ei suoraa LLMClient-käyttöä).
+   - **`26. high_fidelity_prompting`**: Promptien dynaamiset parametrit eristetty `<execution_parameters>`-tagiin promptin hännille. Ei f-string sääntöjä.
+   - **`27. tripartite_rendering_boundary`**: Ei kovakoodattuja markdown-taulukoita backendissä. Palauta vain DTO-dataa.
+   - **`28. strict_math_display_isolation`**: Pisteiden laskenta `computed_min` perusteella. UI `scale_min` on vain näytölle.
+   - **`29. anemic_routers`**: Reitittimissä vain HTTP-käsittely ja tietoturva (`response_model` pakollinen). Ei business-logiikkaa.
+   - **`30. blocking_the_fastapi_thread`**: Raskaat I/O ja CPU ajot siirretty Arq-työjonoon.
+   - **`31. single_source_of_truth_mandate`**: Koodikannassa ei saa olla V1- ja V2-malleja rinnakkain. Poista armotta vanhentuneet V1 fallbackit.
+   - **`32. native_english_generation`**: Kognitio luodaan englanniksi (Intelligence Dropping -riski vältetty).
+   - **`33. pydantic_namespace_collisions`**: Ei inline-skeemoja reitittimissä. Kaikki `models/` kansiossa.
+   - **`34. security_logging_ban`**: Lokeihin ei saa printata käyttäjien prompteja (PII) tai API-avaimia.
+   - **`35. polymorphic_routing_o1`**: Käytä Discriminated Unioneita ja natiivia `match/case` syntaksia tilarakenteiden purkuun.
+   - **`36. no_string_l10n`**: Ei kovakoodattuja näyttötekstejä.
+   - **`37. ui_driven_synthesis_boundary`**: AI-raportointi suodatettava tiukasti UI-profiilin mukaan.
+   - **`38. zero_orm_bleed`**: Tietokantakerros palauttaa vain puhtaita Pydantic-malleja.
+   - **`39. strict_dependency_injection_isp`**: Palvelut ladataan `Depends()` kautta, käytä ISP-rajapintoja.
+   - **`40. global_settings_import`**: `get_settings` tuotava tiedoston alussa.
+   - **`41. cross_language_enum_parity`**: Pydantic Enum/Literal muuttujat pariteetissa Flutterin kanssa.
+   - **`42. schema_driven_routing`**: Reititys aina `schema_map`:in perusteella. Ei sokeaa "Duck Typingiä".
+   - **`43. zero_db_hardcoding_mandate`**: Tietokannan ID:itä tai nimiä ei saa vertailla logiikassa.
+   - **`44. prompt_compiler_immutability`**: Älä muokkaa `prompt_compiler.py` -tiedostoa purkalla.
+   - **`45. synthesis_pure_functions`**: Funktiot "Pure Functions" muodossa. Sisäkkäisten looppien tilalla O(1) haut.
 
    **5. Code Quality & Documentation (PEP 257 & Google Style)**
-   - **`45. pep257_google_style_docstrings`**: Jokaisella moduulilla, luokalla ja funktiolla ON OLTAVA Google-tyylinen docstring. Ytimekäs Summary Line päättyy pisteeseen. Yksi tyhjä rivi ennen tarkempaa kuvausta.
-   - **`46. google_style_functions_args_returns`**: Funktioiden docstringeissä EHDOTTOMASTI oltava tarpeen mukaan `Args:`, `Returns:` (tai `Yields:`) osiot alun selityksen jälkeen.
-   - **`47. google_style_classes_separation`**: Luokkien dokumentoinnissa Separation of Concerns: Luokan docstring sisältää vain kuvauksen ja julkiset `Attributes:`. `__init__`-metodi sisältää vain alustuslogiikan, `Args:` ja `Raises:`.
-   - **`48. docstring_raises_fail_fast`**: `Raises:` -osiossa on EKSPLISIITTISESTI mainittava Quorumin `AppException` -virhekoodit, jotka koodi voi laukaista (Fail-Fast läpinäkyvyys).
-   - **`49. dry_typing_in_docstrings`**: Koska käytössä on Python 3.14 tyypitys, ÄLÄ toista tietotyyppejä docstringin `Args:`, `Returns:` tai `Attributes:` -osioissa, jos ne on jo koodissa. Formaatti: `muuttuja: Kuvaus.` Moniriviset kuvaukset sisennetään 4 välilyönnillä.
+   - **`46. pep257_google_style_docstrings`**: Jokaisella moduulilla, luokalla ja funktiolla ON OLTAVA Google-tyylinen docstring. Ytimekäs Summary Line päättyy pisteeseen. Yksi tyhjä rivi ennen tarkempaa kuvausta.
+   - **`47. google_style_functions_args_returns`**: Funktioiden docstringeissä EHDOTTOMASTI oltava tarpeen mukaan `Args:`, `Returns:` (tai `Yields:`) osiot alun selityksen jälkeen.
+   - **`48. google_style_classes_separation`**: Luokkien dokumentoinnissa Separation of Concerns: Luokan docstring sisältää vain kuvauksen ja julkiset `Attributes:`. `__init__`-metodi sisältää vain alustuslogiikan, `Args:` ja `Raises:`.
+   - **`49. docstring_raises_fail_fast`**: `Raises:` -osiossa on EKSPLISIITTISESTI mainittava Quorumin `AppException` -virhekoodit, jotka koodi voi laukaista (Fail-Fast läpinäkyvyys).
+   - **`50. dry_typing_in_docstrings`**: Koska käytössä on Python 3.14 tyypitys, ÄLÄ toista tietotyyppejä docstringin `Args:`, `Returns:` tai `Attributes:` -osioissa, jos ne on jo koodissa. Formaatti: `muuttuja: Kuvaus.` Moniriviset kuvaukset sisennetään 4 välilyönnillä.
 
    Käytä sarakkeita: `| Nro | Sääntö ID | Tila (Pass / Fail) | Löydökset & Perustelu |`.
    Varmista, että todella käyt läpi koodista asiat kohta kohdalta. Tämä poistaa hallusinaatiot ja ohitukset.
 
     <critical_anti_laziness_mandate>
       KIELTO: Audit Matrixin tiivistäminen, rivien yhdistäminen tai sääntöjen pois jättäminen on ANKARASTI KIELLETTY (Anti-Laziness Mandate). 
-      Sinun on PAKKO tulostaa taulukkoon tasan 49 numeroitua riviä (1-49) joka ikinen kerta, vaikka 48 niistä olisi "Pass". 
-      Jos tulostat taulukkoon alle 49 riviä, rikot suoraan järjestelmän pääarkkitehtuurin sääntöjä. Jokainen Phase 9 -sääntö on käytävä läpi eksplisiittisesti, jotta pakotat oman huomiomekanismisi (attention mechanism) tarkistamaan koodin tuon säännön osalta.
+      Sinun on PAKKO tulostaa taulukkoon tasan 50 numeroitua riviä (1-50) joka ikinen kerta, vaikka 49 niistä olisi "Pass". 
+      Jos tulostat taulukkoon alle 50 riviä, rikot suoraan järjestelmän pääarkkitehtuurin sääntöjä. Jokainen Phase 9 -sääntö on käytävä läpi eksplisiittisesti, jotta pakotat oman huomiomekanismisi (attention mechanism) tarkistamaan koodin tuon säännön osalta.
     </critical_anti_laziness_mandate>
 
 4. Pysähdy taulukon tulostamisen jälkeen. Odotan sen näkemistä. Jää odottamaan komentoa "FIX" (jos asioita on korjattavana / Fail) tai komentoa "NEXT" (jos kaikki säännöt olivat puhtaasti Pass).

@@ -6,18 +6,27 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+
+_dict_adapter = TypeAdapter(dict[str, Any])
 
 
-class MetricsPayloadDTO(RootModel[dict[str, Any]]):
+class MetricsPayloadDTO:
     """Strict schema for inputs destined for metrics analysis.
 
-    By utilizing RootModel, we strictly enforce that the incoming state
-    payload is explicitly a dictionary before any iterative logic executes,
-    satisfying the Phase 9 Zero-Compromise mandate.
-    """  # noqa: W293
+    By utilizing a TypeAdapter wrapper (RootModel is broken in Python 3.14),
+    we strictly enforce that the incoming state payload is explicitly a dictionary
+    before any iterative logic executes, satisfying the Phase 9 Zero-Compromise mandate.
+    """
 
-    model_config = ConfigDict(strict=True, frozen=True)
+    def __init__(self, root: dict[str, Any]) -> None:
+        self.root = root
+
+    @classmethod
+    def model_validate(cls, data: Any) -> MetricsPayloadDTO:
+        """Validate using strict Pydantic TypeAdapter."""
+        validated = _dict_adapter.validate_python(data)
+        return cls(root=validated)
 
 
 class TextMetricsDTO(BaseModel):

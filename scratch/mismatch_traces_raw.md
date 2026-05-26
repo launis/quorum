@@ -2,76 +2,65 @@
 
 ## Globaalit Metriikat
 - **Arvioitujen ajojen määrä ($M$):** 2
-- **Yhteisten arvioitujen atomien määrä ($N$):** 182
+- **Yhteisten arvioitujen atomien määrä ($N$):** 186
 - **Havaittujen luokkien kirjo:** false, true
-- **Parittainen konsistenssi (Self-Consistency):** 92.86 %
+- **Parittainen konsistenssi (Self-Consistency):** 94.09 %
   > *Kuvaa mallin itse-konsistenssia eli kuinka todennäköisesti kaksi satunnaista ajoa päätyy samaan lopputulokseen samalla syötteellä.*
-- **Fleissin Kappa ($\kappa$):** 0.8450
+- **Fleissin Kappa ($\kappa$):** 0.8813
   > *Tieteellinen/akateeminen sopivuuskerroin, joka eliminoi puhtaan sattuman vaikutuksen arvioinnissa. Arvo > 0.8 on erinomainen, 0.6–0.8 hyvä.*
-- **Keskimääräinen Shannonin Entropia:** 0.0714
+- **Keskimääräinen Shannonin Entropia:** 0.0591
   > *Mittaa vastausten yleistä epävarmuutta ja hajontaa. Lähellä nollaa oleva arvo tarkoittaa erittäin stabiilia mallia.*
 
 ## Kahden viimeisimmän ajon siirtymätilat (Run 1 -> Run 2)
-- **Erimielisyyttä näiden välillä:** 13 kpl
-- **PASSED -> FAILED:** 2
-- **FAILED -> PASSED:** 11
+- **Erimielisyyttä näiden välillä:** 11 kpl
+- **PASSED -> FAILED:** 4
+- **FAILED -> PASSED:** 7
 - **Muut siirtymät:** 0
 
 ## Epävakaimmat Testitapaukset / Prompt-säännöt (Järjestetty Entropian mukaan)
 Alla on listattu kaikki säännöt, joissa ilmeni erimielisyyttä tai epävakautta eri ajokertojen välillä. Kaikkein vaihtelevimmat/epävakaimmat tapaukset (korkein entropia) ovat listan alussa.
 
+### Atom-ID: `tda_03419e9a41f304ce` (Entropia: 1.000, Konsistenssi: 0.0%)
+**Arviointisääntö:** REQUIRED TARGET: Scan the target document. BANNED SOURCES: Reject user inputs. STEP 1 (Syntactic Anchor): Find dismissive markers towards alternatives (e.g., 'obviously false', 'nonsense', 'irrelevant'). STEP 2 (Bounding Box): Scan the paragraph. STEP 3: EXTRACTION CONDITION: the dismissal occurs without citing an external verifiable source or empirical data. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
+
+**Havaitut tilat ajoittain:**
+- **Run 1 (exe_24d3c3048fe04aae935a8e8f29166249) - [FALSE]:**
+  > *Tekstistä ei löydy säännön määrittelemiä eksplisiittisiä, vaihtoehtoja vähätteleviä ilmauksia. Vaikka teksti esittää vahvoja johtopäätöksiä, se ei tee sitä nimeämällä ja kumoamalla vastakkaisia näkemyksiä vähättelevin sanankääntein.*
+- **Run 2 (exe_fddc85dbc57f44a3a2e830887f5ba694) - [TRUE]:**
+  > *The text makes an absolute claim that a specific economic model is the "only way" to guarantee stability, dismissing all other alternatives without providing empirical data or sources within the paragraph to support this exclusive assertion.*
+
+---
+
+### Atom-ID: `tda_6be555cac0b9115b` (Entropia: 1.000, Konsistenssi: 0.0%)
+**Arviointisääntö:** REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find procedural sequential markers (e.g., 'step 1', 'checklist', 'first', 'secondly', 'then'). STEP 2 (Bounding Box & Negative Condition): Scan the paragraph containing the anchor. If the paragraph contains procedural markers BUT does NOT contain explicit synthesis or deduction verbs (e.g., 'analyzed', 'concluded', 'synthesized', 'therefore') -> ACCEPT. If it contains synthesis terminology -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, 'strategic thinking', or subjective 'literal manner'. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
+
+**Havaitut tilat ajoittain:**
+- **Run 1 (exe_24d3c3048fe04aae935a8e8f29166249) - [FALSE]:**
+  > *No presence of target concept detected: The text contains several numbered lists which act as procedural markers. However, in every case, the paragraph containing the list also includes explicit synthesis or deduction verbs or phrases (e.g., 'Johtopäätös:', 'tarkoittaa:', 'on ainoa tapa taata'). The negative condition (absence of synthesis terminology) is therefore not met.  [5. VALIDATION DECISION: PASS]*
+- **Run 2 (exe_fddc85dbc57f44a3a2e830887f5ba694) - [TRUE]:**
+  > *Presence detected: Kaikki tekstissä esiintyvät menettelytapaa kuvaavat merkitsijät (kuten numeroidut listat) sijaitsevat kappaleissa, jotka sisältävät selkeästi synteesiä ja päättelyä (esim. "Johtopäätös"). Säännön vaatimaa puhtaasti proseduraalista esitystä ilman analyysiä ei löytynyt.. Exceptions audit: Tekstissä on menettelyllisiä merkkejä (numeroitu lista), mutta kappaleet sisältävät myös synteesiä ja päättelyä ('uuden taloudellisen kasvun perusta'), mikä rikkoo säännön negatiivista ehtoa.  [5. VALIDATION DECISION: FAIL]*
+
+---
+
+### Atom-ID: `tda_c6bcce2b818718a1` (Entropia: 1.000, Konsistenssi: 0.0%)
+**Arviointisääntö:** REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find boundary definition markers (e.g., 'this applies only to', 'within the scope of', 'excluding'). STEP 2 (Bounding Box): Scan the paragraph. If the operational limits of a compliance rule are explicitly defined. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept unbounded absolute rules. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
+
+**Havaitut tilat ajoittain:**
+- **Run 1 (exe_24d3c3048fe04aae935a8e8f29166249) - [TRUE]:**
+  > *Mitigating exception found: Sääntö edellyttää 'vaatimustenmukaisuussäännön' rajojen määrittelyä. Lähdeteksti ei sisällä keskusteluja vaatimustenmukaisuussäännöistä, joten ehto ei täyty.  [5. VALIDATION DECISION: PASS]*
+- **Run 2 (exe_fddc85dbc57f44a3a2e830887f5ba694) - [FALSE]:**
+  > *No presence of target concept detected: Sääntö edellyttää rajojen määrittelymarkkereiden, kuten 'tämä koskee vain', löytämistä vaatimustenmukaisuussäännön yhteydessä. Lähdeteksti analysoi laajoja yhteiskunnallisia trendejä eikä sisällä spesifisiä, rajattuja vaatimustenmukaisuussääntöjä tai niihin liittyviä markkereita.  [5. VALIDATION DECISION: PASS]*
+
+---
+
 ### Atom-ID: `tda_d204baf0bdf74ff7` (Entropia: 1.000, Konsistenssi: 0.0%)
-**Arviointisääntö:** REQUIRED TARGET: Scan the document. STEP 1: Find explicit boundary setting markers (e.g., 'this does not apply to', 'a key constraint is'). STEP 2: Document the constraint before extracting the exact_quote. EXTRACTION CONDITION: found. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
+**Arviointisääntö:** Extract exact quotes containing boundary setting markers or key constraint definitions (e.g., 'this does not apply to', 'a key constraint is') into List A. Extract exact quotes containing counter-arguments or exceptions into List B.
 
 **Havaitut tilat ajoittain:**
-- **Run 1 (exe_3fd8226676154108a50a644f621ad7fe) - [FALSE]:**
-  > *Tekstistä ei löydy eksplisiittisiä, analyysin soveltamisalaa rajoittavia ilmauksia, kuten 'tämä ei koske' tai 'keskeinen rajoite on'. Vaikka kohderyhmä on määritelty, analyysi itse esitetään yleispätevänä.*
-- **Run 2 (exe_50cc66ec4ee84fd38398d71170dc3fe0) - [TRUE]:**
-  > *Teksti käyttää sanaa 'rajoite' viitatessaan luonnon kantokyvyn rajoihin. Vaikka se heti perään uudelleenmuotoilee rajoitteen mahdollisuudeksi, se ensin nimeää ja asettaa kyseisen rajan.*
-
----
-
-### Atom-ID: `tda_d335b4457e3e4ac7` (Entropia: 1.000, Konsistenssi: 0.0%)
-**Arviointisääntö:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: User inputs. STEP 1 (Syntactic Anchor): Find thought-terminating clichés ('it is simply a matter of', 'there is no alternative', 'period'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: complexity or opposing views are dismissed without data. NEGATIVE CONDITION (RETURN NULL IF MET): data is provided. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Data-driven rebuttals. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
-
-**Havaitut tilat ajoittain:**
-- **Run 1 (exe_3fd8226676154108a50a644f621ad7fe) - [FALSE]:**
-  > *The text makes strong, conclusive statements, but these are presented as the outcome of the analysis of Sitra's reports. It does not use thought-terminating clichés to dismiss complexity without providing data.  [5. VALIDATION DECISION: FAIL]*
-- **Run 2 (exe_50cc66ec4ee84fd38398d71170dc3fe0) - [TRUE]:**
-  > *The text uses the phrase "paluuta vanhaan normaaliin ei ole" (there is no return to the old normal), which functions as a thought-terminating cliché, dismissing complexity and alternative views without presenting data in the same sentence.  [5. VALIDATION DECISION: PASS]*
-
----
-
-### Atom-ID: `tda_569f87a921a2fb69` (Entropia: 1.000, Konsistenssi: 0.0%)
-**Arviointisääntö:** REQUIRED TARGET: Scan ONLY the Target Data. STEP 1 (Syntactic Anchor): Find user instructions that modify an output (e.g., 'change this paragraph to'). STEP 2 (Bounding Box): Scan the interaction. EXTRACTION CONDITION: the user modifies the final output but leaves the original AI system prompt or generative logic exactly the same. NEGATIVE CONDITION (RETURN NULL IF MET): the user alters the underlying instructions/logic. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Deep structural refactoring. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
-
-**Havaitut tilat ajoittain:**
-- **Run 1 (exe_3fd8226676154108a50a644f621ad7fe) - [FALSE]:**
-  > *Negatiivinen ehto täyttyy, koska käyttäjä muuttaa perustavanlaatuisesti taustalla olevaa logiikkaa. Hän ei ainoastaan muokkaa tuotosta, vaan esittelee uuden käsitteellisen kehyksen ('supermegatrendejä').  [5. VALIDATION DECISION: FAIL]*
-- **Run 2 (exe_50cc66ec4ee84fd38398d71170dc3fe0) - [TRUE]:**
-  > *Käyttäjä antaa selkeän komennon muuttaa tulosteen muotoa ('poista taulukot ja kerro ne tekstinä') muuttamatta alkuperäistä pyyntöä tai logiikkaa. Tämä on suora muokkaus olemassa olevaan tulosteeseen.  [5. VALIDATION DECISION: PASS]*
-
----
-
-### Atom-ID: `tda_32ee0cac79ad098e` (Entropia: 1.000, Konsistenssi: 0.0%)
-**Arviointisääntö:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not evaluate humility. STEP 1 (Syntactic Anchor): Find universal terms ('always', 'in every case'). STEP 2: EXTRACTION CONDITION: a causal claim derived from a specific, limited context is applied to all contexts universally without acknowledging boundaries. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
-
-**Havaitut tilat ajoittain:**
-- **Run 1 (exe_3fd8226676154108a50a644f621ad7fe) - [FALSE]:**
-  > *Teksti ei käytä universaaleja kvantifioijia, kuten 'aina' tai 'joka tapauksessa', soveltaakseen rajoitetusta kontekstista peräisin olevaa kausaaliväitettä yleismaailmallisesti. Siten säännössä kuvattua virhepäätelmää ei esiinny.  [5. VALIDATION DECISION: FAIL]*
-- **Run 2 (exe_50cc66ec4ee84fd38398d71170dc3fe0) - [TRUE]:**
-  > *Tämä on käänteinen sääntö. Teksti tekee universaalin kausaaliväittämän, jonka mukaan tietty toiminto on 'ainoa tapa' saavuttaa haluttu lopputulos, mikä on säännön vastainen ylilyönti. Koska rikkomus löytyi, sääntöä ei ole noudatettu.  [5. VALIDATION DECISION: PASS]*
-
----
-
-### Atom-ID: `tda_823c84f71d94ce84` (Entropia: 1.000, Konsistenssi: 0.0%)
-**Arviointisääntö:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED LOGIC: Do not accept post-generation complaints. STEP 1 (Syntactic Anchor): Find a friction marker prior to an action (e.g. 'This is difficult because', 'The risk here is', 'We must balance'). STEP 2 (Bounding Box): Scan the chronological flow. EXTRACTION CONDITION: the conflict or trade-off is articulated BEFORE the final output is generated. NEGATIVE CONDITION (RETURN NULL IF MET): the friction is only discussed afterwards. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
-
-**Havaitut tilat ajoittain:**
-- **Run 1 (exe_3fd8226676154108a50a644f621ad7fe) - [TRUE]:**
-  > *The rule requires finding a friction marker articulated before an action. The reflection text contains the statement 'Ennakoin, että alkuun en saa hyvää tulosta' (I anticipated that I wouldn't get a good result at first), which clearly articulates anticipated difficulty before the main process, fulfilling the rule's condition.  [5. VALIDATION DECISION: PASS]*
-- **Run 2 (exe_50cc66ec4ee84fd38398d71170dc3fe0) - [FALSE]:**
-  > *Sääntö edellyttää, että konflikti tai kompromissi artikuloidaan ennen toimintaa. Käyttäjän kehotteet ovat suoria käskyjä, eikä keskustelulokissa ole näyttöä siitä, että käyttäjä olisi pohtinut tai ilmaissut mahdollisia vaikeuksia tai riskejä etukäteen.  [5. VALIDATION DECISION: FAIL]*
+- **Run 1 (exe_24d3c3048fe04aae935a8e8f29166249) - [TRUE]:**
+  > *fi:Teksti sisältää lauseen, joka määrittelee rajoitteen ('Luonnon kantokyvyn rajat eivät ole vain rajoite...'), mikä vastaa listan A ehtoa. Tekstistä ei kuitenkaan löydy vastaväitteitä tai poikkeuksia, jotka sopisivat listan B määritelmään.*
+- **Run 2 (exe_fddc85dbc57f44a3a2e830887f5ba694) - [FALSE]:**
+  > *Tekstistä ei löydy kielellisiä merkkejä, jotka asettaisivat selkeitä rajoja analyysille (esim. 'tämä ei koske...') tai esittäisivät poikkeuksia tai vasta-argumentteja esitetylle narratiiville. Argumentaatio on lineaarista ja yleistävää.*
 
 ---
 
@@ -79,87 +68,76 @@ Alla on listattu kaikki säännöt, joissa ilmeni erimielisyyttä tai epävakaut
 **Arviointisääntö:** CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data. STEP 1 (Syntactic Anchor): Find user phrases adopting AI methodology blindly (e.g., 'let us use your structure', 'proceed with that approach', 'do what you suggested'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user explicitly adopts the AI's proposed framework without adding their own constraints. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept if the user modifies the AI's framework. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
 
 **Havaitut tilat ajoittain:**
-- **Run 1 (exe_3fd8226676154108a50a644f621ad7fe) - [FALSE]:**
-  > *Käyttäjä ei omaksu sokeasti tekoälyn metodologiaa. Päinvastoin, hän hylkää tekoälyn alkuperäisen rakenteen ja esittää oman, uuden kehyksensä ('supermegatrendit').  [5. VALIDATION DECISION: FAIL]*
-- **Run 2 (exe_50cc66ec4ee84fd38398d71170dc3fe0) - [TRUE]:**
-  > *Kun tekoäly ehdottaa supermegatrendien käsitettä, käyttäjä omaksuu tämän viitekehyksen suoraan ja käskee tekoälyä tuottamaan raportin sen pohjalta. Tämä on selkeä esimerkki tekoälyn ehdottaman metodologian omaksumisesta.  [5. VALIDATION DECISION: PASS]*
+- **Run 1 (exe_24d3c3048fe04aae935a8e8f29166249) - [FALSE]:**
+  > *No presence of target concept detected: No evidence was found. The user consistently directs the AI and introduces their own conceptual frameworks, such as "supermegatrendejä", rather than blindly adopting a methodology proposed by the AI.  [5. VALIDATION DECISION: PASS]*
+- **Run 2 (exe_fddc85dbc57f44a3a2e830887f5ba694) - [TRUE]:**
+  > *Presence detected: The AI suggests the concept and structure of 'supermegatrends' in the preceding turn. The user then explicitly adopts this framework without adding any new constraints or modifications by commanding the AI to 'make a report of the whole, where the Supermegatrends are the main part'. This directly follows the AI's proposed methodology.. Exceptions audit: The user does not blindly adopt the AI's framework. On the contrary, the user actively introduces a new, more sophisticated conceptual framework ('supermegatrendit') and directs the AI to rebuild the report around it.  [5. VALIDATION DECISION: FAIL]*
 
 ---
 
-### Atom-ID: `tda_8f668ea29869ba8b` (Entropia: 1.000, Konsistenssi: 0.0%)
-**Arviointisääntö:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED LOGIC: Do not guess psychological bias. STEP 1 (Syntactic Anchor): Find an evaluation of an outcome (e.g. 'Success', 'Worked well', 'Correct'). STEP 2 (Bounding Box): Scan the surrounding section. EXTRACTION CONDITION: the text lists supporting evidence but completely omits any mention of edge cases, failures, or limitations (e.g. 'Failed', 'Error', 'However') in the same section. NEGATIVE CONDITION (RETURN NULL IF MET): limitations are discussed. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
+### Atom-ID: `tda_8b00e1f77f38317e` (Entropia: 1.000, Konsistenssi: 0.0%)
+**Arviointisääntö:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept post-decision doubt. STEP 1 (Syntactic Anchor): Find an option-weighing or friction marker (e.g. 'Option A vs B', 'Trade-off', 'On the other hand'). STEP 2 (Bounding Box): Scan the chronological flow. EXTRACTION CONDITION: the alternatives are explicitly compared and evaluated BEFORE the final decision is stated. NEGATIVE CONDITION (RETURN NULL IF MET): evaluated after. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
 
 **Havaitut tilat ajoittain:**
-- **Run 1 (exe_3fd8226676154108a50a644f621ad7fe) - [FALSE]:**
-  > *This is an inverse rule that triggers if an evaluation of an outcome omits any mention of failures or limitations. The reflection text explicitly mentions limitations and corrections made ('Korjasin taulukosta Eurooppaan liittyvän asian...'). Since limitations are discussed, the condition for finding a violation is not met.  [5. VALIDATION DECISION: FAIL]*
-- **Run 2 (exe_50cc66ec4ee84fd38398d71170dc3fe0) - [TRUE]:**
-  > *Sääntö on käänteinen ja etsii yksipuolista arviota onnistumisesta. Reflektiossa käyttäjä toteaa: 'Pyysin supermegatrendejä – tämä oli iso oivallus.' Tämä on selkeä arvio oman toiminnan onnistumisesta. Ympäröivä teksti ei mainitse mitään rajoituksia tai negatiivisia puolia tälle oivallukselle, joten arvio on yksipuolinen ja sääntöä on rikottu.  [5. VALIDATION DECISION: PASS]*
+- **Run 1 (exe_24d3c3048fe04aae935a8e8f29166249) - [TRUE]:**
+  > *Mitigating exception found: The text does not contain any explicit option-weighing or comparison of alternatives. It presents its conclusions and strategic directions as the only viable path, rather than evaluating trade-offs.  [5. VALIDATION DECISION: PASS]*
+- **Run 2 (exe_fddc85dbc57f44a3a2e830887f5ba694) - [FALSE]:**
+  > *No presence of target concept detected: Sääntö edellyttää vaihtoehtojen punnintaa ennen päätöstä. Tekstissä mainitaan "Yhdysvallat vs. Kiina", mutta tämä on kuvaus olemassa olevasta konfliktista, ei kahden strategisen vaihtoehdon punnintaa päätöksenteon tueksi. Muita säännön ankkureita ei löytynyt.  [5. VALIDATION DECISION: PASS]*
 
 ---
 
-### Atom-ID: `tda_5c82ad4f766b762e` (Entropia: 1.000, Konsistenssi: 0.0%)
-**Arviointisääntö:** REQUIRED TARGET: Scan ONLY the Target Data. STEP 1 (Syntactic Anchor): Find superficial correction commands by the user (e.g., 'fix the typo', 'make it shorter', 'bold the headers'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user ONLY requests formatting or minor lexical changes without challenging the logic. NEGATIVE CONDITION (RETURN NULL IF MET): logical changes are requested. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept if the user challenges the underlying reasoning. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
+### Atom-ID: `tda_dfa97bbeeb1dafc5` (Entropia: 1.000, Konsistenssi: 0.0%)
+**Arviointisääntö:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. STEP 1 (Syntactic Anchor): Find criteria anchoring markers (e.g., 'measured against', 'based on the standard of', 'criteria'). STEP 2: EXTRACTION CONDITION: an evaluation explicitly links its judgment to a stated benchmark or metric. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept floating evaluations with unstated goalposts. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
 
 **Havaitut tilat ajoittain:**
-- **Run 1 (exe_3fd8226676154108a50a644f621ad7fe) - [FALSE]:**
-  > *Negatiivinen ehto täyttyy, koska käyttäjä ei *ainoastaan* pyydä pinnallisia korjauksia. Hän tekee myös merkittäviä loogisia ja rakenteellisia muutoksia, kuten uuden 'supermegatrendit'-käsitteen käyttöönoton.  [5. VALIDATION DECISION: FAIL]*
-- **Run 2 (exe_50cc66ec4ee84fd38398d71170dc3fe0) - [TRUE]:**
-  > *Käyttäjä pyytää tekoälyä tarkistamaan muotoilun ('varmista, että taulukot ovat kohdallaan') ilman, että hän haastaa sisältöä tai logiikkaa. Tämä on puhtaasti pinnallinen korjauspyyntö.  [5. VALIDATION DECISION: PASS]*
+- **Run 1 (exe_24d3c3048fe04aae935a8e8f29166249) - [FALSE]:**
+  > *No presence of target concept detected: Sääntö etsii arviointeja, jotka on ankkuroitu eksplisiittisesti ilmoitettuun mittapuuhun tai kriteeristöön. Vaikka analyysi perustuu Sitran raportteihin, tekstissä ei käytetä säännön vaatimia eksplisiittisiä ankkurimarkkereita.  [5. VALIDATION DECISION: PASS]*
+- **Run 2 (exe_fddc85dbc57f44a3a2e830887f5ba694) - [TRUE]:**
+  > *Presence detected: The text explicitly anchors its analysis to a benchmark by framing the changes as an 'evolution' from the 2017 Sitra trends. This provides a clear criterion for the evaluation.. Exceptions audit: Sääntö edellyttää eksplisiittisiä ankkurisanoja, jotka sitovat arvion tiettyyn mittapuuhun tai kriteeriin. Vaikka koko dokumentti perustuu Sitran raportteihin (mainittu viitteessä), tekstissä ei käytetä fyysisiä ankkurisanoja kuten 'verrattuna' tai 'perustuen', joten säännön tiukka ehto ei täyty.  [5. VALIDATION DECISION: FAIL]*
 
 ---
 
-### Atom-ID: `tda_be74d9af83716dcc` (Entropia: 1.000, Konsistenssi: 0.0%)
-**Arviointisääntö:** REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in a 'user:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'ai:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find explicit retrospective claims of intent (e.g., 'That is what I meant', 'I intended', 'As expected'). STEP 2 (Bounding Box & Negative Condition): Scan the text preceding this claim (the original instruction). If the preceding text DOES NOT physically contain the exact parameters now being claimed -> ACCEPT. If the preceding text physically contains the parameters -> REJECT. BANNED CONCEPTS: Do NOT evaluate subjective 'sincerity' or 'post-hoc rationalization'. Evaluate only the physical presence or absence of the claimed parameters in the prior text. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
+### Atom-ID: `tda_d0b6789c895808eb` (Entropia: 1.000, Konsistenssi: 0.0%)
+**Arviointisääntö:** CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. STEP 1 (Syntactic Anchor): Find binary reduction words (e.g., 'either', 'or', 'simply boils down to'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: a complex phenomenon is reduced to a strict binary choice without acknowledging nuance. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept binary choices in literal boolean logic or code. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
 
 **Havaitut tilat ajoittain:**
-- **Run 1 (exe_3fd8226676154108a50a644f621ad7fe) - [FALSE]:**
-  > *This is an inverse rule that looks for post-hoc rationalization. The user reflects on their insight to ask for 'supermegatrendejä'. The chat log confirms the user did introduce this term in their prompt. According to the rule, if the preceding text contains the claimed parameter, the condition for a violation is not met ('REJECT'). Therefore, no violation is found.  [5. VALIDATION DECISION: FAIL]*
-- **Run 2 (exe_50cc66ec4ee84fd38398d71170dc3fe0) - [TRUE]:**
-  > *Sääntö on käänteinen ja etsii jälkikäteistä rationalisointia. Reflektiossa käyttäjä väittää: 'Annoin rajoituksia sekä roolin liiketoiminnalle koska kyse oli johtoryhmän tehtävästä' heti alussa. Keskusteluloki kuitenkin osoittaa, että ensimmäinen kehotus oli yleinen, ja rooli sekä kaupallinen näkökulma lisättiin vasta viimeisessä kehotteessa. Tämä on selvä tapaus, jossa alkuperäinen tarkoitus esitetään takautuvasti erilaiseksi kuin se oli, joten sääntöä on rikottu.  [5. VALIDATION DECISION: PASS]*
+- **Run 1 (exe_24d3c3048fe04aae935a8e8f29166249) - [FALSE]:**
+  > *No presence of target concept detected: Sääntö etsii binäärisiä pelkistyksiä, joissa monimutkainen ilmiö typistetään joko/tai-valinnaksi. Tekstistä ei löydy tällaisia rakenteita tai sanamerkkejä, joten virhettä ei esiinny.  [5. VALIDATION DECISION: PASS]*
+- **Run 2 (exe_fddc85dbc57f44a3a2e830887f5ba694) - [TRUE]:**
+  > *Presence detected: This is an inverse rule and a violation was found. The text reduces the complex challenge of ensuring long-term stability to a single binary choice by claiming that shifting to a regenerative economy is 'the only way'.. Exceptions audit: Sääntö etsii virhettä, jossa monimutkainen ilmiö pelkistetään virheellisesti binääriseksi valinnaksi. Tekstistä ei löydy tällaisia ankkurisanoja tai rakenteita. Päinvastoin, teksti korostaa ilmiöiden keskinäisriippuvuutta ja monimutkaisuutta.  [5. VALIDATION DECISION: FAIL]*
 
 ---
 
-### Atom-ID: `tda_8b1717b2ca9f25e2` (Entropia: 1.000, Konsistenssi: 0.0%)
-**Arviointisääntö:** REQUIRED TARGET: Scan ONLY user prompts. BANNED LOGIC: Do not accept specific extraction commands. STEP 1 (Syntactic Anchor): Find broad summary commands ('tiivistä', 'tee yhteenveto', 'mitä tässä lukee', 'summarize'). STEP 2: EXTRACTION CONDITION: the command lacks any specific constraints and allows the AI to freely decide what is important. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
+### Atom-ID: `tda_713c6cd20146d1c2` (Entropia: 1.000, Konsistenssi: 0.0%)
+**Arviointisääntö:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Ignore system instructions. STEP 1 (Syntactic Anchor): Find a falsification marker (e.g. 'Let\'s try to break this', 'What EXTRACTION CONDITION: the opposite is true', 'Counter-argument'). STEP 2 (Bounding Box): Scan the paragraph. NEGATIVE CONDITION (RETURN NULL IF MET): the user explicitly introduces a scenario designed to make their own hypothesis fail. If no active stress-test is present. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
 
 **Havaitut tilat ajoittain:**
-- **Run 1 (exe_3fd8226676154108a50a644f621ad7fe) - [FALSE]:**
-  > *The user does not use broad, unconstrained summary commands like 'tiivistä' or 'tee yhteenveto'. The command 'koosta' is used, but it is accompanied by a specific constraint ("1 sivun").  [5. VALIDATION DECISION: FAIL]*
-- **Run 2 (exe_50cc66ec4ee84fd38398d71170dc3fe0) - [TRUE]:**
-  > *The user's initial prompt is a very broad request for synthesis ('Miten sitra tämän näkee'), lacking any specific constraints on length, format, or focus, thus allowing the AI to freely decide what is important.  [5. VALIDATION DECISION: PASS]*
+- **Run 1 (exe_24d3c3048fe04aae935a8e8f29166249) - [TRUE]:**
+  > *Mitigating exception found: Sääntö etsii aktiivista yritystä kumota tai testata omaa hypoteesia (falsifiointi). Reflektiossa mainittu `Ennakoin, että alkuun en saa hyvää tulosta` on ennakointia mahdollisesta ongelmasta, ei aktiivista skenaarion luomista oman oletuksen rikkomiseksi. Chat-loki osoittaa iteratiivista parantelua, ei falsifiointiyrityksiä. Todisteita ei löydy.  [5. VALIDATION DECISION: PASS]*
+- **Run 2 (exe_fddc85dbc57f44a3a2e830887f5ba694) - [FALSE]:**
+  > *No presence of target concept detected: Sääntö etsii merkkejä siitä, että käyttäjä yrittää aktiivisesti kumota tai testata omaa hypoteesiaan. Käyttäjän kehotteet ovat rakentavia ja tarkentavia, mutta mistään ei löydy säännön tarkoittamaa falsifiointiyritystä, kuten vasta-argumentin esittämistä tai oman idean rikkomispyrkimystä.  [5. VALIDATION DECISION: PASS]*
 
 ---
 
-### Atom-ID: `tda_2590fb7ecb6379e7` (Entropia: 1.000, Konsistenssi: 0.0%)
-**Arviointisääntö:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not evaluate nuance. STEP 1 (Syntactic Anchor): Find absolute causal words ('only reason', 'entirely due to'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the text attributes a highly complex outcome to a single cause without acknowledging any other potential factors. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
+### Atom-ID: `tda_4fa47fd622e62e0d` (Entropia: 1.000, Konsistenssi: 0.0%)
+**Arviointisääntö:** REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find formal citation markers ('according to ARMA principle of', 'ISO standard'). STEP 2 (Bounding Box): Scan the sentence. If a specific external framework is named AND a specific sub-principle or clause is cited to justify a decision. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not accept generic references to 'standards' without naming them. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
 
 **Havaitut tilat ajoittain:**
-- **Run 1 (exe_3fd8226676154108a50a644f621ad7fe) - [TRUE]:**
-  > *Teksti sisältää absoluuttisen kausaaliväittämän, jossa monimutkainen lopputulos ('pitkän aikavälin vakaus') johdetaan yhdestä ainoasta syystä ('Korjaavaan ja uusintavaan talouteen siirtyminen'). Tämä vastaa säännön ehtoa.  [5. VALIDATION DECISION: PASS]*
-- **Run 2 (exe_50cc66ec4ee84fd38398d71170dc3fe0) - [FALSE]:**
-  > *Tämä on käänteinen sääntö. Teksti ei syyllisty yksinkertaistavaan yhden syyn selitykseen, vaan korostaa megatrendien kietoutumista toisiinsa. Koska rikkomusta ei löydy, sääntö on täytetty.  [5. VALIDATION DECISION: FAIL]*
+- **Run 1 (exe_24d3c3048fe04aae935a8e8f29166249) - [FALSE]:**
+  > *No presence of target concept detected: The text mentions specific external frameworks like 'CSRD-direktiivin' and 'EU-taksonomian'. However, the rule requires that a 'specific sub-principle or clause is cited', which is not present. The text only names the frameworks generally.  [5. VALIDATION DECISION: PASS]*
+- **Run 2 (exe_fddc85dbc57f44a3a2e830887f5ba694) - [TRUE]:**
+  > *Mitigating exception found: Lainaus nimeää ulkoisen säädöksen ('CSRD-direktiivin ja EU-taksonomian') ja yhdistää sen suoraan vaatimukseen ('tekevät kestävyydestä pakollista'). Tämä täyttää säännön vaatimuksen.  [5. VALIDATION DECISION: PASS]*
 
 ---
 
-### Atom-ID: `tda_58cbd7271f491351` (Entropia: 1.000, Konsistenssi: 0.0%)
-**Arviointisääntö:** CRITICAL DIRECTIVE (FATAL FLAW): REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find framework absolutism words (e.g., 'proves unequivocally', 'the model dictates', 'undeniable', 'certainty'). STEP 2 (Bounding Box & Negative Condition): Scan the paragraph containing the anchor. If the paragraph contains the absolutism anchor BUT does NOT contain mitigating vocabulary (e.g., 'however', 'potential limit', 'constraint', 'lens', 'maybe') -> ACCEPT. If it contains mitigating vocabulary -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, 'infallible truth', or epistemological humility subjectively. Do not accept mathematical proofs. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
+### Atom-ID: `tda_3d3f1162d2ff1558` (Entropia: 1.000, Konsistenssi: 0.0%)
+**Arviointisääntö:** REQUIRED TARGET: Scan the document. STEP 1: Find a limitation acknowledgment (e.g., 'a limitation is'). STEP 2: Scan the next two sentences. EXTRACTION CONDITION: a dismissive marker (e.g., 'however', 'regardless') immediately rationalizes away the limitation without citing new data. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
 
 **Havaitut tilat ajoittain:**
-- **Run 1 (exe_3fd8226676154108a50a644f621ad7fe) - [FALSE]:**
-  > *Sääntöä ei rikottu. Teksti ei käytä absoluuttisia ankkurisanoja, kuten 'todistaa kiistatta' tai 'kiistaton'. Sen sijaan se attribuoi näkemykset selkeästi Sitralle ('Sitran näkemys on...'), mikä toimii lieventävänä tekijänä.  [5. VALIDATION DECISION: FAIL]*
-- **Run 2 (exe_50cc66ec4ee84fd38398d71170dc3fe0) - [TRUE]:**
-  > *Sääntö etsii virhettä, jossa viitekehyksestä johdettu väite esitetään absoluuttisena totuutena ilman lieventävää sanastoa. Johtopäätöksessä väite 'Muutos... on peruuttamaton' on absoluuttinen ja lopullinen. Kappaleessa ei ole mukana mitään epävarmuutta tai rajoituksia ilmentäviä sanoja (kuten 'kuitenkin', 'mahdollisesti'), joten se rikkoo sääntöä.  [5. VALIDATION DECISION: PASS]*
-
----
-
-### Atom-ID: `tda_9ab273ce743ac29e` (Entropia: 1.000, Konsistenssi: 0.0%)
-**Arviointisääntö:** REQUIRED TARGET: Scan ONLY the Target Data. BANNED LOGIC: Do not guess intent. STEP 1 (Syntactic Anchor): Find an evaluation of success or a positive outcome. STEP 2 (Bounding Box): Scan the surrounding section. EXTRACTION CONDITION: the text details the positive outcome but COMPLETELY OMITs any epistemic boundary markers (e.g. 'however', 'limitations', 'failed to', 'uncertainty'). NEGATIVE CONDITION (RETURN NULL IF MET): limitations are explicitly stated. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.
-
-**Havaitut tilat ajoittain:**
-- **Run 1 (exe_3fd8226676154108a50a644f621ad7fe) - [FALSE]:**
-  > *Sääntö on käänteinen (pahe), joka etsii rajojen poisjättämistä. Lähdeteksti on kuitenkin täynnä rajoituksia ja epävarmuuksia kuvaavia termejä ('ennakoimatomia katkoja', 'maineriskin', 'luottamuksen rapautuminen', 'kysynnän epävarmuutta'). Koska rajoitukset on eksplisiittisesti mainittu, säännön negatiivinen ehto täyttyy, eikä rikkomusta löydy. Siksi sääntö on täytetty (rule_satisfied = True).  [5. VALIDATION DECISION: FAIL]*
-- **Run 2 (exe_50cc66ec4ee84fd38398d71170dc3fe0) - [TRUE]:**
-  > *Tämä on käänteinen sääntö, joka etsii positiivisen lopputuloksen kuvausta, josta puuttuvat kaikki episteemiset rajamarkkerit. Teksti esittää väitteen "Korjaavaan ja uusintavaan talouteen siirtyminen on ainoa tapa taata pitkän aikavälin vakaus" absoluuttisena totuutena ilman mitään rajoituksia tai epävarmuuden tunnustamista. Tämä on säännön rikkomus.  [5. VALIDATION DECISION: PASS]*
+- **Run 1 (exe_24d3c3048fe04aae935a8e8f29166249) - [FALSE]:**
+  > *Teksti ei tunnista omia rajoituksiaan, joten se ei myöskään voi kumota niitä vähättelevästi. Säännön määrittelemää kuviota ei esiinny.*
+- **Run 2 (exe_fddc85dbc57f44a3a2e830887f5ba694) - [TRUE]:**
+  > *The text acknowledges the concept of a limitation ("rajoite") but immediately uses the adversative conjunction "vaan" (but/rather) to pivot and reframe it as a positive foundation for growth, thus rationalizing away its negative implications without introducing new data.*
 
 ---
 

@@ -7,7 +7,7 @@ import secrets
 from datetime import datetime, timezone
 from typing import Annotated, Any, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -156,6 +156,10 @@ class TDAAssertion(V2CoreBase):
     allow_contextual_override: bool = Field(
         default=False,
         description="If True, allows overriding this assertion with a contextual excuse.",
+    )
+    high_entropy: bool = Field(
+        default=False,
+        description="If True, enables multi-agent ensemble majority voting for this assertion.",
     )
 
     @model_validator(mode="after")
@@ -1038,8 +1042,7 @@ class JobAcceptedDTO(V2CoreBase):
     execution_id: str
 
 
-class WorkflowSchemaResponse(RootModel[dict[str, Any]]):
-    pass
+WorkflowSchemaResponse = dict[str, Any]
 
 
 class BaseMatrixXAI(BaseModel):

@@ -195,8 +195,16 @@ class ChunkWorker:
                 else:
                     executor = LLMTaskExecutor(prompt_compiler=compiler)
 
-                    # Milestone 4 Setup: Identify high entropy and negative rule triggers
-                    HIGH_ENTROPY_ATOMS = {"tda_e6a0c9d3eb6c443f", "tda_567ee46c35852f54", "tda_4b9a2c1f38e7456d"}
+                    # Milestone 4 Setup: Identify high entropy and negative rule triggers dynamically
+                    HIGH_ENTROPY_ATOMS = set()
+                    for crit in chunk_criteria:
+                        if crit.scales:
+                            for scale in crit.scales:
+                                for claim in scale.claims:
+                                    for tda in claim.tda_assertions:
+                                        if getattr(tda, "high_entropy", False):
+                                            HIGH_ENTROPY_ATOMS.add(tda.tda_id)
+
                     is_ensemble_step = False
                     if chunk is not None:
                         for item in chunk.items:

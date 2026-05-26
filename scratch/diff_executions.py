@@ -105,7 +105,7 @@ if len(sys.argv) > 1:
         else:
             print(f"Polkua ei löydy: {path}")
 else:
-    for d in exe_dirs[:2]:
+    for d in exe_dirs[:3]:
         path = os.path.join(d, 'execution_trace.json')
         if os.path.exists(path):
             evals_list.append(get_all_evals(path))
@@ -226,7 +226,7 @@ with open(report_path, 'w', encoding='utf-8') as f:
     f.write(f'- **Havaittujen luokkien kirjo:** {", ".join(categories_list)}\n')
     f.write(f'- **Parittainen konsistenssi (Self-Consistency):** {global_consistency * 100:.2f} %\n')
     f.write(f'  > *Kuvaa mallin itse-konsistenssia eli kuinka todennäköisesti kaksi satunnaista ajoa päätyy samaan lopputulokseen samalla syötteellä.*\n')
-    f.write(f'- **Fleissin Kappa ($\kappa$):** {global_kappa:.4f}\n')
+    f.write(f'- **Fleissin Kappa ($\\kappa$):** {global_kappa:.4f}\n')
     f.write(f'  > *Tieteellinen/akateeminen sopivuuskerroin, joka eliminoi puhtaan sattuman vaikutuksen arvioinnissa. Arvo > 0.8 on erinomainen, 0.6–0.8 hyvä.*\n')
     f.write(f'- **Keskimääräinen Shannonin Entropia:** {global_entropy:.4f}\n')
     f.write(f'  > *Mittaa vastausten yleistä epävarmuutta ja hajontaa. Lähellä nollaa oleva arvo tarkoittaa erittäin stabiilia mallia.*\n\n')

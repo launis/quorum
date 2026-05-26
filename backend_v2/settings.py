@@ -118,7 +118,8 @@ class Settings(BaseSettings):
     redis_port: Annotated[int, Field(description="Redis Port")] = 6379
     worker_job_timeout: Annotated[int, Field(description="Max seconds Arq worker processes a job")] = 14400
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def default_safety_settings(self) -> list[dict[str, str]]:
         """Returns standard safety settings (Auditing Mode: BLOCK_NONE)."""
         return [

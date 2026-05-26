@@ -65,10 +65,16 @@ class StrippedBaseTDAExtraction(BaseModel):
     def validate_override_logic(self) -> StrippedBaseTDAExtraction:
         if self.contextual_override:
             if self.exact_quote not in (None, "", "[CONTEXTUAL_OVERRIDE_APPLIED]"):
-                raise ValueError("Cross-validation failed: exact_quote MUST be empty, null, or '[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is True.")
+                raise ValueError(
+                    "Cross-validation failed: exact_quote MUST be empty, null, "
+                    "or '[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is True."
+                )
         else:
             if self.exact_quote == "[CONTEXTUAL_OVERRIDE_APPLIED]":
-                raise ValueError("Cross-validation failed: exact_quote cannot be '[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False.")
+                raise ValueError(
+                    "Cross-validation failed: exact_quote cannot be "
+                    "'[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False."
+                )
         return self
 
 
@@ -600,11 +606,12 @@ class PromptCompiler:
                                 if getattr(assertion, "allow_contextual_override", False):
                                     rule_text += (
                                         " [CONTEXTUAL OVERRIDE ALLOWED] If the assertion's criteria are satisfied "
-                                        "semantically or contextually across the text but no single exact verbatim quote "
-                                        "can be isolated, you MUST: 1) Set contextual_override = true. 2) Provide a detailed "
-                                        "explanation in semantic_reasoning with structural references. 3) Set exact_quote to exactly "
-                                        "'[CONTEXTUAL_OVERRIDE_APPLIED]'. Do NOT hallucinate a quote. Only use this override "
-                                        "if a direct literal quote is physically absent."
+                                        "semantically or contextually across the text but no single exact verbatim "
+                                        "quote can be isolated, you MUST: 1) Set contextual_override = true. 2) "
+                                        "Provide a detailed explanation in semantic_reasoning with structural "
+                                        "references. 3) Set exact_quote to exactly "
+                                        "'[CONTEXTUAL_OVERRIDE_APPLIED]'. Do NOT hallucinate a quote. Only use "
+                                        "this override if a direct literal quote is physically absent."
                                     )
                                 claims_texts.append(f"{rule_text} {mandate_str}")
 
@@ -696,7 +703,12 @@ class PromptCompiler:
 
         return "\n\n".join(compiled_lines) if compiled_lines else ""
 
-    def compile_dynamic_instructions(self, blocks: list[PromptBlock], target_locale: str) -> str:
+    def compile_dynamic_instructions(
+        self,
+        blocks: list[PromptBlock],
+        target_locale: str,
+        execution_time: datetime.datetime | str | None = None,
+    ) -> str:
         """Compile dynamic instruction-type V2 PromptBlocks for the Uncached User Tail.
 
         Extracts blocks where type == "instruction" AND category_id == "runtime_variables",
@@ -705,11 +717,40 @@ class PromptCompiler:
         Args:
             blocks: List of PromptBlock definitions.
             target_locale: The requested language code.
+            execution_time: Optional static timestamp of the execution or inputs to ensure 100% determinism.
 
         Returns:
             A formatted string of all dynamic runtime instruction directives.
         """
-        now_utc = datetime.datetime.now(datetime.UTC)
+        now_utc = None
+        if execution_time is not None:
+            if isinstance(execution_time, datetime.datetime):
+                now_utc = execution_time
+            elif isinstance(execution_time, str):
+                try:
+                    # Remove Z/UTC suffix if present for standard isoformat parsing
+                    clean_str = execution_time.replace("Z", "+00:00")
+                    now_utc = datetime.datetime.fromisoformat(clean_str)
+                except ValueError as e:
+                    msg = f"Failed to parse execution_time string '{execution_time}' into a valid ISO-8601 datetime."
+                    logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=400,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from e
+            else:
+                msg = f"Invalid execution_time type '{type(execution_time).__name__}'. Must be datetime, str, or None."
+                logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+
+        if not now_utc:
+            now_utc = datetime.datetime.now(datetime.UTC)
+
         current_date_str = now_utc.strftime("%Y-%m-%d")
         dynamic_time_str = now_utc.strftime("%H:%M:%S UTC")
 

@@ -234,5 +234,5 @@ def test_chunk_accumulator_reducer_instruction_primitive_merge() -> None:
     accumulator.add(chunk_1)
 
     result = accumulator.get_final_result()
-    assert result["blk_9e44687dff884ff6"] == "First instruction text output.\n\n[Chunk]: Second instruction text output."
-
+    expected = "First instruction text output.\n\n[Chunk]: Second instruction text output."
+    assert result["blk_9e44687dff884ff6"] == expected

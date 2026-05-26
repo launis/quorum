@@ -2,7 +2,27 @@
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+
+_dict_adapter = TypeAdapter(dict[str, Any])
+
+
+class ReferencesInputsDTO:
+    """Strict schema for inputs destined for reference generation.
+
+    By utilizing a TypeAdapter wrapper (RootModel is broken in Python 3.14),
+    we strictly enforce that the incoming state payload is explicitly a dictionary
+    before any iterative logic executes, satisfying the Phase 9 Zero-Compromise mandate.
+    """
+
+    def __init__(self, root: dict[str, Any]) -> None:
+        self.root = root
+
+    @classmethod
+    def model_validate(cls, data: Any) -> ReferencesInputsDTO:
+        """Validate using strict Pydantic TypeAdapter."""
+        validated = _dict_adapter.validate_python(data)
+        return cls(root=validated)
 
 
 class ReferenceDTO(BaseModel):
@@ -23,12 +43,6 @@ class ReferencesContextDTO(BaseModel):
 
     step_coach: dict[str, Any] | None = None
     knowledge_base: dict[str, Any] | None = None
-
-
-class ReferencesInputsDTO(RootModel[dict[str, Any]]):
-    """Strict schema for inputs destined for reference generation."""
-
-    model_config = ConfigDict(frozen=True)
 
 
 class BibliographyResultDTO(BaseModel):

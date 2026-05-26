@@ -38,6 +38,17 @@ def test_openai_tool_call_dto_valid() -> None:
     assert model.function.name == "mcp_tavily_search"
 
 
+def test_openai_tool_call_dto_accepts_provider_specific_fields() -> None:
+    data = {
+        "id": "call_123",
+        "type": "function",
+        "function": {"name": "mcp_tavily_search", "arguments": '{"query": "test"}'},
+        "provider_specific_fields": {"thought_signature": "Cu...7yJQl4aGsEaLDmOw1eSQ=="},
+    }
+    model = OpenAIToolCallDTO.model_validate(data)
+    assert model.id == "call_123"
+
+
 def test_openai_probe_response_dto_valid() -> None:
     data = {
         "tool_calls": [

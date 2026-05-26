@@ -1,9 +1,9 @@
 # Tracker: EPIC 59 - Claim-Level Contextual Override & Zero-Variance Architecture
 
-- [NOK] docs/epic/tasks_EPIC_59/phase1_pydantic_schema.md - Pydantic Schema, Micro-CoT Lists and Evaluation DTO Hardening
-- [NOK] docs/epic/tasks_EPIC_59/phase2_prompt_compiler_and_scoring.md - Context Slicing, Decoupled Falsification and Dynamic Routing
-- [NOK] docs/epic/tasks_EPIC_59/phase3_seed_migration.md - Prompt Rule Refactoring and Database Re-seed
-- [NOK] docs/epic/tasks_EPIC_59/phase4_verification_and_hardening.md - Zero-Variance Verification and Architecture Hardening
+- [OK] docs/epic/tasks_EPIC_59/phase1_pydantic_schema.md - Pydantic Schema, Micro-CoT Lists and Evaluation DTO Hardening
+- [OK] docs/epic/tasks_EPIC_59/phase2_prompt_compiler_and_scoring.md - Context Slicing, Decoupled Falsification and Dynamic Routing
+- [OK] docs/epic/tasks_EPIC_59/phase3_seed_migration.md - Prompt Rule Refactoring and Database Re-seed
+- [OK] docs/epic/tasks_EPIC_59/phase4_verification_and_hardening.md - Zero-Variance Verification and Architecture Hardening
 
 ### Master Protocol
 Suorittaaksesi tämän Epicin iteratiivisesti vaiheittain, avaa UUSI chat-istunto ja aja komento:

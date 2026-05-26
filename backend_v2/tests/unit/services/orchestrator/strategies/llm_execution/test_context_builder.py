@@ -239,3 +239,27 @@ def test_context_builder_build_resolution_fails_fast(monkeypatch: pytest.MonkeyP
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
     assert "Failed to resolve input mapping" in str(exc_info.value.message)
+
+
+def test_context_builder_propagates_dynamic_inputs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that ContextBuilder always propagates raw_inputs.dynamic_inputs metadata."""
+    monkeypatch.setattr(
+        "litellm.token_counter",
+        lambda model, text: 10,
+    )
+
+    input_mappings = {"text_field": "$document_text"}
+    state_data = {
+        "document_text": "Sample text",
+        "raw_inputs": {"dynamic_inputs": {"document_date": "2025-10-27T23:31:46+02:00"}},
+    }
+
+    llm_context_data, _ = ContextBuilder.build(
+        input_mappings=input_mappings,
+        state_data=state_data,
+        output_profile=None,
+    )
+
+    assert "raw_inputs" in llm_context_data
+    assert "dynamic_inputs" in llm_context_data["raw_inputs"]
+    assert llm_context_data["raw_inputs"]["dynamic_inputs"]["document_date"] == "2025-10-27T23:31:46+02:00"
