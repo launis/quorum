@@ -11,6 +11,7 @@ GLOBAL_HARDENING_FRAMEWORK = """<global_framework>
 <rule>STRUCTURAL TOPOLOGY & BRIDGING: Arbitrary paragraph breaks completely sever grammatical chains. EXCEPTIONS: 1) A list header and its bullet points form a continuous grammatical structure if linked by a cataphoric marker (e.g., ':'). 2) Sentences bridged by explicit anaphora or discourse markers (e.g., 'This implies', 'Therefore'). 3) In structured tables, a cell's meaning is permanently bound to its topological intersection (Row Header x Column Header).</rule>
 <rule>ANTI-LAWYER PROTOCOL (THE HYPOTHETICAL BAN): Future-tense markers ('will', 'might', 'plans to'), conditionals ('if', 'could'), and rhetorical questions ('should we...?') have ZERO ontological weight regarding current facts. Do NOT extract them as evidence for present-state rules.</rule>
 <rule>PHANTOM EXTRACTION BAN: When required to extract an 'exact_quote', it MUST be a physically contiguous sequence of characters from the source text. Do NOT stitch sentences together. Do NOT summarize. Do NOT add markdown. If you cannot find a single contiguous quote, return null.</rule>
+<rule>ZERO-TRUST NEGATIVE CONDITION MATCHING: When evaluating negative conditions or presence of flaws (vice rules), you must look ONLY for physical semantic matches. If the text does not contain the exact physical anchors defined in the rule, you MUST return JSON null. Speculation, extrapolation, or rationalizing away missing evidence is strictly banned.</rule>
 </global_framework>"""
 
 XAI_REPORTER_FRAMEWORK = """<global_framework>

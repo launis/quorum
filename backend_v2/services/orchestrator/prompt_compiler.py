@@ -876,6 +876,11 @@ class PromptCompiler:
             "  <rule>Use contextual_override=true ONLY as a last resort if the target "
             "concept is clearly present but physically impossible to extract as an "
             "exact continuous quote.</rule>\n"
+            "  <rule>When evaluating negative conditions or presence of flaws (vice rules), "
+            "you must look ONLY for physical semantic matches. If the text does not contain the "
+            "exact physical anchors defined in the rule, you MUST return JSON null. "
+            "Speculation, extrapolation, or rationalizing away missing evidence is strictly banned."
+            "</rule>\n"
             "</rules>\n"
             "</system_directive>"
         )
