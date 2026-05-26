@@ -17,6 +17,8 @@ async def test_resume_execution_fails_fast_on_invalid_state() -> None:
     # Setup mock to return an already running execution (invalid for resume)
     mock_record = Mock(spec=ExecutionRecord)
     mock_record.status = ExecutionStatus.RUNNING
+    mock_record.execution_trace = []
+    mock_record.model_copy.return_value = mock_record
     repo_mock.get_execution.return_value = mock_record
 
     service = ExecutionService(
@@ -32,8 +34,8 @@ async def test_resume_execution_fails_fast_on_invalid_state() -> None:
     with pytest.raises(AppException) as exc_info:
         await service.resume_execution(initiator=initiator, execution_id="exe_123", arq_pool=arq_pool)
 
-    assert "Cannot resume execution in state" in exc_info.value.message
-    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    assert "cannot be resumed due to unresumable state" in exc_info.value.message
+    assert exc_info.value.details["error_code"] == "UNRESUMABLE_STATE_ERROR"
 
 
 @pytest.mark.asyncio
@@ -52,13 +54,23 @@ async def test_list_executions_admin_sees_all() -> None:
 
     mock_record1 = Mock(spec=ExecutionRecord)
     mock_record1.organization_id = "org_1"
+    mock_record1.status = ExecutionStatus.COMPLETED
+    mock_record1.execution_trace = []
+    mock_record1.model_copy.return_value = mock_record1
+
     mock_record2 = Mock(spec=ExecutionRecord)
     mock_record2.organization_id = "org_2"
+    mock_record2.status = ExecutionStatus.COMPLETED
+    mock_record2.execution_trace = []
+    mock_record2.model_copy.return_value = mock_record2
 
     repo_mock.get_all_executions.return_value = [mock_record1, mock_record2]
 
     initiator = TokenData(id="u1", role=UserRole.ROOT)
-    results = await service.list_executions(initiator=initiator)
+    
+    from unittest.mock import patch
+    with patch.object(service, "check_resumability", return_value=False):
+        results = await service.list_executions(initiator=initiator)
 
     assert len(results) == 2
 
@@ -80,15 +92,24 @@ async def test_list_executions_tenant_sees_own() -> None:
     mock_record1 = Mock(spec=ExecutionRecord)
     mock_record1.organization_id = "org_1"
     mock_record1.created_by = "u2"
+    mock_record1.status = ExecutionStatus.COMPLETED
+    mock_record1.execution_trace = []
+    mock_record1.model_copy.return_value = mock_record1
 
     mock_record2 = Mock(spec=ExecutionRecord)
     mock_record2.organization_id = "org_2"
     mock_record2.created_by = "u3"
+    mock_record2.status = ExecutionStatus.COMPLETED
+    mock_record2.execution_trace = []
+    mock_record2.model_copy.return_value = mock_record2
 
     repo_mock.get_all_executions.return_value = [mock_record1, mock_record2]
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
-    results = await service.list_executions(initiator=initiator)
+    
+    from unittest.mock import patch
+    with patch.object(service, "check_resumability", return_value=False):
+        results = await service.list_executions(initiator=initiator)
 
     assert len(results) == 1
     assert results[0].organization_id == "org_1"
@@ -110,10 +131,16 @@ async def test_get_execution_admin_sees_any() -> None:
 
     mock_record = Mock(spec=ExecutionRecord)
     mock_record.organization_id = "org_other"
+    mock_record.status = ExecutionStatus.COMPLETED
+    mock_record.execution_trace = []
+    mock_record.model_copy.return_value = mock_record
     repo_mock.get_execution.return_value = mock_record
 
     initiator = TokenData(id="u1", role=UserRole.ROOT)
-    result = await service.get_execution(initiator=initiator, execution_id="exe_1")
+    
+    from unittest.mock import patch
+    with patch.object(service, "check_resumability", return_value=False):
+        result = await service.get_execution(initiator=initiator, execution_id="exe_1")
 
     assert result.organization_id == "org_other"
 
@@ -135,10 +162,16 @@ async def test_get_execution_tenant_sees_own() -> None:
     mock_record = Mock(spec=ExecutionRecord)
     mock_record.organization_id = "org_1"
     mock_record.created_by = "u2"
+    mock_record.status = ExecutionStatus.COMPLETED
+    mock_record.execution_trace = []
+    mock_record.model_copy.return_value = mock_record
     repo_mock.get_execution.return_value = mock_record
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
-    result = await service.get_execution(initiator=initiator, execution_id="exe_1")
+    
+    from unittest.mock import patch
+    with patch.object(service, "check_resumability", return_value=False):
+        result = await service.get_execution(initiator=initiator, execution_id="exe_1")
 
     assert result.organization_id == "org_1"
 
@@ -192,6 +225,7 @@ async def test_start_execution_success() -> None:
 
     mock_wf = Mock(spec=Workflow)
     mock_wf.id = "wf_1"
+    mock_wf.version = 1
     mock_wf.default_profile_id = "prof_1"
     mock_wf.output_profiles = {"prof_1": Mock()}
     mock_wf.expected_inputs = []
@@ -241,6 +275,7 @@ async def test_render_execution_flat() -> None:
     mock_record.status = ExecutionStatus.COMPLETED
     mock_record.organization_id = "org_1"
     mock_record.created_by = "u2"
+    mock_record.model_copy.return_value = mock_record
     repo_mock.get_execution.return_value = mock_record
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
@@ -283,6 +318,7 @@ async def test_render_execution_json() -> None:
     mock_record.created_by = "u2"
     mock_record.workflow_id = "wf_1"
     mock_record.profile_syntheses = {"prof_1": Mock()}
+    mock_record.model_copy.return_value = mock_record
     repo_mock.get_execution.return_value = mock_record
 
     repo_mock.get_workflow_by_id.return_value = {

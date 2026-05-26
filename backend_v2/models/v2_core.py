@@ -1018,6 +1018,9 @@ class ExecutionRecord(V2CoreBase):
     profile_syntheses: dict[str, RenderedSynthesisCache] = Field(
         default_factory=dict, description="Multi-profile synthesis caching"
     )
+    is_resumable: bool = Field(
+        default=False, description="Dynamic flag indicating if a failed/pending execution can be safely resumed."
+    )
 
     duration_ms: int = Field(default=0, description="Total execution duration in milliseconds")
     models_used: dict[str, int] = Field(

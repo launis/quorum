@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -76,7 +77,17 @@ class ExecutionService:
                 # Currently simple filtering, will evolve as data schema strictly bounds executions to orgs
                 executions = [e for e in executions if e.organization_id == org_id or e.created_by == initiator.id]
 
-            return executions
+            # Dynamic projection of is_resumable using TaskGroup for maximum concurrent caching
+            async with asyncio.TaskGroup() as tg:
+                tasks = []
+                for e in executions:
+                    tasks.append(tg.create_task(self.check_resumability(e)))
+
+            updated_executions = []
+            for e, t in zip(executions, tasks, strict=True):
+                updated_executions.append(e.model_copy(update={"is_resumable": t.result()}))
+
+            return updated_executions
         except Exception as e:
             msg = f"Failed to list executions: {str(e)}"
             logger.error("[ExecutionService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
@@ -96,7 +107,9 @@ class ExecutionService:
             msg = "You do not have permission to view this execution."
             raise PermissionDeniedError(msg)
 
-        return data
+        # Dynamic projection of is_resumable flag on fetch
+        is_resumable = await self.check_resumability(data)
+        return data.model_copy(update={"is_resumable": is_resumable})
 
     async def delete_execution(self, initiator: TokenData, execution_id: str) -> bool:
         """Securely delete an execution."""
@@ -308,6 +321,7 @@ class ExecutionService:
                 "target_locale": target_locale,
                 "profile_id": resolved_profile_id,
                 "matrix_sampling_strategy": payload.matrix_sampling_strategy,
+                "workflow_version": workflow.version,
             },
             created_by=initiator.id,
             organization_id=getattr(initiator, "organization_id", None),
@@ -327,17 +341,70 @@ class ExecutionService:
 
         return initial_record
 
+    async def check_resumability(self, record: ExecutionRecord) -> bool:
+        """Evaluates whether an execution record can be resumed based on strict mathematical and FinOps boundaries.
+
+        Rules for is_resumable = True:
+        1. Execution status must be FAILED.
+        2. Execution trace must contain at least one successful 'output' event (checkpoint after initial ingestion).
+        3. The active DAG workflow blueprint must exist, its step IDs must perfectly match step_states,
+           and workflow version must not have drifted.
+        4. The tenant organization must have sufficient FinOps quota.
+        """
+        # Rule 1: Status check (resumable only from FAILED state)
+        if record.status != ExecutionStatus.FAILED:
+            return False
+
+        # Rule 2: Successful checkpoints check (requires at least one output trace event)
+        has_output_checkpoint = any(event.event_type == "output" for event in record.execution_trace)
+        if not has_output_checkpoint:
+            return False
+
+        # Rule 3: Workflow Blueprint & Seed structural parity check
+        workflow_dict = await self.workflow_repo.get_workflow_by_id(record.workflow_id)
+        if not workflow_dict:
+            return False
+
+        # Fail-Fast: validation error during hydration will crash audibly (obeying the Zero-Compromise Pledge)
+        workflow = Workflow.model_validate(workflow_dict)
+
+        # Structural validation: Step set parity (detect if DAG was restructured mid-flight)
+        workflow_step_ids = {step.id for step in workflow.steps}
+        exec_step_ids = set(record.step_states.keys())
+        if workflow_step_ids != exec_step_ids:
+            return False
+
+        # Version validation: Detect seed blueprint drift
+        orig_version = record.metadata.get("workflow_version")
+        if orig_version is not None and workflow.version != orig_version:
+            return False
+
+        # Rule 4: FinOps Quota protection
+        org_id = record.organization_id
+        if org_id:
+            # Let quota check exceptions propagate naturally to prevent Silent Failures
+            is_quota_safe = await self.usage_service.check_quota(org_id)
+            if not is_quota_safe:
+                return False
+
+        return True
+
     async def resume_execution(self, initiator: TokenData, execution_id: str, arq_pool: ArqRedis) -> ExecutionRecord:
         """Securely resume an existing FAILED execution."""
         # 1. Authorize via get (Fail-Fast ResourceNotFound / PermissionDenied)
         record = await self.get_execution(initiator, execution_id)
 
-        if record.status not in [ExecutionStatus.FAILED, ExecutionStatus.PENDING]:
+        # 2. Strict API Resumption Firewall (Zero-Math Resumption check)
+        is_resumable = await self.check_resumability(record)
+        if not is_resumable:
             msg = (
-                f"Cannot resume execution in state {record.status.value}. "
-                "Only FAILED or PENDING executions can be resumed."
+                f"Execution {execution_id} cannot be resumed due to unresumable state, "
+                "missing checkpoint history, workflow blueprint drift, or insufficient quota."
             )
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+            logger.error("[ExecutionService] %s: %s", ErrorCodes.UNRESUMABLE_STATE_ERROR.name, msg)
+            raise AppException(
+                message=msg, status_code=400, details={"error_code": ErrorCodes.UNRESUMABLE_STATE_ERROR.value}
+            )
 
         # Circuit Breaker: Denial of Wallet Protection
         org_id = getattr(initiator, "organization_id", None)

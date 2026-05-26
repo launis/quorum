@@ -268,6 +268,9 @@ class ErrorCodes(str, Enum):
     AGENT_LOGICAL_VALIDATION_FAILED = "AGENT_LOGICAL_VALIDATION_FAILED"
     AGENT_INVALID_INPUT = "AGENT_INVALID_INPUT"
 
+    # Engine / Workflow
+    UNRESUMABLE_STATE_ERROR = "UNRESUMABLE_STATE_ERROR"
+
 
 class AppException(Exception):
     """Base class for application exceptions (RFC 7807 compatible).
