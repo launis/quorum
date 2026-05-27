@@ -122,9 +122,9 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
 
 @pytest.mark.asyncio
 async def test_logic_strategy_signature_parity() -> None:
-    from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
-    from backend_v2.models.v2_core import FrozenContext
     from backend_v2.exceptions import AppException
+    from backend_v2.models.v2_core import FrozenContext
+    from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 
     repo = AsyncMock()
     repo.get_step_by_id.return_value = None

@@ -17,7 +17,10 @@
           "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "google",
-          "caching_strategy": "prompt_caching"
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "vertex_location": "${VERTEX_LOCATION}"
+          }
         },
         "synthesis": {
           "max_tokens": 65536,
@@ -31,7 +34,10 @@
           "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "google",
-          "caching_strategy": "prompt_caching"
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "vertex_location": "${VERTEX_LOCATION}"
+          }
         },
         "fast": {
           "max_tokens": 65536,
@@ -45,7 +51,10 @@
           "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "google",
-          "caching_strategy": "prompt_caching"
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "vertex_location": "${VERTEX_LOCATION}"
+          }
         },
         "search": {
           "max_tokens": 65536,
@@ -59,7 +68,10 @@
           "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "google",
-          "caching_strategy": "prompt_caching"
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "vertex_location": "${VERTEX_LOCATION}"
+          }
         },
         "precise": {
           "max_tokens": 65536,
@@ -73,7 +85,10 @@
           "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "google",
-          "caching_strategy": "prompt_caching"
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "vertex_location": "${VERTEX_LOCATION}"
+          }
         },
         "strict": {
           "max_tokens": 65536,
@@ -87,7 +102,10 @@
           "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "google",
-          "caching_strategy": "prompt_caching"
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "vertex_location": "${VERTEX_LOCATION}"
+          }
         },
         "SearchHook": {
           "max_tokens": 65536,
@@ -101,7 +119,10 @@
           "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "google",
-          "caching_strategy": "prompt_caching"
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "vertex_location": "${VERTEX_LOCATION}"
+          }
         },
         "blind": {
           "max_tokens": 65536,
@@ -115,7 +136,10 @@
           "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
           "provider": "google",
-          "caching_strategy": "prompt_caching"
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "vertex_location": "${VERTEX_LOCATION}"
+          }
         }
       }
     },
@@ -238,7 +262,7 @@
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find 100% certainty markers ('guaranteed', 'undoubtedly', 'always'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the sentence makes a future prediction or subjective assessment using these markers. NEGATIVE CONDITION (RETURN NULL IF MET): it states a mathematical/historical fact. Mathematical facts.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             }
@@ -308,7 +332,7 @@
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find thought-terminating clichés ('it is simply a matter of', 'there is no alternative', 'period'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: complexity or opposing views are dismissed without data. NEGATIVE CONDITION (RETURN NULL IF MET): data is provided. Data-driven rebuttals.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             }
@@ -410,7 +434,7 @@
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find 'given the principle that', 'this demonstrates that mechanism' or equivalent explicit rules. STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the bridging rule between Data and Claim is explicitly stated. NEGATIVE CONDITION (RETURN NULL IF MET): it just says 'because' without stating the general rule. Do not evaluate the quality of the bridging rule.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             },
@@ -480,7 +504,7 @@
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find formal citations ('according to the methodology of', 'based on the study by'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the logical rule is explicitly backed by a verifiable external methodology or study. NEGATIVE CONDITION (RETURN NULL IF MET): it's a vague reference ('research shows'). Vague references to 'studies' or 'science'.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             },
@@ -694,7 +718,7 @@
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find listing conjunctions (e.g., 'and', 'also', 'in addition'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: two major domain concepts are placed side-by-side without a relational verb connecting them. Do not accept sentences that explicitly define the relationship between the concepts.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             },
@@ -713,7 +737,7 @@
                   "ai_rule_description": "<syntactic_constraint> <anchors> <anchor>either</anchor> <anchor>or</anchor> <anchor>simply boils down to</anchor> <anchor>joko</anchor> <anchor>tai</anchor> <anchor>pelkistyy</anchor> </anchors> <extraction_condition> Verify if the text explicitly frames a multi-dimensional system or complex strategic situation into exactly two opposing options using one of the binary reduction anchors from the <anchors> block, without acknowledging any middle ground or other alternatives. </extraction_condition> <ambiguity_protocol> If the binary reduction anchors from <anchors> are absent, or if there is any nuance or mention of alternative paths in the paragraph, you MUST return JSON null. Speculation is strictly banned. </ambiguity_protocol> </syntactic_constraint>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             }
@@ -1119,7 +1143,7 @@
                   "ai_rule_description": "Do not judge 'tone' subjectively. STEP 1 (Syntactic Anchor): Find absolute certainty markers (e.g., '100%', 'impossible', 'the only truth', 'täysin'). STEP 2 (Bounding Box): Check the immediate paragraph. EXTRACTION CONDITION: this absolute certainty is presented without empirical data or epistemic qualifiers. NEGATIVE CONDITION (RETURN NULL IF MET): accompanied by statistical margins of error.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             }
@@ -1486,7 +1510,7 @@
                   "ai_rule_description": "Extract exact quotes containing user instructions to modify the final output (e.g., 'change this paragraph to') into List A. Extract exact quotes containing alterations to the underlying instructions or logic into List B.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             },
@@ -1524,7 +1548,7 @@
                   "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data. STEP 1 (Syntactic Anchor): Find single-path commands (e.g., 'just write the final version', 'skip the analysis'). STEP 2 (Bounding Box): Scan the user prompt. EXTRACTION CONDITION: the user actively refuses to explore counter-arguments or alternative models. Do not accept if the user asks for pros and cons.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             }
@@ -1594,7 +1618,7 @@
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find demands for epistemological humility (e.g., 'tell me what you do not know', 'what are the limitations of this analysis'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user explicitly commands the AI to state its uncertainties or missing data. Demands for absolute certainty.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             }
@@ -2028,7 +2052,7 @@
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find procedural sequential markers (e.g., 'step 1', 'checklist', 'first', 'secondly', 'then'). STEP 2 (Bounding Box & Negative Condition): Scan the paragraph containing the anchor. If the paragraph contains procedural markers BUT does NOT contain explicit synthesis or deduction verbs (e.g., 'analyzed', 'concluded', 'synthesized', 'therefore') -> ACCEPT. If it contains synthesis terminology -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, 'strategic thinking', or subjective 'literal manner'.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: Extract explicit procedural execution steps that lack analytical or synthesis terminology."
@@ -2047,7 +2071,7 @@
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find explicit absolute status declarations (e.g., 'perfectly secure', 'no issues found', 'fully compliant'). STEP 2 (Bounding Box & Negative Condition): Scan the paragraph containing the anchor. If the paragraph contains the absolute declaration BUT does NOT contain risk or mitigation vocabulary (e.g., 'risk', 'trade-off', 'vulnerability', 'however') -> ACCEPT. If it contains risk vocabulary -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, 'sweeping nature', or subjective 'flawlessness'.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: Extract explicit absolute compliance claims that physically lack risk terminology."
@@ -2187,7 +2211,7 @@
                   "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find formal citation markers ('according to ARMA principle of', 'ISO standard'). STEP 2 (Bounding Box): Scan the sentence. If a specific external framework is named AND a specific sub-principle or clause is cited to justify a decision. Do not accept generic references to 'standards' without naming them.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ],
               "ai_description": "CRITICAL DIRECTIVE: LOCATE where the execution is fortified by explicit backing from external expert frameworks."
@@ -3026,7 +3050,7 @@
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find explicit counterargument markers (e.g., 'critics argue', 'opposing view', 'counterargument', 'on the other hand'). STEP 2 (Bounding Box & Dual Condition): Scan the paragraph containing the anchor. If the paragraph contains the counterargument marker AND ALSO contains physical citation markers (e.g., 'et al', '[1]', '(', 'published in') AND empirical measurement vocabulary (e.g., 'data', 'showed', 'measured') -> ACCEPT. If it lacks citations or measurement tokens -> REJECT. BANNED CONCEPTS: Do NOT evaluate subjective 'strength', 'steel-manning', or whether the argument is successfully 'dismantled'. Evaluate only physical token presence.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             },
@@ -4876,7 +4900,7 @@
                   "ai_rule_description": "BANNED LOGIC: Do not accept 'fully justified' without a traced reasoning path. STEP 1 (Syntactic Anchor): Find causal justification markers (e.g. 'because of risk X', 'to prevent Y', 'therefore blocked'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: a security action is paired with an explicit, documented risk assessment.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             },
@@ -5115,7 +5139,7 @@
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in a 'user:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'ai:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find explicit retrospective claims of intent (e.g., 'That is what I meant', 'I intended', 'As expected'). STEP 2 (Bounding Box & Negative Condition): Scan the text preceding this claim (the original instruction). If the preceding text DOES NOT physically contain the exact parameters now being claimed -> ACCEPT. If the preceding text physically contains the parameters -> REJECT. BANNED CONCEPTS: Do NOT evaluate subjective 'sincerity' or 'post-hoc rationalization'. Evaluate only the physical presence or absence of the claimed parameters in the prior text.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             },
@@ -5134,7 +5158,7 @@
                   "ai_rule_description": "EXTRACTION CONDITION: role prefixes exist, focus on 'ai:' output compared to 'user:' input. BANNED LOGIC: Do not evaluate 'coincidence' abstractly. STEP 1 (Syntactic Anchor): Identify a novel concept, specific methodology, or data point introduced by the AI. STEP 2 (Bounding Box): Scan the preceding 'user:' prompt. NEGATIVE CONDITION (RETURN NULL IF MET): the user prompt did NOT explicitly request this concept or methodology. If the user requested it.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             },
@@ -5395,7 +5419,7 @@
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in a 'user:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'ai:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find a structural blueprint or architectural parameter list (e.g., 'must contain', 'requirements are', 'architecture must'). STEP 2 (Bounding Box & Dual Condition): Scan the paragraph containing the anchor. If the paragraph contains the blueprint AND ALSO contains conflict or constraint vocabulary (e.g., 'conflict', 'hard part', 'trade-off', 'issue', 'balance', 'problem') -> ACCEPT. If it lacks constraint vocabulary -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, psychological 'cognitive friction', or 'pre-meditated' status. Evaluate only physical token presence.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             },
@@ -6534,7 +6558,7 @@
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find dismissive markers towards alternatives (e.g., 'obviously false', 'nonsense', 'irrelevant'). STEP 2 (Bounding Box): Scan the paragraph. STEP 3: EXTRACTION CONDITION: the dismissal occurs without citing an external verifiable source or empirical data.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             }
@@ -6585,7 +6609,7 @@
                   "ai_rule_description": "<syntactic_constraint> <anchors> <anchor>a limitation is</anchor> <anchor>rajoituksena on</anchor> <anchor>puutteena on</anchor> <anchor>heikkoutena on</anchor> </anchors> <transitions> <transition>however</transition> <transition>regardless</transition> <transition>kuitenkin</transition> <transition>silti</transition> </transitions> <extraction_condition> Verify if a limitation acknowledgment from the <anchors> block is immediately followed (within two sentences) by a dismissive logical transition word from the <transitions> block that rationalizes away the limitation. </extraction_condition> <ambiguity_protocol> If the limitation anchor from <anchors> is absent, or if the dismissive marker from <transitions> is missing, or if new empirical data is cited to solve the limitation, you MUST return JSON null. Do not rationalize or excuse missing evidence. </ambiguity_protocol> </syntactic_constraint>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             },
@@ -6604,7 +6628,7 @@
                   "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find a named alternative model or theory. STEP 2 (Bounding Box): Scan the same paragraph. EXTRACTION CONDITION: the alternative is mentioned but the paragraph contains exactly 0 counter-arguments or comparative data points. Do not evaluate 'depth', simply count the data points.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             }
@@ -6655,7 +6679,7 @@
                   "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find a paragraph containing statistical or factual reporting. STEP 2: Count the first-person pronouns ('I', 'we') or explicit self-reflective verbs ('assume', 'interpret'). EXTRACTION CONDITION: the count is exactly 0. NEGATIVE CONDITION (RETURN NULL IF MET): greater than 0.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             },
@@ -6706,7 +6730,7 @@
                   "ai_rule_description": "<syntactic_constraint> <anchors> <anchor>this does not apply to</anchor> <anchor>a key constraint is</anchor> <anchor>our analysis is limited to</anchor> <anchor>rajoituksena on</anchor> </anchors> <extraction_condition> Extract the exact quote containing the physical anchor word from the <anchors> block. </extraction_condition> <ambiguity_protocol> If the physical anchors from <anchors> are absent or vague in the text, you MUST return JSON null. Speculation is strictly banned. </ambiguity_protocol> </syntactic_constraint>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             },
@@ -6795,7 +6819,7 @@
                   "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Locate a risk assessment or 'pre-mortem' structure. STEP 2: Find explicit dismantling of a risk using a verifiable external citation or empirical data. EXTRACTION CONDITION: both the risk and the empirical counter-data are found.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
-                  "high_entropy": false
+                  "high_entropy": true
                 }
               ]
             },

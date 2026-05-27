@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -116,7 +117,9 @@ class ModelRegistryView extends HookConsumerWidget {
         formKey.currentState!.save();
         try {
           final notifier = ref.read(modelRegistryFormProvider(id).notifier);
-          await notifier.submit(payload);
+          final latestPayload =
+              ref.read(modelRegistryFormProvider(id)).value ?? payload;
+          await notifier.submit(latestPayload);
           if (!context.mounted) return;
           ScaffoldMessenger.of(
             context,
@@ -411,6 +414,25 @@ class ModelRegistryView extends HookConsumerWidget {
                             updateModel(modelId, cfg.copyWith(rpmLimit: val)),
                       ),
 
+                      _buildStringField(
+                        cfg.cachingStrategy,
+                        l10n.cachingStrategyLabel,
+                        (val) => updateModel(
+                          modelId,
+                          cfg.copyWith(
+                            cachingStrategy: val.trim().isEmpty ? null : val,
+                          ),
+                        ),
+                      ),
+                      _buildJsonField(
+                        cfg.additionalParams,
+                        l10n.additionalParamsLabel,
+                        (val) => updateModel(
+                          modelId,
+                          cfg.copyWith(additionalParams: val),
+                        ),
+                      ),
+
                       _buildBoolField(
                         cfg.supportsGrounding,
                         l10n.supportsGroundingLabel,
@@ -434,6 +456,51 @@ class ModelRegistryView extends HookConsumerWidget {
           );
         }),
       ],
+    );
+  }
+
+  Widget _buildJsonField(
+    Map<String, dynamic>? initialValue,
+    String label,
+    Function(Map<String, dynamic>) onSaved,
+  ) {
+    final initialText = initialValue != null && initialValue.isNotEmpty
+        ? const JsonEncoder.withIndent('  ').convert(initialValue)
+        : '{}';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: TextFormField(
+        initialValue: initialText,
+        maxLines: 4,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+        validator: (val) {
+          if (val == null || val.trim().isEmpty) return null;
+          try {
+            final decoded = jsonDecode(val);
+            if (decoded is! Map<String, dynamic>) {
+              return 'Must be a valid JSON object (e.g. {"key": "val"})';
+            }
+          } catch (e) {
+            return 'Invalid JSON';
+          }
+          return null;
+        },
+        onSaved: (val) {
+          if (val != null && val.trim().isNotEmpty) {
+            try {
+              final decoded = jsonDecode(val);
+              if (decoded is Map<String, dynamic>) {
+                onSaved(decoded);
+              }
+            } catch (_) {}
+          } else {
+            onSaved({});
+          }
+        },
+      ),
     );
   }
 

@@ -778,6 +778,8 @@
   "parsingModeLabel": "Parsing Mode",
   "isActiveLabel": "Is Active",
   "supportsGroundingLabel": "Supports Grounding",
+  "cachingStrategyLabel": "Caching Strategy",
+  "additionalParamsLabel": "Additional Parameters (JSON)",
   "strategyLabel": "Strategy",
   "noModelsDefined": "No models defined in registry.",
   "workflowEditTitle": "Edit DAG Workflow",

@@ -1715,6 +1715,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get supportsGroundingLabel => 'Supports Grounding';
 
   @override
+  String get cachingStrategyLabel => 'Caching Strategy';
+
+  @override
+  String get additionalParamsLabel => 'Additional Parameters (JSON)';
+
+  @override
   String get strategyLabel => 'Strategy';
 
   @override

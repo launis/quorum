@@ -382,6 +382,10 @@ class ModelProfile(V2CoreBase):
     caching_strategy: str | None = Field(
         default=None, description="Cache strategy identifier (e.g. 'anthropic_ephemeral')"
     )
+    # Phase 1, Milestone 1: Add additional_params dict field to ModelProfile
+    additional_params: dict[str, Any] = Field(
+        default_factory=dict, description="Additional provider-specific parameters."
+    )
     is_active: bool = Field(default=True, description="Whether the model is actively available")
 
 

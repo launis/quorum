@@ -132,6 +132,7 @@ class LLMClient:
             default_max_tokens=target_strategy.max_tokens,
             supports_grounding=target_strategy.supports_grounding,
             parsing_mode=target_strategy.parsing_mode,
+            additional_params=target_strategy.additional_params,
         )
 
         return cls(config=provider_config)
@@ -163,8 +164,12 @@ class LLMClient:
         # 1. Evaluate Context Caching Requirements (Epic 5 Context Segregation)
         # We process the raw messages array dynamically before handing it to the provider.
         has_ephemeral_caching = False
-        if self._config and self._config.caching_strategy in ("prompt_caching", "ephemeral"):
-            logger.info("[LLMClient] Enabling Universal Ephemeral Context Caching strategy.")
+        caching_strategies = ("prompt_caching", "ephemeral", "anthropic_ephemeral", "gemini_native")
+        if self._config and self._config.caching_strategy in caching_strategies:
+            logger.info(
+                "[LLMClient] Enabling Universal Ephemeral Context Caching strategy: %s",
+                self._config.caching_strategy,
+            )
             has_ephemeral_caching = True
 
         final_messages = []

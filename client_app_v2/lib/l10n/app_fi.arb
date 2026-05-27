@@ -566,6 +566,8 @@
   "parsingModeLabel": "Jäsennystila",
   "isActiveLabel": "Aktiivinen",
   "supportsGroundingLabel": "Tukee Tiedonhakua",
+  "cachingStrategyLabel": "Välimuististrategia (Caching Strategy)",
+  "additionalParamsLabel": "Lisäparametrit (Additional Parameters JSON)",
   "strategyLabel": "Strategia",
   "noModelsDefined": "Rekisterissä ei ole määriteltyjä malleja.",
   "workflowEditTitle": "Muokkaa DAG-työnkulkua",

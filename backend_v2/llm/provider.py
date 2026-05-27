@@ -11,7 +11,14 @@ from typing import Any
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_combine, wait_fixed, wait_random
+from tenacity import (
+    AsyncRetrying,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_combine,
+    wait_exponential,
+    wait_random,
+)
 
 from backend_v2.exceptions import (
     AgentExecutionError,
@@ -35,6 +42,23 @@ logger = logging.getLogger(__name__)
 _root_dir = Path(__file__).resolve().parent.parent.parent
 _env_path = _root_dir / ".env"
 load_dotenv(dotenv_path=_env_path)
+
+
+def resolve_env_variables(params: dict[str, Any]) -> dict[str, Any]:
+    """Korvaa parametrien ${ENV_VAR} -viitteet todellisilla ympäristömuuttujilla."""
+    resolved = {}
+    for k, v in params.items():
+        if isinstance(v, str) and v.startswith("${") and v.endswith("}"):
+            env_key = v[2:-1]
+            resolved_value = os.getenv(env_key)
+            if not resolved_value:
+                raise ConfigurationError(
+                    f"Strict Mode: Vaadittua ympäristömuuttujaa '{env_key}' ei löydy järjestelmästä parametrille '{k}'."
+                )
+            resolved[k] = resolved_value
+        else:
+            resolved[k] = v
+    return resolved
 
 
 def _sync_diagnostic_dump(dump_file: str, model_name: str, payload_str: str) -> None:
@@ -119,6 +143,7 @@ class LiteLLMProvider(LLMProvider):
         organization_id: str | None = None,
         limits: dict[str, int] | None = None,
         supports_grounding: bool = False,
+        config: LLMProviderConfig | None = None,
     ):
         """Initializes the LiteLLM provider.
 
@@ -130,6 +155,7 @@ class LiteLLMProvider(LLMProvider):
             organization_id (Optional[str]): Context organization ID.
             limits (Optional[dict]): Override TPM/RPM limits (e.g. from Organization).
             supports_grounding (bool): Whether this model strategy requires Vertex Grounding.
+            config (Optional[LLMProviderConfig]): Strict configuration object.
         """
         self.model_name = model_name
         self.api_key = api_key
@@ -137,6 +163,7 @@ class LiteLLMProvider(LLMProvider):
         self.usage_service = usage_service
         self.organization_id = organization_id or "UNKNOWN_ORG"
         self.supports_grounding = supports_grounding
+        self._config = config
 
         import litellm
         from litellm import Router  # type: ignore[attr-defined] # External library typing constraint
@@ -315,27 +342,10 @@ class LiteLLMProvider(LLMProvider):
             # Filter out internal keys if necessary, but litellm.drop_params=True handles most.
             call_kwargs.update(kwargs)
 
-            # Explicitly force Vertex Location (Fixes 403 default-to-us-central1 issue)
-            # Robustly resolve location (Settings attr or Env Var)
-            v_loc = None
-            if self.settings and hasattr(self.settings, "vertex_location"):
-                v_loc = self.settings.vertex_location
-
-            if not v_loc:
-                v_loc = os.getenv("VERTEX_LOCATION")
-
-            # STRICT MODE: No defaults. Fail if missing.
-            if not v_loc:
-                logger.error(
-                    "[LiteLLMProvider] Critical Error: VERTEX_LOCATION not found in settings or environment variables."
-                )
-                raise ValueError(
-                    "[LiteLLMProvider] Critical Error: VERTEX_LOCATION not found in settings or environment. "
-                    "Cannot proceed."
-                )
-
-            logger.info("[LiteLLMProvider] Using Vertex Location: %s", v_loc)
-            call_kwargs["vertex_location"] = v_loc
+            # Inject dynamic extra params from config (additional_params) resolved via env vars
+            if self._config and self._config.additional_params:
+                resolved_additional = resolve_env_variables(self._config.additional_params)
+                call_kwargs.update(resolved_additional)
 
             # --- DIAGNOSTIC DUMP ---
             dump_file = os.getenv("DUMP_PROMPTS_FILE")
@@ -359,17 +369,18 @@ class LiteLLMProvider(LLMProvider):
             max_rate_limit_retries = SystemConcurrency.LLM_MAX_RETRIES.value
             response = None
 
+            # Phase 3, Step 4: Enforce Exponential Backoff with Random Jitter
             async for attempt in AsyncRetrying(
                 stop=stop_after_attempt(max_rate_limit_retries + 1),
                 wait=wait_combine(
-                    wait_fixed(SystemConcurrency.RATE_LIMIT_COOLDOWN_SECONDS.value),
-                    wait_random(1, 15),
+                    wait_exponential(multiplier=2, min=2, max=30),
+                    wait_random(1, 5),
                 ),
                 retry=retry_if_exception(_is_transient_llm_error),
                 reraise=True,
                 before_sleep=lambda rs: logger.warning(
                     "[LiteLLMProvider] Transient Error or Quota Exhausted (Attempt %s/%s). "
-                    "Initiating cooldown before automatic retry... | Error: %s",
+                    "Initiating dynamic exponential backoff... | Error: %s",
                     rs.attempt_number,
                     max_rate_limit_retries,
                     type(rs.outcome.exception()).__name__ if rs.outcome and rs.outcome.failed else "Unknown",
@@ -979,4 +990,5 @@ class LLMFactory:
             organization_id=organization_id,
             limits=limits,
             supports_grounding=config.supports_grounding if config else False,
+            config=config,
         )

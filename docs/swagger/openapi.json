@@ -3834,6 +3834,7 @@
         "type": "string",
         "enum": [
           "pending",
+          "queued",
           "running",
           "completed",
           "failed"
@@ -4579,6 +4580,12 @@
             ],
             "title": "Caching Strategy",
             "description": "Cache strategy identifier (e.g. 'anthropic_ephemeral')"
+          },
+          "additional_params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Additional Params",
+            "description": "Additional provider-specific parameters."
           },
           "is_active": {
             "type": "boolean",

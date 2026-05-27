@@ -35,7 +35,6 @@ def test_synthesis_metadata_dto_accepts_workflow_version() -> None:
     assert model.workflow_version == 1
 
 
-
 def test_synthesis_step_data_dto_valid() -> None:
     data = {"reasoning_trace": {"thought_process": "thinking", "conclusion": "acting", "confidence_score": 0.9}}
     model = SynthesisStepDataDTO.model_validate(data)

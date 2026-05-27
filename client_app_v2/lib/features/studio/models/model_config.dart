@@ -38,6 +38,9 @@ abstract class LlmModelConfig with _$LlmModelConfig {
     @JsonKey(name: 'allowed_tools') @Default([]) List<String> allowedTools,
     @JsonKey(name: 'api_key') String? apiKey,
     @JsonKey(name: 'caching_strategy') String? cachingStrategy,
+    @JsonKey(name: 'additional_params')
+    @Default({})
+    Map<String, dynamic> additionalParams,
   }) = _LlmModelConfig;
 
   factory LlmModelConfig.fromJson(Map<String, dynamic> json) =>

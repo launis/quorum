@@ -116,22 +116,31 @@ class XAIReporterInput(V2CoreBase):
 
 ### Phase 1: Domain-mallit ja Validointi (Hardening backend)
 * **Toimenpide 1:** Luodaan/päivitetään `backend_v2/models/domain/xai.py` sisältämään `VarianceValidationExtension` ja päivitetty `XAIReporterInput`.
+  * **Sääntövarmistus [strict_pydantic_v2_rust & cross_language_enum_parity]**: Uusi `VarianceValidationExtension` noudattaa Pydantic V2 `ConfigDict(extra='forbid', strict=True)` -tiukkuutta. Lisäksi uusi `XaiExtensionType.VARIANCE_VALIDATION` -enum-arvo on lisättävä tiedostoon `backend_v2/models/enums.py` ja mäpättävä tiedostoon `client_app_v2/lib/core/models/enums.dart`. Aja `test_enum_parity.py` varmistaaksesi pariteetin.
 * **Toimenpide 2:** Luodaan `backend_v2/utils/scoring/variance_engine.py`, joka sisältää matemaattisen ristiinvertaavan logiikan.
+  * **Sääntövarmistus [strict_math_display_isolation]**: Laskenta on puhtaasti numeerista ja erotettua visualisoinnista. Erotetaan sisäinen matemaattinen analyysi ja dynaamiset display-rajat toisistaan SSOT-periaatteella.
 * **Toimenpide 3:** Varmistetaan, että kaikki muutokset noudattavat strict Pydantic V2 -malleja (`ConfigDict(extra='forbid', strict=True)`).
 
 ### Phase 2: Orchestrator ja Prompt-Groundaus
 * **Toimenpide 1:** Muokataan `backend_v2/services/orchestrator/strategies/llm.py` (tai kyseinen suoritusstrategia) syöttämään mekaaniset metriikat `PromptCompilerille`.
+  * **Sääntövarmistus [prompt_compiler_immutability]**: `PromptCompiler` on suojattu ydinkomponentti. Älä muokkaa `prompt_compiler.py`-tiedostoa, vaan välitä muuttujat sen olemassa olevien rajapintojen kautta.
 * **Toimenpide 2:** Päivitetään Performativity Detector- ja Causal Analyst -matriisien `ai_description`-prompteja `seed_data.json`-tiedostossa tukemaan uusia XML-pohjaisia mekaanisia ankkureita.
+  * **Sääntövarmistus [cross_language_mapping_mandate & hybrid_prompting_mandate]**: Järjestelmäohjeet ja matriisisäännöt pidetään 100 % englanninkielisinä, ja LLM ohjeistetaan kääntämään ja soveltamaan niitä kohdekieleen lennossa. Kaikki syötteet aidataan XML-tageilla.
 * **Toimenpide 3:** Ajetaan `run_seed.py local` uusien matriisiversioiden viemiseksi kantaan.
+  * **Sääntövarmistus [direct_database_mutation]**: Kehityskantaa ei muokata koskaan suoraan, vaan muutokset tehdään siemenajolla `seed_data.json`-tiedoston kautta.
 
 ### Phase 3: XAI Reporter-agentin Päivitys
 * **Toimenpide 1:** Muokataan `XAIReporterAgent`-toteutusta lukemaan uudet `step_metrics` ja `step_linguistics` syötteet.
+  * **Sääntövarmistus [llm_structured_execution_mandate]**: Agentti suoritetaan `LLMTaskExecutor.execute_structured_task()` -metodilla, pakottaen Pydantic DTO -rakenteisen ulostulon ilman omia regex-hakkereita.
 * **Toimenpide 2:** Syntetisoidaan nämä arvot `XAIOutputDTO`-raportin tekstikenttiin (`cognitive_behavior` ja `causal_chain`), jolloin loppuraportissa viitataan suoraan mekaanisiin lukuihin.
+  * **Sääntövarmistus [native_english_generation_mandate]**: Päättely ja laadullinen synteesi tuotetaan mallissa englanniksi ja käännetään kääntäjäkoukulla (`translation_hook`) matalan latenssin passissa kohdekielelle.
 * **Toimenpide 3:** Lasketaan varianssit lennossa ja lisätään ne `output_extensions`-listaan.
 
 ### Phase 4: Frontend (Flutter UI) ja PDF-Pariteetti (PDF-First Alignment)
 * **Toimenpide 1:** Päivitetään Flutterin XAI-näkymä renderöimään uusi `VarianceValidationExtension` visuaalisena mittarina (esim. "Mekaaninen vs. Kognitiivinen tasapaino" -indikaattori), joka noudattaa PDF-raportin staattista asettelua.
+  * **Sääntövarmistus [no_string_l10n & no_string_mandate]**: Kaikki käyttöliittymätekstit, otsikot ja lokalisoinnit viedään yksinomaan Flutterin `.arb`-kielitiedostoihin, ei kovakoodattuina merkkijonoina koodiin.
 * **Toimenpide 2:** Päivitetään PDF-generaattorin Jinja2-raporttimalli näyttämään groundatut päättelyketjut ilman esityslogiikan vuotoa backendin puolelle, asettaen staattisen A4-asettelun visualisoinnin ensisijaiseksi standardiksi.
+  * **Sääntövarmistus [tripartite_rendering_boundary]**: Backend ei tuota valmiita Markdown-taulukoita tai HTML-komponentteja, vaan välittää pelkkää puhdasta strukturoitua dataa. Visualisoinnista ja renderöinnistä vastaavat itsenäisesti esityskerroksen toteutukset (Flutter ja Jinja2 PDF).
 
 
 ---
@@ -175,13 +184,14 @@ Visuaalista suunnittelua ohjaa ehdoton **PDF-First-suunnittelufilosofia** ("PDF-
 
 ## 7. Definition of Done (DoD)
 
-1. **Tyyppiturvallisuus (Pydantic V2):** Kaikki uudet integraatiokentät ja laajennukset (Extensions) menevät läpi Pydantic-validoinnista ilman fallback-arvoja tai löysiä sanakirjoja.
-2. **Katalyyttinen Groundaus:** Performativity- ja Causal-agentit hyödyntävät deterministisiä metriikoita in-context-prompteissaan, mikä voidaan todentaa suoritusaikaisista logeista (`backend_debug.log`).
-3. **Nolla-mutaatio persistenssissä:** Historiallinen `seed_data.json` tai suoritusaikainen tietokanta ei korruptoidu; uusi päättelyketju kulkee puhtaasti in-memory DAG-tilassa ja tallentuu virallisena suorituslokina.
-4. **Laatuportti (Quality Gate):** Kaikki olemassa olevat ja uudet unit-testit menevät läpi puhtaasti:
+1. **Tyyppiturvallisuus (Pydantic V2):** Kaikki uudet integraatiokentät ja laajennukset (Extensions) menevät läpi Pydantic-validoinnista ilman fallback-arvoja tai löysiä sanakirjoja noudattaen **[strict_pydantic_v2_rust]** -sääntöä.
+2. **Katalyyttinen Groundaus:** Performativity- ja Causal-agentit hyödyntävät deterministisiä metriikoita in-context-prompteissaan, mikä voidaan todentaa suoritusaikaisista logeista (`backend_debug.log`). Prompteissa noudatetaan **[cross_language_mapping_mandate]** ja **[hybrid_prompting_mandate]** -vaatimuksia.
+3. **Nolla-mutaatio persistenssissä:** Historiallinen `seed_data.json` tai suoritusaikainen tietokanta ei korruptoidu; uusi päättelyketju kulkee puhtaasti in-memory DAG-tilassa ja tallentuu virallisena suorituslokina. Muutokset sääntöihin siemennetään vain **[direct_database_mutation]** -säännön mukaisesti.
+4. **Laatuportti (Quality Gate):** Kaikki olemassa olevat ja uudet unit-testit menevät läpi puhtaasti **[testing_and_verification_mandate]** -säännön mukaisesti:
    ```powershell
    uv run python scripts/backend_audit_loop.py backend_v2/models/domain/xai.py --test
    ```
-5. **Esityskerroksen Eristys:** Backend ei tuota valmiiksi muotoiltuja käyttöliittymäkomponentteja tai Markdown-taulukoita ristiinvertailusta, vaan ainoastaan numeeriset varianssit ja kategoriset alignment-päätökset DTO-rakenteissa.
+5. **Esityskerroksen Eristys [tripartite_rendering_boundary]:** Backend ei tuota valmiiksi muotoiltuja käyttöliittymäkomponentteja tai Markdown-taulukoita ristiinvertailusta, vaan ainoastaan numeeriset varianssit ja kategoriset alignment-päätökset DTO-rakenteissa.
 6. **PDF-First Pariteetti (PDF-First Fidelity & Parity):** PDF-generaattorin Jinja2-raportti ja Flutter-käyttöliittymä peilaavat toisiaan visuaalisesti ja rakenteellisesti (kuten asettelun ja semanttisen värikoodauksen osalta). Kaikki dynaamiset/interaktiiviset elementtilisäykset Flutterissa on suunniteltu staattisen A4-PDF:n asettamien rajoitteiden ("PDF-ehdot") puitteissa ja peilaavat PDF:n premium-ulkoasua.
+7. **Monikielisyyden ja Rajojen Ylläpito [cross_language_enum_parity & native_english_generation_mandate]:** Uusi `VarianceValidationExtension` ja `XaiExtensionType` on mäpätty pariteetissa Dart-enumeihin. Kognitiiviset analyysit generoidaan natiivisti englanniksi ja käännetään erillisenä passina, ja käyttöliittymän tekstit noudattavat **[no_string_l10n]** -sääntöä `.arb`-tiedostojen kautta.
 

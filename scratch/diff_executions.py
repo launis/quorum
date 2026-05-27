@@ -4,21 +4,21 @@ import sys
 import glob
 import math
 
-def get_all_evals(path):
+def get_all_evals(path: str) -> dict[str, dict[str, object]]:
     with open(path, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    all_evals = {}
+    all_evals: dict[str, dict[str, object]] = {}
     for step in data:
         if 'content' in step and isinstance(step['content'], dict):
             for e in step['content'].get('evaluations', []):
                 all_evals[e['atom_id']] = e
     return all_evals
 
-def calculate_entropy(states):
+def calculate_entropy(states: list[str]) -> float:
     """Laskee Shannonin entropian (base 2) annetuille tiloille."""
     if not states:
         return 0.0
-    counts = {}
+    counts: dict[str, int] = {}
     for s in states:
         counts[s] = counts.get(s, 0) + 1
     total = len(states)
@@ -29,19 +29,19 @@ def calculate_entropy(states):
             entropy -= p * math.log2(p)
     return entropy
 
-def calculate_pairwise_consistency(states):
+def calculate_pairwise_consistency(states: list[str]) -> float:
     """Laskee kuinka suuri osa parivertailuista on yhtäpitäviä."""
     M = len(states)
     if M < 2:
         return 1.0
-    counts = {}
+    counts: dict[str, int] = {}
     for s in states:
         counts[s] = counts.get(s, 0) + 1
     agreed_pairs = sum(c * (c - 1) / 2 for c in counts.values())
     total_pairs = M * (M - 1) / 2
     return agreed_pairs / total_pairs
 
-def calculate_cohens_kappa(atom_states_list, categories):
+def calculate_cohens_kappa(atom_states_list: list[list[str]], categories: list[str]) -> float:
     """
     Laskee Cohenin kapan tasan kahdelle ajolle (M = 2).
     atom_states_list: lista listoista, joissa jokaisessa on tasan 2 tilaa.
@@ -76,7 +76,7 @@ def calculate_cohens_kappa(atom_states_list, categories):
     kappa = (observed_agreement - expected_agreement) / (1.0 - expected_agreement)
     return kappa
 
-def calculate_fleiss_kappa(atom_states_list, categories):
+def calculate_fleiss_kappa(atom_states_list: list[list[str]], categories: list[str]) -> float:
     """
     Laskee Fleissin kapan annetuille syötteille (atomit) ja niiden tiloille eri ajoissa.
     atom_states_list: list of lists, missä jokainen sisempi lista sisältää atomin tilat eri ajoissa.
@@ -118,7 +118,7 @@ def calculate_fleiss_kappa(atom_states_list, categories):
     kappa = (P_mean - P_e) / (1.0 - P_e)
     return kappa
 
-def get_state(e):
+def get_state(e: dict[str, object]) -> str:
     if 'mapped_state' in e:
         return str(e['mapped_state']).lower()
     if 'exact_quote' in e:
@@ -133,15 +133,15 @@ def get_state(e):
         return "true" if eq_lower not in blacklist else "false"
     return "unknown"
 
-def get_trace(e):
+def get_trace(e: dict[str, object]) -> str:
     if 'context_scan_trace' in e:
-        return e['context_scan_trace']
+        return str(e['context_scan_trace'])
     if 'semantic_reasoning' in e:
-        return e['semantic_reasoning']
+        return str(e['semantic_reasoning'])
     if 'reasoning_trace' in e:
-        return e['reasoning_trace']
+        return str(e['reasoning_trace'])
     if 'mechanical_trace' in e:
-        return e['mechanical_trace']
+        return str(e['mechanical_trace'])
     return ""
 
 if __name__ == '__main__':

@@ -1720,6 +1720,13 @@ class AppLocalizationsFi extends AppLocalizations {
   String get supportsGroundingLabel => 'Tukee Tiedonhakua';
 
   @override
+  String get cachingStrategyLabel => 'Välimuististrategia (Caching Strategy)';
+
+  @override
+  String get additionalParamsLabel =>
+      'Lisäparametrit (Additional Parameters JSON)';
+
+  @override
   String get strategyLabel => 'Strategia';
 
   @override

@@ -3230,6 +3230,18 @@ abstract class AppLocalizations {
   /// **'Supports Grounding'**
   String get supportsGroundingLabel;
 
+  /// No description provided for @cachingStrategyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Caching Strategy'**
+  String get cachingStrategyLabel;
+
+  /// No description provided for @additionalParamsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional Parameters (JSON)'**
+  String get additionalParamsLabel;
+
   /// No description provided for @strategyLabel.
   ///
   /// In en, this message translates to:

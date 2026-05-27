@@ -1,42 +1,66 @@
 # Epic 62 Master Tracker: LLM Concurrency Hardening & Universal Provider Decoupling
 
-Tämä seurantadokumentti (Tracker) valvoo **Epic 62** -suunnitelman vaiheittaista toteutusta. Epicin tavoitteena on poistaa kovakoodatut konesalisidokset, toteuttaa dynaaminen ympäristömuuttujien interpolointi `additional_params` -kenttien kautta, parantaa rate-limit -sietokykyä eksponentiaalisella jitter-perääntymisellä ja ottaa käyttöön universaali välimuistin hallinta.
+Tämä seurantadokumentti (Tracker) valvoo **Epic 62** -suunnitelman vaiheittaista suoritusta. Epicin tavoitteena on poistaa kovakoodatut konesalisidokset, toteuttaa dynaaminen ympäristömuuttujien interpolointi `additional_params` -kenttien kautta, parantaa rate-limit -sietokykyä eksponentiaalisella jitter-perääntymisellä, ottaa käyttöön universaali välimuistin hallinta ja integroida nämä täydellisesti Admin Studio Model Registry UI -näkymään.
 
-## Aktiiviset Vaiheet ja Tehtävät (Phased Checklist)
+## Jatkuva Suorituskierto (Continuous Execution Loop)
 
-### [ ] Phase 1: Tietokannan ja Seeding-rakenteen Päivitys (Database Refactoring)
-- [ ] Varmuuskopioi seed-lähdetiedosto `backend_v2/seed/seed_data.json` ennen muutoksia.
-- [ ] Päivitä Google-pohjaisten mallistrategioiden `vertex_location` -kovakoodaukset dynaamiseksi viitteeksi `"additional_params": {"vertex_location": "${VERTEX_LOCATION}"}`.
-- [ ] Aja siementietokannan päivitys komennolla `uv run python backend_v2/seed/run_seed.py`.
+Suorita jokainen vaihe järjestyksessä. Kun olet suorittanut vaiheen loppuun, päivitä sen tila muotoon `[OK]` ja siirry seuraavaan.
 
-### [ ] Phase 2: Dynaamisen Ympäristöresoluution Toteutus (Provider Decoupling)
-- [ ] Kirjoita apufunktio `resolve_env_variables(params: dict[str, Any]) -> dict[str, Any]` tiedostoon `backend_v2/llm/provider.py`.
-- [ ] Poista `provider.py` -koodista kaikki kiinteät `VERTEX_LOCATION` -ympäristömuuttujaviitteet ja kovakoodatut sijaintikaatumiset.
-- [ ] Sovella `resolve_env_variables` -metodia `self._config.additional_params` -sanakirjalle ja pura (`**`) se osaksi `acompletion`-kutsua.
+- [OK] phase1_database.md - Tietokannan ja Seeding-rakenteen Päivitys (Database & Seed Refactoring)
+- [OK] phase2_resolver.md - Dynaamisen Ympäristöresoluution Toteutus (Dynamic Env Resolution & Decoupling)
+- [OK] phase3_retry.md - Eksponentiaalinen Jitter-Perääntyminen & Caching Strategiat (Resilient Retry & Cache Control)
+- [OK] phase4_frontend.md - Käyttöliittymän & Riverpod-tilojen Integrointi (Model Registry UI & Json Form Fields)
+- [OK] phase5_hardening.md - Laadunvarmistus & Arkkitehtuuridokumentaation Päivitys (E2E Hardening & Architecture Docs)
 
-### [ ] Phase 3: Jitter-perääntymisen Integrointi (Retry Resiliency)
-- [ ] Korvaa `provider.py` -tiedoston kiinteä tenacityn `wait_fixed`-odotus dynaamisella `wait_combine(wait_exponential(multiplier=2, min=2, max=30), wait_random(1, 5))` -odotuksella.
-- [ ] Päivitä lokitus viestimään dynaamisesta eksponentiaalisesta odotuksesta perääntymisen aikana.
+---
 
-### [ ] Phase 4: Universaalin Välimuistin Hallinnan Päivitys (Context Caching)
-- [ ] Päivitä `client.py` dynaamisesti soveltamaan cache_control-tageja riippuen `self._config.caching_strategy` -arvosta (esim. `anthropic_ephemeral`, `gemini_native`).
+## Vaihekohtaiset Yksityiskohdat ja Vaatimukset
 
-### [ ] Phase 5: Laadunvarmistus & Laatuportti (Verification Loop)
-- [ ] Kirjoita uusi yksikkötesti `test_adaptive_retry.py` testaamaan backoffin toimivuutta ja transienttien virheiden käsittelyä.
-- [ ] Suorita staattinen backend-laatuporttitarkistus komennolla `/tier2-hardening-backend`.
+### Phase 1: Tietokannan ja Seeding-rakenteen Päivitys
+* **Dokumentti**: [phase1_database.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_62/phase1_database.md)
+* **Päätavoitteet**:
+  - Lisää `additional_params` -kenttä backendin `ModelProfile` -malliin.
+  - Korvaa `backend_v2/seed/seed_data.json` -tiedoston Vertex AI -sijaintien kovakoodaukset dynaamisella `"${VERTEX_LOCATION}"` -ympäristömuuttujamerkinnällä.
+  - Aja seederi päivittämään lokaali TinyDB.
+
+### Phase 2: Dynaamisen Ympäristöresoluution Toteutus
+* **Dokumentti**: [phase2_resolver.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_62/phase2_resolver.md)
+* **Päätavoitteet**:
+  - Toteuta `resolve_env_variables` -metodi `provider.py` -tiedostoon.
+  - Pura `additional_params` ja ratkaise ympäristömuuttujat dynaamisesti (strict error handling jos muuttuja puuttuu).
+  - Poista suorat `VERTEX_LOCATION` -ympäristötarkistukset ja sijaintikaatumiset `provider.py` -tiedostosta.
+
+### Phase 3: Eksponentiaalinen Jitter-Perääntyminen & Caching Strategiat
+* **Dokumentti**: [phase3_retry.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_62/phase3_retry.md)
+* **Päätavoitteet**:
+  - Korvaa tenacityn kiinteä 30s odotus dynaamisella eksponentiaalisella perääntymisellä (`multiplier=2, min=2, max=30`) ja satunnaisella jitterillä (`1-5s`).
+  - Päivitä `client.py` dynaamisesti soveltamaan cache_control-tageja `caching_strategy` -asetuksen perusteella.
+
+### Phase 4: Käyttöliittymän & Riverpod-tilojen Integrointi
+* **Dokumentti**: [phase4_frontend.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_62/phase4_frontend.md)
+* **Päätavoitteet**:
+  - Lisää `additionalParams` ja `cachingStrategy` asiakasohjelman `LlmModelConfig` Freezed-malliin.
+  - Lisää tarvittavat käännökset englannin- ja suomenkielisiin `.arb` tiedostoihin.
+  - Rakenna `_buildJsonField` ja kytke se Formin `onSaved`-latauskulkuun sekä optimisesti päivittyvään Riverpodiin, estäen kohdistuksen menetykset ja kursorihypyt tekstikentissä.
+
+### Phase 5: Laadunvarmistus & Arkkitehtuuridokumentaation Päivitys
+* **Dokumentti**: [phase5_hardening.md](file:///c:/src/quorum/docs/epic/tasks_EPIC_62/phase5_hardening.md)
+* **Päätavoitteet**:
+  - Luo yksikkötesti `test_adaptive_retry.py` testaamaan backoffin toimintaa.
+  - Päivitä arkkitehtuuridokumentit `02_domain_models.md`, `05_llm_and_hooks.md`, `07_desktop_first_flutter.md` ja `09_data_persistence.md`.
+  - Aja backend- ja frontend-laatuporttisilmukat.
 
 ---
 
 ## Universal Hardening Loop Mandate
-Kun kaikki työvaiheet on saavutettu, aja backend-laatuporttisilmukka:
+Ennen kuin merkitset Epicin kokonaan valmiiksi, aja testaus- ja laadunvarmistuskierros:
 ```powershell
 uv run python scripts/backend_audit_loop.py backend_v2/ --test
 ```
-varmistamaan eheyden säilyminen.
 
 ---
 
 ## Handover-ohjeet (Handover Instructions)
-Aloittaaksesi suorituksenFresh-ikkunassa:
-1. Avaa uusi konteksti-ikkuna.
+Aloittaaksesi suorituksen fresh-ikkunassa:
+1. Avaa uusi puhtaan tilan keskusteluikkuna.
 2. Aja käynnistyskomento: `/tier5-resume --target docs/epic/EPIC_62_tracker.md`

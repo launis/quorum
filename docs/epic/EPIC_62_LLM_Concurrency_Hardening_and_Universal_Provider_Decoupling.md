@@ -138,11 +138,16 @@ async for attempt in AsyncRetrying(
 * **Toimenpide**: Päivitetään tenacity-retry-loop `LiteLLMProvider.generate` -metodissa käyttämään eksponentiaalista backoffia ja satunnaista jitteriä.
 * **Varmistus**: Testataan, että perättäiset transientit virheet (kuten 429) korjaantuvat hallitusti.
 
-### Phase 4: Universaalin Välimuistin Hallinnan Päivitys (Context Caching)
-* **Toimenpide**: Päivitetään `client.py` dynaamisesti soveltamaan cache_control-tageja viesteille riippuen `self._config.caching_strategy` -arvosta (esim. `anthropic_ephemeral`, `gemini_native`).
+### Phase 4: Universaalin Välimuistin Hallinnan ja Käyttöliittymän Päivitys (Context Caching & UI Integration)
+* **Taustajärjestelmä**: Päivitetään `client.py` dynaamisesti soveltamaan cache_control-tageja viesteille riippuen `self._config.caching_strategy` -arvosta (esim. `anthropic_ephemeral`, `gemini_native`). Lisätään `additional_params` taustajärjestelmän `ModelProfile`-malliin.
+* **Käyttöliittymä**: Lisätään `caching_strategy` ja `additional_params` (JSON-tekstikenttänä) asiakasohjelman `LlmModelConfig`-malliin ja mallirekisterinäkymään (`model_registry_view.dart`), jotta ne ovat loppukäyttäjän muokattavissa ja tallennettavissa turvallisesti.
 
 ### Phase 5: Laadunvarmistus & Laatuportti (Verification Loop)
 * **Yksikkötestit**: Ajetaan kaikki LLM-yksikkötestit ja kirjoitetaan uusi testi `test_adaptive_retry.py` varmistamaan dynaamisen perääntymisen toiminta.
+
+### Phase 6: Arkkitehtuuridokumentaation Päivitys & Korjaus (Architecture Documentation & Legacy Cleanups)
+* **Dokumentaatio**: Päivitetään keskeiset arkkitehtuuridokumentit `02_domain_models.md`, `05_llm_and_hooks.md`, `07_desktop_first_flutter.md` ja `09_data_persistence.md` kattamaan uudet monipilvisäännöt, dynaaminen resolveri, Tenacity exponential backoff sekä käyttöliittymän JSON-tilaohjaus.
+* **Korjaukset**: Etsitään ja siivotaan kaikki koodissa olevat jäänteet vanhentuneista kovakoodatuista provider/sijaintitarkistuksista korvaten ne dynaamisella parametrikerroksella.
 
 ---
 
@@ -151,7 +156,9 @@ async for attempt in AsyncRetrying(
 1. **Zero Provider Hardcoding**: Kooditasolla ei ole yhtäkään kovakoodattua tarkistusta tai viittausta muuttujiin kuten `VERTEX_LOCATION`.
 2. **Dynamic Interpolation**: Kaikki `"${VAR_NAME}"` -rakenteet tietokannan `additional_params`-lohkossa ratkaistaan dynaamisesti ympäristömuuttujista, ja puuttuvat muuttujat laukaisevat `ConfigurationError`-virheen.
 3. **Resilient Jitter Backoff**: Kooldown ei odota heti 30 sekuntia, vaan aloittaa noin 2–4 sekunnista ja nousee eksponentiaalisesti maksimissaan 30 sekuntiin, satunnaisella viiveellä varustettuna.
-4. **All Tests Green**: Kaikki yksikkö- ja integrointitestit menevät puhtaasti läpi laatuportissa:
+4. **User Interface Integration**: Uudet parametrit `caching_strategy` ja `additional_params` (JSON-tekstikenttänä) voidaan asettaa ja tallentaa käyttöliittymän (`model_registry_view.dart`) kautta mallirekisterissä.
+5. **Architecture Documentation**: Järjestelmän keskeiset arkkitehtuuridokumentit (02, 05, 07, 09) on päivitetty vastaamaan uutta monipilvistrategiaa, eksponentiaalista retry-suojaa, sekä käyttöliittymän JSON-tieturvamekanismeja, ja kaikki vanhentuneet kovakoodatut viittaukset on korjattu ja poistettu.
+6. **All Tests Green**: Kaikki yksikkö- ja integrointitestit menevät puhtaasti läpi laatuportissa:
    ```powershell
    uv run python scripts/backend_audit_loop.py backend_v2/ --test
    ```

@@ -238,6 +238,7 @@ classDiagram
         +String parsing_mode
         +String caching_strategy
         +bool is_active
+        +dict additional_params
     }
 
     class AllowedMCPTool{
@@ -361,7 +362,7 @@ classDiagram
 ## Järjestelmäkonfiguraatiot ja Mallit
 
 Pydantic-kirjasto on laajennettu hallinnoimaan työnkulkujen lisäksi koko järjestelmän laajuisia asetuksia, joilla tekoälyagenttien kyvykkyyksiä ohjataan koodin ulkopuolelta.
-* **SystemConfigModelRegistry:** Ohjaa litteää tekoälymallien rekisteröintiä (esim. OpenAI, Google) kytkemällä mallin spesifikaatiot `ModelProfile` -objekteihin. Tämä sallii järjestelmän kognitiivisten moottoreiden vaihtamisen ilman käyttökatkoja.
+* **SystemConfigModelRegistry:** Ohjaa litteää tekoälymallien rekisteröintiä (esim. OpenAI, Google) kytkemällä mallin spesifikaatiot `ModelProfile` -objekteihin. Tämä sallii järjestelmän kognitiivisten moottoreiden vaihtamisen ilman käyttökatkoja. `ModelProfile`-oliolle on lisätty `caching_strategy` (välimuististrategian dynaaminen ohjaus, kuten `anthropic_ephemeral` tai `gemini_native` pilvipalvelun Context Caching -säästöjä varten) sekä `additional_params` (polymorfinen asetussanakirja). `additional_params` sallii dynaamisen ympäristömuuttujien interpoloinnin (esim. `${VERTEX_LOCATION}`), mikä poistaa tiukat pilvisijaintien tai konesalien kovakoodaukset suoraan koodista ja siirtää ne suvereeniin tietokantaohjattuun konfiguraatioon.
 * **SystemConfigMCPGateways:** Rekisteröi sallitut, LLM-kutsuttavat ulkoiset työkalut käyttäen ohjattua `AllowedMCPTool` -mallia, jossa erotetaan I18n-lokalisoitavissa oleva käyttöliittymän nimi mallille luovutettavasta konerakenteesta (`input_schema`, `description`). Näin MCP-kyvykkyyksien salliminen on tiukasti säänneltyä.
 
 ## Suoritusmallit ja Event Sourcing

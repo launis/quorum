@@ -1,14 +1,14 @@
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException
-from backend_v2.models.v2_core import Step, PromptBlock, I18nText
+from backend_v2.models.v2_core import I18nText, PromptBlock, Step
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
 
 
 def test_step_validation_fails_without_criteria_or_protocol() -> None:
-    """Test 1: Verify that a Step object without criteria blocks or without an extraction protocol block fails validation at construction."""
+    """Test 1: Verify that a Step object without criteria blocks or protocol fails validation."""
     # 1. Missing criteria_block_ids
     with pytest.raises(ValidationError) as exc_info:
         Step(
@@ -37,7 +37,7 @@ def test_step_validation_fails_without_criteria_or_protocol() -> None:
 
 
 def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
-    """Test 2: Verify that PromptFactory.build properly integrates role_block.ai_description and protocol_block.ai_description into the base_system_prompt."""
+    """Test 2: Verify PromptFactory.build integrates role and protocol descriptions into base_system_prompt."""
     compiler = MagicMock()
     compiler.compile_static_instructions.return_value = "Compiled Criteria Instructions"
     compiler.compile_dynamic_instructions.return_value = "Dynamic Instructions"
