@@ -66,7 +66,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
         return HookResult(success=True, state_delta={})
 
     step = Step.model_validate(step_def)
-    prompt_block_ids = step.prompt_blocks
+    prompt_block_ids = step.criteria_block_ids
 
     if not prompt_block_ids:
         return HookResult(success=True, state_delta={})

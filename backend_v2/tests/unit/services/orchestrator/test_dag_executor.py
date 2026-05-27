@@ -137,20 +137,31 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
 
     mock_repo.get_execution.return_value = None
 
-    with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks, \
-         patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute:
-        
+    with (
+        patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
+        patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute,
+    ):
         mock_hooks.execute = AsyncMock(
             return_value=HookResult(success=True, state_delta={"inputs": {"chat_log": "test"}})
         )
         mock_node_execute.return_value = []
-        
+
         # Inject one step to trigger execution
         from backend_v2.models.v2_core import StepRule
-        workflow = workflow.model_copy(update={"steps": [
-            StepRule(id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[])
-        ]})
-        
+
+        workflow = workflow.model_copy(
+            update={
+                "steps": [
+                    StepRule(
+                        id="stp_1234567890abcdef",
+                        task_blueprint="blp_1234567890abcdef",
+                        input_mappings={},
+                        depends_on=[],
+                    )
+                ]
+            }
+        )
+
         await executor.execute_workflow(
             execution_id="exe_1231231231231231",
             workflow=workflow,
@@ -161,4 +172,5 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
         _, call_kwargs = mock_node_execute.call_args
         assert "semaphore" in call_kwargs
         import asyncio
+
         assert isinstance(call_kwargs["semaphore"], asyncio.Semaphore)

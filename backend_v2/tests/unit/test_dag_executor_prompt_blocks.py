@@ -24,13 +24,26 @@ def mock_repo() -> Any:
             "type": BlockDataType.STRING,
             "allow_decimals": False,
             "output_extensions": [],
-        }
+        },
+        {
+            "id": "blk_573802341db9d68c",
+            "slug": "zero_trust_extraction_protocol",
+            "category_id": "system_rule",
+            "type": BlockDataType.STRING,
+            "label": {"default_locale": "en", "translations": {"en": "Zero-Trust"}},
+            "description": {"default_locale": "en", "translations": {"en": "Zero-Trust"}},
+            "ai_description": "Strict extraction protocol.",
+            "allow_decimals": False,
+            "output_extensions": [],
+        },
     ]
     repo.get_step.return_value = {
         "id": "step_1111111111111111",
         "slug": "task_bp",
         "name": {"default_locale": "fi", "translations": {"fi": "Vaihe", "en": "Step"}},
-        "prompt_blocks": ["blk_0123456789abcdef0123456789ab"],
+        "role_block_id": None,
+        "extraction_protocol_block_id": "blk_573802341db9d68c",
+        "criteria_block_ids": ["blk_0123456789abcdef0123456789ab"],
         "model_strategy": "fast",
         "pre_hooks": [],
     }

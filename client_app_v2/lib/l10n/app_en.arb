@@ -198,6 +198,7 @@
   "noWorkflowsAvailable": "No workflows available for your account.",
   "enterCustomWorkflowId": "Or enter Custom Workflow ID",
   "statusCompleted": "COMPLETED",
+  "statusLabelQueued": "QUEUED",
   "statusRunning": "RUNNING",
   "statusFailed": "FAILED",
   "statusRejected": "Rejected",
@@ -209,6 +210,7 @@
   "typeBoolean": "Boolean",
   "cancelling": "Cancelling",
   "statusPending": "PENDING",
+  "statusQueued": "Queued",
   "statusStarted": "STARTED",
   "inputChatHistory": "1. Chat History / Evidence (Chat Logs)",
   "inputProductTarget": "2. Product / Evaluation Target (Final Product)",
@@ -1791,5 +1793,11 @@
   "allowContextualOverrideLabel": "Allow Contextual Override",
   "allowContextualOverrideDescription": "Allows the LLM to justify semantic verification without a literal quotation if exact text evidence is physically absent.",
   "enableContextualOverridesLabel": "Enable Contextual Overrides",
-  "enableContextualOverridesDescription": "Master toggle that globally enables or disables claim-level semantic overrides for this entire workflow run."
+  "enableContextualOverridesDescription": "Master toggle that globally enables or disables claim-level semantic overrides for this entire workflow run.",
+  "roleBlockLabel": "AI Persona Role Override",
+  "roleBlockDescription": "Select standard LLM persona (e.g. blk_role_critic).",
+  "protocolBlockLabel": "Evidence Extraction Protocol",
+  "protocolBlockDescription": "Standard mecanic rules for blind mathematical verification.",
+  "criteriaBlocksTitle": "Evaluation Criteria Matrices",
+  "criteriaBlocksDescription": "Specific domain semantic claims to evaluate."
 }

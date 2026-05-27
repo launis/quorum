@@ -76,7 +76,10 @@ def get_seed_step() -> Any:
         "type": "llm",
         "name": {"default_locale": "en", "translations": {"en": "Step"}},
         "execution_logic": "prompt",
-        "prompt_blocks": [],
+        "role_block_id": None,
+        "extraction_protocol_block_id": "blk_573802341db9d68c",
+        "criteria_block_ids": ["blk_test1234567"],
+        "model_strategy": "fast",
     }
 
 

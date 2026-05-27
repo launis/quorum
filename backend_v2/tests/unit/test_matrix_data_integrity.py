@@ -74,7 +74,7 @@ def test_blueprints_have_normalization_hook(db: dict[str, Any]) -> None:
         if step.get("type", "llm") == "llm":
             # The test should only enforce this hook on specific scoring steps or blueprints that actually use matrices.  # noqa: E501
             # Skip for generic analyst or arbitrary LLM steps that might not utilize BARS scoring matrices yet.
-            is_matrix_scoring = any("matrix" in str(pb).lower() for pb in step.get("prompt_blocks", []))
+            is_matrix_scoring = any("matrix" in str(pb).lower() for pb in step.get("criteria_block_ids", []))
             if is_matrix_scoring:
                 assert "normalize_matrix_scores" in post_hooks, (
                     f"Blueprint {step.get('id')} is missing the 'normalize_matrix_scores' normalization hook."

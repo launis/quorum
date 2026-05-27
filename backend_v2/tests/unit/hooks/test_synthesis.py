@@ -243,10 +243,12 @@ def test_build_title_map() -> None:
     step = Step(
         id="step_2222222222abcdef2222222222abcdef",
         slug="test_step",
-        name=I18nText(default_locale="en", translations={"en": "Test Step", "fi": "Testi Vaihe"}),
         type="llm",
-        model_strategy="fast",
-        prompt_blocks=["block_1"],
+        model_strategy="standard",
+        name=I18nText(default_locale="en", translations={"en": "Test Step", "fi": "Testi Vaihe"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        extraction_protocol_block_id="blk_573802341db9d68c",
+        criteria_block_ids=["block_1"],
     )
 
     title_map = _build_title_map(wf, [step], language="fi")

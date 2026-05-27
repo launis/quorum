@@ -235,7 +235,14 @@ class ExecutionService:
             step_label = step_obj.name.resolve(target_locale)
             step_states[step_rule.id] = ExecutionStepState(id=step_rule.id, label=step_label, status="pending")
 
-            prompt_blocks_refs = step_obj.prompt_blocks
+            prompt_blocks_refs = []
+            if step_obj.role_block_id:
+                prompt_blocks_refs.append(step_obj.role_block_id)
+            if step_obj.extraction_protocol_block_id:
+                prompt_blocks_refs.append(step_obj.extraction_protocol_block_id)
+            if step_obj.criteria_block_ids:
+                prompt_blocks_refs.extend(step_obj.criteria_block_ids)
+
             for pb_id in prompt_blocks_refs:
                 pb_dict = await self.comp_repo.get_prompt_block_by_id(pb_id)
                 if not pb_dict:

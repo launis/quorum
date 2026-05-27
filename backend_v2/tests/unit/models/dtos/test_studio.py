@@ -89,7 +89,6 @@ def test_core_response_dto_strictness() -> None:
     )
     assert wf.organization_id == valid_id_org
     assert wf.id == valid_id_wf
-
     step = StepResponseDTO.model_validate(
         {
             "id": valid_id_stp,
@@ -98,7 +97,8 @@ def test_core_response_dto_strictness() -> None:
             "type": "llm",
             "description": {"default_locale": "en", "translations": {"en": "test", "fi": "testi"}},
             "model_strategy": "fast",
-            "prompt_blocks": ["blk_0123456789abcdef"],
+            "extraction_protocol_block_id": "blk_0123456789abcdef",
+            "criteria_block_ids": ["blk_0123456789abcdef"],
             "organization_id": valid_id_org,
         }
     )

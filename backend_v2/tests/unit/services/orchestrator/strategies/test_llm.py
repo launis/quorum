@@ -125,7 +125,9 @@ async def test_execute_fails_fast_on_missing_profile_id(llm_strategy: LLMNodeStr
         "slug": "test_step",
         "name": {"default_locale": "en", "translations": {"en": "Test"}},
         "description": {"default_locale": "en", "translations": {"en": "Test"}},
-        "prompt_blocks": ["blk_0123456789abcdef0123456789abcdef"],
+        "role_block_id": None,
+        "extraction_protocol_block_id": "blk_573802341db9d68c",
+        "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
         "model_strategy": "standard",
     }
 
@@ -174,12 +176,24 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
         "slug": "test_step",
         "name": {"default_locale": "en", "translations": {"en": "Test"}},
         "description": {"default_locale": "en", "translations": {"en": "Test"}},
-        "prompt_blocks": ["missing_block_999"],
+        "role_block_id": None,
+        "extraction_protocol_block_id": "blk_573802341db9d68c",
+        "criteria_block_ids": ["missing_block_999"],
         "model_strategy": "standard",
     }
 
-    # DB returns no blocks
-    mock_repo.get_all_prompt_blocks.return_value = []
+    # DB returns only the protocol block
+    mock_repo.get_all_prompt_blocks.return_value = [
+        {
+            "id": "blk_573802341db9d68c",
+            "slug": "zero_trust_extraction_protocol",
+            "category_id": "system_rule",
+            "type": "instruction",
+            "label": {"default_locale": "en", "translations": {"en": "Zero-Trust"}},
+            "description": {"default_locale": "en", "translations": {"en": "Zero-Trust"}},
+            "ai_description": "Strict extraction protocol.",
+        }
+    ]
 
     # Needs to bypass pre-hooks smoothly
     mock_hook_state = MagicMock()
@@ -232,7 +246,9 @@ async def test_execute_success_path_structured_output(
         "slug": "test_step",
         "name": {"default_locale": "en", "translations": {"en": "Test"}},
         "description": {"default_locale": "en", "translations": {"en": "Test"}},
-        "prompt_blocks": ["blk_0123456789abcdef0123456789abcdef"],
+        "role_block_id": None,
+        "extraction_protocol_block_id": "blk_573802341db9d68c",
+        "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
         "model_strategy": "standard",
     }
 
@@ -244,7 +260,16 @@ async def test_execute_success_path_structured_output(
             "type": "string",
             "label": {"default_locale": "en", "translations": {"en": "Label"}},
             "description": {"default_locale": "en", "translations": {"en": "Desc"}},
-        }
+        },
+        {
+            "id": "blk_573802341db9d68c",
+            "slug": "zero_trust_extraction_protocol",
+            "category_id": "system_rule",
+            "type": "instruction",
+            "label": {"default_locale": "en", "translations": {"en": "Zero-Trust"}},
+            "description": {"default_locale": "en", "translations": {"en": "Zero-Trust"}},
+            "ai_description": "Strict extraction protocol.",
+        },
     ]
     mock_repo.get_workflow.return_value = {
         "id": "wf_0123456789abcdef0123456789abcdef",
@@ -442,7 +467,9 @@ async def test_execute_raises_app_exception_if_chunk_routes_to_dlq(
         "slug": "test_step",
         "name": {"default_locale": "en", "translations": {"en": "Test"}},
         "description": {"default_locale": "en", "translations": {"en": "Test"}},
-        "prompt_blocks": ["blk_0123456789abcdef0123456789abcdef"],
+        "role_block_id": None,
+        "extraction_protocol_block_id": "blk_573802341db9d68c",
+        "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
         "model_strategy": "standard",
     }
 
@@ -454,7 +481,16 @@ async def test_execute_raises_app_exception_if_chunk_routes_to_dlq(
             "type": "string",
             "label": {"default_locale": "en", "translations": {"en": "Label"}},
             "description": {"default_locale": "en", "translations": {"en": "Desc"}},
-        }
+        },
+        {
+            "id": "blk_573802341db9d68c",
+            "slug": "zero_trust_extraction_protocol",
+            "category_id": "system_rule",
+            "type": "instruction",
+            "label": {"default_locale": "en", "translations": {"en": "Zero-Trust"}},
+            "description": {"default_locale": "en", "translations": {"en": "Zero-Trust"}},
+            "ai_description": "Strict extraction protocol.",
+        },
     ]
     mock_repo.get_workflow.return_value = {
         "id": "wf_0123456789abcdef0123456789abcdef",

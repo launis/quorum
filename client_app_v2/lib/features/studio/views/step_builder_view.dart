@@ -78,13 +78,13 @@ class StepBuilderView extends HookConsumerWidget {
     );
   }
 
-  void _addPromptBlock(WidgetRef ref, NodeStrategy payload, String blockId) {
+  void _addCriteriaBlock(WidgetRef ref, NodeStrategy payload, String blockId) {
     if (payload is NodeStrategyLlm) {
-      final blocks = List<String>.from(payload.promptBlocks);
+      final blocks = List<String>.from(payload.criteriaBlockIds);
       blocks.add('');
       ref
           .read(stepFormProvider(blockId).notifier)
-          .forceRebuild(payload.copyWith(promptBlocks: blocks));
+          .forceRebuild(payload.copyWith(criteriaBlockIds: blocks));
     }
   }
 
@@ -660,19 +660,194 @@ class StepBuilderView extends HookConsumerWidget {
                 const SizedBox(height: 24),
 
                 if (payload is NodeStrategyLlm) ...[
-                  // prompt_blocks
+                  // 1. Role Selection Dropdown
+                  const SizedBox(height: 24),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.roleBlockLabel,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.roleBlockDescription,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            initialValue: payload.roleBlockId,
+                            items: [
+                              DropdownMenuItem<String>(
+                                value: null,
+                                child: Text(l10n.noneDefaultLabel),
+                              ),
+                              ...promptBlocks
+                                  .where(
+                                    (m) =>
+                                        m.categoryId == 'role' ||
+                                        m.slug.contains('role'),
+                                  )
+                                  .map((m) {
+                                    final currentLocale =
+                                        Localizations.localeOf(
+                                          context,
+                                        ).languageCode;
+                                    final rawLabel =
+                                        m.label.translations[currentLocale] ??
+                                        m.label.translations['en'] ??
+                                        m.id;
+                                    return DropdownMenuItem(
+                                      value: m.id,
+                                      child: Text(
+                                        '$rawLabel (${m.id})',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    );
+                                  }),
+                            ],
+                            onChanged: (val) {
+                              ref
+                                  .read(stepFormProvider(stepId).notifier)
+                                  .forceRebuild(
+                                    payload.copyWith(roleBlockId: val),
+                                  );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // 2. Extraction Protocol Dropdown
+                  const SizedBox(height: 24),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.protocolBlockLabel,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.protocolBlockDescription,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            initialValue: payload.extractionProtocolBlockId,
+                            items: [
+                              DropdownMenuItem<String>(
+                                value: null,
+                                child: Text(l10n.noneDefaultLabel),
+                              ),
+                              ...promptBlocks
+                                  .where(
+                                    (m) =>
+                                        m.categoryId == 'instruction' ||
+                                        m.type == BlockDataType.instruction ||
+                                        m.slug.contains('extraction') ||
+                                        m.slug.contains('protocol'),
+                                  )
+                                  .map((m) {
+                                    final currentLocale =
+                                        Localizations.localeOf(
+                                          context,
+                                        ).languageCode;
+                                    final rawLabel =
+                                        m.label.translations[currentLocale] ??
+                                        m.label.translations['en'] ??
+                                        m.id;
+                                    return DropdownMenuItem(
+                                      value: m.id,
+                                      child: Text(
+                                        '$rawLabel (${m.id})',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    );
+                                  }),
+                            ],
+                            onChanged: (val) {
+                              ref
+                                  .read(stepFormProvider(stepId).notifier)
+                                  .forceRebuild(
+                                    payload.copyWith(
+                                      extractionProtocolBlockId: val,
+                                    ),
+                                  );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // 3. Criteria Blocks List (Reorderable)
+                  const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        l10n.promptBlocksTitle,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.criteriaBlocksTitle,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              l10n.criteriaBlocksDescription,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       OutlinedButton.icon(
-                        onPressed: () => _addPromptBlock(ref, payload, stepId),
+                        onPressed: () =>
+                            _addCriteriaBlock(ref, payload, stepId),
                         icon: const Icon(Icons.add),
                         label: Text(l10n.addPromptBlockBtn),
                       ),
@@ -682,25 +857,29 @@ class StepBuilderView extends HookConsumerWidget {
                   ReorderableListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: payload.promptBlocks.length,
+                    itemCount: payload.criteriaBlockIds.length,
                     onReorder: (oldIndex, newIndex) {
                       if (oldIndex < newIndex) newIndex -= 1;
-                      final blocks = List<String>.from(payload.promptBlocks);
+                      final blocks = List<String>.from(
+                        payload.criteriaBlockIds,
+                      );
                       final item = blocks.removeAt(oldIndex);
                       blocks.insert(newIndex, item);
                       ref
                           .read(stepFormProvider(stepId).notifier)
-                          .forceRebuild(payload.copyWith(promptBlocks: blocks));
+                          .forceRebuild(
+                            payload.copyWith(criteriaBlockIds: blocks),
+                          );
                     },
                     itemBuilder: (context, index) {
-                      final blocks = payload.promptBlocks;
-                      return _buildPromptBlockCard(
+                      final blocks = payload.criteriaBlockIds;
+                      return _buildCriteriaBlockCard(
                         context,
                         ref,
                         l10n,
                         payload,
                         stepId,
-                        ValueKey('block_$index\_${blocks[index]}'),
+                        ValueKey('criteria_block_$index\_${blocks[index]}'),
                         index,
                         blocks[index],
                         promptBlocks,
@@ -904,7 +1083,7 @@ class StepBuilderView extends HookConsumerWidget {
     );
   }
 
-  Widget _buildPromptBlockCard(
+  Widget _buildCriteriaBlockCard(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
@@ -933,37 +1112,47 @@ class StepBuilderView extends HookConsumerWidget {
                 initialValue: promptBlocks.any((m) => m.id == blockDef)
                     ? blockDef
                     : null,
-                items: promptBlocks.map((m) {
-                  final currentLocale = Localizations.localeOf(
-                    context,
-                  ).languageCode;
-                  final rawLabel =
-                      m.label.translations[currentLocale] ??
-                      m.label.translations['en'];
+                items: promptBlocks
+                    .where(
+                      (m) =>
+                          m.categoryId == 'matrix' ||
+                          m.categoryId == 'text' ||
+                          m.categoryId == 'criteria',
+                    )
+                    .map((m) {
+                      final currentLocale = Localizations.localeOf(
+                        context,
+                      ).languageCode;
+                      final rawLabel =
+                          m.label.translations[currentLocale] ??
+                          m.label.translations['en'];
 
-                  if (rawLabel == null || rawLabel.trim().isEmpty) {
-                    throw AppException.validation(
-                      'Fail-Fast: PromptBlock ${m.id} lacks required FI/EN translation.',
-                    );
-                  }
+                      if (rawLabel == null || rawLabel.trim().isEmpty) {
+                        throw AppException.validation(
+                          'Fail-Fast: PromptBlock ${m.id} lacks required FI/EN translation.',
+                        );
+                      }
 
-                  final displayText = '$rawLabel (${m.id})';
-                  return DropdownMenuItem(
-                    value: m.id,
-                    child: Text(
-                      displayText,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                }).toList(),
+                      final displayText = '$rawLabel (${m.id})';
+                      return DropdownMenuItem(
+                        value: m.id,
+                        child: Text(
+                          displayText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    })
+                    .toList(),
                 onChanged: (val) {
                   if (val != null) {
-                    final blocks = List<String>.from(payload.promptBlocks);
+                    final blocks = List<String>.from(payload.criteriaBlockIds);
                     blocks[index] = val;
                     ref
                         .read(stepFormProvider(stepId).notifier)
-                        .forceRebuild(payload.copyWith(promptBlocks: blocks));
+                        .forceRebuild(
+                          payload.copyWith(criteriaBlockIds: blocks),
+                        );
                   }
                 },
               ),
@@ -971,11 +1160,11 @@ class StepBuilderView extends HookConsumerWidget {
             IconButton(
               icon: const Icon(Icons.delete, color: Color(0xFFD32F2F)),
               onPressed: () {
-                final blocks = List<String>.from(payload.promptBlocks);
+                final blocks = List<String>.from(payload.criteriaBlockIds);
                 blocks.removeAt(index);
                 ref
                     .read(stepFormProvider(stepId).notifier)
-                    .forceRebuild(payload.copyWith(promptBlocks: blocks));
+                    .forceRebuild(payload.copyWith(criteriaBlockIds: blocks));
               },
             ),
           ],

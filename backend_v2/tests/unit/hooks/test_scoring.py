@@ -68,7 +68,9 @@ def _build_valid_step_dict(prompt_blocks: list[str]) -> dict[str, Any]:
         "name": {"default_locale": "en", "translations": {"en": "Test Step"}},
         "type": "logic",
         "hook": "dummy_hook",
-        "prompt_blocks": prompt_blocks,
+        "role_block_id": None,
+        "extraction_protocol_block_id": "blk_573802341db9d68c",
+        "criteria_block_ids": prompt_blocks,
     }
 
 

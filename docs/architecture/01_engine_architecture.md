@@ -1,67 +1,70 @@
-# 10. Engine Architecture & Schema-Driven Routing
+# 01: Moottoriarkkitehtuuri ja Schema-Driven -reititys (Engine)
 
 ## Arkkitehtuuridokumenttien Roolijako (Lukemisopas)
 
-Cognitive Quorum V2:n monimutkainen arviointi- ja pisteytysjärjestelmä on jaettu neljään eri dokumenttiin, joista jokainen vastaa tiettyyn kysymykseen:
+Cognitive Quorum V2:n monimutkainen arviointi- ja pisteytysjärjestelmä on jaettu erillisiin dokumentteihin, joista jokainen vastaa tiettyyn kysymykseen:
 
-* **Miksi?** Tämä dokumentti (`10_engine_architecture_and_schema_routing.md`) on ylätason konsepti. Se selittää *miksi* moottori eristää matematiikan LLM:stä (Tripartite) ja miksi järjestelmä ei luota dynaamisiin sanakirjoihin.
-* **Miten?** Dokumentti `09_evaluation_and_scoring.md` kuvaa DINA-mallin ja CDM:n (Cognitive Diagnostic Model). Se kertoo *miten* se matematiikka ja rangaistukset fyysisesti lasketaan kaavojen tasolla.
-* **Missä?** Dokumentti `04_hooks_and_llm.md` on toteutuskatalogi. Se kertoo *missä* tiedostoissa (esim. `scoring.py`, `integrity.py`) nämä ylätason säännöt fyysisesti asuvat ja mitä kyseiset funktiot tekevät.
-* **Mitä?** Dokumentti `02_domain_models.md` on järjestelmän hermosto. Se kertoo *mitä* laatikkoja (Pydantic-rakenteet kuten `LightweightMatrixOutput` ja `ExecutionRecord`) tämä koko koneisto liikuttelee ja mihin muottiin data on pakotettava.
+* **Miksi?** Tämä dokumentti (`01_engine_architecture.md`) on ylätason konsepti. Se selittää *miksi* moottori eristää matematiikan LLM:stä (Tripartite), miten System 1 ja System 2 erotetaan, ja miten kronomnesia torjutaan mekaanisesti.
+* **Mitä?** Dokumentti `02_domain_models.md` on hermosto. Se kertoo *mitä* laatikkoja (Pydantic-rakenteet kuten `LightweightMatrixOutput`, `ExecutionRecord` ja uudet Epic 60 -mukaiset lohkot) tämä koko koneisto liikuttelee.
+* **Miten?** Dokumentti `06_evaluation_and_scoring.md` kuvaa DINA-mallin, CDM:n (Cognitive Diagnostic Model) ja Soft Scoring V3 -pisteytyksen. Se kertoo *miten* matematiikka ja rangaistukset lasketaan.
+* **Missä?** Dokumentti `05_llm_and_hooks.md` on toteutuskatalogi. Se kertoo *missä* tiedostoissa (esim. `scoring.py`, `integrity.py`) säännöt asuvat ja mitä ne tekevät.
 
 ---
 
-
 ## Filosofia: Pelimoottori vs. Pelikenttä
 
-Cognitive Quorum V2:n backend ei ole perinteinen, kovakoodattuja liiketoimintapolkuja suorittava monoliitti. Se on suunniteltu **Moottoriarkkitehtuurin (Engine Architecture / Rule Engine Pattern)** mukaisesti, jossa järjestelmä on jaettu kahteen täysin eristettyyn vastuualueeseen:
+Cognitive Quorum V2:n backend ei ole perinteinen, kovakoodattuja polkuja suorittava monoliitti. Se on suunniteltu **Moottoriarkkitehtuurin (Engine Architecture / Rule Engine Pattern)** mukaisesti, jossa järjestelmä on jaettu kahteen täysin eristettyyn vastuualueeseen:
 
-1. **Staattinen Moottori (Koodi):** Kiveen hakatut fysiikan lait ja turvarajat. Pydantic-mallit (esim. `GuardOutput`, `EvaluationResult`) ovat muuttumattomia (`frozen=True`) ja kieltävät kaiken ylimääräisen datan (`extra="forbid"`). Tämä vastaa pelimoottoria (esim. Unreal Engine).
-2. **Dynaaminen Kenttä (Tietokanta):** Admin Studiosta käsin rakennettavat työnkulut, DAG-graafit (Directed Acyclic Graph), promptit ja askeleet (Steps). Nämä elävät `seed_data.json` -tietokannassa. Tämä vastaa pelikenttää, jota pelimoottori pyörittää.
+1. **Staattinen Moottori (Koodi):** Kiveen hakatut fysiikan lait ja turvarajat. Pydantic-mallit (esim. `GuardOutput`, `LightweightMatrixOutput`) ovat muuttumattomia (`frozen=True`) ja kieltävät ylimääräisen datan (`extra="forbid"`). Tämä vastaa pelimoottoria (esim. Unreal Engine).
+2. **Dynaaminen Kenttä (Tietokanta):** Admin Studiosta käsin rakennettavat työnkulut, DAG-graafit (Directed Acyclic Graph), promptit ja askeleet (Steps). Nämä elävät `seed_data.json` -tietokannassa (Seed Vault). Tämä vastaa pelikenttää, jota pelimoottori pyörittää.
 
-Tämän erottelun ansiosta järjestelmä kykenee toteuttamaan **Zero-Deploy joustavuutta**: Pääkäyttäjä voi rakentaa loputtomasti uusia liiketoimintaprosesseja ja tekoälyagentteja tietokantaan, eikä ohjelmistokehittäjän tarvitse julkaista uutta koodiversiota, kunhan uudet askeleet noudattavat moottorin staattisia rajapintoja.
+Tämän erottelun ansiosta järjestelmä kykenee toteuttamaan **Zero-Deploy joustavuutta**: Pääkäyttäjä voi rakentaa uusia prosesseja ja tekoälyagentteja tietokantaan, eikä ohjelmistokehittäjän tarvitse julkaista uutta koodiversiota, kunhan uudet askeleet noudattavat moottorin staattisia rajapintoja.
 
-## Kaaoksen hallinta: Dynamic Schema Compilation ja TypeAdapter-pakotus
+---
 
-Tekoäly (LLM) on luonteeltaan vapaamuotoinen tekstin tuottaja. Jos sallisimme backendin logiikan muovautua dynaamisesti tietokannan ja LLM:n mukana, järjestelmä menettäisi tyyppiturvallisuutensa ja kaatuisi hiljaisesti (Silent Failures). 
+## System 1 vs. System 2 ja Claim-Level Contextual Override
 
-Cognitive Quorum V2:n arkkitehtuuri ratkaisee tämän kaksivaiheisella **Dynamic Schema Compilation & Hook Interception** -mallilla. Se sitoo tietokannan vapauden tiukkaan koodiin ilman purkkaviritelmiä:
+Cognitive Quorum V2 erottaa toisistaan **System 1 (sokea semanttinen tiedonhaku)** ja **System 2 (deterministinen looginen päättely)** -tasot. 
 
-### Vaihe 1: Dynaamisen Pydantic-mallin kääntäminen lennosta (PromptCompiler)
-Kun dynaaminen työnkulku ajetaan, järjestelmä ei kysy tietokannalta staattisen mallin nimeä. Sen sijaan koodi (PromptCompiler) lukee askeleeseen liitetyt arviointikriteerit (`PromptBlock`) ja rakentaa lennosta täysin uuden Pydantic-luokan (Dynamic Model). 
+Kun tekoälyagentti (System 1) arvioi lähdemateriaalia atomitasolla, se saattaa kohdata tilanteen, jossa mekaaninen sääntö epäonnistuu dokumentissa olevan epäsuoran tai lieventävän asiayhteyden vuoksi. Tätä varten arkkitehtuuriin on rakennettu **Claim-Level Contextual Override (kontekstuaalinen ohitusventtiili)**, joka siirtää päätöksenteon System 2 -suojamuurille:
 
-Palvelu päättelee liiketoimintalogiikasta rakenteen:
-* **Output Extensions:** Jos kriteerille on aktivoitu Admin Studiossa `falsification`, luokkaan injektoidaan vaatimus: `step_2_falsification: str`. Jos `risk_flag`, vaaditaan `bool`.
-* **Theory Grounding (Kirjallisuuslähteet):** Jos arviointi pohjautuu lakiin tai teoriaan, kääntäjä luo `Literal[<tarkka_lainaus>]` -kentän, joka **pakottaa** tekoälyn palauttamaan täsmälleen saman merkkijonon.
-* Kääntäjä paketoi tämän `strict=True` ja `frozen=True` -luokaksi (Pydanticin `create_model` -funktiolla), jota tekoälyn on pakko noudattaa OpenAI:n Structured Outputs -rajapinnassa.
+1. **Kaksoislukitusvaltuutus (Double-Lock Authorization):**
+   Ohituksen soveltaminen ei ole kielimallin itsenäisesti päätettävissä. Se vaatii poikkeuksetta kahden tason master-kytkinten aktiivisuutta:
+   * **Workflow Switch** (`enable_contextual_overrides`): Globaali työnkulun ylätason kytkin.
+   * **Assertion Switch** (`allow_contextual_override`): Kyseisen yksittäisen TDA-väitteen oma sääntökohtainen kytkin.
+   
+   Jos LLM palauttaa vastauksessaan `contextual_override = True`, but jompikumpi kytkimistä on `False`, System 2 -suojamuuri **hylkää ohituksen välittömästi** ja pakottaa arvioinnin palaamaan mekaaniseen evidenssitarkistukseen.
 
-### Vaihe 2: Post-Hook TypeAdapter-sitominen
-Jotta koko järjestelmän (pelimoottorin) integriteetti säilyy, dynaamisen mallin antama JSON-tulos täytyy vielä validoida järjestelmän staattisiin ydinmalleihin.
+2. **Laiskuuden esto (Anti-Laziness Mandate):**
+   Mallin laiskuuden ja oikoteiden estämiseksi jokainen hyväksytty ohitus validoidaan Pydantic-kerroksessa:
+   * **Pituusvaatimus:** Perustelutekstin (`semantic_reasoning`) on oltava vähintään 50 merkkiä pitkä.
+   * **Spatiaalinen ankkurointi:** Perustelun on sisällettävä eksplisiittinen sijaintiviite lähdetekstiin (kuten *sivu*, *kappale*, *rivi*, *luku* tai *otsikko*).
+   
+   Mikäli nämä ehdot eivät täyty, Pydantic heittää `ValidationError`-virheen ja käynnistää korjaavan uudelleenyrityksen (`Self-Healing`).
 
-Suorituksen jälkeen LLM:n tuottama JSON-tulos ajetaan **Integrity Hookien** (esim. `verify_citation_integrity`) läpi. Näissä hookeissa käytetään Pydanticin `TypeAdapter`ia, joka "pakottaa" dynaamisen tuloksen kiveen hakattuun staattiseen luokkaan (esim. `EvaluationResult` tai `AnalystOutput`). Jos dynaaminen JSON ei vastaa ydinscheman tiukkoja minimivaatimuksia, validointi epäonnistuu välittömästi (Fail-Fast). 
+---
 
-*(Huom: Natiiveissa Python-logiikka-askeleissa (ei LLM) sidonta tehdään suoraan `TaskRegistry`n kautta koodissa `input_schema` / `output_schema` -määrityksillä.)*
+## Kronomnesian torjunta: Spatial Slicing (Spatiaalinen paloittelu)
 
-## Persona-eristys ja Kerta-injektio (Persona Isolation & Single-Injection)
+**Kronomnesia (aikahäiriö)** eli LLM-mallin taipumus ottaa huomioon ajallisesti väärässä kohdassa (esim. liian myöhään) tapahtuneet asiat, estetään fyysisellä **Spatial Slicing (spatiaalinen paloittelu)** -tekniikalla ennen tekstin syöttämistä kielimallille:
 
-Epic 55:n myötä järjestelmässä toteutetaan **Hybrid Sovereignty** -malli, joka erottaa tekoälyn rakenteelliset/syntaktiset säännöt (kooditaso) ja korkean tason asenteelliset suuntaviivat (tietokantataso):
+* **Kronologinen tunnistus:** `ContextBuilder` tunnistaa säännöstä aikajanaan sidotun ehdon (esim. *"ennen vaihetta 2"*).
+* **Fyysinen leikkaus:** Tekstistä etsitään vastaava rajamerkki (esim. `[PHASE 2]`), ja kaikki tämän rajan jälkeinen aineisto **leikataan mekaanisesti irti**.
+* **Kaksikanavainen falsifikointi:** Koska leikatun alueen ulkopuolinen tapahtuma poistetaan fyysisesti, kielimalli raportoi siitä nollahavainnon (`evidence_found = False`). Python-kerroksen Boolean-inversio (`inverse_evidence = True`) kääntää tämän oikein `PASSED`-tilaksi. LLM ei voi nähdä tulevaisuuteen, mikä todistaa kronomnesian eston aukottomasti.
 
-1. **Immutable Syntax (Kooditaso):** Säännöt, kuten *Morpho-Syntactic Determinism* ja *Topological Determinism* (5-vaiheinen trace-parserointi), on lukittu tiedostoon `backend_v2/core/system_directives.py`. Tämä takaa, ettei ylläpitäjän tekemä kirjoitusvirhe tietokannassa riko parseria.
-2. **Dynamic Behavior Guidelines (Tietokantataso):** Asennetta ja arviointilogiikkaa ohjaava globaali konteksti on eristetty omaan tietokantalohkoonsa (`blk_9e44687dff884ff6`), jota voidaan muokata vapaasti käyttöliittymästä.
+---
 
-### Kerta-injektio (Single-Injection Rule)
-Kun työnkulku suoritetaan, `PromptCompiler` päättelee askeleen matriisilohkojen perusteella tarvittavan `ExecutionPersona`-tyypin (esim. `DETERMINISTIC_PARSER` tai `XAI_REPORTER`) ja hakee siihen liittyvän kooditason sääntökehyksen. Tämä sääntökehys injektoidaan LLM-promptiin tasan **kerran** suorituksen alussa. Matriisien tai muiden lohkojen omista `ai_description`-kentistä poistetaan kaikki monistettu globaali ohjeistus, mikä pitää dynaamisen Pydantic-skeeman kevyenä ja estää Vertex AI:n tilarajat (FSM limits).
+## Epic 60: Modular Extraction Decoupling
 
-## Tripartite Matrix Scoring (Matematiikan Eristäminen)
+Aiempi sotkuinen `promptBlocks`-listamalli korvattiin Epic 60 -uudistuksessa kompromissittomalla **Modular Extraction Decoupling** -arkkitehtuurilla. `Step`-mallissa lohkoviittaukset on eriytetty ja strukturoitu kolmeen selkeästi rajattuun ja tyypitettyyn kenttään:
 
-Moottoriarkkitehtuuri eristää myös LLM:n ja matemaattisen pisteytyksen toisistaan **Tripartite (Kolmiosaisella)** rakenteella. Tekoälyä ei koskaan päästetä keksimään numeerisia arvosanoja hatusta.
+1. **`role_block_id` (Tekoälyn roolipersoona):** Määrittää tekoälyn asenteellisen ja ammatillisen roolin (esim. asiantuntija-auditoija).
+2. **`extraction_protocol_block_id` (Evidenssin poimintaprotokolla):** Globaali säännöstö (esim. Global Zero-Trust Evidence Extraction Protocol), joka pakottaa deterministiset poimintakäskyt ja suojamuurit.
+3. **`criteria_block_ids` (Kriteerilohkot):** Lista arvioitavista kriteereistä (BARS-matriiseja ja TDA-sääntöjä), jotka alistetaan matemaattiselle arvioinnille.
 
-1. **Sokko-käännös (PromptCompiler):** Kun askeleessa on matriiseja (kriteereitä arvosanoilla), kääntäjä injektoi ne LLM:n promptiin `<EVALUATION_RUBRICS>` -lohkona. Samalla se injektoi ankaran `<ANTI_SCORE_MANDATE>` -käskyn, joka kieltää tekoälyä antamasta lopullista arvosanaa.
-2. **Boolean-Kytkimet (LLM-suoritus):** LLM:n dynaaminen skeema pakottaa sen antamaan ainoastaan `True/False` -päätöksen (`step_5_boolean`) ja perustelun jokaista matriisin yksittäistä faktaväittämää kohden.
-3. **Deterministinen Matematiikka (Scoring Hook):** JSON-tuloksen palattua `backend_v2/hooks/scoring.py` -tiedoston `matrix_scoring_hook` ottaa ohjat. Se lukee tekoälyn asettamat True/False -kytkimet ja laskee tarkan, deterministisen arvosanan (raw_score ja normalized_score) askeleen strategian perusteella. Lopuksi hook pakottaa sekä tulokset että lasketun matematiikan staattiseen `LightweightMatrixOutput` -domainmalliin.
+Tämä erottelu poistaa kognitiivisen Attention Dilution -ilmiön kokonaan. Kielimalli ei enää hämmenny yhdessä listassa olevista rooli-, sääntö- ja kriteeri-ohjeista, vaan sille syötetään erittäin puhtaat, XML-tagatut ja cache-ystävälliset syötteet.
 
-Tämä takaa, että tekoäly toimii vain "sokeana liukuhihnatyöläisenä" etsien faktoja, kun taas lopullinen pisteytys tapahtuu 100% varmalla Python-koodilla sääntömoottorin sisällä.
-
+---
 
 ## Arkkitehtuurikaavio
 
@@ -71,8 +74,8 @@ Alla oleva Mermaid-kaavio havainnollistaa, miten dynaaminen tietokanta (vasemmal
 graph TD
     subgraph "Dynaaminen Tietokanta (TinyDB/Firestore)"
         DB1["Workflow (Työnkulku)"]
-        DB2["Step (Askel esim. stp_123)"]
-        DB3["PromptBlock (Kriteerit, XAI Extensions)"]
+        DB2["Step (Askel stp_123)"]
+        DB3["Decoupled Blocks: Role, Protocol, Criteria"]
         
         DB1 --> DB2
         DB2 --> DB3
@@ -87,7 +90,7 @@ graph TD
     end
 
     subgraph "Moottori: Hook Interception & Registry"
-        H1["Integrity Hooks"]
+        H1["Integrity Hooks & Contextual Override Check"]
         H2{{"TypeAdapter<br>(AnalystOutput | EvaluationResult)"}}
     end
 
@@ -118,7 +121,7 @@ graph TD
 
 ### Yhteenveto
 
-"Duct tape" -purkkaviritys olisi sitä, että koodissa jouduttaisiin avaamaan sanakirjoja (`dict.get("score")`) ja yrittää onkia niistä lennosta muuttuvia kenttiä hiljaisin virhein. V2:n **Engine Architecture** tekee täsmälleen päinvastoin: se luo tiukan dynaamisen mallin askeleen kriteereistä lennosta (PromptCompiler), ja sen jälkeen Post-Hookit pakottavat (`TypeAdapter`) tulokset äärimmäisen kovaan ja rajalliseen joukkoon fyysisiä rakenteita (Domain Models). Tämä tarjoaa pelikentälle loputtoman variaation menettämättä pelimoottorin absoluuttista tyyppiturvallisuutta.
+"Duct tape" -purkkaviritys olisi sitä, että koodissa jouduttaisiin avaamaan sanakirjoja ja yrittää onkia niistä lennosta muuttuvia kenttiä hiljaisin virhein. V2:n **Engine Architecture** tekee täsmälleen päinvastoin: se luo tiukan dynaamisen mallin askeleen kriteereistä lennosta (PromptCompiler), ja sen jälkeen Post-Hookit pakottavat (`TypeAdapter`) tulokset äärimmäisen kovaan ja rajalliseen joukkoon fyysisiä rakenteita (Domain Models). Tämä tarjoaa pelikentälle loputtoman variaation menettämättä pelimoottorin absoluuttista tyyppiturvallisuutta.
 
 <br><hr>
 

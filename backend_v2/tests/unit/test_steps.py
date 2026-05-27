@@ -42,7 +42,9 @@ def test_step_rbac_save_member_forbidden(client_member: Any) -> None:
         "description": {"default_locale": "en", "translations": {"en": "desc"}},
         "type": "llm",
         "model_strategy": "fast",
-        "prompt_blocks": ["blk_1111111111111111"],
+        "role_block_id": None,
+        "extraction_protocol_block_id": "blk_573802341db9d68c",
+        "criteria_block_ids": ["blk_1111111111111111"],
         "organization_id": "org_testorg123",
         "slug": "new_step",
     }

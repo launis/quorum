@@ -321,7 +321,7 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
             )
 
         step_model = Step.model_validate(step_obj)
-        prompt_block_ids = step_model.prompt_blocks
+        prompt_block_ids = step_model.criteria_block_ids
 
         # Resolve which prompt blocks are matrices (Schema-Driven Routing, strictly no duck typing)
         matrix_blocks_meta: dict[str, dict[str, float]] = {}
@@ -474,7 +474,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
         try:
             step_model = Step.model_validate(step_obj)
-            prompt_block_ids = step_model.prompt_blocks
+            prompt_block_ids = step_model.criteria_block_ids
         except ValidationError as e:
             msg = f"Strict Fail-Fast Enforced: Step blueprint '{blueprint_id}' validation failed."
             logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -875,7 +875,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
         try:
             step_model = Step.model_validate(step_obj)
-            prompt_block_ids = step_model.prompt_blocks
+            prompt_block_ids = step_model.criteria_block_ids
         except ValidationError as e:
             msg = f"Strict Fail-Fast Enforced: Step blueprint '{blueprint_id}' validation failed."
             logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)

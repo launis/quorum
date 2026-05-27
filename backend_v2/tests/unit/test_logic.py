@@ -118,3 +118,48 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
         f"Bug! raw_inputs is {type(hook_state.inputs['raw_inputs'])} instead of dict"
     )
     assert hook_state.inputs["raw_inputs"]["chat_log"] == "**Gemini Chat**..."
+
+
+@pytest.mark.asyncio
+async def test_logic_strategy_signature_parity() -> None:
+    from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
+    from backend_v2.models.v2_core import FrozenContext
+    from backend_v2.exceptions import AppException
+
+    repo = AsyncMock()
+    repo.get_step_by_id.return_value = None
+
+    compiler = MagicMock()
+    strategy = LogicNodeStrategy(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
+        prompt_compiler=compiler,
+    )
+
+    step = MagicMock()
+    step.id = "step_123"
+    step.task_blueprint = "blueprint_123"
+    step.input_mappings = {}
+
+    projector = MagicMock()
+    projector.snapshot = []
+
+    context = MagicMock()
+    context.execution_id = "exe_1"
+    context.workflow_id = "wf_1"
+    context.metadata = {}
+
+    # Call execute with the exact keyword argument signature from dag_executor.py
+    with pytest.raises(AppException):
+        await strategy.execute(
+            step=step,
+            projector=projector,
+            context=context,
+            frozen_ctx=FrozenContext(),
+            trace=[],
+            semaphore=asyncio.Semaphore(2),
+        )

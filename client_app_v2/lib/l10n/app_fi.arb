@@ -82,6 +82,7 @@
   "noWorkflowsAvailable": "Ei työnkulkuja saatavilla.",
   "enterCustomWorkflowId": "Tai syötä mukautettu ID",
   "statusCompleted": "VALMIS",
+  "statusLabelQueued": "JONOSSA",
   "statusRunning": "KÄYNNISSÄ",
   "statusFailed": "EPÄONNISTUI",
   "statusRejected": "Hylätty",
@@ -93,6 +94,7 @@
   "typeBoolean": "Totuusarvo (Boolean)",
   "cancelling": "Peruutetaan",
   "statusPending": "ODOTTAA",
+  "statusQueued": "Jonossa",
   "statusStarted": "ALOITETTU",
   "inputChatHistory": "1. Keskusteluhistoria / Todistusaineisto",
   "inputProductTarget": "2. Tuotos / Arvioinnin kohde",
@@ -1133,5 +1135,11 @@
   "allowContextualOverrideLabel": "Salli kognitiivinen ohitus",
   "allowContextualOverrideDescription": "Sallii LLM:lle perustellun semanttisen hyväksynnän ilman kirjaimellista lainausta, jos tarkkaa tekstiä ei ole fyysisiä todisteita varten olemassa.",
   "enableContextualOverridesLabel": "Kognitiiviset ohitukset käytössä",
-  "enableContextualOverridesDescription": "Master-kytkin, joka sallii tai kieltää väitetasoiset semanttiset ohitukset koko tämän työnkulun ajon aikana."
+  "enableContextualOverridesDescription": "Master-kytkin, joka sallii tai kieltää väitetasoiset semanttiset ohitukset koko tämän työnkulun ajon aikana.",
+  "roleBlockLabel": "Tekoälyn roolipersoona",
+  "roleBlockDescription": "Valitse tekoälyn asenne (esim. blk_role_critic).",
+  "protocolBlockLabel": "Evidenssin poimintaprotokolla",
+  "protocolBlockDescription": "Mekaaniset säännöt sokeaan matemaattiseen poimintaan.",
+  "criteriaBlocksTitle": "Arvioitavat kriteerilohkot",
+  "criteriaBlocksDescription": "Spesifit domain-tason arviointikriteerit."
 }

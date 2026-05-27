@@ -124,4 +124,3 @@ async def test_tavily_search_with_new_api_fields() -> None:
 
     assert isinstance(result, TavilySearchResult)
     assert result.query == "Finland population"
-

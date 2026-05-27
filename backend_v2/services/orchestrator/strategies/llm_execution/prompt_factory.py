@@ -24,6 +24,8 @@ class PromptFactory:
     def build(
         cls,
         compiler: Any,
+        role_block: PromptBlock | None,
+        protocol_block: PromptBlock | None,
         criteria_blocks: list[PromptBlock],
         target_locale: str,
         effective_mcp_tools: list[str] | None,
@@ -104,13 +106,23 @@ class PromptFactory:
 
         mcp_instruction = compiler.generate_mcp_instruction(effective_mcp_tools)
 
-        base_system_prompt = "Complete the evaluation according to the provided schema."
+        base_system_prompt = "You are a highly accurate, structured evaluation assistant."
+        if role_block and role_block.ai_description:
+            base_system_prompt += f"\n\n<ROLE_DIRECTIVE>\n{role_block.ai_description}\n</ROLE_DIRECTIVE>"
+        if protocol_block and protocol_block.ai_description:
+            base_system_prompt += f"\n\n<EXTRACTION_PROTOCOL>\n{protocol_block.ai_description}\n</EXTRACTION_PROTOCOL>"
         if static_instructions:
-            base_system_prompt += f"\n\n{static_instructions}"
+            base_system_prompt += f"\n\n<CRITERIA_GUIDELINES>\n{static_instructions}\n</CRITERIA_GUIDELINES>"
         if blind_instruction:
             base_system_prompt += f"\n\n{blind_instruction}"
         if mcp_instruction:
             base_system_prompt += f"\n\n{mcp_instruction}"
+
+        # 2. User Payload construction with strict fencing
+        exec_params = f"<execution_parameters>\n<target_locale>{target_locale}</target_locale>\n"
+        if execution_time:
+            exec_params += f"<document_date>{execution_time}</document_date>\n"
+        exec_params += "</execution_parameters>\n"
 
         xml_ctx = compiler.build_xml_context(
             input_mappings=input_mappings,
@@ -119,9 +131,10 @@ class PromptFactory:
             expected_inputs=expected_inputs,
         )
 
-        user_payload = xml_ctx
+        # Fence raw user payloads securely
+        user_payload = f"{exec_params}\n<source_data>\n{xml_ctx}\n</source_data>"
         if dynamic_instructions:
-            user_payload += f"\n\n--- RUNTIME AWARENESS ---\n{dynamic_instructions}"
+            user_payload += f"\n\n<RUNTIME_AWARENESS>\n{dynamic_instructions}\n</RUNTIME_AWARENESS>"
 
         atom_to_block_ids: dict[str, set[str]] = {}
         for block_model in criteria_blocks:
@@ -141,7 +154,8 @@ class PromptFactory:
                                     aid = generate_atom_hash(tda.ai_rule_description, mandate)
                                 if aid not in atom_to_block_ids:
                                     atom_to_block_ids[aid] = set()
-                                atom_to_block_ids[aid].add(b_id)
+                                mock_block_set = atom_to_block_ids[aid]
+                                mock_block_set.add(b_id)
                         else:
                             msg = f"PromptBlock '{b_id}' claim is missing mandatory 'tda_assertions' during runtime."
                             logger.error("[%s] %s", ErrorCodes.VALIDATION_FAILED.name, msg)

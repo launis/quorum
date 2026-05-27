@@ -356,8 +356,16 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 ) from e
 
-            if target_step.prompt_blocks:
-                for b_id in target_step.prompt_blocks:
+            target_step_blocks = []
+            if target_step.role_block_id:
+                target_step_blocks.append(target_step.role_block_id)
+            if target_step.extraction_protocol_block_id:
+                target_step_blocks.append(target_step.extraction_protocol_block_id)
+            if target_step.criteria_block_ids:
+                target_step_blocks.extend(target_step.criteria_block_ids)
+
+            if target_step_blocks:
+                for b_id in target_step_blocks:
                     try:
                         p_block = block_map[str(b_id)]
                     except KeyError as e:

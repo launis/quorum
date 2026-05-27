@@ -67,8 +67,9 @@ async def test_list_executions_admin_sees_all() -> None:
     repo_mock.get_all_executions.return_value = [mock_record1, mock_record2]
 
     initiator = TokenData(id="u1", role=UserRole.ROOT)
-    
+
     from unittest.mock import patch
+
     with patch.object(service, "check_resumability", return_value=False):
         results = await service.list_executions(initiator=initiator)
 
@@ -106,8 +107,9 @@ async def test_list_executions_tenant_sees_own() -> None:
     repo_mock.get_all_executions.return_value = [mock_record1, mock_record2]
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
-    
+
     from unittest.mock import patch
+
     with patch.object(service, "check_resumability", return_value=False):
         results = await service.list_executions(initiator=initiator)
 
@@ -137,8 +139,9 @@ async def test_get_execution_admin_sees_any() -> None:
     repo_mock.get_execution.return_value = mock_record
 
     initiator = TokenData(id="u1", role=UserRole.ROOT)
-    
+
     from unittest.mock import patch
+
     with patch.object(service, "check_resumability", return_value=False):
         result = await service.get_execution(initiator=initiator, execution_id="exe_1")
 
@@ -168,8 +171,9 @@ async def test_get_execution_tenant_sees_own() -> None:
     repo_mock.get_execution.return_value = mock_record
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
-    
+
     from unittest.mock import patch
+
     with patch.object(service, "check_resumability", return_value=False):
         result = await service.get_execution(initiator=initiator, execution_id="exe_1")
 

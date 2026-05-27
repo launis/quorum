@@ -111,6 +111,7 @@ class NodeExecutor:
         trace: list[TraceEvent] | None = None,
         strictness_level: int = 50,
         arq_pool: Any | None = None,
+        running_event: asyncio.Event | None = None,
     ) -> list[TraceEvent]:
         try:
             blueprint_id = getattr(step, "task_blueprint", None)
@@ -184,6 +185,7 @@ class NodeExecutor:
                 frozen_ctx=frozen_ctx,
                 trace=trace,
                 semaphore=semaphore,
+                running_event=running_event,
             )
             return emitted_events
 
@@ -358,9 +360,10 @@ class DAGExecutor:
                 await step_events[dep].wait()
 
             try:
+                # Transition step state to QUEUED first
                 async with _update_lock:
                     new_state = exec_record.step_states[step_id].model_copy(
-                        update={"status": ExecutionStatus.RUNNING.value}
+                        update={"status": ExecutionStatus.QUEUED.value}
                     )
                     new_states = {**exec_record.step_states, step_id: new_state}
                     exec_record = exec_record.model_copy(update={"step_states": new_states})
@@ -373,18 +376,45 @@ class DAGExecutor:
                         frozen_context=exec_record.frozen_context,
                     )
 
-                events = await self.node_executor.execute(
-                    step=step_obj,
-                    execution_id=execution_id,
-                    workflow_id=workflow.id,
-                    metadata=exec_record.metadata,
-                    projector=projector,
-                    expected_inputs=workflow.expected_inputs,
-                    frozen_ctx=exec_record.frozen_context,
-                    trace=exec_record.execution_trace,
-                    strictness_level=strictness_level,
-                    semaphore=semaphore,
-                )
+                running_event = asyncio.Event()
+
+                async def watch_running() -> None:
+                    nonlocal exec_record
+                    await running_event.wait()
+                    async with _update_lock:
+                        # Only transition if it's still in QUEUED state (not completed/failed)
+                        if exec_record.step_states[step_id].status == ExecutionStatus.QUEUED.value:
+                            new_state = exec_record.step_states[step_id].model_copy(
+                                update={"status": ExecutionStatus.RUNNING.value}
+                            )
+                            new_states = {**exec_record.step_states, step_id: new_state}
+                            exec_record = exec_record.model_copy(update={"step_states": new_states})
+
+                            await self.committer.commit_trace(
+                                trace=exec_record.execution_trace,
+                                status=exec_record.status,
+                                step_states=exec_record.step_states,
+                                frozen_context=exec_record.frozen_context,
+                            )
+
+                watcher_task = asyncio.create_task(watch_running())
+
+                try:
+                    events = await self.node_executor.execute(
+                        step=step_obj,
+                        execution_id=execution_id,
+                        workflow_id=workflow.id,
+                        metadata=exec_record.metadata,
+                        projector=projector,
+                        expected_inputs=workflow.expected_inputs,
+                        frozen_ctx=exec_record.frozen_context,
+                        trace=exec_record.execution_trace,
+                        strictness_level=strictness_level,
+                        semaphore=semaphore,
+                        running_event=running_event,
+                    )
+                finally:
+                    watcher_task.cancel()
 
                 for e in events:
                     exec_record.execution_trace.append(e)

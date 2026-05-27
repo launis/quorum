@@ -186,7 +186,9 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'name',
         'description',
         'hook',
-        'prompt_blocks',
+        'role_block_id',
+        'extraction_protocol_block_id',
+        'criteria_block_ids',
         'pre_hooks',
         'post_hooks',
         'safety',
@@ -213,8 +215,22 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
       hook: $checkedConvert('hook', (v) => v as String?),
-      promptBlocks: $checkedConvert(
-        'prompt_blocks',
+      roleBlockId: $checkedConvert(
+        'role_block_id',
+        (v) => _$JsonConverterFromJson<String, String>(
+          v,
+          const StrictOpaqueIdConverter().fromJson,
+        ),
+      ),
+      extractionProtocolBlockId: $checkedConvert(
+        'extraction_protocol_block_id',
+        (v) => _$JsonConverterFromJson<String, String>(
+          v,
+          const StrictOpaqueIdConverter().fromJson,
+        ),
+      ),
+      criteriaBlockIds: $checkedConvert(
+        'criteria_block_ids',
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
@@ -250,7 +266,9 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
     return val;
   },
   fieldKeyMap: const {
-    'promptBlocks': 'prompt_blocks',
+    'roleBlockId': 'role_block_id',
+    'extractionProtocolBlockId': 'extraction_protocol_block_id',
+    'criteriaBlockIds': 'criteria_block_ids',
     'preHooks': 'pre_hooks',
     'postHooks': 'post_hooks',
     'allowedMcpTools': 'allowed_mcp_tools',
@@ -269,7 +287,15 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       'name': instance.name.toJson(),
       'description': instance.description?.toJson(),
       'hook': instance.hook,
-      'prompt_blocks': instance.promptBlocks,
+      'role_block_id': _$JsonConverterToJson<String, String>(
+        instance.roleBlockId,
+        const StrictOpaqueIdConverter().toJson,
+      ),
+      'extraction_protocol_block_id': _$JsonConverterToJson<String, String>(
+        instance.extractionProtocolBlockId,
+        const StrictOpaqueIdConverter().toJson,
+      ),
+      'criteria_block_ids': instance.criteriaBlockIds,
       'pre_hooks': instance.preHooks,
       'post_hooks': instance.postHooks,
       'safety': instance.safety,
@@ -280,6 +306,16 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       'organization_id': instance.organizationId,
       'type': instance.$type,
     };
+
+Value? _$JsonConverterFromJson<Json, Value>(
+  Object? json,
+  Value? Function(Json json) fromJson,
+) => json == null ? null : fromJson(json as Json);
+
+Json? _$JsonConverterToJson<Json, Value>(
+  Value? value,
+  Json? Function(Value value) toJson,
+) => value == null ? null : toJson(value);
 
 NodeStrategyLogic _$NodeStrategyLogicFromJson(
   Map<String, dynamic> json,
@@ -295,7 +331,9 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'name',
         'description',
         'hook',
-        'prompt_blocks',
+        'role_block_id',
+        'extraction_protocol_block_id',
+        'criteria_block_ids',
         'pre_hooks',
         'post_hooks',
         'safety',
@@ -322,8 +360,22 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
       hook: $checkedConvert('hook', (v) => v as String),
-      promptBlocks: $checkedConvert(
-        'prompt_blocks',
+      roleBlockId: $checkedConvert(
+        'role_block_id',
+        (v) => _$JsonConverterFromJson<String, String>(
+          v,
+          const StrictOpaqueIdConverter().fromJson,
+        ),
+      ),
+      extractionProtocolBlockId: $checkedConvert(
+        'extraction_protocol_block_id',
+        (v) => _$JsonConverterFromJson<String, String>(
+          v,
+          const StrictOpaqueIdConverter().fromJson,
+        ),
+      ),
+      criteriaBlockIds: $checkedConvert(
+        'criteria_block_ids',
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
@@ -359,7 +411,9 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
     return val;
   },
   fieldKeyMap: const {
-    'promptBlocks': 'prompt_blocks',
+    'roleBlockId': 'role_block_id',
+    'extractionProtocolBlockId': 'extraction_protocol_block_id',
+    'criteriaBlockIds': 'criteria_block_ids',
     'preHooks': 'pre_hooks',
     'postHooks': 'post_hooks',
     'allowedMcpTools': 'allowed_mcp_tools',
@@ -378,7 +432,15 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       'name': instance.name.toJson(),
       'description': instance.description?.toJson(),
       'hook': instance.hook,
-      'prompt_blocks': instance.promptBlocks,
+      'role_block_id': _$JsonConverterToJson<String, String>(
+        instance.roleBlockId,
+        const StrictOpaqueIdConverter().toJson,
+      ),
+      'extraction_protocol_block_id': _$JsonConverterToJson<String, String>(
+        instance.extractionProtocolBlockId,
+        const StrictOpaqueIdConverter().toJson,
+      ),
+      'criteria_block_ids': instance.criteriaBlockIds,
       'pre_hooks': instance.preHooks,
       'post_hooks': instance.postHooks,
       'safety': instance.safety,

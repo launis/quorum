@@ -686,6 +686,12 @@ abstract class AppLocalizations {
   /// **'COMPLETED'**
   String get statusCompleted;
 
+  /// No description provided for @statusLabelQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'QUEUED'**
+  String get statusLabelQueued;
+
   /// No description provided for @statusRunning.
   ///
   /// In en, this message translates to:
@@ -751,6 +757,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PENDING'**
   String get statusPending;
+
+  /// No description provided for @statusQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get statusQueued;
 
   /// No description provided for @statusStarted.
   ///
@@ -6281,6 +6293,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Master toggle that globally enables or disables claim-level semantic overrides for this entire workflow run.'**
   String get enableContextualOverridesDescription;
+
+  /// No description provided for @roleBlockLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Persona Role Override'**
+  String get roleBlockLabel;
+
+  /// No description provided for @roleBlockDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Select standard LLM persona (e.g. blk_role_critic).'**
+  String get roleBlockDescription;
+
+  /// No description provided for @protocolBlockLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Evidence Extraction Protocol'**
+  String get protocolBlockLabel;
+
+  /// No description provided for @protocolBlockDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard mecanic rules for blind mathematical verification.'**
+  String get protocolBlockDescription;
+
+  /// No description provided for @criteriaBlocksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Evaluation Criteria Matrices'**
+  String get criteriaBlocksTitle;
+
+  /// No description provided for @criteriaBlocksDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Specific domain semantic claims to evaluate.'**
+  String get criteriaBlocksDescription;
 }
 
 class _AppLocalizationsDelegate

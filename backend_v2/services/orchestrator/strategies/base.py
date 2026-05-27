@@ -78,6 +78,7 @@ class NodeStrategy(ABC):
         frozen_ctx: FrozenContext | None,
         trace: list[TraceEvent] | None,
         semaphore: asyncio.Semaphore,
+        running_event: asyncio.Event | None = None,
     ) -> list[TraceEvent]:
         """Executes the specific strategy implementation cleanly.
 

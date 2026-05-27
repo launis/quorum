@@ -17,7 +17,8 @@ void main() {
         labelEn: 'Test Matrix',
         rowExplanation: 'This is the explanation of the row.',
         contextualOverride: true,
-        semanticReasoning: 'This is the detailed semantic reasoning explaining page 12 of the document.',
+        semanticReasoning:
+            'This is the detailed semantic reasoning explaining page 12 of the document.',
         evidenceType: EvidenceType.explicitQuote,
       );
 
@@ -44,16 +45,23 @@ void main() {
 
       // 4. Verify that the semantic explanation reasoning is rendered
       expect(
-        find.textContaining('💡 AI Semantic Explanation (Contextual Override):'),
+        find.textContaining(
+          '💡 AI Semantic Explanation (Contextual Override):',
+        ),
         findsOneWidget,
       );
       expect(
-        find.textContaining('This is the detailed semantic reasoning explaining page 12 of the document.'),
+        find.textContaining(
+          'This is the detailed semantic reasoning explaining page 12 of the document.',
+        ),
         findsOneWidget,
       );
 
       // 5. Verify that the standard quote is NOT shown
-      expect(find.textContaining('💬 Excerpt from original text:'), findsNothing);
+      expect(
+        find.textContaining('💬 Excerpt from original text:'),
+        findsNothing,
+      );
     },
   );
 }

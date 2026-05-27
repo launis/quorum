@@ -24,7 +24,10 @@ class LogicNodeStrategy(NodeStrategy):
         frozen_ctx: FrozenContext | None,
         trace: list[TraceEvent] | None,
         semaphore: asyncio.Semaphore,
+        running_event: asyncio.Event | None = None,
     ) -> list[TraceEvent]:
+        if running_event is not None:
+            running_event.set()
         # 1. State Extraction
         # Epic 43 Phase 2 Fail-Fast Parity: Re-inject 'inputs' and 'raw_inputs' DTO payloads into the root state
         # so legacy dot-notation mappings resolve properly without Naked Dict violations.

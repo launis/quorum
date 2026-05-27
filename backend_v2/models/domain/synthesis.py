@@ -21,6 +21,7 @@ class SynthesisMetadataDTO(V2CoreBase):
     profile_id: str | None = Field(default=None)
     target_profile_id: str | None = Field(default=None)
     matrix_sampling_strategy: int | None = Field(default=None)
+    workflow_version: int | None = Field(default=None)
 
     # Injected by worker.py during execution trace iterations for token usage tracking
     total_tokens: int | None = Field(default=None)

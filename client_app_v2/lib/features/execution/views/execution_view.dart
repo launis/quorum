@@ -137,6 +137,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                   children: [
                     if (status == 'running' ||
                         status == 'pending' ||
+                        status == 'queued' ||
                         resumeMutation.isLoading)
                       SizedBox(
                         width: 24,

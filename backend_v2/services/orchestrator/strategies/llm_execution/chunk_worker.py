@@ -93,9 +93,12 @@ class ChunkWorker:
         synthesis_instructions: dict[str, Any] | None,
         output_profile: Any | None,
         strictness_level: int = 50,
+        running_event: asyncio.Event | None = None,
     ) -> tuple[dict[str, Any], TokenUsage | None, list[Any]]:
         """Processes a single execution chunk, mapping dynamic schemas and orchestrating tool loops."""
         async with sem:
+            if running_event is not None and not running_event.is_set():
+                running_event.set()
             local_payload = user_payload
             chunk_criteria = list(criteria_blocks)
 

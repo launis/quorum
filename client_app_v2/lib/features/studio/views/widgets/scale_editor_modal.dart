@@ -501,9 +501,9 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                               l10n.allowContextualOverrideDescription,
                                               style: TextStyle(
                                                 fontSize: 11,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
                                               ),
                                             ),
                                           ],

@@ -325,7 +325,9 @@ class StudioService:
             "name": {"default_locale": "en", "translations": {"en": "New Askel", "fi": "Uusi askel"}},
             "description": {"default_locale": "en", "translations": {"en": "Draft step", "fi": "Luonnos"}},
             "type": "llm",
-            "prompt_blocks": ["blk_440a5fef9331451b"],
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_573802341db9d68c",
+            "criteria_block_ids": ["blk_440a5fef9331451b"],
             "pre_hooks": [],
             "post_hooks": [],
             "safety": "safe",
@@ -706,7 +708,12 @@ class StudioService:
 
         for step in all_steps:
             if step.id in task_blueprints:
-                allowed_blocks.update(step.prompt_blocks)
+                if step.role_block_id:
+                    allowed_blocks.add(step.role_block_id)
+                if step.extraction_protocol_block_id:
+                    allowed_blocks.add(step.extraction_protocol_block_id)
+                if step.criteria_block_ids:
+                    allowed_blocks.update(step.criteria_block_ids)
 
         for layout in profile.layouts:
             for comp in layout.target_blocks:
@@ -914,7 +921,15 @@ class StudioService:
         rendered_parts = []
 
         # Resolve prompt blocks
-        for block_ref in data.prompt_blocks:
+        prompt_blocks_refs = []
+        if data.role_block_id:
+            prompt_blocks_refs.append(data.role_block_id)
+        if data.extraction_protocol_block_id:
+            prompt_blocks_refs.append(data.extraction_protocol_block_id)
+        if data.criteria_block_ids:
+            prompt_blocks_refs.extend(data.criteria_block_ids)
+
+        for block_ref in prompt_blocks_refs:
             try:
                 block = await self.get_prompt_block(initiator, block_ref)
                 sim = await self.simulate_prompt_block(initiator, block, mock_inputs)

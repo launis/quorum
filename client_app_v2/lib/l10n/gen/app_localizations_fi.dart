@@ -339,6 +339,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get statusCompleted => 'VALMIS';
 
   @override
+  String get statusLabelQueued => 'JONOSSA';
+
+  @override
   String get statusRunning => 'KÄYNNISSÄ';
 
   @override
@@ -370,6 +373,9 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get statusPending => 'ODOTTAA';
+
+  @override
+  String get statusQueued => 'Jonossa';
 
   @override
   String get statusStarted => 'ALOITETTU';
@@ -3461,4 +3467,25 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get enableContextualOverridesDescription =>
       'Master-kytkin, joka sallii tai kieltää väitetasoiset semanttiset ohitukset koko tämän työnkulun ajon aikana.';
+
+  @override
+  String get roleBlockLabel => 'Tekoälyn roolipersoona';
+
+  @override
+  String get roleBlockDescription =>
+      'Valitse tekoälyn asenne (esim. blk_role_critic).';
+
+  @override
+  String get protocolBlockLabel => 'Evidenssin poimintaprotokolla';
+
+  @override
+  String get protocolBlockDescription =>
+      'Mekaaniset säännöt sokeaan matemaattiseen poimintaan.';
+
+  @override
+  String get criteriaBlocksTitle => 'Arvioitavat kriteerilohkot';
+
+  @override
+  String get criteriaBlocksDescription =>
+      'Spesifit domain-tason arviointikriteerit.';
 }

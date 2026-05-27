@@ -92,8 +92,9 @@ def mock_step() -> Step:
         id="step_0123456789abcdef0123456789abcdef",
         name=I18nText(default_locale="en", translations={"en": "Test Step"}),
         slug="test-step",
-        description=I18nText(default_locale="en", translations={"en": "Test Desc"}),
-        prompt_blocks=["blk_0123456789abcdef0123456789abcdef", "blk_1123456789abcdef0123456789abcdef"],
+        role_block_id=None,
+        extraction_protocol_block_id="blk_573802341db9d68c",
+        criteria_block_ids=["blk_0123456789abcdef0123456789abcdef", "blk_1123456789abcdef0123456789abcdef"],
         model_strategy="fast",
     )
 

@@ -609,7 +609,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     } else if (s == 'failed') {
       bgColor = Theme.of(context).colorScheme.error;
       textColor = Theme.of(context).colorScheme.onError;
-    } else if (s == 'running' || s == 'pending') {
+    } else if (s == 'running' || s == 'pending' || s == 'queued') {
       bgColor = Theme.of(context).colorScheme.primary;
       textColor = Theme.of(context).colorScheme.onPrimary;
     }

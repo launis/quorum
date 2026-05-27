@@ -117,6 +117,7 @@ class ExecutionStatus(str, Enum):
     """Execution lifecycle status."""
 
     PENDING = "pending"
+    QUEUED = "queued"
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"

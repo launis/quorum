@@ -176,6 +176,7 @@ class ExecutionStatusCard extends ConsumerWidget {
         (state.hasValue &&
             state.value != null &&
             (state.value!['status'] == 'pending' ||
+                state.value!['status'] == 'queued' ||
                 state.value!['status'] == 'running'));
 
     return Row(
@@ -211,6 +212,8 @@ class ExecutionStatusCard extends ConsumerWidget {
         return const Icon(Icons.check_circle, color: Colors.green);
       case 'failed':
         return const Icon(Icons.error, color: Colors.red);
+      case 'queued':
+        return const Icon(Icons.hourglass_empty, color: Colors.blue);
       case 'running':
       case 'pending':
         return const SizedBox(
@@ -229,6 +232,7 @@ class ExecutionStatusCard extends ConsumerWidget {
         return Colors.green;
       case 'failed':
         return Colors.red;
+      case 'queued':
       case 'running':
       case 'pending':
         return Colors.blue;

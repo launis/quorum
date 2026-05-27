@@ -3732,6 +3732,12 @@
             "title": "Profile Syntheses",
             "description": "Multi-profile synthesis caching"
           },
+          "is_resumable": {
+            "type": "boolean",
+            "title": "Is Resumable",
+            "description": "Dynamic flag indicating if a failed/pending execution can be safely resumed.",
+            "default": false
+          },
           "duration_ms": {
             "type": "integer",
             "title": "Duration Ms",
@@ -5968,13 +5974,39 @@
             "title": "Hook",
             "description": "Native Python hook to execute if type is 'logic'"
           },
-          "prompt_blocks": {
+          "role_block_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Block Id",
+            "description": "Reference to role block (e.g. blk_role_critic)"
+          },
+          "extraction_protocol_block_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extraction Protocol Block Id",
+            "description": "Reference to global evidence extraction protocol block"
+          },
+          "criteria_block_ids": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Prompt Blocks",
-            "description": "List of PromptBlock IDs containing directives and matrices for this step."
+            "title": "Criteria Block Ids",
+            "description": "References to matrix or text blocks"
           },
           "pre_hooks": {
             "items": {
@@ -6135,13 +6167,39 @@
             "title": "Hook",
             "description": "Native Python hook to execute if type is 'logic'"
           },
-          "prompt_blocks": {
+          "role_block_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Block Id",
+            "description": "Reference to role block (e.g. blk_role_critic)"
+          },
+          "extraction_protocol_block_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extraction Protocol Block Id",
+            "description": "Reference to global evidence extraction protocol block"
+          },
+          "criteria_block_ids": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Prompt Blocks",
-            "description": "List of PromptBlock IDs containing directives and matrices for this step."
+            "title": "Criteria Block Ids",
+            "description": "References to matrix or text blocks"
           },
           "pre_hooks": {
             "items": {

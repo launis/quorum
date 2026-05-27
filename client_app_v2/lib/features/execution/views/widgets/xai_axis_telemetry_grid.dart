@@ -35,14 +35,21 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
   Widget _buildMainContent(BuildContext context) {
     final hasRowExplanation = axis.rowExplanation.trim().isNotEmpty;
     final isOverride = axis.contextualOverride == true;
-    final hasExplanation = isOverride && axis.semanticReasoning != null && axis.semanticReasoning!.trim().isNotEmpty;
+    final hasExplanation =
+        isOverride &&
+        axis.semanticReasoning != null &&
+        axis.semanticReasoning!.trim().isNotEmpty;
     final hasQuote = showQuote && !isOverride;
     final hasWebCitation =
         axis.citedWebCitation != null && axis.citedWebCitation!.isNotEmpty;
     final hasSourceId =
         axis.citedSourceId != null && axis.citedSourceId!.isNotEmpty;
 
-    if (!hasRowExplanation && !hasQuote && !hasExplanation && !hasWebCitation && !hasSourceId) {
+    if (!hasRowExplanation &&
+        !hasQuote &&
+        !hasExplanation &&
+        !hasWebCitation &&
+        !hasSourceId) {
       return const SizedBox();
     }
 

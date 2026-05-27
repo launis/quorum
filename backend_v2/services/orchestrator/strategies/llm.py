@@ -46,6 +46,7 @@ class LLMNodeStrategy(NodeStrategy):
         frozen_ctx: FrozenContext | None,
         trace: list[TraceEvent] | None,
         semaphore: asyncio.Semaphore,
+        running_event: asyncio.Event | None = None,
     ) -> list[TraceEvent]:
         # Epic 43 Phase 2 Fail-Fast Parity: Re-inject 'inputs' and 'raw_inputs' DTO payloads into the root state
         # so legacy dot-notation mappings resolve properly without Naked Dict violations.
@@ -136,18 +137,36 @@ class LLMNodeStrategy(NodeStrategy):
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
         target_profile = context.metadata["profile_id"]
 
+        role_block = None
+        if step_obj.role_block_id:
+            role_block = block_map.get(step_obj.role_block_id)
+            if not role_block:
+                raise ConfigurationError(
+                    f"Role Block '{step_obj.role_block_id}' not found.",
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
+
+        protocol_block = None
+        if step_obj.extraction_protocol_block_id:
+            protocol_block = block_map.get(step_obj.extraction_protocol_block_id)
+            if not protocol_block:
+                raise ConfigurationError(
+                    f"Extraction Protocol Block '{step_obj.extraction_protocol_block_id}' not found.",
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
+
         criteria_blocks_models = []
-        for m_id in step_obj.prompt_blocks:
+        for m_id in step_obj.criteria_block_ids:
             b = block_map.get(m_id)
             if b:
                 criteria_blocks_models.append(b)
             else:
                 logger.error(
-                    f"PromptBlock '{m_id}' not found.",
+                    f"Criteria PromptBlock '{m_id}' not found.",
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": step.id},
                 )
                 raise AppException(
-                    message=f"PromptBlock '{m_id}' not found.",
+                    message=f"Criteria PromptBlock '{m_id}' not found.",
                     status_code=500,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
@@ -174,7 +193,14 @@ class LLMNodeStrategy(NodeStrategy):
                 blueprint_def = await self.workflow_repo.get_step(s.task_blueprint)
                 if blueprint_def:
                     blueprint_obj = V2Step.model_validate(blueprint_def)
-                    for m_id in blueprint_obj.prompt_blocks:
+                    all_bp_blocks = []
+                    if blueprint_obj.role_block_id:
+                        all_bp_blocks.append(blueprint_obj.role_block_id)
+                    if blueprint_obj.extraction_protocol_block_id:
+                        all_bp_blocks.append(blueprint_obj.extraction_protocol_block_id)
+                    all_bp_blocks.extend(blueprint_obj.criteria_block_ids)
+
+                    for m_id in all_bp_blocks:
                         b = block_map.get(m_id)
                         if b:
                             if b.category_id == "matrix":
@@ -218,6 +244,8 @@ class LLMNodeStrategy(NodeStrategy):
 
         prompt_payload = PromptFactory.build(
             compiler=self.compiler,
+            role_block=role_block,
+            protocol_block=protocol_block,
             criteria_blocks=criteria_blocks,
             target_locale=target_locale,
             effective_mcp_tools=effective_mcp_tools,
@@ -367,6 +395,7 @@ class LLMNodeStrategy(NodeStrategy):
                                         synthesis_instructions=syn_instr,
                                         output_profile=output_profile,
                                         strictness_level=context.strictness_level,
+                                        running_event=running_event,
                                     )
                                 )
                             )

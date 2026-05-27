@@ -149,8 +149,11 @@ def test_step_api_fails_fast_on_invalid_extra_attributes(client_admin: Any) -> N
         "slug": "valid_bp",
         "name": {"default_locale": "en", "translations": {"en": "Test BP"}},
         "type": "llm",
+        "model_strategy": "fast",
+        "role_block_id": None,
+        "extraction_protocol_block_id": "blk_573802341db9d68c",
+        "criteria_block_ids": ["blk_0123456789abcdef"],
         "execution_logic": "Execute this.",
-        "prompt_blocks": ["blk_123"],
         "unexpected_garbage_property": "This should kill the request",  # ILLEGAL EXTRA
     }
     response = client_admin.put("/api/v2/studio/steps/step_valid_blueprint", json=payload)

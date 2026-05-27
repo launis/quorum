@@ -58,7 +58,9 @@ def mock_studio_service() -> AsyncMock:
         name=I18nText(default_locale="en", translations={"en": "Step (Copy)"}),
         type="llm",
         model_strategy="fast",
-        prompt_blocks=["block1"],
+        role_block_id=None,
+        extraction_protocol_block_id="blk_573802341db9d68c",
+        criteria_block_ids=["blk_0123456789abcdef"],
     )
     service.clone_prompt_block.return_value = PromptBlock(
         id="blk_1111111111111112",

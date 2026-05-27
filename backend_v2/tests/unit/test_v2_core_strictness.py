@@ -46,7 +46,9 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
         id="step_11111111abababab",
         slug="task_bp_valid",
         name=label,
-        prompt_blocks=["some_block"],
+        role_block_id=None,
+        extraction_protocol_block_id="blk_573802341db9d68c",
+        criteria_block_ids=["some_block"],
         model_strategy="fast",
     )
     assert valid_blueprint.slug == "task_bp_valid"
@@ -57,11 +59,13 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
             id="step_ffff1111ffff1111",
             slug="task_bp_err",
             name=label,
-            prompt_blocks=[],
+            role_block_id=None,
+            extraction_protocol_block_id="blk_573802341db9d68c",
+            criteria_block_ids=[],
             pre_hooks=["some_hook"],
             model_strategy="fast",
         )
-    assert "must define at least one prompt_block." in str(exc_info.value)
+    assert "must define at least one criteria_block_id." in str(exc_info.value)
 
 
 def test_opaque_id_regex_validation() -> None:
@@ -87,7 +91,9 @@ def test_opaque_id_regex_validation() -> None:
             id="my_custom_slug123",  # INVALID, no prefix separated by underscore
             slug="slug",
             name=label,
-            prompt_blocks=["blk_test"],
+            role_block_id=None,
+            extraction_protocol_block_id="blk_573802341db9d68c",
+            criteria_block_ids=["blk_test"],
             model_strategy="fast",
         )
     assert "String should match pattern '^([a-z]{2,5})_[a-fA-F0-9]{16,32}$'" in str(exc_step.value)

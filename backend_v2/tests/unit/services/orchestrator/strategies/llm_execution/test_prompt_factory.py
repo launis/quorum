@@ -64,6 +64,8 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
 
     payload = PromptFactory.build(
         compiler=mock_compiler,
+        role_block=None,
+        protocol_block=None,
         criteria_blocks=criteria_blocks,
         target_locale="en",
         effective_mcp_tools=None,
@@ -73,13 +75,13 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
         has_shuffled_atoms=True,
     )
 
-    assert "Complete the evaluation according to the provided schema." in payload.base_system_prompt
+    assert "You are a highly accurate, structured evaluation assistant." in payload.base_system_prompt
     assert "Static Instructions" in payload.base_system_prompt
     assert "Blind Instruction" in payload.base_system_prompt
     assert "MCP Instruction" in payload.base_system_prompt
 
-    assert "<context></context>" in payload.user_payload
-    assert "--- RUNTIME AWARENESS ---" in payload.user_payload
+    assert "context" in payload.user_payload
+    assert "RUNTIME_AWARENESS" in payload.user_payload
     assert "Dynamic Instructions" in payload.user_payload
 
     # Check atom hashing
@@ -105,6 +107,8 @@ def test_prompt_factory_flat_instruction_no_blind_contamination(mock_compiler: M
 
     payload = PromptFactory.build(
         compiler=mock_compiler,
+        role_block=None,
+        protocol_block=None,
         criteria_blocks=criteria_blocks,
         target_locale="en",
         effective_mcp_tools=None,
@@ -114,7 +118,7 @@ def test_prompt_factory_flat_instruction_no_blind_contamination(mock_compiler: M
         has_shuffled_atoms=False,
     )
 
-    assert "Complete the evaluation according to the provided schema." in payload.base_system_prompt
+    assert "You are a highly accurate, structured evaluation assistant." in payload.base_system_prompt
     assert "Static Instructions" in payload.base_system_prompt
     assert "Blind Instruction" not in payload.base_system_prompt
     assert "MCP Instruction" in payload.base_system_prompt
@@ -140,6 +144,8 @@ def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock) -> None
     with pytest.raises(AppException) as exc_info:
         PromptFactory.build(
             compiler=mock_compiler,
+            role_block=None,
+            protocol_block=None,
             criteria_blocks=criteria_blocks,
             target_locale="en",
             effective_mcp_tools=None,

@@ -59,6 +59,7 @@ classDiagram
         +String default_profile_id
         +List~ExpectedInput~ expected_inputs
         +List~StepRule~ steps
+        +bool enable_contextual_overrides
         +validate_dag_integrity()
     }
 
@@ -85,7 +86,16 @@ classDiagram
         +String model_strategy
         +List~String~ expected_inputs
         +dict output_schema
-        +List~String~ prompt_blocks
+        +String role_block_id
+        +String extraction_protocol_block_id
+        +List~String~ criteria_block_ids
+    }
+
+    class TDAAssertion{
+        +String id (Opaque Stripe ID 'tda_')
+        +String description
+        +String logic_expression
+        +bool allow_contextual_override
     }
 
     class TheoryGrounding{
@@ -277,6 +287,7 @@ classDiagram
     V2CoreBase <|-- Workflow
     V2CoreBase <|-- StepRule
     V2CoreBase <|-- Step
+    V2CoreBase <|-- TDAAssertion
     V2CoreBase <|-- TheoryGrounding
     V2CoreBase <|-- PromptBlock
     V2CoreBase <|-- ExecutionRecord
@@ -297,7 +308,7 @@ classDiagram
     Workflow *-- StepRule : "sisältää (Opaque DAG Nodes)"
     Workflow ..> OutputProfile : "Dynaaminen injektio API-kerroksessa (EI TALLENNETA KANTAAN!)"
     StepRule --> Step : "viittaa (Blueprint Reference)"
-    Step --> PromptBlock : "fuusioi kognition"
+    Step --> TDAAssertion : "arvioi kriteerit (criteria_block_ids)"
     PromptBlock *-- TheoryGrounding : "yhdistää lähdeaineistoon"
     OutputProfile *-- OutputLayoutBlock : "sisältää (Layouts)"
     OutputLayoutBlock --> SynthesisConfigDTO : "määrittelee XAI-synteesin"
@@ -318,24 +329,39 @@ classDiagram
      * **TheoryGrounding:** Kytkee matriisit suoraan organisaation omaan data- ja teoriapohjaan dokumentoimalla tarkan lähteen ja siihen liittyvän viittauksen.
      * **Zero-Trust Null-Filtering & Syntaktinen Ankkurointi (Epic 61):** TDA-arvioinneissa ja Vice-säännöissä (kuten heikkouksien/anti-patternien poiminnassa) sovelletaan ankaraa Zero-Trust-filtteröintiä. Jos kielellinen ja syntaktinen ankkuri (kuten tietyt säännössä luetellut suorat ilmaisut) puuttuu kokonaan tekstistä, LLM:n on palautettava `JSON null` (ei tyhjää sanakirjaa tai arvailuja). Spekulointi, ekstrapolointi tai puuttuvan näytön selittely ("rationalizing") on kiellettyä.
 
-2. **Step ja StepRule (Opaque Nodes):**
-   * **Step:** Eristetty, uudelleenkäytettävä logiikkamalli. Tukee vahvasti erittelyä joko dynaamiseksi lausekepohjaiseksi säännöksi (`type: logic`), jolloin se suorittaa ns. natiivia Python-koodia määritetyllä `hook`-funktiolla, tai neuroverkkomalliksi (`type: llm`), jossa kognitio ohjautuu LLM:lle. Malli integroi esi- ja jälkikäsittelyn koukkuihin (`pre_hooks`, `post_hooks`) ja estää hallusinoinnit lukitsemalla vain ennalta määritellyt ulkoiset MCP-työkalut (`allowed_mcp_tools`). Askeleilla tuki myös mallistrategialle (`model_strategy`) tehokkuuden säätöä varten.
+2. **Step ja StepRule (Modular Extraction Decoupling - Epic 60):**
+   * **Step:** Eristetty, uudelleenkäytettävä logiikkamalli. Epic 60:n myötä askeleen aiempi sotkuinen `promptBlocks`-lista korvattiin kompromissittomalla **Modular Extraction Decoupling** -arkkitehtuurilla. Lohkoviittaukset on nyt eriytetty ja strukturoitu kolmeen selkeästi rajattuun ja tyypitettyyn kenttään:
+     * `role_block_id` (String?): Viittaa tekoälyn asenteelliseen ja ammatilliseen roolilohkoon (esim. `agent_role` kategorialla varustettu `PromptBlock`).
+     * `extraction_protocol_block_id` (String?): Viittaa globaaliin evidenssin poimintaprotokollaan (esim. `blk_573802341db9d68c` "Global Zero-Trust Evidence Extraction Protocol").
+     * `criteria_block_ids` (List[String]): Lista kriteerilohkoista (kuten TDA-säännöt tai BARS-matriisit), joita askeleella arvioidaan.
+     Tämä poistaa attention dilution -ilmiön kokonaan ja estää dynaamisten kääntäjien kaatumisriskit, kun ohjeet, roolit ja kriteerit on erotettu omiksi itsenäisiksi tietolähteikseen.
    * **StepRule:** Määrittelee solmun todellisen paikan työnkulun verkossa (Directed Acyclic Graph). Sisältää UI-koordinaatit (`ui_pos_x`, `ui_pos_y`), riippuvuudet (`depends_on`) ja datan syötelokeroinnin (`input_mappings`), joilla muiden askelten injektoimat lokaalit syötteet ja dynaamiset parametrit parsitaan LLM:lle.
 
 3. **Workflow (DAG Orchestrator):**
-   * Kokoaa yhteen StepRulet, PromptBlockien viittaukset, Output Profilet sekä myös dynaamiset odotetut syötteet (`ExpectedInput`), jotka määrittävät, mitä ulkopuolista dataa käyttäjältä tai järjestelmältä pyydetään ajon aikana. `ExpectedInput` luo vahvat syötelokerot (`input_mappings`), jotka reitittävät tiedot ohjatusti oikeille DAG-askelille.
+   * Kokoaa yhteen StepRulet, eroteltujen lohkojen viittaukset, Output Profilet sekä myös dynaamiset odotetut syötteet (`ExpectedInput`), jotka määrittävät, mitä ulkopuolista dataa käyttäjältä tai järjestelmältä pyydetään ajon aikana. `ExpectedInput` luo vahvat syötelokerot (`input_mappings`), jotka reitittävät tiedot ohjatusti oikeille DAG-askelille.
    * Järjestelmä estää puutteelliset Workflown tilat ennen ajoa: `validate_dag_integrity` suorittaa Depth-First Search (DFS) -algoritmin, joka paljastaa työnkulun solmukohdista syklit (kehät) pystyen katkaisemaan suorituksen (RFC 7807) ennen ajon alkua. Se on absoluuttinen vaatimus turvalliselle asynkroniselle taustaprosessoinnille.
    * **E2E Orchestration Fail-Fast:** Rajapinta kaatuu välittömästi (HTTP 400 Validation Error), mikäli työnkulun `expected_inputs` -määritelmät (esim. `chat_log`) puuttuvat ajopyynnön `raw_inputs` -payloadista. Asiakassovellukset (esim. Dart E2E-skriptit) EIVÄT SAA käyttää keksittyjä syötteitä tai hardkoodattuja Opaque ID -tunnisteita (`prof_123`). Niiden on haettava ID:t dynaamisesti ja lähetettävä täsmälleen oikeat, validit syötteet.
 
 4. **Execution and Synthesis Tier Decoupling (Epic 50):**
-   * Järjestelmä erottaa **Execution Phase** (Raaka-arviointi, `PromptBlockit`) ja **Reporting/Display Phase** (Synteesi, `OutputProfilet`) täysin toisistaan.
+   * Järjestelmä erottaa **Execution Phase** (Raaka-arviointi, `PromptBlockit` / `criteria_block_ids`) ja **Reporting/Display Phase** (Synteesi, `OutputProfilet`) täysin toisistaan.
    * `PromptBlockit` ovat yksinomaan raakadatan arviointia varten (numeeriset asteikot kuten 1-5, ZERO-TRUST AUDITOR -ohjeet) eivätkä ne SAA sisältää UI-muotoilun tai pituuden ohjeita (esim. "kirjoita lyhyt lause").
    * `OutputProfilet` (mukaan lukien `SynthesisConfigDTO`) ovat yksinomaan UI-muotoilua ja synteesiä varten (esim. `row_explanation_prompt`). Ne EIVÄT SAA sisältää arviointiohjeita kuten "hypoteesien testaus" tai "oikein/väärin" -määrittelyjä.
+
+5. **Claim-Level Contextual Override & Laiskuuden esto (System 2):**
+   * **Kontekstuaalinen ohitusventtiili (Claim-Level Contextual Override):** Mahdollistaa sen, että tekoäly (System 1) voi ohittaa mekaanisen säännön epäonnistumisen lieventävän tai epäsuoran asiayhteyden perusteella.
+   * **Kaksoislukitusvaltuutus (Double-Lock Authorization):** Ohituksen soveltaminen vaatii poikkeuksetta kahden tason master-kytkinten aktiivisuutta:
+     * `enable_contextual_overrides` (Workflow-tason globaali kytkin)
+     * `allow_contextual_override` (Kyseisen yksittäisen `TDAAssertion`-säännön sääntökohtainen kytkin)
+     Jos LLM palauttaa vastauksessaan `contextual_override = True`, mutta jompikumpi kytkimistä on `False`, System 2 -suojamuuri hylkää ohituksen välittömästi ja pakottaa palaamaan mekaaniseen tarkistukseen.
+   * **Laiskuuden esto (Anti-Laziness Mandate):** Jokainen hyväksytty ohitus validoidaan Pydantic-kerroksessa:
+     * *Pituusvaatimus:* Perustelutekstin (`semantic_reasoning`) on oltava vähintään 50 merkkiä pitkä.
+     * *Spatiaalinen ankkurointi:* Perustelun on sisällettävä eksplisiittinen sijaintiviite lähdetekstiin (kuten *sivu*, *kappale*, *rivi*, *luku* tai *otsikko*).
+     Mikäli ehdot eivät täyty, Pydantic heittää `ValidationError`-virheen ja käynnistää `Self-Healing` -korjaussilmukan.
 
 ## Järjestelmäkonfiguraatiot ja Mallit
 
 Pydantic-kirjasto on laajennettu hallinnoimaan työnkulkujen lisäksi koko järjestelmän laajuisia asetuksia, joilla tekoälyagenttien kyvykkyyksiä ohjataan koodin ulkopuolelta.
-* **SystemConfigModelRegistry:** Ohjaa litteää tekoälymallien rekisteröintiä (esim. OpenAI, Google) kytkemällä mallin spesifikaatiot `ModelProfile` -objekteihin. This sallii järjestelmän kognitiivisten moottoreiden vaihtamisen ilman käyttökatkoja.
+* **SystemConfigModelRegistry:** Ohjaa litteää tekoälymallien rekisteröintiä (esim. OpenAI, Google) kytkemällä mallin spesifikaatiot `ModelProfile` -objekteihin. Tämä sallii järjestelmän kognitiivisten moottoreiden vaihtamisen ilman käyttökatkoja.
 * **SystemConfigMCPGateways:** Rekisteröi sallitut, LLM-kutsuttavat ulkoiset työkalut käyttäen ohjattua `AllowedMCPTool` -mallia, jossa erotetaan I18n-lokalisoitavissa oleva käyttöliittymän nimi mallille luovutettavasta konerakenteesta (`input_schema`, `description`). Näin MCP-kyvykkyyksien salliminen on tiukasti säänneltyä.
 
 ## Suoritusmallit ja Event Sourcing
@@ -360,7 +386,7 @@ Järjestelmän taustakoukuissa (hooks) toteutetaan "Zero-Duck-Typing" ja Fail-Fa
 3. **Decoupled TDA Schema Factory (Epic 56):**
    * **Dynaaminen Pydantic-mallien Tehdas (Factory):** Yksittäinen staattinen `BaseTDAExtraction`-malli on korvattu dynaamisella malligeneraattorilla (`extraction_schema_factory.py`). Pythonin `create_model` rakentaa dynaamisesti `ExtractedFactsDTO`-mallin, jonka kentät mäpätään tietokantaohjatuista `facts_to_find` -tunnisteista aakkosjärjestyksessä (`sorted()`).
    * **DynamicExtractionResponse:** Toimii juurimallina asynkroniselle tiedonkerääjälle (Semantic Extractor). Sen kenttäjärjestys on tiukan Prefix Caching -eheyden takaamiseksi aina: `chunk_index` (int), `context_scan_trace` (str - kognitiivisesti laajennettu Micro-CoT, suoritetaan ensin), `search_context_anchor` (str | None) sekä `extracted_facts` (`ExtractedFactsDTO`). `COGNITIVE_JUDGEMENT`-reitillä dynaamiseen malliin injektoidaan lisäksi `validation_decision` (bool). Malli suljetaan tiukasti `ConfigDict(extra='forbid', strict=True)` -määritelmällä ilman fallback-polkuja (Fail-Fast).
-   * **Laiskuuden Torjunta ja Salliva Identiteetti (Lazy Dumping Ban):** Pydantic-validaattori sallii useamman poimitun faktan olevan 100 % identtinen (Salliva Identiteetti), jotta mekaanista sensorivalidaattoria ei rangaista tiiviissä teksteissä. Kuitenkin, jos LLM yrittää laiskuuttaan dumptausta (kopioi yli 80 % koko tekstichunkista kenttiin), `@model_validator` hylkää vastauksen ja pakottaa Self-Healing -korjauskierroksen.-Validation Sääntö:** Malli soveltaa ankaraa `@model_validator(mode="after")` -sääntöä. Jos `contextual_override` on asetettu arvoon `True`, malli pakottaa deterministisesti, että `exact_quote` ON OLTAVA `None` (null). Tämä ristiinvalidointi tukee Dual-Track -arkkitehtuuria (Physical Match vs Semantic Override) taaten absoluuttisen loogisen determinismin poimintaputken läpi.
+   * **Laiskuuden Torjunta ja Salliva Identiteetti (Lazy Dumping Ban):** Pydantic-validaattori sallii useamman poimitun faktan olevan 100 % identtinen (Salliva Identiteetti), jotta mekaanista sensorivalidaattoria ei rangaista tiiviissä teksteissä. Kuitenkin, jos LLM yrittää laiskuuttaan dumptausta (kopioi yli 80 % koko tekstichunkista kenttiin), `@model_validator` hylkää vastauksen ja pakottaa Self-Healing -korjauskierroksen. Validation-säännössä malli soveltaa ankaraa `@model_validator(mode="after")` -sääntöä. Jos contextual_override on asetettu arvoon True, malli pakottaa deterministisesti, että exact_quote ON OLTAVA None (null). Tämä ristiinvalidointi tukee Dual-Track -arkkitehtuuria (Physical Match vs Semantic Override) taaten absoluuttisen loogisen determinismin poimintaputken läpi.
 
 4. **Erikoistuneet Asiantuntija-agentit (causal.py ja performativity.py):**
    * **Kognitiivinen Syväpäättely (Causal & Performativity Specialist Domain Models):**
@@ -380,4 +406,4 @@ Tekoälyn tuottamat selittävyyskomponentit ("Explainable AI") toteutetaan **Dis
 
 <br><hr>
 
-➡️ **Seuraavaksi:** Nyt kun domain-laatikot on määritelty, siirry lukemaan [03_api_and_async_core.md](./03_api_and_async_core.md), joka näyttää, miten API-reitittimet ja Arq-taustajonot vastaanottavat nämä laatikot ja estävät järjestelmän ylikuormittumisen.
+➡️ **Seuraavaksi:** Kun domain-laatikot on määritelty, siirry lukemaan [03_api_and_async_core.md](./03_api_and_async_core.md), joka näyttää, miten API-reitittimet ja Arq-taustajonot vastaanottavat nämä laatikot ja estävät järjestelmän ylikuormittumisen.

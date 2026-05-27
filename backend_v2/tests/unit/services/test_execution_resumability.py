@@ -1,15 +1,16 @@
-import pytest
 from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
     ExecutionStatus,
     StepRule,
     Workflow,
 )
-from backend_v2.models.state import TraceEvent
 from backend_v2.services.execution import ExecutionService
 
 
@@ -29,7 +30,7 @@ async def test_check_resumability_failed_only() -> None:
     # Execution status PENDING or COMPLETED should fail check_resumability
     record = Mock(spec=ExecutionRecord)
     record.status = ExecutionStatus.PENDING
-    
+
     # Milestone 3, Rule 1: Resumable only in FAILED status
     is_res = await service.check_resumability(record)
     assert is_res is False
@@ -54,11 +55,9 @@ async def test_check_resumability_needs_output_checkpoint() -> None:
     # Execution trace lacking event_type == "output" should fail check_resumability
     record = Mock(spec=ExecutionRecord)
     record.status = ExecutionStatus.FAILED
-    
+
     # Ingestion input event only
-    record.execution_trace = [
-        TraceEvent(step_name="inputs", event_type="input", content={})
-    ]
+    record.execution_trace = [TraceEvent(step_name="inputs", event_type="input", content={})]
 
     # Milestone 3, Rule 2: Needs at least one output event checkpoint
     is_res = await service.check_resumability(record)
@@ -85,7 +84,7 @@ async def test_check_resumability_structural_mismatch() -> None:
     record.execution_trace = [
         TraceEvent(step_name="step_0dfb0101e4714c58bb0d4b430b4b81e3", event_type="output", content={})
     ]
-    
+
     # Exec states keys: step_0dfb0101e4714c58bb0d4b430b4b81e3
     record.step_states = {"step_0dfb0101e4714c58bb0d4b430b4b81e3": Mock()}
 
@@ -93,7 +92,7 @@ async def test_check_resumability_structural_mismatch() -> None:
     mock_wf = Mock(spec=Workflow)
     mock_wf.steps = [
         StepRule(id="step_0dfb0101e4714c58bb0d4b430b4b81e3", task_blueprint="b1"),
-        StepRule(id="step_7bf3ddc4ad2043918f087e2d67019602", task_blueprint="b2")
+        StepRule(id="step_7bf3ddc4ad2043918f087e2d67019602", task_blueprint="b2"),
     ]
     repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
 

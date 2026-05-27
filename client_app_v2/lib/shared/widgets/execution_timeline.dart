@@ -34,12 +34,18 @@ class ExecutionTimeline extends StatelessWidget {
 
           final isCompleted =
               stepStatus == 'completed' || stepStatus == 'finished';
+          final isQueued = stepStatus == 'queued';
           final isRunning = stepStatus == 'running';
           final isFailed = stepStatus == 'failed' || stepStatus == 'error';
 
           Color? labelColor;
-          if (isRunning) labelColor = Theme.of(context).primaryColor;
-          if (isFailed) labelColor = Theme.of(context).colorScheme.error;
+          if (isRunning) {
+            labelColor = Theme.of(context).primaryColor;
+          } else if (isQueued) {
+            labelColor = Theme.of(context).disabledColor;
+          } else if (isFailed) {
+            labelColor = Theme.of(context).colorScheme.error;
+          }
 
           final stepId =
               step['step_id']?.toString() ?? step['id']?.toString() ?? '';
@@ -80,6 +86,7 @@ class ExecutionTimeline extends StatelessWidget {
             leading: _buildStepIcon(
               context,
               isCompleted,
+              isQueued,
               isRunning,
               isFailed,
               hasWarnings,
@@ -110,6 +117,7 @@ class ExecutionTimeline extends StatelessWidget {
   Widget _buildStepIcon(
     BuildContext context,
     bool isCompleted,
+    bool isQueued,
     bool isRunning,
     bool isFailed,
     bool hasWarnings,
@@ -139,6 +147,13 @@ class ExecutionTimeline extends StatelessWidget {
       return Icon(
         Icons.play_circle_fill,
         color: Theme.of(context).colorScheme.primary,
+        size: 20,
+      );
+    }
+    if (isQueued) {
+      return Icon(
+        Icons.hourglass_empty,
+        color: Theme.of(context).disabledColor,
         size: 20,
       );
     }

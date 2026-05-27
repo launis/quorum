@@ -337,6 +337,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusCompleted => 'COMPLETED';
 
   @override
+  String get statusLabelQueued => 'QUEUED';
+
+  @override
   String get statusRunning => 'RUNNING';
 
   @override
@@ -368,6 +371,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statusPending => 'PENDING';
+
+  @override
+  String get statusQueued => 'Queued';
 
   @override
   String get statusStarted => 'STARTED';
@@ -3437,4 +3443,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get enableContextualOverridesDescription =>
       'Master toggle that globally enables or disables claim-level semantic overrides for this entire workflow run.';
+
+  @override
+  String get roleBlockLabel => 'AI Persona Role Override';
+
+  @override
+  String get roleBlockDescription =>
+      'Select standard LLM persona (e.g. blk_role_critic).';
+
+  @override
+  String get protocolBlockLabel => 'Evidence Extraction Protocol';
+
+  @override
+  String get protocolBlockDescription =>
+      'Standard mecanic rules for blind mathematical verification.';
+
+  @override
+  String get criteriaBlocksTitle => 'Evaluation Criteria Matrices';
+
+  @override
+  String get criteriaBlocksDescription =>
+      'Specific domain semantic claims to evaluate.';
 }

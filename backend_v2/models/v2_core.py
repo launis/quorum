@@ -445,8 +445,19 @@ class Step(V2CoreBase):
     description: I18nText | None = Field(default=None, description="Detailed step context")
     type: Literal["llm", "logic"] = Field(default="llm", description="Step execution type (llm or native logic)")
     hook: str | None = Field(default=None, description="Native Python hook to execute if type is 'logic'")
-    prompt_blocks: list[str] = Field(
-        default_factory=list, description="List of PromptBlock IDs containing directives and matrices for this step."
+    role_block_id: str | None = Field(
+        default=None,
+        pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+        description="Reference to role block (e.g. blk_role_critic)",
+    )
+    extraction_protocol_block_id: str | None = Field(
+        default=None,
+        pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+        description="Reference to global evidence extraction protocol block",
+    )
+    criteria_block_ids: list[str] = Field(
+        default_factory=list,
+        description="References to matrix or text blocks",
     )
     pre_hooks: list[str] = Field(
         default_factory=list, description="Native Python functions to execute BEFORE LLM context building."
@@ -479,13 +490,17 @@ class Step(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_step_consistency(self) -> Step:
-        """Strict fail-fast validation to ensure Step is not purely empty."""
-        if self.type == "llm" and not self.model_strategy:
-            msg = f"LLM Step '{self.slug}' must declare an explicit model_strategy (Zero-Fallback Rule)."
-            raise ValueError(msg)
-        if self.type == "llm" and not self.prompt_blocks:
-            msg = f"LLM Step '{self.slug}' must define at least one prompt_block."
-            raise ValueError(msg)
+        """Strict fail-fast validation to ensure Step is structurally complete."""
+        if self.type == "llm":
+            if not self.model_strategy:
+                msg = f"LLM Step '{self.slug}' must declare an explicit model_strategy (Zero-Fallback Rule)."
+                raise ValueError(msg)
+            if not self.criteria_block_ids:
+                msg = f"LLM Step '{self.slug}' must define at least one criteria_block_id."
+                raise ValueError(msg)
+            if not self.extraction_protocol_block_id:
+                msg = f"LLM Step '{self.slug}' must define a valid extraction_protocol_block_id."
+                raise ValueError(msg)
         if self.type == "logic" and not self.hook:
             msg = f"Logic Step '{self.slug}' must define a native 'hook' execution target."
             raise ValueError(msg)

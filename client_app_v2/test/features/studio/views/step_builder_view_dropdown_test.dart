@@ -30,14 +30,14 @@ void main() {
         id: 'test_step_1',
         slug: 'test_slug',
         name: I18nText(defaultLocale: 'en', translations: {'en': 'Test'}),
-        promptBlocks: ['block_a'],
+        criteriaBlockIds: ['block_a'],
       );
 
       final List<PromptBlock> mockPromptBlocks = [
         const PromptBlock(
           id: 'block_a',
           slug: 'block_a',
-          categoryId: 'regular',
+          categoryId: 'criteria',
           label: I18nText(defaultLocale: 'en', translations: {'en': 'Block A'}),
           description: I18nText(
             defaultLocale: 'en',
@@ -47,7 +47,7 @@ void main() {
         const PromptBlock(
           id: 'block_b',
           slug: 'block_b',
-          categoryId: 'regular',
+          categoryId: 'criteria',
           label: I18nText(defaultLocale: 'en', translations: {'en': 'Block B'}),
           description: I18nText(
             defaultLocale: 'en',
