@@ -4,7 +4,7 @@ import os
 print("| Tiedosto | N (Atomit) | Self-Consistency | Fleissin Kappa | Shannonin Entropia | Erimielisyydet |")
 print("| :--- | :---: | :---: | :---: | :---: | :---: |")
 
-for idx in range(10, 18):
+for idx in range(10, 20):
     filename = f"mismatch_traces_raw {idx}.md"
     path = os.path.join("scratch", filename)
     if not os.path.exists(path):

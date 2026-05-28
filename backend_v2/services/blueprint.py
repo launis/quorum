@@ -23,6 +23,7 @@ from backend_v2.models.v2_core import (
     ReportDataDTO,
     ReportLayoutDTO,
 )
+from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
 
 logger = logging.getLogger(__name__)
 
@@ -255,6 +256,51 @@ class BlueprintTransformer:
             grouped_extensions[group_key].append(
                 {group_key: highlight.content, "content": highlight.content, "_score": -999.0, "_is_synthesized": True}
             )
+
+        # Extract global output extensions (like variance_validation) from report_context in execution context_variables
+        report_context_dict = execution.context_variables.get("report_context")
+        if isinstance(report_context_dict, dict):
+            output_exts = report_context_dict.get("output_extensions", [])
+            if isinstance(output_exts, list):
+                for ext in output_exts:
+                    if isinstance(ext, dict) and ext.get("extension_type") == "variance_validation":
+                        if "variance_validation" in grouped_extensions:
+                            ext_copy = dict(ext)
+                            ext_copy["_is_synthesized"] = True
+                            grouped_extensions["variance_validation"].append(ext_copy)
+
+        # Calculate mechanical-cognitive variance dynamically if the extension is requested but not present
+        if "variance_validation" in grouped_extensions and not grouped_extensions["variance_validation"]:
+            authenticity_score = 3.0
+            performative_phrases_count = 0
+
+            # Scan folded results for detector and linguistics steps
+            for dto in results:
+                if dto.step_id == "step_detector" or dto.block_id == "step_detector":
+                    if isinstance(dto.payload, dict) and "raw_score" in dto.payload:
+                        val = dto.payload["raw_score"]
+                        if val is not None:
+                            authenticity_score = float(val)
+                elif dto.step_id == "step_linguistics" or dto.block_id == "step_linguistics":
+                    if isinstance(dto.payload, dict) and "performative_patterns" in dto.payload:
+                        patterns = dto.payload["performative_patterns"]
+                        if isinstance(patterns, list):
+                            performative_phrases_count = len(patterns)
+
+            variance_res = calculate_mechanical_cognitive_variance(
+                llm_authenticity_score=authenticity_score,
+                performative_phrases_count=performative_phrases_count,
+            )
+
+            dynamic_ext = {
+                "extension_type": "variance_validation",
+                "mechanical_metric_ref": "performative_phrases_count",
+                "cognitive_metric_ref": "llm_authenticity_score",
+                "variance_score": float(variance_res["variance_score"]),
+                "alignment_verdict": str(variance_res["alignment_verdict"]),
+                "_is_synthesized": True,
+            }
+            grouped_extensions["variance_validation"].append(dynamic_ext)
 
         if any(dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload for dto in results):
             has_warning = True
@@ -519,6 +565,8 @@ class BlueprintTransformer:
         max_items = getattr(profile, "max_extension_items", 2)
         if max_items is not None and max_items > 0:
             for ext_key in grouped_extensions:
+                if ext_key == "variance_validation":
+                    continue
                 # If a synthesized global highlight exists, it EXCLUSIVELY takes over the category
                 # suppressing all raw fragmented matrix extensions (no theory titles).
                 synthesized = [x for x in grouped_extensions[ext_key] if x.get("_is_synthesized")]

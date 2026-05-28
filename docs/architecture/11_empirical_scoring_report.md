@@ -179,3 +179,58 @@ Tämä osio tarjoaa askeleittaisen ohjeistuksen siitä, miten auditoija voi itse
    * **Daniel Kahneman (Systeemi 1 & Systeemi 2):** Varmista, että raportti arvioi käyttäjän kykyä pakottaa tekoäly hidastamaan automaattisesta päättelystä (Systeemi 1) kohti tietoista ja analyyttista päättelyä (Systeemi 2).
    * **Stephen Toulmin (Argumentaatiomalli):** Tarkista, että raportissa analysoidaan Toulminin argumentaation takeita ja perusteita.
    * **Karl Popper (Falsifiointiperiaate):** Varmista, että raportti arvioi kriittisesti sitä, pyrkeekö käyttäjä aktiivisesti falsifioimaan tekoälyn väitteitä.
+
+### Vaihe 6: Mechanical-Cognitive Variance -ristiinvertailun auditointi (Epic 57)
+1. **Varmista `VarianceValidationExtension`:** Etsi DTO-tulosteesta `output_extensions`-taulukko ja sieltä objekti, jonka `extension_type` on `variance_validation`.
+2. **Auditoi matemaattinen varianssi:**
+   * Poimi `mechanical_metric_ref`-kentässä mainittu mekaaninen arvo (esim. `performative_phrases_count` = 8).
+   * Poimi `cognitive_metric_ref`-kentässä mainittu kognitiivinen arvo (esim. `llm_authenticity_score` = 2.8).
+   * Suorita manuaalinen laskenta:
+     - Normalisoitu arvo: $N_P = \min((8 / 10) \times 2, 2.0) = 1.6$.
+     - Tavoitetaso: $T_A = 3.0 - 1.6 = 1.4$.
+     - Absoluuttinen varianssi: $V = | 2.8 - 1.4 | = 1.4$.
+   * Varmista, että DTO:n `variance_score` on täsmälleen 1.40.
+3. **Auditoi tuomio (Alignment Verdict):** Koska varianssi $1.4 \ge 0.50$ ja LLM-aitousarvo (2.8) on korkeampi kuin mekaaninen tavoitetaso (1.4), alignment_verdict -kentän on oltava `MISALIGNED_SYCOPHANCY`.
+4. **Varmista visualisointipariteetti:** Varmista, että sekä selaimessa että PDF-tulosteessa indikaattoriosoitin on sijoitettu kolmanteen palkkiosioon ("Severe") ja pistemäärä 1.40 renderöityy selkeästi palkin alapuolelle.
+
+---
+
+## 10. Pisteytyksen Tiukkuustasojen Matemaattinen Laskenta (0-100 Asteikko)
+
+Tämä osio dokumentoi, miten käyttöliittymän 0–100-asteikkoinen tiukkuustaso (`strictness_level`) käännetään matemaattisiksi kaavoiksi ja kuvaajiksi järjestelmän taustalla.
+
+### Vaihe 1: Tiukkuusankkurit ja lineaarinen interpolointi (LERP)
+
+Tiukkuustaso muunnetaan kolmeksi matemaattiseksi parametrisäännöksi (**StrictnessConfig**), jotka on ankkuroitu viiteen pääpisteeseen (`STRICTNESS_ANCHOR_CONFIGS`):
+
+* **Flexible (0):** `forgiveness = 1.0` | `sigmoid_midpoint = 0.1` | `dynamic_exponent = 0.2`
+* **Lenient (30):** `forgiveness = 0.60` | `sigmoid_midpoint = 0.3` | `dynamic_exponent = 0.3`
+* **Balanced (50):** `forgiveness = 0.30` | `sigmoid_midpoint = 0.5` | `dynamic_exponent = 0.5`
+* **Strict (70):** `forgiveness = 0.10` | `sigmoid_midpoint = 0.7` | `dynamic_exponent = 1.5`
+* **Absolute (90+):** `forgiveness = 0.00` | `sigmoid_midpoint = 0.9` | `dynamic_exponent = 3.0`
+
+Jos asetettu tiukkuustaso jää kahden ankkurin väliin (esim. `60`), järjestelmä suorittaa lineaarisen interpolaation (LERP) parametrien laskemiseksi:
+$$\text{lerp}(start, end, t) = start + (end - start) \times t$$
+Missä $t$ kuvaa suhteellista etäisyyttä kahden ankkuripisteen välillä.
+
+### Vaihe 2: Tiukkuusparametrien matemaattinen soveltaminen
+
+Saadut parametrit ohjaavat dynaamisesti eri pisteytysmoottoreita (`math_utils.py`):
+
+1. **Sigmoid-laskenta (`calculate_sigmoid_weighted_score`):**
+   * Muodostaa S-käyrän osumille. Jyrkkyys lasketaan kaavalla: $\text{steepness} = \text{dynamic\_exponent} \times 10.0$ ja keskipisteeksi asetetaan $\text{sigmoid\_midpoint}$.
+   * **Vaikutus:** Korkeilla tiukkuustasoilla käyrä on erittäin jyrkkä ja sen keskipiste siirtyy lähelle 1.0 hit-ratea, mikä tarkoittaa, että jo muutaman prosentin vajaus täydellisyydestä romuttaa arvosanan.
+
+2. **Lineaarisen suhdeluvun käyrä (`calculate_linear_ratio_score`):**
+   * Soveltaa käyräeksponenttia saavutettuun hit-rateen: $\text{pistemäärä} = \text{math\_min} + (\text{hit\_rate}^\text{exponent} \times (\text{math\_max} - \text{math\_min}))$
+   * **Vaikutus:** Exponentti lasketaan kaavalla $1.0 + (1.0 - \text{base\_forgiveness})$. Flexible-tiukkuudella (0) suhde on suora lineaarinen ($1.0$), kun taas Absolute-tiukkuudella (100) eksponentti on ankara neliömuoto ($2.0$).
+
+3. **Progressiivinen vaimennus / DINA V3 (`calculate_progressive_dampening_score`):**
+   * Laskee jokaiselle kognitiiviselle tasolle tehokkaan osumaprosentin: $\text{effective\_hit\_rate} = \text{forgiveness} + (\text{hit\_rate} \times (1.0 - \text{forgiveness}))$.
+   * Tämän perusteella saadaan tason vaimennuskerroin: $\text{modifier\_factor} = \text{effective\_hit\_rate}^\text{safe\_exponent}$.
+   * **Vaikutus:** Korkeampi tiukkuustaso nostaa eksponenttia ja nollaa forgiveness-parametrin, jolloin pienikin epäonnistuminen alimmilla perustasoilla (kuten ymmärtäminen) vaimentaa progressiivisesti ja kaskadoituvasti kaikki ylempien tasojen pistekertymät lähes nollaan.
+
+4. **Pehmeä vesiputousmalli / Soft Waterfall (`calculate_soft_waterfall_score`):**
+   * Soveltaa alituksesta liukuvaa rangaistusta: $\text{sliding\_penalty} = 1.0 - (\text{shortfall} \times (1.0 - \text{base\_forgiveness}))$.
+   * **Vaikutus:** Kun tiukkuus on 100, `base_forgiveness` on 0.0, jolloin mikä tahansa kynnyksen alitus pysäyttää vesiputouksen pistekertymän siihen paikkaan (100% rangaistus). Lievemmillä tasoilla rangaistus pehmentyy joustavuuden mukaan.
+

@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.xai import VarianceValidationExtension
 from backend_v2.models.dtos.report import (
     AuditQuestionItem,
     GlobalContextVarsDTO,
@@ -17,6 +18,7 @@ from backend_v2.models.dtos.report import (
     ScoreItem,
 )
 from backend_v2.models.view.sdui import ReferenceIntent, ReferenceItem
+from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
 
 logger = logging.getLogger(__name__)
 
@@ -229,6 +231,26 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
 
     prof_metrics = gvars.step_profiler.metrics if gvars.step_profiler and gvars.step_profiler.metrics else None
 
+    # Calculate Mechanical-Cognitive Variance & Alignment Verdict
+    authenticity_score = 3.0
+    if gvars.step_detector and gvars.step_detector.raw_score is not None:
+        authenticity_score = gvars.step_detector.raw_score
+
+    performative_phrases_count = 0
+    if gvars.step_linguistics and gvars.step_linguistics.performative_patterns:
+        performative_phrases_count = len(gvars.step_linguistics.performative_patterns)
+
+    variance_res = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=authenticity_score,
+        performative_phrases_count=performative_phrases_count,
+    )
+    variance_ext = VarianceValidationExtension(
+        mechanical_metric_ref=str(variance_res["mechanical_metric_ref"]),
+        cognitive_metric_ref=str(variance_res["cognitive_metric_ref"]),
+        variance_score=float(variance_res["variance_score"]),
+        alignment_verdict=str(variance_res["alignment_verdict"]),
+    )
+
     # Assemble ReportContextDTO (No Naked Dicts!)
     report_context = ReportContextDTO(
         inputs=dto.inputs,
@@ -245,6 +267,7 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
         uncertainty=uncertainty,
         bibliography=bibliography,
         references=references,
+        output_extensions=[variance_ext],
         logician_data=logician_data,
         overseer_data=overseer_data,
         falsifier_data=falsifier_data,

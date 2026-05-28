@@ -42,6 +42,10 @@ enum XaiExtensionType {
   confidence,
   @JsonValue('source_id')
   sourceId,
+  @JsonValue('contextual_override')
+  contextualOverride,
+  @JsonValue('variance_validation')
+  varianceValidation,
 }
 
 /// Static UI Renderer presets for report blocks.

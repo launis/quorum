@@ -60,6 +60,8 @@ class XAIExtensionsBox extends ConsumerWidget {
           return l10n.xaiSentiment;
         case 'confidence':
           return l10n.xaiConfidence;
+        case 'variance_validation':
+          return l10n.xaiVarianceValidationTitle;
         default:
           return key.toUpperCase();
       }
@@ -111,6 +113,10 @@ class XAIExtensionsBox extends ConsumerWidget {
                 cardBgColor = const Color(0xFFFFF3E0);
                 cardBorderColor = const Color(0xFFE65100);
                 break;
+              case 'variance_validation':
+                cardBgColor = colorScheme.primaryContainer;
+                cardBorderColor = colorScheme.primary;
+                break;
             }
 
             return Card(
@@ -130,7 +136,7 @@ class XAIExtensionsBox extends ConsumerWidget {
                     Row(
                       children: [
                         Icon(
-                          Icons.extension,
+                          extKey == 'variance_validation' ? Icons.balance : Icons.extension,
                           color: colorScheme.tertiary,
                           size: 24,
                         ),
@@ -156,6 +162,20 @@ class XAIExtensionsBox extends ConsumerWidget {
                           const SizedBox(height: 8.0),
                       itemBuilder: (context, index) {
                         final val = extItems[index];
+
+                        if (extKey == 'variance_validation' && val is Map) {
+                          final score = (val['variance_score'] as num?)?.toDouble() ?? 0.0;
+                          final verdict = val['alignment_verdict']?.toString() ?? 'ALIGNED';
+                          final mechRef = val['mechanical_metric_ref']?.toString() ?? '';
+                          final cogRef = val['cognitive_metric_ref']?.toString() ?? '';
+
+                          return VarianceGaugeWidget(
+                            score: score,
+                            verdict: verdict,
+                            mechanicalRef: mechRef,
+                            cognitiveRef: cogRef,
+                          );
+                        }
 
                         if (val is Map) {
                           // Support Zero-Math UI or Legacy UI
@@ -239,3 +259,187 @@ class XAIExtensionsBox extends ConsumerWidget {
     );
   }
 }
+
+/// Premium Variance Gauge Widget representing Mechanical vs Cognitive Balance comparison
+class VarianceGaugeWidget extends StatelessWidget {
+  final double score;
+  final String verdict;
+  final String mechanicalRef;
+  final String cognitiveRef;
+
+  const VarianceGaugeWidget({
+    super.key,
+    required this.score,
+    required this.verdict,
+    required this.mechanicalRef,
+    required this.cognitiveRef,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    String getVerdictLabel() {
+      switch (verdict) {
+        case 'ALIGNED':
+          return l10n.xaiVerdictAligned;
+        case 'MISALIGNED_SYCOPHANCY':
+          return l10n.xaiVerdictSycophancy;
+        case 'MISALIGNED':
+          return l10n.xaiVerdictMisaligned;
+        default:
+          return verdict;
+      }
+    }
+
+    Color getVerdictColor() {
+      switch (verdict) {
+        case 'ALIGNED':
+          return const Color(0xFF2E7D32); // Success Green
+        case 'MISALIGNED_SYCOPHANCY':
+          return const Color(0xFFC62828); // Sycophancy Red
+        case 'MISALIGNED':
+          return const Color(0xFFE65100); // Misaligned Orange
+        default:
+          return theme.colorScheme.primary;
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                getVerdictLabel(),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: getVerdictColor(),
+                ),
+              ),
+            ),
+            Tooltip(
+              message: 'Compares performative linguistic patterns ($mechanicalRef) against cognitive authenticity ($cognitiveRef).',
+              child: Icon(
+                Icons.info_outline,
+                color: theme.colorScheme.onSurfaceVariant,
+                size: 20,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final barWidth = constraints.maxWidth;
+            final double percentage = (score / 2.0).clamp(0.0, 1.0);
+            final markerOffset = percentage * barWidth;
+
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  height: 16,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: theme.colorScheme.outlineVariant),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(7),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 25,
+                          child: Container(
+                            color: const Color(0xFFE8F5E9),
+                            alignment: Alignment.center,
+                            child: const Text(
+                              'Aligned',
+                              style: TextStyle(fontSize: 8, color: Color(0xFF1B5E20), fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 25,
+                          child: Container(
+                            color: const Color(0xFFFFF3E0),
+                            alignment: Alignment.center,
+                            child: const Text(
+                              'Mild',
+                              style: TextStyle(fontSize: 8, color: Color(0xFFE65100), fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 50,
+                          child: Container(
+                            color: const Color(0xFFFFEBEE),
+                            alignment: Alignment.center,
+                            child: const Text(
+                              'Severe',
+                              style: TextStyle(fontSize: 8, color: Color(0xFFC62828), fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: markerOffset - 12,
+                  top: -8,
+                  child: Column(
+                    children: [
+                      CustomPaint(
+                        size: const Size(24, 12),
+                        painter: TrianglePainter(color: theme.colorScheme.primary),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        score.toStringAsFixed(2),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+}
+
+class TrianglePainter extends CustomPainter {
+  final Color color;
+
+  TrianglePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+

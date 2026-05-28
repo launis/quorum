@@ -133,6 +133,7 @@ class LiteLLMProvider(LLMProvider):
 
     # Class-level cache to prevent litellm callbacks memory leak during bulk executions
     _router_cache: dict[str, Any] = {}
+    _semaphores: dict[str, asyncio.Semaphore] = {}
 
     def __init__(
         self,
@@ -198,6 +199,7 @@ class LiteLLMProvider(LLMProvider):
 
         # Use Class Cache for Router to avoid MAX_CALLBACKS leak
         cache_key = f"{model_name}_{tpm}_{rpm}"
+        self.cache_key = cache_key
 
         if cache_key in self.__class__._router_cache:
             self.router = self.__class__._router_cache[cache_key]
@@ -224,6 +226,20 @@ class LiteLLMProvider(LLMProvider):
 
             # Save to class cache
             self.__class__._router_cache[cache_key] = self.router
+
+        # Initialize and store Semaphore dynamically to throttle HTTP-level requests
+        if cache_key not in self.__class__._semaphores:
+            if rpm <= 20:
+                concurrency_limit = 2
+            else:
+                concurrency_limit = min(5, max(1, rpm // 10))
+
+            logger.info(
+                "[LiteLLMProvider] Initializing HTTP concurrency semaphore for cache_key '%s' with limit %d",
+                cache_key,
+                concurrency_limit,
+            )
+            self.__class__._semaphores[cache_key] = asyncio.Semaphore(concurrency_limit)
 
     async def generate(
         self,
@@ -388,7 +404,12 @@ class LiteLLMProvider(LLMProvider):
             ):
                 with attempt:
                     _timeout = call_kwargs["timeout"]
-                    response = await asyncio.wait_for(self.router.acompletion(**call_kwargs), timeout=float(_timeout))
+                    # Grab the stored dynamic Semaphore to throttle HTTP-level requests under low RPM
+                    semaphore = self.__class__._semaphores[self.cache_key]
+                    async with semaphore:
+                        response = await asyncio.wait_for(
+                            self.router.acompletion(**call_kwargs), timeout=float(_timeout)
+                        )
 
             if response is None:
                 raise ServiceUnavailableError("Failed to get a response from the model provider.")

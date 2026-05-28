@@ -21,7 +21,10 @@ from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.domain.causal import CausalOutput
 from backend_v2.models.domain.falsifier import FalsifierOutput
 from backend_v2.models.domain.judge import JudgeOutput, JudgeScoreCard
+from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.domain.logician import LogicianOutput
+from backend_v2.models.domain.metrics import ProfilerMetricsDTO
+from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.profiler import ProfilerOutput
 
 
@@ -46,6 +49,11 @@ class XAIReporterInput(V2CoreBase):
     step_causal_analyst: CausalOutput | None = Field(
         default=None, description="Causal Analyst post-hoc and counterfactual data."
     )
+    step_performativity: PerformativityOutput | None = Field(
+        default=None, description="Cognitive performativity output."
+    )
+    step_metrics: ProfilerMetricsDTO | None = Field(default=None, description="Mechanical text and behavioral metrics.")
+    step_linguistics: LinguisticsResultDTO | None = Field(default=None, description="Mechanical linguistic patterns.")
     dynamic_inputs: dict[str, Any] = Field(default_factory=dict, description="Dynamically passed variables.")
 
 
@@ -120,6 +128,20 @@ class SourceIDExtension(V2CoreBase):
     source_id: str
 
 
+class VarianceValidationExtension(V2CoreBase):
+    extension_type: Literal[XaiExtensionType.VARIANCE_VALIDATION] = XaiExtensionType.VARIANCE_VALIDATION
+    mechanical_metric_ref: str = Field(..., description="Reference to the mechanical metric key used.")
+    cognitive_metric_ref: str = Field(..., description="Reference to the cognitive agent score key used.")
+    variance_score: float = Field(
+        ...,
+        description="Calculated absolute variance between mechanical and cognitive assessments.",
+    )
+    alignment_verdict: str = Field(
+        ...,
+        description="Abstract verdict (e.g., 'ALIGNED', 'MISALIGNED_SYCOPHANCY').",
+    )
+
+
 class ComparisonDataDTO(V2CoreBase):
     baseline_score: float | None = None
     delta: float | None = None
@@ -137,7 +159,8 @@ XAIExtension = Annotated[
     | RemediationStepsExtension
     | EmotionalSentimentExtension
     | ConfidenceExtension
-    | SourceIDExtension,
+    | SourceIDExtension
+    | VarianceValidationExtension,
     Field(discriminator="extension_type"),
 ]
 

@@ -397,12 +397,22 @@ Järjestelmän taustakoukuissa (hooks) toteutetaan "Zero-Duck-Typing" ja Fail-Fa
      * *Arkkitehtoninen ongelma:* Kielimallien JSON Schema strict-tilojen kääntäminen Vertex AI:n sisäiseksi tuotantokieliopiksi (serving grammar) kaatuu `400 Bad Request` -virheeseen, jos float-kentille määritellään tiukat rajat Pydanticin `ge` ja `le` -parametreilla (esim. `ge=1.0, le=3.0`). Ääretön float-arvojen määrä ylikuormittaa kieliopin tilakoneen (state serving grammar state limits).
      * *Best Practice -ratkaisu:* Kaikki dynaamiset float-rajoitteet poistetaan suorasta API-skeemasta (ei `ge/le` -parametreja Pydanticin `Field`-määritelmässä). Validointi ja matemaattinen eheys siirretään paikallisesti suoritettaviin Pydantic-tason `@field_validator`-metodeihin (esim. `@field_validator("abductive_score")`). Tämä säästää LLM:n tuotantokieliopin kuorman, mutta takaa kompromissittoman Fail-Fast -tietoturvavarmennuksen asynkronisen backendin rajalla ennen datan jatkokäsittelyä.
 
+5. **XAI Synteesin DTO-rakenteet (Epic 57):**
+   * **`XAIReporterInput`:** Hook-kerroksen syöte-envelope, joka korvaa aiemman epävarman `dynamic_inputs`-sanakirjan. Se pakottaa mekaaniset esikoukkutiedot ja asiantuntija-agenttien tulokset eksplisiittisiksi, tyypitetyiksi kentiksi (`step_metrics: ProfilerMetricsDTO`, `step_linguistics: LinguisticsResultDTO`, `step_causal_analyst: CausalOutput`, `step_performativity: PerformativityOutput`), jotta `XAIReporterAgent` vain lukee niitä tyyppiturvallisesti.
+   * **`XAIOutputDTO` / `XAIOutput`:** Synteesiagentin lopullinen tuotos, joka perii `ReasoningTraceDTO`-rakenteen ja sisältää tyypitetyn `output_extensions: list[XAIExtension]` -kentän polymorfisten XAI-laajennusten (mukaan lukien `VarianceValidationExtension`) siirtämiseksi käyttöliittymälle.
+
 ## Polymorfinen XAI-injektio (Discriminated Unions)
 
 Tekoälyn tuottamat selittävyyskomponentit ("Explainable AI") toteutetaan **Discriminated Union** -rakenteella (`models/domain/xai.py`).
 
-* **XAIExtension:** Kaikki laajennustyypit (esim. `CitationExtension`, `RiskFlagExtension`, `EmotionalSentimentExtension`) ovat erillisiä lukittuja (`frozen=True, extra="forbid"`) malleja.
+* **XAIExtension:** Kaikki laajennustyypit (esim. `CitationExtension`, `RiskFlagExtension`, `EmotionalSentimentExtension` ja Epic 57:n myötä uusi `VarianceValidationExtension`) ovat erillisiä lukittuja (`frozen=True, extra="forbid"`) malleja.
 * Yhdistävä `XAIExtension` DTO tunnistaa oikean aliluokan dynaamisesti `extension_type` Literal-kentän perusteella.
+* **VarianceValidationExtension:** Epic 57:ssä lisätty uusi polymorfinen laajennustyyppi, joka kuljettaa ristiinvertailun numeeriset tulokset suoraan käyttöliittymälle. Kentät:
+  - `extension_type`: `Literal[XaiExtensionType.VARIANCE_VALIDATION]`
+  - `mechanical_metric_ref`: Viittaus käytettyyn mekaaniseen mittariin (`str`)
+  - `cognitive_metric_ref`: Viittaus käytettyyn kognitiiviseen pisteytykseen (`str`)
+  - `variance_score`: Laskettu absoluuttinen varianssi liukulukuna (`float`)
+  - `alignment_verdict`: Sanallinen päätös (`ALIGNED`, `MISALIGNED_SYCOPHANCY` tai `MISALIGNED`)
 * **Token Shielding ja Turvallisuus:** Tämä polymorfisuus suojaa järjestelmän käyttöliittymää (Flutter). Jos taustalla toimiva tekoälymalli hallusinoi vääränlaisen laajennustyypin tai sen kentät ovat rikki, Pydantic hylkää palasen välittömästi reitityksessä. Sovellus ei näin koskaan yritä renderöidä korruptoitunutta laajennusta, taaten Token Shielding -tason vikasietoisuuden.
 
 <br><hr>

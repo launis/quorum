@@ -5,12 +5,12 @@ This task implements the backend schemas, enum mappings, and core numerical cros
 ## Scoping
 
 ### Target (Modify)
-- [ ] [enums.py](file:///c:/src/quorum/backend_v2/models/enums.py) - Add enum `XaiExtensionType.VARIANCE_VALIDATION` (ja tarvittava `contextual_override`).
-- [ ] [xai.py](file:///c:/src/quorum/backend_v2/models/domain/xai.py) - Add `VarianceValidationExtension` ja päivitä `XAIReporterInput`.
-- [ ] [enums.dart](file:///c:/src/quorum/client_app_v2/lib/core/models/enums.dart) - Lisää Dart enum-arvot `contextualOverride` ja `varianceValidation` pariteetin saavuttamiseksi.
+- [x] [enums.py](file:///c:/src/quorum/backend_v2/models/enums.py) - Add enum `XaiExtensionType.VARIANCE_VALIDATION` (ja tarvittava `contextual_override`).
+- [x] [xai.py](file:///c:/src/quorum/backend_v2/models/domain/xai.py) - Add `VarianceValidationExtension` ja päivitä `XAIReporterInput`.
+- [x] [enums.dart](file:///c:/src/quorum/client_app_v2/lib/core/models/enums.dart) - Lisää Dart enum-arvot `contextualOverride` ja `varianceValidation` pariteetin saavuttamiseksi.
 
 ### New (Create)
-- [ ] [variance_engine.py](file:///c:/src/quorum/backend_v2/utils/scoring/variance_engine.py) - Central math engine.
+- [x] [variance_engine.py](file:///c:/src/quorum/backend_v2/utils/scoring/variance_engine.py) - Central math engine.
 
 ### Context (Read-Only)
 - [x] [metrics.py](file:///c:/src/quorum/backend_v2/models/domain/metrics.py)

@@ -56,6 +56,7 @@ class XaiExtensionType(str, Enum):
     CONFIDENCE = "confidence"
     SOURCE_ID = "source_id"
     CONTEXTUAL_OVERRIDE = "contextual_override"
+    VARIANCE_VALIDATION = "variance_validation"
 
 
 class SelfHealingThresholdRatio(float, Enum):

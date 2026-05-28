@@ -84,6 +84,14 @@ Globaalien järjestelmäkonfiguraatioiden (PromptBlocks, Workflow DAGs, Output P
   - **Surgical Extraction (`harvest_output_profile.py`):** Tämä skripti lukee yksinomaan halutun taulun lokaalitiokannasta, suorittaa tarvittaessa konversiot ja injektoi datan takaisin `seed_data.json` -tiedostoon ohittaen käsin muokkaamisen riskit. Tämä takaa datan siirtymisen käyttöliittymästä versionhallintaan täysin turvallisesti.
 * Data astuu virallisesti voimaan vasta kun komento (`uv run python backend_v2/seed/run_seed.py local`) puhdistaa ja todentaa `seed_data.json`:in Pydantic-mallien läpi nollavirhein.
 
+## Epic 57: Varianssitulosten ja laajennusten tallennus (Persistence)
+
+Epic 57 -uudistuksen myötä syntyneet uudet datarakenteet integroidaan saumattomasti Append-Only -tietokanta-arkkitehtuuriin:
+
+* **In-Memory & Frozen Contexts:** `generate_report_hook` -suorituksen laskema varianssidata (`VarianceValidationExtension`) ei muuta olemassa olevaa historiallista suoritusdataa. Se tallennetaan osaksi `ExecutionRecord`-tietuetta (`profile_syntheses["prof_X"].output_extensions`), mikä lukitsee tuloksen ikuiseksi **Frozen Context** -snapshotiksi.
+* **Storage Driver & JSON-tallennus:** Sekä lokaali `TinyDBDriver` (joka operoi `db_v2.json`-tiedoston kautta) että pilven `FirestoreDriver` tallentavat `VarianceValidationExtension`-objektit litteinä JSON-tietueina. Pydantic-kerroksen `@field_validator`-säännöt hoitavat dynaamisen tyyppimuunnoksen takaisin strict-tyyppisiksi laajennuksiksi (hydraatio), kun tietue ladataan takaisin muistiin.
+* **Mock-auth & Test Data Seeding:** Paikallista kehitystä ja integraatiotestausta varten `seed_data.json` siemennetään `run_seed.py local` -skriptillä, joka validoi kaikki matriisit ja askeleet Pydantic V2 -tiukkuudella varmistaen, että testiajot pystyvät matkimaan kognitiivisia asiantuntijatuloksia ja triggeröimään mekaanis-kognitiivisen ristiinvertailun.
+
 <br><hr>
 
 ➡️ **Seuraavaksi:** Kirjan päätteeksi lue [10_infrastructure_and_logs.md](./10_infrastructure_and_logs.md), joka kertoo, miten ylläpidämme järjestelmän havainnoitavuutta (Logfire) ja paikannamme virheitä asynkronisen kaaoksen keskeltä.

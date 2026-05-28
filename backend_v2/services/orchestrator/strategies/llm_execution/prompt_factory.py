@@ -106,9 +106,91 @@ class PromptFactory:
 
         mcp_instruction = compiler.generate_mcp_instruction(effective_mcp_tools)
 
+        # Helper to recursively extract values (dict keys or Pydantic attributes) from nested context.
+        def find_value_by_key(obj: Any, key: str) -> Any:
+            if isinstance(obj, dict):
+                if key in obj:
+                    return obj[key]
+                for v in obj.values():
+                    res = find_value_by_key(v, key)
+                    if res is not None:
+                        return res
+            elif isinstance(obj, list):
+                for item in obj:
+                    res = find_value_by_key(item, key)
+                    if res is not None:
+                        return res
+            elif hasattr(obj, "__dict__"):
+                if hasattr(obj, key):
+                    return getattr(obj, key)
+                for v in obj.__dict__.values():
+                    res = find_value_by_key(v, key)
+                    if res is not None:
+                        return res
+            return None
+
+        # Inspect criteria blocks to detect performativity or causal analyst slugs.
+        is_grounded_step = False
+        for b in criteria_blocks:
+            if getattr(b, "slug", None) in ("matrix_causal_analyst", "block_taskperformativity"):
+                is_grounded_step = True
+                break
+
+        anchors_xml = ""
+        if is_grounded_step:
+            word_count = find_value_by_key(llm_context_data, "word_count")
+            if word_count is None:
+                word_count = 0
+            say_do_gap = find_value_by_key(llm_context_data, "say_do_gap")
+            if say_do_gap is None:
+                say_do_gap = 0.0
+            automation_bias = find_value_by_key(llm_context_data, "automation_bias")
+            if automation_bias is None:
+                automation_bias = 0.0
+
+            patterns = find_value_by_key(llm_context_data, "performative_patterns") or find_value_by_key(
+                llm_context_data, "performative_phrases"
+            )
+            phrase_list = []
+            if isinstance(patterns, list):
+                for pat in patterns:
+                    if isinstance(pat, dict):
+                        phrase = pat.get("detected_phrase") or pat.get("phrase")
+                        if phrase:
+                            phrase_list.append(str(phrase))
+                    elif hasattr(pat, "detected_phrase"):
+                        phrase = pat.detected_phrase
+                        if phrase:
+                            phrase_list.append(str(phrase))
+                    elif isinstance(pat, str):
+                        phrase_list.append(pat)
+
+            phrase_count = len(phrase_list)
+            items_xml = ""
+            for p in phrase_list:
+                items_xml += f"      <phrase>{p}</phrase>\n"
+
+            anchors_xml = "<mechanical_anchors>\n"
+            anchors_xml += "  <text_metrics>\n"
+            anchors_xml += f"    <word_count>{word_count}</word_count>\n"
+            anchors_xml += f"    <say_do_gap>{say_do_gap}</say_do_gap>\n"
+            anchors_xml += f"    <automation_bias>{automation_bias}</automation_bias>\n"
+            anchors_xml += "  </text_metrics>\n"
+            anchors_xml += "  <detected_performative_phrases>\n"
+            anchors_xml += f"    <phrase_count>{phrase_count}</phrase_count>\n"
+            anchors_xml += f"    <items>\n{items_xml}    </items>\n"
+            anchors_xml += "  </detected_performative_phrases>\n"
+            anchors_xml += "</mechanical_anchors>"
+
         base_system_prompt = "You are a highly accurate, structured evaluation assistant."
         if role_block and role_block.ai_description:
             base_system_prompt += f"\n\n<ROLE_DIRECTIVE>\n{role_block.ai_description}\n</ROLE_DIRECTIVE>"
+            if is_grounded_step:
+                base_system_prompt += f"\n\n{anchors_xml}"
+        else:
+            if is_grounded_step:
+                base_system_prompt += f"\n\n{anchors_xml}"
+
         if protocol_block and protocol_block.ai_description:
             base_system_prompt += f"\n\n<EXTRACTION_PROTOCOL>\n{protocol_block.ai_description}\n</EXTRACTION_PROTOCOL>"
         if static_instructions:

@@ -123,6 +123,24 @@ graph TD
 
 "Duct tape" -purkkaviritys olisi sitä, että koodissa jouduttaisiin avaamaan sanakirjoja ja yrittää onkia niistä lennosta muuttuvia kenttiä hiljaisin virhein. V2:n **Engine Architecture** tekee täsmälleen päinvastoin: se luo tiukan dynaamisen mallin askeleen kriteereistä lennosta (PromptCompiler), ja sen jälkeen Post-Hookit pakottavat (`TypeAdapter`) tulokset äärimmäisen kovaan ja rajalliseen joukkoon fyysisiä rakenteita (Domain Models). Tämä tarjoaa pelikentälle loputtoman variaation menettämättä pelimoottorin absoluuttista tyyppiturvallisuutta.
 
+## Epic 57: XAI Päättelyketjun Integraatio ja Varianssimoottori
+
+Cognitive Quorum V2:n päättelykykyä ja uskottavuutta vahvistettiin Epic 57 -uudistuksessa, jossa deterministiset mekaaniset esikoukut ja laadulliset semanttiset asiantuntija-agentit integroitiin yhdeksi Explainable AI (XAI) -päättelyketjuksi (`XAIOutputDTO`).
+
+Uudistus ratkaisee **semanttisen tyhjiön** ongelman, jossa dynaamiset LLM-agentit (kuten Causal Analyst ja Performativity Detector) tekivät aiemmin päätelmiä erillään mekaanisista faktoista, altistaen mallit hallusinaatioille ja mielistelylle (*sycophancy*).
+
+1. **Deterministiset Totuusankkurit (Truth Anchors):**
+   * Suorituksen alussa ajettavat mekaaniset esikoukut (kuten `metrics.py` ja `linguistics.py`) laskevat numeerisia ja lingvistisiä totuusarvoja (esim. `performative_phrases_count`, `say_do_gap`, `automation_bias`).
+   * `ContextBuilder` poimii nämä arvot `HookState`-kontekstista ja injektoi ne XML-ankkureina (`<mechanical_anchors>`) asiantuntija-agenttien järjestelmäohjeisiin. LLM-agentit pakotetaan perustamaan laadulliset arvionsa näihin kiistattomiin faktoihin lennossa.
+
+2. **Mechanical-Cognitive Variance Engine:**
+   * Järjestelmä suorittaa lennosta ristiinvertailun mekaanisen todellisuuden ja kognitiivisen arvion välillä.
+   * Varianssi mitataan matemaattisesti vertaamalla LLM:n antamaa aitousarvoa (`llm_authenticity_score`) mekaanisten täytesanojen määrään pohjautuvaan suhdelukuun. Mikäli LLM yliarvioi performatiivisuutta mekaanisten ankkurien vastaisesti, järjestelmä laskee korkean varianssin ja tuottaa automaattisen kognitiivisen poikkeamahälytyksen (`CognitiveMismatchWarning`).
+   * Matemaattinen varianssipäätös palautetaan tiukasti tyypitettynä `VarianceValidationExtension`-laajennoksena osana `output_extensions`-listaa.
+
+3. **PDF-First Pariteetti (Tripartite Boundary):**
+   * Moottori ei koskaan kovakoodaa tai renderöi valmiita visualisointeja (kuten HTML-taulukoita) backend-malleihin. Se välittää ainoastaan tyypitettyä dataa, ja visualisoinnista vastaavat esityskerroksen toteutukset: Flutter-client renderöi dynaamisen segmented-gauge kortin tooltip-toiminnoin, ja Jinja2 PDF -generaattori piirtää pixel-perfect staattisen A4-asettelun peilaten samoja segmenttejä (25%, 25%, 50%) ja matemaattisia rajoja 100 % pariteetissa.
+
 <br><hr>
 
 ➡️ **Seuraavaksi:** Kun moottorin filosofia on ymmärretty, siirry lukemaan [02_domain_models.md](./02_domain_models.md), joka listaa ne fyysiset Pydantic-laatikot, joita moottori liikuttelee.

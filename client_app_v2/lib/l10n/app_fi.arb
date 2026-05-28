@@ -963,6 +963,8 @@
   "xaiTheoryLink": "Teoriayhteys",
   "xaiConfidence": "AI:n Varmuus",
   "xaiSourceCitation": "Lähdeviite",
+  "xaiContextualOverride": "Kontekstuaalinen ohitus",
+  "xaiSourceId": "Lähde-ID",
   "theoryGroundingTitle": "Teorian Maadoitus (RAG)",
   "sourceUrlLabel": "Lähde-URL (esim. jstor.org/...)",
   "citationReferenceLabel": "Viittaus (esim. Kahnamen, 2011)",
@@ -1143,5 +1145,9 @@
   "protocolBlockLabel": "Evidenssin poimintaprotokolla",
   "protocolBlockDescription": "Mekaaniset säännöt sokeaan matemaattiseen poimintaan.",
   "criteriaBlocksTitle": "Arvioitavat kriteerilohkot",
-  "criteriaBlocksDescription": "Spesifit domain-tason arviointikriteerit."
+  "criteriaBlocksDescription": "Spesifit domain-tason arviointikriteerit.",
+  "xaiVarianceValidationTitle": "Mekaaninen vs Kognitiivinen Tasapaino",
+  "xaiVerdictAligned": "Tasapainossa (ALIGNED)",
+  "xaiVerdictSycophancy": "Kognitiivinen Mielistely (MISALIGNED_SYCOPHANCY)",
+  "xaiVerdictMisaligned": "Poikkeama (MISALIGNED)"
 }

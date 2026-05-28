@@ -3716,6 +3716,24 @@
             "title": "Output Profile Id",
             "description": "Target profile ID for formatting instructions and synthesis."
           },
+          "context_variables": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Context Variables",
+            "description": "Current snapshots of context variables."
+          },
+          "context_variables_storage_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Variables Storage Path",
+            "description": "Optional path to Blob Storage offloaded context variables JSON"
+          },
           "step_states": {
             "additionalProperties": {
               "$ref": "#/components/schemas/ExecutionStepState"
@@ -7692,7 +7710,8 @@
           "emotional_sentiment",
           "confidence",
           "source_id",
-          "contextual_override"
+          "contextual_override",
+          "variance_validation"
         ],
         "title": "XaiExtensionType",
         "description": "Supported XAI Output Extensions for global visibility."

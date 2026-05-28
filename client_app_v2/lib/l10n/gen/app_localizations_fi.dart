@@ -2934,6 +2934,12 @@ class AppLocalizationsFi extends AppLocalizations {
   String get xaiSourceCitation => 'Lähdeviite';
 
   @override
+  String get xaiContextualOverride => 'Kontekstuaalinen ohitus';
+
+  @override
+  String get xaiSourceId => 'Lähde-ID';
+
+  @override
   String get theoryGroundingTitle => 'Teorian Maadoitus (RAG)';
 
   @override
@@ -3495,4 +3501,18 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get criteriaBlocksDescription =>
       'Spesifit domain-tason arviointikriteerit.';
+
+  @override
+  String get xaiVarianceValidationTitle =>
+      'Mekaaninen vs Kognitiivinen Tasapaino';
+
+  @override
+  String get xaiVerdictAligned => 'Tasapainossa (ALIGNED)';
+
+  @override
+  String get xaiVerdictSycophancy =>
+      'Kognitiivinen Mielistely (MISALIGNED_SYCOPHANCY)';
+
+  @override
+  String get xaiVerdictMisaligned => 'Poikkeama (MISALIGNED)';
 }

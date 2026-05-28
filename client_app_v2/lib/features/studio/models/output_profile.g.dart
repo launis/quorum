@@ -362,6 +362,8 @@ const _$XaiExtensionTypeEnumMap = {
   XaiExtensionType.emotionalSentiment: 'emotional_sentiment',
   XaiExtensionType.confidence: 'confidence',
   XaiExtensionType.sourceId: 'source_id',
+  XaiExtensionType.contextualOverride: 'contextual_override',
+  XaiExtensionType.varianceValidation: 'variance_validation',
 };
 
 _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(

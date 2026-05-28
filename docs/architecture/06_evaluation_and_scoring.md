@@ -208,6 +208,32 @@ Data ratkaistaan kolmiportaisella rakenteella `normalize_matrix_scores_hook` -fu
 2. **Suhteutettu arvo (`_scaled`):** Kustomoituun tavoiteskaalaan matemaattisesti suhteutettu lopullinen arvo.
 3. **Normalisoitu arvo (`_normalized`):** Yhteismitallinen 1–100 vakioitu arvo (esim. 100-jakoinen prosenttiskaala).
 
+## Epic 57: Mechanical-Cognitive Variance -laskentakaavat
+
+Epic 57 esittelee uuden ristiinvertaavan validointimoottorin (`variance_engine.py`), jonka vastuulla on mitata matemaattisesti kielimallien kognitiivisten arvioiden poikkeamaa suhteessa mitattuun mekaaniseen todellisuuteen.
+
+### 1. Pisteytyksen syötteet ja normalisointi
+Varianssimoottori ottaa syötteenä kaksi arvoa:
+- $A \in [1.0, 3.0]$: Kognitiivinen LLM-aitousarvosana (`llm_authenticity_score`).
+- $P \ge 0$: Mekaanisten performatiivisten täytesanojen lukumäärä (`performative_phrases_count`).
+
+Mekaaninen täytesanamäärä $P$ normalisoidaan ensin välille $[0.0, 2.0]$ lineaarisesti, asettaen kattoarvoksi 10 täytesanaa:
+$$N_P = \min\left(\frac{P}{10} \times 2.0, 2.0\right)$$
+
+### 2. Kognitiivisen vaimentimen tavoite (Target Dampener)
+Tavoiteltava kognitiivinen aitousarvo lasketaan siten, että jokainen havaittu mekaaninen täytesana alentaa maksimiarvoa (3.0) dynaamisesti:
+$$T_A = 3.0 - N_P$$
+
+### 3. Absoluuttinen varianssipiste (Variance Score)
+Lopullinen Mechanical-Cognitive Variance -varianssipiste $V$ on LLM-aitousarvon ja mekaanisen tavoitetason välinen itseisarvo:
+$$V = | A - T_A |$$
+
+### 4. Kalibrointikynnykset ja Alignment-päätökset
+Varianssipiste $V$ sijoitetaan kolmiportaiseen luokitteluun:
+- **ALIGNED (0.00 – 0.50):** Tekoälyn kognitiivinen tuomio ja mekaaniset lingvistiset totuusankkurit ovat täydellisessä tasapainossa.
+- **MISALIGNED_SYCOPHANCY (varianssi $\ge 0.50$ ja $A > T_A$):** Tekoäly antaa perusteettoman korkean aitousarvon, vaikka mekaaniset koukut ovat löytäneet runsaasti performatiivisia täytesanoja. Paljastaa mielistelyä tai automaatioharhaa.
+- **MISALIGNED (varianssi $\ge 0.50$ ja $A \le T_A$):** Tekoäly antaa merkittävästi alhaisemman aitousarvon kuin mitä mekaaninen analyysi edellyttäisi.
+
 <br><hr>
 
 ➡️ **Seuraavaksi:** Nyt kun tiedät missä Hookeissa asiat tapahtuvat, lue [07_desktop_first_flutter.md](./07_desktop_first_flutter.md). Se sukeltaa käyttöliittymäkerrokseen ja selittää, miten Zero-Math visualisoinnit renderöidään Desktop-First Flutter -sovelluksessa.

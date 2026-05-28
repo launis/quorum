@@ -124,6 +124,15 @@ Kaistanleveyden LLM-työkalut noudattavat lukittua **"Two-Tier" roolierottelua**
 *   **Roolien Ehdoton Eristäminen (`system` vs `user`):** Kaikki infrastruktuurin parserointiohjeet eristetään tiedoston yläosaan globaaliksi `_SYSTEM_INSTRUCTION` vakioksi ja lähetetään `{"role": "system"}` -viestissä. Tuntematon, ulkoinen tuontidata työnnetään täysin erilliseen `{"role": "user"}` -viestiin hyödyntäen Hybrid Prompting (Markdown + XML tags) lähestymistä.
 *   **Zero-Fallback ja Centralized Routing:** Sisäiset LLM-työkalut erillisine arkkitehtuurin vastuineen eivät koskaan instansoi omia kääreitään tai käytä API-mallien suoria SDK-kutsuja. Kaikki sisäiset työkalut ohjataan poikkeuksetta keskitetyn `LLMTaskExecutor.execute_structured_task()` reitityksen kautta, mikä eliminoi täysin vaarallisten paljaiden sanakirjojen (Naked Dicts) käytön.
 
+## Epic 57: Raportointikoukku ja Varianssianalyysi (`reporting.py`)
+
+Epic 57 laajensi asynkronista synteesiprosessia tuomalla mekaaniset metriikat ja matemaattisen varianssianalyysin suoraan osaksi raportointikoukkua (`reporting.py`):
+
+* **`generate_report_hook` -sykli:** Kun työnkulun ajon asynkroninen synteesi laukaistaan, taustaprosessi kutsuu `generate_report_hook`-funktiota. 
+* **Lataus ja kytkentä:** Koukku purkaa askeleiden suoritushistoriasta `profiler_metrics` (mekaaniset metriikat) ja `linguistics_result` (mekaaniset täytesanat). Samalla se lukee Performativity Detector- ja Causal Analyst -kognitiiviset asiantuntijatulokset.
+* **Varianssilaskenta lennosta:** Koukku kutsuu `calculate_mechanical_cognitive_variance`-funktiota `variance_engine.py`-moduulista. Se laskee varianssipisteen ja alignment-päätöksen lennosta ja rakentaa niistä `VarianceValidationExtension`-laajennoksen.
+* **Polymorfinen injektio:** Lopullinen `VarianceValidationExtension` sijoitetaan `XAIOutputDTO`-mallin `output_extensions`-listaan, jolloin se on suoraan käyttöliittymän (Flutter) ja PDF-generaattorin hyödynnettävissä osana yhtenäistä, vikasietoista SDUI-tietovuota.
+
 <br><hr>
 
 ➡️ **Seuraavaksi:** Kun tiedät missä Hookeissa asiat tapahtuvat, lue [06_evaluation_and_scoring.md](./06_evaluation_and_scoring.md), joka pureutuu siihen raskaaseen matematiikkaan ja rangaistuksiin, joita nämä Hookit laskevat LLM:n tuottamasta datasta.

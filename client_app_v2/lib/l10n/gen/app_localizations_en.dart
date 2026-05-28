@@ -2917,6 +2917,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get xaiSourceCitation => 'Source Citation';
 
   @override
+  String get xaiContextualOverride => 'Contextual Override';
+
+  @override
+  String get xaiSourceId => 'Source ID';
+
+  @override
   String get theoryGroundingTitle => 'Theory Grounding (RAG)';
 
   @override
@@ -3470,4 +3476,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get criteriaBlocksDescription =>
       'Specific domain semantic claims to evaluate.';
+
+  @override
+  String get xaiVarianceValidationTitle => 'Mechanical vs Cognitive Balance';
+
+  @override
+  String get xaiVerdictAligned => 'Aligned (ALIGNED)';
+
+  @override
+  String get xaiVerdictSycophancy =>
+      'Cognitive Sycophancy (MISALIGNED_SYCOPHANCY)';
+
+  @override
+  String get xaiVerdictMisaligned => 'Misaligned (MISALIGNED)';
 }

@@ -411,7 +411,13 @@ class ProfileEditorView extends HookConsumerWidget {
                       label = l10n.xaiConfidence;
                       break;
                     case XaiExtensionType.sourceId:
-                      label = 'Lähde-ID / Source ID';
+                      label = l10n.xaiSourceId;
+                      break;
+                    case XaiExtensionType.contextualOverride:
+                      label = l10n.xaiContextualOverride;
+                      break;
+                    case XaiExtensionType.varianceValidation:
+                      label = l10n.xaiVarianceValidationTitle;
                       break;
                   }
 

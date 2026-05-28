@@ -229,6 +229,14 @@ safe_md = bleach.clean(str(synthesis_md), tags=allowed_tags, attributes=allowed_
 ```
 Sallittu tagisetti kattaa kaikki markdown-muuntimet, mutta poistaa `<script>` ja muut XSS-vektorit.
 
+## Epic 57: PDF-First -pariteetti ja A4-tulostusasettelu
+
+Epic 57:n myötä dynaamisen tulostusmoottorin keskeiseksi suunnittelufilosofiaksi otettiin **PDF-First-pariteetti**: koska tulostettu staattinen A4-PDF asettaa kaikkein tiukimmat visuaaliset ja spatiaaliset rajoitteet, PDF-asettelu ja sen mittasuhteet sanelevat myös Flutter-käyttöliittymän vastaavat ratkaisut.
+
+* **Deterministinen A4-raporttimalli (`report_template.jinja2`):** Raporttimalliin on toteutettu täydellinen, visuaalinen 1:1 -pariteetti Flutter-sovelluksen `VarianceGaugeWidget` -mittarin kanssa. HTML/CSS:ssä käytetään samaa suhteellista segmentoituprogressiopalkkia (Aligned 25 %, Mild 25 %, Severe 50 %) ja tyylitellään se kevyillä taustaväreillä (`#E8F5E9`, `#FFF3E0`, `#FFEBEE`).
+* **Spatiaalinen sijoittelu ja mittariindikaattori:** PDF:ssä osoittava marker-kolmio asemoidaan absoluuttisesti dynaamisen prosenttilaskennan (`calc(marker_percentage% - 6px)`) avulla progressiopalkin yläpuolelle. Pisteluku sijoitetaan palkin alapuolelle, estäen kaatumiset tai sivurajojen ylitykset.
+* **HTML-First Export Strategy:** Paikallisten WeasyPrint-moottorien Windows-kohtaisten kaatumisten välttämiseksi `/render` -reititin tukee formaattia `format=html` ja `format=pdf`. This HTML-First -strategia mahdollistaa raa'an, yhtenäisen HTML-tiedoston lataamisen, ja siirtää lopullisen tulostusvastuun (Print-to-PDF) suoraan selaimelle tai asiakasohjelmalle (URL-delegoinnin kautta), mikä takaa 100 % vakauden ja visualisointivarmuuden kaikissa ympäristöissä.
+
 <br><hr>
 
 ➡️ **Seuraavaksi:** Frontend on nyt selvä. Seuraavaksi [09_data_persistence.md](./09_data_persistence.md) kertoo, miten koko tämä massiivinen tiedon määrä tallennetaan tietokantaan Append-Only -mallilla.

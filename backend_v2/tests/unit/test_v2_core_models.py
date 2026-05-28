@@ -57,3 +57,17 @@ def test_embedded_output_profile_description_parsing() -> None:
     with pytest.raises(ValidationError) as exc_info:
         EmbeddedOutputProfile.model_validate(invalid_data)
     assert "Input should be a valid dictionary" in str(exc_info.value)
+
+
+def test_execution_record_has_context_variables() -> None:
+    data = {
+        "id": "exe_1234567890123456",
+        "workflow_id": "wf_1234567890",
+        "status": "pending",
+        "raw_inputs": {},
+        "context_variables": {"report_context": {"output_extensions": []}}
+    }
+
+    record = ExecutionRecord.model_validate(data, strict=False)
+    assert record.context_variables == {"report_context": {"output_extensions": []}}
+

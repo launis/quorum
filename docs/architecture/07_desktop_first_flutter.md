@@ -76,6 +76,19 @@ Jotta tekoälyn tekemät contextual override -ohitukset ovat täysin auditoitavi
 * **`core/error/`:** Sisältää vikasietomekanismit, joista keskeisimpänä `app_error_boundary.dart` (AppExceptionBoundary).
 * **`features/studio/views/widgets/xai/`:** SDUI-komponenttien koti, esim. `matrix_observability_accordion.dart`, joka huolehtii xAI-matriisien rakenteellisesta esittämisestä ilman lokaalia matematiikkaa.
 
+## Epic 57: "Mechanical vs Cognitive Balance" -mittarikortti
+
+Asiakassovelluksen visualisointi koki Epic 57 -vaiheessa premium-tason laajennuksen, kun ristiinvertaavan varianssimoottorin tuottamat tulokset tuotiin näkyville:
+
+* **`VarianceGaugeWidget` (`xai_extensions_box.dart`):** Premium-tason visualisointikomponentti, joka renderöi mekaanisen ja kognitiivisen päättelyn välisen tasapainon dynaamisena mittarina (Gauge).
+* **Segmentoitu asettelu:** Mittari koostuu kolmesta selkeästi rajatusta ja värikoodatusta tausta-alueesta:
+  - **Aligned (flex: 25):** Kevyt vihreä (`#E8F5E9`), teksti "Aligned".
+  - **Mild (flex: 25):** Kevyt oranssi (`#FFF3E0`), teksti "Mild".
+  - **Severe (flex: 50):** Kevyt punainen (`#FFEBEE`), teksti "Severe".
+* **Dynaaminen kohdistus ja marker:** Widget lukee varianssipisteen ($0.0 - 2.0$) ja laskee sille `LayoutBuilder`-komponentin tarjoamien maksimileveyksien pohjalta tarkan siirtymän (offset). Kohdistuspisteeseen piirretään alaspäin osoittava kolmio (`CustomPainter` -toteutus) sekä tarkka kahden desimaalin pistemäärä.
+* **Tietotyökaluvihje (Tooltip):** Mittarin otsikon viereen on sijoitettu asiantuntijaikonin sisältävä `Tooltip`, joka avaa käyttäjälle selitteen: *"Compares performative linguistic patterns (performative_phrases_count) against cognitive authenticity (llm_authenticity_score)."*
+* **Design Tokenit & No-String Mandate:** Kaikki värit ja asetteluvälit noudattavat sovelluksen globaaleja teemoja (`Theme.of(context)`). Kaikki tekstit (kuten "Mechanical vs Cognitive Balance" ja tuomion "Aligned" / "Misaligned Sycophancy" käännökset) ladataan yksinomaan `.arb`-lokalisaatiotiedostoista, noudattaen ehdotonta `AppLocalizations`-standardia.
+
 <br><hr>
 
 ➡️ **Seuraavaksi:** Flutterin arkkitehtuurin ymmärtämisen jälkeen, lue [08_dynamic_rendering_sdui.md](./08_dynamic_rendering_sdui.md) nähdäksesi, kuinka palvelin ohjaa käyttöliittymän asetteluita dynaamisesti (Server-Driven UI) ilman, että käyttöliittymää tarvitsee päivittää.

@@ -84,6 +84,14 @@ Järjestelmän juurikäynnistäjä, joka sitoo arkkitehtuurin kasaan:
    - `LocalizationMiddleware` parsii asiakkaan pyytämän kielen (`Accept-Language`) globaaliin kontekstiin dynaamisia käännöksiä varten.
 3. **Global Error Catchers:** Sieppaa kaikki virheet ja muuntaa ne RFC 7807 "Problem Details" -muotoon Fail-Fast -periaatetta noudattaen. Pydantic-virheiden (`RequestValidationError`) lisäksi tämä sisältää reititystason rate limit -ylitysten (`RateLimitExceeded`) kiinnioton sekä yleisten HTTP-poikkeusten (esim. 401, 403, 404) kääntämisen suoraan sisäisiin `ErrorCodes`-enumeraatioihin, jolloin client-sovellus kykenee esittämään virheet oikealla kielellä lokalisaatioavainten kautta.
 
+## Epic 57: Asynkroninen Raportointi & Varianssianalyysi
+
+Epic 57 hyödyntää täysimääräisesti asynkronista taustaprosessointia raskaissa synteesitöissä:
+
+* **`/executions/{id}/render` -reititin:** Kun asiakaspyyntö vaatii uuden `OutputProfile`-profiilin mukaista synteesiä (jota ei löydy välimuistista), rajapinta ei käynnistä synteesiä synkronisesti FastAPI-säikeessä (mikä aiheuttaisi HTTP Timeout -katkoja). Sen sijaan reititin palauttaa välittömästi HTTP `202 Accepted` ("pending") -vastauksen ja siirtää työn Arq-taustajonoon.
+* **Arq Worker (`render_profile_job`):** Taustaprosessi ottaa työn vastaan ja suorittaa `text_consolidation_hook`-synteesin. Tässä asynkronisessa worker-vaiheessa ajetaan myös deterministiset mekaaniset metriikat ja kutsutaan `calculate_mechanical_cognitive_variance`-moottoria ristiinvertailun suorittamiseksi. 
+* **Monivuokralaiseristys (Tenant Isolation):** Varianssilaskenta ja raportin generointi noudattavat tiukasti monivuokralaiseristystä. Kaikki tiedot haetaan ja tallennetaan organisaatiokohtaisesti (`org_id`), mikä estää tietovuodot (Cross-Tenant leaks) toisille organisaatioille asynkronisten taustaprosessien aikana.
+
 <br><hr>
 
 ➡️ **Seuraavaksi:** Kun API-vastaanotto ja jonotus on ymmärretty, siirry lukemaan [04_workflow_and_dag.md](./04_workflow_and_dag.md), joka selittää, kuinka sisään tullut työ pilkotaan ja orkestroidaan jättimäiseksi rinnakkaiseksi verkoksi (DAG).

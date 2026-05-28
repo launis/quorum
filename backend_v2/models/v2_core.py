@@ -1031,6 +1031,12 @@ class ExecutionRecord(V2CoreBase):
     output_profile_id: str | None = Field(
         default=None, description="Target profile ID for formatting instructions and synthesis."
     )
+    context_variables: dict[str, Any] = Field(
+        default_factory=dict, description="Current snapshots of context variables."
+    )
+    context_variables_storage_path: str | None = Field(
+        default=None, description="Optional path to Blob Storage offloaded context variables JSON"
+    )
     step_states: dict[str, ExecutionStepState] = Field(
         default_factory=dict, description="Real-time status tracking for DAG nodes"
     )

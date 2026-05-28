@@ -72,6 +72,14 @@ Vastaavasti kuin palvelinpuolella, Front-Endin (Flutter) arkkitehtuuri on immuun
 
 Vaikka puuttuva Pydantic/JSON-data kaataa parserin nativisti datavirhelyöntien paljastamiseksi ("Fail-Fast"), sovelletaan verkkoliikenteen osalta silti ohjeistusta "Graceful Network Degradation". Verkkovirheet ja aikakatkaisut otetaan kiinni alemman tason rajapinnoissa ja ohjelmisto heikkenee tällöin hallitusti lataustilaan romahtamatta koskaan kokonaan punaiseen virheruutuun, turvaten graafisen työtilan eheyden.
 
+## Epic 57: Varianssimoottorin lokitus ja ContextFilter-seuranta
+
+Explainable AI -vaatimusten mukaisesti varianssimoottorin ja asynkronisten raportointikoukkujen toiminta on täysin läpinäkyvää ja jäljitettävää lokitasolla:
+
+* **Matemaattisen laskennan lokitiedot:** Varianssin laskuvaiheessa `variance_engine.py` tulostaa aina informatiivisen lokiviestin (`logger.info`) kunkin ajon varianssilaskun parametreista:
+  `Calculated mechanical-cognitive variance: score=<A>, count=<P>, variance=<V>, verdict=<verdict>`
+* **ContextFilter & execution_id ankkurointi:** `logging_config.py`-moduulin `ContextFilter` varmistaa, että asynkronisen Worker-suorituksen (`render_profile_job`) aikana tulostuva varianssiloki leimataan automaattisesti aktiivisella `execution_id`-tunnuksella. Tämä mahdollistaa sen, että auditoija voi grepata yhdellä komennolla kyseisen suorituksen koko elinkaaren (pre-hookit -> LLM-agentit -> varianssilaskennat -> DTO-generoinnit) suoraan `backend_debug.log`-tiedostosta.
+
 <br><hr>
 
 ➡️ **Seuraavaksi:** Kirjan päätteeksi lue [11_empirical_scoring_report.md](./11_empirical_scoring_report.md), joka dokumentoi matemaattisen arviointimoottorin toiminnan käytännössä empiiristen testitulosten valossa.

@@ -6,10 +6,10 @@ Tämä seurantadokumentti (Tracker) valvoo **Epic 57** -suunnitelman vaiheittais
 
 Suorita jokainen vaihe järjestyksessä. Kun olet suorittanut vaiheen loppuun, päivitä sen tila muotoon `[OK]` ja siirry seuraavaan.
 
-- [NOK] docs/epic/tasks_EPIC_57/phase1_domain_models.md - Domain Models & Variance Calculation Engine
-- [NOK] docs/epic/tasks_EPIC_57/phase2_prompt_grounding.md - Context Compiler & Prompt XML Grounding
-- [NOK] docs/epic/tasks_EPIC_57/phase3_xai_reporter_synthesis.md - XAI Reporter Agent Integration
-- [NOK] docs/epic/tasks_EPIC_57/phase4_frontend_pdf.md - Frontend SDUI & PDF Report Parity
+- [OK] docs/epic/tasks_EPIC_57/phase1_domain_models.md - Domain Models & Variance Calculation Engine
+- [OK] docs/epic/tasks_EPIC_57/phase2_prompt_grounding.md - Context Compiler & Prompt XML Grounding
+- [OK] docs/epic/tasks_EPIC_57/phase3_xai_reporter_synthesis.md - XAI Reporter Agent Integration
+- [OK] docs/epic/tasks_EPIC_57/phase4_frontend_pdf.md - Frontend SDUI & PDF Report Parity
 
 ---
 

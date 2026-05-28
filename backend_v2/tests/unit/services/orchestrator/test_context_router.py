@@ -1,6 +1,7 @@
 import pytest
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.dtos.lightweight_matrix import OutputProfileConfig
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.context_router import ContextRouter
 
@@ -58,3 +59,29 @@ def test_normalize_and_validate_variable_inputs_path() -> None:
     # Non-steps path should be returned unchanged
     result = ContextRouter.normalize_and_validate_variable(path, snapshot)
     assert result == "$inputs.doc"
+
+
+def test_route_and_prune_bypasses_variance_validation() -> None:
+    # Set up an output profile that demands 'variance_validation'
+    output_profile = OutputProfileConfig(
+        visible_extensions=["falsification", "variance_validation"]
+    )
+
+    # Trace event that contains falsification but NOT variance_validation
+    trace_event = {
+        "raw_score": 3.0,
+        "normalized_score": 100.0,
+        "justification": "Test justification",
+        "extensions": {
+            "falsification": "Some falsification evidence"
+        }
+    }
+
+    # This should succeed because variance_validation is a global extension
+    # and should be bypassed during local matrix trace pruning.
+    pruned = ContextRouter.route_and_prune(trace_event, output_profile)
+
+    assert pruned.raw_score == 3.0
+    assert "falsification" in pruned.extensions
+    assert "variance_validation" not in pruned.extensions
+

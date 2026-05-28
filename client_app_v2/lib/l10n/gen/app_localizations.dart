@@ -5366,6 +5366,18 @@ abstract class AppLocalizations {
   /// **'Source Citation'**
   String get xaiSourceCitation;
 
+  /// No description provided for @xaiContextualOverride.
+  ///
+  /// In en, this message translates to:
+  /// **'Contextual Override'**
+  String get xaiContextualOverride;
+
+  /// No description provided for @xaiSourceId.
+  ///
+  /// In en, this message translates to:
+  /// **'Source ID'**
+  String get xaiSourceId;
+
   /// No description provided for @theoryGroundingTitle.
   ///
   /// In en, this message translates to:
@@ -6341,6 +6353,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Specific domain semantic claims to evaluate.'**
   String get criteriaBlocksDescription;
+
+  /// No description provided for @xaiVarianceValidationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mechanical vs Cognitive Balance'**
+  String get xaiVarianceValidationTitle;
+
+  /// No description provided for @xaiVerdictAligned.
+  ///
+  /// In en, this message translates to:
+  /// **'Aligned (ALIGNED)'**
+  String get xaiVerdictAligned;
+
+  /// No description provided for @xaiVerdictSycophancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Cognitive Sycophancy (MISALIGNED_SYCOPHANCY)'**
+  String get xaiVerdictSycophancy;
+
+  /// No description provided for @xaiVerdictMisaligned.
+  ///
+  /// In en, this message translates to:
+  /// **'Misaligned (MISALIGNED)'**
+  String get xaiVerdictMisaligned;
 }
 
 class _AppLocalizationsDelegate

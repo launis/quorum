@@ -279,7 +279,8 @@
                 'missing_context': '🔍 PUUTTUVA KONTEKSTI',
                 'remediation_steps': '🛠️ KORJAAVAT TOIMENPITEET',
                 'emotional_sentiment': '🎭 EMOTIONAALINEN SÄVY',
-                'confidence': 'LUOTETTAVUUS JA VARMUUS'
+                'confidence': 'LUOTETTAVUUS JA VARMUUS',
+                'variance_validation': '⚖️ MEKAANINEN VS KOGNITIIVINEN TASAPAINO'
             } %}
 
             {% for ext_key, ext_items in report_data.grouped_extensions.items() %}
@@ -304,6 +305,10 @@
                         {% set card_border = '#ffcc80' %}
                         {% set card_bg = '#fff3e0' %}
                         {% set header_text = '#ef6c00' %}
+                    {% elif ext_key == 'variance_validation' %}
+                        {% set card_border = '#c5cae9' %}
+                        {% set card_bg = '#e8eaf6' %}
+                        {% set header_text = '#1a237e' %}
                     {% endif %}
 
                     <div class="card" style="border: 2px solid {{ card_border }}; background-color: {{ card_bg }}; border-radius: 8px; margin-bottom: 16px; padding: 0; overflow: hidden; page-break-inside: avoid;">
@@ -315,43 +320,95 @@
                             <span style="color: {{ header_text }}; font-size: 12px;">▼</span>
                         </div>
                         <div style="padding: 16px; margin-top: 0; background-color: {{ card_bg }};">
-                        {% for item in ext_items %}
-                            {% if item is mapping %}
-                                {% set content = item.get('content') %}
-                                {% set display_content = content %}
-                                {% if not content and item.get('axis_name') %}
-                                    {% set innerKey = '' %}
-                                    {% for k in item.keys() if k not in ['axis_name', '_score', 'color_theme', 'icon_name'] %}
-                                        {% if loop.first %}{% set innerKey = k %}{% endif %}
-                                    {% endfor %}
-                                    {% if innerKey %}
-                                        {% set display_content = item.get('axis_name') ~ ':\n' ~ item.get(innerKey) %}
-                                    {% endif %}
-                                {% endif %}
-                                {% set c_theme = item.get('color_theme', 'info') %}
-                                {% set bg_color = '#e3f2fd' %}
-                                {% set fg_color = '#1976d2' %}
+                        {% if ext_key == 'variance_validation' %}
+                            {% for item in ext_items %}
+                                {% set score = item.get('variance_score') | float %}
+                                {% set verdict = item.get('alignment_verdict') %}
+                                {% set mech_ref = item.get('mechanical_metric_ref') %}
+                                {% set cog_ref = item.get('cognitive_metric_ref') %}
                                 
-                                {% if c_theme == 'danger' %}
-                                    {% set bg_color = '#ffebee' %}
-                                    {% set fg_color = '#d32f2f' %}
-                                {% elif c_theme == 'warning' %}
-                                    {% set bg_color = '#fff3e0' %}
-                                    {% set fg_color = '#e65100' %}
-                                {% elif c_theme == 'success' %}
-                                    {% set bg_color = '#e8f5e9' %}
-                                    {% set fg_color = '#1b5e20' %}
+                                {% set verdict_label = verdict %}
+                                {% if verdict == 'ALIGNED' %}
+                                    {% set verdict_label = l10n.xaiVerdictAligned %}
+                                    {% set verdict_color = '#2e7d32' %}
+                                {% elif verdict == 'MISALIGNED_SYCOPHANCY' %}
+                                    {% set verdict_label = l10n.xaiVerdictSycophancy %}
+                                    {% set verdict_color = '#d32f2f' %}
+                                {% elif verdict == 'MISALIGNED' %}
+                                    {% set verdict_label = l10n.xaiVerdictMisaligned %}
+                                    {% set verdict_color = '#e65100' %}
                                 {% endif %}
                                 
-                                <div style="margin-bottom: 8px;">
-                                    <div style="background-color: {{ bg_color }}; border-left: 4px solid {{ fg_color }}; padding: 12px; border-radius: 8px; font-size: 13px; line-height: 1.5; color: #212121;">
-                                        {{ display_content | default('') | md | safe }}
+                                <div style="margin-bottom: 16px; page-break-inside: avoid;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                        <span style="font-size: 13px; font-weight: bold; color: {{ verdict_color }};">{{ verdict_label }}</span>
+                                        <span style="font-size: 10px; color: #666; font-style: italic;">
+                                            Compares performative patterns ({{ mech_ref }}) against cognitive authenticity ({{ cog_ref }}).
+                                        </span>
+                                    </div>
+                                    
+                                    {% set percentage = ((score / 2.0) * 100) | float %}
+                                    {% set marker_percentage = [0, [100, percentage]|min]|max %}
+                                    
+                                    <div style="position: relative; margin: 24px 0 16px 0; padding-top: 10px; height: 35px; width: 100%;">
+                                        <!-- The progress bar segments -->
+                                        <div style="display: flex; height: 16px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; width: 100%; position: absolute; top: 12px; left: 0;">
+                                            <div style="width: 25%; background-color: #E8F5E9; text-align: center; color: #1B5E20; font-size: 8px; line-height: 16px; font-weight: bold; border-right: 1px dashed #c8e6c9;">Aligned (0.0-0.5)</div>
+                                            <div style="width: 25%; background-color: #FFF3E0; text-align: center; color: #E65100; font-size: 8px; line-height: 16px; font-weight: bold; border-right: 1px dashed #ffe0b2;">Mild (0.5-1.0)</div>
+                                            <div style="width: 50%; background-color: #FFEBEE; text-align: center; color: #C62828; font-size: 8px; line-height: 16px; font-weight: bold;">Severe (1.0-2.0)</div>
+                                        </div>
+                                        
+                                        <!-- Float marker triangle pointing down -->
+                                        <div style="position: absolute; left: calc({{ marker_percentage }}% - 6px); top: 0px; width: 12px; height: 12px; z-index: 10;">
+                                            <div style="width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid #1a237e;"></div>
+                                        </div>
+                                        
+                                        <!-- Score text floated below -->
+                                        <div style="position: absolute; left: calc({{ marker_percentage }}% - 15px); top: 28px; width: 30px; text-align: center; font-size: 9px; font-weight: bold; color: #1a237e; z-index: 10;">
+                                            {{ "%.2f"|format(score) }}
+                                        </div>
                                     </div>
                                 </div>
-                            {% else %}
-                                <div style="margin-bottom: 8px; font-size: 13px; color: #333; padding-left: 10px;">{{ item }}</div>
-                            {% endif %}
-                        {% endfor %}
+                            {% endfor %}
+                        {% else %}
+                            {% for item in ext_items %}
+                                {% if item is mapping %}
+                                    {% set content = item.get('content') %}
+                                    {% set display_content = content %}
+                                    {% if not content and item.get('axis_name') %}
+                                        {% set innerKey = '' %}
+                                        {% for k in item.keys() if k not in ['axis_name', '_score', 'color_theme', 'icon_name'] %}
+                                            {% if loop.first %}{% set innerKey = k %}{% endif %}
+                                        {% endfor %}
+                                        {% if innerKey %}
+                                            {% set display_content = item.get('axis_name') ~ ':\n' ~ item.get(innerKey) %}
+                                        {% endif %}
+                                    {% endif %}
+                                    {% set c_theme = item.get('color_theme', 'info') %}
+                                    {% set bg_color = '#e3f2fd' %}
+                                    {% set fg_color = '#1976d2' %}
+                                    
+                                    {% if c_theme == 'danger' %}
+                                        {% set bg_color = '#ffebee' %}
+                                        {% set fg_color = '#d32f2f' %}
+                                    {% elif c_theme == 'warning' %}
+                                        {% set bg_color = '#fff3e0' %}
+                                        {% set fg_color = '#e65100' %}
+                                    {% elif c_theme == 'success' %}
+                                        {% set bg_color = '#e8f5e9' %}
+                                        {% set fg_color = '#1b5e20' %}
+                                    {% endif %}
+                                    
+                                    <div style="margin-bottom: 8px;">
+                                        <div style="background-color: {{ bg_color }}; border-left: 4px solid {{ fg_color }}; padding: 12px; border-radius: 8px; font-size: 13px; line-height: 1.5; color: #212121;">
+                                            {{ display_content | default('') | md | safe }}
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div style="margin-bottom: 8px; font-size: 13px; color: #333; padding-left: 10px;">{{ item }}</div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
                         </div>
                     </div>
                 {% endif %}

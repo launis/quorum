@@ -8,6 +8,7 @@ from pydantic import Field
 from backend_v2.models.domain.analyst import SearchResult
 from backend_v2.models.domain.archivist import ArchivistOutputDTO
 from backend_v2.models.domain.coach import BibliographyResult, CoachingPlanDTO
+from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.view.sdui import ReferenceItem
 
@@ -148,6 +149,7 @@ class GlobalContextVarsDTO(BaseDTO):
     step_overseer: OverseerReportData | None = None
     step_logician: LogicianReportData | None = None
     step_detector: PerformativityReportData | None = None
+    step_linguistics: LinguisticsResultDTO | None = None
     step_analyst: AnalystReportData | None = None
     step_panel: PanelReportData | None = None
     step_profiler: ProfilerReportData | None = None
@@ -209,6 +211,7 @@ class ReportContextDTO(BaseDTO):
     uncertainty: dict[str, str] = Field(default_factory=dict)
     bibliography: list[dict[str, Any]] = Field(default_factory=list)
     references: list[ReferenceItem] = Field(default_factory=list)
+    output_extensions: list[Any] = Field(default_factory=list)
 
     # Specialist Data (passthrough for templates)
     logician_data: LogicianData | None = None

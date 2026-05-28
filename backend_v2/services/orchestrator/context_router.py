@@ -61,6 +61,11 @@ class ContextRouter:
         extensions_extracted = {}
         if output_profile:
             for ext in output_profile.visible_extensions:
+                # 'variance_validation' is a global workflow-level output extension.
+                # It is not produced at the individual matrix block level.
+                ext_str = ext.value if hasattr(ext, "value") else str(ext)
+                if ext_str == "variance_validation" or "variance_validation" in str(ext):
+                    continue
                 if ext in validated_trace.extensions:
                     extensions_extracted[ext] = str(validated_trace.extensions[ext])
                 else:
