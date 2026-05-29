@@ -65,6 +65,13 @@ def test_validate_evidence_trace_contradiction_ban() -> None:
 
     assert "Logical contradiction: Trace concluded Fail, but exact_quote was populated" in str(exc.value)
 
+    # Test "condition not met" triggers contradiction as well
+    trace_cnm = "Here is my reasoning: [5. VALIDATION DECISION: CONDITION NOT MET]"
+    with pytest.raises(SemanticEvidenceError) as exc_cnm:
+        AnchorValidationService.validate_evidence(pdf_text, quote, reasoning_trace=trace_cnm)
+
+    assert "Logical contradiction: Trace concluded Fail, but exact_quote was populated" in str(exc_cnm.value)
+
 
 def test_validate_evidence_empty_anchor_ban() -> None:
     pdf_text = "This is a valid quote."

@@ -586,7 +586,7 @@ class ExecutionService:
         if fmt == "json":
             transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
             dto = await transformer.build_report_dto(
-                execution_id, profile_id, accept_language, custom_preface_md, local_time_str
+                execution_id, resolved_pid, accept_language, custom_preface_md, local_time_str
             )
 
             return dto.model_dump(mode="json"), "application/json", None

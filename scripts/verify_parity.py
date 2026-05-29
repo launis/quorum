@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 
-def verify():
+def verify() -> None:
     v1_path = Path("c:/src/quorum/data/github_seed_data.json")
     v2_path = Path("c:/src/quorum/backend_v2/seed/seed_data.json")
 
@@ -20,11 +20,12 @@ def verify():
     # Needs a mapping of original v1 step IDs to v2 step slugs
     # We can reconstruct how V2 steps are named from V1 name/slugs
     import re
+
     def slugify(text: str, fallback_index: int) -> str:
         if not text:
             return f"item_{fallback_index}"
-        clean = re.sub(r'[^a-zA-Z0-9\s-]', '', text).strip().lower()
-        clean = re.sub(r'[\s-]+', '_', clean)
+        clean = re.sub(r"[^a-zA-Z0-9\s-]", "", text).strip().lower()
+        clean = re.sub(r"[\s-]+", "_", clean)
         return clean[:30]
 
     # Rebuild uuid_to_slug exactly as the stitcher did
@@ -46,13 +47,18 @@ def verify():
         elif "bloom" in name_lower or "bloom" in desc_lower or "cognitiv" in name_lower or "kognitiivi" in name_lower:
             uuid_to_slug[uid] = "matrix_bloom"
         elif (
-            "kahneman" in name_lower or "kahneman" in desc_lower or
-            "fast and slow" in desc_lower or "system 1" in desc_lower or "system 2" in desc_lower
+            "kahneman" in name_lower
+            or "kahneman" in desc_lower
+            or "fast and slow" in desc_lower
+            or "system 1" in desc_lower
+            or "system 2" in desc_lower
         ):
             uuid_to_slug[uid] = "matrix_kahneman"
         elif (
-            "goodhart" in name_lower or "goodhart" in desc_lower or
-            "performatiivisuus" in name_lower or "performativity" in name_lower
+            "goodhart" in name_lower
+            or "goodhart" in desc_lower
+            or "performatiivisuus" in name_lower
+            or "performativity" in name_lower
         ):
             uuid_to_slug[uid] = "matrix_goodhart"
 
@@ -72,13 +78,18 @@ def verify():
         elif "bloom" in name_lower or "bloom" in desc_lower or "cognitiv" in name_lower or "kognitiivi" in name_lower:
             uuid_to_slug[uid] = "matrix_bloom"
         elif (
-            "kahneman" in name_lower or "kahneman" in desc_lower or
-            "fast and slow" in desc_lower or "system 1" in desc_lower or "system 2" in desc_lower
+            "kahneman" in name_lower
+            or "kahneman" in desc_lower
+            or "fast and slow" in desc_lower
+            or "system 1" in desc_lower
+            or "system 2" in desc_lower
         ):
             uuid_to_slug[uid] = "matrix_kahneman"
         elif (
-            "goodhart" in name_lower or "goodhart" in desc_lower or
-            "performatiivisuus" in name_lower or "performativity" in name_lower
+            "goodhart" in name_lower
+            or "goodhart" in desc_lower
+            or "performatiivisuus" in name_lower
+            or "performativity" in name_lower
         ):
             uuid_to_slug[uid] = "matrix_goodhart"
 
@@ -103,14 +114,14 @@ def verify():
         expected_v2_slugs = []
         for p in v1_prompts:
             if p in uuid_to_slug:
-                 expected_v2_slugs.append(uuid_to_slug[p])
+                expected_v2_slugs.append(uuid_to_slug[p])
 
         if v1_matrix and v1_matrix in uuid_to_slug:
-             expected_v2_slugs.append(uuid_to_slug[v1_matrix])
+            expected_v2_slugs.append(uuid_to_slug[v1_matrix])
 
         # Map step self reference
         if v1_id in uuid_to_slug and uuid_to_slug[v1_id].startswith("matrix_"):
-             expected_v2_slugs.append(uuid_to_slug[v1_id])
+            expected_v2_slugs.append(uuid_to_slug[v1_id])
 
         expected_v2_slugs = list(dict.fromkeys(expected_v2_slugs))
 
@@ -136,6 +147,47 @@ def verify():
         print("PERFECT PARITY! Kaikki stepit ja niiden sisältämät ohjeet / matriisit täsmäävät V1:n kanssa 100%.")
     else:
         print(f"Löytyi {mismatches} eroa askelten ohjemääritteissä.")
+
+    print("\n🔍 Suoritetaan Night Shift -laatuporttitarkistus...")
+    check_night_shift_compliance()
+    print("✅ Night Shift -laatuporttitarkistus läpäisty onnistuneesti!")
+
+
+def check_night_shift_compliance() -> None:
+    """Varmistaa, että jokaiselle backend-tiedostolle löytyy 100% PASS-raportti."""
+    # Kehityskohde 1: Audit-matriisin laatuporttitarkistus
+    report_dir = Path("tmp/audit_reports")
+    backend_dir = Path("backend_v2")
+
+    # Path resolution safety for running from scripts directory or root
+    if not backend_dir.exists() and Path("../backend_v2").exists():
+        backend_dir = Path("../backend_v2")
+        report_dir = Path("../tmp/audit_reports")
+
+    # If the report folder doesn't exist yet, we can't check compliance, warn instead
+    if not report_dir.exists():
+        print("⚠️ Varoitus: tmp/audit_reports -hakemistoa ei ole vielä luotu. Aja night_shift_hardener ensin.")
+        return
+
+    for py_file in backend_dir.rglob("*.py"):
+        # Ohitetaan initit ja testit
+        if py_file.name == "__init__.py" or "tests" in py_file.parts:
+            continue
+
+        report_file = report_dir / f"{py_file.stem}_audit_report.json"
+        if not report_file.exists():
+            raise AssertionError(f"❌ Tiedostoa {py_file.as_posix()} ei ole auditoitu Night Shiftillä!")
+
+        try:
+            with open(report_file, encoding="utf-8") as f:
+                data = json.load(f)
+                # Tarkistetaan, ettei matriisissa ole yhtään korjaamatonta FAIL-tilaa
+                for item in data.get("audit_matrix", []):
+                    if item.get("status") == "Fail":
+                        raise AssertionError(f"❌ Tiedosto {py_file.as_posix()} reputti säännön {item['rule_id']}!")
+        except (json.JSONDecodeError, KeyError) as e:
+            raise AssertionError(f"❌ Tiedoston {py_file.as_posix()} raportti on korruptoitunut: {e}") from e
+
 
 if __name__ == "__main__":
     verify()

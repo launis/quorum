@@ -28,6 +28,7 @@ class ExtractionPayload(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     exact_quote: str | None = ""
     contextual_override: bool = False
+    semantic_reasoning: str | None = ""
 
 
 def evaluate_extraction(extraction: BaseModel, source_text: str, is_negative_rule: bool) -> str:
@@ -36,6 +37,7 @@ def evaluate_extraction(extraction: BaseModel, source_text: str, is_negative_rul
     """
     exact_quote = getattr(extraction, "exact_quote", None)
     contextual_override = getattr(extraction, "contextual_override", False)
+    semantic_reasoning = getattr(extraction, "semantic_reasoning", None)
 
     # Track A: Physical Match
     if exact_quote and exact_quote != "[CONTEXTUAL_OVERRIDE_APPLIED]":
@@ -43,6 +45,7 @@ def evaluate_extraction(extraction: BaseModel, source_text: str, is_negative_rul
             AnchorValidationService.validate_evidence(
                 pdf_text=source_text,
                 exact_quote=exact_quote,
+                reasoning_trace=semantic_reasoning,
                 contextual_override=contextual_override,
             )
             status = "PASS"
@@ -392,6 +395,7 @@ class ChunkWorker:
                             temp_atom1 = ExtractionPayload(
                                 exact_quote=atom_data["exact_quote"],
                                 contextual_override=atom_data["contextual_override"],
+                                semantic_reasoning=atom_data.get("semantic_reasoning", ""),
                             )
                             status1 = evaluate_extraction(temp_atom1, local_payload, False)
 
@@ -403,6 +407,7 @@ class ChunkWorker:
                                     temp_atom2 = ExtractionPayload(
                                         exact_quote=atom_data2["exact_quote"],
                                         contextual_override=atom_data2["contextual_override"],
+                                        semantic_reasoning=atom_data2.get("semantic_reasoning", ""),
                                     )
                                     status2 = evaluate_extraction(temp_atom2, local_payload, False)
 
@@ -459,6 +464,7 @@ class ChunkWorker:
                                 temp_block1 = ExtractionPayload(
                                     exact_quote=block_data["exact_quote"],
                                     contextual_override=block_data["contextual_override"],
+                                    semantic_reasoning=block_data.get("semantic_reasoning", ""),
                                 )
                                 status1 = evaluate_extraction(temp_block1, local_payload, False)
 
@@ -467,6 +473,7 @@ class ChunkWorker:
                                     temp_block2 = ExtractionPayload(
                                         exact_quote=block_data2["exact_quote"],
                                         contextual_override=block_data2["contextual_override"],
+                                        semantic_reasoning=block_data2.get("semantic_reasoning", ""),
                                     )
                                     status2 = evaluate_extraction(temp_block2, local_payload, False)
 

@@ -174,6 +174,7 @@ def test_deterministic_extraction_scoring() -> None:
     class MockExtraction(BaseModel):
         exact_quote: str | None = None
         contextual_override: bool = False
+        semantic_reasoning: str | None = ""
 
     # Track B (Semantic Override = False, No quote) -> FAIL
     ext1 = MockExtraction(exact_quote=None, contextual_override=False)
@@ -196,6 +197,14 @@ def test_deterministic_extraction_scoring() -> None:
     ) as mock_val:
         mock_val.side_effect = SemanticEvidenceError(message="Not found")
         assert evaluate_extraction(ext3, "test text", False) == "FAIL"
+
+    # Trace Contradiction test: [5. VALIDATION DECISION: FAIL] in semantic_reasoning -> FAIL
+    ext_contradiction = MockExtraction(
+        exact_quote="matched quote",
+        contextual_override=False,
+        semantic_reasoning="Some reasoning... [5. VALIDATION DECISION: FAIL]",
+    )
+    assert evaluate_extraction(ext_contradiction, "matched quote", False) == "FAIL"
 
     # Negative condition
     # Track B -> FAIL becomes PASS

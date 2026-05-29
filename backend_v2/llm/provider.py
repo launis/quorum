@@ -389,7 +389,11 @@ class LiteLLMProvider(LLMProvider):
             async for attempt in AsyncRetrying(
                 stop=stop_after_attempt(max_rate_limit_retries + 1),
                 wait=wait_combine(
-                    wait_exponential(multiplier=2, min=2, max=30),
+                    wait_exponential(
+                        multiplier=SystemConcurrency.LLM_RETRY_MULTIPLIER.value,
+                        min=SystemConcurrency.LLM_RETRY_MIN_SECONDS.value,
+                        max=SystemConcurrency.LLM_RETRY_MAX_SECONDS.value,
+                    ),
                     wait_random(1, 5),
                 ),
                 retry=retry_if_exception(_is_transient_llm_error),

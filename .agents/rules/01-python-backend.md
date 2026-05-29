@@ -91,7 +91,7 @@
 
     <rule_block id="python_314_modern_syntax">
         <banned_pattern>Using legacy wrapper typings (`TypeVar`, `Generic[T]`, `Optional[X]`) or `asyncio.gather()`.</banned_pattern>
-        <mandatory_pattern>Mandate PEP 695 generics (`def process[T](data: T) -> T:`), the `@override` decorator, modern bitwise unions (`X | None`), and deterministically scoped threads (`async with asyncio.TaskGroup() as tg:`).</mandatory_pattern>
+        <mandatory_pattern>Mandate PEP 695 generics (e.g. pakota syntaksi `class Repository[T]:` vanhan `TypeVar('T')` ja `Generic[T]`-luokkien sijaan), the `@override` decorator, modern bitwise unions (`X | None`), and deterministically scoped threads (`async with asyncio.TaskGroup() as tg:`).</mandatory_pattern>
     </rule_block>
 
     <rule_block id="no_string_l10n">
@@ -148,9 +148,9 @@
     </rule_block>
 
     <rule_block id="no_inline_imports">
-        <banned_pattern>Using inline imports (importing modules inside a function, method, or router) to resolve circular dependencies or lazy load modules.</banned_pattern>
-        <mandatory_pattern>ALWAYS declare all imports globally at the top of the file. If you encounter a circular dependency, you MUST refactor the architectural flaw by extracting the shared domain logic into a separate utility or base module. Do NOT hide it with an inline import.</mandatory_pattern>
-        <catastrophic_reason>Inline imports mask circular dependencies, indicating broken domain boundaries. They introduce runtime overhead, obscure module dependencies, and frequently break `pytest` monkeypatching and dependency injection.</catastrophic_reason>
+        <banned_pattern>Using inline imports (importing modules inside a function, method, or router) to resolve circular dependencies or lazy load regular application modules.</banned_pattern>
+        <mandatory_pattern>ALWAYS declare all standard imports globally at the top of the file. EXCEPTION: All heavy AI/ML libraries (e.g., `litellm`, `google-genai`, `vertexai`, `tokenizers`, `spacy`) MUST be imported inside methods/functions (lazy loading). This prevents PyO3 failures, ensures Zero Cold Starts, and prevents `pytest-cov` coverage runs from crashing due to missing global ML environments.</mandatory_pattern>
+        <catastrophic_reason>Inline imports mask circular dependencies. However, global ML imports trigger catastrophic PyO3 segfaults during system boot, slow down cold start performance, and crash pytest-cov suites when executing in decoupled testing contexts.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="cross_language_enum_parity">

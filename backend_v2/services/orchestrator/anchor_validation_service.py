@@ -82,7 +82,7 @@ class AnchorValidationService:
             trace_lower = reasoning_trace.lower()
 
             # 1. Trace Contradiction Ban
-            if "[5. validation decision: fail]" in trace_lower:
+            if "[5. validation decision: fail]" in trace_lower or "condition not met" in trace_lower:
                 logger.warning("Lexical Verifier failed: Trace Contradiction.", extra={"exact_quote": exact_quote})
                 raise SemanticEvidenceError(
                     message="Logical contradiction: Trace concluded Fail, but exact_quote was populated."

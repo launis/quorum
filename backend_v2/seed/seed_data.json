@@ -1191,8 +1191,8 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_44fd8d7101a84a48",
-                  "ai_rule_description": "Do not evaluate completeness. STEP 1 (Syntactic Anchor): Find a primary proposal or argument. STEP 2 (Bounding Box): Scan the entire document. EXTRACTION CONDITION: alternative hypotheses or competing theories are completely absent from the text. NEGATIVE CONDITION (RETURN NULL IF MET): at least one competing alternative is analyzed.",
-                  "inverse_evidence": true,
+                  "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find a proposal, claim, or argument. STEP 2: Check if the author actively refuses to consider alternative perspectives, or dogmatically declares their view as the single exclusive truth (e.g., using physical syntactic markers like 'there is no alternative', 'only option', 'is the only', 'ainoastaan', 'ainoa oikea', or explicit dismissal/exclusion of alternative options). EXTRACTION CONDITION: present. NEGATIVE CONDITION (RETURN NULL IF MET): absent. <ambiguity_protocol>ABSOLUTE EXCLUSION ENFORCEMENT: You must actively locate a sentence where the author explicitly dismisses alternative perspectives or dogmatically asserts exclusive truth. General one-sided arguments that merely lack alternatives DO NOT trigger this rule; there MUST be a physical marker of active refusal, dogmatic exclusivity, or explicit dismissal. If such a marker is absent, you MUST conclude 'CONDITION NOT MET' and return JSON null.</ambiguity_protocol>",
+                  "inverse_evidence": false,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false
                 }
@@ -2497,7 +2497,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_32ee0cac79ad098e",
-                  "ai_rule_description": "Do not evaluate humility. STEP 1 (Syntactic Anchor): Find universal terms ('always', 'in every case'). STEP 2: EXTRACTION CONDITION: a causal claim derived from a specific, limited context is applied to all contexts universally without acknowledging boundaries.",
+                  "ai_rule_description": "Do not evaluate humility. STEP 1 (Syntactic Anchor): Find universal terms ('always', 'in every case'). STEP 2: EXTRACTION CONDITION: a causal claim derived from a specific, limited context is applied to all contexts universally without acknowledging boundaries. <ambiguity_protocol>ABSOLUTE BOUNDARY ENFORCEMENT: You must check if the causal claim is bounded. If the sentence or immediate context contains explicit boundary-setting vocabulary, limitations, or environmental constraints (e.g., 'only under', 'in this scenario', 'limited to', 'primarily when', 'but may fail if', or Finnish equivalents like 'ainoastaan', 'rajattu', 'vain silloin kun'), the absolute overgeneralization is falsified, the boundary is acknowledged, and you MUST conclude 'CONDITION NOT MET' and return JSON null.</ambiguity_protocol>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true
@@ -3047,7 +3047,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_fbd90f9c0f2247ed",
-                  "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find explicit counterargument markers (e.g., 'critics argue', 'opposing view', 'counterargument', 'on the other hand'). STEP 2 (Bounding Box & Dual Condition): Scan the paragraph containing the anchor. If the paragraph contains the counterargument marker AND ALSO contains physical citation markers (e.g., 'et al', '[1]', '(', 'published in') AND empirical measurement vocabulary (e.g., 'data', 'showed', 'measured') -> ACCEPT. If it lacks citations or measurement tokens -> REJECT. BANNED CONCEPTS: Do NOT evaluate subjective 'strength', 'steel-manning', or whether the argument is successfully 'dismantled'. Evaluate only physical token presence.",
+                  "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find explicit counterargument markers (e.g., 'critics argue', 'opposing view', 'counterargument', 'on the other hand'). STEP 2 (Bounding Box & Dual Condition): Scan the paragraph containing the anchor. If the paragraph contains the counterargument marker AND ALSO contains physical citation markers (e.g., 'et al', '[1]', '(', 'published in') AND empirical measurement vocabulary (e.g., 'data', 'showed', 'measured') -> ACCEPT. If it lacks citations or measurement tokens -> REJECT. BANNED CONCEPTS: Do NOT evaluate subjective 'strength', 'steel-manning', or whether the argument is successfully 'dismantled'. Evaluate only physical token presence. <ambiguity_protocol> ABSOLUTE LEXICAL ENFORCEMENT: You are a mechanical parser, not a forgiving judge. If a rule demands multiple conditions (e.g., A AND B AND C), and condition C is physically missing, you MUST return NULL. You are strictly forbidden from accepting 'close enough' semantic matches. BANNED MATCHES: Academic institutions (e.g., Stanford) and research reports (e.g., TTL) DO NOT count as formal standard frameworks (ISO/ARMA).</ambiguity_protocol>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true
@@ -3735,7 +3735,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_d8bdf091d22d4412",
-                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of explicit partial consensus among agents. Look for lexical markers like 'mostly agree', 'general consensus', or 'aligns' in the native language.",
+                  "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of explicit partial consensus among agents. Look for lexical markers like 'mostly agree', 'general consensus', or 'aligns' in the native language. <ambiguity_protocol>ONTOLOGICAL BOUNDARY: You are strictly forbidden from identifying 'consensus among agents' if the source document does not physically contain multiple expert agents, panelists, or decision-makers interacting with each other. Single-author texts, simple two-party transcripts (such as a dialogue between one human and one AI), or general statements of personal uncertainty DO NOT qualify as consensus among agents. If multiple interacting entities are physically absent from the text, you MUST conclude 'CONDITION NOT MET' and return JSON null.</ambiguity_protocol>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false
@@ -4706,7 +4706,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_55dfd9cb0adec620",
-                  "ai_rule_description": "BANNED LOGIC: Do not accept subjective assessments of risk severity. STEP 1 (Syntactic Anchor): Find risk identification markers (e.g. 'potential risk', 'hazard', 'vulnerability'). STEP 2 (Bounding Box): Scan the paragraph downwards. EXTRACTION CONDITION: the risk is identified but no physical action verb (e.g. 'encrypted', 'blocked', 'sanitized') follows to mitigate it.",
+                  "ai_rule_description": "BANNED LOGIC: Do not accept subjective assessments of risk severity. STEP 1 (Syntactic Anchor): Find risk identification markers (e.g. 'potential risk', 'hazard', 'vulnerability'). STEP 2 (Bounding Box): Scan the paragraph downwards. EXTRACTION CONDITION: the risk is identified but no physical action verb follows to mitigate it. <ambiguity_protocol>ABSOLUTE MITIGATION ENFORCEMENT: You must strictly scan the paragraph containing the risk identification marker. If the paragraph contains a physical action verb that describes a technical, administrative, or physical mitigation or control (e.g., 'encrypted', 'blocked', 'sanitized', 'implemented', 'configured', 'restricted', 'validated', or Finnish equivalents like 'salataan', 'estetään', 'tarkistetaan', 'validoidaan'), the absence of mitigation is falsified, the risk is mitigated, and you MUST conclude 'CONDITION NOT MET' and return JSON null. Proposing future plans to mitigate or dismissing the risk as 'low priority' without physical control verbs DOES NOT satisfy the mitigation requirement and the rule remains satisfied.</ambiguity_protocol>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true
@@ -4916,7 +4916,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_545bffdc85a31f0e",
-                  "ai_rule_description": "Reject superficial mentions of frameworks. STEP 1 (Syntactic Anchor): Find exact framework citations (e.g. 'OWASP LLM01', 'NIST', 'ISO 27001'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the specific framework clause is directly linked to the physical security action taken.",
+                  "ai_rule_description": "Reject superficial mentions of frameworks. STEP 1 (Syntactic Anchor): Find exact framework citations (e.g. 'OWASP LLM01', 'NIST', 'ISO 27001'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the specific framework clause is directly linked to the physical security action taken. <ambiguity_protocol> ABSOLUTE LEXICAL ENFORCEMENT: You are a mechanical parser, not a forgiving judge. If a rule demands multiple conditions (e.g., A AND B AND C), and condition C is physically missing, you MUST return NULL. You are strictly forbidden from accepting 'close enough' semantic matches. BANNED MATCHES: Academic institutions (e.g., Stanford) and research reports (e.g., TTL) DO NOT count as formal standard frameworks (ISO/ARMA).</ambiguity_protocol>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true
@@ -5734,7 +5734,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_9ab273ce743ac29e",
-                  "ai_rule_description": "BANNED LOGIC: Do not guess intent. STEP 1 (Syntactic Anchor): Find an evaluation of success or a positive outcome. STEP 2 (Bounding Box): Scan the surrounding section. EXTRACTION CONDITION: the text details the positive outcome but COMPLETELY OMITs any epistemic boundary markers (e.g. 'however', 'limitations', 'failed to', 'uncertainty'). NEGATIVE CONDITION (RETURN NULL IF MET): limitations are explicitly stated.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find a paragraph evaluating a successful outcome or positive achievement. STEP 2: Verify if the paragraph or immediate surrounding section completely omits any epistemic boundary or uncertainty markers. <ambiguity_protocol>ABSOLUTE ABSENCE ENFORCEMENT: You must prove that epistemic boundary markers are COMPLETELY absent from the surrounding section. Epistemic boundary markers include words/phrases like 'however', 'limitations', 'failed to', 'uncertainty', 'but', 'silti', 'kuitenkin', 'rajoitus', 'epävarmuus'. If you locate even a single such marker in the section, the absence is falsified, the negative condition is met, and you MUST conclude 'CONDITION NOT MET' and return JSON null.</ambiguity_protocol>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true
@@ -6676,7 +6676,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_aa54c6b40e9c4160",
-                  "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find a paragraph containing statistical or factual reporting. STEP 2: Count the first-person pronouns ('I', 'we') or explicit self-reflective verbs ('assume', 'interpret'). EXTRACTION CONDITION: the count is exactly 0. NEGATIVE CONDITION (RETURN NULL IF MET): greater than 0.",
+                  "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find a paragraph containing statistical or factual reporting. STEP 2: Count the first-person pronouns ('I', 'we') or explicit self-reflective verbs ('assume', 'interpret'). EXTRACTION CONDITION: the count is exactly 0. NEGATIVE CONDITION (RETURN NULL IF MET): greater than 0. <ambiguity_protocol>ABSOLUTE ZERO ENFORCEMENT: The count of first-person references must be EXACTLY zero. You are strictly forbidden from ignoring possessive suffixes, bound morphemes, verb inflections, or clitics that grammatically denote a first-person perspective in the source document's target language (e.g., the Finnish suffix '-mme' in 'yrityksemme' or verb inflection '-n' in 'oletan'). If any such morpho-syntactic marker is found, the count is greater than zero, the negative condition is met, and you MUST conclude 'CONDITION NOT MET' and return JSON null.</ambiguity_protocol>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true
@@ -6880,7 +6880,7 @@
       },
       "category_id": "instruction",
       "type": "instruction",
-      "ai_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields or instructions. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not evaluate if the data is 'good', only its physical presence. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails.",
+      "ai_description": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields or instructions. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not evaluate if the data is 'good', only its physical presence. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails. FINAL JSON BINDING RULE: Never use the ambiguous words PASS or FAIL in your reasoning. Conclude strictly with 'CONDITION MET' or 'CONDITION NOT MET'. If your step-by-step audit concludes with 'CONDITION NOT MET', you MUST force the exact_quote field to be strictly null in the final JSON. Outputting a quote after failing the validation is a catastrophic system error.",
       "is_evaluative": false
     }
   ],
