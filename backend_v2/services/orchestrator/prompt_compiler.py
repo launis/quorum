@@ -57,7 +57,7 @@ class StrippedBaseTDAExtraction(BaseModel):
         )
     )
     exact_quote: str | None = Field(
-        ...,
+        default=None,
         description="Verbatim quote from the original text. MUST be empty if contextual_override is True.",
     )
 

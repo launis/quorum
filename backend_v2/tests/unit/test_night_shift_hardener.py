@@ -54,10 +54,11 @@ async def test_successful_hardening(temp_workspace: tuple[Path, Path, Path], mon
     """Verify that a successful LLM hardening run formats the code and updates the state atomically."""
     target_file, state_file, _ = temp_workspace
 
-    # Mock litellm acompletion to return valid hardened python code with 50 audit items
+    # Mock litellm acompletion to return valid hardened python code with exactly the configured audit items
     async def mock_acompletion(*args: tuple[Any, ...], **kwargs: dict[str, Any]) -> MockResponse:
         mock_checks = [
-            {"rule_id": i, "rule_name": f"rule_{i}", "status": "Pass", "finding": "Ok"} for i in range(1, 51)
+            {"rule_id": i, "rule_name": f"rule_{i}", "status": "Pass", "finding": "Ok"}
+            for i in range(1, night_shift_hardener.RuleLimits.TOTAL_RULES.value + 1)
         ]
         json_data = json.dumps(
             {
@@ -100,10 +101,11 @@ async def test_syntax_validation_failure_triggers_rollback(
     target_file, state_file, _ = temp_workspace
     original_content = target_file.read_text(encoding="utf-8")
 
-    # Mock litellm acompletion to return invalid python syntax with 50 checks
+    # Mock litellm acompletion to return invalid python syntax with correct number of checks
     async def mock_acompletion(*args: tuple[Any, ...], **kwargs: dict[str, Any]) -> MockResponse:
         mock_checks = [
-            {"rule_id": i, "rule_name": f"rule_{i}", "status": "Pass", "finding": "Ok"} for i in range(1, 51)
+            {"rule_id": i, "rule_name": f"rule_{i}", "status": "Pass", "finding": "Ok"}
+            for i in range(1, night_shift_hardener.RuleLimits.TOTAL_RULES.value + 1)
         ]
         json_data = json.dumps(
             {"audit_matrix": mock_checks, "is_rewritten": True, "hardened_code": "def work( -> None:\n    pass"}
@@ -136,10 +138,11 @@ async def test_quality_gate_failure_triggers_rollback(
     target_file, state_file, _ = temp_workspace
     original_content = target_file.read_text(encoding="utf-8")
 
-    # Mock litellm acompletion to return compilable but bad code with 50 checks
+    # Mock litellm acompletion to return compilable but bad code with correct number of checks
     async def mock_acompletion(*args: tuple[Any, ...], **kwargs: dict[str, Any]) -> MockResponse:
         mock_checks = [
-            {"rule_id": i, "rule_name": f"rule_{i}", "status": "Pass", "finding": "Ok"} for i in range(1, 51)
+            {"rule_id": i, "rule_name": f"rule_{i}", "status": "Pass", "finding": "Ok"}
+            for i in range(1, night_shift_hardener.RuleLimits.TOTAL_RULES.value + 1)
         ]
         json_data = json.dumps(
             {"audit_matrix": mock_checks, "is_rewritten": True, "hardened_code": "def work() -> None:\n    x = 10\n"}
@@ -205,7 +208,8 @@ async def test_self_healing_success_on_second_attempt(
         nonlocal call_count
         call_count += 1
         mock_checks = [
-            {"rule_id": i, "rule_name": f"rule_{i}", "status": "Pass", "finding": "Ok"} for i in range(1, 51)
+            {"rule_id": i, "rule_name": f"rule_{i}", "status": "Pass", "finding": "Ok"}
+            for i in range(1, night_shift_hardener.RuleLimits.TOTAL_RULES.value + 1)
         ]
         if call_count == 1:
             # Return syntactically broken code on the first attempt
@@ -277,7 +281,8 @@ async def test_dual_tier_model_escalation(
         model = kwargs.get("model")
         models_used.append(model)
         mock_checks = [
-            {"rule_id": i, "rule_name": f"rule_{i}", "status": "Pass", "finding": "Ok"} for i in range(1, 51)
+            {"rule_id": i, "rule_name": f"rule_{i}", "status": "Pass", "finding": "Ok"}
+            for i in range(1, night_shift_hardener.RuleLimits.TOTAL_RULES.value + 1)
         ]
         if len(models_used) == 1:
             # First attempt fails syntax compilation
@@ -322,10 +327,11 @@ async def test_audit_report_saving(temp_workspace: tuple[Path, Path, Path], monk
     """Verify that validated audit matrix data is saved under tmp/audit_reports/."""
     target_file, state_file, _ = temp_workspace
 
-    # Mock litellm acompletion to return valid hardened python code with 50 audit items
+    # Mock litellm acompletion to return valid hardened python code with correct number of audit items
     async def mock_acompletion(*args: tuple[Any, ...], **kwargs: dict[str, Any]) -> MockResponse:
         mock_checks = [
-            {"rule_id": i, "rule_name": f"rule_{i}", "status": "Pass", "finding": "Ok"} for i in range(1, 51)
+            {"rule_id": i, "rule_name": f"rule_{i}", "status": "Pass", "finding": "Ok"}
+            for i in range(1, night_shift_hardener.RuleLimits.TOTAL_RULES.value + 1)
         ]
         json_data = json.dumps(
             {
@@ -360,7 +366,7 @@ async def test_audit_report_saving(temp_workspace: tuple[Path, Path, Path], monk
     assert report_file.exists()
     with open(report_file, encoding="utf-8") as rf:
         report_data = json.load(rf)
-    assert len(report_data["audit_matrix"]) == 50
+    assert len(report_data["audit_matrix"]) == night_shift_hardener.RuleLimits.TOTAL_RULES.value
     assert report_data["is_rewritten"] is True
 
 

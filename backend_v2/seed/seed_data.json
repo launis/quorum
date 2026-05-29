@@ -7373,7 +7373,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "precise",
+      "model_strategy": "fast",
       "expected_inputs": [
         "inputs"
       ],
@@ -7472,7 +7472,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "precise",
+      "model_strategy": "fast",
       "expected_inputs": [
         "inputs"
       ],
@@ -7970,7 +7970,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "precise",
+      "model_strategy": "fast",
       "expected_inputs": [
         "inputs"
       ],

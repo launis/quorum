@@ -187,6 +187,28 @@ class LLMHandler:
                         if clean_id.startswith(prefix):
                             clean_id = clean_id[len(prefix) :]
 
+                    # 1. SPECIAL CASE: For Gemini 3.x models, use the modern google-genai Client
+                    # to check their global availability.
+                    if "gemini-3." in clean_id:
+                        try:
+                            from google import genai
+                            # Initialize modern GenAI client with global endpoint
+                            modern_client = genai.Client(
+                                vertexai=True,
+                                project=project,
+                                location="global"
+                            )
+                            # Get model metadata to verify availability
+                            _ = modern_client.models.get(model=clean_id)
+                            # Explicitly exclude gemini-3.5-pro as empirical tests prove
+                            # it does not support content generation yet (404).
+                            if clean_id == "gemini-3.5-pro":
+                                return None
+                            return f"vertex_ai/{clean_id}"
+                        except Exception:
+                            return None
+
+                    # 2. STANDARD CASE: For traditional models (1.5, 2.0, 2.5), use region checks in Hamina (target_location)
                     try:
                         # Initialize Vertex AI strictly in the target location
                         vertexai.init(project=project, location=target_location, credentials=credentials)

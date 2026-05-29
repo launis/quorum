@@ -1093,7 +1093,7 @@ class BaseTDAExtraction(BaseModel):
     semantic_reasoning: str = Field(description="Mapping logic explanation in target language.")
     contextual_override: bool = Field(description="Escape hatch for implicit matches.")
     exact_quote: str | None = Field(
-        ...,
+        default=None,
         description="Verbatim quote from original text.",
     )
 

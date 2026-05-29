@@ -412,12 +412,12 @@ class ChunkWorker:
                                     status2 = evaluate_extraction(temp_atom2, local_payload, False)
 
                                     if status1 == "PASS" and status2 != "PASS":
-                                        status = "FAIL"
-                                    else:
                                         status = "PASS"
+                                    else:
+                                        status = "FAIL"
 
                                     atom_data["status"] = status
-                                    if status == "FAIL":
+                                    if status == "PASS":
                                         atom_data["exact_quote"] = atom_data["exact_quote"]
                                         atom_data["semantic_reasoning"] = (
                                             f"Presence detected: {atom_data['semantic_reasoning']}. "
@@ -478,12 +478,12 @@ class ChunkWorker:
                                     status2 = evaluate_extraction(temp_block2, local_payload, False)
 
                                     if status1 == "PASS" and status2 != "PASS":
-                                        status = "FAIL"
-                                    else:
                                         status = "PASS"
+                                    else:
+                                        status = "FAIL"
 
                                     block_data["status"] = status
-                                    if status == "FAIL":
+                                    if status == "PASS":
                                         block_data["exact_quote"] = block_data["exact_quote"]
                                         block_data["semantic_reasoning"] = (
                                             f"Presence detected: {block_data['semantic_reasoning']}. "

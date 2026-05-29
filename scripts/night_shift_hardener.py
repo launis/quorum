@@ -14,18 +14,42 @@ import logging
 import os
 import subprocess
 import sys
+from enum import IntEnum
 from pathlib import Path
 from typing import Literal
 
+from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+# Load environment variables from the project's .env file (for GCP service-account authentication)
+load_dotenv()
+
+
+class RuleLimits(IntEnum):
+    """Define architectural hardening rules limits.
+
+    Use TOTAL_RULES as the single source of truth for the validation matrix count.
+    """
+
+    TOTAL_RULES = 56
+
 
 # --- CONFIGURATION ---
 BACKEND_DIR = Path("backend_v2")
 STATE_FILE = Path("tmp/night_shift_state.json")
 SYSTEM_PROMPT_FILE = Path("scripts/hardening.xml")
 
+# Location/Region management for Vertex AI:
+# We default to "global" (flagship global endpoint with highest quotas, lowest latency,
+# and guaranteed support for Gemini 3.5/Pro/Flash models via the new GenAI SDK), but allow override.
+VERTEX_LOCATION = os.getenv("HARDENING_VERTEX_LOCATION", "global")
+os.environ["VERTEX_LOCATION"] = VERTEX_LOCATION
+os.environ["VERTEXAI_LOCATION"] = VERTEX_LOCATION
+
 # The LLM models supported by Cognitive Quorum V2 (Kehityskohde 5: Dual-Tier)
-PRIMARY_MODEL = "vertex_ai/gemini-2.5-flash"
+# Optimized as a hybrid flagship stack: Primary sweep with Gemini 3.5 Flash,
+# escalating to the validated stable Gemini 2.5 Pro for complex self-healing loops.
+PRIMARY_MODEL = "vertex_ai/gemini-3.5-flash"
 HEALING_MODEL = "vertex_ai/gemini-2.5-pro"
 
 # Concurrency and FinOps Rate Limit controls
@@ -80,11 +104,16 @@ def allow_sleep() -> None:
 
 
 class AuditItem(BaseModel):
-    """Pydantic model representing a single rule check from the 50-rule matrix."""
+    """Pydantic model representing a single rule check from the audit matrix."""
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    rule_id: int = Field(..., ge=1, le=50, description="Säännön numero (1-50)")
+    rule_id: int = Field(
+        ...,
+        ge=1,
+        le=RuleLimits.TOTAL_RULES.value,
+        description=f"Säännön numero (1-{RuleLimits.TOTAL_RULES.value})",
+    )
     rule_name: str = Field(..., description="Tarkistettavan säännön kuvaus")
     status: Literal["Pass", "Fail", "Not_Applicable"]
     finding: str = Field(..., description="Konkreettinen löydös koodista tai perustelu")
@@ -94,14 +123,17 @@ class HardeningResponse(BaseModel):
     """Pydantic model representing the output of the headless Python file hardening.
 
     Attributes:
-        audit_matrix: Exactly 50 audit items, one for each rule in the matrix.
+        audit_matrix: Exactly total rules audit items, one for each rule in the matrix.
         is_rewritten: Boolean indicating whether changes were made.
         hardened_code: The completely rewritten, Phase 9 compliant Python file content.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    audit_matrix: list[AuditItem] = Field(..., description="Tasan 50-rivinen laatuporttimatriisi")
+    audit_matrix: list[AuditItem] = Field(
+        ...,
+        description=f"Tasan {RuleLimits.TOTAL_RULES.value}-rivinen laatuporttimatriisi",
+    )
     is_rewritten: bool = Field(..., description="Tehtiinkö tiedostoon muutoksia?")
     hardened_code: str = Field(
         ...,
@@ -110,10 +142,12 @@ class HardeningResponse(BaseModel):
 
     @field_validator("audit_matrix")
     @classmethod
-    def validate_exactly_50_checks(cls, v: list[AuditItem]) -> list[AuditItem]:
-        """Validate that the LLM returned exactly 50 checklist items to prevent laziness."""
-        if len(v) != 50:
-            raise ValueError(f"The audit checklist must contain exactly 50 items, but got {len(v)}.")
+    def validate_exactly_total_checks(cls, v: list[AuditItem]) -> list[AuditItem]:
+        """Validate that the LLM returned exactly the configured number of checklist items to prevent laziness."""
+        if len(v) != RuleLimits.TOTAL_RULES.value:
+            raise ValueError(
+                f"The audit checklist must contain exactly {RuleLimits.TOTAL_RULES.value} items, but got {len(v)}."
+            )
         return v
 
 
@@ -270,6 +304,7 @@ async def process_file_with_retry(
                     messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
                     temperature=0.0,
                     response_format=HardeningResponse,
+                    vertex_location=VERTEX_LOCATION,
                 )
 
                 raw_json = response.choices[0].message.content
@@ -339,6 +374,17 @@ async def process_file_with_retry(
                         text=True,
                         check=True,
                         timeout=60.0,
+                    )
+
+                    # Execute Bandit SAST security scan to prevent LLM outputs from
+                    # introducing security vulnerabilities or hardcoded secrets.
+                    logger.info(f"🛡️ Running Bandit SAST security scan on {target_file.name}")
+                    subprocess.run(
+                        ["uv", "run", "--with", "bandit", "bandit", "-r", target_file.as_posix(), "-lll"],
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                        timeout=30.0,
                     )
                 except subprocess.CalledProcessError as audit_err:
                     error_details = audit_err.stderr or audit_err.stdout or ""

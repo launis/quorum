@@ -384,6 +384,8 @@ class LiteLLMProvider(LLMProvider):
 
             max_rate_limit_retries = SystemConcurrency.LLM_MAX_RETRIES.value
             response = None
+            fallback_occurred = False
+            actual_model = self.model_name
 
             # Phase 3, Step 4: Enforce Exponential Backoff with Random Jitter
             async for attempt in AsyncRetrying(
@@ -410,10 +412,32 @@ class LiteLLMProvider(LLMProvider):
                     _timeout = call_kwargs["timeout"]
                     # Grab the stored dynamic Semaphore to throttle HTTP-level requests under low RPM
                     semaphore = self.__class__._semaphores[self.cache_key]
+
+                    # Downgrade to Flash on the final retry attempt if we are not already using it
+                    # to protect high-cognitive steps from failing completely.
+                    if attempt.retry_state.attempt_number == (max_rate_limit_retries + 1):
+                        if self.model_name != "vertex_ai/gemini-2.5-flash":
+                            logger.warning(
+                                "[Fail-Soft Fallback] Heavy model strategy '%s' exhausted on attempt %s. "
+                                "Downgrading model to 'vertex_ai/gemini-2.5-flash' to guarantee execution safety.",
+                                self.model_name,
+                                attempt.retry_state.attempt_number,
+                            )
+                            call_kwargs["model"] = "vertex_ai/gemini-2.5-flash"
+                            actual_model = "vertex_ai/gemini-2.5-flash"
+                            fallback_occurred = True
+
                     async with semaphore:
-                        response = await asyncio.wait_for(
-                            self.router.acompletion(**call_kwargs), timeout=float(_timeout)
-                        )
+                        if fallback_occurred:
+                            # Bypass the internal Router list constraint since gemini-2.5-flash
+                            # is not in the Router's single-model list.
+                            response = await asyncio.wait_for(
+                                litellm.acompletion(**call_kwargs), timeout=float(_timeout)
+                            )
+                        else:
+                            response = await asyncio.wait_for(
+                                self.router.acompletion(**call_kwargs), timeout=float(_timeout)
+                            )
 
             if response is None:
                 raise ServiceUnavailableError("Failed to get a response from the model provider.")
@@ -509,8 +533,8 @@ class LiteLLMProvider(LLMProvider):
             # --- COST TRACKING ---
             cost = 0.0
             try:
-                # Calculate cost using LiteLLM, explicitly passing model name without provider prefix
-                base_model_name = self.model_name.split("/")[-1] if "/" in self.model_name else self.model_name
+                # Calculate cost using LiteLLM, explicitly passing the actual model name to ensure FinOps accuracy.
+                base_model_name = actual_model.split("/")[-1] if "/" in actual_model else actual_model
                 cost = litellm.completion_cost(completion_response=response, model=base_model_name)
             except Exception as e:
                 logger.error("[LiteLLMProvider] Cost Calculation Failed: %s", e)
@@ -526,11 +550,11 @@ class LiteLLMProvider(LLMProvider):
                     t_usr = kwargs["user_id"] if "user_id" in kwargs else None
                     target_user = t_usr or "system_agent"
 
-                    # Track usage asynchronously (fire and forget for now, or await)
+                    # Track usage asynchronously using the actual model name to log fallback statistics correctly.
                     await self.usage_service.track_usage(
                         org_id=target_org,
                         user_id=target_user,
-                        model=self.model_name,
+                        model=actual_model,
                         input_tokens=int(usage["prompt_tokens"] if "prompt_tokens" in usage else 0),
                         output_tokens=int(usage["completion_tokens"] if "completion_tokens" in usage else 0),
                         cached_tokens=int(usage["cached_tokens"] if "cached_tokens" in usage else 0),
@@ -567,6 +591,11 @@ class LiteLLMProvider(LLMProvider):
                 system_fingerprint=system_fingerprint,
                 tool_calls=extracted_tool_calls if extracted_tool_calls else [],
                 messages=final_messages,
+                override_reason=(
+                    "Downgraded to vertex_ai/gemini-2.5-flash due to rate limit or timeout on heavy model"
+                    if fallback_occurred
+                    else None
+                ),
             )
 
         except Exception as e:
