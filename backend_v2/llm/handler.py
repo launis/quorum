@@ -15,12 +15,6 @@ from backend_v2.utils.pydantic_utils import inflate
 
 try:
     import google.auth
-    import requests
-    import vertexai
-    from google.api_core import client_options as g_client_options
-    from google.auth.transport.requests import Request as GRequest
-    from google.cloud import aiplatform_v1
-    from vertexai.generative_models import GenerativeModel
 
     GOOGLE_DEPS_AVAILABLE = True
 except ImportError:
@@ -38,27 +32,19 @@ class LLMHandler:
     def _check_model_availability(self, model_id: str, location: str) -> bool:
         """Validates if a specific model_id (e.g., 'vertex_ai/gemini-1.5-pro') is available.
 
-        Attempts to fetch its metadata in the target location.
+        Attempts to fetch its metadata in the target location using modern GenAI V2 Client.
         """
-        if not GOOGLE_DEPS_AVAILABLE:
-            return False
-
         try:
-            api_endpoint = f"{location}-aiplatform.googleapis.com"
-            client = aiplatform_v1.ModelGardenServiceClient(
-                client_options=g_client_options.ClientOptions(api_endpoint=api_endpoint)
-            )
+            from google import genai
 
-            # The name format for retrieving is "publishers/google/models/{model_name}"
-            # model_id input is usually "vertex_ai/{model_name}" or just "{model_name}" logic
             clean_name = model_id.split("/")[-1]
-            resource_name = f"publishers/google/models/{clean_name}"
+            if clean_name == "gemini-3.5-pro":
+                return False
 
-            # We use get_publisher_model to check existence
-            client.get_publisher_model(name=resource_name)
+            client = genai.Client(vertexai=True, location=location)
+            client.models.get(model=clean_name)
             return True
         except Exception:
-            # If it fails (404 or other error), we assume unavailable
             return False
 
     def __init__(self, repo: Any):
@@ -147,16 +133,15 @@ class LLMHandler:
 
                 import litellm
 
-                # Get all candidates
+                # Get all candidates (Gemini, Claude, Llama, Mistral for Vertex AI)
                 all_models = litellm.model_list
                 candidates = []
                 for m in all_models:
                     if not isinstance(m, str):
                         continue
                     m_lower = m.lower()
-                    if "gemini" in m_lower:
-                        # We prefer vertex_ai prefix, but keep raw 'gemini' if valid
-                        if m_lower.startswith("vertex_ai/") or m_lower.startswith("gemini"):
+                    if m_lower.startswith("vertex_ai/") or m_lower.startswith("gemini"):
+                        if any(kw in m_lower for kw in ["gemini", "claude", "llama", "mistral"]):
                             candidates.append(m)
 
                 candidates = sorted(list(set(candidates)))
@@ -169,16 +154,12 @@ class LLMHandler:
                     credentials, project = google.auth.default(  # type: ignore[no-untyped-call]
                         scopes=["https://www.googleapis.com/auth/cloud-platform"]
                     )
-                    credentials.refresh(GRequest())  # type: ignore[no-untyped-call]
-                    token = credentials.token
                 except Exception as auth_err:
                     # Fail Fast: If we can't authenticate, we can't discover or use models.
                     raise ConfigurationError(
                         message="Google Authentication failed during discovery.",
                         details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value, "original_error": str(auth_err)},
                     ) from auth_err
-
-                headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
                 def check_model(model_id: str) -> str | None:
                     # Clean model ID for API call
@@ -187,48 +168,61 @@ class LLMHandler:
                         if clean_id.startswith(prefix):
                             clean_id = clean_id[len(prefix) :]
 
-                    # 1. SPECIAL CASE: For Gemini 3.x models, use the modern google-genai Client
-                    # to check their global availability.
-                    if "gemini-3." in clean_id:
+                    # Proactive censorship of dysfunctional gemini-3.5-pro
+                    if clean_id == "gemini-3.5-pro":
+                        return None
+
+                    # Luokitellaan julkaisija nimen perusteella
+                    clean_lower = clean_id.lower()
+                    if "claude" in clean_lower:
+                        publisher = "anthropic"
+                    elif "llama" in clean_lower:
+                        publisher = "meta"
+                    elif "mistral" in clean_lower:
+                        publisher = "mistralai"
+                    else:
+                        publisher = "google"
+
+                    if publisher == "google":
+                        # Gemini 3.x models use 'global' location by default,
+                        # whereas traditional models check target_location (Hamina europe-north1)
+                        model_location = "global" if "gemini-3." in clean_id else target_location
                         try:
                             from google import genai
-                            # Initialize modern GenAI client with global endpoint
-                            modern_client = genai.Client(
-                                vertexai=True,
-                                project=project,
-                                location="global"
-                            )
+
+                            # Initialize modern GenAI client with V2 SDK
+                            modern_client = genai.Client(vertexai=True, project=project, location=model_location)
                             # Get model metadata to verify availability
                             _ = modern_client.models.get(model=clean_id)
-                            # Explicitly exclude gemini-3.5-pro as empirical tests prove
-                            # it does not support content generation yet (404).
-                            if clean_id == "gemini-3.5-pro":
-                                return None
                             return f"vertex_ai/{clean_id}"
                         except Exception:
                             return None
-
-                    # 2. STANDARD CASE: For traditional models (1.5, 2.0, 2.5), use region checks in Hamina (target_location)
-                    try:
-                        # Initialize Vertex AI strictly in the target location
-                        vertexai.init(project=project, location=target_location, credentials=credentials)
-
-                        # Just initializing the model objects acts as a validation that the string
-                        # name is somewhat valid. To be absolutely sure, we'd need to call it, but
-                        # that costs money and time. For now we just verify we can instantiate it
-                        # using the Vertex AI SDK which does some basic validation.
+                    else:
+                        # Kolmansien osapuolien Model Garden -mallit
                         try:
-                            _ = GenerativeModel(clean_id)
-                            # Also verify it via the publisher models API to be doubly safe
-                            url = f"https://{target_location}-aiplatform.googleapis.com/v1/publishers/google/models/{clean_id}"
+                            import google.auth.transport.requests
+                            import requests
+
+                            # Refresh token for REST API usage
+                            auth_request = google.auth.transport.requests.Request()  # type: ignore[no-untyped-call] # google-auth has no type stubs
+                            credentials.refresh(auth_request)
+                            headers = {"Authorization": f"Bearer {credentials.token}"}
+
+                            # Varmistetaan olemassaolo dynaamisen julkaisija-osoitteen kautta
+                            url = f"https://{target_location}-aiplatform.googleapis.com/v1/publishers/{publisher}/models/{clean_id}"
                             resp = requests.get(url, headers=headers, timeout=5)
                             if resp.status_code == 200:
                                 return f"vertex_ai/{clean_id}"
+
+                            # Kokeillaan myös täydellistä projektipolkua varalta
+                            url_project = f"https://{target_location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{target_location}/publishers/{publisher}/models/{clean_id}"
+                            resp_project = requests.get(url_project, headers=headers, timeout=5)
+                            if resp_project.status_code == 200:
+                                return f"vertex_ai/{clean_id}"
+
                             return None
                         except Exception:
                             return None
-                    except Exception:
-                        return None
 
                 # Parallel Validation
                 logger.info("[LLMHandler] discovering %d models; validating in %s...", len(candidates), target_location)
@@ -306,6 +300,37 @@ class LLMHandler:
                 )
                 raise ServiceUnavailableError(
                     message=f"OpenAI Model Discovery Failed: {e}",
+                    details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
+                ) from e
+
+        # --- ANTHROPIC (Direct API) ---
+        if "anthropic" in providers:
+            try:
+                anthropic_models = [
+                    "anthropic/claude-3-5-sonnet-20241022",
+                    "anthropic/claude-3-5-sonnet",
+                    "anthropic/claude-3-5-haiku-20241022",
+                    "anthropic/claude-3-opus-20240229",
+                ]
+                if settings.anthropic_api_key:
+                    models["anthropic"] = anthropic_models
+                else:
+                    raise ConfigurationError(
+                        message="ANTHROPIC_API_KEY not found in environment or settings.",
+                        details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
+                    )
+            except Exception as e:
+                if isinstance(e, AppException):
+                    raise e
+
+                logger.error(
+                    "[LLMHandler] %s: Error fetching/validating Anthropic models: %s",
+                    ErrorCodes.MODEL_LIST_FAILED.name,
+                    e,
+                    exc_info=True,
+                )
+                raise ServiceUnavailableError(
+                    message=f"Anthropic Model Discovery Failed: {e}",
                     details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
                 ) from e
 

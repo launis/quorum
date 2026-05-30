@@ -111,6 +111,109 @@ void main() {
       // Restore error widget builder at the very end
       ErrorWidget.builder = originalErrorBuilder;
     });
+
+    testWidgets(
+      'handles non-existent or filtered-out criteria block ID without assertion crash',
+      (WidgetTester tester) async {
+        final originalErrorBuilder = ErrorWidget.builder;
+        bool hasAssertError = false;
+
+        // Mock Flutter's FlutterError.onError to detect assertions
+        final originalOnError = FlutterError.onError;
+        FlutterError.onError = (FlutterErrorDetails details) {
+          if (details.exception.toString().contains('Failed assertion:')) {
+            hasAssertError = true;
+          }
+          originalOnError?.call(details);
+        };
+
+        final mockStep = NodeStrategy.llm(
+          id: 'test_step_1',
+          slug: 'test_slug',
+          name: I18nText(defaultLocale: 'en', translations: {'en': 'Test'}),
+          criteriaBlockIds: ['block_c'], // block_c is filtered out!
+        );
+
+        final List<PromptBlock> mockPromptBlocks = [
+          const PromptBlock(
+            id: 'block_a',
+            slug: 'block_a',
+            categoryId: 'criteria',
+            label: I18nText(
+              defaultLocale: 'en',
+              translations: {'en': 'Block A'},
+            ),
+            description: I18nText(
+              defaultLocale: 'en',
+              translations: {'en': 'Desc A'},
+            ),
+          ),
+          const PromptBlock(
+            id: 'block_c',
+            slug: 'block_c',
+            categoryId:
+                'context', // Context blocks are filtered out of criteria dropdown items
+            label: I18nText(
+              defaultLocale: 'en',
+              translations: {'en': 'Block C'},
+            ),
+            description: I18nText(
+              defaultLocale: 'en',
+              translations: {'en': 'Desc C'},
+            ),
+          ),
+        ];
+
+        final mockClient = MockStudioClient();
+        when(() => mockClient.getPromptBlocks()).thenAnswer(
+          (_) async => mockPromptBlocks.map((e) => e.toJson()).toList(),
+        );
+        when(() => mockClient.getMcpGateways()).thenAnswer((_) async => []);
+        when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
+
+        final mockLogger = MockLoggerService();
+        when(
+          () => mockLogger.error(any(), any(), any(), any()),
+        ).thenReturn(null);
+
+        try {
+          await tester.pumpWidget(
+            ProviderScope(
+              overrides: [
+                studioClientProvider.overrideWithValue(mockClient),
+                loggerServiceProvider.overrideWithValue(mockLogger),
+                promptBlocksControllerProvider.overrideWith(() {
+                  return MockPromptBlocksController(mockPromptBlocks);
+                }),
+                modelRegistryControllerProvider.overrideWith(() {
+                  return MockModelRegistryController();
+                }),
+                stepFormProvider('test_step_1').overrideWith(() {
+                  return MockStepForm(mockStep);
+                }),
+              ],
+              child: MaterialApp(
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                home: StepBuilderView(step: mockStep),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+        } catch (e) {
+          if (e.toString().contains('Failed assertion:')) {
+            hasAssertError = true;
+          }
+        } finally {
+          FlutterError.onError = originalOnError;
+          ErrorWidget.builder = originalErrorBuilder;
+        }
+
+        // If we haven't fixed the bug, hasAssertError will be true (meaning it threw the assertion).
+        // If we fixed the bug, it should NOT throw any assertion error (hasAssertError is false).
+        expect(hasAssertError, isFalse);
+      },
+    );
   });
 }
 

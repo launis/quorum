@@ -127,6 +127,12 @@
         <catastrophic_reason>Failing to parse the exact backend Enum causes the Dart UI to silently fall back to defaults, hiding elements off-screen and subsequently wiping those fields from the live Database upon the next User Save.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="dropdown_database_alignment">
+        <banned_pattern>Filtering dropdown items with hardcoded UI-only string filters (e.g. `categoryId == 'matrix'`) that do not match the database, or using UI fallbacks to mask schema mismatches.</banned_pattern>
+        <mandatory_pattern>All dropdown items filter conditions depending on database categories MUST be strictly aligned with the database schema. Define these allowed categories explicitly as grouped lists inside `PromptBlockCategoryGroups` in `enums.dart` and use them to filter items.</mandatory_pattern>
+        <catastrophic_reason>Hardcoded string filters that mismatch backend seed data categories cause fatal Flutter 'DropdownButton' assertion crashes during reactive mid-flight rebuilds.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="frontend_zero_db_hardcoding_mandate">
         <banned_pattern>Hardcoding database IDs, specific node names, or fixed array indices in Flutter UI logic (e.g. `if (node.id == 'main_node')` or `final first = data.blocks[0]`).</banned_pattern>
         <mandatory_pattern>Flutter UI MUST NOT know about or rely on specific database record identifiers. Rendering and logic must be driven entirely by the generic schema types (e.g. `block.type == BlockType.matrix`) or explicitly provided configuration lists. The layout must be purely SDUI (Server-Driven UI) compliant.</mandatory_pattern>

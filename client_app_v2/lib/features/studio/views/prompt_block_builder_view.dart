@@ -139,6 +139,13 @@ class PromptBlockBuilderView extends HookConsumerWidget {
     PromptBlock payload,
     String blockId,
   ) {
+    final isMatrix =
+        payload.categoryId == 'matrix' &&
+        (blockId != 'new' ||
+            payload.scales != null ||
+            payload.rows != null ||
+            payload.columns != null);
+
     final validateMutation = useMutation<Map<String, dynamic>>(
       onSuccess: (data) {
         if (context.mounted) {
@@ -379,6 +386,14 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         DropdownButtonFormField<PromptBlockCategory>(
                           decoration: InputDecoration(
                             labelText: l10n.categoryLabel,
+                            helperText: isMatrix
+                                ? (Localizations.localeOf(
+                                            context,
+                                          ).languageCode ==
+                                          'fi'
+                                      ? 'Arviointimatriisin kategoria on lukittu muodon säilyttämiseksi.'
+                                      : 'Evaluation matrix category is locked to preserve structure.')
+                                : null,
                           ),
                           initialValue: PromptBlockCategory.fromId(
                             payload.categoryId,
@@ -389,17 +404,21 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                               child: Text(category.displayName(context)),
                             );
                           }).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              ref
-                                  .read(
-                                    promptBlockFormProvider(blockId).notifier,
-                                  )
-                                  .forceRebuild(
-                                    payload.copyWith(categoryId: val.id),
-                                  );
-                            }
-                          },
+                          onChanged: isMatrix
+                              ? null
+                              : (val) {
+                                  if (val != null) {
+                                    ref
+                                        .read(
+                                          promptBlockFormProvider(
+                                            blockId,
+                                          ).notifier,
+                                        )
+                                        .forceRebuild(
+                                          payload.copyWith(categoryId: val.id),
+                                        );
+                                  }
+                                },
                         ),
                         const SizedBox(height: 16),
 
@@ -793,7 +812,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                     ),
                   ),
                 ),
-                if (payload.type != BlockDataType.instruction) ...[
+                if (payload.categoryId == 'matrix') ...[
                   const SizedBox(height: 16),
                   _buildRowListCard(
                     context,

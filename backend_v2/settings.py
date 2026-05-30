@@ -317,6 +317,10 @@ class Settings(BaseSettings):
         if self.openai_api_key:
             providers.append("openai")
 
+        # Anthropic
+        if self.anthropic_api_key:
+            providers.append("anthropic")
+
         # Mock override (if enabled, ensuring it appears for dev)
         if self.use_mock_llm and "mock" not in providers:
             providers.append("mock")

@@ -50,8 +50,18 @@ void main() {
 
         final result = EmbeddedOutputProfile.fromJson(jsonPayload);
 
-        expect(result.visibleExtensions.contains(XaiExtensionType.varianceValidation), isTrue);
-        expect(result.visibleExtensions.contains(XaiExtensionType.contextualOverride), isTrue);
+        expect(
+          result.visibleExtensions.contains(
+            XaiExtensionType.varianceValidation,
+          ),
+          isTrue,
+        );
+        expect(
+          result.visibleExtensions.contains(
+            XaiExtensionType.contextualOverride,
+          ),
+          isTrue,
+        );
       },
     );
   });

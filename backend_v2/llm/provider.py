@@ -1,6 +1,7 @@
 """LLM Provider implementations (LiteLLM, Mock, Unconfigured)."""
 
 import asyncio
+import copy
 import json
 import logging
 import os
@@ -314,6 +315,18 @@ class LiteLLMProvider(LLMProvider):
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 ) from schema_err
 
+        # Epic 65: Resolve active location with strict priority logic
+        config_location = self._config.vertex_location if self._config else None
+        settings_location = self.settings.vertex_location if self.settings else None
+        env_location = os.getenv("HARDENING_VERTEX_LOCATION")
+        active_location = (
+            kwargs.get("vertex_location") or config_location or settings_location or env_location or "europe-north1"
+        )
+
+        # Ensisijaisesti käyttöliittymästä/konfiguraatiosta valittu alue
+        os.environ["VERTEX_LOCATION"] = active_location
+        os.environ["VERTEXAI_LOCATION"] = active_location
+
         try:
             # --- LOGGING ---
             def _truncate_for_debug(text: str, label: str) -> None:
@@ -334,7 +347,7 @@ class LiteLLMProvider(LLMProvider):
             elif messages:
                 _truncate_for_debug(str(messages)[:100] + "...(truncated)", "MESSAGES ARRAY")
 
-            logger.info("[LiteLLM] Calling %s...", self.model_name)
+            logger.info("[LiteLLM] Calling %s in region %s...", self.model_name, active_location)
 
             # Prepare arguments
             call_kwargs = {
@@ -347,6 +360,7 @@ class LiteLLMProvider(LLMProvider):
                 "response_format": response_format,
                 "api_key": self.api_key,
                 "drop_params": True,
+                "vertex_location": active_location,
                 # STRICT NETWORK TIMEOUT: Fail fast instead of hanging forever.
                 "timeout": kwargs["timeout"] if "timeout" in kwargs else self.settings.llm_default_timeout,
                 # SAFETY FILTERS (Auditing Requirement):
@@ -375,8 +389,6 @@ class LiteLLMProvider(LLMProvider):
                         message=f"Diagnostic dump dispatch failed: {e}",
                         details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                     ) from e
-
-            start_time = time.perf_counter()
 
             # --- CALL LiteLLM (Unstructured or Structured Native) ---
             # Remove keys that shouldn't be passed directly
@@ -427,7 +439,28 @@ class LiteLLMProvider(LLMProvider):
                             actual_model = "vertex_ai/gemini-2.5-flash"
                             fallback_occurred = True
 
+                            # Clean up any cache_control keys from the messages payload
+                            # to prevent model/cache mismatch on Vertex AI
+                            if "messages" in call_kwargs:
+                                clean_messages = []
+                                for msg in call_kwargs["messages"]:
+                                    clean_msg = copy.deepcopy(msg)
+                                    content = clean_msg.get("content")
+                                    if isinstance(content, list):
+                                        new_content = []
+                                        for part in content:
+                                            if isinstance(part, dict):
+                                                part_copy = copy.deepcopy(part)
+                                                part_copy.pop("cache_control", None)
+                                                new_content.append(part_copy)
+                                            else:
+                                                new_content.append(part)
+                                        clean_msg["content"] = new_content
+                                    clean_messages.append(clean_msg)
+                                call_kwargs["messages"] = clean_messages
+
                     async with semaphore:
+                        start_time = time.perf_counter()
                         if fallback_occurred:
                             # Bypass the internal Router list constraint since gemini-2.5-flash
                             # is not in the Router's single-model list.
@@ -1016,6 +1049,9 @@ class LLMFactory:
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
 
+        if provider_type == "anthropic" and not model_name.startswith("anthropic/"):
+            model_name = f"anthropic/{model_name}"
+
         resolved_api_key = api_key
         if not resolved_api_key:
             if provider_type == "litellm":
@@ -1023,7 +1059,7 @@ class LLMFactory:
                     resolved_api_key = settings.google_api_key
                 elif "gpt" in model_name or "o1" in model_name:
                     resolved_api_key = settings.openai_api_key
-                elif "claude" in model_name:
+                elif "claude" in model_name or "anthropic" in model_name:
                     resolved_api_key = settings.anthropic_api_key
 
         # Determine fallback if still empty and logic required
@@ -1035,6 +1071,10 @@ class LLMFactory:
                     resolved_api_key = settings.openai_api_key
                     if not resolved_api_key:
                         resolved_api_key = os.getenv("OPENAI_API_KEY")
+                case "anthropic":
+                    resolved_api_key = settings.anthropic_api_key
+                    if not resolved_api_key:
+                        resolved_api_key = os.getenv("ANTHROPIC_API_KEY")
 
         return LiteLLMProvider(
             model_name=model_name,

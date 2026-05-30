@@ -136,7 +136,9 @@ class XAIExtensionsBox extends ConsumerWidget {
                     Row(
                       children: [
                         Icon(
-                          extKey == 'variance_validation' ? Icons.balance : Icons.extension,
+                          extKey == 'variance_validation'
+                              ? Icons.balance
+                              : Icons.extension,
                           color: colorScheme.tertiary,
                           size: 24,
                         ),
@@ -164,10 +166,15 @@ class XAIExtensionsBox extends ConsumerWidget {
                         final val = extItems[index];
 
                         if (extKey == 'variance_validation' && val is Map) {
-                          final score = (val['variance_score'] as num?)?.toDouble() ?? 0.0;
-                          final verdict = val['alignment_verdict']?.toString() ?? 'ALIGNED';
-                          final mechRef = val['mechanical_metric_ref']?.toString() ?? '';
-                          final cogRef = val['cognitive_metric_ref']?.toString() ?? '';
+                          final score =
+                              (val['variance_score'] as num?)?.toDouble() ??
+                              0.0;
+                          final verdict =
+                              val['alignment_verdict']?.toString() ?? 'ALIGNED';
+                          final mechRef =
+                              val['mechanical_metric_ref']?.toString() ?? '';
+                          final cogRef =
+                              val['cognitive_metric_ref']?.toString() ?? '';
 
                           return VarianceGaugeWidget(
                             score: score,
@@ -323,7 +330,8 @@ class VarianceGaugeWidget extends StatelessWidget {
               ),
             ),
             Tooltip(
-              message: 'Compares performative linguistic patterns ($mechanicalRef) against cognitive authenticity ($cognitiveRef).',
+              message:
+                  'Compares performative linguistic patterns ($mechanicalRef) against cognitive authenticity ($cognitiveRef).',
               child: Icon(
                 Icons.info_outline,
                 color: theme.colorScheme.onSurfaceVariant,
@@ -359,7 +367,11 @@ class VarianceGaugeWidget extends StatelessWidget {
                             alignment: Alignment.center,
                             child: const Text(
                               'Aligned',
-                              style: TextStyle(fontSize: 8, color: Color(0xFF1B5E20), fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 8,
+                                color: Color(0xFF1B5E20),
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
@@ -370,7 +382,11 @@ class VarianceGaugeWidget extends StatelessWidget {
                             alignment: Alignment.center,
                             child: const Text(
                               'Mild',
-                              style: TextStyle(fontSize: 8, color: Color(0xFFE65100), fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 8,
+                                color: Color(0xFFE65100),
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
@@ -381,7 +397,11 @@ class VarianceGaugeWidget extends StatelessWidget {
                             alignment: Alignment.center,
                             child: const Text(
                               'Severe',
-                              style: TextStyle(fontSize: 8, color: Color(0xFFC62828), fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 8,
+                                color: Color(0xFFC62828),
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
@@ -396,7 +416,9 @@ class VarianceGaugeWidget extends StatelessWidget {
                     children: [
                       CustomPaint(
                         size: const Size(24, 12),
-                        painter: TrianglePainter(color: theme.colorScheme.primary),
+                        painter: TrianglePainter(
+                          color: theme.colorScheme.primary,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Text(
@@ -442,4 +464,3 @@ class TrianglePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

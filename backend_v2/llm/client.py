@@ -132,6 +132,7 @@ class LLMClient:
             default_max_tokens=target_strategy.max_tokens,
             supports_grounding=target_strategy.supports_grounding,
             parsing_mode=target_strategy.parsing_mode,
+            caching_strategy=target_strategy.caching_strategy,
             additional_params=target_strategy.additional_params,
         )
 
@@ -187,9 +188,21 @@ class LLMClient:
                     original_text = msg["content"]
                     # Ensure content is a string before wrapping it
                     if isinstance(original_text, str):
-                        msg["content"] = [
-                            {"type": "text", "text": original_text, "cache_control": {"type": "ephemeral"}}
-                        ]
+                        # Google Vertex AI requires a minimum of 1024 tokens to enable context caching.
+                        # If a small prompt (< 1024 tokens) is sent with context caching enabled,
+                        # the Vertex AI API throws a hard 400 Bad Request error.
+                        # We apply a safe defensive character-length threshold
+                        # (~6000 characters, which is roughly 1500 tokens).
+                        if len(original_text) >= 6000:
+                            msg["content"] = [
+                                {"type": "text", "text": original_text, "cache_control": {"type": "ephemeral"}}
+                            ]
+                        else:
+                            logger.info(
+                                "[LLMClient] System prompt size (%d chars) is below "
+                                "the caching threshold. Caching bypassed.",
+                                len(original_text),
+                            )
                     break
 
         # 2. Resolve Configuration (SSOT Priority)

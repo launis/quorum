@@ -15,8 +15,9 @@ import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
-import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 
 class StepBuilderView extends HookConsumerWidget {
   final dynamic step;
@@ -401,7 +402,7 @@ class StepBuilderView extends HookConsumerWidget {
                         const SizedBox(height: 16),
                         I18nTextField(
                           label: l10n.descriptionLabel,
-                          initialData: payload.description ?? const I18nText(),
+                          initialData: payload.description ?? I18nText(),
                           onChanged: (val) {
                             ref
                                 .read(stepFormProvider(stepId).notifier)
@@ -692,7 +693,15 @@ class StepBuilderView extends HookConsumerWidget {
                               border: OutlineInputBorder(),
                               isDense: true,
                             ),
-                            initialValue: payload.roleBlockId,
+                            initialValue:
+                                promptBlocks.any(
+                                  (m) =>
+                                      m.id == payload.roleBlockId &&
+                                      PromptBlockCategoryGroups.roleCategories
+                                          .contains(m.categoryId),
+                                )
+                                ? payload.roleBlockId
+                                : null,
                             items: [
                               DropdownMenuItem<String>(
                                 value: null,
@@ -700,9 +709,9 @@ class StepBuilderView extends HookConsumerWidget {
                               ),
                               ...promptBlocks
                                   .where(
-                                    (m) =>
-                                        m.categoryId == 'role' ||
-                                        m.slug.contains('role'),
+                                    (m) => PromptBlockCategoryGroups
+                                        .roleCategories
+                                        .contains(m.categoryId),
                                   )
                                   .map((m) {
                                     final currentLocale =
@@ -768,7 +777,17 @@ class StepBuilderView extends HookConsumerWidget {
                               border: OutlineInputBorder(),
                               isDense: true,
                             ),
-                            initialValue: payload.extractionProtocolBlockId,
+                            initialValue:
+                                promptBlocks.any(
+                                  (m) =>
+                                      m.id ==
+                                          payload.extractionProtocolBlockId &&
+                                      PromptBlockCategoryGroups
+                                          .protocolCategories
+                                          .contains(m.categoryId),
+                                )
+                                ? payload.extractionProtocolBlockId
+                                : null,
                             items: [
                               DropdownMenuItem<String>(
                                 value: null,
@@ -776,11 +795,9 @@ class StepBuilderView extends HookConsumerWidget {
                               ),
                               ...promptBlocks
                                   .where(
-                                    (m) =>
-                                        m.categoryId == 'instruction' ||
-                                        m.type == BlockDataType.instruction ||
-                                        m.slug.contains('extraction') ||
-                                        m.slug.contains('protocol'),
+                                    (m) => PromptBlockCategoryGroups
+                                        .protocolCategories
+                                        .contains(m.categoryId),
                                   )
                                   .map((m) {
                                     final currentLocale =
@@ -1109,15 +1126,20 @@ class StepBuilderView extends HookConsumerWidget {
               child: DropdownButtonFormField<String>(
                 isExpanded: true,
                 decoration: InputDecoration(labelText: l10n.promptBlockLabel),
-                initialValue: promptBlocks.any((m) => m.id == blockDef)
+                initialValue:
+                    promptBlocks.any(
+                      (m) =>
+                          m.id == blockDef &&
+                          PromptBlockCategoryGroups.criteriaCategories.contains(
+                            m.categoryId,
+                          ),
+                    )
                     ? blockDef
                     : null,
                 items: promptBlocks
                     .where(
-                      (m) =>
-                          m.categoryId == 'matrix' ||
-                          m.categoryId == 'text' ||
-                          m.categoryId == 'criteria',
+                      (m) => PromptBlockCategoryGroups.criteriaCategories
+                          .contains(m.categoryId),
                     )
                     .map((m) {
                       final currentLocale = Localizations.localeOf(

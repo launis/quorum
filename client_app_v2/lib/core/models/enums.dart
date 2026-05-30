@@ -169,3 +169,23 @@ enum EvaluationTrack {
   @JsonValue('COGNITIVE_JUDGEMENT')
   cognitiveJudgement,
 }
+
+/// Allowed groupings of PromptBlockCategory values for different dropdown selectors.
+class PromptBlockCategoryGroups {
+  /// Categories allowed for Role Blocks.
+  static final List<String> roleCategories = ['agent_role'];
+
+  /// Categories allowed for Protocol Blocks.
+  static final List<String> protocolCategories = ['instruction', 'system_rule'];
+
+  /// Categories allowed for Criteria Blocks.
+  static final List<String> criteriaCategories = [
+    'matrix',
+    'system_rule',
+    'runtime_variables',
+    'task_definition',
+    'instruction',
+    'criteria',
+    'text',
+  ];
+}

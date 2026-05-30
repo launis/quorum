@@ -129,3 +129,91 @@ async def test_semantic_self_healing_retry(mock_create_provider: MagicMock) -> N
     # Confirm Semantic instruction strings
     assert "CRITICAL LOGICAL ERROR" in socratic_system
     assert "STRICT JSON SCHEMA VALIDATION FAILED" in socratic_system
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_caching_threshold_small_prompt(mock_create_provider: MagicMock) -> None:
+    """Ensure context caching is skipped for small system prompts to prevent Vertex AI BadRequest crashes."""
+    mock_provider = AsyncMock()
+    mock_provider.generate = AsyncMock()
+    mock_create_provider.return_value = mock_provider
+
+    mock_response = MagicMock()
+    mock_response.content = '{"step_4_final_score": 3}'
+    mock_response.token_usage = {
+        "prompt_tokens": 10,
+        "completion_tokens": 5,
+        "total_tokens": 15,
+        "cached_tokens": 0,
+        "reasoning_tokens": 0,
+        "cost_usd": 0.0,
+    }
+    mock_provider.generate.return_value = mock_response
+
+    # Enable prompt caching on a dummy config
+    c = DummyConfig()
+    c.caching_strategy = "prompt_caching"
+    client = LLMClient(config=cast(Any, c))
+
+    small_system_prompt = "Short system instruction."
+    messages = [
+        {"role": "system", "content": small_system_prompt},
+        {"role": "user", "content": "Hello"}
+    ]
+
+    await client.run_structured_task(messages=messages, response_model=DummyStrictModel)
+
+    # Verify generate arguments
+    args, kwargs = mock_provider.generate.call_args
+    sent_messages = kwargs["messages"]
+
+    # Assert that no "cache_control" was injected because the prompt was small
+    system_msg = sent_messages[0]
+    assert system_msg["role"] == "system"
+    # Should remain plain string, not block list with cache_control!
+    assert isinstance(system_msg["content"], str)
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_caching_threshold_large_prompt(mock_create_provider: MagicMock) -> None:
+    """Ensure context caching is applied for large system prompts."""
+    mock_provider = AsyncMock()
+    mock_provider.generate = AsyncMock()
+    mock_create_provider.return_value = mock_provider
+
+    mock_response = MagicMock()
+    mock_response.content = '{"step_4_final_score": 3}'
+    mock_response.token_usage = {
+        "prompt_tokens": 10,
+        "completion_tokens": 5,
+        "total_tokens": 15,
+        "cached_tokens": 0,
+        "reasoning_tokens": 0,
+        "cost_usd": 0.0,
+    }
+    mock_provider.generate.return_value = mock_response
+
+    c = DummyConfig()
+    c.caching_strategy = "prompt_caching"
+    client = LLMClient(config=cast(Any, c))
+
+    # Large prompt >= 6000 chars
+    large_system_prompt = "A" * 6050
+    messages = [
+        {"role": "system", "content": large_system_prompt},
+        {"role": "user", "content": "Hello"}
+    ]
+
+    await client.run_structured_task(messages=messages, response_model=DummyStrictModel)
+
+    args, kwargs = mock_provider.generate.call_args
+    sent_messages = kwargs["messages"]
+
+    system_msg = sent_messages[0]
+    assert system_msg["role"] == "system"
+    # Should be wrapped in a block list with cache_control
+    assert isinstance(system_msg["content"], list)
+    assert system_msg["content"][0]["cache_control"] == {"type": "ephemeral"}
+
