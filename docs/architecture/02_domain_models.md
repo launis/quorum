@@ -283,6 +283,31 @@ classDiagram
         +dict token_usage
     }
 
+    class CompiledPrompt{
+        <<Epic 67 Caching Tier>>
+        +str model_name
+        +List~dict~ static_messages
+        +List~dict~ dynamic_messages
+        +to_flat_messages()
+    }
+
+    class TokenUsage{
+        <<FinOps Tracking>>
+        +int prompt_tokens
+        +int completion_tokens
+        +int total_tokens
+        +float estimated_savings_usd
+    }
+
+    class VertexTokenUsage{
+        +int cached_content_token_count
+    }
+
+    class AnthropicTokenUsage{
+        +int cache_creation_input_tokens
+        +int cache_read_input_tokens
+    }
+
     V2CoreBase <|-- I18nText
     V2CoreBase <|-- ExpectedInput
     V2CoreBase <|-- Workflow
@@ -304,6 +329,10 @@ classDiagram
     V2CoreBase <|-- StrictMatrixPayload
     V2CoreBase <|-- SynthesisStepDataDTO
     V2CoreBase <|-- SynthesisMetadataDTO
+    V2CoreBase <|-- CompiledPrompt
+    V2CoreBase <|-- TokenUsage
+    TokenUsage <|-- VertexTokenUsage
+    TokenUsage <|-- AnthropicTokenUsage
 
     Workflow *-- ExpectedInput : "määrittää syötteet"
     Workflow *-- StepRule : "sisältää (Opaque DAG Nodes)"

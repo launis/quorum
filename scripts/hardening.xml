@@ -81,11 +81,17 @@
       <rule num="55" id="pathlib_over_ospath">Tiedostopolkujen käsittelyssä vanhan `os.path`-moduulin käyttö on KIELLETTY. Käytä yksinomaan olio-pohjaista `pathlib.Path` -kirjastoa.</rule>
       <rule num="56" id="dead_batteries_ban">Standardikirjaston poistettujen moduulien (kuten `cgi`, `audioop`, `telnetlib`, `imghdr`) käyttö on ankarasti KIELLETTY. Etsi ja korvaa nämä moderneilla kolmannen osapuolen paketeilla.</rule>
     </category>
+
+    <category name="Enterprise Strictness (2026)">
+      <rule num="57" id="pep750_t_strings_only">Käytä dynaamisten LLM-promptien ja SQL-rakenteiden muodostamisessa yksinomaan Python 3.14:n t-stringejä (Template Strings). f-stringit kriittisessä datasyötössä ovat kiellettyjä injection-riskin vuoksi.</rule>
+      <rule num="58" id="pep765_finally_leak_ban">Kielto return-, break- ja continue-lauseille finally-lohkoissa. Virheiden on annettava kuplia Fail-Fast -periaatteen mukaisesti.</rule>
+      <rule num="59" id="pep734_subinterpreters_for_cpu">Raskaat CPU-intensiiviset tausta-ajot, joita ei voi asynkronisoida tehokkaasti, on suoritettava standardikirjaston interpreters-moduulin (subinterpreters) kautta multiprocessingin sijaan aidon rinnakkaisuuden saavuttamiseksi.</rule>
+    </category>
   </architectural_mandates>
 
   <execution_directive>
-    Lue saamasi Python-tiedosto. Tunnista koodista jokainen yllä olevien 56 säännön vastainen purkkaviritys, typistys, puuttuva dokumentaatio (PEP 257) tai legacy-jäänne.
-    Suorita sisäinen auditointi ja täytä `audit_matrix` listaan tasan 56 alkiota (järjestyksessä säännöille 1-56). Jokaiselle alkiolle anna `rule_id` (säännön numero 1-56), `rule_name` (säännön kuvaus), `status` (Pass, Fail tai Not_Applicable) sekä yksityiskohtainen arvio `finding` kenttään.
+    Lue saamasi Python-tiedosto. Tunnista koodista jokainen yllä olevien 59 säännön vastainen purkkaviritys, typistys, puuttuva dokumentaatio (PEP 257) tai legacy-jäänne.
+    Suorita sisäinen auditointi ja täytä `audit_matrix` listaan tasan 59 alkiota (järjestyksessä säännöille 1-59). Jokaiselle alkiolle anna `rule_id` (säännön numero 1-59), `rule_name` (säännön kuvaus), `status` (Pass, Fail tai Not_Applicable) sekä yksityiskohtainen arvio `finding` kenttään.
     Kirjoita koko tiedosto uusiksi kenttään `hardened_code` siten, että se heijastaa absoluuttista Quorum 2026 Enterprise -standardia (Strict Nirvana ja kattava PEP 257 / Google-tyylinen dokumentaatio).
     Palauta vastauksena PELKKÄ koodi ja tarkistusmatriisi pyydetyssä JSON-formaatissa.
   </execution_directive>
