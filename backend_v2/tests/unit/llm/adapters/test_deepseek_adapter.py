@@ -23,7 +23,7 @@ def test_lazy_import_proof() -> None:
 async def test_deepseek_adapter_preparer() -> None:
     """Verify DeepSeek adapter prepares flat messages with empty extra_kwargs."""
     deepseek_adapter = DeepSeekCacheAdapter()
-    
+
     prompt = CompiledPrompt(
         static_messages=[
             {"role": "system", "content": "You are a helpful assistant."},
@@ -33,7 +33,7 @@ async def test_deepseek_adapter_preparer() -> None:
             {"role": "assistant", "content": "Response."},
         ],
     )
-    
+
     ds_messages, ds_kwargs = await deepseek_adapter.prepare_caching_payload(prompt, "deepseek-chat")
     assert ds_messages == prompt.to_flat_messages()
     assert ds_kwargs == {}
@@ -49,9 +49,9 @@ async def test_deepseek_teardown_is_noop() -> None:
 def test_deepseek_precision_calculation_scenarios() -> None:
     """Test mathematical precision and ROI scenarios for DeepSeekCacheAdapter."""
     deepseek_adapter = DeepSeekCacheAdapter()
-    
+
     pricing = {"input_token_price": 0.000005, "output_token_price": 0.000015}
-    
+
     # Scenario 1: DeepSeek with cached tokens (90% read discount)
     usage_cached = TokenUsage(prompt_tokens=1000, completion_tokens=500, cached_tokens=600)
     result_ds = cast(OpenAITokenUsage, deepseek_adapter.calculate_cost(usage_cached, pricing))
@@ -68,7 +68,7 @@ def test_missing_pricing_raises_error() -> None:
     """Verify that DeepSeek adapter raises AppException when price configuration is missing."""
     deepseek = DeepSeekCacheAdapter()
     usage = TokenUsage(prompt_tokens=100)
-    
+
     with pytest.raises(AppException) as exc_info:
         deepseek.calculate_cost(usage, {})
     assert exc_info.value.details.get("error_code") == ErrorCodes.CONFIGURATION_ERROR.value

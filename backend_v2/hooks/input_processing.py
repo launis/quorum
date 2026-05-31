@@ -225,4 +225,10 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.name, "input_key": key},
             ) from e
 
-    return HookResult(success=True, state_delta={"inputs": output_dict})
+    # Phase 7: Token Proxy Score calculation
+    total_chars = sum(len(text) for text in output_dict.values())
+    estimated_token_count = total_chars // 4
+
+    return HookResult(
+        success=True, state_delta={"inputs": output_dict, "metadata": {"estimated_token_count": estimated_token_count}}
+    )

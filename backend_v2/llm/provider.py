@@ -476,6 +476,17 @@ class LiteLLMProvider(LLMProvider):
 
                     async with semaphore:
                         start_time = time.perf_counter()
+
+                        # Phase 8: Apply Provider-Scoped Pacing Lock to prevent 429 exhaustion
+                        from backend_v2.llm.adapters.base_adapter import apply_provider_pacing
+
+                        provider_key = (
+                            self._config.provider
+                            if self._config
+                            else (actual_model.split("/")[0] if "/" in actual_model else actual_model)
+                        )
+                        await apply_provider_pacing(provider_key)
+
                         if fallback_occurred:
                             # Bypass the internal Router list constraint since gemini-2.5-flash
                             # is not in the Router's single-model list.

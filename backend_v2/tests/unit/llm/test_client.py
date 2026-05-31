@@ -164,7 +164,7 @@ async def test_client_delegates_to_caching_service(
 
     # Verify delegation
     mock_prepare.assert_called_once()
-    
+
     # Verify that the generate call receives the manipulated messages and extra kwargs
     args, kwargs = mock_provider.generate.call_args
     assert kwargs["messages"] == [{"role": "system", "content": "mocked"}]

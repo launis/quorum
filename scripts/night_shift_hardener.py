@@ -31,7 +31,7 @@ class RuleLimits(IntEnum):
     Use TOTAL_RULES as the single source of truth for the validation matrix count.
     """
 
-    TOTAL_RULES = 59
+    TOTAL_RULES = 63
 
 
 # --- CONFIGURATION ---

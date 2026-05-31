@@ -22,7 +22,7 @@ def test_lazy_import_proof() -> None:
 async def test_openai_adapter_preparer() -> None:
     """Verify OpenAI adapter prepares flat messages with empty extra_kwargs."""
     openai_adapter = OpenAICacheAdapter()
-    
+
     prompt = CompiledPrompt(
         static_messages=[
             {"role": "system", "content": "You are a helpful assistant."},
@@ -32,7 +32,7 @@ async def test_openai_adapter_preparer() -> None:
             {"role": "assistant", "content": "Response."},
         ],
     )
-    
+
     op_messages, op_kwargs = await openai_adapter.prepare_caching_payload(prompt, "gpt-4o")
     assert op_messages == prompt.to_flat_messages()
     assert op_kwargs == {}
@@ -48,9 +48,9 @@ async def test_openai_teardown_is_noop() -> None:
 def test_openai_precision_calculation_scenarios() -> None:
     """Test mathematical precision and ROI scenarios for OpenAICacheAdapter."""
     openai_adapter = OpenAICacheAdapter()
-    
+
     pricing = {"input_token_price": 0.000005, "output_token_price": 0.000015}
-    
+
     # Scenario 1: OpenAI all regular (no caching)
     usage = TokenUsage(prompt_tokens=1000, completion_tokens=500)
     result = cast(OpenAITokenUsage, openai_adapter.calculate_cost(usage, pricing))
@@ -58,7 +58,7 @@ def test_openai_precision_calculation_scenarios() -> None:
     # Cost = 1000 * 0.000005 + 500 * 0.000015 = 0.005 + 0.0075 = 0.0125
     assert result.cost_usd == pytest.approx(0.0125)
     assert result.estimated_savings_usd == 0.0
-    
+
     # Scenario 2: OpenAI with cached tokens (50% read discount)
     usage_cached = TokenUsage(prompt_tokens=1000, completion_tokens=500, cached_tokens=600)
     result = cast(OpenAITokenUsage, openai_adapter.calculate_cost(usage_cached, pricing))
@@ -68,7 +68,7 @@ def test_openai_precision_calculation_scenarios() -> None:
     # Savings = 600 * 0.000005 * 0.50 = 0.0015
     assert result.cost_usd == pytest.approx(0.011)
     assert result.estimated_savings_usd == pytest.approx(0.0015)
-    
+
     # Scenario 3: OpenAI dynamic recognition based on model name in config
     pricing_ds_name = {
         "input_token_price": 0.000005,
@@ -87,7 +87,7 @@ def test_missing_pricing_raises_error() -> None:
     """Verify that OpenAI adapter raises AppException when price configuration is missing."""
     openai = OpenAICacheAdapter()
     usage = TokenUsage(prompt_tokens=100)
-    
+
     with pytest.raises(AppException) as exc_info:
         openai.calculate_cost(usage, {"output_token_price": 0.0002})
     assert exc_info.value.details.get("error_code") == ErrorCodes.CONFIGURATION_ERROR.value

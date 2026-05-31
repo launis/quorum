@@ -1,11 +1,9 @@
 """Unit tests for Epic 66: Unified Vertex AI Model Garden & Multi-Provider Integration."""
 
-import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from backend_v2.exceptions import ConfigurationError
 from backend_v2.llm.handler import LLMHandler
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.settings import Settings
@@ -121,7 +119,7 @@ def test_fetch_all_available_models_vertex_model_garden(
             models = handler.fetch_all_available_models(providers=["google"])
             assert "google" in models
             google_models = models["google"]
-            
+
             # Should validate and include all of them
             assert "vertex_ai/gemini-1.5-flash" in google_models
             assert "vertex_ai/claude-3-5-sonnet" in google_models

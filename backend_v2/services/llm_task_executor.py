@@ -70,9 +70,12 @@ class LLMTaskExecutor:
             compiled_prompt = CompiledPrompt(
                 static_messages=[dict(m) for m in messages.static_messages],
                 dynamic_messages=[dict(m) for m in messages.dynamic_messages],
+                metadata=dict(getattr(messages, "metadata", {})),
             )
         else:
             compiled_prompt = prompt_adapter.compile_prompt(messages)
+            if validation_context:
+                compiled_prompt = compiled_prompt.model_copy(update={"metadata": validation_context})
 
         schema_attempts = 0
         logical_attempts = 0

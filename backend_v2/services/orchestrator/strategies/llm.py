@@ -362,6 +362,7 @@ class LLMNodeStrategy(NodeStrategy):
                         target_locale,
                         syn_instr,
                         context.strictness_level,
+                        hook_state.metadata,
                     )
 
                 # Wait Phase: Poll Redis for Completion (Synchronous Block)
@@ -396,6 +397,7 @@ class LLMNodeStrategy(NodeStrategy):
                                         output_profile=output_profile,
                                         strictness_level=context.strictness_level,
                                         running_event=running_event,
+                                        step_metadata=hook_state.metadata,
                                     )
                                 )
                             )

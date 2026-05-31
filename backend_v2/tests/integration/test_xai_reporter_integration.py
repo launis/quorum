@@ -2,8 +2,6 @@ from typing import cast
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-import pytest
-
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
 from backend_v2.hooks.reporting import generate_report_hook
 
@@ -79,7 +77,7 @@ def test_generate_report_hook_variance_aligned() -> None:
 
     assert result.success is True
     ctx = result.state_delta["report_context"]
-    
+
     # Assert output_extensions has our VarianceValidationExtension
     extensions = ctx.get("output_extensions", [])
     assert len(extensions) == 1
@@ -143,7 +141,7 @@ def test_generate_report_hook_variance_misaligned_sycophancy() -> None:
 
     assert result.success is True
     ctx = result.state_delta["report_context"]
-    
+
     extensions = ctx.get("output_extensions", [])
     assert len(extensions) == 1
     ext = extensions[0]

@@ -14,6 +14,9 @@ class CompiledPrompt(BaseModel):
     dynamic_messages: list[dict[str, Any]] = Field(
         ..., description="Dynamic execution parameters, Trace IDs, and user/assistant dynamic tail conversation."
     )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Arbitrary execution metadata (e.g., token proxy scores)."
+    )
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 

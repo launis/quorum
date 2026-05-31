@@ -97,6 +97,7 @@ class ChunkWorker:
         output_profile: Any | None,
         strictness_level: int = 50,
         running_event: asyncio.Event | None = None,
+        step_metadata: dict[str, Any] | None = None,
     ) -> tuple[dict[str, Any], TokenUsage | None, list[Any]]:
         """Processes a single execution chunk, mapping dynamic schemas and orchestrating tool loops."""
         async with sem:
@@ -189,6 +190,9 @@ class ChunkWorker:
                             "strictness_level": strictness_level,
                             "source_text": local_payload,
                             "persona": persona,
+                            "estimated_token_count": step_metadata.get("estimated_token_count", 0)
+                            if step_metadata
+                            else 0,
                         },
                     )
                     if isinstance(loop_res.result_data, BaseModel):
@@ -260,6 +264,9 @@ class ChunkWorker:
                                                 "strictness_level": strictness_level,
                                                 "source_text": local_payload,
                                                 "persona": persona,
+                                                "estimated_token_count": step_metadata.get("estimated_token_count", 0)
+                                                if step_metadata
+                                                else 0,
                                             },
                                         )
                                     )
@@ -281,6 +288,9 @@ class ChunkWorker:
                                     "strictness_level": strictness_level,
                                     "source_text": local_payload,
                                     "persona": persona,
+                                    "estimated_token_count": step_metadata.get("estimated_token_count", 0)
+                                    if step_metadata
+                                    else 0,
                                 },
                             )
                             results_list.append(res.model_dump(mode="json"))

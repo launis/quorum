@@ -1,6 +1,7 @@
 """Unit tests for the Mechanical-Cognitive Variance Engine."""
 
 import pytest
+
 from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
 
 

@@ -2,6 +2,7 @@
 
 import pytest
 from pydantic import ValidationError
+
 from backend_v2.models.prompt import CompiledPrompt
 
 

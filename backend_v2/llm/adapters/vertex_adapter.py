@@ -77,24 +77,28 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 - The list of flattened messages.
                 - A dictionary of extra keyword arguments containing the cache reference name.
         """
-        # Calculate character count threshold for static messages to see if caching should be active.
-        total_static_chars = 0
-        for msg in compiled_prompt.static_messages:
-            content = msg.get("content")
-            if isinstance(content, str):
-                total_static_chars += len(content)
-            elif isinstance(content, list):
-                for block in content:
-                    if isinstance(block, dict) and block.get("type") == "text":
-                        total_static_chars += len(block.get("text", ""))
-            elif content is not None:
-                total_static_chars += len(str(content))
+        # Phase 7: Token Proxy Score threshold logic
+        estimated_token_count = compiled_prompt.metadata.get("estimated_token_count", 0)
 
-        # Milestone 4.1: Caching threshold is 130,000 characters
-        if total_static_chars < 130000:
+        # If Token Proxy Score is unavailable (e.g. simple chat), fallback to static chars calculation
+        if estimated_token_count == 0:
+            total_static_chars = 0
+            for msg in compiled_prompt.static_messages:
+                content = msg.get("content")
+                if isinstance(content, str):
+                    total_static_chars += len(content)
+                elif isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict) and block.get("type") == "text":
+                            total_static_chars += len(block.get("text", ""))
+                elif content is not None:
+                    total_static_chars += len(str(content))
+            estimated_token_count = total_static_chars // 4
+
+        if estimated_token_count < 32768:
             logger.info(
-                "Vertex AI caching bypassed: total static character length %d is below threshold 130000",
-                total_static_chars,
+                "Vertex AI caching bypassed: Token Proxy Score %d is below threshold 32768",
+                estimated_token_count,
             )
             return compiled_prompt.to_flat_messages(), {}
 

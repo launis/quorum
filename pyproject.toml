@@ -93,7 +93,7 @@ convention = "google"
 "backend_v2/database/firestore_repo.py" = ["E501"]
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 plugins = ["pydantic.mypy"]
 ignore_missing_imports = true
 check_untyped_defs = true
@@ -109,6 +109,6 @@ warn_unused_ignores = false
 ignore_no_config = true
 
 [tool.pyrefly]
-python-version = "3.13.0"
+python-version = "3.14.0"
 preset = "legacy"
 ignore-missing-imports = ["*"]

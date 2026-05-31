@@ -131,7 +131,13 @@ class NodeStrategy(ABC):
         for pre_hook in step_obj.pre_hooks:
             res = await hook_registry.execute(pre_hook, hook_state, hook_deps)
             if res.success and res.state_delta:
-                current_data = deep_merge_dicts(hook_state.inputs, res.state_delta)
+                delta = dict(res.state_delta)
+                metadata_updates = delta.pop("metadata", None)
+                if metadata_updates:
+                    new_metadata = dict(hook_state.metadata)
+                    new_metadata.update(metadata_updates)
+                    hook_state = hook_state.model_copy(update={"metadata": new_metadata})
+                current_data = deep_merge_dicts(hook_state.inputs, delta)
                 hook_state = hook_state.model_copy(update={"inputs": current_data})
             elif not res.success:
                 # RFC 7807: Hook signaled non-success — log explicitly so the audit trail captures it.

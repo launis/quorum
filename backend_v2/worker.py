@@ -73,6 +73,7 @@ async def evaluate_chunk_job(
     target_locale: str,
     synthesis_instructions: dict[str, Any] | None,
     strictness_level: int,
+    step_metadata: dict[str, Any] | None = None,
 ) -> None:
     """Asynchronous Arq worker job to evaluate a single text chunk."""
     logger.info(f"[Job] evaluate_chunk_job started for {execution_id}:{step_id} chunk {chunk_index}")
@@ -122,6 +123,7 @@ async def evaluate_chunk_job(
         synthesis_instructions=synthesis_instructions,
         output_profile=None,
         strictness_level=strictness_level,
+        step_metadata=step_metadata,
     )
 
     if isinstance(c_final, dict) and c_final.get("_dlq_status") == "FAILED/DLQ":
