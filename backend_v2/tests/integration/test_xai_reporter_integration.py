@@ -76,6 +76,7 @@ def test_generate_report_hook_variance_aligned() -> None:
     result = cast(HookResult, generate_report_hook(state, deps))
 
     assert result.success is True
+    assert result.state_delta is not None
     ctx = result.state_delta["report_context"]
 
     # Assert output_extensions has our VarianceValidationExtension
@@ -140,6 +141,7 @@ def test_generate_report_hook_variance_misaligned_sycophancy() -> None:
     result = cast(HookResult, generate_report_hook(state, deps))
 
     assert result.success is True
+    assert result.state_delta is not None
     ctx = result.state_delta["report_context"]
 
     extensions = ctx.get("output_extensions", [])

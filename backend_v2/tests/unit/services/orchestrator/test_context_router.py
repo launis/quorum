@@ -2,6 +2,7 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.lightweight_matrix import OutputProfileConfig
+from backend_v2.models.enums import XaiExtensionType
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.context_router import ContextRouter
 
@@ -64,7 +65,10 @@ def test_normalize_and_validate_variable_inputs_path() -> None:
 def test_route_and_prune_bypasses_variance_validation() -> None:
     # Set up an output profile that demands 'variance_validation'
     output_profile = OutputProfileConfig(
-        visible_extensions=["falsification", "variance_validation"]
+        visible_extensions=[
+            XaiExtensionType.FALSIFICATION,
+            XaiExtensionType.VARIANCE_VALIDATION,
+        ]
     )
 
     # Trace event that contains falsification but NOT variance_validation
@@ -72,9 +76,7 @@ def test_route_and_prune_bypasses_variance_validation() -> None:
         "raw_score": 3.0,
         "normalized_score": 100.0,
         "justification": "Test justification",
-        "extensions": {
-            "falsification": "Some falsification evidence"
-        }
+        "extensions": {"falsification": "Some falsification evidence"},
     }
 
     # This should succeed because variance_validation is a global extension
@@ -84,4 +86,3 @@ def test_route_and_prune_bypasses_variance_validation() -> None:
     assert pruned.raw_score == 3.0
     assert "falsification" in pruned.extensions
     assert "variance_validation" not in pruned.extensions
-

@@ -22,6 +22,11 @@ async def test_lite_llm_provider_adaptive_retry_depleted(monkeypatch: pytest.Mon
     mock_sleep = AsyncMock()
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
 
+    # Mock apply_provider_pacing to prevent Fakeredis lock infinite loops
+    import backend_v2.llm.adapters.base_adapter
+
+    monkeypatch.setattr(backend_v2.llm.adapters.base_adapter, "apply_provider_pacing", AsyncMock())
+
     settings = get_settings()
     provider = LiteLLMProvider(
         model_name="vertex_ai/gemini-1.5-pro",
@@ -33,6 +38,10 @@ async def test_lite_llm_provider_adaptive_retry_depleted(monkeypatch: pytest.Mon
     # Mock the acompletion function to always raise MockRateLimitError
     mock_acompletion = AsyncMock(side_effect=MockRateLimitError("Rate limit exceeded"))
     provider.router.acompletion = mock_acompletion
+
+    import litellm
+
+    monkeypatch.setattr(litellm, "acompletion", mock_acompletion)
 
     # LiteLLMProvider.generate should deplete retries and raise ServiceUnavailableError
     with pytest.raises(ServiceUnavailableError) as exc_info:
@@ -60,6 +69,10 @@ async def test_lite_llm_provider_adaptive_retry_success_on_retry(monkeypatch: py
     mock_sleep = AsyncMock()
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
     monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.002)
+
+    import backend_v2.llm.adapters.base_adapter
+
+    monkeypatch.setattr(backend_v2.llm.adapters.base_adapter, "apply_provider_pacing", AsyncMock())
 
     settings = get_settings()
     provider = LiteLLMProvider(

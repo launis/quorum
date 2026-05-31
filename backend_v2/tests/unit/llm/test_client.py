@@ -134,9 +134,7 @@ async def test_semantic_self_healing_retry(mock_create_provider: MagicMock) -> N
 @pytest.mark.asyncio
 @patch("backend_v2.llm.provider.LLMFactory.create_provider")
 @patch("backend_v2.llm.caching_service.LLMCachingService.prepare_caching_payload")
-async def test_client_delegates_to_caching_service(
-    mock_prepare: AsyncMock, mock_create_provider: MagicMock
-) -> None:
+async def test_client_delegates_to_caching_service(mock_prepare: AsyncMock, mock_create_provider: MagicMock) -> None:
     """Ensure LLMClient delegates context caching to LLMCachingService and merges kwargs."""
     mock_provider = AsyncMock()
     mock_provider.generate = AsyncMock()
@@ -169,4 +167,3 @@ async def test_client_delegates_to_caching_service(
     args, kwargs = mock_provider.generate.call_args
     assert kwargs["messages"] == [{"role": "system", "content": "mocked"}]
     assert kwargs["caching_injected"] is True
-

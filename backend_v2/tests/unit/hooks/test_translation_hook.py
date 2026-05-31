@@ -127,14 +127,14 @@ async def test_translation_hook_role_segregation_and_success(
     call_kwargs = mock_client.run_structured_task.call_args.kwargs
     messages = call_kwargs["messages"]
 
-    assert len(messages) == 2
-    assert messages[0]["role"] == "system"
-    assert "ROLE: You are an automatic JSON translator." in messages[0]["content"]
-    assert "suomeksi (Finnish)" in messages[0]["content"]  # Embedded target language
+    assert len(messages.static_messages) == 2
+    assert messages.static_messages[0]["role"] == "system"
+    assert "ROLE: You are an automatic JSON translator." in messages.static_messages[0]["content"]
+    assert "suomeksi (Finnish)" in messages.static_messages[0]["content"]  # Embedded target language
 
-    assert messages[1]["role"] == "user"
-    assert "source_data" in messages[1]["content"]
-    assert "Example Title" in messages[1]["content"]
+    assert messages.static_messages[1]["role"] == "user"
+    assert "source_data" in messages.static_messages[1]["content"]
+    assert "Example Title" in messages.static_messages[1]["content"]
 
 
 from pydantic import BaseModel

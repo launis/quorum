@@ -65,9 +65,8 @@ def test_execution_record_has_context_variables() -> None:
         "workflow_id": "wf_1234567890",
         "status": "pending",
         "raw_inputs": {},
-        "context_variables": {"report_context": {"output_extensions": []}}
+        "context_variables": {"report_context": {"output_extensions": []}},
     }
 
     record = ExecutionRecord.model_validate(data, strict=False)
     assert record.context_variables == {"report_context": {"output_extensions": []}}
-

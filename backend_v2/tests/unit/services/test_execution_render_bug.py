@@ -68,9 +68,7 @@ async def test_render_execution_json_default_profile_resolves() -> None:
             )
 
     # Varmistetaan, että build_report_dto kutsuttiin arvolla "prof_1" (resolved_pid) eikä "default"
-    mock_transformer.build_report_dto.assert_called_once_with(
-        "exe_1", "prof_1", None, None, None
-    )
+    mock_transformer.build_report_dto.assert_called_once_with("exe_1", "prof_1", None, None, None)
 
     assert data == {"json": "data"}
     assert mime == "application/json"

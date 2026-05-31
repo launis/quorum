@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -11,7 +12,12 @@ from backend_v2.llm.provider import LiteLLMProvider
 
 
 @pytest.mark.asyncio
-async def test_concurrency_throttle_limits_overlap() -> None:
+async def test_concurrency_throttle_limits_overlap(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Mock apply_provider_pacing to prevent Fakeredis infinite loops
+    import backend_v2.llm.adapters.base_adapter
+
+    monkeypatch.setattr(backend_v2.llm.adapters.base_adapter, "apply_provider_pacing", AsyncMock())
+
     """Proves that LiteLLMProvider dynamically throttles concurrent requests
     under low RPM limits to prevent concurrent request explosions.
     """
@@ -19,6 +25,7 @@ async def test_concurrency_throttle_limits_overlap() -> None:
     mock_settings = MagicMock()
     mock_settings.llm_default_timeout = 10
     mock_settings.default_safety_settings = []
+    mock_settings.vertex_location = "europe-north1"
 
     # rpm: 5 implies concurrency limit = 2
     limits = {"tpm": 10000, "rpm": 5}
@@ -39,7 +46,7 @@ async def test_concurrency_throttle_limits_overlap() -> None:
         del provider.__class__._semaphores[cache_key]
 
     # Re-trigger __init__ logic implicitly to build the semaphore
-    provider.__init__(
+    provider = LiteLLMProvider(
         model_name="vertex_ai/gemini-2.5-pro",
         api_key="mock-api-key",
         settings=mock_settings,
@@ -52,7 +59,7 @@ async def test_concurrency_throttle_limits_overlap() -> None:
     concurrent_calls = 0
     max_observed_concurrency = 0
 
-    async def mock_acompletion(*args, **kwargs) -> MagicMock:
+    async def mock_acompletion(*args: Any, **kwargs: Any) -> MagicMock:
         nonlocal concurrent_calls, max_observed_concurrency
         concurrent_calls += 1
         max_observed_concurrency = max(max_observed_concurrency, concurrent_calls)

@@ -59,11 +59,11 @@ async def test_chat_parser_role_segregation_and_success(
     messages = call_kwargs["messages"]
 
     # The absolute critical test: Verify there is a system role AND a user role
-    assert len(messages) == 2
-    assert messages[0]["role"] == "system"
-    assert "data-mining expert" in messages[0]["content"]
+    assert len(messages.static_messages) == 2
+    assert messages.static_messages[0]["role"] == "system"
+    assert "data-mining expert" in messages.static_messages[0]["content"]
 
-    assert messages[1]["role"] == "user"
-    assert raw_paste in messages[1]["content"]
+    assert messages.static_messages[1]["role"] == "user"
+    assert raw_paste in messages.static_messages[1]["content"]
 
     assert call_kwargs["response_model"] == ChatHistoryDTO

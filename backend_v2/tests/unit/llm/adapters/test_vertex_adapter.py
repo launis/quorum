@@ -69,10 +69,8 @@ def mock_redis_client(monkeypatch: pytest.MonkeyPatch) -> Any:
 
 
 def test_lazy_import_proof() -> None:
-    """Verify that importing VertexCacheAdapter does not globally load heavy ML libraries."""
-    # Since we mocked sys.modules globally for test safety, we verify sys.modules
-    # is available to prevent unused local variable errors.
-    assert sys.modules is not None
+    """Pytest sys.modules check is unreliable."""
+    pass
 
 
 @pytest.mark.asyncio

@@ -352,9 +352,11 @@ async def test_audit_report_saving(temp_workspace: tuple[Path, Path, Path], monk
 
     monkeypatch.setattr(subprocess, "run", mock_run)
 
-    report_file = Path("tmp/audit_reports") / f"{target_file.stem}_audit_report.json"
-    if report_file.exists():
-        report_file.unlink()
+    # Clear any existing reports for this target file
+    report_dir = Path("tmp/audit_reports")
+    if report_dir.exists():
+        for f in report_dir.glob(f"{target_file.stem}_*_audit_report.json"):
+            f.unlink()
 
     semaphore = asyncio.Semaphore(1)
     success = await night_shift_hardener.process_file_with_retry(
@@ -362,8 +364,11 @@ async def test_audit_report_saving(temp_workspace: tuple[Path, Path, Path], monk
     )
 
     assert success is True
-    # Confirm report is saved
-    assert report_file.exists()
+    # Confirm report is saved using glob since it has a timestamp
+    reports = list(report_dir.glob(f"{target_file.stem}_*_audit_report.json"))
+    assert len(reports) == 1
+    report_file = reports[0]
+
     with open(report_file, encoding="utf-8") as rf:
         report_data = json.load(rf)
     assert len(report_data["audit_matrix"]) == night_shift_hardener.RuleLimits.TOTAL_RULES.value

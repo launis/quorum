@@ -1,5 +1,6 @@
 import asyncio
 from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -60,6 +61,10 @@ async def test_lite_llm_rate_limit_cooldown(mock_settings: Any, monkeypatch: Any
         sleep_calls.append(seconds)
 
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
+
+    import backend_v2.llm.adapters.base_adapter
+
+    monkeypatch.setattr(backend_v2.llm.adapters.base_adapter, "apply_provider_pacing", AsyncMock())
 
     try:
         response = await provider.generate(prompt="Test rate limit", temperature=0.7, max_tokens=1000)
@@ -136,6 +141,10 @@ async def test_lite_llm_fail_soft_fallback(mock_settings: Any, monkeypatch: Any)
         pass
 
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
+
+    import backend_v2.llm.adapters.base_adapter
+
+    monkeypatch.setattr(backend_v2.llm.adapters.base_adapter, "apply_provider_pacing", AsyncMock())
 
     response = await provider.generate(
         prompt="Test fallback",

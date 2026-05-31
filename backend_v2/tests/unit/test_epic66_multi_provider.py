@@ -69,7 +69,9 @@ def test_fetch_all_available_models_direct_anthropic(mock_get_settings: MagicMoc
 
 
 @patch("backend_v2.llm.handler.get_settings")
-def test_fetch_all_available_models_direct_anthropic_missing_key(mock_get_settings: MagicMock, handler: LLMHandler) -> None:
+def test_fetch_all_available_models_direct_anthropic_missing_key(
+    mock_get_settings: MagicMock, handler: LLMHandler
+) -> None:
     """Test that LLMHandler raises ConfigurationError when direct Anthropic is requested but key is missing."""
     mock_settings = MagicMock()
     mock_settings.use_mock_llm = False
@@ -107,7 +109,14 @@ def test_fetch_all_available_models_vertex_model_garden(
     mock_auth_default.return_value = (mock_creds, "mock-project")
 
     # Mock LiteLLM model list
-    with patch("litellm.model_list", ["vertex_ai/gemini-1.5-flash", "vertex_ai/claude-3-5-sonnet", "vertex_ai/llama-3.1-70b-instruct"]):
+    with patch(
+        "litellm.model_list",
+        [
+            "vertex_ai/gemini-1.5-flash",
+            "vertex_ai/claude-3-5-sonnet",
+            "vertex_ai/llama-3.1-70b-instruct",
+        ],
+    ):
         # Mock requests.get for third-party publisher URLs
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -142,7 +151,7 @@ def test_llm_factory_api_key_resolution(mock_get_settings: MagicMock) -> None:
         model_name="claude-3-5-sonnet",
         limits={"tpm": 1000, "rpm": 10},
     )
-    assert provider.api_key == "anthropic-key"
+    assert getattr(provider, "api_key", None) == "anthropic-key"
 
     # 2. Test LiteLLM with Claude model name
     provider_litellm = LLMFactory.create_provider(
@@ -150,4 +159,4 @@ def test_llm_factory_api_key_resolution(mock_get_settings: MagicMock) -> None:
         model_name="anthropic/claude-3-5-sonnet",
         limits={"tpm": 1000, "rpm": 10},
     )
-    assert provider_litellm.api_key == "anthropic-key"
+    assert getattr(provider_litellm, "api_key", None) == "anthropic-key"

@@ -12,7 +12,10 @@ from backend_v2.models.prompt import CompiledPrompt
 async def test_prepare_caching_payload() -> None:
     """Verify that prepare_caching_payload delegates to the correct adapter."""
     mock_adapter = AsyncMock()
-    mock_adapter.prepare_caching_payload.return_value = (["mock_messages"], {"mock": "kwargs"})
+    mock_adapter.prepare_caching_payload.return_value = (
+        [{"role": "user", "content": "mock_messages"}],
+        {"mock": "kwargs"},
+    )
 
     compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
 
@@ -27,7 +30,7 @@ async def test_prepare_caching_payload() -> None:
 
         mock_get.assert_called_once_with("vertex_ai")
         mock_adapter.prepare_caching_payload.assert_called_once_with(compiled_prompt, "gemini-1.5-pro")
-        assert messages == ["mock_messages"]
+        assert messages == [{"role": "user", "content": "mock_messages"}]
         assert kwargs == {"mock": "kwargs"}
 
 
@@ -54,9 +57,7 @@ async def test_teardown_workflow_caches_exception() -> None:
     mock_adapter = AsyncMock()
     mock_adapter.teardown_cache.side_effect = Exception("Teardown failed")
 
-    with patch(
-        "backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter", return_value=mock_adapter
-    ):
+    with patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter", return_value=mock_adapter):
         with pytest.raises(Exception, match="Teardown failed"):
             await LLMCachingService.teardown_workflow_caches(
                 provider_name="anthropic",

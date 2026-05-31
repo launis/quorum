@@ -9,6 +9,7 @@ and write the verified results back to the filesystem.
 
 import asyncio
 import ctypes
+from datetime import datetime
 import json
 import logging
 import os
@@ -31,7 +32,7 @@ class RuleLimits(IntEnum):
     Use TOTAL_RULES as the single source of truth for the validation matrix count.
     """
 
-    TOTAL_RULES = 63
+    TOTAL_RULES = 73
 
 
 # --- CONFIGURATION ---
@@ -171,6 +172,7 @@ def load_state() -> dict[str, str]:
             raise
         except Exception as e:
             logger.error(f"⚠️ Tilahistorian luku epäonnistui odottamattomaan virheeseen: {e}", exc_info=True)
+            raise
     return {}
 
 
@@ -275,6 +277,19 @@ async def process_file_with_retry(
                 current_model = PRIMARY_MODEL if attempt == 1 else HEALING_MODEL
                 logger.info(f"⏳ Auditoitavana [{attempt}/{MAX_RETRIES}] mallilla {current_model}: {target_file.name}")
 
+                # Determine file context to help LLM apply rules more accurately
+                file_context = "unknown module type"
+                if "api" in target_file.parts and "routers" in target_file.parts:
+                    file_context = "FastAPI router endpoint module (No business logic allowed)"
+                elif "services" in target_file.parts:
+                    file_context = "Service logic module (Must use validated Pydantic properties)"
+                elif "models" in target_file.parts:
+                    file_context = "Pydantic data models / DTO module"
+                elif "database" in target_file.parts:
+                    file_context = "Database repository module (Pure Pydantic projections)"
+                elif "hooks" in target_file.parts:
+                    file_context = "Workflow hook module (State is frozen, append-only)"
+
                 # Compile prompt based on whether we have previous error feedback to allow self-healing
                 if error_feedback:
                     logger.warning(f"🔄 Attempting self-healing for {target_file.name} due to prior failures...")
@@ -285,6 +300,7 @@ async def process_file_with_retry(
                         "fix the issue (syntax, type mismatch or lint), and return the complete corrected code.\n\n"
                         f"ERROR RECEIVED:\n{slim_error_feedback(error_feedback)}\n"
                         "</critical_headless_mandate>\n\n"
+                        f"<execution_parameters>\nModule Type: {file_context}\n</execution_parameters>\n\n"
                         f"PREVIOUS ATTEMPT:\n```python\n{current_code_to_fix}\n```"
                     )
                 else:
@@ -295,6 +311,7 @@ async def process_file_with_retry(
                         "Suorita Phase 2 (Audit Matrix) ja Step 3 (Fix) sisäisessä päättelyssäsi. "
                         "Palauta tulos AINOASTAAN pyydetyssä JSON-formaatissa (hardened_code).\n"
                         "</critical_headless_mandate>\n\n"
+                        f"<execution_parameters>\nModule Type: {file_context}\n</execution_parameters>\n\n"
                         f"```python\n{original_code}\n```"
                     )
 
@@ -315,7 +332,8 @@ async def process_file_with_retry(
                 # Create output folder safely and write the JSON-serialized audit matrix result
                 report_dir = Path("tmp/audit_reports")
                 report_dir.mkdir(parents=True, exist_ok=True)
-                report_file = report_dir / f"{target_file.stem}_audit_report.json"
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                report_file = report_dir / f"{target_file.stem}_{timestamp}_audit_report.json"
                 try:
                     with open(report_file, "w", encoding="utf-8") as rf:
                         json.dump(result_dto.model_dump(), rf, indent=4, ensure_ascii=False)
@@ -344,43 +362,46 @@ async def process_file_with_retry(
                     logger.warning(f"⚠️ LLM generated invalid syntax for {target_file.name}: {syntax_err}")
                     raise ValueError(f"Syntax compile validation failed: {syntax_err}") from syntax_err
 
-                # Write hardened code to target file temporarily to run quality gate sub-processes
-                target_file.write_text(new_code, encoding="utf-8")
+                # Write hardened code to a temporary file to run quality gate sub-processes atomically
+                temp_file = target_file.with_name(f"{target_file.stem}_ns_tmp.py")
+                temp_file.write_text(new_code, encoding="utf-8")
 
-                # Run ruff check, ruff format and strict mypy verification on the modified target file
+                # Run ruff check, ruff format and strict mypy verification on the modified temp file
                 try:
-                    logger.info(f"🔍 Running Ruff check on {target_file.name}")
+                    logger.info(f"🔍 Running Ruff check on {temp_file.name}")
                     subprocess.run(
-                        ["uv", "run", "ruff", "check", target_file.as_posix(), "--fix"],
+                        ["uv", "run", "ruff", "check", temp_file.as_posix(), "--fix"],
                         capture_output=True,
                         text=True,
                         check=True,
                         timeout=30.0,
                     )
 
-                    logger.info(f"🔍 Running Ruff format on {target_file.name}")
+                    logger.info(f"🔍 Running Ruff format on {temp_file.name}")
                     subprocess.run(
-                        ["uv", "run", "ruff", "format", target_file.as_posix()],
+                        ["uv", "run", "ruff", "format", temp_file.as_posix()],
                         capture_output=True,
                         text=True,
                         check=True,
                         timeout=30.0,
                     )
 
-                    logger.info(f"🔍 Running MyPy strict type-checking on {target_file.name}")
+                    # Update current_code_to_fix with formatted code so the self-healing loop doesn't send stale code
+                    current_code_to_fix = temp_file.read_text(encoding="utf-8")
+
+                    logger.info(f"🔍 Running MyPy strict type-checking on {temp_file.name}")
                     subprocess.run(
-                        ["uv", "run", "mypy", target_file.as_posix(), "--strict"],
+                        ["uv", "run", "mypy", temp_file.as_posix(), "--strict"],
                         capture_output=True,
                         text=True,
                         check=True,
                         timeout=60.0,
                     )
 
-                    # Execute Bandit SAST security scan to prevent LLM outputs from
-                    # introducing security vulnerabilities or hardcoded secrets.
-                    logger.info(f"🛡️ Running Bandit SAST security scan on {target_file.name}")
+                    # Execute Bandit SAST security scan
+                    logger.info(f"🛡️ Running Bandit SAST security scan on {temp_file.name}")
                     subprocess.run(
-                        ["uv", "run", "--with", "bandit", "bandit", "-r", target_file.as_posix(), "-lll"],
+                        ["uv", "run", "--with", "bandit", "bandit", "-r", temp_file.as_posix(), "-lll"],
                         capture_output=True,
                         text=True,
                         check=True,
@@ -389,9 +410,17 @@ async def process_file_with_retry(
                 except subprocess.CalledProcessError as audit_err:
                     error_details = audit_err.stderr or audit_err.stdout or ""
                     logger.warning(f"⚠️ Quality Gate failed for {target_file.name}:\n{error_details}")
+                    if temp_file.exists():
+                        current_code_to_fix = temp_file.read_text(encoding="utf-8")
+                        temp_file.unlink()
                     raise ValueError(f"Quality Gate audit failed:\n{error_details.strip()}") from audit_err
+                except Exception as ex:
+                    if temp_file.exists():
+                        temp_file.unlink()
+                    raise ex
 
-                # Everything passed successfully!
+                # Everything passed successfully! Atomically overwrite the original file.
+                temp_file.replace(target_file)
                 logger.info(f"✅ Kovetettu, validoitu ja formatoitu onnistuneesti: {target_file.name}")
                 await safe_update_state(target_file.as_posix(), "DONE", state_file_path)
                 await asyncio.sleep(COOLDOWN_SECONDS)
@@ -403,14 +432,13 @@ async def process_file_with_retry(
                 # Save the failure details as feedback for the next self-healing loop iteration
                 error_feedback = str(e)
 
-                # Restore original working code immediately to preserve codebase stability on validation failure
-                try:
-                    target_file.write_text(original_code, encoding="utf-8")
-                    logger.info(f"🔄 Restored original content for {target_file.name} due to verification failure.")
-                except Exception as rollback_err:
-                    logger.critical(
-                        f"🚨 CRITICAL: Rollback failed for {target_file.name}: {rollback_err}", exc_info=True
-                    )
+                # Cleanup temporary file if it still exists
+                temp_file = target_file.with_name(f"{target_file.stem}_ns_tmp.py")
+                if temp_file.exists():
+                    try:
+                        temp_file.unlink()
+                    except OSError:
+                        pass
 
                 if attempt < MAX_RETRIES:
                     await asyncio.sleep(15 * attempt)
@@ -570,9 +598,13 @@ async def main() -> None:
 
         semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
         # Pass the immutable state file path directly to avoid sharing mutable dictionary references
-        tasks = [process_file_with_retry(system_prompt, f, semaphore, STATE_FILE) for f in pending_files]
+        results = []
+        async with asyncio.TaskGroup() as tg:
+            tasks = [
+                tg.create_task(process_file_with_retry(system_prompt, f, semaphore, STATE_FILE)) for f in pending_files
+            ]
 
-        results = await asyncio.gather(*tasks)
+        results = [t.result() for t in tasks]
 
         failures = results.count(False)
         if failures > 0:
