@@ -128,23 +128,24 @@ def get_patched_fakeredis_pool() -> ArqRedis:
 
         fake_redis.send_packed_command = _send_packed
 
+    import contextvars
+
+    _last_response_var = contextvars.ContextVar("fake_redis_last_response", default=None)
+
     # PATCH: Arq 0.26+ uses send_command(*args)
     if not hasattr(fake_redis, "send_command"):
 
-        async def _send_command(*args, **kwargs):  # type: ignore
-            pass
+        async def _send_command(*args: Any, **kwargs: Any) -> Any:
+            res = await fake_redis.execute_command(*args, **kwargs)
+            _last_response_var.set(res)
 
         fake_redis.send_command = _send_command
 
     # PATCH: Redis-py (via Arq) calls read_response() to await result
     if not hasattr(fake_redis, "read_response"):
 
-        async def _read_response():  # type: ignore
-            # In a real connection, this reads bytes.
-            # Here, we do nothing because fakeredis executes immediately.
-            # Returning None might cause parse_response to fail if it expects data.
-            # However, for many operations, the result is already returned by execute_command.
-            pass
+        async def _read_response() -> Any:
+            return _last_response_var.get()
 
         fake_redis.read_response = _read_response
 

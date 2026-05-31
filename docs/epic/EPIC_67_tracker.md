@@ -1,29 +1,41 @@
 # Epic 67 Master Tracker: Provider-Agnostic Context Caching & FinOps Optimization
 
-This tracker monitors the phased implementation of Epic 67 to implement provider-agnostic prompt caching adapters, static prompt compilation, and cost-tracking telemetry.
+Tämä seurantaohjelma (tracker) valvoo ja ohjaa Epic 67:n tarjoajariippumattoman prompt-cachingin, static-first -promptoinnin ja FinOps-kuluseurannan vaiheittaista ja ryntäyssuojattua käyttöönottoa Cognitive Quorum V2 -arkkitehtuurissa.
 
-## Active Phases
-- [ ] **Phase 1: Tyyppimääritelmät (`CompiledPrompt`)** - Luodaan `CompiledPrompt`-tietomalli tiedostoon `backend_v2/models/prompt.py` ja toteutetaan suoraviivainen `.to_flat_messages() -> list[dict]` -apuohjelma testien ja downstream-kutsujen vihreyden takaamiseksi.
-- [ ] **Phase 2: Kääntäjätason (`PromptCompiler`) refaktorointi ja Purity-testaus** - Päivitetään `prompt_compiler.py` palauttamaan `CompiledPrompt` ja varmistetaan staattisen osan SHA-256 -hasheksen deterministisyys.
-- [ ] **Phase 3: Rajapinta, Tehdas ja Mock-infrastruktuuri (Core & Mock Adapter)** - Luodaan `BaseLLMAdapter` ja `LLMCacheAdapterFactory` sekä `MockCacheAdapter` rekisteröiden se testitarjoajalle `mock_llm_99` verkkokutsuvapaiden testien takaamiseksi (`mocking_mandate_for_llm`).
-- [ ] **Phase 4: Anthropic Claude ja OpenAI -sovittimet (Metadata Caching)** - Toteutetaan `AnthropicCacheAdapter` (rooliryhmitys, raaka content-merkkijonojen muunnos lohkorakenteeksi ja `cache_control` annotaatiot) sekä `OpenAICacheAdapter` (pass-through).
-- [ ] **Phase 5: Vertex AI -sovitin ja Natiivit SDK-yhteydet** - Luodaan `VertexCacheAdapter`-perusmalli asynkronisille GCP-kontekstivälimuistikutsuille, palauttaen `cached_content` viitteen `extra_kwargs` sanakirjassa. Kaikki `teardown_cache`-kutsut toteutetaan No-Op (`pass`) blockeina Option B mukaisesti.
-- [ ] **Phase 6: Hardening & Synkronointi (Redis-lukitus & Thundering Herd)** - Kapseloidaan jaettu Redis-lukitus (asetus `PX 300000` zombi-tilojen estämiseksi) ja odotussilmukka (500ms poll-viive, 20s odotusraja `SystemConcurrency`-arvojen mukaisesti) `vertex_adapter.py`-tiedostoon.
-- [ ] **Phase 7: LiteLLMProvider-integraatio ja parametriohjaus** - Päivitetään `LiteLLMProvider` vastaanottamaan adapterin tuottamat muokatut viestit ja `extra_kwargs` (kuten `cached_content`) ja välittämään ne suoraan LiteLLM-kutsulle.
-- [ ] **Phase 8: Task Executor -integraatio ja Fail-Soft -testaus** - Kytketään `LLMCachingService` osaksi `LLMTaskExecutor.execute_structured_task`-metodia ja todennetaan virheiden nielaisu/Fail-Soft.
-- [ ] **Phase 9: Moniulotteinen FinOps-seuranta ja ROI-laskenta** - Päivitetään `TokenUsage` tietokantamalli (strict-oletusarvoilla) ja delegoitetaan ROI-kaavat sovittimien `calculate_cost`-metodeille. Jätetään passiivinen Vertex AI tallennusaikalaskenta kokonaan pois koodista.
-- [ ] **Phase 10: Purity Scanner ja Cache Drift -hälytykset** - Toteutetaan passiivinen, ainoastaan lokittava (`logger.warning`) Purity Scanner `system`-viesteille sekä `PROMPT_CACHING_DRIFT_ALERT`-alitusvalvonta.
+## Suoritustila (Execution Pipeline)
+
+- [OK] [phase1_caching_models.md](file:///c:/src/quorum/docs/epic/tasks_epic_67/phase1_caching_models.md) - Core-tietomallit (`CompiledPrompt`) ja kääntäjän eristävä sovitin (`PromptCompilerAdapter`)
+- [OK] [phase2_adapter_factory.md](file:///c:/src/quorum/docs/epic/tasks_epic_67/phase2_adapter_factory.md) - Abstrakti `BaseLLMAdapter`, sovittimen tehdas (`LLMCacheAdapterFactory`) ja `MockCacheAdapter`-testi-infrastruktuuri
+- [OK] [phase3_metadata_adapters.md](file:///c:/src/quorum/docs/epic/tasks_epic_67/phase3_metadata_adapters.md) - Anthropic Claude (rooliryhmitys, lohkotägit) ja OpenAI/DeepSeek (pass-through) sovittimet
+- [OK] [phase4_vertex_adapter.md](file:///c:/src/quorum/docs/epic/tasks_epic_67/phase4_vertex_adapter.md) - Google Vertex AI välimuistinhallinta, Redis-lukitus (`SETNX`) ja odotussilmukat ryntäyssuojaukseen
+- [OK] [phase5_provider_executor_integration.md](file:///c:/src/quorum/docs/epic/tasks_epic_67/phase5_provider_executor_integration.md) - `LLMCachingService`-julkisivu, `LiteLLMProvider`-päivitys ja `LLMTaskExecutor.execute_structured_task`-kytkentä
+- [OK] [phase6_finops_and_purity_guard.md](file:///c:/src/quorum/docs/epic/tasks_epic_67/phase6_finops_and_purity_guard.md) - Moniulotteinen `TokenUsage`, ROI-laskennat, `Purity Scanner` -valvonta ja `PROMPT_CACHING_DRIFT_ALERT`-kuluhälytykset
+
+---
 
 ## Universal Hardening Loop Mandate
-When all modified files are completed, the user must run:
+
+Kun kaikki tiedostot on muutettu ja testit ovat vihreitä, on ehdottomasti suoritettava backend-auditointi:
 ```powershell
-/tier2-hardening-backend [files modified for this epic]
+uv run python scripts/backend_audit_loop.py backend_v2/models/prompt.py backend_v2/services/orchestrator/prompt_compiler_adapter.py backend_v2/llm/adapters/base_adapter.py backend_v2/llm/adapters/adapter_factory.py backend_v2/llm/adapters/mock_adapter.py backend_v2/llm/adapters/anthropic_adapter.py backend_v2/llm/adapters/openai_adapter.py backend_v2/llm/adapters/vertex_adapter.py backend_v2/llm/caching_service.py backend_v2/llm/provider.py backend_v2/services/llm_task_executor.py backend_v2/models/enums.py backend_v2/models/domain/usage.py backend_v2/services/usage_service.py
 ```
-to audit PEP 257 standards and complete the Quality Gate verification.
+
+---
+
+## Clean-Slate Database Reset & Seed
+
+Koska tietomalleista katkaistaan legacy-taaksepäinyhteensopivuus puhtaan arkkitehtuurin saavuttamiseksi, suorita testien päätteeksi uusi seedaus:
+```powershell
+uv run python scripts/run_seed.py
+```
 
 ---
 
 ## Handover Instructions
-To start the execution loop:
-1. Open a fresh context window.
-2. Run command: `/tier5-resume --target docs/epic/EPIC_67_tracker.md`
+
+Käynnistääksesi jatkuvan toteutussilmukan (continuous loop):
+1. **Avaa uusi, täysin puhdas keskusteluikkuna (Context Window)** 'Context Amnesian' ja sääntörikkomusten ehkäisemiseksi.
+2. Kopioi ja aja seuraava komento uudessa ikkunassa:
+   ```powershell
+   /tier5-resume --target docs/epic/EPIC_67_tracker.md
+   ```

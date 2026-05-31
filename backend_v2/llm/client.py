@@ -19,6 +19,7 @@ from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.llm import LLMProviderConfig
+from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import SystemConfigModelRegistry
 from backend_v2.utils.pydantic_utils import inflate
 
@@ -140,7 +141,7 @@ class LLMClient:
 
     async def run_structured_task[T: BaseModel](
         self,
-        messages: list[dict[str, Any]],
+        messages: list[dict[str, Any]] | CompiledPrompt,
         response_model: type[T],
         model: str | None = None,
         temperature: float | None = None,
@@ -151,7 +152,7 @@ class LLMClient:
         """Execute a structured LLM task enforcing a Pydantic schema using LLMProvider.
 
         Args:
-            messages: List of chat messages (system, user, etc.)
+            messages: List of chat messages (system, user, etc.) or CompiledPrompt.
             response_model: The Pydantic model class to valid output against.
             model: Optional direct model override. If omitted, uses Strategy-bound config.
             temperature: Sampling temperature override.
@@ -162,50 +163,8 @@ class LLMClient:
         Returns:
             A tuple of (Validated Pydantic Model, TokenUsage).
         """
-        # 1. Evaluate Context Caching Requirements (Epic 5 Context Segregation)
-        # We process the raw messages array dynamically before handing it to the provider.
-        has_ephemeral_caching = False
-        caching_strategies = ("prompt_caching", "ephemeral", "anthropic_ephemeral", "gemini_native")
-        if self._config and self._config.caching_strategy in caching_strategies:
-            logger.info(
-                "[LLMClient] Enabling Universal Ephemeral Context Caching strategy: %s",
-                self._config.caching_strategy,
-            )
-            has_ephemeral_caching = True
-
-        final_messages = []
-        for msg in messages:
-            # Create a deep copy to prevent mutating the original Orchestrator payload
-            final_messages.append(copy.deepcopy(msg))
-
-        if has_ephemeral_caching:
-            # For providers supporting explicit ephemeral tagging (e.g. Anthropic/LiteLLM standard),
-            # we inject "cache_control": {"type": "ephemeral"} on the static system block.
-            # In our architecture, the System Head contains all static matrices and instructions.
-            for msg in reversed(final_messages):
-                if msg.get("role") == "system":
-                    # Convert simple string content to Anthropic's block format (Fail-Fast on missing content)
-                    original_text = msg["content"]
-                    # Ensure content is a string before wrapping it
-                    if isinstance(original_text, str):
-                        # Google Vertex AI requires a minimum of 1024 tokens to enable context caching.
-                        # If a small prompt (< 1024 tokens) is sent with context caching enabled,
-                        # the Vertex AI API throws a hard 400 Bad Request error.
-                        # We apply a safe defensive character-length threshold
-                        # (~6000 characters, which is roughly 1500 tokens).
-                        if len(original_text) >= 6000:
-                            msg["content"] = [
-                                {"type": "text", "text": original_text, "cache_control": {"type": "ephemeral"}}
-                            ]
-                        else:
-                            logger.info(
-                                "[LLMClient] System prompt size (%d chars) is below "
-                                "the caching threshold. Caching bypassed.",
-                                len(original_text),
-                            )
-                    break
-
-        # 2. Resolve Configuration (SSOT Priority)
+        # ZERO-FALLBACK ENFORCEMENT
+        # Resolve Configuration (SSOT Priority)
         # If client was bound via Strategy Factory, it has priority unless explicitly overridden.
         if model is None:
             if not self._config:
@@ -231,6 +190,42 @@ class LLMClient:
             target_provider_type = "litellm"
             top_p = None
             top_k = None
+
+        compiled_prompt: CompiledPrompt | None = None
+        if isinstance(messages, CompiledPrompt):
+            compiled_prompt = messages
+            final_messages = compiled_prompt.to_flat_messages()
+        else:
+            final_messages = []
+            for msg in messages:
+                # Create a deep copy to prevent mutating the original Orchestrator payload
+                final_messages.append(copy.deepcopy(msg))
+
+        # 1. Evaluate Context Caching Requirements (Epic 5 Context Segregation)
+        # We process the raw messages array dynamically before handing it to the provider.
+        has_ephemeral_caching = False
+        caching_strategies = ("prompt_caching", "ephemeral", "anthropic_ephemeral", "gemini_native")
+        if self._config and self._config.caching_strategy in caching_strategies:
+            logger.info(
+                "[LLMClient] Enabling Universal Ephemeral Context Caching strategy: %s",
+                self._config.caching_strategy,
+            )
+            has_ephemeral_caching = True
+
+        extra_kwargs: dict[str, Any] = {}
+        if has_ephemeral_caching and self._config:
+            from backend_v2.llm.caching_service import LLMCachingService
+            from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
+
+            if not compiled_prompt:
+                prompt_adapter = PromptCompilerAdapter()
+                compiled_prompt = prompt_adapter.compile_prompt(final_messages)
+
+            final_messages, extra_kwargs = await LLMCachingService.prepare_caching_payload(
+                provider_name=self._config.provider,
+                compiled_prompt=compiled_prompt,
+                model_name=str(target_model_name),
+            )
 
         # 3. Create Provider via Factory
         provider = LLMFactory.create_provider(
@@ -312,6 +307,7 @@ class LLMClient:
                     mock_identity=mock_identity,
                     timeout=strict_timeout,
                     validation_context=validation_context,
+                    **extra_kwargs,
                 )
 
                 # Extract usage securely into TokenUsage
@@ -403,7 +399,7 @@ class LLMClient:
 
     async def run_chat(
         self,
-        messages: list[dict[str, Any]],
+        messages: list[dict[str, Any]] | CompiledPrompt,
         model: str | None = None,
         tools: list[dict[str, Any]] | None = None,
         tool_choice: str | None = None,
@@ -413,7 +409,7 @@ class LLMClient:
         """Execute a free-form chat task returning a string or tool_calls dict.
 
         Args:
-            messages: List of chat messages.
+            messages: List of chat messages or CompiledPrompt.
             model: Model identifier. MUST be provided (Zero-Fallback).
             tools: Optional OpenAI-format tool declarations for function calling.
             tool_choice: Optional tool_choice mode ('auto', 'none', 'required').
@@ -454,6 +450,36 @@ class LLMClient:
         # STRICT TIMEOUT PROTOCOL: Never overridden by caller, always uses global Enum constraint.
         strict_timeout = SystemConcurrency.LLM_DEFAULT_TIMEOUT_SECONDS.value
 
+        compiled_prompt: CompiledPrompt | None = None
+        if isinstance(messages, CompiledPrompt):
+            compiled_prompt = messages
+            final_messages = compiled_prompt.to_flat_messages()
+        else:
+            final_messages = []
+            for msg in messages:
+                final_messages.append(copy.deepcopy(msg))
+
+        # 1. Evaluate Context Caching Requirements
+        has_ephemeral_caching = False
+        caching_strategies = ("prompt_caching", "ephemeral", "anthropic_ephemeral", "gemini_native")
+        if self._config and self._config.caching_strategy in caching_strategies:
+            has_ephemeral_caching = True
+
+        extra_kwargs: dict[str, Any] = {}
+        if has_ephemeral_caching and self._config:
+            from backend_v2.llm.caching_service import LLMCachingService
+            from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
+
+            if not compiled_prompt:
+                prompt_adapter = PromptCompilerAdapter()
+                compiled_prompt = prompt_adapter.compile_prompt(final_messages)
+
+            final_messages, extra_kwargs = await LLMCachingService.prepare_caching_payload(
+                provider_name=self._config.provider,
+                compiled_prompt=compiled_prompt,
+                model_name=str(target_model_name),
+            )
+
         # Create Provider — pass self._config for TPM/RPM (Strict Mode compliance)
         provider = LLMFactory.create_provider(
             provider_type=target_provider_type,
@@ -464,7 +490,7 @@ class LLMClient:
         # Generate
         try:
             response = await provider.generate(
-                messages=messages,
+                messages=final_messages,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 top_p=top_p,
@@ -472,6 +498,7 @@ class LLMClient:
                 tools=tools,
                 tool_choice=tool_choice,
                 timeout=strict_timeout,
+                **extra_kwargs,
             )
 
             # If LLM returned tool_calls, return as dict for Tool Loop processing

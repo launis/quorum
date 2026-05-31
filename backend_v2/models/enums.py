@@ -147,6 +147,35 @@ class SystemLocale(str, Enum):
     FI = "fi"
 
 
+class LLMCachingStrategy(str, Enum):
+    """Supported caching strategies."""
+
+    PROMPT_CACHING = "prompt_caching"
+    EPHEMERAL = "ephemeral"
+    ANTHROPIC_EPHEMERAL = "anthropic_ephemeral"
+    GEMINI_NATIVE = "gemini_native"
+    NONE = "none"
+
+
+class LLMProviderName(str, Enum):
+    """Supported LLM provider names."""
+
+    VERTEX_AI = "vertex_ai"
+    GOOGLE = "google"
+    ANTHROPIC = "anthropic"
+    OPENAI = "openai"
+    DEEPSEEK = "deepseek"
+    MOCK = "mock_llm_99"
+
+
+class PromptCacheStatus(str, Enum):
+    """Status states for prompt caching in shared ledger."""
+
+    CREATING = "CREATING"
+    CREATED = "CREATED"
+    FAILED = "FAILED"
+
+
 class ExecutionPersona(str, Enum):
     """Execution Personas to inject SSOT global directives directly into System Prompts."""
 
@@ -174,6 +203,10 @@ class SystemConcurrency(int, Enum):
     SCHEMA_MAX_LOCALIZED_ANCHORS = 5
     SCHEMA_MAX_EVALUATIONS = 15
     SCHEMA_MAX_CHUNK_RECORDS = 15
+    CONTEXT_CACHE_LOCK_TTL_SECONDS = 300
+    CONTEXT_CACHE_PASSIVE_TTL_SECONDS = 3600
+    CONTEXT_CACHE_LOCK_POLL_INTERVAL_MS = 500
+    CONTEXT_CACHE_LOCK_WAIT_LIMIT_SECONDS = 20
 
 
 # --- Restored V1 Enums ---
@@ -374,6 +407,8 @@ class ScoringStrategy(str, Enum):
 
 
 # --- Lax Type Aliases (Pydantic V2) ---
+LaxLLMCachingStrategy = Annotated[LLMCachingStrategy, Field(strict=False)]
+LaxLLMProviderName = Annotated[LLMProviderName, Field(strict=False)]
 LaxXaiExtensionType = Annotated[XaiExtensionType, Field(strict=False)]
 LaxAuthenticityLevel = Annotated[AuthenticityLevel, Field(strict=False)]
 LaxBloomLevel = Annotated[BloomLevel, Field(strict=False)]

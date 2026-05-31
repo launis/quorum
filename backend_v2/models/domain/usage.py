@@ -16,7 +16,19 @@ class TokenUsage(BaseModel):
         description="Tokens used for reasoning/thought generation.",
         json_schema_extra={"x-ui-label": "Reasoning Tokens"},
     )
+    cache_creation_input_tokens: int = Field(
+        default=0,
+        ge=0,
+        description="Tokens written to cache (Cache Write/Miss).",
+        json_schema_extra={"x-ui-label": "Cache Creation Tokens"},
+    )
     cost_usd: float = Field(default=0.0, ge=0.0, description="Estimated cost in USD.")
+    estimated_savings_usd: float = Field(
+        default=0.0,
+        ge=0.0,
+        description="Estimated savings in USD due to caching.",
+        json_schema_extra={"x-ui-label": "Estimated Savings"},
+    )
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -27,8 +39,10 @@ class TokenUsage(BaseModel):
             completion_tokens=self.completion_tokens + other.completion_tokens,
             total_tokens=self.total_tokens + other.total_tokens,
             cached_tokens=self.cached_tokens + other.cached_tokens,
+            cache_creation_input_tokens=self.cache_creation_input_tokens + other.cache_creation_input_tokens,
             reasoning_tokens=self.reasoning_tokens + other.reasoning_tokens,
             cost_usd=self.cost_usd + other.cost_usd,
+            estimated_savings_usd=self.estimated_savings_usd + other.estimated_savings_usd,
         )
 
 

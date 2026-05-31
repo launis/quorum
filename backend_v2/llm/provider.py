@@ -372,6 +372,21 @@ class LiteLLMProvider(LLMProvider):
             # Filter out internal keys if necessary, but litellm.drop_params=True handles most.
             call_kwargs.update(kwargs)
 
+            # Milestone 5.2: Vertex AI Caching parameter mapping
+            if "cached_content" in kwargs:
+                cache_id = kwargs["cached_content"]
+                if "extra_headers" not in call_kwargs or call_kwargs["extra_headers"] is None:
+                    call_kwargs["extra_headers"] = {}
+                call_kwargs["extra_headers"]["cached_content"] = cache_id
+
+                if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
+                    call_kwargs["extra_body"] = {}
+                call_kwargs["extra_body"]["cachedContent"] = cache_id
+                call_kwargs["extra_body"]["cached_content"] = cache_id
+
+                # Direct keyword argument mapping for LiteLLM completion
+                call_kwargs["cached_content"] = cache_id
+
             # Inject dynamic extra params from config (additional_params) resolved via env vars
             if self._config and self._config.additional_params:
                 resolved_additional = resolve_env_variables(self._config.additional_params)

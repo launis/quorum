@@ -7,6 +7,7 @@ the cost calculated by LiteLLM (no local pricing logic).
 import logging
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from backend_v2.database.interfaces import IAuditRepository, IIdentityRepository
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -39,10 +40,14 @@ class UsageService:
         output_tokens: int,
         cost_usd: float,
         cached_tokens: int = 0,
+        cache_creation_input_tokens: int = 0,
+        estimated_savings_usd: float = 0.0,
         reasoning_tokens: int = 0,
         latency_ms: int | None = None,
         finish_reason: str | None = None,
         system_fingerprint: str | None = None,
+        provider_name: str | None = None,
+        model_pricing_config: dict[str, Any] | None = None,
     ) -> UsageRecord:
         """Track and persist a usage record.
 
@@ -64,6 +69,26 @@ class UsageService:
             AppException: If logging usage fails.
         """
         try:
+            from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
+
+            if provider_name and model_pricing_config:
+                usage_obj = TokenUsage(
+                    prompt_tokens=input_tokens,
+                    completion_tokens=output_tokens,
+                    cached_tokens=cached_tokens,
+                    cache_creation_input_tokens=cache_creation_input_tokens,
+                    reasoning_tokens=reasoning_tokens,
+                    cost_usd=cost_usd,
+                    estimated_savings_usd=estimated_savings_usd,
+                )
+                try:
+                    adapter = LLMCacheAdapterFactory.get_adapter(provider_name)
+                    final_usage = adapter.calculate_cost(usage_obj, model_pricing_config)
+                    cost_usd = final_usage.cost_usd
+                    estimated_savings_usd = final_usage.estimated_savings_usd
+                except Exception as e:
+                    logger.warning("Failed to calculate cost via adapter: %s", e)
+
             record = UsageRecord(
                 id=str(uuid.uuid4()),
                 org_id=org_id,
@@ -72,11 +97,13 @@ class UsageService:
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 cached_tokens=cached_tokens,
+                cache_creation_input_tokens=cache_creation_input_tokens,
                 reasoning_tokens=reasoning_tokens,
                 latency_ms=latency_ms,
                 finish_reason=finish_reason,
                 system_fingerprint=system_fingerprint,
                 cost_usd=cost_usd,
+                estimated_savings_usd=estimated_savings_usd,
                 timestamp=datetime.now(UTC),
             )
 
@@ -93,8 +120,10 @@ class UsageService:
                         completion_tokens=output_tokens,
                         total_tokens=total_t,
                         cached_tokens=cached_tokens,
+                        cache_creation_input_tokens=cache_creation_input_tokens,
                         reasoning_tokens=reasoning_tokens,
                         cost_usd=cost_usd,
+                        estimated_savings_usd=estimated_savings_usd,
                     ).model_dump(mode="json"),
                 }
 
@@ -111,6 +140,33 @@ class UsageService:
                 if user_id:
                     await self.audit_repo.upsert_usage_aggregate("user", user_id, period, update_data)
                     await self.audit_repo.upsert_usage_aggregate("user", user_id, "all-time", update_data)
+
+            # --- PROMPT_CACHING_DRIFT_ALERT ---
+            caching_strategy = None
+            if model_pricing_config:
+                caching_strategy = model_pricing_config.get("caching_strategy")
+
+            if caching_strategy == "prompt_caching":
+                # Get recent records (assuming last 5 exist in db)
+                if hasattr(self.audit_repo, "get_usage_records"):
+                    recent_records_data = await self.audit_repo.get_usage_records(scope="user", entity_id=user_id)
+                    # Use last 4 from DB + current record
+                    recent_records_data = recent_records_data[-4:]
+                    records = [UsageRecord.model_validate(r) for r in recent_records_data]
+                    records.append(record)
+
+                    if len(records) == 5:
+                        total_cached = sum(r.cached_tokens for r in records)
+                        total_all_tokens = sum((r.input_tokens + r.output_tokens + r.cached_tokens) for r in records)
+
+                        if total_all_tokens > 0:
+                            hit_rate = total_cached / total_all_tokens
+                            if hit_rate < 0.80:
+                                hit_rate_pct = int(hit_rate * 100)
+                                logger.error(
+                                    "PROMPT_CACHING_DRIFT_ALERT: Cache hit rate has degraded "
+                                    f"to {hit_rate_pct}% for workflow Y. Investigate prompt mutations immediately."
+                                )
 
             return record
 

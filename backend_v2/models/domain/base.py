@@ -185,6 +185,12 @@ class UsageRecord(V2CoreBase):
     cached_tokens: int = Field(
         default=0, ge=0, description="Cached tokens.", json_schema_extra={"x-ui-label": "Cached Tokens"}
     )
+    cache_creation_input_tokens: int = Field(
+        default=0,
+        ge=0,
+        description="Tokens written to cache.",
+        json_schema_extra={"x-ui-label": "Cache Creation Tokens"},
+    )
     reasoning_tokens: int = Field(
         default=0, ge=0, description="Reasoning tokens.", json_schema_extra={"x-ui-label": "Reasoning Tokens"}
     )
@@ -198,6 +204,9 @@ class UsageRecord(V2CoreBase):
         default=None, description="System fingerprint.", json_schema_extra={"x-ui-label": "System Fingerprint"}
     )
     cost_usd: float = Field(..., ge=0.0, description="Cost in USD.", json_schema_extra={"x-ui-label": "Cost (USD)"})
+    estimated_savings_usd: float = Field(
+        default=0.0, ge=0.0, description="Estimated savings.", json_schema_extra={"x-ui-label": "Savings (USD)"}
+    )
     timestamp: datetime = Field(..., description="Timestamp of usage.", json_schema_extra={"x-ui-label": "Timestamp"})
 
     @field_validator("timestamp", mode="before")

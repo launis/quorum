@@ -23,6 +23,7 @@ def mock_prompt_compiler() -> MagicMock:
 @pytest.fixture
 def mock_client() -> AsyncMock:
     client = AsyncMock()
+    client._config = None
     return client
 
 
@@ -74,15 +75,16 @@ async def test_execute_structured_task_retry_on_schema_error(
     # Assert Prompt Topology and Tail-End Injection
     calls = mock_client.run_structured_task.call_args_list
     assert len(calls) == 2
-    retry_messages = calls[1].kwargs["messages"]
+    retry_prompt = calls[1].kwargs["messages"]
+    flat_messages = retry_prompt.to_flat_messages()
 
     # Should still only be 2 messages (system, user), no new assistant message appended
-    assert len(retry_messages) == 2
-    assert retry_messages[0]["role"] == "system"
-    assert retry_messages[1]["role"] == "user"
-    assert "user_payload" in retry_messages[1]["content"]
-    assert "<PREVIOUS_SCHEMA_ERROR>" in retry_messages[1]["content"]
-    assert "FIX THIS JSON" in retry_messages[1]["content"]
+    assert len(flat_messages) == 2
+    assert flat_messages[0]["role"] == "system"
+    assert flat_messages[1]["role"] == "user"
+    assert "user_payload" in flat_messages[1]["content"]
+    assert "<PREVIOUS_SCHEMA_ERROR>" in flat_messages[1]["content"]
+    assert "FIX THIS JSON" in flat_messages[1]["content"]
 
 
 @pytest.mark.asyncio
@@ -171,14 +173,15 @@ async def test_execute_structured_task_logical_error_retry(
     # Assert Prompt Topology and Tail-End Injection
     calls = mock_client.run_structured_task.call_args_list
     assert len(calls) == 2
-    retry_messages = calls[1].kwargs["messages"]
+    retry_prompt = calls[1].kwargs["messages"]
+    flat_messages = retry_prompt.to_flat_messages()
 
-    assert len(retry_messages) == 2
-    assert retry_messages[0]["role"] == "system"
-    assert retry_messages[1]["role"] == "user"
-    assert "user_payload" in retry_messages[1]["content"]
-    assert "<PREVIOUS_SCHEMA_ERROR>" in retry_messages[1]["content"]
-    assert "Failed Output" in retry_messages[1]["content"]
+    assert len(flat_messages) == 2
+    assert flat_messages[0]["role"] == "system"
+    assert flat_messages[1]["role"] == "user"
+    assert "user_payload" in flat_messages[1]["content"]
+    assert "<PREVIOUS_SCHEMA_ERROR>" in flat_messages[1]["content"]
+    assert "Failed Output" in flat_messages[1]["content"]
 
 
 @pytest.mark.asyncio

@@ -6811,12 +6811,28 @@
             "default": 0,
             "x-ui-label": "Reasoning Tokens"
           },
+          "cache_creation_input_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Cache Creation Input Tokens",
+            "description": "Tokens written to cache (Cache Write/Miss).",
+            "default": 0,
+            "x-ui-label": "Cache Creation Tokens"
+          },
           "cost_usd": {
             "type": "number",
             "minimum": 0.0,
             "title": "Cost Usd",
             "description": "Estimated cost in USD.",
             "default": 0.0
+          },
+          "estimated_savings_usd": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Estimated Savings Usd",
+            "description": "Estimated savings in USD due to caching.",
+            "default": 0.0,
+            "x-ui-label": "Estimated Savings"
           }
         },
         "additionalProperties": false,
