@@ -1,14 +1,29 @@
+from __future__ import annotations
+
+"""Module for AST logical evaluation engine in 3-state boolean networks.
+
+Provides standard and inverse evaluation rules handling DLQ state and tolerance parameters.
+"""
+
 import ast
 import logging
 from typing import Any, Literal
 
+from fastapi import status
+
+from backend_v2.exceptions import AppException, ErrorCodes
+
 logger = logging.getLogger(__name__)
 
-State = Literal["TRUE", "FALSE", "DLQ"]
+# PEP 695 type alias for evaluation statuses
+type State = Literal["TRUE", "FALSE", "DLQ"]
 
 
 class ASTEvaluator:
-    """Secure whitelisted AST evaluator for boolean logical expressions with 3-state logic."""
+    """Secure whitelisted AST evaluator for boolean logical expressions with 3-state logic.
+
+    Adheres to PEP 257 docstring conventions and strictly uses fail-fast validation.
+    """
 
     @staticmethod
     def calculate_inverse_dlq_tolerance(total_chunks: int, dlq_chunks: int, inner_val: State) -> State:
@@ -17,17 +32,27 @@ class ASTEvaluator:
         If the inner value was TRUE, 'not TRUE' is always FALSE.
         If the inner value was FALSE, 'not FALSE' is always TRUE.
         If the inner value was DLQ, and missing chunks are < 5%, treat as proved absence (TRUE), else DLQ.
+
+        Args:
+            total_chunks: Total chunk count of the associated document evaluation.
+            dlq_chunks: Total count of chunks in the DLQ.
+            inner_val: State resulting from inner evaluation node.
+
+        Returns:
+            Computed state boolean representation including tolerance.
         """
-        if inner_val == "TRUE":
-            return "FALSE"
-        elif inner_val == "FALSE":
-            return "TRUE"
-        elif inner_val == "DLQ":
-            ratio = dlq_chunks / total_chunks if total_chunks > 0 else 0.0
-            if ratio < 0.05:
+        match inner_val:
+            case "TRUE":
+                return "FALSE"
+            case "FALSE":
                 return "TRUE"
-            return "DLQ"
-        return "FALSE"
+            case "DLQ":
+                ratio = dlq_chunks / total_chunks if total_chunks > 0 else 0.0
+                if ratio < 0.05:
+                    return "TRUE"
+                return "DLQ"
+            case _:
+                return "FALSE"
 
     @staticmethod
     def evaluate(
@@ -39,6 +64,18 @@ class ASTEvaluator:
         """Evaluate a boolean expression against a dictionary of facts.
 
         Supports whitelisted security and 3-state logical operators (and, or, not).
+
+        Args:
+            expression: Raw logical boolean expression string.
+            facts: Lookup table mapping variable keys to their derived states.
+            total_chunks: Total number of chunks available.
+            dlq_chunks: Total number of dead-letter-queue chunks.
+
+        Returns:
+            Computed state (TRUE, FALSE, or DLQ).
+
+        Raises:
+            AppException: Triggered with VALIDATION_FAILED error code if AST syntax is invalid.
         """
         if not expression or not expression.strip():
             return "FALSE"
@@ -46,18 +83,31 @@ class ASTEvaluator:
         try:
             tree = ast.parse(expression.strip(), mode="eval")
         except SyntaxError as e:
-            logger.error(
-                "ASTEvaluator: Syntax error parsing expression '%s': %s",
-                expression,
-                e,
-            )
-            raise ValueError(f"Invalid boolean expression: {expression}") from e
+            logger.error("ASTEvaluator: Syntax error parsing expression '%s': %s", expression, e, exc_info=True)
+            raise AppException(
+                message=f"Invalid boolean expression syntax: {expression}",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
 
         return ASTEvaluator._eval_node(tree.body, facts, total_chunks, dlq_chunks)
 
     @staticmethod
     def _eval_node(node: ast.AST, facts: dict[str, Any], total_chunks: int, dlq_chunks: int) -> State:
-        # Strict whitelisting check
+        """Internal AST evaluation step with strict whitelisting.
+
+        Args:
+            node: AST node to parse.
+            facts: Lookup database mapping state outputs.
+            total_chunks: Number of segments for tolerance.
+            dlq_chunks: Number of DLQ segments.
+
+        Returns:
+            State computed from current branch.
+
+        Raises:
+            ValueError: Security violation if non-whitelisted node structure is supplied.
+        """
         allowed_types = (
             ast.Expression,
             ast.BoolOp,
@@ -72,33 +122,28 @@ class ASTEvaluator:
             logger.error(msg)
             raise ValueError(msg)
 
-        if isinstance(node, ast.Name):
-            var_name = node.id
-            val = facts.get(var_name)
-            if val == "DLQ":
-                return "DLQ"
-            elif val is None or val == "" or val is False:
-                return "FALSE"
-            else:
-                return "TRUE"
+        match node:
+            case ast.Name(id=var_name):
+                val = facts.get(var_name)
+                if val == "DLQ":
+                    return "DLQ"
+                elif val is None or val == "" or val is False:
+                    return "FALSE"
+                else:
+                    return "TRUE"
 
-        elif isinstance(node, ast.UnaryOp):
-            if not isinstance(node.op, ast.Not):
-                msg = f"AST Security Violation: Disallowed UnaryOp operator '{type(node.op).__name__}'"
+            case ast.UnaryOp(op=ast.Not(), operand=operand):
+                operand_val = ASTEvaluator._eval_node(operand, facts, total_chunks, dlq_chunks)
+                return ASTEvaluator.calculate_inverse_dlq_tolerance(total_chunks, dlq_chunks, operand_val)
+
+            case ast.UnaryOp(op=non_not_op):
+                msg = f"AST Security Violation: Disallowed UnaryOp operator '{type(non_not_op).__name__}'"
                 logger.error(msg)
                 raise ValueError(msg)
 
-            operand_val = ASTEvaluator._eval_node(node.operand, facts, total_chunks, dlq_chunks)
-            return ASTEvaluator.calculate_inverse_dlq_tolerance(total_chunks, dlq_chunks, operand_val)
-
-        elif isinstance(node, ast.BoolOp):
-            if isinstance(node.op, ast.And):
-                # and logic:
-                # - If any is FALSE, result is FALSE (short-circuit)
-                # - If all are TRUE, result is TRUE
-                # - Otherwise DLQ
+            case ast.BoolOp(op=ast.And(), values=values):
                 has_dlq = False
-                for value in node.values:
+                for value in values:
                     res = ASTEvaluator._eval_node(value, facts, total_chunks, dlq_chunks)
                     if res == "FALSE":
                         return "FALSE"
@@ -106,13 +151,9 @@ class ASTEvaluator:
                         has_dlq = True
                 return "DLQ" if has_dlq else "TRUE"
 
-            elif isinstance(node.op, ast.Or):
-                # or logic:
-                # - If any is TRUE, result is TRUE (short-circuit)
-                # - If all are FALSE, result is FALSE
-                # - Otherwise DLQ
+            case ast.BoolOp(op=ast.Or(), values=values):
                 has_dlq = False
-                for value in node.values:
+                for value in values:
                     res = ASTEvaluator._eval_node(value, facts, total_chunks, dlq_chunks)
                     if res == "TRUE":
                         return "TRUE"
@@ -120,12 +161,12 @@ class ASTEvaluator:
                         has_dlq = True
                 return "DLQ" if has_dlq else "FALSE"
 
-            else:
-                msg = f"AST Security Violation: Disallowed BoolOp operator '{type(node.op).__name__}'"
+            case ast.BoolOp(op=disallowed_op):
+                msg = f"AST Security Violation: Disallowed BoolOp operator '{type(disallowed_op).__name__}'"
                 logger.error(msg)
                 raise ValueError(msg)
 
-        else:
-            msg = f"AST Security Violation: Disallowed node '{type(node).__name__}'"
-            logger.error(msg)
-            raise ValueError(msg)
+            case _:
+                msg = f"AST Security Violation: Disallowed node '{type(node).__name__}'"
+                logger.error(msg)
+                raise ValueError(msg)

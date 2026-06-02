@@ -96,3 +96,18 @@ def test_trace_matrix_payload_strictness() -> None:
 
     with pytest.raises(ValidationError):
         TraceMatrixPayloadDTO(raw_score=4.5, extra_field="fail")  # type: ignore
+
+
+def test_trace_matrix_payload_accepts_allowed_extensions() -> None:
+    """Strict TDD: Test that TraceMatrixPayloadDTO accepts allowed_extensions field without raising ValidationError."""
+    payload = {
+        "raw_score": 4.5,
+        "normalized_score": 90.0,
+        "justification": "Test justification",
+        "allowed_extensions": ["falsification", "coaching", "remediation_steps"],
+    }
+    # This should succeed without raising any ValidationError
+    dto = TraceMatrixPayloadDTO.model_validate(payload)
+    assert dto.raw_score == 4.5
+    assert dto.allowed_extensions == ["falsification", "coaching", "remediation_steps"]
+

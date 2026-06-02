@@ -53,10 +53,18 @@ from backend_v2.models.enums import (
     StrategicDepth,
     VerificationResult,
 )
+from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
 
 # 0. Shared Metadata
 MOCK_METADATA = Metadata(
     luontiaika=datetime.now(), agentti="MockAgent", vaihe=1, versio="1.0", suoritus_ymparisto="Testing"
+)
+
+MOCK_CHAT_HISTORY = ChatHistoryDTO(
+    conversation=[
+        ChatMessageDTO(role="user", content="Hei, miten Sitra määrittelee megatrendit?"),
+        ChatMessageDTO(role="ai", content="Sitra kuvaa megatrendejä suurina kehityskulkuina, jotka vaikuttavat merkittävästi yhteiskuntaamme.")
+    ]
 )
 
 # 1. Analyst Role
@@ -283,6 +291,7 @@ MOCK_REGISTRY: dict[type[Any], Any] = {
     ArchivistOutput: MOCK_ARCHIVIST_OUTPUT,
     EvaluationResult: MOCK_JUDGE_OUTPUT,
     XAIOutput: MOCK_XAI_OUTPUT,
+    ChatHistoryDTO: MOCK_CHAT_HISTORY,
     # Components
     LogicianData: MOCK_LOGICIAN_DATA,
     FalsifierData: MOCK_FALSIFIER_DATA,

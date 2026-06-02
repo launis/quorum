@@ -1,5 +1,10 @@
-"""Context Router for dynamic UI-driven state pruning."""
+"""Context Router for dynamic UI-driven state pruning.
 
+This module isolates UI-driven routing, step-to-step variable normalization,
+and data culling/pruning logic matching the Phase 9 architecture standards.
+"""
+
+import logging
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -13,16 +18,27 @@ from backend_v2.exceptions import (
 )
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, OutputProfileConfig
 
+logger = logging.getLogger(__name__)
+
 
 class RoutingModeConfig(BaseModel):
-    """Pydantic model for validating routing configurations strictly."""
+    """Pydantic model for validating routing configurations strictly.
+
+    Attributes:
+        routing_mode: The routing behavior configuration string.
+    """
 
     model_config = ConfigDict(extra="allow")
     routing_mode: str
 
 
 class SnapshotState(BaseModel):
-    """Pydantic model to encapsulate execution state snapshots without using naked dicts."""
+    """Pydantic model to encapsulate execution state snapshots without using naked dicts.
+
+    Attributes:
+        steps: Optional list of executed step data.
+        raw_inputs: Optional dictionary representing starting inputs.
+    """
 
     model_config = ConfigDict(extra="allow")
     steps: list[Any] | None = None
@@ -30,33 +46,48 @@ class SnapshotState(BaseModel):
 
 
 class ContextRouter:
-    """Isolates UI-driven routing and data culling logic."""
+    """Isolates UI-driven routing and data culling logic conforming to Phase 9 directives."""
 
     @staticmethod
     def route_and_prune(trace_event: Any, output_profile: OutputProfileConfig | None) -> LightweightMatrixOutput:
         """Extracts strictly what the UI demands from the execution trace.
 
         Args:
-            trace_event: The full execution state dictionary (e.g. from an atom evaluation).
+            trace_event: The full execution state dictionary or validated matrix output.
             output_profile: The UI-defined output profile specifying required extensions.
 
         Returns:
-            A LightweightMatrixOutput containing only the requested data.
+            A LightweightMatrixOutput containing only the requested pruned data.
 
         Raises:
-            ConfigurationError: If output_profile is None or required fields are missing.
+            ConfigurationError: If trace event validation fails structurally or has missing base fields.
             MissingXaiExtensionError: If a requested extension is missing in the trace.
         """
         try:
             if isinstance(trace_event, dict):
+                if "evaluated_atoms" not in trace_event:
+                    raise ConfigurationError(
+                        message="Missing required base field in trace_event: evaluated_atoms",
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
                 mapped_trace = LightweightMatrixOutput.map_llm_extensions_to_domain(trace_event)
                 validated_trace = LightweightMatrixOutput.model_validate(mapped_trace)
             else:
                 validated_trace = LightweightMatrixOutput.model_validate(trace_event)
+        except ConfigurationError:
+            raise
         except ValidationError as e:
-            raise ConfigurationError(message=f"Fail-Fast: Invalid trace_event format: {e}") from e
+            logger.error("Trace event validation failed during prune.", exc_info=True)
+            raise ConfigurationError(
+                message=f"Fail-Fast: Invalid trace_event format: {e}",
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
         except Exception as e:
-            raise ConfigurationError(message=f"Missing required base field in trace_event: {e}") from e
+            logger.error("Unexpected parsing error during trace event validation.", exc_info=True)
+            raise ConfigurationError(
+                message=f"Missing required base field in trace_event: {e}",
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            ) from e
 
         extensions_extracted = {}
         if output_profile:
@@ -65,6 +96,9 @@ class ContextRouter:
                 # It is not produced at the individual matrix block level.
                 ext_str = ext.value if hasattr(ext, "value") else str(ext)
                 if ext_str == "variance_validation" or "variance_validation" in str(ext):
+                    continue
+                # If block explicitly defines supported extensions, check suitability
+                if validated_trace.allowed_extensions is not None and ext not in validated_trace.allowed_extensions:
                     continue
                 if ext in validated_trace.extensions:
                     extensions_extracted[ext] = str(validated_trace.extensions[ext])
@@ -108,6 +142,17 @@ class ContextRouter:
         """Validates dynamic variables (Fail-Fast) and strictly forbids legacy V1 paths.
 
         Enforces strict V2 nomenclature: No implicit stripping of '.output'.
+
+        Args:
+            path: The variable reference path (e.g. $steps.step_1.output).
+            snapshot: The execution context state snapshot.
+
+        Returns:
+            The normalized path string if validated successfully.
+
+        Raises:
+            AppException: If snapshot validation fails, a legacy dictionary format is detected,
+                the step is not found, or legacy V1 '.output' notation is used.
         """
         if not path:
             return path
@@ -122,6 +167,7 @@ class ContextRouter:
                 try:
                     state = SnapshotState.model_validate(snapshot)
                 except ValidationError as e:
+                    logger.error("SnapshotState validation failed.", exc_info=True)
                     raise AppException(
                         message="Fail-Fast: Snapshot validation failed. Must match SnapshotState.",
                         status_code=500,
@@ -136,7 +182,7 @@ class ContextRouter:
                             "must be a list of StepOutputDTO."
                         ),
                         status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
                     )
 
                 found = False
@@ -147,7 +193,7 @@ class ContextRouter:
                     raise AppException(
                         message=f"Fail-Fast: Required step '{step_key}' not found in state (Orphaned Step).",
                         status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
                     )
 
                 # STRICT V2 MANDATE: Explicitly reject legacy V1 `.output` notation.

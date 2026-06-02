@@ -337,7 +337,7 @@ class TitleKey(str, Enum):
     OVERSEER = "TITLE_OVERSEER"
     CONTEXT = "TITLE_CONTEXT"
     TIMELINE = "Process Timeline"  # Key in l10n
-    HYPOTHESES = "Analyst Hypotheses"  # Key in l10n
+    HYPOTHESES = "Analyst Hypotheses"  # Key in l10n"
 
 
 class LabelKey(str, Enum):

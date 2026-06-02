@@ -34,7 +34,18 @@ logger = logging.getLogger(__name__)
 async def _fetch_historical_context(
     mode: HistoricalContextMode, inputs: dict[str, Any], deps: HookDependencies, state: HookState, profile_to_use: str
 ) -> str:
-    """Fetch and format historical execution summaries based on the selected mode."""
+    """Fetch and format historical execution summaries based on the selected mode.
+
+    Args:
+        mode: The requested historical context retrieval strategy.
+        inputs: Current input mappings.
+        deps: Global hook dependencies.
+        state: Executing context state.
+        profile_to_use: Evaluated target output profile ID.
+
+    Returns:
+        XML structured historical context string or empty string if disabled.
+    """
     if mode == HistoricalContextMode.DISABLED:
         return ""
 
@@ -95,7 +106,19 @@ async def _fetch_historical_context(
 
 
 def _build_title_map(workflow_data: Workflow | None, all_steps: list[Step], language: str) -> dict[str, str]:
-    """Build an O(1) lookup map for resolving localized step and input titles."""
+    """Build an O(1) lookup map for resolving localized step and input titles.
+
+    Args:
+        workflow_data: The SSOT workflow definition blueprint.
+        all_steps: Master list of all steps from the registry.
+        language: Target translation locale code.
+
+    Returns:
+        Dictionary mapping step/input keys to resolved title strings.
+
+    Raises:
+        AppException: If a step references a missing blueprint (VALIDATION_FAILED).
+    """
     title_map: dict[str, str] = {}
     if not workflow_data:
         return title_map
@@ -130,7 +153,14 @@ def _build_title_map(workflow_data: Workflow | None, all_steps: list[Step], lang
 
 
 def _compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisStepDataDTO) -> str:
-    """Deep copy and strip heavy Pydantic metadata and AI internal logs before sending to final synthesis."""
+    """Deep copy and strip heavy Pydantic metadata and AI internal logs before sending to final synthesis.
+
+    Args:
+        v: The extracted JSON payload or DTO value to compress.
+
+    Returns:
+        A stringified JSON dump stripped of extraneous AI inference variables.
+    """
     if hasattr(v, "model_dump"):
         v = v.model_dump(mode="json")
 
@@ -142,9 +172,6 @@ def _compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisS
     def _strip_heavy_keys(obj: Any) -> None:
         if isinstance(obj, dict):
             obj.pop("shuffled_atoms", None)
-
-            # Token Shield: Suodatetaan pois raskaat ruohonjuuritason evaluoinnit ja logit
-            # jotta "Chief Editor" LLM voi keskittyä vain olennaisiin perusteluihin ja tuloksiin.
             obj.pop("evaluations", None)
 
             for _, val in list(obj.items()):
@@ -158,7 +185,19 @@ def _compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisS
 
 
 def _build_section_instructions(layouts: list[Any], language: str, all_blocks: list[PromptBlock]) -> list[str]:
-    """Compile section-level synthesis instructions for the LLM prompt."""
+    """Compile section-level synthesis instructions for the LLM prompt.
+
+    Args:
+        layouts: Display layouts declared in the active OutputProfile.
+        language: Translated target locale string.
+        all_blocks: The master registry of prompt blocks for mapping.
+
+    Returns:
+        A list of constructed XML sections to dynamically orchestrate multi-part LLM rendering.
+
+    Raises:
+        AppException: If a layout requests synthesis without a cognitive blueprint.
+    """
     section_instructions: list[str] = []
     for idx, layout in enumerate(layouts):
         l_synthesis = layout.synthesis
@@ -180,7 +219,6 @@ def _build_section_instructions(layouts: list[Any], language: str, all_blocks: l
         l_preamble_model = l_synthesis.preamble_text
         l_preamble = l_preamble_model.resolve(language) if l_preamble_model else ""
 
-        # Calculate a deterministic Layout ID matching BlueprintTransformer (using idx)
         l_view = layout.preset_view
         l_id = f"layout_{idx}_{l_view}"
         target_blocks = layout.target_blocks or []
@@ -231,6 +269,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     Returns:
         HookResult: Delta injected with synthesized markdown and tokens.
+
+    Raises:
+        AppException: If parameters or state metadata validate incorrectly.
     """
     logger.debug("[SynthesisHook] Running text_consolidation_hook...")
     if not state:
@@ -272,8 +313,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
 
-    # Resolve active workflow to determine the output profile bounds
-
     raw_workflow_data = await deps.workflow_repo.get_workflow_by_id(state.workflow_id)
     if not raw_workflow_data:
         msg = f"Workflow '{state.workflow_id}' not found."
@@ -300,7 +339,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
-    # --- Epic 13 M1: Fetch Output Profile from SSOT ---
     p_dict = await deps.comp_repo.get_output_profile_by_id(profile_to_use)
     active_profile_dto: OutputProfileResponseDTO | None = None
     if p_dict:
@@ -324,19 +362,15 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     preamble = preamble_dict.resolve(language) if preamble_dict else ""
 
-    # Fetch all blocks to inject extrema scale bounds and resolve titles (V2 Architecture)
     all_blocks = []
     all_steps = []
     if hasattr(deps.comp_repo, "get_all_prompt_blocks") and hasattr(deps.workflow_repo, "get_all_steps"):
-        # Fetch blocks for the ContextMapper ordinal mapping
         raw_blocks = await deps.comp_repo.get_all_prompt_blocks()
         all_blocks = [PromptBlock.model_validate(rb) for rb in raw_blocks]
 
-        # Fetch steps for Step title resolution
         raw_steps = await deps.workflow_repo.get_all_steps()
         all_steps = [Step.model_validate(rs) for rs in raw_steps]
 
-    # Pre-calculate matrix step IDs based on strict schema routing to avoid duck-typing
     matrix_step_ids = set()
     if workflow_data and workflow_data.steps:
         step_def_map = {str(s.id): s for s in all_steps}
@@ -383,7 +417,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                         matrix_step_ids.add(str(w_step.id))
                         break
 
-    # --- Collect Target Blocks from UI Layouts ---
     layouts = active_profile_dto.layouts
     required_blocks: set[str] = set()
     for layout in layouts:
@@ -393,12 +426,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     is_global_wildcard = ("*" in required_blocks) or not required_blocks
 
-    # 1. Clean up inputs (Omit Empty Sections & Original Inputs)
     consolidated_inputs: dict[str, Any] = {}
-
     available_dtos: list[StepOutputDTO] = []
 
-    # In V2, inputs.get("steps") is the definitive state source.
     if "steps" not in inputs:
         msg = "Strict Fail-Fast Enforced: 'steps' key is missing from state inputs."
         logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -421,13 +451,11 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     ) from e
 
-    # Merge metadata injection
     if hook_metadata_dto.step_results:
         for item in hook_metadata_dto.step_results:
             if isinstance(item, StepOutputDTO):
                 available_dtos.append(item)
 
-    # Deduplicate and extract payload components
     for step_dto_obj in available_dtos:
         step_id = step_dto_obj.step_id
         block_id = step_dto_obj.block_id
@@ -455,7 +483,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
 
-        # O(1) Set intersection logic replacing nested loops
         inner_keys = set(step_dict.keys())
         is_requested = False
 
@@ -464,7 +491,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         elif not required_blocks.isdisjoint(inner_keys):
             is_requested = True
         else:
-            # Final fallback for composite keys
             for inner_k in inner_keys:
                 if f"{step_id}_{inner_k}" in required_blocks or f"{block_id}_{inner_k}" in required_blocks:
                     is_requested = True
@@ -473,7 +499,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         if not is_requested:
             if not is_wildcard:
                 continue
-            # reasoning_trace acts as a discriminator for LLM execution steps.
             if step_dto and step_dto.reasoning_trace is None:
                 is_matrix_or_ext = False
                 for m_id in matrix_step_ids:
@@ -504,14 +529,11 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             },
         )
 
-    # 1.5 Fetch Historical Framework Context
     historical_context_text = await _fetch_historical_context(
         mode=historical_mode, inputs=inputs, deps=deps, state=state, profile_to_use=profile_to_use
     )
 
-    # 2. Combine parts & PII mask
     combined_text_parts = []
-
     title_map = _build_title_map(workflow_data, all_steps, language)
 
     for k, v in consolidated_inputs.items():
@@ -531,7 +553,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         if threats:
             logger.warning("[SynthesisHook] PII redacted during synthesis. Threat count: %d", len(threats))
 
-    # --- Section-Level Synthesis Directives ---
     section_instructions = _build_section_instructions(active_profile_dto.layouts, language, all_blocks)
 
     custom_sys_prompt = synthesis_cfg.system_prompt
@@ -567,7 +588,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         sys_prompt += f"  <max_extension_items_per_category>{max_items}</max_extension_items_per_category>\n"
 
     sys_prompt += "</execution_parameters>\n\n"
-
     sys_prompt += f"<objective>\n{str(custom_sys_prompt).strip()}\n</objective>\n<rules>\n"
 
     sys_prompt += (
@@ -639,7 +659,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             "Create a distinct JSON object for each selected item. Do not merge everything into one giant item. "
             "Output these items strictly into the `xai_highlights` array, "
             "using the EXACT target extension name from <target_extensions_to_harvest> in `extension_type`. "
-            '(e.g. "coaching")\n'
+            ' (e.g. "coaching")\n'
             "Provide ONLY the core text, omitting any internal titles like 'Vasta-argumentti 1:'.</rule>\n"
         )
 
@@ -647,11 +667,8 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     messages = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": raw_input_text}]
 
-    # 4. LLM execution with telemetry
-    # Fail-fast: Assuming the strategy for output formatting is named 'synthesis_strategy'
     client = await LLMClient.from_strategy("synthesis", repository=deps.system_repo)
     executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
-
     allowed_tools = synthesis_cfg.allowed_mcp_tools
 
     with logfire.span("text_consolidation_hook") as span:
@@ -694,13 +711,9 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             for s in result.section_syntheses:
                 section_dict[s.layout_id] = s.synthesized_markdown
 
-        # Synthesis is now natively generated in target_locale due to CRITICAL_LANGUAGE_MANDATE
         global_md = result.synthesized_markdown
-        # Tripartite rendering boundary enforcement: Markdown bibliography generation delegated to UI/PDF layer
-
         raw_highlights = [h.model_dump() for h in result.xai_highlights] if result.xai_highlights else []
 
-        # Epic 50: Dynamic Row Explanation Generation with strict SSOT
         row_explanations_dict = {}
         row_exp_rule = "MAXIMUM LENGTH IS 30 WORDS. KEEP IT CONCISE BUT INFORMATIVE."
 
@@ -738,8 +751,8 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                     matrices_to_explain.append(
                         {
                             "matrix_id": block_id,
-                            "score": payload.get("normalized_score"),
-                            "justification": payload.get("justification"),
+                            "score": payload["normalized_score"],
+                            "justification": payload["justification"],
                         }
                     )
 
@@ -769,7 +782,6 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             except Exception as e:
                 logger.error("[SynthesisHook] Row explanation generation failed: %s", e, exc_info=True)
 
-        # EPIC 13 M3: Save synthesis metrics directly to DB state
         return HookResult(
             success=True,
             state_delta={

@@ -1,7 +1,11 @@
-"""Metrics hooks for calculating text statistics and control ratios."""
+"""Metrics hooks for calculating text statistics and control ratios.
+
+All metrics rules adhere strictly to the Phase 9 architecture standards.
+"""
 
 import logging
 import re
+from typing import Any
 
 from fastapi import status
 from pydantic import ValidationError
@@ -14,9 +18,22 @@ from backend_v2.models.domain.metrics import (
     ProfilerMetricsDTO,
     TextMetricsDTO,
 )
-from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
+
+
+class FallbackSettings:
+    """Fallback settings for metrics calculation if dependencies lack settings.
+
+    Attributes:
+        metrics_short_response_word_count: Int threshold for short response calculation.
+        metrics_automation_bias_ratio: Float threshold for automation bias calculation.
+        metrics_mechanical_ratio: Float threshold for mechanical style calculations.
+    """
+
+    metrics_short_response_word_count: int = 5
+    metrics_automation_bias_ratio: float = 0.5
+    metrics_mechanical_ratio: float = 0.1
 
 
 def analyze_text(text: str) -> TextMetricsDTO:
@@ -26,11 +43,10 @@ def analyze_text(text: str) -> TextMetricsDTO:
     and capitalization ratio.
 
     Args:
-        text (str): The raw input text.
+        text: The raw input text.
 
     Returns:
-        TextMetricsDTO: Strictly typed metrics payload.
-
+        Strictly typed metrics payload.
     """
     if not text or not text.strip():
         return TextMetricsDTO(
@@ -69,23 +85,20 @@ def analyze_text(text: str) -> TextMetricsDTO:
         avg_sentence_length=round(avg_sent_len, 2),
         lexical_diversity=round(lex_diversity, 2),
         capitalization_ratio=round(cap_ratio, 2),
-        control_ratio=0.0,  # Default, calculated separately in hook or explicit call
+        control_ratio=0.0,
     )
 
 
 def calculate_control_ratio(text: str) -> float:
     """Calculates ratio of Human Tokens vs Total Tokens (approximation using characters).
 
-    Attempts to parse chat logs based on common headers (User:/AI:).
-
     Formula: UserChars / (UserChars + AIChars)
 
     Args:
-        text (str): The conversation history or transcript.
+        text: The conversation history or transcript.
 
     Returns:
-        float: Control ratio between 0.0 (Pure AI) and 1.0 (Pure Human).
-
+        Control ratio between 0.0 (Pure AI) and 1.0 (Pure Human).
     """
     if not text:
         return 0.0
@@ -93,17 +106,14 @@ def calculate_control_ratio(text: str) -> float:
     user_chars = 0
     ai_chars = 0
 
-    # Normalize to lines
     lines = text.split("\n")
-    current_speaker = "user"  # Default to 'user' for single unheadered prompts
+    current_speaker = "user"
 
-    user_headers = ["user:", "human:", "k:", "käyttäjä:", "me:", "minä:"]
-    ai_headers = ["ai:", "assistant:", "t:", "tekoäly:", "gpt:", "bot:"]
+    user_headers = ["user:", "human:", "k:", "k\u00e4ytt\u00e4j\u00e4:", "me:", "min\u00e4:"]
+    ai_headers = ["ai:", "assistant:", "t:", "teko\u00e4ly:", "gpt:", "bot:"]
 
     for line in lines:
         lower_line = line.strip().lower()
-
-        # Check for header switch
         started_new_block = False
         for h in user_headers:
             if lower_line.startswith(h):
@@ -122,13 +132,15 @@ def calculate_control_ratio(text: str) -> float:
                     started_new_block = True
                     break
 
-        # If continuation of previous block
         if not started_new_block and current_speaker:
             clean_len = len(line.strip())
-            if current_speaker == "user":
-                user_chars += clean_len
-            else:
-                ai_chars += clean_len
+            match current_speaker:
+                case "user":
+                    user_chars += clean_len
+                case "ai":
+                    ai_chars += clean_len
+                case _:
+                    pass
 
     total_chars = user_chars + ai_chars
     if total_chars == 0:
@@ -137,11 +149,15 @@ def calculate_control_ratio(text: str) -> float:
     return round(user_chars / total_chars, 4)
 
 
-def calculate_behavioral_metrics(text: str) -> BehavioralMetricsDTO:
+def calculate_behavioral_metrics(text: str, settings: Any) -> BehavioralMetricsDTO:
     """Calculates heuristic behavioral metrics (Say-Do Gap, Automation Bias).
 
-    NOTE: These are heuristic approximations to serve as a 'Single Source of Truth'
-    alongside the LLM's qualitative analysis.
+    Args:
+        text: The dialogue or document logs.
+        settings: Dynamically injected application settings DTO.
+
+    Returns:
+        BehavioralMetricsDTO containing the analyzed behavioral patterns.
     """
     say_do_gap = 0.0
     automation_bias = 0.0
@@ -156,13 +172,12 @@ def calculate_behavioral_metrics(text: str) -> BehavioralMetricsDTO:
             imperative_command_count=imperative_command_count,
         )
 
-    # Extract user lines from text using common headers
     lines = text.split("\n")
     user_lines: list[str] = []
 
-    user_headers = ["user:", "human:", "k:", "käyttäjä:", "me:", "minä:"]
-    ai_headers = ["ai:", "assistant:", "t:", "tekoäly:", "gpt:", "bot:"]
-    current_speaker = "user"  # Assume default is user
+    user_headers = ["user:", "human:", "k:", "k\u00e4ytt\u00e4j\u00e4:", "me:", "min\u00e4:"]
+    ai_headers = ["ai:", "assistant:", "t:", "teko\u00e4ly:", "gpt:", "bot:"]
+    current_speaker = "user"
 
     for line in lines:
         lower_line = line.strip().lower()
@@ -187,16 +202,14 @@ def calculate_behavioral_metrics(text: str) -> BehavioralMetricsDTO:
         if not started_new and current_speaker == "user" and line.strip():
             user_lines.append(line.strip())
 
-    # 1. Automation Bias (Heuristic: Short, affirmative user messages)
     if user_lines:
-        threshold = get_settings().metrics_short_response_word_count
+        threshold = settings.metrics_short_response_word_count
         short_responses = sum(1 for line in user_lines if len(line.split()) < threshold)
 
-        if len(user_lines) > 2 and (short_responses / len(user_lines) > get_settings().metrics_automation_bias_ratio):
+        if len(user_lines) > 2 and (short_responses / len(user_lines) > settings.metrics_automation_bias_ratio):
             automation_bias = 1.0
 
-        # 2. Say-Do Gap / Illusion of Competence
-        mechanical_keywords = ["tilaa", "vahvista", "generoi", "ok", "kyllä", "jatka"]
+        mechanical_keywords = ["tilaa", "vahvista", "generoi", "ok", "kyll\u00e4", "jatka"]
         mechanical_count = sum(
             1 for line in user_lines for w in line.split() if any(mk in w.lower() for mk in mechanical_keywords)
         )
@@ -204,7 +217,7 @@ def calculate_behavioral_metrics(text: str) -> BehavioralMetricsDTO:
 
         imperative_command_count = mechanical_count
 
-        if total_words > 0 and (mechanical_count / total_words > get_settings().metrics_mechanical_ratio):
+        if total_words > 0 and (mechanical_count / total_words > settings.metrics_mechanical_ratio):
             say_do_gap = 1.0
             illusion_of_competence = 1.0
 
@@ -218,24 +231,32 @@ def calculate_behavioral_metrics(text: str) -> BehavioralMetricsDTO:
 
 @hook_registry.register(name="calculate_control_ratio")
 def calculate_control_ratio_hook(state: HookState, deps: HookDependencies) -> HookResult:
-    """Standalone hook to provide input control ratio if requested explicitly by a DAG step."""
+    """Standalone hook to provide input control ratio if requested explicitly by a DAG step.
+
+    Args:
+        state: The current execution hook state containing input data.
+        deps: The dynamically injected hook dependencies.
+
+    Returns:
+        HookResult: Structured execution output.
+
+    Raises:
+        AppException: If input validation fails.
+    """
     try:
         payload = MetricsPayloadDTO.model_validate(state.inputs)
     except ValidationError as e:
         error_code = ErrorCodes.INVALID_JSON_PAYLOAD
         msg = f"Invalid metrics inputs schema: {e}"
-        logger.error("[MetricsHook] %s: %s", error_code.name, msg)
+        logger.error("[MetricsHook] %s: %s", error_code.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code.value},
+            details={"error_code": error_code},
         ) from e
 
     inputs = payload.root
-
-    # Dynamically scan all string inputs
     all_text = " ".join(str(v) for v in inputs.values() if v)
-
     ratio = calculate_control_ratio(all_text)
     return HookResult(success=True, state_delta={"input_control_ratio": ratio})
 
@@ -244,8 +265,15 @@ def calculate_control_ratio_hook(state: HookState, deps: HookDependencies) -> Ho
 def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
     """Calculates text metrics and behavioral heuristics from input data.
 
-    Expects 'inputs' containing 'history_text' and 'product_text'.
-    Returns a dictionary with 'audit_metrics' and 'input_control_ratio'.
+    Args:
+        state: The current execution hook state containing inputs.
+        deps: Injected dependencies for environment parameters.
+
+    Returns:
+        HookResult: Struct containing resulting calculated metrics state delta.
+
+    Raises:
+        AppException: If validation fails or processing encounters an execution error.
     """
     logger.debug("[MetricsHook] Running text_metrics hook...")
 
@@ -254,37 +282,33 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
     except ValidationError as e:
         error_code = ErrorCodes.INVALID_JSON_PAYLOAD
         msg = f"Invalid metrics inputs schema: {e}"
-        logger.error("[MetricsHook] %s: %s", error_code.name, msg)
+        logger.error("[MetricsHook] %s: %s", error_code.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code.value},
+            details={"error_code": error_code},
         ) from e
 
     inputs = payload.root
-
-    # Dynamically combine ALL string input fields for text metric analysis
     all_text = " ".join(str(v) for v in inputs.values() if v)
 
     if not all_text.strip():
-        logger.warning("[MetricsHook] No valid text found in any input fields.")
-        # If absolutely no inputs were provided but they reached here, fail fast.
         error_code = ErrorCodes.EMPTY_INPUT
         msg = "Missing text in inputs for metrics analysis."
         logger.error("[MetricsHook] %s: %s", error_code.name, msg)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code.value},
+            details={"error_code": error_code},
         )
 
     try:
-        # Calculate Metrics using combined text
         base_metrics = analyze_text(all_text)
         control_ratio = calculate_control_ratio(all_text)
-        behavioral_metrics = calculate_behavioral_metrics(all_text)
 
-        # Merge results into a strictly typed DTO
+        settings = getattr(deps, "settings", FallbackSettings())
+        behavioral_metrics = calculate_behavioral_metrics(all_text, settings)
+
         audit_metrics = ProfilerMetricsDTO(
             word_count=base_metrics.word_count,
             sentence_count=base_metrics.sentence_count,
@@ -300,11 +324,10 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
 
         logger.info("[MetricsHook] Metrics calculated successfully.")
 
-        # Return the strictly enforced dict serialization
         return HookResult(
             success=True,
             state_delta={
-                "profiler_metrics": audit_metrics.model_dump(),
+                "profiler_metrics": audit_metrics,
             },
         )
 
@@ -314,5 +337,5 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
         raise AppException(
             message=f"Failed to calculate metrics: {e}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code.value},
+            details={"error_code": error_code},
         ) from e

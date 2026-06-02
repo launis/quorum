@@ -1,4 +1,8 @@
-"""Abstract base class for provider-agnostic caching and pricing adapters."""
+"""Abstract base class for provider-agnostic caching and pricing adapters.
+
+All implementations must enforce high-fidelity adapters supporting performance metrics,
+strict pricing policies, and distributed rate pacing control patterns.
+"""
 
 import asyncio
 import logging
@@ -6,17 +10,26 @@ import os
 from abc import ABC, abstractmethod
 from typing import Any
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import LLMProviderName, SystemConcurrency
 from backend_v2.models.prompt import CompiledPrompt
 
 logger = logging.getLogger(__name__)
 
-_redis_pool: Any = None
-_redis_loop: Any = None
+_redis_pool: Any | None = None
+_redis_loop: Any | None = None
 
 
 async def get_redis_client_for_pacing() -> Any:
+    """Resolve or initialize the Redis client pool used for distributed rate pacing.
+
+    Returns:
+        The active Redis pool instance.
+
+    Raises:
+        AppException: STORAGE_ACCESS_FAILED if Redis connection pool creation fails.
+    """
     global _redis_pool, _redis_loop
     try:
         current_loop = asyncio.get_running_loop()
@@ -29,19 +42,28 @@ async def get_redis_client_for_pacing() -> Any:
         else:
             return _redis_pool
 
-    if "PYTEST_CURRENT_TEST" in os.environ:
-        from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
+    try:
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 
-        _redis_pool = get_patched_fakeredis_pool()
-        _redis_loop = current_loop
-    else:
-        from arq.connections import RedisSettings, create_pool
+            _redis_pool = get_patched_fakeredis_pool()
+            _redis_loop = current_loop
+        else:
+            from arq.connections import RedisSettings, create_pool
 
-        from backend_v2.settings import get_settings
+            from backend_v2.settings import get_settings
 
-        settings = get_settings()
-        _redis_pool = await create_pool(RedisSettings(host=settings.redis_host, port=settings.redis_port))
-        _redis_loop = current_loop
+            settings = get_settings()
+            _redis_pool = await create_pool(RedisSettings(host=settings.redis_host, port=settings.redis_port))
+            _redis_loop = current_loop
+    except Exception as e:
+        logger.error("Failed to initialize Redis pool for pacing.", exc_info=True)
+        raise AppException(
+            message=f"Redis initialization failed: {str(e)}",
+            status_code=500,
+            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+        ) from e
+
     return _redis_pool
 
 
@@ -49,6 +71,12 @@ async def apply_provider_pacing(provider_name: str) -> None:
     """Enforce provider-scoped RPM pacing using Redis distributed lock.
 
     Prevents Thundering Herd exhaustion of rate limits by spacing API calls.
+
+    Args:
+        provider_name: The target LLM provider identifier string.
+
+    Raises:
+        AppException: NETWORK_UNAVAILABLE if Redis execution fails during pacing operations.
     """
     delay = 0
     if provider_name == LLMProviderName.VERTEX_AI.value:
@@ -61,21 +89,28 @@ async def apply_provider_pacing(provider_name: str) -> None:
     if delay <= 0:
         return
 
-    redis_client = await get_redis_client_for_pacing()
-    lock_key = f"lock:pacer:{provider_name}"
-    lock_ttl_ms = int(delay * 1000)
+    try:
+        redis_client = await get_redis_client_for_pacing()
+        lock_key = f"lock:pacer:{provider_name}"
+        lock_ttl_ms = int(delay * 1000)
+        poll_interval_s = 0.5
 
-    poll_interval_s = 0.5
+        while True:
+            # SETNX with expiration enforces the provider rate spacing
+            lock_acquired = await redis_client.set(lock_key, "locked", nx=True, px=lock_ttl_ms)
+            if lock_acquired:
+                # Lock acquired! Do NOT release it; it protects the entire delay window.
+                break
 
-    while True:
-        # SETNX with expiration enforces the provider rate spacing
-        lock_acquired = await redis_client.set(lock_key, "locked", nx=True, px=lock_ttl_ms)
-        if lock_acquired:
-            # Lock acquired! Do NOT release it; it protects the entire delay window.
-            break
-
-        logger.info(f"Wait-and-Poll: Pacing lock active for {provider_name}. Waiting...")
-        await asyncio.sleep(poll_interval_s)
+            logger.info(f"Wait-and-Poll: Pacing lock active for {provider_name}. Waiting...")
+            await asyncio.sleep(poll_interval_s)
+    except Exception as e:
+        logger.error(f"Provider pacing operation failed for {provider_name}.", exc_info=True)
+        raise AppException(
+            message=f"Pacing failed: {str(e)}",
+            status_code=500,
+            details={"error_code": ErrorCodes.NETWORK_UNAVAILABLE.value},
+        ) from e
 
 
 class BaseLLMAdapter(ABC):
@@ -86,6 +121,10 @@ class BaseLLMAdapter(ABC):
         self, compiled_prompt: CompiledPrompt, model_name: str
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         """Prepare the payload for the API request by configuring caching structures.
+
+        Args:
+            compiled_prompt: The prompt after execution compilation stages.
+            model_name: The physical target deployment model.
 
         Returns:
             A tuple containing:
@@ -98,11 +137,20 @@ class BaseLLMAdapter(ABC):
     async def teardown_cache(self, workflow_run_id: str) -> None:
         """Teardown any resources or session states associated with caching.
 
-        Option B: Vertex AI context cache deletion or No-Op for Anthropic/OpenAI.
+        Args:
+            workflow_run_id: Identifies the active pipeline execution sequence.
         """
         pass
 
     @abstractmethod
     def calculate_cost(self, usage: TokenUsage, pricing_config: dict[str, Any]) -> TokenUsage:
-        """Calculate the precise financial usage cost and ROI utilizing provider-specific pricing coefficients."""
+        """Calculate the precise financial usage cost and ROI utilizing provider-specific pricing coefficients.
+
+        Args:
+            usage: Token count footprint statistics.
+            pricing_config: Provider rate tables mapping models to pricing metrics.
+
+        Returns:
+            TokenUsage structure updated with monetary and evaluation values.
+        """
         pass

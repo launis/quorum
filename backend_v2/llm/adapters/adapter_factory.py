@@ -1,15 +1,31 @@
+from __future__ import annotations
+
+"""Adapter Factory for Lazy Loading LLM Providers Cache Adapters.
+
+Provides a decoupled mechanism to fetch concrete LLM cache adapters without triggering
+heavy upfront third-party imports at initialization.
+"""
+
+import logging
 from typing import cast
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.enums import LLMProviderName
 
+logger = logging.getLogger(__name__)
+
 
 class LLMCacheAdapterFactory:
-    """Factory class to load the appropriate caching and pricing adapter lazily."""
+    """Factory class to load the appropriate caching and pricing adapter lazily.
+
+    All concrete adapter imports are performed lazily within this method to ensure
+    heavy third-party SDK dependencies (e.g. vertexai, anthropic) are not loaded
+    into memory unless explicitly instantiated.
+    """
 
     @staticmethod
-    def get_adapter(provider_name: str) -> BaseLLMAdapter:
+    def get_adapter(provider_name: LLMProviderName | str) -> BaseLLMAdapter:
         """Return the appropriate adapter for the given provider_name.
 
         All concrete adapter imports are performed lazily within this method to ensure
@@ -17,13 +33,14 @@ class LLMCacheAdapterFactory:
         into memory unless explicitly instantiated.
 
         Args:
-            provider_name: The name of the LLM provider (e.g., 'vertex_ai', 'anthropic').
+            provider_name: The name of the LLM provider.
 
         Returns:
             An instance of BaseLLMAdapter.
 
         Raises:
-            AppException: If the provider name is unrecognized or the adapter is not implemented.
+            AppException: Triggered with ErrorCodes.CAPABILITY_NOT_SUPPORTED if the SDK import fails
+                or ErrorCodes.VALIDATION_FAILED if the provider is unrecognized.
         """
         match provider_name:
             case LLMProviderName.MOCK:
@@ -37,6 +54,7 @@ class LLMCacheAdapterFactory:
 
                     return cast(BaseLLMAdapter, VertexCacheAdapter())
                 except ImportError as e:
+                    logger.error("Vertex AI cache adapter import failed", exc_info=True)
                     raise AppException(
                         message=f"Adapter for provider '{provider_name}' is not implemented: {e}",
                         status_code=500,
@@ -49,6 +67,7 @@ class LLMCacheAdapterFactory:
 
                     return cast(BaseLLMAdapter, AnthropicCacheAdapter())
                 except ImportError as e:
+                    logger.error("Anthropic cache adapter import failed", exc_info=True)
                     raise AppException(
                         message=f"Adapter for provider '{provider_name}' is not implemented: {e}",
                         status_code=500,
@@ -61,6 +80,7 @@ class LLMCacheAdapterFactory:
 
                     return cast(BaseLLMAdapter, OpenAICacheAdapter())
                 except ImportError as e:
+                    logger.error("OpenAI cache adapter import failed", exc_info=True)
                     raise AppException(
                         message=f"Adapter for provider '{provider_name}' is not implemented: {e}",
                         status_code=500,
@@ -73,6 +93,7 @@ class LLMCacheAdapterFactory:
 
                     return cast(BaseLLMAdapter, DeepSeekCacheAdapter())
                 except ImportError as e:
+                    logger.error("DeepSeek cache adapter import failed", exc_info=True)
                     raise AppException(
                         message=f"Adapter for provider '{provider_name}' is not implemented: {e}",
                         status_code=500,
@@ -80,6 +101,7 @@ class LLMCacheAdapterFactory:
                     ) from e
 
             case _:
+                logger.error(f"Unsupported provider encountered in adapter factory: {provider_name}")
                 raise AppException(
                     message=f"Unsupported provider: '{provider_name}'",
                     status_code=400,

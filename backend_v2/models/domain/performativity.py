@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import logging
 
+from fastapi import status
 from pydantic import Field, field_validator
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
@@ -74,7 +76,10 @@ class PreMortemAnalysis(V2CoreBase):
 
 
 class PerformativityAnalysis(V2CoreBase):
-    """(Renamed for schema clarity vs Detector) - Output from Performativity component."""
+    """Output from Performativity component.
+
+    (Renamed for schema clarity vs Detector).
+    """
 
     performativity_heuristics: list[PerformativityHeuristic] = Field(
         ...,
@@ -104,9 +109,25 @@ class PerformativityAnalysis(V2CoreBase):
     @field_validator("authenticity_score")
     @classmethod
     def validate_authenticity_score(cls, v: float) -> float:
-        """Enforce strict authenticity score boundaries between 1.0 and 3.0."""
+        """Enforce strict authenticity score boundaries between 1.0 and 3.0.
+
+        Ensures that the output adheres to the configured range.
+
+        Args:
+            v: The authenticity score to validate.
+
+        Returns:
+            The validated authenticity score.
+
+        Raises:
+            AppException: If the score is outside the range [1.0, 3.0].
+        """
         if not (1.0 <= v <= 3.0):
-            raise ValueError("authenticity_score must be between 1.0 and 3.0 inclusive")
+            raise AppException(
+                message="authenticity_score must be between 1.0 and 3.0 inclusive",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
         return v
 
     description_key: str = Field(

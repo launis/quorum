@@ -4,6 +4,8 @@ This module contains the schemas for the Interaction Agent,
 including user role classification and input quality assessment.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Any
 
@@ -19,7 +21,12 @@ logger = logging.getLogger(__name__)
 class InteractionInput(V2CoreBase):
     """Strict input schema for InteractionAnalystAgent.
 
-    V2 Dynamic: 'chatlog' is mandatory, but other inputs are encapsulated dynamically.
+    V2 Dynamic: 'chat_log' is mandatory, but other inputs are encapsulated dynamically.
+
+    Attributes:
+        chat_log: The mandatory conversation history to analyze.
+        last_reasoning_trace: Previous reasoning trace.
+        dynamic_inputs: Structured dictionary for dynamic inputs.
     """
 
     chat_log: str = Field(
@@ -28,15 +35,25 @@ class InteractionInput(V2CoreBase):
         description="The mandatory conversation history to analyze.",
         json_schema_extra={"x-ui-label": "Chatlog"},
     )
-    last_reasoning_trace: str | None = Field(default=None, description="Previous reasoning trace.")
-
+    last_reasoning_trace: str | None = Field(
+        default=None,
+        description="Previous reasoning trace.",
+    )
     dynamic_inputs: dict[str, Any] = Field(
-        default_factory=dict, description="Structured dictionary for dynamic inputs."
+        default_factory=dict,
+        description="Structured dictionary for dynamic inputs.",
     )
 
 
 class InteractionAnalysisDTO(ReasoningTraceDTO):
-    """Data Transfer Object for Interaction Agent (Content Only)."""
+    """Data Transfer Object for Interaction Agent (Content Only).
+
+    Attributes:
+        role_classification: User role classification.
+        high_dependency: Flag indicating high dependency on AI.
+        imperative_command_count: Number of direct commands given by user.
+        strategy: Identified prompting strategy.
+    """
 
     role_classification: RoleClassification = Field(
         ...,

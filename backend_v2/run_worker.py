@@ -1,4 +1,10 @@
-"""Manual entrypoint for Arq Worker."""
+from __future__ import annotations
+
+"""Manual entrypoint for Arq Worker.
+
+This module initializes and runs the Arq worker using global, absolute import paths
+to ensure immediate fail-fast logging configuration on startup.
+"""
 
 import asyncio
 import logging
@@ -7,31 +13,28 @@ from typing import Any, cast
 
 from arq.worker import create_worker
 
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.logging_config import configure_logfire, setup_logging
+from backend_v2.worker import WorkerSettings
 
 # 1. Setup Logging immediately as the script starts (Fail-Fast logging)
 setup_logging()
 configure_logfire()
 
-try:
-    # 2. Lazy import the worker settings so that if any module fails to compile,
-    # it gets caught and written to the newly configured file log!
-    from backend_v2.worker import WorkerSettings
-except Exception as e:
-    msg = f"[Worker] Failed to import worker module (Crash on start): {e}"
-    logging.critical(msg, exc_info=True, extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value})
-    sys.exit(1)
-
-# Force loop policy for Windows if needed, though asyncio.run usually handles it.
-# On Windows, SelectorEventLoop is default in 3.14? Proactor?
-# Arq expects to just work on the loop.
+logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
-    """Manual entrypoint for Arq Worker to avoid CLI loop issues."""
+    """Manual entrypoint for Arq Worker to avoid CLI loop issues.
+
+    Executes the worker configuration async loop and handles critical exit paths.
+
+    Raises:
+        AppException: If the worker fails to instantiate or run, conveying a
+            SERVICE_UNAVAILABLE error_code.
+    """
     try:
-        logging.info("Starting Arq Worker (Manual Script)...")
+        logger.info("Starting Arq Worker (Manual Script)...")
 
         # Cast to Any to satisfy type checker if WorkerSettings structure is strict
         # 2. Validate Settings (Implicitly via import/create_worker)
@@ -39,30 +42,34 @@ async def main() -> None:
 
         await worker.async_run()
     except KeyboardInterrupt:
-        logging.info("Worker stopped by user.")
+        logger.info("Worker stopped by user.")
         sys.exit(0)
     except Exception as e:
         # 3. Fail Fast with structured error
-        logging.critical(
+        msg = f"[Worker] Worker startup failed: {e}"
+        logger.critical(
             "[Worker] Worker startup failed: %s",
             str(e),
             exc_info=True,
             extra={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value},
         )
-        # Re-raise as SystemExit to ensure non-zero exit code
-        sys.exit(1)
+        raise AppException(
+            message=msg,
+            status_code=503,
+            details={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value},
+        ) from e
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logging.info("Worker process interrupted by user. Shutting down.")
+        logger.info("Worker process interrupted by user. Shutting down.")
         sys.exit(0)
     except SystemExit as e:
         sys.exit(e.code)
     except Exception as e:
-        logging.getLogger(__name__).critical(
+        logger.critical(
             "Worker crashed outside main loop: %s",
             str(e),
             exc_info=True,

@@ -11,17 +11,22 @@ import logging
 from pydantic import Field
 
 from backend_v2.models.core_base import V2CoreBase
-
-logger = logging.getLogger(__name__)
-
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.domain.logician import LogicianOutput
 from backend_v2.models.enums import FidelityLevel
 
+logger = logging.getLogger(__name__)
+
 
 class FalsifierInput(V2CoreBase):
-    """Strict input schema for LogicalFalsifierAgent."""
+    """Strict input schema for LogicalFalsifierAgent.
+
+    Attributes:
+        chat_log: Mandatory chatlog to analyze.
+        step_analyst: Analyst or Logician outputs.
+        last_reasoning_trace: Previous reasoning trace.
+    """
 
     chat_log: str = Field(..., min_length=1, description="Mandatory chatlog to analyze.")
     step_analyst: AnalystOutput | LogicianOutput | None = Field(None, description="Analyst or Logician outputs.")
@@ -29,7 +34,13 @@ class FalsifierInput(V2CoreBase):
 
 
 class WaltonStressTest(V2CoreBase):
-    """Stress test using Walton's critical questions."""
+    """Stress test using Walton's critical questions.
+
+    Attributes:
+        question: The critical question asked.
+        evidence_held: Did the evidence hold up?
+        observation: Observation notes.
+    """
 
     question: str = Field(
         ...,
@@ -51,7 +62,17 @@ class WaltonStressTest(V2CoreBase):
 
 
 class ReasoningFidelity(V2CoreBase):
-    """Fidelity of reasoning."""
+    """Fidelity of reasoning metrics and evaluation results.
+
+    Attributes:
+        fidelity_score: Fidelity level enum.
+        fidelity_numeric: Numeric fidelity score (1.0 to 3.0), required 1-decimal precision.
+        abductive_score: Numeric abductive score (1.0 to 3.0), required 1-decimal precision.
+        plausibility_score: Numeric plausibility score (1.0 to 3.0), required 1-decimal precision.
+        justification: Justification for scores.
+        quote: Direct quote from sources.
+        post_hoc_rationalization: True if reasoning was constructed after the fact.
+    """
 
     fidelity_score: FidelityLevel = Field(
         ...,
@@ -91,9 +112,7 @@ class ReasoningFidelity(V2CoreBase):
     justification: str = Field(
         ..., min_length=1, description="Justification.", json_schema_extra={"x-ui-label": "Justification"}
     )
-    quote: str | None = Field(
-        default=None, min_length=1, description="Direct quote.", json_schema_extra={"x-ui-label": "Quote"}
-    )
+    quote: str | None = Field(default=None, description="Direct quote.", json_schema_extra={"x-ui-label": "Quote"})
     post_hoc_rationalization: bool = Field(
         default=False,
         description="Was reasoning constructed after the fact?",
@@ -102,7 +121,12 @@ class ReasoningFidelity(V2CoreBase):
 
 
 class FalsifierData(V2CoreBase):
-    """Output from the Falsifier component."""
+    """Output data structured by the Falsifier component.
+
+    Attributes:
+        stress_test_findings: Stress test results using Walton critical questions.
+        fidelity_audit: Comprehensive reasoning fidelity results.
+    """
 
     stress_test_findings: list[WaltonStressTest] = Field(
         ...,
@@ -118,7 +142,11 @@ class FalsifierData(V2CoreBase):
 
 
 class FalsifierDTO(ReasoningTraceDTO):
-    """Falsifier DTO (Content Only)."""
+    """Falsifier Data Transfer Object carrying structural evaluation findings.
+
+    Attributes:
+        falsifier_data: Falsification audit result containing stress tests and fidelity.
+    """
 
     falsifier_data: FalsifierData = Field(
         ...,
@@ -128,4 +156,10 @@ class FalsifierDTO(ReasoningTraceDTO):
 
 
 class FalsifierOutput(FalsifierDTO, ReasoningTrace):
-    """Output schema for the Falsifier Agent."""
+    """Final output schema for the Falsifier Agent combining telemetry and audit payload.
+
+    Attributes:
+        falsifier_data: Falsification audit result containing stress tests and fidelity.
+    """
+
+    pass

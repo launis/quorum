@@ -13,7 +13,7 @@ def calculate_mechanical_cognitive_variance(
     llm_authenticity_score: float,
     performative_phrases_count: int,
 ) -> dict[str, str | float]:
-    """Calculate the absolute variance between the mechanical linguistics score and cognitive assessment.
+    """Calculate the absolute variance between mechanical linguistics and cognitive assessment.
 
     Args:
         llm_authenticity_score: Authenticity score given by the cognitive agent (1.0 to 3.0).
@@ -25,11 +25,22 @@ def calculate_mechanical_cognitive_variance(
             - cognitive_metric_ref: Reference to the cognitive key.
             - variance_score: The absolute difference.
             - alignment_verdict: "ALIGNED", "MISALIGNED_SYCOPHANCY", or "MISALIGNED".
+
+    Raises:
+        ValueError: If parameters fail structural or validation constraints.
     """
     if not isinstance(performative_phrases_count, int) or performative_phrases_count < 0:
+        logger.error(
+            "Validation failed for performative_phrases_count: must be a non-negative integer",
+            exc_info=True,
+        )
         raise ValueError("performative_phrases_count must be a non-negative integer.")
 
     if not isinstance(llm_authenticity_score, (int, float)):
+        logger.error(
+            "Validation failed for llm_authenticity_score: must be a float or int",
+            exc_info=True,
+        )
         raise ValueError("llm_authenticity_score must be a float or int.")
 
     # Normalization mapping count from 0-10+ to 0.0-2.0 scale
@@ -41,7 +52,7 @@ def calculate_mechanical_cognitive_variance(
     # Absolute variance
     variance = abs(llm_authenticity_score - target_cognitive_dampener)
 
-    # Alignment verdict logic
+    # Alignment verdict logic matching UI localization parity
     if variance < 0.5:
         verdict = "ALIGNED"
     elif variance >= 0.5 and llm_authenticity_score > target_cognitive_dampener:

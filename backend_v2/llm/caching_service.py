@@ -4,6 +4,8 @@ import logging
 import re
 from typing import Any
 
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 from backend_v2.models.prompt import CompiledPrompt
 
 logger = logging.getLogger(__name__)
@@ -18,7 +20,10 @@ class LLMCachingService:
 
     @classmethod
     async def prepare_caching_payload(
-        cls, provider_name: str, compiled_prompt: CompiledPrompt, model_name: str
+        cls,
+        provider_name: str,
+        compiled_prompt: CompiledPrompt,
+        model_name: str,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         """Prepare the cache payload by delegating to the appropriate adapter.
 
@@ -31,9 +36,10 @@ class LLMCachingService:
             A tuple containing:
                 - The list of prepared messages.
                 - A dictionary of extra keyword arguments to pass to the provider.
-        """
-        from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 
+        Raises:
+            AppException: If there is an internal failure during payment compilation or purity scan.
+        """
         await cls._run_purity_scanner(compiled_prompt.to_flat_messages())
 
         adapter = LLMCacheAdapterFactory.get_adapter(provider_name)
@@ -41,7 +47,14 @@ class LLMCachingService:
 
     @classmethod
     async def _run_purity_scanner(cls, messages: list[dict[str, Any]]) -> None:
-        """Passive scanner to detect caching purity violations in system messages."""
+        """Passive scanner to detect caching purity violations in system messages.
+
+        Scans messages for dynamic traces like UUIDs and standard timestamps that
+        will prevent downstream caches from achieving optimal hit rates.
+
+        Args:
+            messages: A list of message dictionaries consisting of standard roles and content.
+        """
         uuid_pattern = re.compile(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b")
         # Matches ISO 8601 timestamps like 2026-05-31T06:22:07Z
         timestamp_pattern = re.compile(r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
@@ -63,13 +76,24 @@ class LLMCachingService:
         Args:
             provider_name: The target LLM provider.
             workflow_run_id: The active workflow run reference ID.
-        """
-        from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 
+        Raises:
+            AppException: Wrap any operational failures in standardized RFC 7807 AppException.
+        """
         try:
             adapter = LLMCacheAdapterFactory.get_adapter(provider_name)
             await adapter.teardown_cache(workflow_run_id)
         except Exception as e:
             # Phase 7, Step 7: Explicit logging and error wrapping for critical diagnostic visibility
-            logger.error("Asynchronous cache teardown failed for provider '%s': %s", provider_name, e)
-            raise
+            logger.error(
+                "Asynchronous cache teardown failed for provider '%s': %s",
+                provider_name,
+                str(e),
+                exc_info=True,
+            )
+            status_code = 500
+            raise AppException(
+                message=f"Asynchronous cache teardown failed for provider '{provider_name}': {str(e)}",
+                status_code=status_code,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
+            ) from e

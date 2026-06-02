@@ -84,6 +84,19 @@ Järjestelmän juurikäynnistäjä, joka sitoo arkkitehtuurin kasaan:
    - `LocalizationMiddleware` parsii asiakkaan pyytämän kielen (`Accept-Language`) globaaliin kontekstiin dynaamisia käännöksiä varten.
 3. **Global Error Catchers:** Sieppaa kaikki virheet ja muuntaa ne RFC 7807 "Problem Details" -muotoon Fail-Fast -periaatetta noudattaen. Pydantic-virheiden (`RequestValidationError`) lisäksi tämä sisältää reititystason rate limit -ylitysten (`RateLimitExceeded`) kiinnioton sekä yleisten HTTP-poikkeusten (esim. 401, 403, 404) kääntämisen suoraan sisäisiin `ErrorCodes`-enumeraatioihin, jolloin client-sovellus kykenee esittämään virheet oikealla kielellä lokalisaatioavainten kautta.
 
+## API vs Service -kerroksen vastuunjako ja ID-generointi
+
+Quorum noudattaa tiukkaa **Domain-Driven Design (DDD)** ja **Clean Architecture** -mallia, jossa API-taso (Router) toimii vain ohuena esityskerroksena (Presentation Layer) ja delegoi kaiken liiketoimintalogiikan Service-kerrokselle. Tämä näkyy erityisesti **Opaque Stripe ID** -tunnisteiden generoinnissa, jossa järjestelmä tukee kahta API-arkkitehtuurin "Best Practice" -mallia:
+
+1. **Client-Side Generation (Idempotentti PUT / Upsert):**
+   * **Toimintaperiaate:** Ulkoinen järjestelmä (esim. Flutter Client) generoi lokaalisti satunnaisen UUIDv4-tunnisteen, liittää siihen vaaditun etuliitteen (esim. `opt_xyz123`) ja tekee pyynnön `PUT /output-profiles/opt_xyz123`.
+   * **Käyttötarkoitus:** Ensisijainen tapa ulkopuolisen datan synkronointiin. Mahdollistaa täyden offline-tuen (Frontend luo ID:n ilman verkkoa ja synkronoi myöhemmin) sekä idempotenssin (turvalliset uudelleenyritykset verkkokatkosten aikana ilman duplikaatteja). API:n Pydantic-mallit toimivat tiukkana portinvartijana hyläten puutteellisen datan (HTTP 422).
+
+2. **Server-Side Generation (Post-and-Return / Draft Creation):**
+   * **Toimintaperiaate:** Ulkoinen järjestelmä pyytää tyhjän pohjan (`POST /output-profiles/`). API-reititin siirtää vastuun välittömästi `StudioService`-kerrokselle, joka rakentaa luonnoksen, generoi uuden Opaque ID:n ja injektoi pakolliset alustusarvot.
+   * **Käyttötarkoitus:** Kun Frontend tarvitsee uuden validin luonnoksen tai suorittaa massiivisen syväkloonauksen (Deep Clone). 
+   * **Arkkitehtuurimandaatti (Rule 79):** ID-generointi ja monimutkaisten entiteettien rakentaminen tapahtuvat **AINA Service-kerroksessa**, ei koskaan API-reitittimessä.
+
 ## Epic 57: Asynkroninen Raportointi & Varianssianalyysi
 
 Epic 57 hyödyntää täysimääräisesti asynkronista taustaprosessointia raskaissa synteesitöissä:

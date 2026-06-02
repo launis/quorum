@@ -40,9 +40,15 @@ logger = logging.getLogger(__name__)
 
 
 class ExecutionCommitter:
-    """Handles Checkpointing of the Event Sourced Trace."""
+    """Handles Checkpointing of the Event Sourced Trace conforming to Phase 9 directives."""
 
-    def __init__(self, exec_repo: IExecutionRepository, execution_id: str):
+    def __init__(self, exec_repo: IExecutionRepository, execution_id: str) -> None:
+        """Initialize the ExecutionCommitter with database access properties.
+
+        Args:
+            exec_repo: Repository interface for executions.
+            execution_id: Unique identifier for current execution tracking.
+        """
         self.exec_repo = exec_repo
         self.execution_id = execution_id
 
@@ -54,7 +60,18 @@ class ExecutionCommitter:
         error: str | None = None,
         frozen_context: Any | None = None,
     ) -> None:
-        """Flushes the event array to persistent DB safely."""
+        """Flushes the event array to persistent DB safely.
+
+        Args:
+            trace: Current sequence of workflow events.
+            status: Target execution status boundary.
+            step_states: Execution state dictionary mapping per-step states.
+            error: Optional execution failure message to record.
+            frozen_context: Serialized snapshot state if provided.
+
+        Raises:
+            AppException: Triggered with PROGRESS_UPDATE_FAILED if db commit transaction fails.
+        """
         try:
             payload: dict[str, Any] = {
                 "status": status.value,
@@ -67,13 +84,14 @@ class ExecutionCommitter:
             if error:
                 payload["error"] = error
 
-            # The repository natively handles 100KB+ offloading to Blob storage via _offload_payloads()
             await self.exec_repo.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to commit execution trace for {self.execution_id}"
             logger.error("[ExecutionCommitter] %s: %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, exc_info=True)
             raise AppException(
-                message=msg, details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED}, status_code=500
+                message=msg,
+                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED},
+                status_code=500,
             ) from e
 
 
@@ -89,7 +107,18 @@ class NodeExecutor:
         audit_repo: IAuditRepository,
         system_repo: ISystemRepository,
         prompt_compiler: Any,
-    ):
+    ) -> None:
+        """Initialize NodeExecutor with required underlying storage abstractions.
+
+        Args:
+            exec_repo: Database access boundary for state checkpointing.
+            workflow_repo: Source for static workflows configuration definitions.
+            comp_repo: UI Hints / Component configurations repository reference.
+            identity_repo: Authorization constraints database context.
+            audit_repo: Global tamper-proof log repository integration mapping.
+            system_repo: Configurations registry interface mapping.
+            prompt_compiler: Compiler engine dynamic handler.
+        """
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
         self.comp_repo = comp_repo
@@ -113,6 +142,28 @@ class NodeExecutor:
         arq_pool: Any | None = None,
         running_event: asyncio.Event | None = None,
     ) -> list[TraceEvent]:
+        """Executes a pipeline node strategy with static parameters.
+
+        Args:
+            step: Step parameters and routing context constraints mappings.
+            execution_id: Execution identifier path.
+            workflow_id: Primary database record workflow key.
+            metadata: Operational contexts such as organization identity maps.
+            projector: Transient state snapshot delta computer context.
+            semaphore: Concurrency barrier constraints control instance.
+            expected_inputs: Type list schema limits.
+            frozen_ctx: Snapshot of historical context fields.
+            trace: Dynamic execution historical collection tracker.
+            strictness_level: Tolerance boundary configuration limits.
+            arq_pool: Worker delegation dispatcher parameters.
+            running_event: Coordinator signal emitter.
+
+        Returns:
+            List of events generated during step evaluation.
+
+        Raises:
+            AppException: Triggered with CONFIGURATION_ERROR if step metadata or target templates are absent.
+        """
         try:
             blueprint_id = getattr(step, "task_blueprint", None)
             if not blueprint_id:
@@ -132,13 +183,11 @@ class NodeExecutor:
 
             step_def = Step.model_validate(step_def_data)
 
-            # Rule 3: Fail-Fast variable resolution & Orphaned Step prevention
             normalized_mappings = {}
             for logical_name, path in step.input_mappings.items():
                 normalized_path = ContextRouter.normalize_and_validate_variable(path, {"steps": projector.snapshot})
                 normalized_mappings[logical_name] = normalized_path
 
-            # Immutable freeze via model_copy
             step = step.model_copy(update={"input_mappings": normalized_mappings})
 
             context = StrategyContext(
@@ -174,8 +223,7 @@ class NodeExecutor:
                     arq_pool=arq_pool,
                 )
 
-            # FinOps Circuit Breaker: Worker Cut-off Check (Graceful Exit Hatch)
-            org_id = metadata["organization_id"] if "organization_id" in metadata else None
+            org_id = metadata.get("organization_id")
             await strategy_impl.assert_quota(org_id=org_id)
 
             emitted_events = await strategy_impl.execute(
@@ -190,8 +238,7 @@ class NodeExecutor:
             return emitted_events
 
         except AppException as ae:
-            # Rule 3: Fail-Fast -> Crash loudly, don't swallow into ErrorTraceEvent
-            logger.error("[NodeExecutor] Fail-Fast Exception for step %s: %s", step.id, str(ae))
+            logger.error("[NodeExecutor] Fail-Fast Exception for step %s: %s", step.id, str(ae), exc_info=True)
             raise
         except Exception as e:
             logger.error("[NodeExecutor] Dual-Reporting Exception for step %s: %s", step.id, str(e), exc_info=True)
@@ -203,7 +250,7 @@ class NodeExecutor:
 
 
 class DAGExecutor:
-    """The central DAGOrchestrator."""
+    """The central DAGOrchestrator architecture block."""
 
     def __init__(
         self,
@@ -214,7 +261,18 @@ class DAGExecutor:
         audit_repo: IAuditRepository,
         system_repo: ISystemRepository,
         prompt_compiler: Any,
-    ):
+    ) -> None:
+        """Initialize the main DAG orchestration manager.
+
+        Args:
+            exec_repo: Primary database context for tracking runs.
+            workflow_repo: Access parameters for templates definitions.
+            comp_repo: UI configurations parameters.
+            identity_repo: Access keys boundary metadata mappings.
+            audit_repo: Compliance parameters interface.
+            system_repo: Orchestrator environment constants limits.
+            prompt_compiler: Standard evaluation environment for templates compilers.
+        """
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
         self.comp_repo = comp_repo
@@ -224,7 +282,13 @@ class DAGExecutor:
         self.compiler = prompt_compiler
         self.committer = ExecutionCommitter(exec_repo, "")
         self.node_executor = NodeExecutor(
-            exec_repo, workflow_repo, comp_repo, identity_repo, audit_repo, system_repo, prompt_compiler
+            exec_repo=exec_repo,
+            workflow_repo=workflow_repo,
+            comp_repo=comp_repo,
+            identity_repo=identity_repo,
+            audit_repo=audit_repo,
+            system_repo=system_repo,
+            prompt_compiler=self.compiler,
         )
 
     async def execute_workflow(
@@ -236,8 +300,23 @@ class DAGExecutor:
         scoring_strategy: ScoringStrategy = ScoringStrategy.WATERFALL,
         arq_pool: Any | None = None,
     ) -> ExecutionRecord:
-        """Main entrypoint for Workflow Execution."""
-        # Fast Fail validation
+        """Main entrypoint for Workflow Execution.
+
+        Args:
+            execution_id: Unique record ID.
+            workflow: Loaded configuration parameters.
+            raw_inputs: Unprocessed raw input structures.
+            strictness_level: User-override context threshold limits.
+            scoring_strategy: Mathematical aggregation model selection.
+            arq_pool: Target task queue backend integration.
+
+        Returns:
+            The finalized ExecutionRecord domain mapping.
+
+        Raises:
+            AppException: Triggered with VALIDATION_FAILED or WORKFLOW_EXECUTION_FAILED during step evaluations.
+            WorkflowExecutionError: Instantiated inside execution branches if a step fails to complete gracefully.
+        """
         DAGCompilerService.validate_workflow(workflow)
 
         self.committer.execution_id = execution_id
@@ -245,7 +324,6 @@ class DAGExecutor:
         if strictness_level is None:
             strictness_level = workflow.default_strictness_level
 
-        # 1. State Rehydration / Initialization
         existing_record_dict = await self.exec_repo.get_execution(execution_id)
 
         step_states = {
@@ -259,7 +337,6 @@ class DAGExecutor:
             if not getattr(exec_record, "step_states", None) or not exec_record.step_states:
                 exec_record = exec_record.model_copy(update={"step_states": step_states})
 
-            # Epic 47 Phase 2: Inject Virtual Step for Report Render Transparency
             v_step_id = f"sys_render_{exec_record.output_profile_id or workflow.default_profile_id}"
             if v_step_id not in exec_record.step_states:
                 new_states = dict(exec_record.step_states)
@@ -277,7 +354,6 @@ class DAGExecutor:
                 step_states=step_states,
                 frozen_context=FrozenContext(),
             )
-            # Epic 47 Phase 2: Inject Virtual Step for Report Render Transparency
             v_step_id = f"sys_render_{workflow.default_profile_id}"
             if v_step_id not in exec_record.step_states:
                 new_states = dict(exec_record.step_states)
@@ -286,12 +362,10 @@ class DAGExecutor:
                 )
                 exec_record = exec_record.model_copy(update={"step_states": new_states})
 
-        # 2. Project Initial State
         projector = StateProjector()
         for evt in exec_record.execution_trace:
             projector.apply_delta(evt)
 
-        # Initial Hydration Phase (if new execution)
         if not exec_record.execution_trace:
             inputs_dict = exec_record.raw_inputs.model_dump(mode="json")
             input_event = TraceEvent(step_name="raw_inputs", event_type="input", content=inputs_dict)
@@ -328,7 +402,6 @@ class DAGExecutor:
                     message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400
                 ) from e
 
-        # 3. Topology Setup
         steps_by_id = {step.id: step for step in workflow.steps}
         step_events: dict[str, asyncio.Event] = {step.id: asyncio.Event() for step in workflow.steps}
 
@@ -344,7 +417,6 @@ class DAGExecutor:
                 new_states = {**exec_record.step_states, step_id: new_state}
                 exec_record = exec_record.model_copy(update={"step_states": new_states})
 
-        # Concurrency Limiter
         semaphore = asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS.value)
         _update_lock = asyncio.Lock()
 
@@ -352,7 +424,6 @@ class DAGExecutor:
             nonlocal exec_record
             step_obj = steps_by_id[step_id]
 
-            # Skip if completed (Rehydration)
             if exec_record.step_states[step_id].status == ExecutionStatus.COMPLETED.value:
                 return
 
@@ -360,7 +431,6 @@ class DAGExecutor:
                 await step_events[dep].wait()
 
             try:
-                # Transition step state to QUEUED first
                 async with _update_lock:
                     new_state = exec_record.step_states[step_id].model_copy(
                         update={"status": ExecutionStatus.QUEUED.value}
@@ -368,7 +438,6 @@ class DAGExecutor:
                     new_states = {**exec_record.step_states, step_id: new_state}
                     exec_record = exec_record.model_copy(update={"step_states": new_states})
 
-                    # Proactive status push
                     await self.committer.commit_trace(
                         trace=exec_record.execution_trace,
                         status=exec_record.status,
@@ -382,7 +451,6 @@ class DAGExecutor:
                     nonlocal exec_record
                     await running_event.wait()
                     async with _update_lock:
-                        # Only transition if it's still in QUEUED state (not completed/failed)
                         if exec_record.step_states[step_id].status == ExecutionStatus.QUEUED.value:
                             new_state = exec_record.step_states[step_id].model_copy(
                                 update={"status": ExecutionStatus.RUNNING.value}
@@ -420,7 +488,6 @@ class DAGExecutor:
                     exec_record.execution_trace.append(e)
                     projector.apply_delta(e)
 
-                # Error Catching Boundary
                 if any(isinstance(e, ErrorTraceEvent) for e in events):
                     async with _update_lock:
                         new_state = exec_record.step_states[step_id].model_copy(
@@ -428,7 +495,6 @@ class DAGExecutor:
                         )
                         new_states = {**exec_record.step_states, step_id: new_state}
                         exec_record = exec_record.model_copy(update={"step_states": new_states})
-                    # Extract the error message from the event
                     msg = [e.error_message for e in events if isinstance(e, ErrorTraceEvent)][0]
                     raise AppException(
                         message=f"Step {step_id} emitted ErrorTraceEvent: {msg}",
@@ -471,20 +537,14 @@ class DAGExecutor:
                 for step in workflow.steps:
                     tg.create_task(run_step_wrapper(step.id))
 
-            # Epic 47 Phase 2: DO NOT transition to COMPLETED here.
-            # We keep it as RUNNING so the Arq worker can safely enqueue the Render job.
-            # The async Render job will handle the final status transition.
             await self.committer.commit_trace(
                 trace=exec_record.execution_trace, status=exec_record.status, step_states=exec_record.step_states
             )
             return exec_record
 
         except ExceptionGroup as eg:
-            # TaskGroup automatically cancels all other running tasks when one task fails.
-            # We unwrap the primary exception to maintain the Fail-Fast (RFC 7807) boundary.
             primary_err = eg.exceptions[0]
 
-            # Cleanup stuck 'running' states caused by CancelledError bypassing the standard exception handler
             new_states = dict(exec_record.step_states)
             for state_id, state in new_states.items():
                 if state.status == ExecutionStatus.RUNNING.value:
@@ -494,7 +554,6 @@ class DAGExecutor:
                 update={"step_states": new_states, "status": ExecutionStatus.FAILED, "error": str(primary_err)}
             )
 
-            # Strict save in loop death to guarantee XAI trace persistence
             await self.committer.commit_trace(
                 trace=exec_record.execution_trace,
                 status=exec_record.status,
@@ -512,7 +571,6 @@ class DAGExecutor:
             ) from primary_err
 
         except Exception as unexpected_err:
-            # Fallback for errors outside the TaskGroup scope
             exec_record = exec_record.model_copy(
                 update={"status": ExecutionStatus.FAILED, "error": str(unexpected_err)}
             )

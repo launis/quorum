@@ -1,33 +1,74 @@
+"""Script for generating the static OpenAPI schema JSON file from the FastAPI application.
+
+Enables automated Flutter client generation, API documentation, and compliance tests.
+"""
+
+from __future__ import annotations
+
 import json
-import os
+import logging
 import sys
+from pathlib import Path
+from typing import Any
 
-# Ensure the root quorum directory is in sys.path
-root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if root_dir not in sys.path:
-    sys.path.insert(0, root_dir)
+from backend_v2.exceptions import AppException, ErrorCodes
 
-from backend_v2.main import app
+# Configure structured system logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Ensure the root quorum directory is in sys.path via absolute lookup using Path (Rule 64)
+root_dir = Path(__file__).resolve().parent.parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
 
 
 def main() -> None:
-    print("Generating OpenAPI schema from FastAPI app...")
-    openapi_schema = app.openapi()
+    """Generates the static OpenAPI schema JSON file from the FastAPI application instance.
 
-    output_dir = os.path.join(root_dir, "docs", "swagger")
-    os.makedirs(output_dir, exist_ok=True)
+    This schema is used for automated Flutter client generation, documentation,
+    and API compliance checks. Resolves output directory structurally and writes
+    using standard UTF-8 encoding patterns.
 
-    output_path = os.path.join(output_dir, "openapi.json")
+    Raises:
+        AppException: If file writing or generation fails due to file system or structural blocks.
+    """
+    logger.info("Generating OpenAPI schema from FastAPI app...")
+
+    # Rule 27: Deferred import of FastAPI application instance to prevent premature
+    # heavyweight loading of LLM dependencies
+    from backend_v2.main import app
+
+    openapi_schema: dict[str, Any] = app.openapi()
+
+    output_dir = root_dir / "docs" / "swagger"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    output_path = output_dir / "openapi.json"
 
     try:
-        with open(output_path, "w", encoding="utf-8") as f:
+        with output_path.open("w", encoding="utf-8") as f:
             json.dump(openapi_schema, f, indent=2, ensure_ascii=False)
             f.write("\n")  # Add trailing newline standard
-        print(f"SUCCESS: TS / Dart Client schemas - OpenAPI JSON generated and saved to {output_path}")
+        logger.info(f"SUCCESS: TS / Dart Client schemas - OpenAPI JSON generated and saved to {output_path}")
     except Exception as e:
-        print(f"ERROR: Failed to write OpenAPI file: {e}")
-        sys.exit(1)
+        error_code = ErrorCodes.STORAGE_ACCESS_FAILED
+        logger.error(
+            "Failed to write OpenAPI specification to path: %s",
+            str(output_path),
+            exc_info=True,
+            extra={"error_code": error_code},
+        )
+        raise AppException(
+            message=f"Failed to write OpenAPI schema file due to: {e}",
+            status_code=500,
+            details={"error_code": error_code},
+        ) from e
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        logger.critical("Fatal exception halted OpenAPI generation script", exc_info=True)
+        sys.exit(1)

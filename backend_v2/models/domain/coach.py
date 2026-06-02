@@ -4,10 +4,6 @@ This module contains the schemas for the Coach Agent,
 including coaching plans and bibliography.
 """
 
-# Import JudgeOutput for strict type checking if possible, otherwise use Dict
-# To avoid potential circular imports (though judge doesn't import coach), we can use forward refs or just imports
-# But let's check if we can import JudgeOutput from backend_v2.models.domain.judge
-
 from typing import Any
 
 from pydantic import Field
@@ -18,7 +14,19 @@ from backend_v2.models.domain.judge import JudgeOutput
 
 
 class CoachInput(V2CoreBase):
-    """Strict input schema for CoachAgent."""
+    """Strict input schema for CoachAgent.
+
+    Attributes:
+        chat_log: Mandatory chatlog string.
+        step_judge: The Verdict from Judge Agent.
+        step_judge_cognitive: The Verdict from Cognitive Judge Agent.
+        last_reasoning_trace: Previous reasoning trace if present.
+        step_analyst: Analyst hypotheses and RAG data.
+        step_profiler: Profiler cognitive bias data.
+        step_falsifier: Falsifier critical distance data.
+        step_logician: Logician Toulmin analysis data.
+        step_causal_analyst: Causal Analyst post-hoc and counterfactual data.
+    """
 
     chat_log: str = Field(..., min_length=1, description="Mandatory chatlog.")
     step_judge: JudgeOutput | None = Field(
@@ -42,7 +50,14 @@ class CoachInput(V2CoreBase):
 
 
 class BibliographyItem(V2CoreBase):
-    """A single bibliographic reference."""
+    """A single bibliographic reference.
+
+    Attributes:
+        source_id: Unique source ID for L10n or tracing.
+        title: Title of the source.
+        url: URL of the reference source if available.
+        snippet: Extracted relevant text segment.
+    """
 
     source_id: str = Field(
         ..., min_length=1, description="Unique source ID.", json_schema_extra={"x-ui-label": "Source ID"}
@@ -55,7 +70,11 @@ class BibliographyItem(V2CoreBase):
 
 
 class BibliographyResult(V2CoreBase):
-    """Result of the bibliography generation (Hook)."""
+    """Result of the bibliography generation (Hook).
+
+    Attributes:
+        references: List of reference objects.
+    """
 
     references: list[BibliographyItem] = Field(
         ..., min_length=1, description="List of references.", json_schema_extra={"x-ui-label": "References"}
@@ -63,7 +82,13 @@ class BibliographyResult(V2CoreBase):
 
 
 class CoachingPlanDTO(ReasoningTraceDTO):
-    """DTO for Coaching Plan (Content Only)."""
+    """DTO for Coaching Plan (Content Only).
+
+    Attributes:
+        actionable_steps: Concrete steps for development or optimization.
+        bibliography: Curated resources mapped to the findings.
+        focus_areas: Critical areas highlighted for growth.
+    """
 
     actionable_steps: list[str] = Field(
         ...,
@@ -86,4 +111,7 @@ class CoachingPlanDTO(ReasoningTraceDTO):
 
 
 class CoachingPlan(CoachingPlanDTO, ReasoningTrace):
-    """Output schema for the Coach Agent (Domain Model)."""
+    """Output schema for the Coach Agent (Domain Model).
+
+    Integrates DTO data alongside standard AI Reasoning trace telemetry.
+    """

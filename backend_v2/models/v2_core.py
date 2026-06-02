@@ -1,6 +1,9 @@
 """V2 Core Models for Backend.
+
 Implements dynamic, append-only, and I18N-capable models according to V2 specs.
 """
+
+from __future__ import annotations
 
 import logging
 import secrets
@@ -66,7 +69,12 @@ __all__ = [
 
 
 class I18nText(V2CoreBase):
-    """V2 Strict: Frontend no-string mandate requires all localized text to be structured."""
+    """V2 Strict: Frontend no-string mandate requires all localized text to be structured.
+
+    Attributes:
+        default_locale: The default locale used if a translation is missing.
+        translations: Dictionary mapping locale code to translated string.
+    """
 
     default_locale: str = Field(description="The default locale used if a translation is missing.")
     translations: dict[str, str] = Field(
@@ -76,6 +84,14 @@ class I18nText(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_i18n(self) -> I18nText:
+        """Validates that English translation is always present.
+
+        Raises:
+            ValueError: If the English translation is missing or empty.
+
+        Returns:
+            The validated I18nText instance.
+        """
         # Enforce English-Only Mandate: 'en' translation must ALWAYS exist.
         en_trans = self.translations.get("en")
         if not en_trans or not en_trans.strip():
@@ -94,7 +110,14 @@ class I18nText(V2CoreBase):
         return self
 
     def resolve(self, target_locale: str | None = None) -> str:
-        """Strictly typed method to resolve the best localization, avoiding 'naked dict' fallback logic."""
+        """Strictly typed method to resolve the best localization, avoiding 'naked dict' fallback logic.
+
+        Args:
+            target_locale: The requested locale code.
+
+        Returns:
+            The resolved localized string.
+        """
         if not self.translations:
             return ""
 
@@ -109,7 +132,15 @@ class I18nText(V2CoreBase):
         return self.translations["en"]
 
     def get(self, lang_code: str, fallback: str = "") -> str:
-        """Extracts the localized string safely for templates (Jinja2) and programmatic access."""
+        """Extracts the localized string safely for templates (Jinja2) and programmatic access.
+
+        Args:
+            lang_code: Target locale code.
+            fallback: Default value if unable to resolve.
+
+        Returns:
+            The resolved string or fallback value.
+        """
         if not self.translations:
             return fallback
 
@@ -122,14 +153,31 @@ class I18nText(V2CoreBase):
 
 
 class TheoryGrounding(V2CoreBase):
-    """Used in PromptBlock to bind criteria to organizational truth."""
+    """Used in PromptBlock to bind criteria to organizational truth.
+
+    Attributes:
+        source_url: URL or reference to the source material.
+        citation_reference: Specific section or phrase to cite from the source.
+    """
 
     source_url: str = Field(description="URL or reference to the source material.")
     citation_reference: str = Field(description="Specific section or phrase to cite from the source.")
 
 
 class TDAAssertion(V2CoreBase):
-    """Deterministic rule evaluated by the backend."""
+    """Deterministic rule evaluated by the backend.
+
+    Attributes:
+        tda_id: Opaque Stripe ID for this assertion.
+        ai_rule_description: Strict enforcement rule.
+        inverse_evidence: If True, acts as a poison/penalty detector.
+        aggregation_mode: Aggregation constraint.
+        evaluation_track: Decoupled evaluation track.
+        facts_to_find: The list of facts to extract for this assertion.
+        logical_expression: Whitelisted Boolean logical expression using extracted facts.
+        allow_contextual_override: If True, allows overriding this assertion with a contextual excuse.
+        high_entropy: If True, enables multi-agent ensemble majority voting for this assertion.
+    """
 
     tda_id: str = Field(
         default_factory=lambda: f"tda_{secrets.token_hex(8)}",
@@ -164,6 +212,14 @@ class TDAAssertion(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_math_logic(self) -> TDAAssertion:
+        """Validates the consistency of the assertion constraints.
+
+        Raises:
+            ValueError: If constraints are mathematically or logically invalid.
+
+        Returns:
+            The validated assertion.
+        """
         if self.inverse_evidence and self.aggregation_mode == "ALL_MUST_COMPLY":
             raise ValueError("Käänteinen sääntö (myrkyn etsintä) vaatii EHDOTTOMASTI 'EXISTS' -aggregaation...")
 
@@ -179,7 +235,13 @@ class TDAAssertion(V2CoreBase):
 
 
 class MatrixClaim(V2CoreBase):
-    """Represents a single behavioral claim with an AI evaluation directive."""
+    """Represents a single behavioral claim with an AI evaluation directive.
+
+    Attributes:
+        label: User-facing empirical claim.
+        ai_description: Specific AI enforcement rule for this claim.
+        tda_assertions: Test-Driven Assertion rules explicitly set by experts.
+    """
 
     label: I18nText = Field(description="User-facing empirical claim.")
     ai_description: str = Field(description="Specific AI enforcement rule for this claim.")
@@ -191,14 +253,26 @@ class MatrixClaim(V2CoreBase):
 
 
 class MatrixRow(V2CoreBase):
-    """Represents a row in a 2D matrix evaluating multiple dimensions."""
+    """Represents a row in a 2D matrix evaluating multiple dimensions.
+
+    Attributes:
+        label: User-facing row name.
+        ai_description: Dedicated AI evaluation instruction for this sub-dimension.
+    """
 
     label: I18nText = Field(description="User-facing row name.")
     ai_description: str = Field(description="Dedicated AI evaluation instruction for this sub-dimension.")
 
 
 class MatrixScale(V2CoreBase):
-    """Represents a single score point in a BARS matrix scale."""
+    """Represents a single score point in a BARS matrix scale.
+
+    Attributes:
+        score: Numerical value of the scale point.
+        name: Optional name for the scale point (e.g., 'Excellent').
+        ai_label: Short uppercase AI mnemonic replacing English target label, e.g. CATASTROPHIC FAILURE.
+        claims: List of behavioral claims/criteria for this score.
+    """
 
     score: int = Field(description="Numerical value of the scale point.")
     name: I18nText | None = Field(default=None, description="Optional name for the scale point (e.g., 'Excellent').")
@@ -213,6 +287,28 @@ class MatrixScale(V2CoreBase):
 class PromptBlock(V2CoreBase):
     """V2 PromptBlock representation.
     Fuses legacy Components and Matrices into a unified directive model.
+
+    Attributes:
+        id: Unique identifier for the prompt block.
+        slug: URL routing helper field.
+        organization_id: Tenant organization ID.
+        label: Localizable label for the UI.
+        description: Localizable description or help text for the UI.
+        ai_description: MANDATORY: English cognitive instructions for the LLM.
+        category_id: Categorization identifier.
+        is_evaluative: Whether this matrix is mathematically commensurate.
+        type: Data type of the expected extracted value.
+        allow_decimals: Whether float types allow decimals in validation.
+        output_extensions: List of requested XAI output extensions.
+        execution_persona: Defines the global system prompt rules applied to this block.
+        theory_grounding: Fetches and injects source theory as <theory_context>.
+        scale_min: Minimum score for the scales matrix.
+        scale_max: Maximum score for the scales matrix.
+        scales: BARS scale definitions with scores and localized claims.
+        rows: Optional rows for grid matrices.
+        columns: Optional columns for grid matrices.
+        computed_min: Dynamically computed absolute minimum score.
+        computed_max: Dynamically computed absolute maximum score.
     """
 
     id: str = Field(
@@ -271,7 +367,17 @@ class PromptBlock(V2CoreBase):
     @model_validator(mode="before")
     @classmethod
     def pre_validate_block_consistency(cls, data: Any) -> Any:
-        """Strict validation for PromptBlock relations and logical constraints."""
+        """Strict validation for PromptBlock relations and logical constraints.
+
+        Args:
+            data: Unvalidated dictionary input mapping.
+
+        Raises:
+            ValueError: If structure is malformed or internally inconsistent.
+
+        Returns:
+            The sanitized dictionary matching schema expectations.
+        """
         if not isinstance(data, dict):
             return data
 
@@ -343,14 +449,23 @@ class PromptBlock(V2CoreBase):
 
 
 class ChatMessageDTO(V2CoreBase):
-    """Schema for a single parsed chat message."""
+    """Schema for a single parsed chat message.
+
+    Attributes:
+        role: The role of the speaker (e.g. 'user' or 'ai').
+        content: The message text.
+    """
 
     role: str = Field(description="The role of the speaker (e.g. 'user' or 'ai').")
     content: str = Field(description="The message text.")
 
 
 class ChatHistoryDTO(V2CoreBase):
-    """Strict schema for a complete parsed chat sequence."""
+    """Strict schema for a complete parsed chat sequence.
+
+    Attributes:
+        conversation: List of messages in chronological order.
+    """
 
     conversation: list[ChatMessageDTO] = Field(description="List of messages in chronological order.")
 
@@ -494,7 +609,14 @@ class Step(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_step_consistency(self) -> Step:
-        """Strict fail-fast validation to ensure Step is structurally complete."""
+        """Strict fail-fast validation to ensure Step is structurally complete.
+
+        Raises:
+            ValueError: If structure is malformed or internally inconsistent.
+
+        Returns:
+            The sanitized Step matching schema expectations.
+        """
         if self.type == "llm":
             if not self.model_strategy:
                 msg = f"LLM Step '{self.slug}' must declare an explicit model_strategy (Zero-Fallback Rule)."
@@ -530,7 +652,11 @@ class StepRule(V2CoreBase):
     ui_pos_y: float = Field(default=0.0, description="Y coordinate on the 2D DAG canvas.")
 
     def extract_variable_references(self) -> list[str]:
-        """Extracts dynamic variable references (e.g. $inputs.x, $steps.y) from input_mappings."""
+        """Extracts dynamic variable references (e.g. $inputs.x, $steps.y) from input_mappings.
+
+        Returns:
+            List of variables discovered in mapping.
+        """
         refs = []
         for val in self.input_mappings.values():
             if isinstance(val, str) and val.startswith("$"):
@@ -577,7 +703,14 @@ class ExpectedInput(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_modes(self) -> ExpectedInput:
-        """Strict validation for input modes."""
+        """Strict validation for input modes.
+
+        Raises:
+            ValueError: If structure is malformed or internally inconsistent.
+
+        Returns:
+            The sanitized ExpectedInput matching schema expectations.
+        """
         if not self.input_modes:
             msg = f"ExpectedInput '{self.input_key}' must have at least one input_mode."
             raise ValueError(msg)
@@ -900,7 +1033,14 @@ class Workflow(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_dag_integrity(self) -> Workflow:
-        """Enforces Directed Acyclic Graph (DAG) structural integrity."""
+        """Enforces Directed Acyclic Graph (DAG) structural integrity.
+
+        Raises:
+            ValueError: If structure is malformed or internally inconsistent.
+
+        Returns:
+            The sanitized Workflow matching schema expectations.
+        """
         step_ids = {step.id for step in self.steps}
         graph: dict[str, list[str]] = {step.id: [] for step in self.steps}
 
@@ -1099,12 +1239,16 @@ class BaseTDAExtraction(BaseModel):
 
     @model_validator(mode="after")
     def validate_override_logic(self) -> BaseTDAExtraction:
+        """Validates the consistency of the extraction rules.
+
+        Raises:
+            ValueError: If structure is malformed or internally inconsistent.
+
+        Returns:
+            The sanitized BaseTDAExtraction matching schema expectations.
+        """
         if self.contextual_override:
-            if self.exact_quote not in (None, "", "[CONTEXTUAL_OVERRIDE_APPLIED]"):
-                raise ValueError(
-                    "Cross-validation failed: exact_quote MUST be empty, null, "
-                    "or '[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is True."
-                )
+            object.__setattr__(self, "exact_quote", None)
         else:
             if self.exact_quote == "[CONTEXTUAL_OVERRIDE_APPLIED]":
                 raise ValueError(

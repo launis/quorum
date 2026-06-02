@@ -1,6 +1,7 @@
 import copy
 import json
 import logging
+import re
 from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes, TokenLimitExceededError
@@ -12,17 +13,32 @@ logger = logging.getLogger(__name__)
 
 
 class ContextBuilder:
-    """Builds and sanitizes the LLM context data based on input mappings."""
+    """Builds and sanitizes the LLM context data based on input mappings in Phase 9.
+
+    Attributes:
+        None
+    """
 
     @staticmethod
     def _process_trace_dtos(
-        dtos: list[Any], output_profile: Any, schema_type: str = "MATRIX", schema_map: dict[str, str] | None = None
+        dtos: list[Any],
+        output_profile: Any,
+        schema_type: str = "MATRIX",
+        schema_map: dict[str, str] | None = None,
     ) -> Any:
         """Strictly validates and prunes a list of StepOutputDTOs based on its database schema type.
 
-        If schema_type is 'MATRIX', it strictly validates against LightweightMatrixOutput.
-        If schema_type is 'TEXT' or anything else, it reconstructs a flat dictionary.
-        Raises AppException if a MATRIX trace is invalid.
+        Args:
+            dtos: List of dynamic StepOutputDTOs.
+            output_profile: The target output presentation profile for filtering.
+            schema_type: String representing schema model shape (e.g., 'MATRIX', 'TEXT').
+            schema_map: Optional mapping dictionary of step IDs to schema structures.
+
+        Returns:
+            The filtered or pruned output structure.
+
+        Raises:
+            AppException: Triggered if matrix validation fails or serialization crashes.
         """
         match schema_type:
             case "MATRIX":
@@ -30,10 +46,10 @@ class ContextBuilder:
             case _:
                 return {d.block_id: d.payload for d in dtos}
 
-        pruned_step_output = {}
+        pruned_step_output: dict[str, Any] = {}
         for dto in dtos:
-            key = getattr(dto, "block_id", None)
-            value = getattr(dto, "payload", None)
+            key: str | None = getattr(dto, "block_id", None)
+            value: Any = getattr(dto, "payload", None)
 
             if not key or (schema_map is None) or (key not in schema_map):
                 continue
@@ -43,10 +59,15 @@ class ContextBuilder:
             match block_type:
                 case "MATRIX":
                     if not isinstance(value, dict):
+                        logger.error(
+                            "Matrix value validation failed. Key: %s is not a dict.",
+                            key,
+                            exc_info=True,
+                        )
                         raise AppException(
                             message=f"Matrix value for '{key}' must be a dict.",
                             status_code=400,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
                         )
                     try:
                         pruned = ContextRouter.route_and_prune(value, output_profile)
@@ -68,7 +89,7 @@ class ContextBuilder:
                         raise AppException(
                             message=msg,
                             status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
                         ) from e
                 case _:
                     if value is not None:
@@ -78,36 +99,38 @@ class ContextBuilder:
 
     @staticmethod
     def apply_spatial_slicing(text: str, criteria_blocks: list[Any] | None) -> str:
-        """Applies physical spatial slicing to document text if chronological rules are detected."""
+        """Applies physical spatial slicing to document text if chronological rules are detected.
+
+        Args:
+            text: The raw input string payload to evaluate.
+            criteria_blocks: The validation prompt criteria blocks list.
+
+        Returns:
+            Slicing trimmed string based on spatial metadata parsing.
+        """
         if not criteria_blocks or not isinstance(text, str):
             return text
 
-        # 1. Collect all rule descriptions
-        rule_descriptions = []
+        rule_descriptions: list[str] = []
         for block in criteria_blocks:
-            desc = getattr(block, "ai_description", None)
+            desc: str | None = getattr(block, "ai_description", None)
             if desc:
                 rule_descriptions.append(desc)
-            scales = getattr(block, "scales", None) or []
+            scales: list[Any] = getattr(block, "scales", None) or []
             for scale in scales:
-                claims = getattr(scale, "claims", None) or []
+                claims: list[Any] = getattr(scale, "claims", None) or []
                 for claim in claims:
-                    tda_assertions = getattr(claim, "tda_assertions", None) or []
+                    tda_assertions: list[Any] = getattr(claim, "tda_assertions", None) or []
                     for tda in tda_assertions:
-                        rule_desc = getattr(tda, "ai_rule_description", None)
+                        rule_desc: str | None = getattr(tda, "ai_rule_description", None)
                         if rule_desc:
                             rule_descriptions.append(rule_desc)
 
-        # 2. Scan descriptions for chronological bounds
-        import re
-
         for desc in rule_descriptions:
             desc_lower = desc.lower()
-            # Match patterns like: "ennen vaihetta 2", "before phase 2", "before stage Y"
             match = re.search(r"(?:ennen vaihetta|before phase|before stage)\s+([a-zA-Z0-9_]+)", desc_lower)
             if match:
                 phase_id = match.group(1)
-                # Physical boundary markers
                 patterns = [
                     f"[VAIHE {phase_id}]",
                     f"[PHASE {phase_id}]",
@@ -120,8 +143,11 @@ class ContextBuilder:
                     idx = text.upper().find(pat.upper())
                     if idx != -1:
                         logger.warning(
-                            f"[SpatialSlicing] Chronology rule detected: '{desc}'. "
-                            f"Physically slicing context at delimiter '{pat}' (index {idx})."
+                            "[SpatialSlicing] Chronology rule detected: '%s'. "
+                            "Physically slicing context at delimiter '%s' (index %d).",
+                            desc,
+                            pat,
+                            idx,
                         )
                         return text[:idx].strip()
         return text
@@ -146,20 +172,21 @@ class ContextBuilder:
 
         Returns:
             A tuple of (llm_context_data, sanitized_input_mappings).
+
+        Raises:
+            TokenLimitExceededError: Triggered when token limit is violated.
+            AppException: Raised if validation or context parsing fails.
         """
         llm_context_data: dict[str, Any] = {}
         new_input_mappings: dict[str, Any] = {}
-
         schema_map = schema_map or {}
 
-        # Always propagate raw_inputs.dynamic_inputs metadata if present in state_data["raw_inputs"]
-        # to ensure that PromptFactory.build has direct access to the original document_date timestamp.
         if isinstance(state_data, dict) and "raw_inputs" in state_data:
             state_raw = state_data["raw_inputs"]
             if isinstance(state_raw, dict) and "dynamic_inputs" in state_raw:
-                if "raw_inputs" not in llm_context_data:
-                    llm_context_data["raw_inputs"] = {}
-                llm_context_data["raw_inputs"]["dynamic_inputs"] = copy.deepcopy(state_raw["dynamic_inputs"])
+                llm_context_data.setdefault("raw_inputs", {})["dynamic_inputs"] = copy.deepcopy(
+                    state_raw["dynamic_inputs"]
+                )
 
         for _logical_name, path in input_mappings.items():
             if not isinstance(path, str):
@@ -176,21 +203,25 @@ class ContextBuilder:
                 if isinstance(resolved_value, str):
                     resolved_value = ContextBuilder.apply_spatial_slicing(resolved_value, criteria_blocks)
 
-                # Epic 43 Phase 3: Strict List Filtering
                 def _prune_step_dtos(dtos_list: list[Any]) -> str:
-                    pruned_steps = {}
+                    pruned_steps: dict[str, Any] = {}
                     steps_group: dict[str, list[Any]] = {}
                     for d in dtos_list:
-                        s_id = getattr(d, "step_id", None)
+                        s_id: str | None = getattr(d, "step_id", None)
                         if s_id:
                             steps_group.setdefault(s_id, []).append(d)
 
                     for s_id, step_dtos in steps_group.items():
                         if s_id not in schema_map:
+                            logger.error(
+                                "Fail-Fast: Missing schema mapping for step '%s'.",
+                                s_id,
+                                exc_info=True,
+                            )
                             raise AppException(
                                 message=f"Fail-Fast: Missing schema mapping for step '{s_id}'.",
                                 status_code=500,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED},
                             )
                         step_type = schema_map[s_id]
                         pruned_steps[s_id] = ContextBuilder._process_trace_dtos(
@@ -209,10 +240,15 @@ class ContextBuilder:
                     parts = clean_path.split(".")
                     step_key = parts[1]
                     if step_key not in schema_map:
+                        logger.error(
+                            "Fail-Fast: Missing schema mapping for step '%s'.",
+                            step_key,
+                            exc_info=True,
+                        )
                         raise AppException(
                             message=f"Fail-Fast: Missing schema mapping for step '{step_key}'.",
                             status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
                         )
                     step_type = schema_map[step_key]
                     dtos = [d for d in state_data.get("steps", []) if getattr(d, "step_id", None) == step_key]
@@ -221,25 +257,34 @@ class ContextBuilder:
                         pruned_dict = ContextBuilder._process_trace_dtos(dtos, output_profile, step_type, schema_map)
                         resolved_value = f"<matrix_data>\n{json.dumps(pruned_dict, ensure_ascii=False)}\n</matrix_data>"
                     elif len(parts) == 3:
-                        # Exact block match
                         block_key = parts[2]
                         matched_dto = next((d for d in dtos if getattr(d, "block_id", None) == block_key), None)
                         if not matched_dto:
+                            logger.error(
+                                "Fail-Fast: Block '%s' not found in step '%s'.",
+                                block_key,
+                                step_key,
+                                exc_info=True,
+                            )
                             raise AppException(
                                 message=f"Fail-Fast: Block '{block_key}' not found in step '{step_key}'.",
                                 status_code=500,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED},
                             )
                         resolved_value = getattr(matched_dto, "payload", None)
                     else:
+                        logger.error(
+                            "Fail-Fast: Invalid legacy path '%s'.",
+                            clean_path,
+                            exc_info=True,
+                        )
                         raise AppException(
                             message=f"Fail-Fast: Invalid legacy path '{clean_path}'.",
                             status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
                         )
 
                 val_str = str(resolved_value)
-                # Task 2: Rigorous token checks
                 try:
                     import litellm
 
@@ -256,10 +301,9 @@ class ContextBuilder:
                     raise AppException(
                         message=msg,
                         status_code=500,
-                        details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
+                        details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
                     ) from e
 
-                # Map back to llm_context_data in its original path structure so _extract_value_from_state works
                 parts = clean_path.split(".")
                 if clean_path.startswith("steps."):
                     parts = clean_path[len("steps.") :].split(".")
@@ -269,9 +313,7 @@ class ContextBuilder:
                     if i == len(parts) - 1:
                         curr[part] = copy.deepcopy(resolved_value)
                     else:
-                        if part not in curr:
-                            curr[part] = {}
-                        curr = curr[part]
+                        curr = curr.setdefault(part, {})
 
                 new_input_mappings[_logical_name] = path
             except Exception as e:
@@ -282,7 +324,7 @@ class ContextBuilder:
                 raise AppException(
                     message=msg,
                     status_code=400,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
                 ) from e
 
         return llm_context_data, new_input_mappings

@@ -1,5 +1,7 @@
 """Vertex AI cache adapter with distributed Redis locks, thundering herd protection, and option B passive teardown."""
 
+from __future__ import annotations
+
 import asyncio
 import hashlib
 import json
@@ -7,7 +9,7 @@ import logging
 import os
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
@@ -25,6 +27,9 @@ async def get_redis_client() -> Any:
     """Return a shared Redis connection pool or in-memory FakeRedis during tests.
 
     Adheres strictly to the testing firewalls.
+
+    Returns:
+        The active Redis connection pool instance.
     """
     global _redis_pool, _redis_loop
     try:
@@ -55,9 +60,31 @@ async def get_redis_client() -> Any:
 
 
 class VertexTokenUsage(TokenUsage):
-    """Subclass of TokenUsage supporting Vertex-specific caching telemetry and savings."""
+    """Subclass of TokenUsage supporting Vertex-specific caching telemetry and savings.
 
-    estimated_savings_usd: float = Field(default=0.0, ge=0.0, description="FinOps ROI estimated savings in USD.")
+    Attributes:
+        estimated_savings_usd: FinOps ROI estimated savings in USD.
+    """
+
+    estimated_savings_usd: float = Field(default=0.0, description="FinOps ROI estimated savings in USD.")
+
+    @field_validator("estimated_savings_usd")
+    @classmethod
+    def validate_estimated_savings_usd(cls, v: float) -> float:
+        """Validate that the estimated savings are non-negative.
+
+        Args:
+            v: The computed savings in USD.
+
+        Returns:
+            The validated float value.
+
+        Raises:
+            ValueError: If the savings value is negative.
+        """
+        if v < 0.0:
+            raise ValueError("estimated_savings_usd must be greater than or equal to 0.0")
+        return v
 
 
 class VertexCacheAdapter(BaseLLMAdapter):
@@ -77,10 +104,8 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 - The list of flattened messages.
                 - A dictionary of extra keyword arguments containing the cache reference name.
         """
-        # Phase 7: Token Proxy Score threshold logic
         estimated_token_count = compiled_prompt.metadata.get("estimated_token_count", 0)
 
-        # If Token Proxy Score is unavailable (e.g. simple chat), fallback to static chars calculation
         if estimated_token_count == 0:
             total_static_chars = 0
             for msg in compiled_prompt.static_messages:
@@ -102,14 +127,12 @@ class VertexCacheAdapter(BaseLLMAdapter):
             )
             return compiled_prompt.to_flat_messages(), {}
 
-        # 1. Deterministinen avain
         static_hash = hashlib.sha256(json.dumps(compiled_prompt.static_messages, sort_keys=True).encode()).hexdigest()
         redis_key = f"vertex_cache:{model_name}:{static_hash}"
         lock_key = f"lock:vertex_cache:{model_name}:{static_hash}"
 
         redis_client = await get_redis_client()
 
-        # Check existing cache ID in Redis
         cache_id = await redis_client.get(redis_key)
         if cache_id:
             if isinstance(cache_id, bytes):
@@ -122,17 +145,17 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 return compiled_prompt.to_flat_messages(), {}
 
             if cache_id != PromptCacheStatus.CREATING.value:
-                logger.info("Vertex AI Cache Hit in shared ledger: %s", cache_id)
+                logger.info(
+                    "Vertex AI Cache Hit in shared ledger: %s",
+                    cache_id,
+                )
                 return compiled_prompt.to_flat_messages(), {"cached_content": cache_id}
 
-        # 3. Hajautetun lukon hankinta (SETNX)
         lock_ttl_ms = int(SystemConcurrency.CONTEXT_CACHE_LOCK_TTL_SECONDS.value * 1000)
-        # SET lock_key worker_id NX PX lock_ttl_ms
         lock_acquired = await redis_client.set(lock_key, "worker_1", nx=True, px=lock_ttl_ms)
 
         if lock_acquired:
             try:
-                # Double-check if another worker completed it just before we acquired the lock
                 cache_id = await redis_client.get(redis_key)
                 if cache_id:
                     if isinstance(cache_id, bytes):
@@ -142,7 +165,6 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     if cache_id != PromptCacheStatus.CREATING.value:
                         return compiled_prompt.to_flat_messages(), {"cached_content": cache_id}
 
-                # Mark state as CREATING
                 await redis_client.set(
                     redis_key,
                     PromptCacheStatus.CREATING.value,
@@ -154,26 +176,18 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 from backend_v2.settings import get_settings
 
                 settings = get_settings()
-
                 project = os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
                 location = settings.vertex_location or "europe-north1"
-
-                # Strip litellm model prefix (e.g. 'vertex_ai/gemini-1.5-pro' -> 'gemini-1.5-pro')
                 clean_model_name = model_name.split("/")[-1]
-
-                # Convert compiled prompt static messages to flat format expected by GCP CachedContent
                 flat_messages = compiled_prompt.to_flat_messages()
 
-                # Zero-Compromise Fail-Soft wrap around GCP CachedContent creation
                 try:
                     import importlib
 
                     import vertexai
 
-                    # Initialize Vertex AI
                     vertexai.init(project=project, location=location)
 
-                    # Dynamic robust import to handle GCP SDK version drifts (Bit Rot prevention)
                     try:
                         caching = importlib.import_module("vertexai.preview.caching")
                         cached_content_cls = caching.CachedContent
@@ -181,39 +195,51 @@ class VertexCacheAdapter(BaseLLMAdapter):
                         generative_models = importlib.import_module("vertexai.preview.generative_models")
                         cached_content_cls = generative_models.cached_contents.CachedContent
 
-                    logger.info("Creating Vertex AI Context Cache in GCP for model: %s", clean_model_name)
+                    logger.info(
+                        "Creating Vertex AI Context Cache in GCP for model: %s",
+                        clean_model_name,
+                    )
+                    # Convert to native Vertex AI GAPIC format: role/parts instead of role/content
+                    vertex_contents = []
+                    for msg in flat_messages:
+                        role = msg.get("role", "user")
+                        if role == "assistant":
+                            role = "model"
+                        vertex_contents.append({
+                            "role": role,
+                            "parts": [{"text": msg.get("content", "")}]
+                        })
+
                     cached_content = cached_content_cls.create(
                         model_name=clean_model_name,
-                        contents=flat_messages,
+                        contents=vertex_contents,
                         ttl=datetime.timedelta(seconds=SystemConcurrency.CONTEXT_CACHE_PASSIVE_TTL_SECONDS.value),
                     )
                     cache_resource_id = cached_content.name
 
-                    # Save resource ID to Redis
                     await redis_client.set(
                         redis_key,
                         cache_resource_id,
                         ex=SystemConcurrency.CONTEXT_CACHE_PASSIVE_TTL_SECONDS.value,
                     )
-                    logger.info("Vertex AI Context Cache successfully created: %s", cache_resource_id)
+                    logger.info(
+                        "Vertex AI Context Cache successfully created: %s",
+                        cache_resource_id,
+                    )
                     return flat_messages, {"cached_content": cache_resource_id}
 
-                except Exception as gcp_err:
-                    # Fail-Soft: log warning, mark failure in Redis, and bypass caching gracefully
-                    logger.warning(
-                        "Fail-Soft: Google GCP API Context Cache creation failed: %s. "
-                        "Falling back to uncached completion.",
-                        str(gcp_err),
+                except Exception:
+                    logger.error(
+                        "Fail-Soft: Google GCP API Context Cache creation failed. Falling back to uncached completion.",
+                        exc_info=True,
                     )
-                    await redis_client.set(redis_key, PromptCacheStatus.FAILED.value, ex=300)  # 5 min lock out
+                    await redis_client.set(redis_key, PromptCacheStatus.FAILED.value, ex=300)
                     return flat_messages, {}
 
             finally:
-                # Atomically release the lock
                 await redis_client.delete(lock_key)
 
         else:
-            # 4. Wait & Poll Loop for other workers
             poll_interval_s = float(SystemConcurrency.CONTEXT_CACHE_LOCK_POLL_INTERVAL_MS.value / 1000.0)
             max_wait_s = float(SystemConcurrency.CONTEXT_CACHE_LOCK_WAIT_LIMIT_SECONDS.value)
             elapsed_s = 0.0
@@ -232,7 +258,10 @@ class VertexCacheAdapter(BaseLLMAdapter):
                         return compiled_prompt.to_flat_messages(), {}
 
                     if cache_id != PromptCacheStatus.CREATING.value:
-                        logger.info("Wait-and-Poll: Cache creation completed by first worker: %s", cache_id)
+                        logger.info(
+                            "Wait-and-Poll: Cache creation completed by first worker: %s",
+                            cache_id,
+                        )
                         return compiled_prompt.to_flat_messages(), {"cached_content": cache_id}
 
             logger.warning(
@@ -242,17 +271,17 @@ class VertexCacheAdapter(BaseLLMAdapter):
             return compiled_prompt.to_flat_messages(), {}
 
     async def teardown_cache(self, workflow_run_id: str) -> None:
-        """No-Op teardown for Vertex AI (Option B - Pure Passive TTL Caching)."""
+        """No-Op teardown for Vertex AI (Option B - Pure Passive TTL Caching).
+
+        Args:
+            workflow_run_id: The tracking context identifier.
+        """
         pass
 
-    def calculate_cost(self, usage: TokenUsage, pricing_config: dict[str, Any]) -> TokenUsage:
+    def calculate_cost(self, usage: TokenUsage, pricing_config: dict[str, Any]) -> VertexTokenUsage:
         """Calculate the precise Vertex AI cost and savings.
 
         Gemini Context Caching has a 75% read discount (meaning cached input tokens cost 25% of standard input).
-
-        Formula:
-            Cost = (regular_input_tokens * P_in) + (cached_tokens * P_in * 0.25) + (output_tokens * P_out)
-            Savings = cached_tokens * P_in * 0.75
 
         Args:
             usage: The source TokenUsage object.
@@ -260,8 +289,14 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
         Returns:
             An instance of VertexTokenUsage with calculated values.
+
+        Raises:
+            AppException: If essential pricing parameters are missing from pricing_config.
         """
         if "input_token_price" not in pricing_config or "output_token_price" not in pricing_config:
+            logger.error(
+                "Invalid pricing configuration detected: missing input_token_price or output_token_price", exc_info=True
+            )
             raise AppException(
                 message="Invalid pricing configuration: missing input_token_price or output_token_price",
                 status_code=500,
@@ -277,7 +312,6 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
         regular_input = max(0, prompt_tokens - cached_tokens)
 
-        # Compute cost and savings
         cost_regular = regular_input * p_in
         cost_cached = cached_tokens * p_in * 0.25
         cost_output = completion_tokens * p_out

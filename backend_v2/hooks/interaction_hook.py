@@ -1,6 +1,6 @@
-"""Interaction Role Hook.
+"""Interaction Role Hook Module.
 
-This hook is responsible for evaluating the user's cognitive role (Passenger to Architect)
+This hook evaluates the user's cognitive role (Passenger to Architect)
 based on the current execution chat log and strict Python heuristics.
 """
 
@@ -19,7 +19,7 @@ from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_INSTRUCTION = """<system_directive>
+_SYSTEM_INSTRUCTION: str = """<system_directive>
 <objective>
 Analyze the user's interaction behavior and assign a precise cognitive role based on the provided
 conversation history and hard mathematical heuristics.
@@ -60,7 +60,20 @@ conversation history and hard mathematical heuristics.
 
 @hook_registry.register(name="analyze_interaction_role")
 async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> HookResult:
-    """Evaluate user's cognitive role using a hybrid logic (Python + LLM)."""
+    """Evaluate user's cognitive role using a hybrid logic (Python + LLM).
+
+    Args:
+        state: The current execution hook state containing input context.
+        deps: The resolution context carrying services and repositories.
+
+    Returns:
+        The HookResult carrying execution state_delta updating the model schema.
+
+    Raises:
+        AppException: Raised with ErrorCodes.INVALID_JSON_PAYLOAD if input validation fails,
+            ErrorCodes.CONFIGURATION_ERROR if dependencies are missing, or
+            ErrorCodes.AGENT_RESPONSE_PARSING_FAILED if structured execution fails.
+    """
     logger.info("[InteractionRoleHook] Running interaction analysis...")
 
     # 1. Isolation: Extract only current execution chat_log
@@ -77,7 +90,7 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
         ) from e
 
     chat_log = input_data.chat_log
-    if not chat_log.strip():
+    if not chat_log or not chat_log.strip():
         logger.debug("[InteractionRoleHook] Empty chat log. Skipping.")
         return HookResult(success=True, state_delta={})
 
@@ -89,7 +102,11 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
     if not system_repo:
         msg = "Strict Fail-Fast Enforced: Missing repository context in InteractionRoleHook."
         logger.error("[InteractionRoleHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
 
     try:
         # Internal Utility LLM Execution pattern
@@ -99,24 +116,29 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
         logger.error("[InteractionRoleHook] %s: Failed to init LLM: %s", ErrorCodes.CONFIGURATION_ERROR.name, e)
         raise AppException(
             message="Failed to init LLM.",
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         ) from e
 
-    # 3. Dynamic User Message (High-Fidelity Prompting)
+    # 3. Dynamic User Message (High-Fidelity Prompting, XML parameters separated)
     user_content = (
-        f"<execution_parameters>\n"
+        "<execution_parameters>\n"
         f"  <control_ratio>{control_ratio}</control_ratio>\n"
         f"  <imperative_command_count>{behavioral_metrics.imperative_command_count}</imperative_command_count>\n"
         f"  <say_do_gap>{behavioral_metrics.say_do_gap}</say_do_gap>\n"
         f"  <automation_bias>{behavioral_metrics.automation_bias}</automation_bias>\n"
-        f"</execution_parameters>\n\n"
-        f"<source_data>\n"
-        f"  <user_payload>\n{chat_log}\n  </user_payload>\n"
-        f"</source_data>"
+        "</execution_parameters>\n\n"
+        "<source_data>\n"
+        "  <user_payload>\n"
+        f"{chat_log}\n"
+        "  </user_payload>\n"
+        "</source_data>"
     )
 
-    messages = [{"role": "system", "content": _SYSTEM_INSTRUCTION}, {"role": "user", "content": user_content}]
+    messages: list[dict[str, str]] = [
+        {"role": "system", "content": _SYSTEM_INSTRUCTION},
+        {"role": "user", "content": user_content},
+    ]
 
     # 4. Structured Execution
     try:
@@ -139,6 +161,6 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
         )
         raise AppException(
             message="LLM structured execution failed.",
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": ErrorCodes.AGENT_RESPONSE_PARSING_FAILED.value},
         ) from e

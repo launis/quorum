@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import time
-from typing import Any
+from typing import Any, cast
 
 from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
@@ -11,7 +11,7 @@ from backend_v2.models.chunking import ChunkingRequest
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.state import StateProjector, TraceEvent
-from backend_v2.models.v2_core import FrozenContext, PromptBlock, StepRule, Workflow
+from backend_v2.models.v2_core import FrozenContext, MCPAuditTrace, PromptBlock, StepRule, Workflow
 from backend_v2.models.v2_core import Step as V2Step
 from backend_v2.services.orchestrator.chunk_accumulator import ChunkAccumulator
 from backend_v2.services.orchestrator.chunking_service import ChunkingService
@@ -22,8 +22,6 @@ from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory im
 
 logger = logging.getLogger(__name__)
 
-# Internal schema routing tokens — used to classify DAG step outputs without duck-typing.
-# These values are consumed by ContextBuilder; do NOT rename without updating that module.
 _SCHEMA_BLOCK_MATRIX = "MATRIX"
 _SCHEMA_BLOCK_TEXT = "TEXT"
 _SCHEMA_BLOCK_EXTENSION = "EXTENSION"
@@ -48,10 +46,25 @@ class LLMNodeStrategy(NodeStrategy):
         semaphore: asyncio.Semaphore,
         running_event: asyncio.Event | None = None,
     ) -> list[TraceEvent]:
-        # Epic 43 Phase 2 Fail-Fast Parity: Re-inject 'inputs' and 'raw_inputs' DTO payloads into the root state
-        # so legacy dot-notation mappings resolve properly without Naked Dict violations.
-        inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "inputs"}
+        """Executes the node's workflow sequence matching system rules.
 
+        Args:
+            step: Rule defining the workflow execution block configuration.
+            projector: Database representation of current structured historical trace.
+            context: Strategy configuration parameters (model, metadata, strictness).
+            frozen_ctx: Accumulator state matching prompt caches and MCP traces.
+            trace: List of chronological events.
+            semaphore: Concurrency limiter for model executions.
+            running_event: Cancellation trigger for async processes.
+
+        Returns:
+            List containing the computed outputs packed into structured TraceEvents.
+
+        Raises:
+            AppException: Triggered upon infrastructure failure, database corruption, or model invalidity.
+            ConfigurationError: Triggered upon incorrect configuration schemas.
+        """
+        inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "inputs"}
         raw_inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "raw_inputs"}
 
         current_state: dict[str, Any] = {
@@ -72,7 +85,8 @@ class LLMNodeStrategy(NodeStrategy):
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
-        step_def = await self.workflow_repo.get_step_by_id(blueprint_id)
+        step_def_raw = await self.workflow_repo.get_step_by_id(blueprint_id)
+        step_def = cast(dict[str, Any], step_def_raw)
         if not step_def:
             logger.error(
                 f"Configuration error: Step '{blueprint_id}' not found.",
@@ -94,8 +108,7 @@ class LLMNodeStrategy(NodeStrategy):
             system_repo=self.system_repo,
         )
 
-        # Extract input keys from context — ExpectedInput.input_key is a required typed field.
-        input_keys = set()
+        input_keys: set[str] = set()
         if context.expected_inputs:
             for ei in context.expected_inputs:
                 input_keys.add(ei.input_key)
@@ -112,23 +125,25 @@ class LLMNodeStrategy(NodeStrategy):
             inputs=state_data,
         )
 
-        # 1. Pre-Hooks
         hook_state = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)
-        state_data = dict(hook_state.inputs)
+        state_data = hook_state.inputs.copy()
 
-        # 2. Extract configuration criteria
         all_prompt_blocks_raw = await self.comp_repo.get_all_prompt_blocks()
-        all_prompt_blocks = []
+        all_prompt_blocks: list[PromptBlock] = []
         for raw in all_prompt_blocks_raw:
             try:
                 all_prompt_blocks.append(PromptBlock.model_validate(raw))
             except Exception as e:
                 logger.error(
                     "[LLMStrategy] Malformed PromptBlock in DB — Fail-Fast.",
+                    exc_info=True,
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
-                    exc_info=e,
                 )
-                raise
+                raise AppException(
+                    message="Malformed PromptBlock in DB",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
 
         block_map = {b.id: b for b in all_prompt_blocks if b.id}
 
@@ -155,7 +170,7 @@ class LLMNodeStrategy(NodeStrategy):
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
-        criteria_blocks_models = []
+        criteria_blocks_models: list[PromptBlock] = []
         for m_id in step_obj.criteria_block_ids:
             b = block_map.get(m_id)
             if b:
@@ -177,12 +192,12 @@ class LLMNodeStrategy(NodeStrategy):
         target_locale = str(context.metadata["target_locale"])
         effective_mcp_tools = step_obj.allowed_mcp_tools
 
-        # StepRule.input_mappings has default_factory=dict — always present, no guard needed.
         input_mappings = dict(step.input_mappings)
 
-        workflow_def = await self.workflow_repo.get_workflow(context.workflow_id)
+        workflow_def_raw = await self.workflow_repo.get_workflow(context.workflow_id)
+        workflow_def = cast(dict[str, Any], workflow_def_raw)
         output_profile = None
-        schema_map = {}
+        schema_map: dict[str, str] = {}
         if workflow_def:
             workflow_obj = Workflow.model_validate(workflow_def)
             if target_profile in workflow_obj.output_profiles:
@@ -190,10 +205,11 @@ class LLMNodeStrategy(NodeStrategy):
 
             for s in workflow_obj.steps:
                 is_matrix = False
-                blueprint_def = await self.workflow_repo.get_step(s.task_blueprint)
+                blueprint_def_raw = await self.workflow_repo.get_step(s.task_blueprint)
+                blueprint_def = cast(dict[str, Any], blueprint_def_raw)
                 if blueprint_def:
                     blueprint_obj = V2Step.model_validate(blueprint_def)
-                    all_bp_blocks = []
+                    all_bp_blocks: list[str] = []
                     if blueprint_obj.role_block_id:
                         all_bp_blocks.append(blueprint_obj.role_block_id)
                     if blueprint_obj.extraction_protocol_block_id:
@@ -220,11 +236,8 @@ class LLMNodeStrategy(NodeStrategy):
             schema_map["inputs"] = _SCHEMA_BLOCK_TEXT
             schema_map["raw_inputs"] = _SCHEMA_BLOCK_TEXT
 
-        # Enforce strict deterministic sorting of PromptBlocks by ID to eliminate
-        # positional attention bias (Attention Drift)
         criteria_blocks = sorted(criteria_blocks_models, key=lambda x: str(x.id or ""))
 
-        # Step 1 - Context Building
         llm_context_data, new_input_mappings = ContextBuilder.build(
             input_mappings=input_mappings,
             state_data=state_data,
@@ -234,7 +247,6 @@ class LLMNodeStrategy(NodeStrategy):
         )
         input_mappings = new_input_mappings
 
-        # Step 2 - Prompt Construction
         has_shuffled_atoms = False
         is_matrix_step = any(b.category_id == "matrix" for b in criteria_blocks_models)
         if is_matrix_step and "shuffled_atoms" in state_data:
@@ -260,10 +272,8 @@ class LLMNodeStrategy(NodeStrategy):
         base_system_prompt = prompt_payload.base_system_prompt
         atom_to_block_ids = prompt_payload.atom_to_block_ids
 
-        # Step 3 - Chunk execution setup
         chunks_list: list[Any] = []
 
-        # Epic 32: Prevent state leakage. Only chunk if the current step actually contains matrix blocks.
         if is_matrix_step and "shuffled_atoms" in state_data:
             shuffled_atoms = state_data["shuffled_atoms"]
 
@@ -283,7 +293,7 @@ class LLMNodeStrategy(NodeStrategy):
             )
             chunks_list = ChunkingService.chunk_payload(req)
         else:
-            chunks_list = [None]  # Dummy to execute single non-chunk payload
+            chunks_list = [None]
 
         has_search = any("search_result" in v for v in state_data.values() if isinstance(v, dict))
 
@@ -312,10 +322,9 @@ class LLMNodeStrategy(NodeStrategy):
 
         sem = semaphore
 
-        # Step 4 & 5 - Map-Reduce and Accumulation with Anomaly Circuit Breaker
         MAX_RETRIES = 2
         retry_count = 0
-        final_dict = {}
+        final_dict: dict[str, Any] = {}
         usage_agg = TokenUsage()
         latency_ms = 0
 
@@ -331,27 +340,26 @@ class LLMNodeStrategy(NodeStrategy):
                 retry_count + 1,
             )
 
-            syn_instr = state_data["synthesis_instructions"] if "synthesis_instructions" in state_data else None
+            if "synthesis_instructions" in state_data:
+                syn_instr = state_data["synthesis_instructions"]
+            else:
+                syn_instr = None
 
-            # Map Phase: Distribute to Arq Workers (Bypassed to execute locally on 1 job/process)
             redis = None
             hkey = f"exec:{context.execution_id}:step:{step.id}"
 
-            # Reset Redis accumulator state just in case of retry
             if redis:
                 await redis.delete(hkey)
 
             if redis:
                 for i, c in enumerate(chunks_list):
-                    # In real production, file_path would be passed instead of reading the whole text
-                    # Here we pass user_payload as the payload due to mock limitations
                     await redis.enqueue_job(
                         "evaluate_chunk_job",
                         context.execution_id,
                         step.id,
                         i,
                         len(chunks_list),
-                        None,  # file_path
+                        None,
                         c.items,
                         [b.model_dump() for b in criteria_blocks],
                         base_system_prompt,
@@ -365,56 +373,47 @@ class LLMNodeStrategy(NodeStrategy):
                         hook_state.metadata,
                     )
 
-                # Wait Phase: Poll Redis for Completion (Synchronous Block)
                 while True:
                     completed = await redis.hget(hkey, "completed")
                     if int(completed or 0) == len(chunks_list):
                         break
                     await asyncio.sleep(1)
             else:
-                # Fallback to TaskGroup if Redis is not configured (e.g. tests)
                 tasks = []
-                try:
-                    async with asyncio.TaskGroup() as tg:
-                        for c in chunks_list:
-                            tasks.append(
-                                tg.create_task(
-                                    ChunkWorker.process_chunk(
-                                        chunk=c,
-                                        sem=sem,
-                                        compiler=self.compiler,
-                                        criteria_blocks=criteria_blocks,
-                                        user_payload=user_payload,
-                                        base_system_prompt=base_system_prompt,
-                                        has_search=has_search,
-                                        has_shuffled_atoms=has_shuffled_atoms,
-                                        atom_to_block_ids=atom_to_block_ids,
-                                        effective_mcp_tools=effective_mcp_tools,
-                                        bound_client=bound_client,
-                                        step_id=step.id,
-                                        target_locale=target_locale,
-                                        synthesis_instructions=syn_instr,
-                                        output_profile=output_profile,
-                                        strictness_level=context.strictness_level,
-                                        running_event=running_event,
-                                        step_metadata=hook_state.metadata,
-                                    )
+                async with asyncio.TaskGroup() as tg:
+                    for c in chunks_list:
+                        tasks.append(
+                            tg.create_task(
+                                ChunkWorker.process_chunk(
+                                    chunk=c,
+                                    sem=sem,
+                                    compiler=self.compiler,
+                                    criteria_blocks=criteria_blocks,
+                                    user_payload=user_payload,
+                                    base_system_prompt=base_system_prompt,
+                                    has_search=has_search,
+                                    has_shuffled_atoms=has_shuffled_atoms,
+                                    atom_to_block_ids=atom_to_block_ids,
+                                    effective_mcp_tools=effective_mcp_tools,
+                                    bound_client=bound_client,
+                                    step_id=step.id,
+                                    target_locale=target_locale,
+                                    synthesis_instructions=syn_instr,
+                                    output_profile=output_profile,
+                                    strictness_level=context.strictness_level,
+                                    running_event=running_event,
+                                    step_metadata=hook_state.metadata,
                                 )
                             )
-                except* AppException as eg:
-                    raise eg.exceptions[0] from eg
-                except* Exception as eg:
-                    raise eg.exceptions[0] from eg
+                        )
+
+                # Task results parsed after TaskGroup completes clean context boundaries.
+                task_results = [t.result() for t in tasks]
 
             latency_ms = int((time.time() - telemetry_start_time) * 1000)
 
-            # Step 5 - Accumulation & Hooks
             accumulator = ChunkAccumulator()
             usage_agg = TokenUsage()
-
-            # Reduce Phase: Pull chunks from Redis or Tasks
-            from backend_v2.models.state import TraceEvent
-            from backend_v2.models.v2_core import MCPAuditTrace
 
             if redis:
                 all_chunks = await redis.hgetall(hkey)
@@ -453,9 +452,7 @@ class LLMNodeStrategy(NodeStrategy):
                                 frozen_ctx.mcp_tool_audit.append(t_trace)
                                 existing_hashes.add(thash)
             else:
-                for t in tasks:
-                    c_final, c_usage, c_traces = t.result()
-
+                for c_final, c_usage, c_traces in task_results:
                     if isinstance(c_final, dict) and c_final.get("_dlq_status") == "FAILED/DLQ":
                         reason = c_final.get("reason", "Unknown DLQ Failure")
                         logger.error(
@@ -483,7 +480,6 @@ class LLMNodeStrategy(NodeStrategy):
                                 existing_hashes.add(thash)
 
             final_dict = accumulator.get_final_result()
-
             safe_context: dict[str, Any] = {"steps": projector.snapshot}
 
             post_hook_state = hook_state.model_copy(
@@ -499,7 +495,7 @@ class LLMNodeStrategy(NodeStrategy):
                 hook_state=post_hook_state,
                 hook_deps=hook_deps,
             )
-            final_dict = dict(post_hook_state.inputs)
+            final_dict = post_hook_state.inputs.copy()
 
             if final_dict.get("llm_anomaly_retry_requested"):
                 retry_count += 1
@@ -520,9 +516,8 @@ class LLMNodeStrategy(NodeStrategy):
                         MAX_RETRIES,
                     )
 
-                    # Dispatch SSE to client: {"status": "processing", "message_code": "event_llm_anomaly_retry"}
-                    # Accomplished by updating the step_states in the database directly.
-                    exec_record = await self.exec_repo.get_execution(context.execution_id)
+                    exec_record_raw = await self.exec_repo.get_execution(context.execution_id)
+                    exec_record = cast(Any, exec_record_raw)
                     if exec_record and step.id in exec_record.step_states:
                         new_state = exec_record.step_states[step.id].model_copy(
                             update={"status": "processing", "message_code": "event_llm_anomaly_retry"}
@@ -539,9 +534,8 @@ class LLMNodeStrategy(NodeStrategy):
                 final_dict[key] = state_data[key]
 
         if usage_agg.total_tokens > 0 or usage_agg.cost_usd > 0.0:
-            if "_step_metadata" not in final_dict:
-                final_dict["_step_metadata"] = {}
-            final_dict["_step_metadata"]["token_usage"] = usage_agg.model_dump()
+            meta = final_dict.setdefault("_step_metadata", {})
+            meta["token_usage"] = usage_agg.model_dump()
 
         return [
             TraceEvent(

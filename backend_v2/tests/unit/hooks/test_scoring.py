@@ -376,7 +376,8 @@ async def test_matrix_scoring_hook_ignores_instructions() -> None:
                     "status": "PASS",
                     "semantic_reasoning": "",
                 }
-            ]
+            ],
+            "extracted_facts": {},
         },
         global_context_vars={},
     )
@@ -417,7 +418,7 @@ async def test_matrix_scoring_hook_pass_all() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": evaluations},
+        inputs={"evaluations": evaluations, "extracted_facts": {}},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -462,7 +463,7 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": evaluations},
+        inputs={"evaluations": evaluations, "extracted_facts": {}},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -510,7 +511,7 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": evaluations},
+        inputs={"evaluations": evaluations, "extracted_facts": {}},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -658,7 +659,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata={},
-        inputs={"evaluations": evaluations},
+        inputs={"evaluations": evaluations, "extracted_facts": {}},
         global_context_vars={},
     )
     deps = HookDependencies(
@@ -677,3 +678,55 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     assert abs(result.state_delta["pb_1234567890123456"]["raw_score"] - 3.306) < 0.01
     assert result.state_delta["pb_1234567890123456"]["justification"] == ""
     assert result.state_delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_dampening_engine_breakdown"
+
+
+@pytest.mark.asyncio
+async def test_matrix_scoring_hook_missing_status_key() -> None:
+    """Test that matrix_scoring_hook operates robustly even when evaluations omit the 'status' key."""
+    from backend_v2.models.enums import EvaluationMandate
+
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+    evaluations = []
+
+    # Successful atom evaluation: lacks 'status' key (optional field)
+    evaluations.append(
+        {
+            "atom_id": generate_atom_hash("atom_1", mandate),
+            "semantic_reasoning": "Valid analytical statement",
+        }
+    )
+
+    # Failed/DLQ item: lacks 'atom_id' but has '_dlq_status'
+    evaluations.append(
+        {
+            "_dlq_status": "FAILED/DLQ",
+            "reason": "Simulated pipeline timeout",
+        }
+    )
+
+    state = HookState(
+        execution_id="exe_1111111111111111",
+        workflow_id="wf1",
+        step_id="step1",
+        task_blueprint="step1",
+        metadata={},
+        inputs={"evaluations": evaluations, "extracted_facts": {}},
+        global_context_vars={},
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepoWaterfall()),
+        workflow_repo=cast(Any, MockRepoWaterfall()),
+        comp_repo=cast(Any, MockRepoWaterfall()),
+        identity_repo=cast(Any, MockRepoWaterfall()),
+        audit_repo=cast(Any, MockRepoWaterfall()),
+        system_repo=cast(Any, MockRepoWaterfall()),
+    )
+
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+
+    # The run should succeed and process the valid atom, ignoring the DLQ item in cognitive loop
+    assert result.success is True
+    assert result.state_delta is not None
+    # Verify it processed atom_1 and not the DLQ chunk
+    assert "pb_1234567890123456" in result.state_delta
+

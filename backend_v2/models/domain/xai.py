@@ -1,21 +1,17 @@
 """XAI Agent Domain Models.
 
-from __future__ import annotations
-
 This module contains the schemas for the XAI Reporter Agent,
 including the final report output and context for report generation.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Annotated, Any, Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.enums import XaiExtensionType
-
-logger = logging.getLogger(__name__)
-
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.domain.causal import CausalOutput
@@ -26,12 +22,15 @@ from backend_v2.models.domain.logician import LogicianOutput
 from backend_v2.models.domain.metrics import ProfilerMetricsDTO
 from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.profiler import ProfilerOutput
+from backend_v2.models.enums import XaiExtensionType
+
+logger = logging.getLogger(__name__)
 
 
 class XAIReporterInput(V2CoreBase):
     """Strict input schema for XAIReporterAgent.
 
-    V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+    V2 Dynamic: 'chat_log' is mandatory, but other inputs are allowed dynamically.
     """
 
     chat_log: str = Field(
@@ -67,68 +66,92 @@ class XAIScoreItem(V2CoreBase):
 
 
 class CitationExtension(V2CoreBase):
+    """Citation extension block metadata."""
+
     extension_type: Literal[XaiExtensionType.CITATION] = XaiExtensionType.CITATION
-    source_id: str
-    snippet: str
-    url: str | None = None
+    source_id: str = Field(..., description="Unique reference document source ID.")
+    snippet: str = Field(..., description="The captured exact contextual snippet text.")
+    url: str | None = Field(default=None, description="Optional direct reference web link.")
 
 
 class JustificationExtension(V2CoreBase):
+    """Reasoning justification extension metadata."""
+
     extension_type: Literal[XaiExtensionType.JUSTIFICATION] = XaiExtensionType.JUSTIFICATION
-    reasoning: str
+    reasoning: str = Field(..., description="The explanatory text justification.")
 
 
 class FalsificationExtension(V2CoreBase):
+    """Falsification extension metadata."""
+
     extension_type: Literal[XaiExtensionType.FALSIFICATION] = XaiExtensionType.FALSIFICATION
-    counter_argument: str
-    vulnerabilities: list[str]
+    counter_argument: str = Field(..., description="The key falsification counter argument.")
+    vulnerabilities: list[str] = Field(default_factory=list, description="Specific logical vulnerabilities detected.")
 
 
 class TheoryLinkExtension(V2CoreBase):
+    """Theory link extension metadata."""
+
     extension_type: Literal[XaiExtensionType.THEORY_LINK] = XaiExtensionType.THEORY_LINK
-    theory_name: str
-    relevance: str
+    theory_name: str = Field(..., description="Name of referenced academic/logical framework.")
+    relevance: str = Field(..., description="Direct relevance alignment explanation.")
 
 
 class RiskFlagExtension(V2CoreBase):
+    """Risk flag extension metadata."""
+
     extension_type: Literal[XaiExtensionType.RISK_FLAG] = XaiExtensionType.RISK_FLAG
-    risk_level: str
-    description: str
+    risk_level: str = Field(..., description="Assessed hazard status.")
+    description: str = Field(..., description="Explaining context behind hazard determination.")
 
 
 class CoachingExtension(V2CoreBase):
+    """Coaching guidance extensions metadata."""
+
     extension_type: Literal[XaiExtensionType.COACHING] = XaiExtensionType.COACHING
-    actionable_steps: list[str]
+    actionable_steps: list[str] = Field(default_factory=list, description="Structured actions for improvement.")
 
 
 class MissingContextExtension(V2CoreBase):
+    """Missing context indicator metadata."""
+
     extension_type: Literal[XaiExtensionType.MISSING_CONTEXT] = XaiExtensionType.MISSING_CONTEXT
-    context_needed: str
+    context_needed: str = Field(..., description="Explicit context points missing from execution pipeline.")
 
 
 class RemediationStepsExtension(V2CoreBase):
+    """Remediation steps suggestions metadata."""
+
     extension_type: Literal[XaiExtensionType.REMEDIATION_STEPS] = XaiExtensionType.REMEDIATION_STEPS
-    steps: list[str]
+    steps: list[str] = Field(default_factory=list, description="Sequence of operations to apply to mitigate errors.")
 
 
 class EmotionalSentimentExtension(V2CoreBase):
+    """Linguistic emotion assessment extension metadata."""
+
     extension_type: Literal[XaiExtensionType.EMOTIONAL_SENTIMENT] = XaiExtensionType.EMOTIONAL_SENTIMENT
-    sentiment: str
-    intensity: float
+    sentiment: str = Field(..., description="Detected subjective linguistic tone.")
+    intensity: float = Field(..., description="Numeric magnitude of evaluated emotional tone.")
 
 
 class ConfidenceExtension(V2CoreBase):
+    """Mathematical confidence assessment extension metadata."""
+
     extension_type: Literal[XaiExtensionType.CONFIDENCE] = XaiExtensionType.CONFIDENCE
-    confidence_score: float
-    rationale: str
+    confidence_score: float = Field(..., description="Numeric value between 0.0 and 1.0 indicating security factor.")
+    rationale: str = Field(..., description="Systematic evaluation context behind computed confidence level.")
 
 
 class SourceIDExtension(V2CoreBase):
+    """Simple source indexing extension metadata."""
+
     extension_type: Literal[XaiExtensionType.SOURCE_ID] = XaiExtensionType.SOURCE_ID
-    source_id: str
+    source_id: str = Field(..., description="The exact reference target key index identifier.")
 
 
 class VarianceValidationExtension(V2CoreBase):
+    """Variance validation extension metadata."""
+
     extension_type: Literal[XaiExtensionType.VARIANCE_VALIDATION] = XaiExtensionType.VARIANCE_VALIDATION
     mechanical_metric_ref: str = Field(..., description="Reference to the mechanical metric key used.")
     cognitive_metric_ref: str = Field(..., description="Reference to the cognitive agent score key used.")
@@ -143,9 +166,11 @@ class VarianceValidationExtension(V2CoreBase):
 
 
 class ComparisonDataDTO(V2CoreBase):
-    baseline_score: float | None = None
-    delta: float | None = None
-    trend: str | None = None
+    """Baseline comparison and progress analysis data."""
+
+    baseline_score: float | None = Field(default=None, description="Baseline rating reference context.")
+    delta: float | None = Field(default=None, description="Difference factor between current run and baseline.")
+    trend: str | None = Field(default=None, description="Evaluated qualitative vector indicator.")
 
 
 XAIExtension = Annotated[
@@ -234,8 +259,6 @@ class XAIOutputDTO(ReasoningTraceDTO):
     )
     confidence_score: float = Field(
         ...,
-        ge=0.0,
-        le=1.0,
         description="Confidence score (0.0-1.0).",
         json_schema_extra={"x-ui-label": "Confidence"},
     )
@@ -245,9 +268,31 @@ class XAIOutputDTO(ReasoningTraceDTO):
         json_schema_extra={"x-ui-label": "Formatted Report"},
     )
 
+    @field_validator("confidence_score")
+    @classmethod
+    def validate_confidence_score_bounds(cls, v: float) -> float:
+        """Enforce float bounds on confidence_score to prevent Vertex AI 400 errors.
+
+        Args:
+            v: The computed raw confidence score value.
+
+        Returns:
+            The validated confidence score value.
+
+        Raises:
+            ValueError: If the computed value is outside of the physical closed boundary [0.0, 1.0].
+        """
+        if not (0.0 <= v <= 1.0):
+            raise ValueError("confidence_score must be between 0.0 and 1.0")
+        return v
+
 
 class XAIOutput(XAIOutputDTO, ReasoningTrace):
-    """Output schema for the XAI Reporter Agent."""
+    """Output schema for the XAI Reporter Agent.
+
+    WARNING (Rule 84): flat_report acts as a polymorphic boundary with extra='allow' configured
+    implicitly at parent classes. Keep structure dynamic for raw client processing.
+    """
 
     score_cards: list[JudgeScoreCard] = Field(
         default_factory=list,

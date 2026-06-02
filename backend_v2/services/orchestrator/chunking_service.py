@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from backend_v2.models.chunking import Chunk, ChunkingRequest
@@ -15,16 +17,24 @@ class ChunkingService:
 
     @classmethod
     def chunk_payload[T](cls, request: ChunkingRequest[T]) -> list[Chunk[T]]:
-        """Splits an array of items into N deterministic chunks."""
+        """Splits an array of items into N deterministic chunks.
+
+        Args:
+            request: The validated chunking request containing items and chunk parameters.
+
+        Returns:
+            List of chunk envelopes with generic item payloads.
+        """
         chunks: list[Chunk[T]] = []
         items = request.items
         n = request.max_chunk_size
+        parent_id = request.parent_id
 
         for index, i in enumerate(range(0, len(items), n)):
             chunk_items = items[i : i + n]
 
             chunk = Chunk[T](
-                parent_id=request.parent_id,
+                parent_id=parent_id,
                 index=index,
                 items=chunk_items,
             )

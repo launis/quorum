@@ -12,7 +12,16 @@ logger = logging.getLogger(__name__)
 
 
 class TaskDefinition(V2CoreBase):
-    """Metadata for a registered task."""
+    """Metadata for a registered task.
+
+    Attributes:
+        name: Unique task identifier.
+        handler: Handing callable logic.
+        input_schema: Input Pydantic model.
+        output_schema: Output Pydantic model.
+        description: Task description text.
+        metadata: Arbitrary associated dict metadata.
+    """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -25,7 +34,14 @@ class TaskDefinition(V2CoreBase):
 
 
 class TaskRegistry:
-    """Registry for functional agent tasks."""
+    """Registry for functional agent tasks.
+
+    Provides safe, static, global execution tracking of agentic
+    routines linked with formal Pydantic schemas.
+
+    Attributes:
+        _tasks: Internal registry storage mapping task names to TaskDefinitions.
+    """
 
     _tasks: dict[str, TaskDefinition] = {}
 
@@ -46,6 +62,12 @@ class TaskRegistry:
             output_schema: Pydantic model for output validation.
             description: Optional description (defaults to docstring).
             metadata: Optional metadata for the task.
+
+        Returns:
+            A decorator function that registers the decorated callable and returns it.
+
+        Raises:
+            AppException: Triggered with CONFIGURATION_ERROR if the task name is already registered.
         """
 
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -76,7 +98,17 @@ class TaskRegistry:
 
     @classmethod
     def get(cls, name: str) -> TaskDefinition:
-        """Retrieve a task definition by name."""
+        """Retrieve a task definition by name.
+
+        Args:
+            name: Task name identifier.
+
+        Returns:
+            The corresponding registered TaskDefinition structure.
+
+        Raises:
+            AppException: Triggered with RESOURCE_NOT_FOUND if the requested task does not exist.
+        """
         if name not in cls._tasks:
             msg = f"Task '{name}' not found in registry."
             logger.error("[TaskRegistry] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)

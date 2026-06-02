@@ -32,6 +32,7 @@ class LightweightMatrixOutput(V2CoreBase):
     xai_log: XAILogDto | None = None
     evaluated_atoms: dict[str, bool | str] = Field(default_factory=dict)
     extensions: dict[LaxXaiExtensionType, Any] = Field(default_factory=dict)
+    allowed_extensions: list[LaxXaiExtensionType] | None = None
 
     @staticmethod
     def map_llm_extensions_to_domain(raw_data: Any) -> Any:
@@ -80,6 +81,7 @@ class LightweightMatrixOutput(V2CoreBase):
                 "evaluated_atoms",
                 "level_breakdown",
                 "xai_log",
+                "allowed_extensions",
             ]
             if remaining_key in known_fields:
                 continue

@@ -1,19 +1,46 @@
 """OpenAI cache adapter with automatic prefix caching payload preparation and FinOps cost calculation."""
 
+from __future__ import annotations
+
+import logging
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
 
+logger = logging.getLogger(__name__)
+
 
 class OpenAITokenUsage(TokenUsage):
-    """Subclass of TokenUsage supporting OpenAI-specific caching telemetry and savings."""
+    """Subclass of TokenUsage supporting OpenAI-specific caching telemetry and savings.
 
-    estimated_savings_usd: float = Field(default=0.0, ge=0.0, description="FinOps ROI estimated savings in USD.")
+    Attributes:
+        estimated_savings_usd: FinOps ROI estimated savings in USD.
+    """
+
+    estimated_savings_usd: float = Field(default=0.0, description="FinOps ROI estimated savings in USD.")
+
+    @field_validator("estimated_savings_usd")
+    @classmethod
+    def validate_savings_ge_zero(cls, v: float) -> float:
+        """Verify estimated savings are non-negative to bypass Vertex serving limitations.
+
+        Args:
+            v: The float value containing computed savings.
+
+        Returns:
+            The validated non-negative float.
+
+        Raises:
+            ValueError: Raised if the parsed savings are negative.
+        """
+        if v < 0.0:
+            raise ValueError("estimated_savings_usd must be greater than or equal to 0.0")
+        return v
 
 
 class OpenAICacheAdapter(BaseLLMAdapter):
@@ -40,15 +67,19 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         return flat_messages, {}
 
     async def teardown_cache(self, workflow_run_id: str) -> None:
-        """No-Op teardown for OpenAI."""
+        """No-Op teardown for OpenAI.
+
+        Args:
+            workflow_run_id: The execution tracking workflow identifier.
+        """
         pass
 
     def calculate_cost(self, usage: TokenUsage, pricing_config: dict[str, Any]) -> TokenUsage:
         """Calculate the precise OpenAI cost and savings.
 
         Formula:
-            Cost = (regular_input_tokens * P_in) + (cached_tokens * P_in * 0.50) + (output_tokens * P_out)
-            Savings = cached_tokens * P_in * 0.50
+            Cost = (regular_input_tokens * P_in) + (cached_tokens * P_in * discount_factor) + (output_tokens * P_out)
+            Savings = cached_tokens * P_in * savings_factor
 
         Args:
             usage: The source TokenUsage object.
@@ -56,12 +87,18 @@ class OpenAICacheAdapter(BaseLLMAdapter):
 
         Returns:
             An instance of OpenAITokenUsage with calculated values.
+
+        Raises:
+            AppException: Triggered if standard pricing elements are missing.
         """
         if "input_token_price" not in pricing_config or "output_token_price" not in pricing_config:
+            logger.error(
+                "Invalid pricing configuration: missing input_token_price or output_token_price", exc_info=True
+            )
             raise AppException(
                 message="Invalid pricing configuration: missing input_token_price or output_token_price",
                 status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
 
         p_in = float(pricing_config["input_token_price"])
@@ -70,9 +107,16 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         prompt_tokens = usage.prompt_tokens
         completion_tokens = usage.completion_tokens
         cached_tokens = usage.cached_tokens
+        reasoning_tokens = usage.reasoning_tokens
 
-        # Check for deepseek model override if model name is passed dynamically
-        model_name = pricing_config.get("model_name") or pricing_config.get("model") or ""
+        # Strict fetch for model identifier adhering to zero service layer fallback design rules
+        if "model_name" in pricing_config:
+            model_name = pricing_config["model_name"]
+        elif "model" in pricing_config:
+            model_name = pricing_config["model"]
+        else:
+            model_name = ""
+
         is_deepseek = "deepseek" in str(model_name).lower()
 
         # DeepSeek has 90% read discount, OpenAI has 50% read discount
@@ -86,15 +130,16 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         cost_cached = cached_tokens * p_in * discount_factor
         cost_output = completion_tokens * p_out
 
-        total_cost = cost_regular + cost_cached + cost_output
-        total_savings = cached_tokens * p_in * savings_factor
+        cost_usd = cost_regular + cost_cached + cost_output
+        estimated_savings_usd = cached_tokens * p_in * savings_factor
+        total_tokens = usage.total_tokens
 
         return OpenAITokenUsage(
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
-            total_tokens=usage.total_tokens,
+            total_tokens=total_tokens,
             cached_tokens=cached_tokens,
-            reasoning_tokens=usage.reasoning_tokens,
-            cost_usd=total_cost,
-            estimated_savings_usd=total_savings,
+            reasoning_tokens=reasoning_tokens,
+            cost_usd=cost_usd,
+            estimated_savings_usd=estimated_savings_usd,
         )

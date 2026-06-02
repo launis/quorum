@@ -38,6 +38,14 @@ class BlueprintTransformer:
         comp_repo: IComponentRepository,
         identity_repo: IIdentityRepository,
     ):
+        """Initializes the BlueprintTransformer with required repository interfaces.
+
+        Args:
+            exec_repo: Repository for execution data.
+            workflow_repo: Repository for workflow definitions.
+            comp_repo: Repository for component definitions.
+            identity_repo: Repository for identity management.
+        """
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
         self.comp_repo = comp_repo
@@ -51,7 +59,21 @@ class BlueprintTransformer:
         custom_preface_md: str | None = None,
         local_time_str: str | None = None,
     ) -> ReportDataDTO:
-        """Builds the strictly typed report payload by parsing results according to the selected profile."""
+        """Builds the strictly typed report payload by parsing results according to the selected profile.
+
+        Args:
+            execution_id: Identifier of the execution.
+            profile_id: Optional Output Profile ID to override the workflow default.
+            accept_language: Optional locale string for localized titles.
+            custom_preface_md: Optional custom markdown preface string.
+            local_time_str: Optional formatted string representing local time of generation.
+
+        Returns:
+            A strictly typed ReportDataDTO containing the synthesized execution report.
+
+        Raises:
+            AppException: Triggered for RESOURCE_NOT_FOUND, VALIDATION_FAILED, or CONFIGURATION_ERROR.
+        """
         execution = await self.exec_repo.get_execution(execution_id)
         if not execution:
             msg = f"Execution {execution_id} not found."
@@ -248,8 +270,7 @@ class BlueprintTransformer:
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
             group_key = t_name.lower().replace(" ", "_")
-            if group_key not in grouped_extensions:
-                grouped_extensions[group_key] = []
+            grouped_extensions.setdefault(group_key, [])
 
             # Epic 10: Map the synthesized global highlight so it outranks fragmented matrix extensions.
             # We omit 'axis_name' so it doesn't render a 'teoriaotsikko' in the UI.
@@ -260,12 +281,12 @@ class BlueprintTransformer:
         # Extract global output extensions (like variance_validation) from report_context in execution context_variables
         report_context_dict = execution.context_variables.get("report_context")
         if isinstance(report_context_dict, dict):
-            output_exts = report_context_dict.get("output_extensions", [])
+            output_exts = report_context_dict["output_extensions"] if "output_extensions" in report_context_dict else []
             if isinstance(output_exts, list):
                 for ext in output_exts:
                     if isinstance(ext, dict) and ext.get("extension_type") == "variance_validation":
                         if "variance_validation" in grouped_extensions:
-                            ext_copy = dict(ext)
+                            ext_copy = ext.copy()
                             ext_copy["_is_synthesized"] = True
                             grouped_extensions["variance_validation"].append(ext_copy)
 
@@ -487,8 +508,8 @@ class BlueprintTransformer:
                             f_lvl = float(lvl_key)
                             is_int = f_lvl.is_integer()
                             c_key = str(int(f_lvl)) if is_int else str(lvl_key)
-                            hits = lvl_data.get("hits", 0)
-                            total = lvl_data.get("total", 0)
+                            hits = lvl_data["hits"] if "hits" in lvl_data else 0
+                            total = lvl_data["total"] if "total" in lvl_data else 0
                             clean_level_dict[c_key] = f"{hits}/{total}"
                         except ValueError as v_err:
                             raise AppException(
@@ -735,16 +756,18 @@ class BlueprintTransformer:
         p_score = profile.scoring_strategy if hasattr(profile, "scoring_strategy") else None
         if p_score is not None:
             s_strat = p_score.value
-        if s_strat == "AVERAGE":
-            engine_str = "Average Engine"
-        elif s_strat == "WATERFALL":
-            engine_str = "Waterfall Engine"
-        elif s_strat == "MAD_OUTLIER":
-            engine_str = "MAD Outlier Engine"
-        elif s_strat == "NONE":
-            engine_str = "None"
-        else:
-            engine_str = str(s_strat)
+
+        match s_strat:
+            case "AVERAGE":
+                engine_str = "Average Engine"
+            case "WATERFALL":
+                engine_str = "Waterfall Engine"
+            case "MAD_OUTLIER":
+                engine_str = "MAD Outlier Engine"
+            case "NONE":
+                engine_str = "None"
+            case _:
+                engine_str = str(s_strat)
 
         try:
             # Event Sensed V3 Token Aggregation

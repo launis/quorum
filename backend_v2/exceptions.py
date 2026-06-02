@@ -278,11 +278,6 @@ class AppException(Exception):
     Provides both legacy format (message/details) and RFC 7807 Problem Details
     format via to_problem_detail() method.
 
-    Args:
-        message: Debug message for logs (NEVER shown to end user).
-        status_code: HTTP status code (default 500).
-        details: Dict containing 'error_code' for frontend localization.
-
     Example:
         error_code = "WORKFLOW_NOT_FOUND"
         logger.error("An error occurred: %s", str(e), exc_info=True, extra={"error_code": error_code})
@@ -318,7 +313,13 @@ class AppException(Exception):
         status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
         details: dict[str, Any] | None = None,
     ):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            message: Debug message for logs (NEVER shown to end user).
+            status_code: HTTP status code (default 500).
+            details: Dict containing 'error_code' for frontend localization.
+        """
         super().__init__(message)
         self.message = message
         self.status_code = status_code
@@ -326,7 +327,11 @@ class AppException(Exception):
 
     @property
     def error_code(self) -> str:
-        """Extract error_code from details for convenience."""
+        """Extract error_code from details for convenience.
+
+        Returns:
+            String representation of the error code mapped in details.
+        """
         val = self.details.get("error_code", "INTERNAL_SERVER_ERROR")
         return str(val)
 
@@ -374,8 +379,7 @@ class AppException(Exception):
         extra = self.details.copy() if self.details else {}
 
         # Ensure error_code is in extensions even if redundant with type URI
-        if "error_code" not in extra:
-            extra["error_code"] = self.error_code
+        extra.setdefault("error_code", self.error_code)
 
         if extra:
             problem["extensions"] = extra
@@ -387,7 +391,13 @@ class ResourceNotFoundError(AppException):
     """Raised when a requested resource (Workflow, Step, Execution) is not found."""
 
     def __init__(self, resource_type: str, resource_id: str = "", details: dict[str, Any] | None = None):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            resource_type: Name of the missing resource type.
+            resource_id: Identifier of the resource.
+            details: Additional error tracking dictionaries.
+        """
         error_details = {
             "resource_type": resource_type,
             "resource_id": resource_id,
@@ -407,7 +417,11 @@ class WorkflowNotFoundError(ResourceNotFoundError):
     """Raised when a specific Workflow ID is not found."""
 
     def __init__(self, workflow_id: str):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            workflow_id: Identity string of the workflow entity.
+        """
         super().__init__("Workflow", workflow_id, details={"error_code": ErrorCodes.WORKFLOW_NOT_FOUND})
 
 
@@ -415,7 +429,11 @@ class StepNotFoundError(ResourceNotFoundError):
     """Raised when a specific Step ID is not found."""
 
     def __init__(self, step_id: str):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            step_id: Identifier of the workflow step missing.
+        """
         super().__init__("Step", step_id, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND})
 
 
@@ -423,7 +441,11 @@ class ExecutionNotFoundError(ResourceNotFoundError):
     """Raised when a specific Execution ID is not found."""
 
     def __init__(self, execution_id: str):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            execution_id: Tracking ID for the process execution.
+        """
         super().__init__("Execution", execution_id, details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND})
 
 
@@ -444,10 +466,10 @@ class AgentExecutionError(AppException):
         """Initialize the exception.
 
         Args:
-            detail (str): The error code or message (e.g. AGENT_EXECUTION_CRITICAL).
-            original_error (Optional[Exception]): The caught exception.
-            agent_name (Optional[str]): Legacy/Optional context.
-            step_id (Optional[str]): Legacy/Optional context.
+            detail: The error code or message (e.g. AGENT_EXECUTION_CRITICAL).
+            original_error: The caught exception.
+            agent_name: Legacy/Optional context.
+            step_id: Legacy/Optional context.
         """
         msg = f"{detail}"
         if original_error:
@@ -470,12 +492,29 @@ class AgentExecutionError(AppException):
         self.original_error = original_error
 
     def _format_cause(self, exc: Exception) -> str:
-        """Legacy wrapper for format_validation_error."""
+        """Legacy wrapper for format_validation_error.
+
+        Args:
+            exc: The caught internal exception block.
+
+        Returns:
+            String detailing the specific failure.
+        """
         return format_validation_error(exc)
 
 
 def format_validation_error(exc: Exception) -> str:
-    """Formats the exception into a human-readable string, specifically handling Pydantic ValidationErrors."""
+    """Formats the exception into a human-readable string, specifically handling Pydantic ValidationErrors.
+
+    Args:
+        exc: The raised generic or Pydantic specific exception.
+
+    Returns:
+        A string outlining structured location and validation metadata issues.
+
+    Raises:
+        AppException: Raised if the internal error formatting fails unexpectedly, mapped to INTERNAL_SERVER_ERROR.
+    """
     try:
         if isinstance(exc, ValidationError):
             errors = exc.errors()
@@ -520,7 +559,13 @@ class FatalInterruption(AppException):
     """
 
     def __init__(self, step_name: str, reason: str, details: dict[str, Any] | None = None):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            step_name: The target node that triggered the critical interruption.
+            reason: String detailing why the execution was terminated.
+            details: Dictionary containing further tracking context.
+        """
         if details is None:
             details = {}
         # Ensure minimal structure
@@ -539,7 +584,12 @@ class ConfigurationError(AppException):
     """Raised when there is a misconfiguration (e.g. missing API key)."""
 
     def __init__(self, message: str, details: dict[str, Any] | None = None):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            message: Core error log information.
+            details: Additional JSON serializable variables.
+        """
         d = {"error_code": ErrorCodes.CONFIGURATION_ERROR}
         if details:
             d.update(details)
@@ -550,7 +600,12 @@ class ConflictError(AppException):
     """Raised when a request conflicts with the current state of the server (409)."""
 
     def __init__(self, message: str, details: dict[str, Any] | None = None):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            message: Core error log information.
+            details: Additional JSON serializable variables.
+        """
         d = {"error_code": ErrorCodes.CONFLICT_ERROR}
         if details:
             d.update(details)
@@ -561,7 +616,12 @@ class PermissionDeniedError(AppException):
     """Raised when the user does not have permission to access the resource (403)."""
 
     def __init__(self, message: str = "Permission denied", details: dict[str, Any] | None = None):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            message: Core error log information.
+            details: Additional JSON serializable variables.
+        """
         d = {"error_code": ErrorCodes.PERMISSION_DENIED}
         if details:
             d.update(details)
@@ -572,7 +632,12 @@ class ServiceUnavailableError(AppException):
     """Raised when a service is temporarily unavailable (503)."""
 
     def __init__(self, message: str = "Service unavailable", details: dict[str, Any] | None = None):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            message: Core error log information.
+            details: Additional JSON serializable variables.
+        """
         d = {"error_code": ErrorCodes.SERVICE_UNAVAILABLE}
         if details:
             d.update(details)
@@ -583,7 +648,12 @@ class AuthenticationError(AppException):
     """Raised when authentication fails (401)."""
 
     def __init__(self, message: str = "Authentication failed", details: dict[str, Any] | None = None):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            message: Core error log information.
+            details: Additional JSON serializable variables.
+        """
         d = {"error_code": ErrorCodes.AUTHENTICATION_FAILED}
         if details:
             d.update(details)
@@ -594,7 +664,12 @@ class SecurityViolationError(AppException):
     """Raised when a security policy (e.g. banned phrases) is violated (400 or 403)."""
 
     def __init__(self, message: str, details: dict[str, Any] | None = None):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            message: Core error log information.
+            details: Additional JSON serializable variables.
+        """
         # 400 Bad Request matches "Client sent invalid content"
         d = {"error_code": ErrorCodes.SECURITY_VIOLATION}
         if details:
@@ -612,13 +687,19 @@ class WorkflowExecutionError(AppException):
         original_error: Exception,
         details: dict[str, Any] | None = None,
     ):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            step_id: Failed pipeline stage ID.
+            task_key: The string identifier mapping for execution.
+            original_error: Inner captured error to bubble.
+            details: Extended context.
+        """
         msg = f"Step '{step_id}' (Task: '{task_key}') failed: {str(original_error)}"
 
         error_details = details or {}
         error_details.update({"step_id": step_id, "task_key": task_key, "cause": str(original_error)})
-        if "error_code" not in error_details:
-            error_details["error_code"] = ErrorCodes.WORKFLOW_EXECUTION_FAILED
+        error_details.setdefault("error_code", ErrorCodes.WORKFLOW_EXECUTION_FAILED)
 
         super().__init__(
             message=msg,
@@ -639,7 +720,11 @@ class WorkflowCompilationError(AppException):
             message: Human-readable technical error explanation.
         """
         details = {"error_code": ErrorCodes.WORKFLOW_COMPILATION_ERROR, "step_id": step_id}
-        super().__init__(message=message, status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, details=details)
+        super().__init__(
+            message=message,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            details=details,
+        )
         self.step_id = step_id
 
 
@@ -647,7 +732,12 @@ class TokenLimitExceededError(AppException):
     """Raised when token length of the LLM context exceeds the safe threshold."""
 
     def __init__(self, message: str = "Token limit exceeded", details: dict[str, Any] | None = None):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            message: Explanation for quota fault.
+            details: Tracking keys linking context size.
+        """
         d = {"error_code": ErrorCodes.TOKEN_LIMIT_EXCEEDED}
         if details:
             d.update(details)
@@ -679,7 +769,12 @@ class MissingXaiExtensionError(AppException):
     """Raised when an extension is requested by UI but missing in TraceEvent."""
 
     def __init__(self, extension_name: str, step_id: str | None = None):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            extension_name: The name mapping absent in the target trace.
+            step_id: Associated parent context.
+        """
         details = {"error_code": ErrorCodes.MISSING_XAI_EXTENSION, "extension": extension_name}
         if step_id:
             details["step_id"] = step_id
@@ -694,7 +789,11 @@ class MissingRoutingModeError(AppException):
     """Raised when step-to-step mapping lacks a routing_mode instruction."""
 
     def __init__(self, mapping_path: str):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            mapping_path: Navigation dictionary key context.
+        """
         details = {"error_code": ErrorCodes.MISSING_ROUTING_MODE, "mapping_path": mapping_path}
         super().__init__(
             message=f"Routing mode is missing for mapping '{mapping_path}'.",
@@ -717,7 +816,14 @@ class LLMSchemaValidationError(AppException):
         is_eof: bool = False,
         token_usage: Any | None = None,
     ):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            raw_llm_payload: Original textual response block returned.
+            validation_error_msg: Computed structure trace errors.
+            is_eof: Determines parsing boundary issues.
+            token_usage: Extracted telemetry keys.
+        """
         details = {
             "error_code": ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED,
             "raw_llm_payload": raw_llm_payload,
@@ -743,7 +849,11 @@ class LogicalValidationError(AppException):
     """
 
     def __init__(self, validation_error_msg: str):
-        """Initialize the exception."""
+        """Initialize the exception.
+
+        Args:
+            validation_error_msg: Computed text explaining constraint breach.
+        """
         details = {
             "error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED,
             "validation_error_msg": validation_error_msg,
@@ -766,6 +876,12 @@ class SemanticEvidenceError(AppException):
     """Raised when an atom fails semantic O(1) anchoring. Directly routes to DLQ without AI reasoning."""
 
     def __init__(self, message: str, details: dict[str, Any] | None = None):
+        """Initialize the exception.
+
+        Args:
+            message: Core error log information.
+            details: Additional JSON serializable variables.
+        """
         super().__init__(
             message=message,
             status_code=status.HTTP_400_BAD_REQUEST,

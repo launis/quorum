@@ -1,3 +1,12 @@
+"""Average scoring engines for Phase 9 Cognitive Quorum.
+
+Enables both linear unweighted average computation with outlier mitigation
+and weighted sigmoid average scoring engines.
+"""
+
+import statistics
+from typing import Any
+
 from backend_v2.models.dtos.lightweight_matrix import XAILogDto
 from backend_v2.utils.math_utils import (
     calculate_linear_ratio_score,
@@ -16,13 +25,29 @@ class PureAverageScoringEngine(ScoringEngineBase):
     """
 
     def calculate(
-        self, stats: dict[float, dict[str, int]], math_min: float, math_max: float, strictness_level: int = 50
+        self,
+        stats: dict[float, dict[str, int]],
+        math_min: float,
+        math_max: float,
+        strictness_level: int = 50,
     ) -> tuple[float, XAILogDto, dict[str, dict[str, int]]]:
-        import statistics
+        """Calculate pure linear average across score levels, applying outlier rejection.
 
-        log_lines = ["### Lineaarinen Keskiarvo Breakdown (Outlier Rejection):"]
+        Args:
+            stats: Dictionary mapping scale levels to hits, total, and optional dlqs count.
+            math_min: The minimum score threshold representing scale_min.
+            math_max: The maximum score limit representing scale_max.
+            strictness_level: The user strictness input mapped on 0-100 range.
 
-        hit_rates = []
+        Returns:
+            A tuple containing:
+                - The computed float final score.
+                - An XAILogDto filled with diagnostic trace timelines.
+                - A dictionary breakdown of the scores per level stringified.
+        """
+        log_lines: list[str] = ["Lineaarinen Keskiarvo Breakdown (Outlier Rejection):"]
+
+        hit_rates: list[float] = []
         for v in stats.values():
             eff_total = v["total"] - v.get("dlqs", 0)
             if eff_total > 0:
@@ -51,7 +76,7 @@ class PureAverageScoringEngine(ScoringEngineBase):
 
             if hr < outlier_threshold and hr < 0.30:
                 log_lines.append(
-                    f"- **Outlier Mitigated at Level {level}:** Hit rate {hr:.2f} < "
+                    f"Outlier Mitigated at Level {level}: Hit rate {hr:.2f} < "
                     f"{outlier_threshold:.2f} (Median {median_hr:.2f}, MAD {mad:.2f}). "
                     f"Weight reduced to 0.25x."
                 )
@@ -61,7 +86,7 @@ class PureAverageScoringEngine(ScoringEngineBase):
                 flattened_hits += v["hits"]
                 flattened_total += eff_total
 
-        flattened_stats: dict[float, dict[str, float | int]] = {1.0: {"hits": flattened_hits, "total": flattened_total}}
+        flattened_stats: dict[float, Any] = {1.0: {"hits": flattened_hits, "total": flattened_total}}
 
         base_forgiveness = convert_strictness_to_forgiveness(strictness_level)
         exponent = 1.0 + (1.0 - base_forgiveness)
@@ -73,15 +98,15 @@ class PureAverageScoringEngine(ScoringEngineBase):
         hit_rate = (total_hits / total_criteria) if total_criteria > 0 else 0.0
         pct = int(hit_rate * 100)
 
-        log_lines.append(f"- **Total Hit Ratio (Weighted):** {total_hits:.2f}/{total_criteria:.2f} ({pct}%)")
-        log_lines.append("")
+        log_lines.append(f"Total Hit Ratio (Weighted): {total_hits:.2f}/{total_criteria:.2f} ({pct}%)")
         log_lines.append(
-            f"**Final Pure Average Score:** {pure_score:.2f} (Mapped to scale {math_min}-{math_max} "
+            f"Final Pure Average Score: {pure_score:.2f} (Mapped to scale {math_min}-{math_max} "
             f"with exponent {exponent:.2f} based on strictness {strictness_level})"
         )
 
         level_breakdown = {
-            str(k): {"hits": v["hits"], "total": v["total"], "dlqs": v.get("dlqs", 0)} for k, v in stats.items()
+            str(k): {"hits": int(v["hits"]), "total": int(v["total"]), "dlqs": int(v.get("dlqs", 0))}
+            for k, v in stats.items()
         }
 
         engine_debug_trace = {
@@ -109,12 +134,30 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
     """
 
     def calculate(
-        self, stats: dict[float, dict[str, int]], math_min: float, math_max: float, strictness_level: int = 50
+        self,
+        stats: dict[float, dict[str, int]],
+        math_min: float,
+        math_max: float,
+        strictness_level: int = 50,
     ) -> tuple[float, XAILogDto, dict[str, dict[str, int]]]:
+        """Calculate weighted average scores based on configured strictness level sigmoid steepness.
+
+        Args:
+            stats: Dictionary mapping scale levels to hits, total, and optional dlqs count.
+            math_min: The minimum score threshold representing scale_min.
+            math_max: The maximum score limit representing scale_max.
+            strictness_level: The user strictness input mapped on 0-100 range.
+
+        Returns:
+            A tuple containing:
+                - The computed float final score.
+                - An XAILogDto filled with diagnostic trace timelines.
+                - A dictionary breakdown of the scores per level stringified.
+        """
         config = get_strictness_config(strictness_level)
         weighted_score = calculate_sigmoid_weighted_score(stats, math_min, math_max, config)
 
-        log_lines = ["### Weighted Average Breakdown:"]
+        log_lines: list[str] = ["Weighted Average Breakdown:"]
         sorted_levels = sorted(stats.keys())
 
         achieved_weights = 0.0
@@ -128,28 +171,28 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
             achieved_weights += t_hits * s_level
             max_weights += eff_total * s_level
 
-            log_lines.append(f"- **Level {s_level} (Weight x{s_level}):** {t_hits}/{eff_total} hits")
+            log_lines.append(f"Level {s_level} (Weight x{s_level}): {t_hits}/{eff_total} hits")
 
         ratio = (achieved_weights / max_weights) if max_weights > 0 else 0.0
         pct = int(ratio * 100)
 
-        log_lines.append("")
-        log_lines.append(f"- **Weighted Points Achieved:** {achieved_weights:.1f} / {max_weights:.1f} ({pct}%)")
+        log_lines.append(f"Weighted Points Achieved: {achieved_weights:.1f} / {max_weights:.1f} ({pct}%)")
         log_lines.append(
-            f"**Final Weighted Score:** {weighted_score:.2f} (Sigmoid mapped to scale "
+            f"Final Weighted Score: {weighted_score:.2f} (Sigmoid mapped to scale "
             f"{math_min}-{math_max} using steepness {config.dynamic_exponent * 10.0:.2f} "
             f"and midpoint {config.sigmoid_midpoint:.2f})"
         )
 
         level_breakdown = {
-            str(k): {"hits": v["hits"], "total": v["total"], "dlqs": v.get("dlqs", 0)} for k, v in stats.items()
+            str(k): {"hits": int(v["hits"]), "total": int(v["total"]), "dlqs": int(v.get("dlqs", 0))}
+            for k, v in stats.items()
         }
 
         engine_debug_trace = {
             "engine": "weighted_average",
             "stats": stats,
             "strictness_level": strictness_level,
-            "config": config.model_dump(),
+            "config": getattr(config, "model_dump", lambda: getattr(config, "dict", lambda: {})())(),
             "log_trace": log_lines,
         }
 

@@ -54,10 +54,18 @@ class MockLLMService:
         logger.info("[MockLLM] Intercepted call. Prompt length: %d", len(prompt))
 
         # 0. DIRECT REGISTRY LOOKUP (Robust)
-        if response_schema and response_schema in MOCK_REGISTRY:
-            logger.info("[MockLLM] Registry Hit: Returning mock data for schema '%s'.", response_schema.__name__)
-            mock_obj = MOCK_REGISTRY[response_schema]
-            return str(mock_obj.model_dump_json())
+        if response_schema:
+            if isinstance(response_schema, type) and response_schema in MOCK_REGISTRY:
+                logger.info("[MockLLM] Registry Hit: Returning mock data for schema '%s'.", response_schema.__name__)
+                mock_obj = MOCK_REGISTRY[response_schema]
+                return str(mock_obj.model_dump_json())
+            elif isinstance(response_schema, dict):
+                title = response_schema.get("title")
+                if title:
+                    for reg_type, mock_obj in MOCK_REGISTRY.items():
+                        if reg_type.__name__ == title:
+                            logger.info("[MockLLM] Registry Hit (via Dict Title '%s'): Returning mock data.", title)
+                            return str(mock_obj.model_dump_json())
 
         # 1. Determine Identity
         key = None

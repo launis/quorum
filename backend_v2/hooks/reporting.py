@@ -1,7 +1,12 @@
-"""Reporting hooks for generating XAI reports."""
+"""Reporting hooks for generating XAI reports.
+
+This module defines the post-execution hooks that aggregate agent outputs and generate
+a comprehensive, structured ReportContextDTO for the reporting phase.
+"""
 
 import logging
 from datetime import datetime
+from typing import Any, cast
 
 from fastapi import status
 from pydantic import ValidationError
@@ -30,26 +35,33 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
     Post-execution hook that aggregates results from all agents (Judge, Overseer, Reporter)
     and renders a human-readable Markdown report using a Jinja2 template.
 
-    Outputs:
-        Populates 'report_context' with the validated dictionary.
-
     Args:
-        state: Current HookState.
+        state: Current HookState to query.
+        deps: Standard injection dependencies for service access.
 
     Returns:
-        HookResult: Updated data with 'report_context'.
+        Structured execution state delta carrying the validated report context.
 
     Raises:
-        AppException: If template missing or validation fails.
+        AppException: If template missing or validation fails under strict RFC 7807 rules.
     """
     logger.debug("[ReportingHook] Running generate_report_hook...")
 
     if not state:
-        msg = "Strict Fail-Fast Enforced: Missing HookState in generate_report_hook."
-        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        msg_ff = "Strict Fail-Fast Enforced: Missing HookState in generate_report_hook."
+        logger.error("[ReportingHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg_ff)
+        raise AppException(
+            message=msg_ff,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     # 2. GATHER CONTEXT
     inputs = state.inputs
+
+    error_code: ErrorCodes | None = None
+    status_code: int | None = None
+    msg: str | None = None
 
     if not inputs:
         error_code = ErrorCodes.EMPTY_INPUT
@@ -60,7 +72,7 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
         status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         msg = "Invalid 'inputs' in data. Expected dict."
 
-    if not inputs or not isinstance(inputs, dict):
+    if error_code is not None and msg is not None and status_code is not None:
         logger.error("[ReportingHook] %s: %s", error_code.name, msg)
         raise AppException(
             message=msg,
@@ -72,28 +84,29 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
     try:
         observability_inputs = MatrixObservabilityDTO.model_validate(inputs)
     except ValidationError as e:
-        error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
-        msg = f"Failed to strictly validate reporting observability inputs: {e}"
-        logger.error("[ReportingHook] %s: %s", error_code.name, msg)
+        error_code_val = ErrorCodes.INVALID_OUTPUT_SCHEMA
+        msg_val = f"Failed to strictly validate reporting observability inputs: {e}"
+        logger.error("[ReportingHook] %s: %s", error_code_val.name, msg_val, exc_info=True)
         raise AppException(
-            message=msg,
-            status_code=500,
-            details={"error_code": error_code.value},
+            message=msg_val,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": error_code_val.value},
         ) from e
 
-    filtered_gvars = {}
+    filtered_gvars: dict[str, Any] = {}
     for k, v in state.global_context_vars.items():
         if k in GlobalContextVarsDTO.model_fields:
             filtered_gvars[k] = v
 
     try:
+        # Applying PEP 736 short-hand variable notation
         dto = ReportSynthesisDTO.model_validate({"inputs": observability_inputs, "global_context_vars": filtered_gvars})
     except ValidationError as e:
-        logger.error("[ReportingHook] Validation failed: %s", e)
+        logger.error("[ReportingHook] Validation failed: %s", e, exc_info=True)
         raise AppException(
             message="Report Context Validation Failed.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.VALIDATION_FAILED, "errors": e.errors()},
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         ) from e
 
     generated_at = datetime.now().astimezone().strftime("%d.%m.%Y %H:%M")
@@ -114,17 +127,17 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
         summary = gvars.step_xai.executive_summary
 
     # Critical Findings (From Judge)
-    critical_findings = []
+    critical_findings: list[Any] = []
     if gvars.step_judge and gvars.step_judge.critical_findings:
         critical_findings = gvars.step_judge.critical_findings
 
     # Pre-Morten Signals (From Performativity/Detector)
-    pre_mortem_signals = []
+    pre_mortem_signals: list[Any] = []
     if perf_data and perf_data.weak_signals:
         pre_mortem_signals = perf_data.weak_signals
 
     # Ethical Issues (From Overseer)
-    ethical_issues = []
+    ethical_issues: list[Any] = []
     if overseer_data and overseer_data.ethical_issues:
         ethical_issues = overseer_data.ethical_issues
 
@@ -144,7 +157,7 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
         scores_dict[k] = ScoreItem(
             score=matrix_obs.normalized_score,
             reasoning=matrix_obs.justification,
-            label=k,  # UI Localization handles dimension resolving
+            label=k,
         )
         total_score_sum += matrix_obs.normalized_score
         count += 1
@@ -162,7 +175,7 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
 
     # Bibliography
     bib_data = gvars.bibliography_result
-    extracted_bibliography = []
+    extracted_bibliography: list[Any] = []
     if bib_data:
         if isinstance(bib_data, list):
             for res in bib_data:
@@ -285,4 +298,7 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
     )
 
     logger.info("[ReportingHook] Report context prepared and validated successfully.")
-    return HookResult(success=True, state_delta={"report_context": report_context.model_dump(mode="json")})
+    return HookResult(
+        success=True,
+        state_delta=cast(dict[str, Any], {"report_context": report_context}),
+    )

@@ -100,6 +100,21 @@ class LLMClient:
         if not target_strategy:
             raise ConfigurationError(f"Strategy '{strategy_name}' not found in registry.")
 
+        # DEV MODE DYNAMIC REDIRECT: Redirect expensive gemini-2.5-pro to the "fast" strategy config in dev mode
+        from backend_v2.settings import get_settings
+        settings = get_settings()
+        if settings.environment == "development" and not settings.use_mock_llm:
+            if target_strategy.model_name and "gemini-2.5-pro" in target_strategy.model_name:
+                fast_strategy = registry.models.get("fast")
+                if fast_strategy:
+                    logger.warning(
+                        "[LLMClient] Dev Mode: Redirecting strategy '%s' (%s) -> 'fast' strategy (%s) dynamically to save costs.",
+                        strategy_name,
+                        target_strategy.model_name,
+                        fast_strategy.model_name,
+                    )
+                    target_strategy = fast_strategy
+
         target_provider = target_strategy.provider
 
         # 4. Construct Provider Config — Fail-Fast: All values MUST come from Model Registry

@@ -4,6 +4,8 @@ Provides strict Pydantic V2 validation schemas for the synthesis pipeline
 to eliminate legacy dictionary-based parsing.
 """
 
+from __future__ import annotations
+
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
@@ -13,7 +15,21 @@ from backend_v2.models.state import StepExecutionEnvelope, StepOutputDTO
 
 
 class SynthesisMetadataDTO(V2CoreBase):
-    """Strict schema for execution metadata used during synthesis."""
+    """Strict schema for execution metadata used during synthesis.
+
+    Attributes:
+        target_locale: Target localization code.
+        token_usage: Comprehensive tracker for LLM token usage metrics.
+        step_results: List of completed step outputs mapped during parsing.
+        profile_id: Optional identifier string of user persona profile.
+        target_profile_id: Optional ID of the targeted evaluation profile.
+        matrix_sampling_strategy: Numeric index defining sampling patterns.
+        workflow_version: Tracked version of execution state flow.
+        total_tokens: Total tokens consumed across all steps.
+        prompt_tokens: Cumulative tokens consumed via prompt inputs.
+        completion_tokens: Cumulative tokens returned by upstream APIs.
+        cost_estimate: Float estimate representing financial metrics.
+    """
 
     target_locale: str = Field(..., min_length=1)
     token_usage: TokenUsage = Field(default_factory=TokenUsage)
@@ -31,7 +47,12 @@ class SynthesisMetadataDTO(V2CoreBase):
 
 
 class SynthesisStepDataDTO(StepExecutionEnvelope):
-    """Schema to safely extract required synthesis flags from generic step outputs."""
+    """Schema to safely extract required synthesis flags from generic step outputs.
+
+    Attributes:
+        reasoning_trace: Captured step-specific agent reasoning parameters.
+        token_usage: Usage statistics for this execution iteration.
+    """
 
     model_config = ConfigDict(extra="ignore", frozen=True)
 

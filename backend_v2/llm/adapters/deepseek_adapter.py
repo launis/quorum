@@ -1,16 +1,28 @@
-"""DeepSeek cache adapter with automatic prefix caching and 90% FinOps ROI read discount."""
+"""DeepSeek cache adapter with automatic prefix caching.
 
-from typing import Any
+Provides standard FinOps estimation for DeepSeek API calls, factoring in prefix caching
+with a 90% read/hit discount compared to normal input token pricing.
+"""
+
+import logging
+
+from fastapi import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.openai_adapter import OpenAICacheAdapter, OpenAITokenUsage
 from backend_v2.models.domain.usage import TokenUsage
 
+logger = logging.getLogger(__name__)
+
 
 class DeepSeekCacheAdapter(OpenAICacheAdapter):
-    """Caching and pricing adapter for DeepSeek models."""
+    """Caching and pricing adapter for DeepSeek models.
 
-    def calculate_cost(self, usage: TokenUsage, pricing_config: dict[str, Any]) -> TokenUsage:
+    Attributes:
+        None.
+    """
+
+    def calculate_cost(self, usage: TokenUsage, pricing_config: dict[str, float | int]) -> OpenAITokenUsage:
         """Calculate the precise DeepSeek cost and savings.
 
         DeepSeek uses prefix caching similar to OpenAI, but offers a 90% read/hit discount.
@@ -25,11 +37,18 @@ class DeepSeekCacheAdapter(OpenAICacheAdapter):
 
         Returns:
             An instance of OpenAITokenUsage with DeepSeek-calculated costs.
+
+        Raises:
+            AppException: Triggered with ErrorCodes.CONFIGURATION_ERROR if pricing model keys are absent.
         """
         if "input_token_price" not in pricing_config or "output_token_price" not in pricing_config:
+            logger.error(
+                "Invalid pricing configuration: missing input_token_price or output_token_price in pricing_config",
+                exc_info=True,
+            )
             raise AppException(
                 message="Invalid pricing configuration: missing input_token_price or output_token_price",
-                status_code=500,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
@@ -38,7 +57,7 @@ class DeepSeekCacheAdapter(OpenAICacheAdapter):
 
         prompt_tokens = usage.prompt_tokens
         completion_tokens = usage.completion_tokens
-        cached_tokens = usage.cached_tokens
+        cached_tokens = getattr(usage, "cached_tokens", 0)
 
         regular_input = max(0, prompt_tokens - cached_tokens)
 
@@ -50,12 +69,19 @@ class DeepSeekCacheAdapter(OpenAICacheAdapter):
         total_cost = cost_regular + cost_cached + cost_output
         total_savings = cached_tokens * p_in * 0.90
 
+        # Retrieve other usage fields
+        total_tokens = usage.total_tokens
+        reasoning_tokens = getattr(usage, "reasoning_tokens", 0)
+        cost_usd = total_cost
+        estimated_savings_usd = total_savings
+
+        # Deploying PEP 736 Shorthand Syntax where appropriate
         return OpenAITokenUsage(
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
-            total_tokens=usage.total_tokens,
+            total_tokens=total_tokens,
             cached_tokens=cached_tokens,
-            reasoning_tokens=usage.reasoning_tokens,
-            cost_usd=total_cost,
-            estimated_savings_usd=total_savings,
+            reasoning_tokens=reasoning_tokens,
+            cost_usd=cost_usd,
+            estimated_savings_usd=estimated_savings_usd,
         )

@@ -1,7 +1,10 @@
-"""Legacy and Active hook definitions for the AI Orchestrator."""
+"""Legacy and Active hook definitions for the AI Orchestrator.
 
-# Initialize all hooks to trigger the @hook_registry.register decorators
-from . import (  # pragma: no cover
+All imports are absolute to guarantee single-source loading and prevent
+circular import side-effects under Phase 9 architecture standards.
+"""
+
+from backend_v2.hooks import (
     archival,
     atom_flattening,
     dlq_guard,
@@ -22,7 +25,7 @@ from . import (  # pragma: no cover
     validation,
 )
 
-__all__ = [  # pragma: no cover
+__all__ = [
     "archival",
     "atom_flattening",
     "dlq_guard",
@@ -32,6 +35,7 @@ __all__ = [  # pragma: no cover
     "interaction_hook",
     "linguistics",
     "llm",
+    "metadata",
     "metrics",
     "references",
     "reporting",
@@ -40,5 +44,4 @@ __all__ = [  # pragma: no cover
     "synthesis",
     "translation_hook",
     "validation",
-    "metadata",
 ]

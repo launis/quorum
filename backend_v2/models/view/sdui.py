@@ -9,51 +9,64 @@ StrictStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1
 
 
 class SectionType(str, Enum):
+    """Enum representing the Server-Driven UI section layout types."""
+
     SCORE_CARD = "SCORE_CARD"
     MARKDOWN_BLOCK = "MARKDOWN_BLOCK"
     TIMELINE_FEED = "TIMELINE_FEED"
-    # Future extensibility
     HEADER = "HEADER"
     KEY_METRICS = "KEY_METRICS"
     EVIDENCE_LIST = "EVIDENCE_LIST"
-    KEY_VALUE_GRID = "KEY_VALUE_GRID"  # For structured properties (e.g. Guard flags)
-    DATA_TABLE = "DATA_TABLE"  # For lists of rows (e.g. Hypotheses)
-    ACCORDION = "ACCORDION"  # For nested details
-    USAGE_STATS = "USAGE_STATS"  # Token usage & cost
-    HIGHLIGHT_BOXES = "HIGHLIGHT_BOXES"  # Colored XAI Extension boxes top-3 list
-
-    # Specialist Agent Sections (Courtroom 3.0 Backbone)
-    LOGIC_ANALYSIS = "LOGIC_ANALYSIS"  # Toulmin & Cognitive Level
-    STRESS_TEST = "STRESS_TEST"  # Walton Falsification
-    CAUSAL_ANALYSIS = "CAUSAL_ANALYSIS"  # Counterfactuals
-    PERFORMATIVITY_CHECK = "PERFORMATIVITY_CHECK"  # Illusion of Competence
-    FACT_CHECK = "FACT_CHECK"  # Hallucination & Ethics
-    PROFILER_ANALYSIS = "PROFILER_ANALYSIS"  # Biases & Psych Profile
-    ARCHIVIST_CHECK = "ARCHIVIST_CHECK"  # Compliance & Precedents
-    DRIVER_PROFILE = "DRIVER_PROFILE"  # Interaction / Driver Classification
-    SECURITY_CHECK = "SECURITY_CHECK"  # Security / Guard
+    KEY_VALUE_GRID = "KEY_VALUE_GRID"
+    DATA_TABLE = "DATA_TABLE"
+    ACCORDION = "ACCORDION"
+    USAGE_STATS = "USAGE_STATS"
+    HIGHLIGHT_BOXES = "HIGHLIGHT_BOXES"
+    LOGIC_ANALYSIS = "LOGIC_ANALYSIS"
+    STRESS_TEST = "STRESS_TEST"
+    CAUSAL_ANALYSIS = "CAUSAL_ANALYSIS"
+    PERFORMATIVITY_CHECK = "PERFORMATIVITY_CHECK"
+    FACT_CHECK = "FACT_CHECK"
+    PROFILER_ANALYSIS = "PROFILER_ANALYSIS"
+    ARCHIVIST_CHECK = "ARCHIVIST_CHECK"
+    DRIVER_PROFILE = "DRIVER_PROFILE"
+    SECURITY_CHECK = "SECURITY_CHECK"
 
 
 class Authenticity(str, Enum):
+    """Enum representing driver authenticity levels."""
+
     ORGANIC = "AUTH_ORGANIC"
     PERFORMATIVE = "AUTH_PERFORMATIVE"
     UNKNOWN = "AUTH_UNKNOWN"
 
 
 class VerificationResult(str, Enum):
+    """Enum representing claim verification states."""
+
     VERIFIED = "VER_VERIFIED"
     DEBUNKED = "VER_DEBUNKED"
     UNCERTAIN = "VER_UNCERTAIN"
 
 
 class ReferenceIntent(str, Enum):
+    """Enum representing the strategic intent of a contextual citation reference."""
+
     SEARCH = "SEARCH"
     GROUNDING = "GROUNDING"
     INTERNAL_KB = "INTERNAL_KB"
 
 
 class ReferenceItem(V2CoreBase):
-    """Strict View Model for a single Contextual Citation."""
+    """Strict View Model for a single Contextual Citation.
+
+    Attributes:
+        id: Citation ID, e.g., H-1, F-1.
+        intent: Type of the reference source.
+        title: Title of the source.
+        snippet: Extracted content, relevance, or reasoning.
+        url: Link to the source if available.
+    """
 
     id: StrictStr = Field(..., description="Citation ID, e.g., H-1, F-1")
     intent: ReferenceIntent = Field(..., description="Type of the reference source")
@@ -63,23 +76,41 @@ class ReferenceItem(V2CoreBase):
 
 
 class EvidenceItem(V2CoreBase):
-    """Strict View Model for a single piece of Evidence."""
+    """Strict View Model for a single piece of Evidence.
+
+    Attributes:
+        id: Unique evidence identifier.
+        source: Source designation.
+        content: Raw textual content.
+        score: Extracted validation score.
+        type: Type mapping string.
+    """
 
     id: StrictStr
     source: StrictStr
     content: StrictStr
     score: float | None
-    type: StrictStr  # "precedent" | "regulation" | "concept"
+    type: StrictStr
 
 
 class MarkdownBlockDisplay(V2CoreBase):
-    """Server-Driven UI Data for Markdown Content."""
+    """Server-Driven UI Data for Markdown Content.
+
+    Attributes:
+        content: Markdown formatted raw content.
+    """
 
     content: StrictStr
 
 
 class HighlightBoxDisplay(V2CoreBase):
-    """Server-Driven UI Data for a highlighted XAI extension box."""
+    """Server-Driven UI Data for a highlighted XAI extension box.
+
+    Attributes:
+        content: Visual highlight message content.
+        color_theme: Color presentation semantic intent.
+        icon_name: Semantic display icon helper.
+    """
 
     content: StrictStr
     color_theme: Literal["danger", "info", "warning", "success", "primary"] = Field(
@@ -89,15 +120,25 @@ class HighlightBoxDisplay(V2CoreBase):
 
 
 class EvidenceList(V2CoreBase):
-    """Server-Driven UI Data for Evidence List."""
+    """Server-Driven UI Data for Evidence List.
+
+    Attributes:
+        items: Collection of compiled EvidenceItems.
+        total_count: Total amount of scanned pieces of evidence.
+    """
 
     items: list[EvidenceItem]
     total_count: int
 
 
 class UiSection(V2CoreBase):
-    """Abstract UI Section.
-    Frontend renders the component based on 'type'.
+    """Abstract UI Section mapped via Server-Driven UI schemas.
+
+    Attributes:
+        id: Section unique logical string.
+        type: Presentational render type of component.
+        title: Globalized human visible header key.
+        data: Highly flexible context payloads.
     """
 
     id: StrictStr = Field(..., description="Unique identifier for the section (e.g. 'verdict-card')")
@@ -109,16 +150,30 @@ class UiSection(V2CoreBase):
 
 
 class SystemNotification(V2CoreBase):
-    """Server-Driven Notification for the Report Header."""
+    """Server-Driven Notification for the Report Header.
+
+    Attributes:
+        title: Notification header context.
+        message: Underlying textual telemetry or notification message.
+        level: Severe level indicators.
+    """
 
     title: StrictStr
     message: StrictStr
-    level: StrictStr = "info"  # info, warning, danger
+    level: StrictStr = "info"
 
 
 class ReportView(V2CoreBase):
-    """Top-level View Model for the Execution Report.
-    This replaces the raw 'Execution' object for frontend consumption.
+    """Top-level View Model for the Execution Report mapped strictly for client rendering.
+
+    Attributes:
+        view_id: Session Execution unique identifier.
+        title: Localization title key reference.
+        status_theme: Status color theme indicator.
+        sections: Array of polymorphic UI rendering nodes.
+        metrics: Extra global key-value performance indicators.
+        system_notification: Global alerts if applicable.
+        references: Structured citations matrix.
     """
 
     view_id: StrictStr = Field(..., description="The Execution ID")
@@ -131,7 +186,13 @@ class ReportView(V2CoreBase):
 
 
 class StepProgressItem(V2CoreBase):
-    """Progress indicator for a single step (BFF)."""
+    """Progress indicator for a single step (BFF).
+
+    Attributes:
+        id: System node ID identifier.
+        label: Translated title reference.
+        status: Execution lifecycle state mapping.
+    """
 
     id: StrictStr = Field(..., description="Step ID (e.g. step_guard)")
     label: StrictStr = Field(..., description="Human-readable label")
@@ -141,7 +202,14 @@ class StepProgressItem(V2CoreBase):
 class AssessmentView(V2CoreBase):
     """BFF View Model for the Execution Monitor.
 
-    Strictly typed for Server-Driven UI rendering.
+    Attributes:
+        sessionId: Unique session identifier.
+        statusLabel: Localization key text for progress status.
+        uiVariant: UI display style.
+        statusMessage: Detailed diagnostic status context.
+        showWarningBanner: Condition for displaying alerts.
+        steps: Pipeline steps list for stepper visualizations.
+        finalScore: Overall computed math scoring.
     """
 
     sessionId: StrictStr = Field(..., description="Execution ID")
@@ -156,7 +224,16 @@ class AssessmentView(V2CoreBase):
 
 
 class ToulminDisplay(V2CoreBase):
-    """Strict View Model for Toulmin Arguments."""
+    """Strict View Model for Toulmin Arguments.
+
+    Attributes:
+        claim: Core argument assertion statement.
+        data: Underpinning evidence or grounding inputs.
+        warrant: Logic bridge linking data to claim.
+        backing: Support credentials for validation.
+        rebuttal: Recognized exceptions or constraints.
+        qualifier: Force of certainty metrics.
+    """
 
     claim: StrictStr
     data: StrictStr
@@ -167,44 +244,35 @@ class ToulminDisplay(V2CoreBase):
 
 
 class LogicAnalysisDisplay(V2CoreBase):
-    """Server-Driven UI Data for Logic Analysis Section.
-    Hoists presentation logic (quadrants, percentages, colors) from client to backend.
-    """
+    """Server-Driven UI Data for Logic Analysis Section."""
 
     bloom_score: float | None
     bloom_percent: float | None
     bloom_label_key: str | None
-    bloom_help: str | None  # Localized help text
-
-    # Strategic
+    bloom_help: str | None
     strategic_score: float | None
     strategic_score_display: str | None
     strategic_percent: float | None
     strategic_percent_display: str | None
     strategic_label_key: str | None
     strategic_help: str | None
-
-    # Toulmin
     toulmin_score: float | None
     toulmin_percent: float | None
     toulmin_help: str | None
-
     quadrant_key: str | None
-    quadrant_label_key: str | None  # e.g. "QUADRANT_VISIONARY"
-    position_label: str | None  # Pre-formatted "Bloom X / Toulmin Y"
-
-    # Raw Data (for detail views if needed)
+    quadrant_label_key: str | None
+    position_label: str | None
     bloom_level_raw: str | None
     strategic_depth_raw: str | None
     arguments: list[ToulminDisplay]
 
 
 class HeuristicDisplay(V2CoreBase):
-    """Strict View Model for a single Heuristic."""
+    """Strict View Model for a single Heuristic validation check."""
 
     name: StrictStr
     flag: bool
-    color: StrictStr  # 'red' | 'green'
+    color: StrictStr
 
 
 class PerformativityDisplay(V2CoreBase):
@@ -214,35 +282,27 @@ class PerformativityDisplay(V2CoreBase):
     authenticity_percent: float | None
     authenticity_assessment: str | None
     authenticity_help: str | None
-
     heuristics: list[HeuristicDisplay]
 
 
 class CausalDisplay(V2CoreBase):
-    """Server-Driven UI Data for Causal Analysis."""
+    """Server-Driven UI Data for Causal Analysis and counterfactual simulation."""
 
-    # Abductive
     abductive_score: float | None
     abductive_score_display: str | None = None
     abductive_percent: float | None
     abductive_percent_display: str | None = None
     abductive_conclusion: str | None
     abductive_help: str | None
-
-    # Counterfactual / Plausibility
     plausibility_score: float | None
     plausibility_score_display: str | None = None
     plausibility_percent: float | None
     plausibility_percent_display: str | None = None
-    plausibility_label: str | None  # localized enum
-
+    plausibility_label: str | None
     counterfactual_actual: str | None
     counterfactual_simulated: str | None
-
     observation: str | None
     hypothesis: str | None
-
-    # Generic (if needed by base)
     score: float | None = None
     verdict: str | None = None
 
@@ -252,7 +312,7 @@ class VerifiedFactDisplay(V2CoreBase):
 
     claim: str | None
     source: str | None
-    color: str  # 'green' | 'red' | 'orange'
+    color: str
     label_key: str
     label: str | None
     verification_result: str | None
@@ -260,11 +320,11 @@ class VerifiedFactDisplay(V2CoreBase):
 
 
 class EthicalIssueDisplay(V2CoreBase):
-    """Strict View Model for an Ethical Issue."""
+    """Strict View Model for an Ethical Issue detected in context."""
 
     issue_type: str | None
     description: str | None
-    color: str  # 'red' | 'orange'
+    color: str
     label_key: str
     label: str | None
     is_critical: bool
@@ -279,31 +339,28 @@ class FactCheckDisplay(V2CoreBase):
 
 
 class SecurityDisplay(V2CoreBase):
-    """Server-Driven UI Data for Security Check."""
+    """Server-Driven UI Data for Security Guard Checks."""
 
     threat_detected: bool
-    threat_color: StrictStr  # 'red' | 'green'
-    threat_label: StrictStr  # 'UHKA: KYLLÄ' | 'UHKA: EI'
-
+    threat_color: StrictStr
+    threat_label: StrictStr
     risk_level: StrictStr
-    risk_color: StrictStr  # 'red' | 'orange' | 'green'
+    risk_color: StrictStr
     risk_label: str | None = None
-
     anonymized: bool
-    anonymized_color: StrictStr  # 'blue' | 'orange'
+    anonymized_color: StrictStr
     anonymized_label: StrictStr
-
     findings: list[str]
 
 
 class StressFindingDisplay(V2CoreBase):
-    """Single finding for Stress Test."""
+    """Single finding for Walton Falsification Stress Test."""
 
     question: StrictStr
-    result_label: StrictStr  # "HELD" / "BROKEN" (Localized key or value)
+    result_label: StrictStr
     is_held: bool
-    color_class: StrictStr  # "finding-held" / "finding-broken"
-    text_class: StrictStr  # "text-held" / "text-broken"
+    color_class: StrictStr
+    text_class: StrictStr
     observation: StrictStr
 
 
@@ -322,54 +379,38 @@ class StressTestDisplay(V2CoreBase):
 
     fidelity_audit: FidelityAudit | None
     fidelity_help: str | None
-
-    # Abductive Logic Gauge
     abductive_score: float | None
     abductive_percent: float | None
     abductive_conclusion: str | None
     abductive_help: str | None
-
-    # Counterfactual
     counterfactual_actual: str | None
     counterfactual_simulated: str | None
     plausibility_score: float | None
     plausibility_percent: float | None
     plausibility_display: str | None = None
     plausibility_help: str | None
-
-    # Findings (Hoisted Logic)
     findings: list[StressFindingDisplay]
 
 
 class ProfilerDisplay(V2CoreBase):
     """Server-Driven UI for Profiler Analysis."""
 
-    # Control Ratio
     control_ratio_percent: float | None
     control_label_key: str | None
     control_help: str | None
-
-    # Metrics
     word_count: int
     word_count_display: str | None = None
     word_count_help: str | None
-
     avg_sentence_length: float
     avg_sentence_length_display: str | None = None
-
     lexical_diversity: float
     lexical_diversity_display: str | None = None
-
     capitalization_ratio_percent: float | int
     capitalization_ratio_display: str | None = None
-
-    # Bias / Gap (Hoisted Thresholds)
     automation_bias_label: str
-    automation_bias_color: str  # "red" | "black"
-
+    automation_bias_color: str
     say_do_gap_label: str
-    say_do_gap_color: str  # "red" | "black"
-
+    say_do_gap_color: str
     psychological_profile: str | None
     intent_analysis: str | None
 
@@ -388,7 +429,7 @@ class DimensionDisplay(V2CoreBase):
     """Strict View Model for a single Scoring Dimension."""
 
     dimension_id: str
-    dimension_label: str  # Localization key
+    dimension_label: str
     score: float
     max_score: float
     weight: float

@@ -4,6 +4,7 @@ import logging
 import os
 from enum import Enum
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated, Any
 
 from pydantic import BeforeValidator, Field, computed_field
@@ -15,26 +16,72 @@ logger = logging.getLogger(__name__)
 
 
 def strip_whitespace(v: Any) -> Any:
-    """Validator to strip whitespace from strings."""
+    """Validator to strip whitespace from strings.
+
+    Args:
+        v: Input value.
+
+    Returns:
+        Stripped string if input is a string, otherwise unchanged value.
+    """
     if isinstance(v, str):
         return v.strip()
     return v
 
 
-MyBool = Annotated[bool, BeforeValidator(strip_whitespace)]
+type MyBool = Annotated[bool, BeforeValidator(strip_whitespace)]
 
 
 class StorageBackend(str, Enum):
     """Enumeration for Storage Backends."""
 
     FIRESTORE = "FIRESTORE"
-    LOCAL = "LOCAL"  # Legacy/Dev modes. Production target is FIRESTORE.
+    LOCAL = "LOCAL"
 
 
 class Settings(BaseSettings):
     """Application Settings managed by Pydantic.
 
     Reads from environment variables and .env file.
+
+    Attributes:
+        use_mock_llm: Flag to use the mock LLM service.
+        use_vertex_llm: Flag to use Google Cloud Vertex AI.
+        use_firebase_auth: Flag to enforce Firebase authentication.
+        cors_origins: List of allowed origins for CORS headers.
+        use_json_logging: Flag to output logs as structured JSON.
+        google_api_key: Developer API key for Gemini.
+        openai_api_key: API key for OpenAI engines.
+        anthropic_api_key: API key for Anthropic engines.
+        tavily_api_key: API key for search orchestration.
+        vertex_location: Regional anchor for GCP resources.
+        discovery_location: Target region for Model Discovery.
+        default_model_strategy: Preferred routing blueprint.
+        llm_default_timeout: Connection and execution timeouts.
+        llm_retry_delay: Backoff pause between transient faults.
+        llm_default_tpm: Maximum tokens allowed per minute.
+        llm_default_rpm: Maximum requests allowed per minute.
+        citation_integrity_threshold: Strictness cut-off for sources.
+        scoring_security_cap: Cap on score under security flags.
+        scoring_logical_cap: Cap on score under logic flags.
+        scoring_performative_threshold: Threshold tracking real vs performative.
+        scoring_security_penalty: Multiplier penalty for threats.
+        scoring_post_hoc_penalty: Multiplier penalty for post-hoc reasoning.
+        scoring_passivity_multiplier: Leniency penalty mapping.
+        metrics_short_response_word_count: Target limit for brief inputs.
+        metrics_automation_bias_ratio: Bias flag threshold.
+        metrics_reflection_min_length: Minimum chars for analytical scans.
+        metrics_mechanical_ratio: Target ratio signaling automation risk.
+        max_precedent_scan_depth: Lookback limits for similar entries.
+        max_precedent_return_count: Count bounds for retrieved precedents.
+        redis_host: Target address of cache server.
+        redis_port: Connection port of cache server.
+        worker_job_timeout: Safety threshold for backend arq tasks.
+        storage_backend: Target strategy ('LOCAL', 'FIRESTORE').
+        environment: Platform stage ('production', 'staging', 'development').
+        storage_bucket_name: Google Storage Cloud bucket handle.
+        api_url: Fully qualified presenting address.
+        log_file_name: Base file handle for disk storage of logs.
     """
 
     # --- Feature Flags ---
@@ -63,7 +110,6 @@ class Settings(BaseSettings):
     ] = None
 
     # --- LLM Configuration ---
-    # initial_model REMOVED per Zero-Fallback Policy
     default_model_strategy: Annotated[
         str | None, Field(description="Default LLM strategy key (Optional). If None, explicit strategy is required.")
     ] = None
@@ -87,12 +133,11 @@ class Settings(BaseSettings):
     # --- Scoring Penalties (Zero-Compromise: Configurable) ---
     scoring_security_penalty: Annotated[
         float, Field(description="Penalty multiplier for Security Threats (0.0 to 1.0)")
-    ] = 0.0  # Log only for now
+    ] = 0.0
     scoring_post_hoc_penalty: Annotated[
         float, Field(description="Penalty multiplier for Post-Hoc Rationalization (0.0 to 1.0)")
-    ] = 0.0  # Log only for now
+    ] = 0.0
 
-    # Passivity (Penalty Factor: 1.0 = No Penalty, 0.5 = Halve Score)
     scoring_passivity_multiplier: Annotated[
         float, Field(description="Penalty multiplier for Passivity/Low Quality")
     ] = 1.0
@@ -118,10 +163,14 @@ class Settings(BaseSettings):
     redis_port: Annotated[int, Field(description="Redis Port")] = 6379
     worker_job_timeout: Annotated[int, Field(description="Max seconds Arq worker processes a job")] = 14400
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def default_safety_settings(self) -> list[dict[str, str]]:
-        """Returns standard safety settings (Auditing Mode: BLOCK_NONE)."""
+        """Returns standard safety settings (Auditing Mode: BLOCK_NONE).
+
+        Returns:
+            List of dictionaries defining non-blocking threshold rules.
+        """
         return [
             {
                 "category": "HARM_CATEGORY_HATE_SPEECH",
@@ -144,90 +193,129 @@ class Settings(BaseSettings):
     # --- Storage ---
     storage_backend: Annotated[
         str | None, BeforeValidator(strip_whitespace), Field(description="LOCAL, NONE, or FIRESTORE")
-    ] = None  # REMOVED DEFAULT = "LOCAL". Must be explicit.
-    environment: Annotated[str, Field(description="development, staging, or production")] = (
-        "production"  # Default to production for safety? No, make explicit.
-    )
+    ] = None
+    environment: Annotated[str, Field(description="development, staging, or production")] = "production"
     storage_bucket_name: Annotated[str | None, Field(description="Firebase Storage Bucket Name")] = None
 
-    # URL for generating public links in Local mode
     api_url: Annotated[str | None, Field(description="Public API Base URL")] = "http://localhost:8000"
 
     # --- Paths ---
     log_file_name: Annotated[str, Field(description="Name of the debug log file")] = "backend_debug.log"
 
-    # We define base_dir relative to this file (backend_v2/settings.py)
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def base_dir(self) -> str:
-        """Returns the base directory of the backend application."""
-        return os.path.dirname(os.path.abspath(__file__))
+        """Returns the base directory of the backend application.
 
-    @computed_field  # type: ignore[prop-decorator]
+        Returns:
+            The absolute path to the settings directory as a string.
+        """
+        return str(Path(__file__).resolve().parent)
+
+    @computed_field
     @property
     def data_dir(self) -> str:
-        """Returns the path to the persistent data directory."""
-        # Assuming ../data from backend_v2/
-        return os.path.join(os.path.dirname(self.base_dir), "data")
+        """Returns the path to the persistent data directory.
 
-    @computed_field  # type: ignore[prop-decorator]
+        Returns:
+            The resolved data folder directory path.
+        """
+        return str(Path(self.base_dir).parent / "data")
+
+    @computed_field
     @property
     def files_dir(self) -> str:
-        """Returns the path to the central files directory."""
-        return os.path.join(self.data_dir, "files")
+        """Returns the path to the central files directory.
 
-    @computed_field  # type: ignore[prop-decorator]
+        Returns:
+            The resolved system files storage path.
+        """
+        return str(Path(self.data_dir) / "files")
+
+    @computed_field
     @property
     def docs_dir(self) -> str:
-        """Returns the path to the static docs directory."""
-        return os.path.join(os.path.dirname(self.base_dir), "docs")
+        """Returns the path to the static docs directory.
 
-    @computed_field  # type: ignore[prop-decorator]
+        Returns:
+            The resolved reference documentation path.
+        """
+        return str(Path(self.base_dir).parent / "docs")
+
+    @computed_field
     @property
     def db_dir(self) -> str:
-        """Returns the path to the database directory."""
-        return os.path.join(self.base_dir, "database")
+        """Returns the path to the database directory.
 
-    @computed_field  # type: ignore[prop-decorator]
+        Returns:
+            The resolved local database adapter path.
+        """
+        return str(Path(self.base_dir) / "database")
+
+    @computed_field
     @property
     def scripts_dir(self) -> str:
-        """Returns the path to the scripts directory."""
-        return os.path.join(os.path.dirname(self.base_dir), "scripts")
+        """Returns the path to the scripts directory.
 
-    @computed_field  # type: ignore[prop-decorator]
+        Returns:
+            The resolved migration and seeding tools path.
+        """
+        return str(Path(self.base_dir).parent / "scripts")
+
+    @computed_field
     @property
     def prod_db_path(self) -> str:
-        """Returns the path to the production database file. Isolated to V2."""
-        return os.path.join(self.data_dir, "db_v2.json")
+        """Returns the path to the production database file. Isolated to V2.
 
-    @computed_field  # type: ignore[prop-decorator]
+        Returns:
+            Path pointing directly to the target SQLite or JSON schema dynamic file.
+        """
+        return str(Path(self.data_dir) / "db_v2.json")
+
+    @computed_field
     @property
     def seed_data_path(self) -> str:
-        """Returns the path to the seed data file. Isolated to V2."""
-        return os.path.join(self.base_dir, "seed", "seed_data.json")
+        """Returns the path to the seed data file. Isolated to V2.
 
-    @computed_field  # type: ignore[prop-decorator]
+        Returns:
+            Target layout to locate pre-configured records.
+        """
+        return str(Path(self.base_dir) / "seed" / "seed_data.json")
+
+    @computed_field
     @property
     def mock_responses_path(self) -> str:
-        """Returns the path to the mock responses file."""
-        return os.path.join(self.data_dir, "mock_responses.json")
+        """Returns the path to the mock responses file.
 
-    @computed_field  # type: ignore[prop-decorator]
+        Returns:
+            The static simulated model reply repository.
+        """
+        return str(Path(self.data_dir) / "mock_responses.json")
+
+    @computed_field
     @property
     def log_file_path(self) -> str:
-        """Absolute path to the log file in the project root."""
-        # Using base_dir parent (project root) + log_file_name
-        return os.path.join(os.path.dirname(self.base_dir), self.log_file_name)
+        """Absolute path to the log file in the project root.
 
-    @computed_field  # type: ignore[prop-decorator]
+        Returns:
+            Destination path for system-level logging captures.
+        """
+        return str(Path(self.base_dir).parent / self.log_file_name)
+
+    @computed_field
     @property
     def active_backend(self) -> StorageBackend:
         """Determines the active storage backend based on configuration.
 
         Priority 1: Explicit FIRESTORE backend.
         Default: Local storage.
+
+        Returns:
+            The verified active target backend strategy.
+
+        Raises:
+            AppException: If storage backend is explicitly requested but invalid.
         """
-        # Strict matching
         if not self.storage_backend:
             return StorageBackend.LOCAL
 
@@ -238,26 +326,32 @@ class Settings(BaseSettings):
             return StorageBackend.LOCAL
 
         msg = f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. Must be LOCAL or FIRESTORE."
-        logger.error("[Settings] %s", msg, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
+        logger.error("[Settings] %s", msg, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}, exc_info=True)
         raise AppException(
             message=msg,
             status_code=500,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def is_cloud_storage(self) -> bool:
-        """Returns True if active_backend is FIRESTORE."""
+        """Returns True if active_backend is FIRESTORE.
+
+        Returns:
+            Boolean value signifying cloud integration state.
+        """
         return self.active_backend == StorageBackend.FIRESTORE
 
-    # --- Complex Configs (Computed) ---
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def model_strategies(self) -> dict[str, Any]:
         """Returns empty dict by default.
 
         Strategies MUST be loaded from 'system_config' table in database.
+
+        Returns:
+            A map of dynamically fetched LLM settings.
         """
         return {}
 
@@ -269,19 +363,23 @@ class Settings(BaseSettings):
     )
 
     def model_post_init(self, __context: Any) -> None:
-        """Validates settings after initialization."""
-        # Check for EITHER Google AI Studio Key OR Vertex AI Credentials
-        if not self.use_mock_llm:
-            # Auto-discovery for service-account.json (Resilience against launcher issues)
-            if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-                root_dir = os.path.dirname(self.base_dir)
-                sa_path = os.path.join(root_dir, "service-account.json")
-                if os.path.exists(sa_path):
-                    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = sa_path
-                    # logger.info not available here easily, but we proceed silently or could print
-                    print(f"Settings: Auto-detected service-account.json at {sa_path}")
+        """Validates settings after initialization.
 
-            has_vertex = (
+        Args:
+            __context: Lifecycle contexts from Pydantic.
+
+        Raises:
+            AppException: If critical credentials are missing when mock mode is inactive.
+        """
+        if not self.use_mock_llm:
+            if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
+                root_dir = Path(self.base_dir).parent
+                sa_path = root_dir / "service-account.json"
+                if sa_path.exists():
+                    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(sa_path)
+                    logger.info("Settings: Auto-detected service-account.json at %s", str(sa_path))
+
+            has_vertex = bool(
                 os.getenv("VERTEX_PROJECT_ID")
                 or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
                 or os.getenv("GOOGLE_CLOUD_PROJECT")
@@ -292,45 +390,48 @@ class Settings(BaseSettings):
                     "CRITICAL: No LLM Credentials found (GOOGLE_API_KEY or VERTEX_PROJECT_ID/Credentials). "
                     "Cannot proceed in Production Mode. Ensure 'service-account.json' exists in root or set env vars."
                 )
-                logger.error("[Settings] %s", msg, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
+                logger.error(
+                    "[Settings] %s", msg, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}, exc_info=True
+                )
                 raise AppException(
                     message=msg,
                     status_code=500,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def enabled_providers(self) -> list[str]:
         """Returns list of enabled LLM providers based on configuration.
 
         Hardcoded source of truth for UI and Discovery.
+
+        Returns:
+            Identified and verified cloud/mock options list.
         """
         providers = []
-        # Google / Vertex
         if self.google_api_key or (
             not self.use_mock_llm and (os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
         ):
             providers.append("google")
 
-        # OpenAI
         if self.openai_api_key:
             providers.append("openai")
 
-        # Anthropic
         if self.anthropic_api_key:
             providers.append("anthropic")
 
-        # Mock override (if enabled, ensuring it appears for dev)
         if self.use_mock_llm and "mock" not in providers:
             providers.append("mock")
 
-        # Fallback/Safety: If empty but not mock, maybe we should warn?
-        # But for now, returning what is explicitly configured is strict.
         return providers
 
 
 @lru_cache
 def get_settings() -> Settings:
-    """Singleton getter for Settings."""
+    """Singleton getter for Settings.
+
+    Returns:
+        The cached system-wide environment variables instantiation.
+    """
     return Settings()
