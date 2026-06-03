@@ -64,26 +64,22 @@ class PromptAtomizer:
                             secure_suffix = secrets.token_hex(4)
                             new_id = f"tda_{secure_suffix}"
 
-                            # Re-instantiate explicitly to enforce validation
-                            updated_fields = {**assertion.model_dump(), "tda_id": new_id}
-                            updated_assertion = type(assertion)(**updated_fields)
+                            # Optimize mutation to prevent full model_dump() cycle
+                            updated_assertion = assertion.model_copy(update={"tda_id": new_id})
                             new_assertions.append(updated_assertion)
                         else:
                             new_assertions.append(assertion)
 
-                    # Re-instantiate explicitly to enforce validation
-                    updated_claim_fields = {**claim.model_dump(), "tda_assertions": new_assertions}
-                    updated_claim = type(claim)(**updated_claim_fields)
+                    # Optimize mutation to prevent full model_dump() cycle
+                    updated_claim = claim.model_copy(update={"tda_assertions": new_assertions})
                     new_claims.append(updated_claim)
 
-                # Re-instantiate explicitly to enforce validation
-                updated_scale_fields = {**scale.model_dump(), "claims": new_claims}
-                updated_scale = type(scale)(**updated_scale_fields)
+                # Optimize mutation to prevent full model_dump() cycle
+                updated_scale = scale.model_copy(update={"claims": new_claims})
                 new_scales.append(updated_scale)
 
-            # Re-instantiate explicitly to enforce validation
-            updated_block_fields = {**block.model_dump(), "scales": new_scales}
-            return type(block)(**updated_block_fields)
+            # Optimize mutation to prevent full model_dump() cycle
+            return block.model_copy(update={"scales": new_scales})
         except Exception as e:
             logger.error(
                 "Failed to atomize prompt block: %s",

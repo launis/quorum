@@ -419,6 +419,20 @@ class DAGExecutor:
 
         semaphore = asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS.value)
         _update_lock = asyncio.Lock()
+        _commit_lock = asyncio.Lock()
+
+        async def _safe_commit(
+            status_override: ExecutionStatus | None = None, error_override: str | None = None
+        ) -> None:
+            async with _commit_lock:
+                current = exec_record
+                await self.committer.commit_trace(
+                    trace=current.execution_trace,
+                    status=status_override if status_override is not None else current.status,
+                    step_states=current.step_states,
+                    error=error_override if error_override is not None else getattr(current, "error", None),
+                    frozen_context=current.frozen_context,
+                )
 
         async def run_step_wrapper(step_id: str) -> None:
             nonlocal exec_record
@@ -438,18 +452,14 @@ class DAGExecutor:
                     new_states = {**exec_record.step_states, step_id: new_state}
                     exec_record = exec_record.model_copy(update={"step_states": new_states})
 
-                    await self.committer.commit_trace(
-                        trace=exec_record.execution_trace,
-                        status=exec_record.status,
-                        step_states=exec_record.step_states,
-                        frozen_context=exec_record.frozen_context,
-                    )
+                await _safe_commit()
 
                 running_event = asyncio.Event()
 
                 async def watch_running() -> None:
                     nonlocal exec_record
                     await running_event.wait()
+                    needs_commit = False
                     async with _update_lock:
                         if exec_record.step_states[step_id].status == ExecutionStatus.QUEUED.value:
                             new_state = exec_record.step_states[step_id].model_copy(
@@ -457,13 +467,10 @@ class DAGExecutor:
                             )
                             new_states = {**exec_record.step_states, step_id: new_state}
                             exec_record = exec_record.model_copy(update={"step_states": new_states})
+                            needs_commit = True
 
-                            await self.committer.commit_trace(
-                                trace=exec_record.execution_trace,
-                                status=exec_record.status,
-                                step_states=exec_record.step_states,
-                                frozen_context=exec_record.frozen_context,
-                            )
+                    if needs_commit:
+                        await _safe_commit()
 
                 watcher_task = asyncio.create_task(watch_running())
 
@@ -508,13 +515,8 @@ class DAGExecutor:
                     )
                     new_states = {**exec_record.step_states, step_id: new_state}
                     exec_record = exec_record.model_copy(update={"step_states": new_states})
-                    await self.committer.commit_trace(
-                        trace=exec_record.execution_trace,
-                        status=exec_record.status,
-                        step_states=exec_record.step_states,
-                        frozen_context=exec_record.frozen_context,
-                    )
                 step_events[step_id].set()
+                await _safe_commit()
 
             except Exception as e:
                 async with _update_lock:
@@ -523,13 +525,7 @@ class DAGExecutor:
                     )
                     new_states = {**exec_record.step_states, step_id: new_state}
                     exec_record = exec_record.model_copy(update={"step_states": new_states})
-                    await self.committer.commit_trace(
-                        trace=exec_record.execution_trace,
-                        status=ExecutionStatus.FAILED,
-                        step_states=exec_record.step_states,
-                        error=str(e),
-                        frozen_context=exec_record.frozen_context,
-                    )
+                await _safe_commit(status_override=ExecutionStatus.FAILED, error_override=str(e))
                 raise WorkflowExecutionError(step_id=step_id, task_key=step_obj.task_blueprint, original_error=e) from e
 
         try:

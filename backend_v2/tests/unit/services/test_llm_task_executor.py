@@ -35,7 +35,7 @@ async def test_execute_structured_task_success(mock_prompt_compiler: MagicMock, 
 
     mock_client.run_structured_task.return_value = (expected_model, expected_usage)
 
-    messages = [{"role": "user", "content": "hello"}]
+    messages = [{"role": "user", "content": "hello world payload"}]
 
     res_model, res_usage = await executor.execute_structured_task(
         client=mock_client, messages=messages, response_model=MockResponseSchema
@@ -222,7 +222,7 @@ async def test_execute_structured_task_system_wide_lexical_verifier(
 
         res_model, res_usage = await executor.execute_structured_task(
             client=mock_client,
-            messages=[{"role": "user", "content": "test"}],
+            messages=[{"role": "user", "content": "this is a valid test payload"}],
             response_model=TestResponseModel,
             max_logical_retries=1,
             validation_context={"source_text": "real text"},
@@ -280,7 +280,7 @@ async def test_execute_structured_task_dynamic_model_fallback(
 
         res_model, res_usage = await executor.execute_structured_task(
             client=mock_client,
-            messages=[{"role": "user", "content": "test"}],
+            messages=[{"role": "user", "content": "this is a valid test payload"}],
             response_model=DynamicResponseModel,
             max_logical_retries=1,
             validation_context={"source_text": "real text"},
