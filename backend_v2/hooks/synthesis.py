@@ -172,7 +172,42 @@ def _compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisS
     def _strip_heavy_keys(obj: Any) -> None:
         if isinstance(obj, dict):
             obj.pop("shuffled_atoms", None)
-            obj.pop("evaluations", None)
+
+            # EPIC 70 Lite: Preserve evidence from evaluations for synthesis grounding
+            # ARCHITECTURE LOCK (Rule 82/83): This evaluations filtering algorithm is a
+            # deliberate business logic change — NOT defensive programming. The .get() calls
+            # and isinstance checks are required to safely traverse polymorphic evaluation
+            # payloads from heterogeneous LLM step outputs. DO NOT refactor or simplify.
+            if "evaluations" in obj:
+                evals = obj["evaluations"]
+                if isinstance(evals, list):
+                    lite_evals = []
+                    for ev in evals:
+                        if isinstance(ev, dict):
+                            eq = ev.get("exact_quote")
+                            sr = ev.get("semantic_reasoning")
+                            eq_str = str(eq).strip() if eq else ""
+                            is_junk = (
+                                not eq_str
+                                or eq_str in ("None", "null", "N/A", "N/A - insufficient data")
+                                or (eq_str.startswith("[") and eq_str.endswith("]"))
+                            )
+                            if not is_junk:
+                                lite_evals.append(
+                                    {
+                                        "atom_id": ev.get("atom_id"),
+                                        "exact_quote": eq_str[:300],
+                                        "semantic_reasoning": str(sr)[:300] if sr else None,
+                                    }
+                                )
+                    # Cap evaluations to prevent token budget explosion (max 20)
+                    lite_evals = lite_evals[:20]
+                    obj["evaluations"] = lite_evals if lite_evals else None
+                else:
+                    # Non-list evaluations are not valid evidence — strip them
+                    obj["evaluations"] = None
+                if not obj.get("evaluations"):
+                    obj.pop("evaluations", None)
 
             for _, val in list(obj.items()):
                 _strip_heavy_keys(val)
@@ -517,7 +552,10 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             logger.debug("[SynthesisHook] Omitting empty section: %s", uid)
             continue
 
+        logger.debug("[SynthesisHook] Adding to consolidated_inputs: %s (is_requested: %s, wildcard: %s)", uid, is_requested, is_wildcard)
         consolidated_inputs[uid] = v
+
+
 
     if not consolidated_inputs:
         return HookResult(

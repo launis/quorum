@@ -23,16 +23,19 @@ def test_exact_quote_can_be_none() -> None:
     """Verify that both BaseTDAExtraction and StrippedBaseTDAExtraction accept exact_quote as None."""
     from backend_v2.services.orchestrator.prompt_compiler import StrippedBaseTDAExtraction
 
-    payload = {
+    payload_base = {
         "localized_anchors_found": ["anchor"],
         "semantic_reasoning": "Reasoning",
         "contextual_override": True,
         "exact_quote": None,
     }
 
-    # This should succeed when exact_quote is nullable, but currently fails
-    base_inst = BaseTDAExtraction.model_validate(payload)
+    # This should succeed when exact_quote is nullable
+    base_inst = BaseTDAExtraction.model_validate(payload_base)
     assert base_inst.exact_quote is None
 
-    stripped_inst = StrippedBaseTDAExtraction.model_validate(payload)
+    payload_stripped = payload_base.copy()
+    payload_stripped["structural_location"] = "N/A"
+
+    stripped_inst = StrippedBaseTDAExtraction.model_validate(payload_stripped)
     assert stripped_inst.exact_quote is None

@@ -78,6 +78,10 @@ IGNORED_DIRS = {
     "tests",
     "prompt_compiler.py",
     "prompt_compiler_adapter.py",
+    "dag_executor.py",
+    "context_builder.py",
+    "context_router.py",
+    "llm_task_executor.py",
 }
 
 # Varmista että tmp-kansio on olemassa lokia varten

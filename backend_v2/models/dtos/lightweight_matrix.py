@@ -107,10 +107,26 @@ class AtomEvaluationItemDTO(V2CoreBase):
     extracted_facts: dict[str, str | None] = Field(default_factory=dict)
     exact_quote: str | None = None
     post_quote_anchor: str | None = None
-    status: Literal["PASS", "FAIL", "DLQ"] | None = None
+    status: Literal["PASS", "FAIL", "DLQ"] | None = Field(
+        default=None, description="The evaluation status. Must be one of PASS, FAIL, DLQ."
+    )
     localized_anchors_found: list[str] = Field(default_factory=list)
-    semantic_reasoning: str = ""
-    contextual_override: bool = False
+    semantic_reasoning: str = Field(
+        description="Detailed reasoning for the evaluation. Must be in the Localized Target Language.",
+    )
+    contextual_override: bool = Field(
+        description=(
+            "Set to true ONLY if evidence is implicitly valid despite lacking exact quote. "
+            "If true, you MUST populate structural_location."
+        ),
+    )
+    structural_location: str = Field(
+        description=(
+            "Exact structural location (e.g. 'page 3', 'paragraph 2'). Must be in the Localized "
+            "Target Language. If contextual_override is False, you MUST output 'N/A'. "
+            "If contextual_override is True, you MUST provide the concrete location."
+        ),
+    )
     dlq_status: bool | None = None
 
     @property
@@ -167,23 +183,10 @@ class AtomEvaluationItemDTO(V2CoreBase):
             if len(reasoning) < 50:
                 raise ValueError("Contextual override requires semantic_reasoning to be at least 50 characters long.")
 
-            spatial_markers = [
-                "page",
-                "paragraph",
-                "section",
-                "kappale",
-                "sivu",
-                "chapter",
-                "luku",
-                "otsikko",
-                "line",
-                "rivi",
-            ]
-            reasoning_lower = reasoning.lower()
-            if not any(marker in reasoning_lower for marker in spatial_markers):
+            if not self.structural_location or self.structural_location.strip().upper() == "N/A":
                 raise ValueError(
-                    "Contextual override reasoning must contain a spatial/structural location reference "
-                    "(e.g., page, paragraph, section, sivu, kappale)."
+                    "Contextual override requires an explicit structural_location reference "
+                    "(e.g., 'page 3', 'paragraph 2')."
                 )
         else:
             # Milestone 3: Check quote integrity

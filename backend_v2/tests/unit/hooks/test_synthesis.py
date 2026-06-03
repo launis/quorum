@@ -180,13 +180,45 @@ async def test_synthesis_empty_inputs_returns_early(
 
 
 def test_compress_synthesis_payload_strips_heavy_keys() -> None:
-    """Test that _compress_synthesis_payload removes log-heavy keys but retains quotes and reasoning."""
+    """Test that _compress_synthesis_payload removes log-heavy keys but preserves lite evaluations."""
     import json
 
     payload = {
         "step_1": {
             "result": "success",
-            "evaluations": [{"score": 1}],
+            "evaluations": [
+                {
+                    "atom_id": "atm_001",
+                    "exact_quote": "Tämä on suora lainaus käyttäjän tekstistä.",
+                    "semantic_reasoning": "Lause viittaa selkeään väitteeseen.",
+                    "score": 4,
+                    "shuffled_atoms": ["x"],
+                },
+                {
+                    "atom_id": "atm_002",
+                    "exact_quote": None,
+                    "semantic_reasoning": "No evidence found.",
+                    "score": 1,
+                },
+                {
+                    "atom_id": "atm_003",
+                    "exact_quote": "[CONTEXTUAL_OVERRIDE_APPLIED]",
+                    "semantic_reasoning": "Override applied.",
+                    "score": 0,
+                },
+                {
+                    "atom_id": "atm_004",
+                    "exact_quote": "[SKIPPED]",
+                    "semantic_reasoning": "Junk",
+                    "score": 0,
+                },
+                {
+                    "atom_id": "atm_005",
+                    "exact_quote": "   ",
+                    "semantic_reasoning": "Empty string",
+                    "score": 0,
+                },
+            ],
             "shuffled_atoms": ["a", "b"],
             "quote": "test",
             "reasoning": "because",
@@ -197,12 +229,22 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
     compressed_str = _compress_synthesis_payload(payload)
     compressed = json.loads(compressed_str)
 
-    assert "evaluations" not in compressed["step_1"]
-    assert "shuffled_atoms" not in compressed["step_1"]
-    assert "quote" in compressed["step_1"]
-    assert "reasoning" in compressed["step_1"]
-    assert "evaluations" not in compressed["step_1"]["nested"]
-    assert compressed["step_1"]["nested"]["keep_me"] is True
+    # Lite evaluations preserved: only atm_001 has a valid exact_quote
+    step1 = compressed["step_1"]
+    assert "evaluations" in step1
+    assert len(step1["evaluations"]) == 1
+    assert step1["evaluations"][0]["atom_id"] == "atm_001"
+    assert step1["evaluations"][0]["exact_quote"] == "Tämä on suora lainaus käyttäjän tekstistä."
+    assert step1["evaluations"][0]["semantic_reasoning"] == "Lause viittaa selkeään väitteeseen."
+
+    # Heavy keys still stripped
+    assert "shuffled_atoms" not in step1
+    assert "quote" in step1
+    assert "reasoning" in step1
+
+    # Nested non-list evaluations still stripped
+    assert "evaluations" not in step1["nested"]
+    assert step1["nested"]["keep_me"] is True
 
 
 def test_build_title_map() -> None:
@@ -565,13 +607,18 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
         "status": "published",
         "version": 1,
         "default_profile_id": "prof_a",
+        "steps": [
+            {"id": "stp_1111111111111111", "task_blueprint": "sb_1111111111111111", "depends_on": []},
+            {"id": "stp_2222222222222222", "task_blueprint": "sb_2222222222222222", "depends_on": []},
+            {"id": "stp_3333333333333333", "task_blueprint": "sb_3333333333333333", "depends_on": []},
+        ],
         "output_profiles": {
             "prof_a": {
                 "name": {"default_locale": "en", "translations": {"en": "A"}},
                 "strictness_level": 50,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [
-                    {"target_blocks": ["step_2"], "preset_view": "default"},
+                    {"target_blocks": ["stp_2222222222222222"], "preset_view": "default"},
                     {"target_blocks": ["*"], "preset_view": "default"},
                 ],
                 "synthesis": {
@@ -587,6 +634,41 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
     prof_data.update({"id": "prof_a", "slug": "prof-a", "workflow_id": "wf_1111111111111111"})
     mock_repo.get_output_profile_by_id = AsyncMock(return_value=prof_data)
     mock_repo.get_step_by_id.return_value = {"id": "step_111111111111111111111111"}
+    mock_repo.get_all_steps = AsyncMock(
+        return_value=[
+            {
+                "id": "sb_1111111111111111",
+                "slug": "step-1",
+                "type": "logic",
+                "hook": "some_hook",
+                "name": {"default_locale": "en", "translations": {"en": "Step 1"}},
+                "role_block_id": None,
+                "extraction_protocol_block_id": None,
+                "criteria_block_ids": [],
+            },
+            {
+                "id": "sb_2222222222222222",
+                "slug": "step-2",
+                "type": "logic",
+                "hook": "some_hook",
+                "name": {"default_locale": "en", "translations": {"en": "Step 2"}},
+                "role_block_id": None,
+                "extraction_protocol_block_id": None,
+                "criteria_block_ids": [],
+            },
+            {
+                "id": "sb_3333333333333333",
+                "slug": "step-3",
+                "type": "logic",
+                "hook": "some_hook",
+                "name": {"default_locale": "en", "translations": {"en": "Step 3"}},
+                "role_block_id": None,
+                "extraction_protocol_block_id": None,
+                "criteria_block_ids": [],
+            },
+        ]
+    )
+    mock_repo.get_all_prompt_blocks = AsyncMock(return_value=[])
     deps = HookDependencies(
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
@@ -600,22 +682,22 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
         update={
             "inputs": {
                 "steps": {
-                    "step_1": {
+                    "stp_1111111111111111": {
                         "reasoning_trace": {
                             "thought_process": "AI says hello",
                             "conclusion": "test",
                             "confidence_score": 1.0,
                         }
                     },
-                    "step_2": {"result": 1337},
-                    "step_3": {"value": "this should be blocked by wildcard"},
+                    "stp_2222222222222222": {"result": 1337},
+                    "stp_3333333333333333": {"value": "this should be blocked by wildcard"},
                 }
             },
             "metadata": {
                 "target_locale": "en",
                 "step_results": [
                     {
-                        "step_id": "step_1",
+                        "step_id": "stp_1111111111111111",
                         "block_id": "b1",
                         "data_type": "text",
                         "payload": {
@@ -626,9 +708,9 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
                             }
                         },
                     },  # noqa: E501
-                    {"step_id": "step_2", "block_id": "b2", "data_type": "text", "payload": {"result": 1337}},
+                    {"step_id": "stp_2222222222222222", "block_id": "b2", "data_type": "text", "payload": {"result": 1337}},
                     {
-                        "step_id": "step_3",
+                        "step_id": "stp_3333333333333333",
                         "block_id": "b3",
                         "data_type": "text",
                         "payload": {"value": "this should be blocked by wildcard"},
@@ -659,15 +741,15 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
     content = user_msg.get("content", "")
 
     # Assert AI trace is in
-    assert "step_1" in content
+    assert "stp_1111111111111111" in content
     assert "AI says hello" in content
 
     # Assert python math bypassed the wildcard shield
-    assert "step_2" in content
+    assert "stp_2222222222222222" in content
     assert "1337" in content
 
     # Assert garbage metadata was properly shielded
-    assert "step_3" not in content
+    assert "stp_3333333333333333" not in content
     assert "this should be blocked" not in content
 
 

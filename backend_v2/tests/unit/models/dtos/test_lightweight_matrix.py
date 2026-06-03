@@ -79,6 +79,10 @@ def test_atom_evaluation_item_dto_strictness() -> None:
     item = AtomEvaluationItemDTO(
         atom_id="atom_123",
         extracted_facts={"fact_1": "Some valid quote"},
+        status=None,
+        semantic_reasoning="Reasoning",
+        contextual_override=False,
+        structural_location="N/A",
     )
     assert item.atom_id == "atom_123"
     assert item.evidence_found is True
@@ -89,6 +93,10 @@ def test_atom_evaluation_item_dto_strictness() -> None:
         AtomEvaluationItemDTO(
             atom_id="atom_123",
             extracted_facts={"fact_1": "Quote"},
+            status=None,
+            semantic_reasoning="Reasoning",
+            contextual_override=False,
+            structural_location="N/A",
             extra="not allowed",  # type: ignore
         )
 
@@ -96,6 +104,10 @@ def test_atom_evaluation_item_dto_strictness() -> None:
     phantom = AtomEvaluationItemDTO(
         atom_id="atom_phantom",
         extracted_facts={"fact_1": "Not found"},
+        status=None,
+        semantic_reasoning="Reasoning",
+        contextual_override=False,
+        structural_location="N/A",
     )
     assert phantom.evidence_found is False
 
@@ -108,6 +120,9 @@ def test_atom_evaluation_item_dto_strictness() -> None:
         atom_id="atom_pass",
         extracted_facts={"fact_1": "Found"},
         status="PASS",
+        semantic_reasoning="Reasoning",
+        contextual_override=False,
+        structural_location="N/A",
     )
     assert pass_item.calculate_rule_satisfied(inverse_evidence=True) is False
     assert pass_item.calculate_rule_satisfied(inverse_evidence=False) is True
@@ -116,6 +131,9 @@ def test_atom_evaluation_item_dto_strictness() -> None:
         atom_id="atom_fail",
         extracted_facts={"fact_1": "None"},
         status="FAIL",
+        semantic_reasoning="Reasoning",
+        contextual_override=False,
+        structural_location="N/A",
     )
     assert fail_item.calculate_rule_satisfied(inverse_evidence=True) is True
     assert fail_item.calculate_rule_satisfied(inverse_evidence=False) is False
@@ -128,6 +146,10 @@ def test_atom_evaluation_item_dto_accepts_exact_quote() -> None:
     item = AtomEvaluationItemDTO(
         atom_id="atom_123",
         exact_quote="This is an exact quote",
+        status="PASS",
+        semantic_reasoning="Reasoning",
+        contextual_override=False,
+        structural_location="N/A",
     )
     assert item.atom_id == "atom_123"
     assert item.exact_quote == "This is an exact quote"
@@ -137,6 +159,10 @@ def test_atom_evaluation_item_dto_accepts_exact_quote() -> None:
     phantom = AtomEvaluationItemDTO(
         atom_id="atom_123",
         exact_quote="None",
+        status="PASS",
+        semantic_reasoning="Reasoning",
+        contextual_override=False,
+        structural_location="N/A",
     )
     assert phantom.evidence_found is False
 
@@ -176,6 +202,9 @@ def test_atom_evaluation_item_dto_zero_variance_quote_verification() -> None:
         atom_id="atom_1",
         contextual_override=False,
         exact_quote="Megatrendien kooste osoittaa kriisejä",
+        status="PASS",
+        semantic_reasoning="Reasoning",
+        structural_location="N/A",
     )
     context = {"source_text": "Tämä megatrendien kooste osoittaa kriisejä vuonna 2026."}
     validated = AtomEvaluationItemDTO.model_validate(item.model_dump(), context=context)
@@ -186,6 +215,9 @@ def test_atom_evaluation_item_dto_zero_variance_quote_verification() -> None:
         atom_id="atom_2",
         contextual_override=False,
         exact_quote="Megatrendien  kooste-osoittaa\nkriisejä",  # extra space, punctuation, newline
+        status="PASS",
+        semantic_reasoning="Reasoning",
+        structural_location="N/A",
     )
     validated_fuzzy = AtomEvaluationItemDTO.model_validate(item_fuzzy.model_dump(), context=context)
     assert validated_fuzzy.atom_id == "atom_2"
@@ -195,6 +227,9 @@ def test_atom_evaluation_item_dto_zero_variance_quote_verification() -> None:
         atom_id="atom_3",
         contextual_override=False,
         exact_quote="Tätä lausetta ei löydy tekstistä lainkaan",
+        status="PASS",
+        semantic_reasoning="Reasoning",
+        structural_location="N/A",
     )
     with pytest.raises(ValidationError) as exc:
         AtomEvaluationItemDTO.model_validate(item_hallucinated.model_dump(), context=context)
@@ -203,14 +238,16 @@ def test_atom_evaluation_item_dto_zero_variance_quote_verification() -> None:
 
 def test_atom_evaluation_item_dto_anti_laziness_override() -> None:
     """Test anti-laziness constraints on contextual overrides."""
-    # 1. Valid override with long reasoning and spatial location
+    # 1. Valid override with long reasoning and structural location
     item_valid = AtomEvaluationItemDTO(
         atom_id="atom_override_1",
         contextual_override=True,
         semantic_reasoning=(
-            "This is a very long reasoning text that explicitly mentions page 42 "
-            "to satisfy the anti-laziness and spatial referencing rules."
+            "This is a very long reasoning text that explains the rationale "
+            "to satisfy the anti-laziness length requirements."
         ),
+        structural_location="page 42",
+        status="PASS",
     )
     validated = AtomEvaluationItemDTO.model_validate(item_valid.model_dump())
     assert validated.contextual_override is True
@@ -221,20 +258,24 @@ def test_atom_evaluation_item_dto_anti_laziness_override() -> None:
             atom_id="atom_override_2",
             contextual_override=True,
             semantic_reasoning="Too short page 42.",
+            structural_location="page 42",
+            status="PASS",
         )
     assert "at least 50 characters" in str(exc.value)
 
-    # 3. Fails anti-laziness due to missing spatial referencing/anchor
+    # 3. Fails anti-laziness due to missing structural location reference
     with pytest.raises(ValidationError) as exc:
         AtomEvaluationItemDTO(
             atom_id="atom_override_3",
             contextual_override=True,
             semantic_reasoning=(
                 "This is a very long reasoning text that completely lacks "
-                "any spatial referencing or structural location anchors at all."
+                "any structural location anchors at all, so it should fail."
             ),
+            structural_location="N/A",
+            status="PASS",
         )
-    assert "spatial/structural location reference" in str(exc.value)
+    assert "explicit structural_location reference" in str(exc.value)
 
 
 def test_calculate_rule_satisfied_truth_table() -> None:
@@ -244,7 +285,9 @@ def test_calculate_rule_satisfied_truth_table() -> None:
     item = AtomEvaluationItemDTO(
         atom_id="atom_1",
         contextual_override=True,
-        semantic_reasoning="This reasoning is long enough and contains kappale structural reference.",
+        semantic_reasoning="This reasoning is long enough to pass anti-laziness length checks.",
+        structural_location="page 42",
+        status=None,
     )
     assert item.calculate_rule_satisfied(inverse_evidence=False, allow_contextual_override=True) is True
     assert item.calculate_rule_satisfied(inverse_evidence=True, allow_contextual_override=True) is True
@@ -262,7 +305,8 @@ def test_calculate_rule_satisfied_truth_table() -> None:
         atom_id="atom_2",
         status="DLQ",
         contextual_override=True,
-        semantic_reasoning="This reasoning is long enough and contains kappale structural reference.",
+        semantic_reasoning="This reasoning is long enough to pass anti-laziness length checks.",
+        structural_location="page 42",
     )
     # If authorized: returns True
     assert dlq_item.calculate_rule_satisfied(inverse_evidence=False, allow_contextual_override=True) is True
@@ -273,6 +317,10 @@ def test_calculate_rule_satisfied_truth_table() -> None:
     valid_item = AtomEvaluationItemDTO(
         atom_id="atom_3",
         exact_quote="This is a valid quote",
+        status=None,
+        semantic_reasoning="Reasoning",
+        contextual_override=False,
+        structural_location="N/A",
     )
     # If inverse_evidence=False: returns True
     assert valid_item.calculate_rule_satisfied(inverse_evidence=False, allow_contextual_override=False) is True
@@ -283,6 +331,10 @@ def test_calculate_rule_satisfied_truth_table() -> None:
     sentinel_item = AtomEvaluationItemDTO(
         atom_id="atom_4",
         exact_quote="[CONTEXTUAL_OVERRIDE_APPLIED]",
+        status="PASS",
+        semantic_reasoning="Reasoning",
+        contextual_override=False,
+        structural_location="N/A",
     )
     assert sentinel_item.evidence_found is False
 
@@ -325,6 +377,8 @@ def test_calculate_rule_satisfied_truth_table_32(
         contextual_override=llm_override,
         exact_quote=exact_quote,
         semantic_reasoning=semantic_reasoning,
+        structural_location="page 42" if llm_override else "N/A",
+        status=None,
     )
 
     # 3. Calculate the effective System 2 allow override

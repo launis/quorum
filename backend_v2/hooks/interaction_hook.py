@@ -16,6 +16,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO, InteractionInput
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +97,8 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
 
     # 2. Hard Heuristics (Python)
     control_ratio = calculate_control_ratio(chat_log)
-    behavioral_metrics = calculate_behavioral_metrics(chat_log)
+    settings = get_settings()
+    behavioral_metrics = calculate_behavioral_metrics(chat_log, settings)
 
     system_repo = deps.system_repo
     if not system_repo:

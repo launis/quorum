@@ -10,8 +10,10 @@ def get_all_evals(path: str) -> dict[str, dict[str, object]]:
     all_evals: dict[str, dict[str, object]] = {}
     for step in data:
         if 'content' in step and isinstance(step['content'], dict):
-            for e in step['content'].get('evaluations', []):
-                all_evals[e['atom_id']] = e
+            evals = step['content'].get('evaluations')
+            if isinstance(evals, list):
+                for e in evals:
+                    all_evals[e['atom_id']] = e
     return all_evals
 
 def calculate_entropy(states: list[str]) -> float:

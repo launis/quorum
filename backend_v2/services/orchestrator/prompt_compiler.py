@@ -56,6 +56,13 @@ class StrippedBaseTDAExtraction(BaseModel):
             "exact_quote MUST be empty if True."
         )
     )
+    structural_location: str = Field(
+        description=(
+            "Exact structural location (e.g. 'page 3', 'paragraph 2'). Must be in the Localized "
+            "Target Language. If contextual_override is False, you MUST output 'N/A'. "
+            "If contextual_override is True, you MUST provide the concrete location."
+        ),
+    )
     exact_quote: str | None = Field(
         default=None,
         description="Verbatim quote from the original text. MUST be empty if contextual_override is True.",
@@ -505,20 +512,41 @@ class PromptCompiler:
 
             if crit.output_extensions:
                 dynamic_fields: dict[str, Any] = {}
-                # Skip legacy aliases that are natively handled by BaseTDAExtraction fields.
                 core_aliases = {"justification", "citation", "missing_context", "contextual_override"}
+
+                # RCA Fix: Extensions that must be numeric or boolean for downstream
+                # blueprint.py _coerce_float / _coerce_bool to succeed.
+                numeric_extensions = {"confidence"}
+                boolean_extensions = {"risk_flag"}
 
                 for ext in crit.output_extensions:
                     if ext in core_aliases:
                         continue
 
-                    dynamic_fields[ext] = (
-                        str,
-                        Field(
-                            default="",
-                            description=f"Qualitative extension for '{ext}' based on the matrix evaluation.",
-                        ),
-                    )
+                    if ext in numeric_extensions:
+                        dynamic_fields[ext] = (
+                            float,
+                            Field(
+                                default=0.0,
+                                description=f"Numeric score (0.0 to 1.0) for '{ext}'.",
+                            ),
+                        )
+                    elif ext in boolean_extensions:
+                        dynamic_fields[ext] = (
+                            bool,
+                            Field(
+                                default=False,
+                                description=f"Boolean flag for '{ext}'.",
+                            ),
+                        )
+                    else:
+                        dynamic_fields[ext] = (
+                            str,
+                            Field(
+                                default="",
+                                description=f"Qualitative extension for '{ext}' based on the matrix evaluation.",
+                            ),
+                        )
 
                 # Only create dynamic subclass if there are still extensions left
                 if dynamic_fields:

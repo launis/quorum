@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from backend_v2.exceptions import (
     AgentExecutionError,
+    AppException,
     ErrorCodes,
     LLMSchemaValidationError,
     LogicalValidationError,
@@ -79,6 +80,27 @@ class LLMTaskExecutor:
 
         schema_attempts = 0
         logical_attempts = 0
+
+        # --- EMPTY PAYLOAD FAIL-FAST ---
+        # If the user messages contain no meaningful text after stripping XML tags,
+        # we must crash immediately to prevent the LLM from hallucinating an analysis.
+        user_texts = []
+        if isinstance(messages, CompiledPrompt):
+            user_texts = [str(m.get("content", "")) for m in messages.dynamic_messages if m.get("role") == "user"]
+        elif isinstance(messages, list):
+            user_texts = [str(m.get("content", "")) for m in messages if m.get("role") == "user"]
+            
+        total_user_text = "".join(user_texts)
+        if total_user_text:
+            import re
+            stripped_text = re.sub(r"<[^>]+>", "", total_user_text).strip()
+            if len(stripped_text) < 10:
+                logger.error("Fail-Fast: Task payload is suspiciously empty or short. Aborting to prevent hallucinations.")
+                raise AppException(
+                    message="Fail-Fast: Task payload is empty or too short. Nothing to analyze.",
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED}
+                )
 
         # Max loop is the sum of both budgets + 1 (the initial attempt)
         max_total_attempts = max_schema_retries + max_logical_retries + 1

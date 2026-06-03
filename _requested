@@ -1,0 +1,20 @@
+[1mdiff --git a/backend_v2/hooks/synthesis.py b/backend_v2/hooks/synthesis.py[m
+[1mindex 1ea0830d..98625da9 100644[m
+[1m--- a/backend_v2/hooks/synthesis.py[m
+[1m+++ b/backend_v2/hooks/synthesis.py[m
+[36m@@ -499,7 +499,14 @@[m [masync def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H[m
+         if not is_requested:[m
+             if not is_wildcard:[m
+                 continue[m
+[31m-            if step_dto and step_dto.reasoning_trace is None:[m
+[32m+[m[32m            # V2 Hardening: We MUST preserve raw_inputs and inputs step outputs, as they hold[m
+[32m+[m[32m            # the user's source text (product_text, chat_log) necessary for synthesis.[m
+[32m+[m[32m            is_source_input = ([m
+[32m+[m[32m                step_dto_obj.data_type in ("text", "unknown")[m
+[32m+[m[32m                and isinstance(step_data, dict)[m
+[32m+[m[32m                and ("product_text" in step_data or "chat_log" in step_data or "dynamic_inputs" in step_data)[m
+[32m+[m[32m            )[m
+[32m+[m[32m            if not is_source_input and step_dto and step_dto.reasoning_trace is None:[m
+                 is_matrix_or_ext = False[m
+                 for m_id in matrix_step_ids:[m
+                     if str(step_id) == m_id or str(step_id).startswith(f"{m_id}_"):[m

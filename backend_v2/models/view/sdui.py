@@ -89,7 +89,7 @@ class EvidenceItem(V2CoreBase):
     id: StrictStr
     source: StrictStr
     content: StrictStr
-    score: float | None
+    score: float | None = None
     type: StrictStr
 
 
@@ -246,24 +246,24 @@ class ToulminDisplay(V2CoreBase):
 class LogicAnalysisDisplay(V2CoreBase):
     """Server-Driven UI Data for Logic Analysis Section."""
 
-    bloom_score: float | None
-    bloom_percent: float | None
-    bloom_label_key: str | None
-    bloom_help: str | None
-    strategic_score: float | None
-    strategic_score_display: str | None
-    strategic_percent: float | None
-    strategic_percent_display: str | None
-    strategic_label_key: str | None
-    strategic_help: str | None
-    toulmin_score: float | None
-    toulmin_percent: float | None
-    toulmin_help: str | None
-    quadrant_key: str | None
-    quadrant_label_key: str | None
-    position_label: str | None
-    bloom_level_raw: str | None
-    strategic_depth_raw: str | None
+    bloom_score: float | None = None
+    bloom_percent: float | None = None
+    bloom_label_key: str | None = None
+    bloom_help: str | None = None
+    strategic_score: float | None = None
+    strategic_score_display: str | None = None
+    strategic_percent: float | None = None
+    strategic_percent_display: str | None = None
+    strategic_label_key: str | None = None
+    strategic_help: str | None = None
+    toulmin_score: float | None = None
+    toulmin_percent: float | None = None
+    toulmin_help: str | None = None
+    quadrant_key: str | None = None
+    quadrant_label_key: str | None = None
+    position_label: str | None = None
+    bloom_level_raw: str | None = None
+    strategic_depth_raw: str | None = None
     arguments: list[ToulminDisplay]
 
 
@@ -278,31 +278,31 @@ class HeuristicDisplay(V2CoreBase):
 class PerformativityDisplay(V2CoreBase):
     """Server-Driven UI Data for Performativity Check."""
 
-    authenticity_score: float | None
-    authenticity_percent: float | None
-    authenticity_assessment: str | None
-    authenticity_help: str | None
+    authenticity_score: float | None = None
+    authenticity_percent: float | None = None
+    authenticity_assessment: str | None = None
+    authenticity_help: str | None = None
     heuristics: list[HeuristicDisplay]
 
 
 class CausalDisplay(V2CoreBase):
     """Server-Driven UI Data for Causal Analysis and counterfactual simulation."""
 
-    abductive_score: float | None
+    abductive_score: float | None = None
     abductive_score_display: str | None = None
-    abductive_percent: float | None
+    abductive_percent: float | None = None
     abductive_percent_display: str | None = None
-    abductive_conclusion: str | None
-    abductive_help: str | None
-    plausibility_score: float | None
+    abductive_conclusion: str | None = None
+    abductive_help: str | None = None
+    plausibility_score: float | None = None
     plausibility_score_display: str | None = None
-    plausibility_percent: float | None
+    plausibility_percent: float | None = None
     plausibility_percent_display: str | None = None
-    plausibility_label: str | None
-    counterfactual_actual: str | None
-    counterfactual_simulated: str | None
-    observation: str | None
-    hypothesis: str | None
+    plausibility_label: str | None = None
+    counterfactual_actual: str | None = None
+    counterfactual_simulated: str | None = None
+    observation: str | None = None
+    hypothesis: str | None = None
     score: float | None = None
     verdict: str | None = None
 
@@ -310,25 +310,25 @@ class CausalDisplay(V2CoreBase):
 class VerifiedFactDisplay(V2CoreBase):
     """Strict View Model for a Verified Fact."""
 
-    claim: str | None
-    source: str | None
+    claim: str | None = None
+    source: str | None = None
     color: str
     label_key: str
-    label: str | None
-    verification_result: str | None
-    is_verified: bool | None
+    label: str | None = None
+    verification_result: str | None = None
+    is_verified: bool | None = None
 
 
 class EthicalIssueDisplay(V2CoreBase):
     """Strict View Model for an Ethical Issue detected in context."""
 
-    issue_type: str | None
-    description: str | None
+    issue_type: str | None = None
+    description: str | None = None
     color: str
     label_key: str
-    label: str | None
+    label: str | None = None
     is_critical: bool
-    severity: str | None
+    severity: str | None = None
 
 
 class FactCheckDisplay(V2CoreBase):
@@ -368,7 +368,7 @@ class FidelityAudit(V2CoreBase):
     """Strict View Model for Fidelity Audit."""
 
     fidelity_score_display: str
-    fidelity_percent: float | None
+    fidelity_percent: float | None = None
     fidelity_label: str
     post_hoc_rationalization_suspected: bool
     reasoning: str
@@ -377,30 +377,30 @@ class FidelityAudit(V2CoreBase):
 class StressTestDisplay(V2CoreBase):
     """Server-Driven UI Data for Stress Test / Falsifier."""
 
-    fidelity_audit: FidelityAudit | None
-    fidelity_help: str | None
-    abductive_score: float | None
-    abductive_percent: float | None
-    abductive_conclusion: str | None
-    abductive_help: str | None
-    counterfactual_actual: str | None
-    counterfactual_simulated: str | None
-    plausibility_score: float | None
-    plausibility_percent: float | None
+    fidelity_audit: FidelityAudit | None = None
+    fidelity_help: str | None = None
+    abductive_score: float | None = None
+    abductive_percent: float | None = None
+    abductive_conclusion: str | None = None
+    abductive_help: str | None = None
+    counterfactual_actual: str | None = None
+    counterfactual_simulated: str | None = None
+    plausibility_score: float | None = None
+    plausibility_percent: float | None = None
     plausibility_display: str | None = None
-    plausibility_help: str | None
+    plausibility_help: str | None = None
     findings: list[StressFindingDisplay]
 
 
 class ProfilerDisplay(V2CoreBase):
     """Server-Driven UI for Profiler Analysis."""
 
-    control_ratio_percent: float | None
-    control_label_key: str | None
-    control_help: str | None
+    control_ratio_percent: float | None = None
+    control_label_key: str | None = None
+    control_help: str | None = None
     word_count: int
     word_count_display: str | None = None
-    word_count_help: str | None
+    word_count_help: str | None = None
     avg_sentence_length: float
     avg_sentence_length_display: str | None = None
     lexical_diversity: float
@@ -411,17 +411,17 @@ class ProfilerDisplay(V2CoreBase):
     automation_bias_color: str
     say_do_gap_label: str
     say_do_gap_color: str
-    psychological_profile: str | None
-    intent_analysis: str | None
+    psychological_profile: str | None = None
+    intent_analysis: str | None = None
 
 
 class ArchivistDisplay(V2CoreBase):
     """Server-Driven UI for Archivist Check."""
 
-    compliance_score: float | None
+    compliance_score: float | None = None
     compliance_score_display: str | None = None
-    compliance_analysis: str | None
-    compliance_help: str | None
+    compliance_analysis: str | None = None
+    compliance_help: str | None = None
     recommendations: list[str]
 
 

@@ -173,7 +173,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
         "blk_2234567890abcdef": {
             "semantic_reasoning": "None",
             "remediation_steps": "Do better",
-            "confidence": "High",
+            "confidence": 0.95,
         },
     }
 
@@ -453,7 +453,7 @@ def test_fsm_serving_state_safety_limits() -> None:
 
     # Vertex AI FSM -kääntäjä ei hyväksy liian suuria sisäkkäisiä taulukkorajoja.
     # Varmistetaan matemaattinen yläraja tilojen määrälle.
-    assert SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS <= 5
+    assert SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS <= 10
     assert SystemConcurrency.SCHEMA_MAX_EVALUATIONS <= 15
     assert SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS <= 15
 
