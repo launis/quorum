@@ -35,7 +35,7 @@ from backend_v2.models.v2_core import (
 )
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
-from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
@@ -91,7 +91,7 @@ async def evaluate_chunk_job(
             user_payload = f"Error reading file: {e}"
 
     # Reconstruct primitives into objects
-    compiler = PromptCompiler()
+    compiler = PromptCompilerAdapter()
     criteria_blocks = [PromptBlock.model_validate(cb) for cb in criteria_blocks_dump]
 
     # Mock a chunk object matching what ChunkWorker expects
@@ -801,7 +801,7 @@ async def startup(ctx: Any) -> None:
     # Note: LLMClient is usually stateless or singleton, but good to init here.
 
     # 3. Initialize DAGExecutor (V2 SSOT Enforcer)
-    compiler = PromptCompiler()
+    compiler = PromptCompilerAdapter()
     engine = DAGExecutor(
         exec_repo=repository,
         workflow_repo=repository,

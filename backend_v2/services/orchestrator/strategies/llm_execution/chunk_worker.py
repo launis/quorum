@@ -10,6 +10,7 @@ from backend_v2.exceptions import AppException, ErrorCodes, LLMSchemaValidationE
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import SystemConcurrency
+from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -103,12 +104,13 @@ class ChunkWorker:
         async with sem:
             if running_event is not None and not running_event.is_set():
                 running_event.set()
-            local_payload = user_payload
             chunk_criteria = list(criteria_blocks)
 
+            # V3 Cache Fix: Separate atoms from base payload
+            chunk_atoms_xml: str | None = None
             if chunk is not None:
                 atoms_json = json.dumps(chunk.items, ensure_ascii=False, indent=2)
-                local_payload += f"\n\n<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>\n"
+                chunk_atoms_xml = f"<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>"
 
                 # Apply Chunk context subsetting
                 if has_shuffled_atoms:
@@ -134,13 +136,7 @@ class ChunkWorker:
                         if bm.category_id != "matrix" or bm.id in chunk_matrix_ids:
                             chunk_criteria.append(bm)
 
-            # Dynamically build system prompt and schema for this chunk
-            local_xml_rubrics = compiler.compile_xml_rubrics(chunk_criteria, target_locale)
-
-            local_system_prompt = base_system_prompt
-            if local_xml_rubrics:
-                local_system_prompt += f"\n\n{local_xml_rubrics}"
-
+            # V3: Build dynamic schema for this chunk's criteria subset
             local_dynamic_schema = compiler.build_dynamic_schema(
                 schema_name=f"Step_{step_id}_Response",
                 criteria=chunk_criteria,
@@ -149,25 +145,17 @@ class ChunkWorker:
                 target_locale=target_locale,
             )
 
-            strictness_instruction = compiler.calibrate_strictness(strictness_level)
-            language_mandate = compiler.get_critical_language_mandate(target_locale)
-
-            user_msg = (
-                f"<source_data>\n{local_payload}\n</source_data>\n\n"
-                f"<execution_parameters>\n"
-                f"<STRICTNESS_CALIBRATION>\n{strictness_instruction}\n</STRICTNESS_CALIBRATION>\n"
-                f"{language_mandate}\n"
-                f"</execution_parameters>\n\n"
-                f"<task>Analyze the provided <source_data> and execute the extraction "
-                f"strictly according to instructions.</task>"
-            )
-
             persona = chunk_criteria[0].execution_persona if chunk_criteria else None
 
-            messages = [
-                {"role": "system", "content": local_system_prompt},
-                {"role": "user", "content": user_msg},
-            ]
+            # V3 Cache Fix: Use CompiledPrompt with separated static/dynamic tiers
+            compiled_prompt = compiler.compile_chunk_prompt(
+                base_system_prompt=base_system_prompt,
+                chunk_criteria=chunk_criteria,
+                base_payload=user_payload,
+                chunk_atoms_xml=chunk_atoms_xml,
+                strictness_level=strictness_level,
+                target_locale=target_locale,
+            )
 
             chunk_final: dict[str, Any] = {}
             chunk_usage: TokenUsage | None = None
@@ -179,7 +167,7 @@ class ChunkWorker:
                     loop_res = await execute_tool_loop(
                         llm_client=bound_client,
                         executor=executor,
-                        messages=messages,
+                        messages=compiled_prompt.to_flat_messages(),
                         response_model=local_dynamic_schema,
                         allowed_tools=effective_mcp_tools,
                         step_name=step_id,
@@ -188,7 +176,7 @@ class ChunkWorker:
                         synthesis_instructions=synthesis_instructions,
                         validation_context={
                             "strictness_level": strictness_level,
-                            "source_text": local_payload,
+                            "source_text": user_payload,
                             "persona": persona,
                             "estimated_token_count": step_metadata.get("estimated_token_count", 0)
                             if step_metadata
@@ -244,8 +232,9 @@ class ChunkWorker:
                     llm_count = 3 if is_ensemble_step else 1
 
                     async def run_llm_calls(
-                        msgs: list[dict[str, Any]], model_schema: type[BaseModel], count: int
+                        prompt: CompiledPrompt, model_schema: type[BaseModel], count: int
                     ) -> tuple[list[dict[str, Any]], TokenUsage]:
+                        """Execute LLM calls using native CompiledPrompt architecture."""
                         results_list = []
                         total_usage = TokenUsage()
                         if count == 3:
@@ -255,14 +244,14 @@ class ChunkWorker:
                                     t_task = tg.create_task(
                                         executor.execute_structured_task(
                                             client=bound_client,
-                                            messages=msgs,
+                                            messages=prompt,
                                             response_model=model_schema,
                                             mock_identity=step_id,
                                             max_schema_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
                                             max_logical_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
                                             validation_context={
                                                 "strictness_level": strictness_level,
-                                                "source_text": local_payload,
+                                                "source_text": user_payload,
                                                 "persona": persona,
                                                 "estimated_token_count": step_metadata.get("estimated_token_count", 0)
                                                 if step_metadata
@@ -279,14 +268,14 @@ class ChunkWorker:
                         else:
                             res, usg = await executor.execute_structured_task(
                                 client=bound_client,
-                                messages=msgs,
+                                messages=prompt,
                                 response_model=model_schema,
                                 mock_identity=step_id,
                                 max_schema_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
                                 max_logical_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
                                 validation_context={
                                     "strictness_level": strictness_level,
-                                    "source_text": local_payload,
+                                    "source_text": user_payload,
                                     "persona": persona,
                                     "estimated_token_count": step_metadata.get("estimated_token_count", 0)
                                     if step_metadata
@@ -360,29 +349,40 @@ class ChunkWorker:
                         return merged
 
                     if has_negative_rule:
+                        # V3: Falsification passes via model_copy instead of deepcopy
                         # Milestone 3 Pass 1: Presence Detection
-                        messages_1 = copy.deepcopy(messages)
-                        messages_1[1]["content"] += (
+                        falsification_1 = (
                             "\n\n<DECOUPLED_FALSIFICATION_PASS>\n"
                             "PRESENCE_DETECTION: Focus on finding any positive occurrence, "
                             "claim, or presence of the target concepts (e.g. X is present). "
                             "Do not look for exceptions or limits.\n"
                             "</DECOUPLED_FALSIFICATION_PASS>"
                         )
+                        new_dynamic_1 = [dict(m) for m in compiled_prompt.dynamic_messages]
+                        new_dynamic_1[-1] = {
+                            **new_dynamic_1[-1],
+                            "content": new_dynamic_1[-1]["content"] + falsification_1,
+                        }
+                        compiled_prompt_1 = compiled_prompt.model_copy(update={"dynamic_messages": new_dynamic_1})
 
                         # Milestone 3 Pass 2: Exception Detection
-                        messages_2 = copy.deepcopy(messages)
-                        messages_2[1]["content"] += (
+                        falsification_2 = (
                             "\n\n<DECOUPLED_FALSIFICATION_PASS>\n"
                             "EXCEPTION_DETECTION: Focus exclusively on finding any exceptions, "
                             "caveats, limits, or mitigating statements that justify or permit "
                             "the target concepts. If none are found, exact_quote MUST be null.\n"
                             "</DECOUPLED_FALSIFICATION_PASS>"
                         )
+                        new_dynamic_2 = [dict(m) for m in compiled_prompt.dynamic_messages]
+                        new_dynamic_2[-1] = {
+                            **new_dynamic_2[-1],
+                            "content": new_dynamic_2[-1]["content"] + falsification_2,
+                        }
+                        compiled_prompt_2 = compiled_prompt.model_copy(update={"dynamic_messages": new_dynamic_2})
 
-                        # Execute
-                        res_list_1, usage1 = await run_llm_calls(messages_1, local_dynamic_schema, llm_count)
-                        res_list_2, usage2 = await run_llm_calls(messages_2, local_dynamic_schema, llm_count)
+                        # Execute with CompiledPrompt architecture
+                        res_list_1, usage1 = await run_llm_calls(compiled_prompt_1, local_dynamic_schema, llm_count)
+                        res_list_2, usage2 = await run_llm_calls(compiled_prompt_2, local_dynamic_schema, llm_count)
 
                         chunk_final = resolve_majority_vote(res_list_1, has_shuffled_atoms, chunk_criteria)
                         chunk_final_2 = resolve_majority_vote(res_list_2, has_shuffled_atoms, chunk_criteria)
@@ -393,7 +393,7 @@ class ChunkWorker:
                             if (output_profile is not None and not criteria_blocks)
                             else local_dynamic_schema
                         )
-                        res_list, chunk_usage = await run_llm_calls(messages, target_schema, llm_count)
+                        res_list, chunk_usage = await run_llm_calls(compiled_prompt, target_schema, llm_count)
                         chunk_final = resolve_majority_vote(res_list, has_shuffled_atoms, chunk_criteria)
 
                     # Step 4: Map-Merge Orchestration & Trace Continuity Injection
@@ -407,7 +407,7 @@ class ChunkWorker:
                                 contextual_override=atom_data["contextual_override"],
                                 semantic_reasoning=atom_data.get("semantic_reasoning", ""),
                             )
-                            status1 = evaluate_extraction(temp_atom1, local_payload, False)
+                            status1 = evaluate_extraction(temp_atom1, user_payload, False)
 
                             if has_negative_rule and "evaluations" in chunk_final_2:
                                 atom_data2 = next(
@@ -419,7 +419,7 @@ class ChunkWorker:
                                         contextual_override=atom_data2["contextual_override"],
                                         semantic_reasoning=atom_data2.get("semantic_reasoning", ""),
                                     )
-                                    status2 = evaluate_extraction(temp_atom2, local_payload, False)
+                                    status2 = evaluate_extraction(temp_atom2, user_payload, False)
 
                                     if status1 == "PASS" and status2 != "PASS":
                                         status = "PASS"
@@ -476,7 +476,7 @@ class ChunkWorker:
                                     contextual_override=block_data["contextual_override"],
                                     semantic_reasoning=block_data.get("semantic_reasoning", ""),
                                 )
-                                status1 = evaluate_extraction(temp_block1, local_payload, False)
+                                status1 = evaluate_extraction(temp_block1, user_payload, False)
 
                                 if is_negative_rule and has_negative_rule and crit.id in chunk_final_2:
                                     block_data2 = chunk_final_2[crit.id]
@@ -485,7 +485,7 @@ class ChunkWorker:
                                         contextual_override=block_data2["contextual_override"],
                                         semantic_reasoning=block_data2.get("semantic_reasoning", ""),
                                     )
-                                    status2 = evaluate_extraction(temp_block2, local_payload, False)
+                                    status2 = evaluate_extraction(temp_block2, user_payload, False)
 
                                     if status1 == "PASS" and status2 != "PASS":
                                         status = "PASS"
@@ -512,7 +512,7 @@ class ChunkWorker:
                                                 f"{block_data['semantic_reasoning']}"
                                             )
                                 else:
-                                    status = evaluate_extraction(temp_block1, local_payload, is_negative_rule)
+                                    status = evaluate_extraction(temp_block1, user_payload, is_negative_rule)
                                     block_data["status"] = status
 
                                 sr = block_data["semantic_reasoning"]

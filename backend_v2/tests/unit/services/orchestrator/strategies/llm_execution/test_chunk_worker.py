@@ -116,8 +116,8 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
     assert usage.completion_tokens == 5
     assert traces == []
 
-    # Check compiler was called correctly
-    mock_compiler.compile_xml_rubrics.assert_called_once()
+    # V3: ChunkWorker delegates to compile_chunk_prompt (which internally calls compile_xml_rubrics)
+    mock_compiler.compile_chunk_prompt.assert_called_once()
     mock_compiler.build_dynamic_schema.assert_called_once()
 
     # Check that client was called with correct arguments

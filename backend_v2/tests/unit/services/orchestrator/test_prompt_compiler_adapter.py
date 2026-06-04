@@ -61,7 +61,7 @@ def test_prompt_compiler_adapter_compile_chunk_prompt() -> None:
     prompt = adapter.compile_chunk_prompt(
         base_system_prompt="Analyze this text.",
         chunk_criteria=[mock_block],
-        local_payload="Verbatim source doc.",
+        base_payload="Verbatim source doc.",
         strictness_level=85,
         target_locale="en",
         previous_errors=["Syntax Error 1"],
@@ -71,13 +71,16 @@ def test_prompt_compiler_adapter_compile_chunk_prompt() -> None:
     assert len(prompt.static_messages) == 2
     assert prompt.static_messages[0]["role"] == "system"
     assert "Analyze this text." in prompt.static_messages[0]["content"]
-    assert "EVALUATION_RUBRICS" in prompt.static_messages[0]["content"]
+    # V3: Rubrics are in dynamic tier, NOT in static system message
+    assert "EVALUATION_RUBRICS" not in prompt.static_messages[0]["content"]
 
     assert prompt.static_messages[1]["role"] == "user"
     assert "<source_data>\nVerbatim source doc.\n</source_data>" in prompt.static_messages[1]["content"]
 
     assert len(prompt.dynamic_messages) == 1
     assert prompt.dynamic_messages[0]["role"] == "user"
+    # V3: Rubrics, strictness, and errors are all in dynamic tier
+    assert "<evaluation_criteria>" in prompt.dynamic_messages[0]["content"]
     assert "<STRICTNESS_CALIBRATION>" in prompt.dynamic_messages[0]["content"]
     assert "<PREVIOUS_SCHEMA_ERROR>" in prompt.dynamic_messages[0]["content"]
 
@@ -181,7 +184,7 @@ def test_prompt_caching_cryptographic_determinism_proof() -> None:
         prompt = adapter.compile_chunk_prompt(
             base_system_prompt=static_system,
             chunk_criteria=static_criteria,
-            local_payload=static_source_text,
+            base_payload=static_source_text,
             strictness_level=strictness,
             target_locale=lang,
             previous_errors=errors,
@@ -192,9 +195,9 @@ def test_prompt_caching_cryptographic_determinism_proof() -> None:
         sha256_hash = hashlib.sha256(static_str.encode("utf-8")).hexdigest()
         hashes.append(sha256_hash)
 
-        # Log details to demonstrate variability in the dynamic segment
+        # V3: Dynamic tier contains rubrics, strictness, and errors
         assert len(prompt.dynamic_messages) == 1
-        assert str(strictness) in prompt.dynamic_messages[0]["content"]
+        assert "<evaluation_criteria>" in prompt.dynamic_messages[0]["content"]
 
     # Mathematically prove that all 10 runs produced the exact same static hash!
     first_hash = hashes[0]

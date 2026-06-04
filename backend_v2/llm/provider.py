@@ -387,6 +387,23 @@ class LiteLLMProvider(LLMProvider):
                 # Direct keyword argument mapping for LiteLLM completion
                 call_kwargs["cached_content"] = cache_id
 
+                # CRITICAL GCP CACHING RULE:
+                # If cached_content is provided, we MUST NOT send system instructions or tools.
+                call_kwargs.pop("tools", None)
+                call_kwargs.pop("tool_choice", None)
+
+                # V3 Cache Fix: Diagnostic guard replacing blind system scrubber
+                if "messages" in call_kwargs:
+                    system_msgs = [m for m in call_kwargs["messages"] if m.get("role") == "system"]
+                    if system_msgs:
+                        logger.critical(
+                            "ARCHITECTURE VIOLATION: %d system message(s) detected in cached payload. "
+                            "Scrubbing defensively to prevent Google 400. "
+                            "This indicates a CompiledPrompt construction defect.",
+                            len(system_msgs),
+                        )
+                        call_kwargs["messages"] = [m for m in call_kwargs["messages"] if m.get("role") != "system"]
+
             # Inject dynamic extra params from config (additional_params) resolved via env vars
             if self._config and self._config.additional_params:
                 resolved_additional = resolve_env_variables(self._config.additional_params)

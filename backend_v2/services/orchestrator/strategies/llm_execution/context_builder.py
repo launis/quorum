@@ -7,7 +7,7 @@ from typing import Any
 from backend_v2.exceptions import AppException, ErrorCodes, TokenLimitExceededError
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.services.orchestrator.context_router import ContextRouter
-from backend_v2.utils.dict_utils import resolve_dot_notation
+from backend_v2.utils.dict_utils import compress_anchors, resolve_dot_notation
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,8 @@ class ContextBuilder:
             case "MATRIX":
                 pass
             case _:
-                return {d.block_id: d.payload for d in dtos}
+                raw = {d.block_id: d.payload for d in dtos}
+                return {k: ContextBuilder._project_compressed(v) for k, v in raw.items()}
 
         pruned_step_output: dict[str, Any] = {}
         for dto in dtos:
@@ -96,6 +97,35 @@ class ContextBuilder:
                         pruned_step_output[key] = value
 
         return pruned_step_output
+
+    @staticmethod
+    def _project_compressed(obj: Any) -> Any:
+        """Build a compressed projection without deep copying.
+
+        Uses Immutable Projection pattern: creates new containers only at
+        modified nodes, shares immutable leaf values (str, int, float, bool, None)
+        by reference. Original payload is never mutated. No GIL-blocking deepcopy.
+
+        Args:
+            obj: Dictionary, list, or primitive to project.
+
+        Returns:
+            New compressed structure sharing immutable leaves with original.
+        """
+        if isinstance(obj, dict):
+            result: dict[str, Any] = {}
+            for k, v in obj.items():
+                if k in ("post_quote_anchor", "shuffled_atoms"):
+                    continue
+                if k == "localized_anchors_found" and isinstance(v, list):
+                    result[k] = compress_anchors(v)
+                else:
+                    result[k] = ContextBuilder._project_compressed(v)
+            return result
+        elif isinstance(obj, list):
+            return [ContextBuilder._project_compressed(item) for item in obj]
+        else:
+            return obj  # str/int/float/bool/None — immutable, share reference
 
     @staticmethod
     def apply_spatial_slicing(text: str, criteria_blocks: list[Any] | None) -> str:

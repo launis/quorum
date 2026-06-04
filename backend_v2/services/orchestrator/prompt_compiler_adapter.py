@@ -24,49 +24,58 @@ class PromptCompilerAdapter:
         self,
         base_system_prompt: str,
         chunk_criteria: list[PromptBlock],
-        local_payload: str,
+        base_payload: str,
         strictness_level: int,
         target_locale: str,
+        chunk_atoms_xml: str | None = None,
         task_instruction: str = (
             "Analyze the provided <source_data> and execute the extraction strictly according to instructions."
         ),
         previous_errors: list[str] | None = None,
     ) -> CompiledPrompt:
-        """Natively compiles static and dynamic components into CompiledPrompt without regex splitting."""
-        # 1. Compile System Prompt (Static Segment)
+        """Compile static and dynamic message tiers with V3 cache-safe separation.
+
+        Static tier contains globally identical content (system prompt + base document).
+        Dynamic tier contains per-chunk/per-retry content (rubrics, atoms, params, errors).
+        """
+        # V3 Static Tier: System prompt (base only, no rubrics) + source document
+        static_messages = [
+            {"role": "system", "content": base_system_prompt.strip()},
+            {"role": "user", "content": f"<source_data>\n{base_payload}\n</source_data>"},
+        ]
+
+        # V3 Dynamic Tier: Everything that varies per chunk or retry
+        dynamic_parts = []
+
+        # 1. Chunk-specific rubrics (vary per chunk when atom subsets differ)
         local_xml_rubrics = self.compile_xml_rubrics(chunk_criteria, target_locale)
-        system_content = base_system_prompt
         if local_xml_rubrics:
-            system_content += f"\n\n{local_xml_rubrics}"
+            dynamic_parts.append(f"<evaluation_criteria>\n{local_xml_rubrics}\n</evaluation_criteria>")
 
-        # 2. Compile User Prompt Static Part
-        static_user_content = f"<source_data>\n{local_payload}\n</source_data>\n\n<task>{task_instruction}</task>"
+        # 2. Chunk-specific atoms (NOT cacheable)
+        if chunk_atoms_xml:
+            dynamic_parts.append(chunk_atoms_xml)
 
-        # 3. Compile User Prompt Dynamic Part
+        # 3. Task instruction
+        dynamic_parts.append(f"<task>{task_instruction}</task>")
+
+        # 4. Execution parameters (strictness + language)
         strictness_instruction = self.calibrate_strictness(strictness_level)
         language_mandate = self.get_critical_language_mandate(target_locale)
-
-        dynamic_user_content = (
+        dynamic_parts.append(
             f"<execution_parameters>\n"
             f"<STRICTNESS_CALIBRATION>\n{strictness_instruction}\n</STRICTNESS_CALIBRATION>\n"
             f"{language_mandate}\n"
             f"</execution_parameters>"
         )
 
-        # Append previous healing errors at the end of the dynamic block
+        # 5. Healing errors (if retrying)
         if previous_errors:
-            error_blocks = []
             for err in previous_errors:
-                error_blocks.append(f"<PREVIOUS_SCHEMA_ERROR>\n{err}\n</PREVIOUS_SCHEMA_ERROR>")
-            dynamic_user_content += "\n\n" + "\n\n".join(error_blocks)
-
-        static_messages = [
-            {"role": "system", "content": system_content.strip()},
-            {"role": "user", "content": static_user_content.strip()},
-        ]
+                dynamic_parts.append(f"<PREVIOUS_SCHEMA_ERROR>\n{err}\n</PREVIOUS_SCHEMA_ERROR>")
 
         dynamic_messages = [
-            {"role": "user", "content": dynamic_user_content.strip()},
+            {"role": "user", "content": "\n\n".join(dynamic_parts).strip()},
         ]
 
         return CompiledPrompt(

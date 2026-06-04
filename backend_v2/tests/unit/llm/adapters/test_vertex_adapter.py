@@ -75,7 +75,7 @@ def test_lazy_import_proof() -> None:
 
 @pytest.mark.asyncio
 async def test_vertex_adapter_preparer_bypass() -> None:
-    """Verify Vertex adapter bypasses caching for small prompts under 130,000 chars."""
+    """Verify Vertex adapter bypasses caching for small prompts under 8,000 chars."""
     adapter = VertexCacheAdapter()
 
     prompt = CompiledPrompt(
@@ -248,7 +248,7 @@ async def test_vertex_fail_soft_gcp_error() -> None:
 
 @pytest.mark.asyncio
 async def test_vertex_adapter_caching_payload_formatting() -> None:
-    """Verify that CompiledPrompt is correctly formatted for Vertex SDK CachedContent.create."""
+    """Verify V3: Only static_messages are uploaded to GCP cache; dynamic_messages are returned as live payload."""
     mock_cached_contents.CachedContent.create.reset_mock()
     mock_cached_contents.CachedContent.create.side_effect = None
 
@@ -261,10 +261,10 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
     prompt = CompiledPrompt(
         static_messages=[
             {"role": "system", "content": large_static},
+            {"role": "user", "content": "<source_data>Base document content</source_data>"},
         ],
         dynamic_messages=[
-            {"role": "user", "content": "Query"},
-            {"role": "assistant", "content": "Assistant answer"},
+            {"role": "user", "content": "<evaluation_criteria>Rubrics</evaluation_criteria>"},
         ],
     )
 
@@ -275,20 +275,28 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
     lock_key = f"lock:vertex_cache:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
 
-    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+    returned_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
 
     assert extra_kwargs == {"cached_content": "projects/mock-proj/locations/europe-north1/cachedContents/formatted-cache-99"}
     assert mock_cached_contents.CachedContent.create.call_count == 1
 
-    # Retrieve arguments passed to create
+    # V3: Returned messages are dynamic-only (rubrics, atoms, params)
+    assert returned_msgs == prompt.to_dynamic_flat()
+    assert any("<evaluation_criteria>" in str(m.get("content", "")) for m in returned_msgs)
+    # V3: Static source_data must NOT be in returned messages
+    assert not any("<source_data>" in str(m.get("content", "")) for m in returned_msgs)
+
+    # Retrieve arguments passed to GCP CachedContent.create
     _, kwargs = mock_cached_contents.CachedContent.create.call_args
     passed_contents = kwargs["contents"]
 
-    # Verify the structure has role and parts (no content field) and assistant is model
+    # V3: Only static user content uploaded (system extracted to system_instruction)
     assert isinstance(passed_contents, list)
-    assert len(passed_contents) == 3
+    assert len(passed_contents) == 1
+    assert passed_contents[0] == {"role": "user", "parts": [{"text": "<source_data>Base document content</source_data>"}]}
 
-    assert passed_contents[0] == {"role": "system", "parts": [{"text": large_static}]}
-    assert passed_contents[1] == {"role": "user", "parts": [{"text": "Query"}]}
-    assert passed_contents[2] == {"role": "model", "parts": [{"text": "Assistant answer"}]}
+    # Verify system message was extracted to system_instruction
+    assert "system_instruction" in kwargs
+    assert kwargs["system_instruction"] == large_static
+
 

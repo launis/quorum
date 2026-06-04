@@ -247,6 +247,43 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
     assert step1["nested"]["keep_me"] is True
 
 
+def test_compress_synthesis_strips_heavy_anchors() -> None:
+    """Verify that _compress_synthesis_payload compresses localized_anchors_found and strips post_quote_anchor."""
+    import json
+
+    payload = {
+        "step_1": {
+            "exact_quote": "This must survive",
+            "semantic_reasoning": "So must this",
+            "localized_anchors_found": [
+                "anchor_one",
+                "anchor_two",
+                "anchor_three_is_the_longest_by_far",
+                "anchor_four",
+                "anchor_five",
+            ],
+            "post_quote_anchor": "should be removed",
+        }
+    }
+
+    compressed_str = _compress_synthesis_payload(payload)
+    compressed = json.loads(compressed_str)
+    step1 = compressed["step_1"]
+
+    # Anchor compression: 5 anchors → 2-element hybrid signal
+    assert "localized_anchors_found" in step1
+    assert len(step1["localized_anchors_found"]) == 2
+    assert "anchor_three_is_the_longest_by_far" in step1["localized_anchors_found"][0]
+    assert step1["localized_anchors_found"][1] == "[+4 additional anchors found]"
+
+    # post_quote_anchor must be stripped
+    assert "post_quote_anchor" not in step1
+
+    # Critical fields must survive
+    assert step1["exact_quote"] == "This must survive"
+    assert step1["semantic_reasoning"] == "So must this"
+
+
 def test_build_title_map() -> None:
     """Test that _build_title_map successfully resolves localized Step and Input names."""
     from backend_v2.models.v2_core import I18nText, Step, Workflow

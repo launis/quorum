@@ -120,10 +120,11 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     total_static_chars += len(str(content))
             estimated_token_count = total_static_chars // 4
 
-        if estimated_token_count < 32768:
+        if estimated_token_count < SystemConcurrency.CONTEXT_CACHE_MINIMUM_TOKEN_LIMIT.value:
             logger.info(
-                "Vertex AI caching bypassed: Token Proxy Score %d is below threshold 32768",
+                "Vertex AI caching bypassed: Token Proxy Score %d is below threshold %d",
                 estimated_token_count,
+                SystemConcurrency.CONTEXT_CACHE_MINIMUM_TOKEN_LIMIT.value,
             )
             return compiled_prompt.to_flat_messages(), {}
 
@@ -149,7 +150,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     "Vertex AI Cache Hit in shared ledger: %s",
                     cache_id,
                 )
-                return compiled_prompt.to_flat_messages(), {"cached_content": cache_id}
+                return compiled_prompt.to_dynamic_flat(), {"cached_content": cache_id}
 
         lock_ttl_ms = int(SystemConcurrency.CONTEXT_CACHE_LOCK_TTL_SECONDS.value * 1000)
         lock_acquired = await redis_client.set(lock_key, "worker_1", nx=True, px=lock_ttl_ms)
@@ -163,7 +164,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     if cache_id == PromptCacheStatus.FAILED.value:
                         return compiled_prompt.to_flat_messages(), {}
                     if cache_id != PromptCacheStatus.CREATING.value:
-                        return compiled_prompt.to_flat_messages(), {"cached_content": cache_id}
+                        return compiled_prompt.to_dynamic_flat(), {"cached_content": cache_id}
 
                 await redis_client.set(
                     redis_key,
@@ -179,7 +180,8 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 project = os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
                 location = settings.vertex_location or "europe-north1"
                 clean_model_name = model_name.split("/")[-1]
-                flat_messages = compiled_prompt.to_flat_messages()
+                # V3 Cache Fix: Upload ONLY static content to cache
+                static_flat = compiled_prompt.to_static_flat()
 
                 try:
                     import importlib
@@ -201,21 +203,36 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     )
                     # Convert to native Vertex AI GAPIC format: role/parts instead of role/content
                     vertex_contents = []
-                    for msg in flat_messages:
+                    system_text = ""
+                    for msg in static_flat:
                         role = msg.get("role", "user")
+                        content = msg.get("content", "")
+
+                        if role == "system":
+                            system_text += content + "\n"
+                            continue
+
                         if role == "assistant":
                             role = "model"
-                        vertex_contents.append({
-                            "role": role,
-                            "parts": [{"text": msg.get("content", "")}]
-                        })
 
-                    cached_content = cached_content_cls.create(
-                        model_name=clean_model_name,
-                        contents=vertex_contents,
-                        ttl=datetime.timedelta(seconds=SystemConcurrency.CONTEXT_CACHE_PASSIVE_TTL_SECONDS.value),
-                    )
-                    cache_resource_id = cached_content.name
+                        vertex_contents.append({"role": role, "parts": [{"text": content}]})
+
+                    create_kwargs = {
+                        "model_name": clean_model_name,
+                        "contents": vertex_contents,
+                        "ttl": datetime.timedelta(seconds=SystemConcurrency.CONTEXT_CACHE_PASSIVE_TTL_SECONDS.value),
+                    }
+
+                    if system_text:
+                        create_kwargs["system_instruction"] = system_text.strip()
+
+                    cached_content = cached_content_cls.create(**create_kwargs)
+                    cache_resource_id = str(cached_content.name)
+
+                    if not cache_resource_id.startswith("projects/"):
+                        cache_resource_id = (
+                            f"projects/{project}/locations/{location}/cachedContents/{cache_resource_id}"
+                        )
 
                     await redis_client.set(
                         redis_key,
@@ -226,7 +243,8 @@ class VertexCacheAdapter(BaseLLMAdapter):
                         "Vertex AI Context Cache successfully created: %s",
                         cache_resource_id,
                     )
-                    return flat_messages, {"cached_content": cache_resource_id}
+                    # V3 Cache Fix: Return dynamic-only messages alongside cache reference
+                    return compiled_prompt.to_dynamic_flat(), {"cached_content": cache_resource_id}
 
                 except Exception:
                     logger.error(
@@ -234,7 +252,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                         exc_info=True,
                     )
                     await redis_client.set(redis_key, PromptCacheStatus.FAILED.value, ex=300)
-                    return flat_messages, {}
+                    return compiled_prompt.to_flat_messages(), {}
 
             finally:
                 await redis_client.delete(lock_key)
@@ -262,7 +280,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                             "Wait-and-Poll: Cache creation completed by first worker: %s",
                             cache_id,
                         )
-                        return compiled_prompt.to_flat_messages(), {"cached_content": cache_id}
+                        return compiled_prompt.to_dynamic_flat(), {"cached_content": cache_id}
 
             logger.warning(
                 "Wait-and-Poll timeout reached after %s seconds. Falling back to uncached completion.",

@@ -102,13 +102,15 @@ class LLMClient:
 
         # DEV MODE DYNAMIC REDIRECT: Redirect expensive gemini-2.5-pro to the "fast" strategy config in dev mode
         from backend_v2.settings import get_settings
+
         settings = get_settings()
         if settings.environment == "development" and not settings.use_mock_llm:
             if target_strategy.model_name and "gemini-2.5-pro" in target_strategy.model_name:
                 fast_strategy = registry.models.get("fast")
                 if fast_strategy:
                     logger.warning(
-                        "[LLMClient] Dev Mode: Redirecting strategy '%s' (%s) -> 'fast' strategy (%s) dynamically to save costs.",
+                        "[LLMClient] Dev Mode: Redirecting strategy '%s' (%s) -> "
+                        "'fast' strategy (%s) dynamically to save costs.",
                         strategy_name,
                         target_strategy.model_name,
                         fast_strategy.model_name,
@@ -242,6 +244,15 @@ class LLMClient:
                 model_name=str(target_model_name),
             )
 
+            # V3 Cache Fix: Observability telemetry for caching diagnostics
+            if "cached_content" in extra_kwargs:
+                logger.info(
+                    "[LLMClient] Context Cache ACTIVE: %s | Dynamic payload: %d messages, ~%d chars",
+                    extra_kwargs["cached_content"],
+                    len(final_messages),
+                    sum(len(str(m.get("content", ""))) for m in final_messages),
+                )
+
         # 3. Create Provider via Factory
         provider = LLMFactory.create_provider(
             provider_type=target_provider_type,
@@ -268,24 +279,24 @@ class LLMClient:
                         f"Required JSON Schema:\n{schema_json}"
                     )
 
-                    system_msg_found = False
-                    for msg in final_messages:
-                        if msg.get("role") == "system":
+                    user_msg_found = False
+                    for msg in reversed(final_messages):
+                        if msg.get("role") == "user":
                             content = msg.get("content")
                             if isinstance(content, str):
                                 msg["content"] = content + schema_instruction
-                                system_msg_found = True
+                                user_msg_found = True
                                 break
                             elif isinstance(content, list):
                                 for part in content:
                                     if isinstance(part, dict) and part.get("type") == "text":
                                         part["text"] = (part.get("text") or "") + schema_instruction
-                                        system_msg_found = True
+                                        user_msg_found = True
                                         break
-                                if system_msg_found:
+                                if user_msg_found:
                                     break
-                    if not system_msg_found:
-                        final_messages.insert(0, {"role": "system", "content": schema_instruction.strip()})
+                    if not user_msg_found:
+                        final_messages.append({"role": "user", "content": schema_instruction.strip()})
                 else:
                     json_schema = response_model.model_json_schema()
 
@@ -368,6 +379,18 @@ class LLMClient:
                         raw_content = raw_content[start_idx : end_idx + 1]
 
                 raw_content = raw_content.strip()
+
+                # Epic 56 Phase 3: Defensive wrap for single-key array hallucinations
+                if raw_content.startswith("[") and raw_content.endswith("]"):
+                    if isinstance(response_model, type) and issubclass(response_model, BaseModel):
+                        fields = response_model.model_fields
+                        if len(fields) == 1:
+                            root_key = list(fields.keys())[0]
+                            logger.warning(
+                                "[LLMClient] LLM returned a raw array. Auto-wrapping into single root key '%s'.",
+                                root_key,
+                            )
+                            raw_content = f'{{"{root_key}": {raw_content}}}'
 
                 parsed_json = response_model.model_validate_json(raw_content, context=validation_context)
                 validated_model = cast(T, parsed_json)  # type: ignore[redundant-cast]

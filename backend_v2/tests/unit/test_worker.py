@@ -20,7 +20,7 @@ async def test_startup() -> None:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
             with patch("backend_v2.worker.LLMClient"):
-                with patch("backend_v2.worker.PromptCompiler"):
+                with patch("backend_v2.worker.PromptCompilerAdapter"):
                     with patch("backend_v2.worker.DAGExecutor"):
                         ctx: dict[str, Any] = {}
                         await startup(ctx)

@@ -263,3 +263,79 @@ def test_context_builder_propagates_dynamic_inputs(monkeypatch: pytest.MonkeyPat
     assert "raw_inputs" in llm_context_data
     assert "dynamic_inputs" in llm_context_data["raw_inputs"]
     assert llm_context_data["raw_inputs"]["dynamic_inputs"]["document_date"] == "2025-10-27T23:31:46+02:00"
+
+
+def test_project_compressed_does_not_mutate_original() -> None:
+    """Verify Immutable Projection: original payload is never mutated."""
+    original = {
+        "evaluations": [
+            {
+                "exact_quote": "quote",
+                "shuffled_atoms": ["x", "y"],
+                "post_quote_anchor": "remove me",
+                "localized_anchors_found": ["a1", "a2", "a3", "a4", "a5"],
+            }
+        ]
+    }
+
+    ContextBuilder._project_compressed(original)
+
+    # Original must still contain all original keys — immutability proof
+    inner = original["evaluations"][0]
+    assert "shuffled_atoms" in inner
+    assert inner["shuffled_atoms"] == ["x", "y"]
+    assert "post_quote_anchor" in inner
+    assert inner["post_quote_anchor"] == "remove me"
+    assert len(inner["localized_anchors_found"]) == 5
+
+
+def test_project_compressed_strips_post_quote_anchor() -> None:
+    """Verify that _project_compressed removes post_quote_anchor from payloads."""
+    payload = {
+        "exact_quote": "important evidence",
+        "post_quote_anchor": "should be removed",
+        "semantic_reasoning": "reasoning here",
+    }
+    result = ContextBuilder._project_compressed(payload)
+
+    assert "post_quote_anchor" not in result
+    assert result["exact_quote"] == "important evidence"
+    assert result["semantic_reasoning"] == "reasoning here"
+
+
+def test_project_compressed_strips_shuffled_atoms() -> None:
+    """Verify that _project_compressed removes shuffled_atoms from payloads."""
+    payload = {
+        "raw_score": 4.5,
+        "shuffled_atoms": ["a", "b", "c"],
+        "justification": "test",
+    }
+    result = ContextBuilder._project_compressed(payload)
+
+    assert "shuffled_atoms" not in result
+    assert result["raw_score"] == 4.5
+    assert result["justification"] == "test"
+
+
+def test_project_compressed_preserves_exact_quote_and_reasoning() -> None:
+    """Verify that exact_quote and semantic_reasoning pass through unmodified."""
+    payload = {
+        "evaluations": [
+            {
+                "exact_quote": "Tämä on kriittinen lainaus dokumentista.",
+                "semantic_reasoning": "Päättelyketju.",
+                "localized_anchors_found": ["anchor1", "anchor2", "anchor3"],
+                "shuffled_atoms": ["noise"],
+                "post_quote_anchor": "noise2",
+            }
+        ]
+    }
+    result = ContextBuilder._project_compressed(payload)
+
+    ev = result["evaluations"][0]
+    assert ev["exact_quote"] == "Tämä on kriittinen lainaus dokumentista."
+    assert ev["semantic_reasoning"] == "Päättelyketju."
+    # Anchors compressed, noise stripped
+    assert len(ev["localized_anchors_found"]) == 2
+    assert "shuffled_atoms" not in ev
+    assert "post_quote_anchor" not in ev

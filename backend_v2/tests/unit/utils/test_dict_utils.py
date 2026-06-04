@@ -1,7 +1,7 @@
 import pytest
 
 from backend_v2.exceptions import MissingInputMappingError
-from backend_v2.utils.dict_utils import deep_merge_dicts, resolve_dot_notation
+from backend_v2.utils.dict_utils import compress_anchors, deep_merge_dicts, resolve_dot_notation
 
 
 def test_deep_merge_dicts():
@@ -71,3 +71,41 @@ def test_resolve_dot_notation_invalid_list_index():
 def test_resolve_dot_notation_empty_path():
     state = {"a": 1}
     assert resolve_dot_notation(state, "") == state
+
+
+def test_compress_anchors_preserves_short_list() -> None:
+    """Verify that anchor lists with ≤2 items pass through unchanged."""
+    assert compress_anchors(["anchor_one"]) == ["anchor_one"]
+    assert compress_anchors(["a", "b"]) == ["a", "b"]
+    assert compress_anchors([]) == []
+
+
+def test_compress_anchors_compresses_long_list() -> None:
+    """Verify that anchor lists with >2 items are compressed to hybrid signal."""
+    anchors = [
+        "short",
+        "medium length anchor",
+        "this is the longest anchor string in the list by far",
+        "another",
+        "yet another",
+        "sixth one",
+        "seventh",
+    ]
+    result = compress_anchors(anchors)
+
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert all(isinstance(item, str) for item in result)
+    assert "this is the longest anchor string" in result[0]
+    assert result[1] == "[+6 additional anchors found]"
+
+
+def test_compress_anchors_truncates_long_anchor() -> None:
+    """Verify that the best anchor is truncated to 100 chars with ellipsis."""
+    long_anchor = "A" * 150
+    result = compress_anchors([long_anchor, "short", "also short"])
+
+    assert len(result) == 2
+    assert result[0] == "A" * 100 + "..."
+    assert len(result[0]) == 103
+    assert result[1] == "[+2 additional anchors found]"

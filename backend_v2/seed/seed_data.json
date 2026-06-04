@@ -380,7 +380,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_247927c98b0c46f8",
-                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find rhetorical bypasses ('although X is true, it does not matter', 'regardless of'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: a counter-argument is mentioned but dismissed without presenting counter-data. NEGATIVE CONDITION (RETURN NULL IF MET): counter-data is presented. Rebuttals that provide counter-data.",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find rhetorical bypasses ('although X is true, it does not matter', 'regardless of'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: a counter-argument is mentioned but dismissed without presenting counter-data. NEGATIVE CONDITION (RETURN NULL IF MET): counter-data is presented. Rebuttals that provide counter-data. <disambiguation>\n  REFRAMING EXCLUSION: Rhetorical reframing patterns where a concept is \n  repositioned from negative to positive framing ('not just X, but Y') are \n  STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as:\n  - counter-arguments (they do not argue AGAINST anything)\n  - dialectical syntheses (they do not reconcile two opposing theses)\n  - alternative model dismantling (they do not present a separate model)\n  - absolute conclusions (they are framing choices, not logical claims)\n  If a reframing pattern is the ONLY candidate match, return JSON null.\n</disambiguation>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true
@@ -501,7 +501,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_2dabbdba90a549ae",
-                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find formal citations ('according to the methodology of', 'based on the study by'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the logical rule is explicitly backed by a verifiable external methodology or study. NEGATIVE CONDITION (RETURN NULL IF MET): it's a vague reference ('research shows'). Vague references to 'studies' or 'science'.",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find formal citations ('according to the methodology of', 'based on the study by'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the logical rule is explicitly backed by a verifiable external methodology or study. NEGATIVE CONDITION (RETURN NULL IF MET): it's a vague reference ('research shows'). Vague references to 'studies' or 'science'. <disambiguation>\n  Regulatory framework references count as formal citations ONLY if a \n  specific sub-article, clause, or numbered principle is cited (e.g., \n  \"Article 29b(2)\", \"ISO 27001 §6.1.2\"). Generic regulatory mentions \n  without sub-clause specificity DO NOT satisfy methodology link, benchmark, \n  formal citation, or security standard extraction conditions.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true
@@ -925,7 +925,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_dfa97bbeeb1dafc5",
-                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find criteria anchoring markers (e.g., 'measured against', 'based on the standard of', 'criteria'). STEP 2: EXTRACTION CONDITION: an evaluation explicitly links its judgment to a stated benchmark or metric. Do not accept floating evaluations with unstated goalposts.",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find criteria anchoring markers (e.g., 'measured against', 'based on the standard of', 'criteria'). STEP 2: EXTRACTION CONDITION: an evaluation explicitly links its judgment to a stated benchmark or metric. Do not accept floating evaluations with unstated goalposts. <disambiguation>\n  Regulatory framework references count as formal citations ONLY if a \n  specific sub-article, clause, or numbered principle is cited (e.g., \n  \"Article 29b(2)\", \"ISO 27001 §6.1.2\"). Generic regulatory mentions \n  without sub-clause specificity DO NOT satisfy methodology link, benchmark, \n  formal citation, or security standard extraction conditions.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false
@@ -1102,7 +1102,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_8b65277ca32d4c0d",
-                  "ai_rule_description": "BANNED LOGIC: Do not evaluate 'depth' subjectively. STEP 1 (Syntactic Anchor): Find absolute conclusion words (e.g., 'clearly', 'obviously', 'must be', 'selvästi'). STEP 2 (Bounding Box): Scan the surrounding paragraph. EXTRACTION CONDITION: the conclusion is presented without a multi-step logical deduction.",
+                  "ai_rule_description": "BANNED LOGIC: Do not evaluate 'depth' subjectively. STEP 1 (Syntactic Anchor): Find absolute conclusion words (e.g., 'clearly', 'obviously', 'must be', 'selvästi'). STEP 2 (Bounding Box): Scan the surrounding paragraph. EXTRACTION CONDITION: the conclusion is presented without a multi-step logical deduction. <disambiguation>\n  REFRAMING EXCLUSION: Rhetorical reframing patterns where a concept is \n  repositioned from negative to positive framing ('not just X, but Y') are \n  STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as:\n  - counter-arguments (they do not argue AGAINST anything)\n  - dialectical syntheses (they do not reconcile two opposing theses)\n  - alternative model dismantling (they do not present a separate model)\n  - absolute conclusions (they are framing choices, not logical claims)\n  If a reframing pattern is the ONLY candidate match, return JSON null.\n</disambiguation>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false
@@ -1210,7 +1210,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_d5d27ea4cfe44c44",
-                  "ai_rule_description": "Do not evaluate engagement quality. STEP 1 (Syntactic Anchor): Find an explicit counter-argument or risk raised in the text (e.g., 'Despite the risk', 'Opponents argue', 'Vaikka'). STEP 2 (Bounding Box): Scan the subsequent sentences. EXTRACTION CONDITION: the counter-argument is stated but not logically dismantled with data. NEGATIVE CONDITION (RETURN NULL IF MET): it is dismantled step-by-step.",
+                  "ai_rule_description": "Do not evaluate engagement quality. STEP 1 (Syntactic Anchor): Find an explicit counter-argument or risk raised in the text (e.g., 'Despite the risk', 'Opponents argue', 'Vaikka'). STEP 2 (Bounding Box): Scan the subsequent sentences. EXTRACTION CONDITION: the counter-argument is stated but not logically dismantled with data. NEGATIVE CONDITION (RETURN NULL IF MET): it is dismantled step-by-step. <disambiguation>\n  REFRAMING EXCLUSION: Rhetorical reframing patterns where a concept is \n  repositioned from negative to positive framing ('not just X, but Y') are \n  STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as:\n  - counter-arguments (they do not argue AGAINST anything)\n  - dialectical syntheses (they do not reconcile two opposing theses)\n  - alternative model dismantling (they do not present a separate model)\n  - absolute conclusions (they are framing choices, not logical claims)\n  If a reframing pattern is the ONLY candidate match, return JSON null.\n</disambiguation>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false
@@ -1261,7 +1261,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_92af590371ba4f3d",
-                  "ai_rule_description": "Do not evaluate 'thoughtfulness'. STEP 1 (Syntactic Anchor): Find dialectical markers (e.g., 'While X is true, Y proves', 'Reconciling these', 'Toisaalta'). STEP 2: EXTRACTION CONDITION: the text explicitly introduces two opposing variables and generates a third, novel conclusion (synthesis) rather than just picking one.",
+                  "ai_rule_description": "Do not evaluate 'thoughtfulness'. STEP 1 (Syntactic Anchor): Find dialectical markers (e.g., 'While X is true, Y proves', 'Reconciling these', 'Toisaalta'). STEP 2: EXTRACTION CONDITION: the text explicitly introduces two opposing variables and generates a third, novel conclusion (synthesis) rather than just picking one. <disambiguation>\n  REFRAMING EXCLUSION: Rhetorical reframing patterns where a concept is \n  repositioned from negative to positive framing ('not just X, but Y') are \n  STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as:\n  - counter-arguments (they do not argue AGAINST anything)\n  - dialectical syntheses (they do not reconcile two opposing theses)\n  - alternative model dismantling (they do not present a separate model)\n  - absolute conclusions (they are framing choices, not logical claims)\n  If a reframing pattern is the ONLY candidate match, return JSON null.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false
@@ -2119,7 +2119,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_7284133a24e27b16",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find explicit methodology links (e.g., 'in accordance with', 'following the protocol defined by'). STEP 2 (Bounding Box): Scan the sentence. If an action is explicitly linked to a named guideline or procedure (ARMA Compliance). Do not evaluate the 'quality' of the methodology.",
+                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find explicit methodology links (e.g., 'in accordance with', 'following the protocol defined by'). STEP 2 (Bounding Box): Scan the sentence. If an action is explicitly linked to a named guideline or procedure (ARMA Compliance). Do not evaluate the 'quality' of the methodology. <disambiguation>\n  Regulatory framework references count as formal citations ONLY if a \n  specific sub-article, clause, or numbered principle is cited (e.g., \n  \"Article 29b(2)\", \"ISO 27001 §6.1.2\"). Generic regulatory mentions \n  without sub-clause specificity DO NOT satisfy methodology link, benchmark, \n  formal citation, or security standard extraction conditions.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false
@@ -2189,7 +2189,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_79f305842b933ea5",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find explicit dialectical reasoning ('we evaluated option A, but chose B because'). STEP 2 (Bounding Box): Scan the paragraph. If the author explicitly documents a rejected compliance alternative and provides data-driven reasoning for the final choice. Do not accept simple lists of options without rejection reasoning.",
+                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find explicit dialectical reasoning ('we evaluated option A, but chose B because'). STEP 2 (Bounding Box): Scan the paragraph. If the author explicitly documents a rejected compliance alternative and provides data-driven reasoning for the final choice. Do not accept simple lists of options without rejection reasoning. <disambiguation>\n  REFRAMING EXCLUSION: Rhetorical reframing patterns where a concept is \n  repositioned from negative to positive framing ('not just X, but Y') are \n  STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as:\n  - counter-arguments (they do not argue AGAINST anything)\n  - dialectical syntheses (they do not reconcile two opposing theses)\n  - alternative model dismantling (they do not present a separate model)\n  - absolute conclusions (they are framing choices, not logical claims)\n  If a reframing pattern is the ONLY candidate match, return JSON null.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false
@@ -2208,7 +2208,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_4fa47fd622e62e0d",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find formal citation markers ('according to ARMA principle of', 'ISO standard'). STEP 2 (Bounding Box): Scan the sentence. If a specific external framework is named AND a specific sub-principle or clause is cited to justify a decision. Do not accept generic references to 'standards' without naming them.",
+                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find formal citation markers ('according to ARMA principle of', 'ISO standard'). STEP 2 (Bounding Box): Scan the sentence. If a specific external framework is named AND a specific sub-principle or clause is cited to justify a decision. Do not accept generic references to 'standards' without naming them. <disambiguation>\n  Regulatory framework references count as formal citations ONLY if a \n  specific sub-article, clause, or numbered principle is cited (e.g., \n  \"Article 29b(2)\", \"ISO 27001 §6.1.2\"). Generic regulatory mentions \n  without sub-clause specificity DO NOT satisfy methodology link, benchmark, \n  formal citation, or security standard extraction conditions.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true
@@ -4776,7 +4776,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_2303fd9ca0b0fa67",
-                  "ai_rule_description": "Do not accept generic terms like 'safe'. STEP 1 (Syntactic Anchor): Find explicit references to standard security protocols (e.g. 'policy', 'standard', 'guideline', 'OWASP'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the text physically demonstrates adherence to a named standard.",
+                  "ai_rule_description": "Do not accept generic terms like 'safe'. STEP 1 (Syntactic Anchor): Find explicit references to standard security protocols (e.g. 'policy', 'standard', 'guideline', 'OWASP'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the text physically demonstrates adherence to a named standard. <disambiguation>\n  Regulatory framework references count as formal citations ONLY if a \n  specific sub-article, clause, or numbered principle is cited (e.g., \n  \"Article 29b(2)\", \"ISO 27001 §6.1.2\"). Generic regulatory mentions \n  without sub-clause specificity DO NOT satisfy methodology link, benchmark, \n  formal citation, or security standard extraction conditions.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true
@@ -5435,7 +5435,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_4956abf072945f43",
-                  "ai_rule_description": "Do not accept brief dismissals (e.g. 'Option B is bad'). STEP 1 (Syntactic Anchor): Find an explicit reference to an established alternative model or framework. STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the text dismantles the alternative model by citing specific data points or logical contradictions that render it invalid in this context. NEGATIVE CONDITION (RETURN NULL IF MET): the alternative is dismissed without evidence.",
+                  "ai_rule_description": "Do not accept brief dismissals (e.g. 'Option B is bad'). STEP 1 (Syntactic Anchor): Find an explicit reference to an established alternative model or framework. STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the text dismantles the alternative model by citing specific data points or logical contradictions that render it invalid in this context. NEGATIVE CONDITION (RETURN NULL IF MET): the alternative is dismissed without evidence. <disambiguation>\n  REFRAMING EXCLUSION: Rhetorical reframing patterns where a concept is \n  repositioned from negative to positive framing ('not just X, but Y') are \n  STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as:\n  - counter-arguments (they do not argue AGAINST anything)\n  - dialectical syntheses (they do not reconcile two opposing theses)\n  - alternative model dismantling (they do not present a separate model)\n  - absolute conclusions (they are framing choices, not logical claims)\n  If a reframing pattern is the ONLY candidate match, return JSON null.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false
