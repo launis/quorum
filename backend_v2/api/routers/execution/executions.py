@@ -1,12 +1,10 @@
-import asyncio
 import logging
-from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Query, Request, status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from backend_v2.api.dependencies import ArqPoolDep, CurrentUserDep, DocumentExtractionServiceDep, ExecutionServiceDep
-from backend_v2.models.v2_core import ExecutionCreate, ExecutionRecord, ExecutionStatus, JobAcceptedDTO
+from backend_v2.models.v2_core import ExecutionCreate, ExecutionRecord, JobAcceptedDTO
 
 logger = logging.getLogger(__name__)
 
@@ -24,22 +22,16 @@ async def list_executions(
 
 @router.post("/", response_model=ExecutionRecord, status_code=status.HTTP_202_ACCEPTED)
 async def start_execution(
-    request: Request,
+    payload: ExecutionCreate,
     arq_pool: ArqPoolDep,
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
     doc_service: DocumentExtractionServiceDep,
 ) -> ExecutionRecord:
     """Start an asynchronous workflow execution securely via SSOT."""
-    data = await request.json()
-
-    # EAGER EXTRACTION MUST HAPPEN HERE BEFORE PYDANTIC VALIDATION
-    if isinstance(data, dict) and "raw_inputs" in data:
-        await doc_service.process_raw_inputs(data["raw_inputs"])
-
-    payload = ExecutionCreate.model_validate(data)
-
-    return await execution_service.start_execution(initiator=current_user, payload=payload, arq_pool=arq_pool)
+    return await execution_service.start_execution(
+        initiator=current_user, payload=payload, arq_pool=arq_pool, doc_service=doc_service
+    )
 
 
 @router.get("/{execution_id}", response_model=ExecutionRecord)
@@ -72,29 +64,8 @@ async def stream_execution_status(
     execution_service: ExecutionServiceDep,
 ) -> StreamingResponse:
     """Stream execution status and results securely via Sever-Sent Events (SSE)."""
-    # 1. Authorize connection first
-    await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
-
-    async def event_generator() -> AsyncGenerator[str]:
-        try:
-            while True:
-                # Poll database (Fallback from Redis Pub/Sub for simpler local portability)
-                # In true production, this should attach to a Redis Pub/Sub channel.
-                record = await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
-
-                # V2 Protocol Requirement: JSON Payload inside 'data: '
-                yield f"data: {record.model_dump_json()}\n\n"
-
-                if record.status in [ExecutionStatus.COMPLETED, ExecutionStatus.FAILED]:
-                    break
-
-                await asyncio.sleep(2)
-        except Exception as e:
-            logger.error("SSE Error for execution %s: %s", execution_id, str(e), exc_info=True)
-            yield f'data: {{"error": "SSE Stream Interrupted: {str(e)}"}}\n\n'
-
     return StreamingResponse(
-        event_generator(),
+        execution_service.stream_status(initiator=current_user, execution_id=execution_id),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

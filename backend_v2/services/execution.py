@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
@@ -40,6 +41,7 @@ from backend_v2.models.v2_core import (
     WorkflowInputs,
 )
 from backend_v2.services.blueprint import BlueprintTransformer
+from backend_v2.services.document_extraction import DocumentExtractionService
 from backend_v2.services.flattener import FlatFileService
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.storage import get_storage_driver
@@ -162,6 +164,27 @@ class ExecutionService:
         is_resumable = await self.check_resumability(data)
         return data.model_copy(update={"is_resumable": is_resumable})
 
+    async def stream_status(self, initiator: TokenData, execution_id: str) -> AsyncGenerator[str]:
+        """Stream execution status and results securely via Server-Sent Events (SSE)."""
+        # 1. Authorize connection first
+        await self.get_execution(initiator=initiator, execution_id=execution_id)
+
+        try:
+            while True:
+                # Poll database (Fallback from Redis Pub/Sub for simpler local portability)
+                record = await self.get_execution(initiator=initiator, execution_id=execution_id)
+
+                # V2 Protocol Requirement: JSON Payload inside 'data: '
+                yield f"data: {record.model_dump_json()}\n\n"
+
+                if record.status in [ExecutionStatus.COMPLETED, ExecutionStatus.FAILED]:
+                    break
+
+                await asyncio.sleep(2)
+        except Exception as e:
+            logger.error("SSE Error for execution %s: %s", execution_id, str(e), exc_info=True)
+            yield f'data: {{"error": "SSE Stream Interrupted: {str(e)}"}}\n\n'
+
     async def delete_execution(self, initiator: TokenData, execution_id: str) -> bool:
         """Securely delete an execution."""
         record = await self.exec_repo.get_execution(execution_id, hydrate=False)
@@ -204,9 +227,19 @@ class ExecutionService:
             ) from e
 
     async def start_execution(
-        self, initiator: TokenData, payload: ExecutionCreate, arq_pool: ArqRedis
+        self,
+        initiator: TokenData,
+        payload: ExecutionCreate,
+        arq_pool: ArqRedis,
+        doc_service: DocumentExtractionService | None = None,
     ) -> ExecutionRecord:
         """Initialize and trigger workflow securely."""
+        # EAGER EXTRACTION MUST HAPPEN HERE BEFORE DB COMMIT
+        if doc_service and payload.raw_inputs:
+            raw_dict = payload.raw_inputs.model_dump(exclude_unset=True)
+            await doc_service.process_raw_inputs(raw_dict)
+            payload = payload.model_copy(update={"raw_inputs": payload.raw_inputs.__class__.model_validate(raw_dict)})
+
         workflow_dict = await self.workflow_repo.get_workflow_by_id(payload.workflow_id)
         if not workflow_dict:
             raise ResourceNotFoundError(resource_type="workflow", resource_id=payload.workflow_id)

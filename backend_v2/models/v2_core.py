@@ -1238,22 +1238,29 @@ class BaseTDAExtraction(BaseModel):
         description="Verbatim quote from original text.",
     )
 
-    @model_validator(mode="after")
-    def validate_override_logic(self) -> BaseTDAExtraction:
-        """Validates the consistency of the extraction rules.
+    @model_validator(mode="before")
+    @classmethod
+    def validate_override_logic(cls, data: Any) -> Any:
+        """Validates the consistency of the extraction rules before hydration.
 
         Raises:
             ValueError: If structure is malformed or internally inconsistent.
 
         Returns:
-            The sanitized BaseTDAExtraction matching schema expectations.
+            The sanitized data matching schema expectations.
         """
-        if self.contextual_override:
-            object.__setattr__(self, "exact_quote", None)
+        if not isinstance(data, dict):
+            return data
+
+        is_override = data.get("contextual_override") is True
+        quote = data.get("exact_quote")
+
+        if is_override:
+            data["exact_quote"] = None
         else:
-            if self.exact_quote == "[CONTEXTUAL_OVERRIDE_APPLIED]":
+            if quote == "[CONTEXTUAL_OVERRIDE_APPLIED]":
                 raise ValueError(
                     "Cross-validation failed: exact_quote cannot be "
                     "'[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False."
                 )
-        return self
+        return data

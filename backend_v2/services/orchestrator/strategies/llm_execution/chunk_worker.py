@@ -41,7 +41,7 @@ def evaluate_extraction(extraction: BaseModel, source_text: str, is_negative_rul
     semantic_reasoning = getattr(extraction, "semantic_reasoning", None)
 
     # Track A: Physical Match
-    if exact_quote and exact_quote != "[CONTEXTUAL_OVERRIDE_APPLIED]":
+    if exact_quote:
         try:
             AnchorValidationService.validate_evidence(
                 pdf_text=source_text,
@@ -315,8 +315,6 @@ class ChunkWorker:
                                     valid_quotes = [q for q in quotes if q and q != "[CONTEXTUAL_OVERRIDE_APPLIED]"]
                                     if valid_quotes and not final_override:
                                         final_quote = max(set(valid_quotes), key=valid_quotes.count)
-                                    elif final_override:
-                                        final_quote = "[CONTEXTUAL_OVERRIDE_APPLIED]"
                                     else:
                                         final_quote = None
                                     final_reasoning = max(set(reasonings), key=reasonings.count)
@@ -337,8 +335,6 @@ class ChunkWorker:
                                         valid_quotes = [q for q in quotes if q and q != "[CONTEXTUAL_OVERRIDE_APPLIED]"]
                                         if valid_quotes and not final_override:
                                             final_quote = max(set(valid_quotes), key=valid_quotes.count)
-                                        elif final_override:
-                                            final_quote = "[CONTEXTUAL_OVERRIDE_APPLIED]"
                                         else:
                                             final_quote = None
                                         final_reasoning = max(set(reasonings), key=reasonings.count)

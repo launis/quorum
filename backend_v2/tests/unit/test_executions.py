@@ -2,7 +2,6 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import Request
 
 from backend_v2.api.routers.execution.executions import (
     delete_execution,
@@ -70,13 +69,16 @@ async def test_get_execution_status(mock_current_user: Any, mock_execution_servi
 async def test_start_execution(
     mock_current_user: Any, mock_execution_service: AsyncMock, mock_doc_service: AsyncMock, mock_arq_pool: AsyncMock
 ) -> None:  # noqa: E501
-    """Test starting an execution with eager document extraction."""
-    mock_request = AsyncMock(spec=Request)
-    mock_request.json.return_value = {
-        "workflow_id": "wf_1",
-        "target_locale": "fi",
-        "raw_inputs": {"dynamic_inputs": {"file1": "test"}},
-    }
+    """Test starting an execution router delegation."""
+    from backend_v2.models.v2_core import ExecutionCreate
+
+    payload = ExecutionCreate.model_validate(
+        {
+            "workflow_id": "wf_1",
+            "target_locale": "fi",
+            "raw_inputs": {"dynamic_inputs": {"file1": "test"}},
+        }
+    )
 
     mock_record = ExecutionRecord(
         id="exe_1234567890abcdef1234567890abcdef",
@@ -86,7 +88,7 @@ async def test_start_execution(
     mock_execution_service.start_execution.return_value = mock_record
 
     result = await start_execution(
-        request=mock_request,
+        payload=payload,
         arq_pool=mock_arq_pool,
         current_user=mock_current_user,
         execution_service=mock_execution_service,
@@ -94,8 +96,9 @@ async def test_start_execution(
     )
 
     assert result.id == "exe_1234567890abcdef1234567890abcdef"
-    mock_doc_service.process_raw_inputs.assert_called_once_with({"dynamic_inputs": {"file1": "test"}})
-    mock_execution_service.start_execution.assert_called_once()
+    mock_execution_service.start_execution.assert_called_once_with(
+        initiator=mock_current_user, payload=payload, arq_pool=mock_arq_pool, doc_service=mock_doc_service
+    )
 
 
 @pytest.mark.asyncio
@@ -130,50 +133,3 @@ async def test_resume_execution(
         execution_service=mock_execution_service,
     )
     assert res.id == "exe_1234567890abcdef1234567890abcdef"
-
-
-@pytest.mark.asyncio
-async def test_start_execution_base64_eager_extraction(
-    mock_current_user: Any, mock_execution_service: AsyncMock, mock_doc_service: AsyncMock, mock_arq_pool: AsyncMock
-) -> None:
-    """Test that base64 extraction happens BEFORE domain model validation."""
-    mock_request = AsyncMock(spec=Request)
-    mock_request.json.return_value = {
-        "workflow_id": "wf_1",
-        "target_locale": "fi",
-        "raw_inputs": {
-            "dynamic_inputs": {
-                "product_text": {
-                    "filename": "test.pdf",
-                    "content_base64": "dummy",
-                    "content_type": "application/pdf",
-                }
-            }
-        },
-    }
-
-    # Simulate DocumentExtractionService modifying the raw_inputs in-place
-    async def fake_process(raw_inputs: dict[str, Any]) -> None:
-        if "dynamic_inputs" in raw_inputs and "product_text" in raw_inputs["dynamic_inputs"]:
-            raw_inputs["dynamic_inputs"]["product_text"] = "extracted text"
-
-    mock_doc_service.process_raw_inputs.side_effect = fake_process
-
-    mock_record = ExecutionRecord(
-        id="exe_1234567890abcdef1234567890abcdef",
-        status=ExecutionStatus.PENDING,
-        workflow_id="wf_1",
-    )
-    mock_execution_service.start_execution.return_value = mock_record
-
-    # This will throw AppException 422 if eager extraction is bypassed (currently happens)
-    result = await start_execution(
-        request=mock_request,
-        arq_pool=mock_arq_pool,
-        current_user=mock_current_user,
-        execution_service=mock_execution_service,
-        doc_service=mock_doc_service,
-    )
-
-    assert result.id == "exe_1234567890abcdef1234567890abcdef"
-    mock_doc_service.process_raw_inputs.assert_called_once()
