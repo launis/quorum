@@ -28,6 +28,7 @@ from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.profiler import ProfilerOutput
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.xai import XAIOutput
+from backend_v2.models.execution_core import ExecutionCoreFields
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
@@ -114,7 +115,16 @@ class StepOutputDTO(V2CoreBase):
     payload: Any = Field(description="The actual data payload.")
 
 
-class WorkflowState(V2CoreBase):
+# Resolve deferred annotations on ExecutionCoreFields (Pydantic V2 circular reference pattern).
+# execution_core.py uses TYPE_CHECKING for TraceEvent types → annotations are strings.
+# Now that TraceEvent, ErrorTraceEvent, TombstoneEvent are defined, resolve them.
+from backend_v2.models.v2_core import ExecutionRecord
+
+ExecutionCoreFields.model_rebuild()
+ExecutionRecord.model_rebuild()
+
+
+class WorkflowState(ExecutionCoreFields):
     """Aggregate root containing the execution trace and current state."""
 
     execution_id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique execution identifier.")
@@ -125,24 +135,9 @@ class WorkflowState(V2CoreBase):
         description="The ID of the workflow definition.",
     )
     trace_version: int = Field(default=0, description="Optimistic Concurrency Control version.")
-
-    status: Literal["pending", "running", "completed", "failed"] = Field(
-        default="pending",
-        description="Current status of the workflow execution.",
-        json_schema_extra={"x-ui-label": "Status"},
-    )
-
-    execution_trace: list[TraceEvent] = Field(default_factory=list, description="Immutable log of all events.")
-    execution_trace_storage_path: str | None = Field(
-        default=None, description="Path to offloaded trace in Cloud Storage."
-    )
-
-    context_variables: dict[str, Any] = Field(
-        default_factory=dict, description="Current snapshots of context variables."
-    )
-    context_variables_storage_path: str | None = Field(
-        default=None, description="Path to offloaded context JSON in Cloud Storage."
-    )
+    # Phase 2: status, execution_trace, execution_trace_storage_path,
+    # context_variables, context_variables_storage_path are inherited
+    # from ExecutionCoreFields (SSOT).
 
     workflow_name: str | None = Field(default=None, description="Human-readable name of the workflow.")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp.")

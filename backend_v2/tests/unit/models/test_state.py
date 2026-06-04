@@ -95,3 +95,33 @@ def test_step_execution_envelope_strictness() -> None:
 
     with pytest.raises(ValidationError):
         StepExecutionEnvelope.model_validate({"execution_id": "exec_1", "extra_field": "fail"})
+
+
+def test_workflow_state_inherits_execution_core_fields() -> None:
+    """Phase 2: Verify WorkflowState correctly inherits ExecutionCoreFields SSOT."""
+    from backend_v2.models.execution_core import ExecutionCoreFields
+    from backend_v2.models.state import ErrorTraceEvent, WorkflowState
+
+    # 1. Verify inheritance chain
+    assert issubclass(WorkflowState, ExecutionCoreFields), "WorkflowState must inherit from ExecutionCoreFields"
+
+    # 2. Verify all 5 core fields are accessible
+    core_field_names = {
+        "status",
+        "execution_trace",
+        "execution_trace_storage_path",
+        "context_variables",
+        "context_variables_storage_path",
+    }
+    ws_fields = set(WorkflowState.model_fields.keys())
+    missing = core_field_names - ws_fields
+    assert not missing, f"WorkflowState missing inherited core fields: {missing}"
+
+    # 3. Verify execution_trace accepts full union type (parity upgrade)
+    error_event = ErrorTraceEvent(step_name="test_step", error_code="ERR_TEST", error_message="test error")
+    ws = WorkflowState(workflow_id="wf_testtest1234")
+    ws_with_error = ws.add_event(error_event)
+    assert len(ws_with_error.execution_trace) == 1
+    event = ws_with_error.execution_trace[0]
+    assert isinstance(event, ErrorTraceEvent)
+    assert event.error_code == "ERR_TEST"

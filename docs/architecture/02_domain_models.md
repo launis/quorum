@@ -16,6 +16,12 @@ class V2CoreBase(BaseModel):
 3. **No-String Mandate (I18nText):** Kaikki käyttöliittymään päätyvä teksti on kapseloitu `I18nText` Pydantic-malliin. Se pakottaa ("English-Only Mandate"), että kaikesta tekstistä löytyy englanninkielinen perusversio, johon kieli-middleware voi nojata silloinkin kun käännös puuttuu. Tekoälyn kognitiiviset ohjeet puolestaan eristetään yksinomaan englanninkielisiin `ai_description` -kenttiin UI-lokalisaatiosta irralliseksi.
 4. **Zero-Duck-Typing:** "Duck-typing" -jäänteet (kuten `isinstance(x, dict)` tai hiljaiset `.get("id")` -kutsut) ovat ankarasti kiellettyjä Service- ja Controller-kerroksissa. Payloadin on täsmättävä täydellisesti Pydantic-rakenteeseen, eikä funktioiden sisällä tehdä arvailuja saapuvan tiedon muodosta.
 
+### Structural Parity Meta-Test (CI-Level)
+
+Varmistaaksemme, että Pydantic V2 -mallien perintäketjut eivät koskaan aiheuta tietomallien siirtymää (schema drift), järjestelmään on toteutettu tiukka CI-tason Meta-yksikkötesti (`test_strict_schema_parity_for_core_execution_fields`).
+Tämä testi käyttää Pythonin `__annotations__`-introspektiota valvomaan aliluokkia (esim. `ExecutionRecord` ja `WorkflowState`), varmistaen että ne **eivät koskaan määrittele uudelleen** kantaluokasta (`ExecutionCoreFields`) perittyjä SSOT-kenttiä.
+Jos kehittäjä epähuomiossa lisää jo perityn kentän uudelleen aliluokkaan (mikä loisi kaksi irtonaista totuuden lähdettä), CI-pipeline kaatuu välittömästi (Fail-Fast). Tämä pakottaa nollatoleranssin rakenteelliselle siirtymälle ydinmallien ja tietokantatallennuksen välillä.
+
 ## Ydinmallisto ja Opaque ID -reititys
 
 Järjestelmä hylkää ihmisluettavat "slugit" identifioijina taustalogiikassa. Kaikki relaatiot ja datamallit pakottavat joustavan "Opaque Stripe ID" -reitityksen (esim. `blk_abc12345`), joka takaa sen, että mallien sisäiset ihmisluettavat nimimuutokset eivät koskaan riko järjestelmän topologiaa.
@@ -123,8 +129,8 @@ classDiagram
         +validate_block_consistency()
     }
 
-    class ExecutionRecord{
-        <<Event Sourcing Root>>
+    class ExecutionCoreFields{
+        <<State SSOT>>
         +String id
         +String workflow_id
         +ExecutionStatus status
@@ -147,6 +153,17 @@ classDiagram
         +datetime completed_at
         +String created_by
         +String organization_id
+        +bool is_resumable
+    }
+
+    class ExecutionRecord{
+        <<Event Sourcing Root>>
+        +ReportDataDTO report_data
+    }
+
+    class WorkflowState{
+        <<UI Presentation State>>
+        +ReportDataDTO report_data
     }
 
     class OutputProfile{
@@ -316,7 +333,9 @@ classDiagram
     V2CoreBase <|-- TDAAssertion
     V2CoreBase <|-- TheoryGrounding
     V2CoreBase <|-- PromptBlock
-    V2CoreBase <|-- ExecutionRecord
+    V2CoreBase <|-- ExecutionCoreFields
+    ExecutionCoreFields <|-- ExecutionRecord
+    ExecutionCoreFields <|-- WorkflowState
     V2CoreBase <|-- OutputProfile
     V2CoreBase <|-- OutputLayoutBlock
     V2CoreBase <|-- SynthesisConfigDTO
@@ -398,7 +417,8 @@ Pydantic-kirjasto on laajennettu hallinnoimaan työnkulkujen lisäksi koko järj
 
 Työnkulun ajanhetkellinen tila ja lopullinen valmis raportti tallennetaan tiukkaan Event Sourcing -malliseen arkkitehtuuriin.
 
-1. **ExecutionRecord:** Tallentaa tekoälyajon koko elinkaaren. Se lukitsee sisäänsä tarkan `FrozenContext` kopion kaikista siinä hetkessä käytetyistä PromptBlockeista ja säännöistä. Tämän konseptin ansiosta kone pystyy kuukausia myöhemmin selittämään tarkasti, miksi tekoäly on tietyt päätökset tehnyt (Explainable AI / Forensic Sovereignty).
+1. **ExecutionCoreFields (State SSOT):** Määrittelee työnkulun ajonaikaisen ja tallennettavan ydinrakenteen ilman käyttöliittymäriippuvuuksia (Decoupling Mandate). Kaikki tila-objektit (ExecutionRecord, WorkflowState) perivät tämän SSOT-mallin, jotta arkkitehtuuri on kompromissittoman Fail-Fast ja tyyppiturvallinen.
+2. **ExecutionRecord:** Tallentaa tekoälyajon koko elinkaaren taustajärjestelmässä perien `ExecutionCoreFields`-rakenteen. Se lukitsee sisäänsä tarkan `FrozenContext` kopion kaikista siinä hetkessä käytetyistä PromptBlockeista ja säännöistä. Tämän konseptin ansiosta kone pystyy kuukausia myöhemmin selittämään tarkasti, miksi tekoäly on tietyt päätökset tehnyt (Explainable AI / Forensic Sovereignty).
 2. **TraceEvent & MCPAuditTrace:** Työn lennossa, taustaprosessi lähettää atomisia `TraceEvent`-objekteja tilanteesta tietokantaan. Samalla kaikki Vertex AI-hakujen tai vastaavien ulkoisten MCP-työkalujen haut tallentuvat `MCPAuditTrace`-jäljeksi lokiin. MCPAuditTrace kirjaa ylös tarkan latenssin (`duration_ms`), työkalun käyttämän tietolähteen (`source_urls`), ja täsmällisen numeerisen/tekstillisen vastineen (`response_summary`). Tämä varmistaa koko työkalun logiikkaan läpinäkyvän, auditointikelpoisen forensisen jäljen.
 3. **Structured State Envelopes (`StepOutputDTO`):** Execution-jäljet eivät enää koskaan projisoidu irrallisiksi, litteiksi sanakirjoiksi (flat dictionaries). `StateProjector` taittaa ajon tilan tiukasti muotoon `List[StepOutputDTO]`. Tämä varmistaa täydellisen tyyppiturvallisuuden koko suoritusketjun ja DAG-orkestraation läpi poistaen "villiin" dot-notaatioon (`$steps.x.y`) liittyvät kaatumisriskit.
 

@@ -522,10 +522,18 @@ class ChunkWorker:
                 return chunk_final, chunk_usage, chunk_traces
 
             except (LLMSchemaValidationError, AppException, ExceptionGroup) as e:
+
+                def _unwrap_error(exc: BaseException) -> str:
+                    if isinstance(exc, ExceptionGroup):
+                        return " | ".join(_unwrap_error(inner) for inner in exc.exceptions)
+                    return str(exc)
+
+                reason_str = _unwrap_error(e)
+
                 logger.error(
-                    f"[ChunkWorker] Caught error: {e}. Routing to DLQ.",
+                    f"[ChunkWorker] Caught error: {reason_str}. Routing to DLQ.",
                     extra={"error_code": "DLQ_ROUTING"},
                     exc_info=True,
                 )
-                chunk_final = {"_dlq_status": "FAILED/DLQ", "reason": str(e)}
+                chunk_final = {"_dlq_status": "FAILED/DLQ", "reason": reason_str}
                 return chunk_final, None, []

@@ -8,7 +8,10 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Annotated, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
+
+if TYPE_CHECKING:
+    from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -32,7 +35,7 @@ from backend_v2.models.enums import (
     ScoringStrategy,
     SystemConcurrency,
 )
-from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
+from backend_v2.models.execution_core import ExecutionCoreFields
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +54,7 @@ __all__ = [
     "ComponentType",
     "BlockDataType",
     "ExecutionStatus",
+    "ExecutionCoreFields",
     "FrozenContext",
     "ExecutionCreate",
     "ExecutionRecord",
@@ -1147,12 +1151,19 @@ class RenderedSynthesisCache(V2CoreBase):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-class ExecutionRecord(V2CoreBase):
+class ExecutionRecord(ExecutionCoreFields):
     """Record of a workflow execution, including the frozen context and results."""
+
+    if TYPE_CHECKING:
+        status: LaxExecutionStatus = Field(default=ExecutionStatus.PENDING)
+        execution_trace: list[ErrorTraceEvent | TombstoneEvent | TraceEvent] = Field(default_factory=list)
+        execution_trace_storage_path: str | None = Field(default=None)
+        context_variables: dict[str, Any] = Field(default_factory=dict)
+        context_variables_storage_path: str | None = Field(default=None)
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")
-    status: Annotated[LaxExecutionStatus, Field(description="Current status of execution")]
+    # Phase 1: status is inherited from ExecutionCoreFields (LaxExecutionStatus SSOT).
     active_profile_id: str | None = Field(
         default=None, description="The ID of the output profile selected for formatting and printing."
     )
@@ -1161,21 +1172,11 @@ class ExecutionRecord(V2CoreBase):
     frozen_context_storage_path: str | None = Field(
         default=None, description="Optional path to Blob Storage offloaded Frozen Context JSON"
     )
-    execution_trace: list[ErrorTraceEvent | TombstoneEvent | TraceEvent] = Field(
-        default_factory=list, description="Immutable log of all events (Event Sourcing)."
-    )
-    execution_trace_storage_path: str | None = Field(
-        default=None, description="Optional path to Blob Storage offloaded Execution Trace JSON"
-    )
+    # Phase 1: execution_trace, execution_trace_storage_path, context_variables,
+    # context_variables_storage_path are inherited from ExecutionCoreFields (SSOT).
     pdf_report_path: str | None = Field(default=None, description="Path to the generated PDF Execution Report.")
     output_profile_id: str | None = Field(
         default=None, description="Target profile ID for formatting instructions and synthesis."
-    )
-    context_variables: dict[str, Any] = Field(
-        default_factory=dict, description="Current snapshots of context variables."
-    )
-    context_variables_storage_path: str | None = Field(
-        default=None, description="Optional path to Blob Storage offloaded context variables JSON"
     )
     step_states: dict[str, ExecutionStepState] = Field(
         default_factory=dict, description="Real-time status tracking for DAG nodes"

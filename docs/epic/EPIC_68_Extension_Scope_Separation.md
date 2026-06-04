@@ -1,5 +1,13 @@
 # EPIC 68: XAI Extension Scope Separation & Polymorphic Routing Hardening
 
+> [!IMPORTANT]
+> **EPIC 63 PREREQUISITE & CONSTRAINTS (Zero-Compromise Pledge)**:
+> Tämä suunnitelma on täysin riippuvainen Epic 63:n luomasta arkkitehtuurista. Epic 63 teki järjestelmästä 100% MyPy-puhtaan ja kielsi löyhien sanakirjojen (dict) käytön testeissä ja reitityksessä. 
+> Kun toteutat tätä Epiciä:
+> 1. **Mallit**: `OutputProfile` ja `EmbeddedOutputProfile` perivät suoraan `V2CoreBase`:n, joten MyPy-ongelmia (kuten Epic 63:n `ExecutionRecord`:n periytymisbugi) ei pitäisi syntyä. Mutta muista PEP 695 (esim. `list[LaxXaiExtensionType] | None`).
+> 2. **Rivinumerot**: Epic 63 lisäsi `v2_core.py` -tiedostoon `TYPE_CHECKING` -lohkoja, joten tässä asiakirjassa mainitut `v2_core.py`:n rivinumerot (esim. L942, L980) ovat siirtyneet alemmas.
+> 3. **Testit**: Kaikki tässä mainitut testit (esim. `test_context_router.py`) täytyy refaktoroida käyttämään vahvasti tyypitettyjä Pydantic-malleja (esim. `OutputProfileConfig(visible_block_extensions=[...])`). Pydanticin mockaaminen löyhästi `MagicMock`:illa kaataa Universal Quality Gaten!
+
 ## 1. Background & Motivation
 In the current Quorum architecture, both Block-level extensions (e.g., `falsification`, `emotional_sentiment`) and Workflow-level global extensions (e.g., `variance_validation`) are compressed into a single data model field: `OutputProfileConfig.visible_extensions`.
 

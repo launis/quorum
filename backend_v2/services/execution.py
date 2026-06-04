@@ -5,10 +5,11 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from arq.connections import ArqRedis
+from pydantic import ValidationError
 
 from backend_v2.database.interfaces import (
     IComponentRepository,
@@ -24,6 +25,7 @@ from backend_v2.exceptions import (
     ResourceNotFoundError,
 )
 from backend_v2.models.auth import SystemOrganizations, TokenData
+from backend_v2.models.state import WorkflowState  # noqa: F401 (Ensures ExecutionRecord is rebuilt)
 from backend_v2.models.v2_core import (
     ComponentType,
     DataDictionaryField,
@@ -35,15 +37,64 @@ from backend_v2.models.v2_core import (
     PromptBlock,
     Step,
     Workflow,
+    WorkflowInputs,
 )
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.flattener import FlatFileService
-from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.services.usage_service import UsageService
 
+if TYPE_CHECKING:
+    from backend_v2.services.orchestrator.dag_executor import DAGExecutor
+
 logger = logging.getLogger(__name__)
+
+
+def create_execution_record(
+    execution_id: str,
+    workflow_id: str,
+    raw_inputs: WorkflowInputs,
+    frozen_context: FrozenContext,
+    **extra_persistence_fields: Any,
+) -> ExecutionRecord:
+    """Type-safe factory for ExecutionRecord creation.
+
+    Centralizes initialization logic to prevent field drift between
+    dag_executor.py and execution.py instantiation sites.
+
+    Args:
+        execution_id: Opaque Stripe ID for the execution.
+        workflow_id: ID of the workflow definition.
+        raw_inputs: Validated user inputs by role.
+        frozen_context: Immutable snapshot of context at execution start.
+        **extra_persistence_fields: Additional presentation-layer fields.
+
+    Returns:
+        A strictly validated ExecutionRecord instance.
+
+    Raises:
+        AppException: If Pydantic validation fails (VALIDATION_FAILED).
+    """
+    try:
+        return ExecutionRecord(
+            id=execution_id,
+            workflow_id=workflow_id,
+            raw_inputs=raw_inputs,
+            frozen_context=frozen_context,
+            **extra_persistence_fields,
+        )
+    except ValidationError as e:
+        logger.error(
+            "[ExecutionService] Fail-Fast: ExecutionRecord creation failed: %s",
+            e,
+            exc_info=True,
+        )
+        raise AppException(
+            message=f"ExecutionRecord creation failed: {e}",
+            status_code=500,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        ) from e
 
 
 class ExecutionService:
@@ -316,13 +367,12 @@ class ExecutionService:
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         execution_id = f"exe_{uuid4().hex}"
-        initial_record = ExecutionRecord(
-            id=execution_id,
+        initial_record = create_execution_record(
+            execution_id=execution_id,
             workflow_id=workflow.id,
-            status=ExecutionStatus.PENDING,
             raw_inputs=payload.raw_inputs,
-            output_profile_id=resolved_profile_id,
             frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
+            output_profile_id=resolved_profile_id,
             step_states=step_states,
             metadata={
                 "target_locale": target_locale,

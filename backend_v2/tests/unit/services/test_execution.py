@@ -4,8 +4,46 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
-from backend_v2.services.execution import ExecutionService
+from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, FrozenContext, WorkflowInputs
+from backend_v2.services.execution import ExecutionService, create_execution_record
+
+
+def test_create_execution_record_factory_success() -> None:
+    frozen_context = FrozenContext()
+    raw_inputs = WorkflowInputs()
+
+    record = create_execution_record(
+        execution_id="exe_1234567890abcdef",
+        workflow_id="wf_1",
+        raw_inputs=raw_inputs,
+        frozen_context=frozen_context,
+        output_profile_id="prof_1",
+    )
+
+    assert record.id == "exe_1234567890abcdef"
+    assert record.workflow_id == "wf_1"
+    assert record.status == ExecutionStatus.PENDING
+    assert record.output_profile_id == "prof_1"
+    assert isinstance(record.frozen_context, FrozenContext)
+    assert isinstance(record.raw_inputs, WorkflowInputs)
+
+
+def test_create_execution_record_factory_fail_fast() -> None:
+    frozen_context = FrozenContext()
+    raw_inputs = WorkflowInputs()
+
+    # Pass an invalid ID to trigger validation error
+    with pytest.raises(AppException) as exc_info:
+        create_execution_record(
+            execution_id="invalid id with spaces",
+            workflow_id="wf_1",
+            raw_inputs=raw_inputs,
+            frozen_context=frozen_context,
+        )
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    assert "ExecutionRecord creation failed" in exc_info.value.message
 
 
 @pytest.mark.asyncio

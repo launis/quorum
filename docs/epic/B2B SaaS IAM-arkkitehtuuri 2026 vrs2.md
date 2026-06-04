@@ -21,8 +21,8 @@ Ratkaisu eristää Googlen infrastruktuurin yksinomaan kirjautumisruutuun, takaa
 Tämä arkkitehtuuri on suunniteltu vastaamaan suoraan vuoden 2026 kriittisimpiin B2B SaaS -turvallisuusstandardeihin ja alan parhaisiin käytäntöihin:
 
 *   **OWASP API Security Top 10 (BOLA / IDOR):** Opaque Stripe ID -mandaatti (`org_xxx`) on suora vastaus BOLA-haavoittuvuuksiin (Broken Object Level Authorization), estämällä numeraalisen arvaamisen ja pakottamalla vuokralaisten (tenant) välisen kryptografisen eristyksen.
-*   **NIST 800-207 (Zero Trust Architecture):** "Never Trust, Always Verify" -periaate toteutuu aneemisilla reitittimillä ja `require_role`-luvitusinjektiolla. Luvitusta ei jätetä reitittimen satunnaisen koodin varaan, vaan se tapahtuu keskitetysti 0 ms viiveellä lokaalista JWT:stä, jota täydentää Rediksen reaaliaikainen hätäsulku (Kill-Switch).
-*   **RFC 8693 (OAuth 2.0 Token Exchange):** Firebasen ulkoisen ID Tokenin vaihtaminen (Session Upgrade) lokaaliin, tiukasti rajattuun ja lyhytikäiseen (15 min) Quorum JWT -tokeniin. Tämä minimoi hyökkäyspinta-alan, jos token vuotaa.
+*   **NIST 800-207 (Zero Trust Architecture):** "Never Trust, Always Verify" -periaate toteutuu aneemisilla reitittimillä ja `AuthService.require_role`-luvitusinjektiolla. Tavoitetilana on 0 ms latenssi lokaalin JWT:n avulla, jota täydentää Rediksen reaaliaikainen hätäsulku (Kill-Switch). Nykyisen asynkronisen tietokantahaun (`get_by_id`) poistaminen token-validoinnista siirtää meidät aitoon Stateless-tilaan, mikä on kriittinen askel 2026 Enterprise-skaalautuvuuden saavuttamiseksi.
+*   **RFC 8693 (OAuth 2.0 Token Exchange):** Firebasen ulkoisen ID Tokenin vaihtaminen (Session Upgrade) lokaaliin, tiukasti rajattuun ja lyhytikäiseen (15 min) `TokenData` JWT -tokeniin. Tämä minimoi hyökkäyspinta-alan, jos token vuotaa.
 *   **SOC2 Type II & Logical Tenant Isolation:** Tietokantatason Row-Level Security (RLS) PostgreSQL:ssä (`SET LOCAL quorum.current_org`) takaa loogisen eristyksen, mikä on SOC2-auditoinneissa B2B SaaS -yritysten ehdoton vaatimus.
 *   **GDPR & CCPA (Right to Erasure):** Pehmeä poisto (Soft Delete) anonymisoinnilla varmistaa, että henkilötiedot poistuvat säännösten mukaisesti välittömästi webhookin kautta, mutta rikkomatta Audit-lokien ja AI-ajojen viiteavaimia.
 
@@ -33,10 +33,10 @@ Tämä arkkitehtuuri on suunniteltu vastaamaan suoraan vuoden 2026 kriittisimpii
 1. **Hybrid Opaque Mandaatti (Identiteettien eristys):**  
    * **Organisaatiot:** Ihmisluettavia (esim. firma-oy) tai juoksevia (Auto-Increment) ID-tunnisteita ei sallita. Kaikki työtilat (Tenants) on pakotettu kryptografiseen Opaque-muotoon: org\_\[a-zA-Z0-9\]{8,}.  
    * **Käyttäjät:** Käyttäjän pääavaimena (id) relaatiokannassa käytetään suoraan Firebasen UID:ta. Pydantic-malleissa tämä validoidaan turvalliseksi aakkosnumeeriseksi merkkijonoksi. Sisäisiä usr\_-mäppäyksiä ei luoda.  
-2. **Pydantic Strict Protocol:**  
-   Kaikkiin Pydantic-malleihin (mukaan lukien Quorum Local JWT payload) koodataan ehdoton sääntö: model\_config \= ConfigDict(strict=True, extra="forbid"). Tyyppien arvailua (Type Coercion) tai ylimääräisiä kenttiä ei sallita.  
+2. **Pydantic Strict Protocol (Epic 63 Parity):**  
+   Kaikki Pydantic-mallit (mukaan lukien `TokenData` JWT payload) perivät `V2CoreBase`-kantaluokan, johon on koodattu ehdoton sääntö: `model_config = ConfigDict(strict=True, extra="forbid")`. Tyyppien arvailua (Type Coercion) tai ylimääräisiä kenttiä ei sallita.  
 3. **Anemic Routers (Aneemiset Reitittimet):**  
-   FastAPI-reitittimet tekevät *vain* Pydantic-validoinnin. Luvitus, roolitarkistukset ja FinOps-rajoitukset delegoidaan tiukasti JWT-injektiolle (Depends(require\_role)). Reitittimet eivät koskaan suorita asynkronisia ORM-kyselyitä luvituksen takia.  
+   FastAPI-reitittimet tekevät *vain* Pydantic-validoinnin. Luvitus, roolitarkistukset ja FinOps-rajoitukset delegoidaan tiukasti `AuthService`-injektiolle (`Depends(AuthService.require_role)`). Tavoitetilassa reitittimet tai itse luvitus eivät koskaan suorita asynkronisia ORM-kyselyitä (esim. `get_by_id`) luvituksen takia, vaan luottavat validiin JWT:hen ja nopeaan Redis Blocklist -tarkistukseen.
 4. **Fail-Fast Error Handling:**  
    Oikeuksien puute, epäkelpo token tai kiintiön (Quota) ylitys nostaa välittömästi deterministisen AppException (esim. ErrorCodes.FORBIDDEN) RFC 7807 \-standardin mukaisesti 0 millisekunnissa.  
 5. **Flat 1:1 Identity Mandate:**  
@@ -66,12 +66,12 @@ Järjestelmä eristää Firebase-riippuvuuden kokonaan ydinliiketoiminnasta ja p
 
 5. Riverpod AuthInterceptor kiinnittää tämän lokaalin JWT:n kaikkiin asynkronisiin pyyntöihin.
 
-**Vaihe 2: Silent Refresh & Emergency Kill-Switch**
+**Vaihe 2: Silent Refresh & Emergency Kill-Switch (Redis Tavoitetila)**
 
-Koska Quorum JWT elää vain 15 minuuttia, tietoturva on vankka.
+Koska Quorum JWT elää vain 15 minuuttia, tietoturva on vankka, kun taustajärjestelmä siirtyy nopeutettuun Blocklist-tarkistukseen.
 
-* **Silent Refresh:** Flutter hakee taustalla Firebaselta automaattisesti uuden tokenin ja tekee hiljaisen /exchange-kutsun backendille ennen lokaalin tokenin vanhenemista. Käyttäjäkokemus ei katkea.  
-* **Kill-Switch (Redis):** Jos ADMIN poistaa käyttäjän tai lakkauttaa oikeudet, backend kirjoittaa kyseisen Firebase UID:n välittömästi **Redis-välimuistin mustalle listalle (Blocklist)**. Luvitusinjektio tarkistaa tämän 1 millisekunnissa ja hylkää voimassa olevankin JWT:n statuksella 401 Unauthorized.
+* **Silent Refresh:** Flutter hakee taustalla Firebaselta automaattisesti uuden tokenin ja tekee hiljaisen `/exchange`-kutsun backendille ennen lokaalin tokenin vanhenemista. Käyttäjäkokemus ei katkea.  
+* **Kill-Switch (Redis Blocklist):** Järjestelmän luvitus refaktoroidaan O(1) välimuistipohjaiseksi. Kun ADMIN poistaa käyttäjän tai lakkauttaa oikeudet (`delete_user` / `update_user_role`), backend kirjoittaa kyseisen käyttäjän UID:n välittömästi **Redis-välimuistin mustalle listalle (Blocklist)**. Luvitusinjektio tarkistaa tämän 1 millisekunnissa ja hylkää voimassa olevankin JWT:n statuksella 401 Unauthorized. Tämä poistaa nykyisen hitaan tietokantahaun (`get_by_id`) jokaisen API-kutsun alusta.
 
 ## ---
 
@@ -90,36 +90,49 @@ class UserRole(str, Enum):
     MEMBER \= "MEMBER"    \# Standard User (Ajaa työnkulkuja ja lukee tuloksia)  
     VIEWER \= "VIEWER"    \# Read-Only Stakeholder
 
-**FastAPI Guard Dependency (backend\_v2/core/security.py):**
+**FastAPI Guard Dependency (Tavoitetila / Tuleva Refaktorointi):**
 
-Tämä on backendin turvamuuri, joka ei salli yhdenkään pyynnön lipsua ohi.
+Tämä on backendin turvamuuri, joka ei salli yhdenkään pyynnön lipsua ohi. Arkkitehtuuri tullaan refaktoroimaan tukemaan nollaviivettä ja usean roolin sallimista.
 
-Python
+```python
+# Tavoitetilan koodi: backend_v2/services/auth.py
 
-def require\_role(allowed\_roles: list\[UserRole\]):  
-    def role\_checker(  
-        token: QuorumTokenData \= Depends(get\_quorum\_jwt),  
-        x\_org\_id: str \= Header(..., alias="X-Organization-ID"),  
-        redis: Redis \= Depends(get\_redis\_client)  
-    ):  
-        \# 1\. Kill-Switch (O(1) Redis Blocklist check)  
-        if redis.exists(f"revoked:usr:{token.sub}"):  
-            raise AppException(error\_code=ErrorCodes.UNAUTHORIZED)
+    @staticmethod
+    def require_role(allowed_roles: list[UserRole] | UserRole) -> Any:
+        """Returns a dependency that validates the user has the required role(s).
+        Integrates O(1) Redis Blocklist check for instantaneous kill-switch.
+        """
+        from backend_v2.api.dependencies import get_current_user_from_header, get_arq_pool
 
-        \# 2\. Root ohitus  
-        if token.role \== UserRole.ROOT:   
-            return token  
-              
-        \# 3\. Roolitarkistus  
-        if token.role not in allowed\_roles:   
-            raise AppException(error\_code=ErrorCodes.FORBIDDEN)  
-              
-        \# 4\. Tenant Isolation (O(1) Memory check)  
-        if token.org \!= x\_org\_id:   
-            raise AppException(error\_code=ErrorCodes.FORBIDDEN)  
-              
-        return token  
-    return role\_checker
+        # Normalization
+        if isinstance(allowed_roles, UserRole):
+            allowed_roles = [allowed_roles]
+
+        async def _role_checker(
+            user: TokenData = Depends(get_current_user_from_header),
+            redis: ArqRedis = Depends(get_arq_pool)
+        ) -> TokenData:
+            # 1. Kill-Switch (O(1) Redis Blocklist check)
+            if await redis.exists(f"revoked:usr:{user.id}"):
+                raise AppException(error_code=ErrorCodes.UNAUTHORIZED)
+
+            # 2. Root ohitus
+            if user.role == UserRole.ROOT:
+                return user
+
+            # 3. Roolitarkistus (List of Roles)
+            if user.role not in allowed_roles:
+                raise PermissionDeniedError(
+                    message=f"Insufficient privileges. Required one of: {[r.value for r in allowed_roles]}",
+                    details={"required_roles": [r.value for r in allowed_roles], "current_role": user.role.value},
+                )
+
+            # 4. Tenant Isolation tapahtuu injektiota kutsuvassa reitissä tai alemmalla tasolla
+
+            return user
+
+        return _role_checker
+```
 
 ## ---
 
@@ -186,10 +199,10 @@ Tietokantaa ei koskaan manipuloida fyysisesti .json-tiedostoa editoimalla.
 
 Jokaisen arkkitehtuuriin koskevan Pull Requestin (PR) on läpäistävä nämä testit ja katselmoinnit CI/CD-putkessa:
 
-* \[ \] **Dual-Token & Session Upgrade:** Firebase-tokenia käsitellään *vain* IAM-reiteissä (/exchange, /redeem-invite). Kaikki muut rajapinnat vaativat lokaalin, lyhytikäisen Quorum JWT \-tokenin.  
+* \[ \] **Dual-Token & Session Upgrade:** Firebase-tokenia käsitellään *vain* IAM-reiteissä (/exchange, /redeem-invite). Kaikki muut rajapinnat vaativat lokaalin, lyhytikäisen `TokenData`-kapseloidun Quorum JWT -tokenin.  
 * \[ \] **Hybrid Strictness & Opaque ID:** org\_\[a-zA-Z0-9\]{8,} on pakotettu Pydantic-tasoilla. Käyttäjien PK on Firebasen natiivi UID. Ihmisluettavia tai juoksevia (Auto-Increment) ID:itä ei sallita liiketoimintatauluissa.  
-* \[ \] **Pydantic Strictness:** Kaikissa malleissa (mukaan lukien JWT Payload) on ehdoton ConfigDict(strict=True, extra="forbid"). Secret-avaimet ovat tyyppiä SecretStr.  
-* \[ \] **Zero-Trust Guard & Kill-Switch:** Yksikkötestit todistavat, että API palauttaa 403 Forbidden / 401 Unauthorized 0 millisekunnissa, jos JWT:n rooli on väärä, työtila (Tenant) ei täsmää, tai UID löytyy Rediksen Blocklistiltä (Revocation).  
+* \[ \] **Pydantic Strictness (Epic 63):** Kaikissa malleissa (mukaan lukien `TokenData` JWT Payload) on ehdoton `V2CoreBase`-perintä, joka takaa `ConfigDict(strict=True, extra="forbid")`. Secret-avaimet ovat tyyppiä SecretStr.  
+* \[ \] **Zero-Trust Guard & Redis Kill-Switch:** Yksikkötestit todistavat, että API palauttaa 403 Forbidden / 401 Unauthorized 0 millisekunnissa, jos JWT:n rooli on väärä, työtila (Tenant) ei täsmää, tai UID löytyy Rediksen Blocklistiltä (Revocation). Tietokantahaku on poistettu token-validoinnin kriittiseltä polulta.
 * \[ \] **1:1 Flat Integrity & Collisions:** Järjestelmä heittää deterministisen USER\_ALREADY\_ASSIGNED \-poikkeuksen (409 Conflict), jos käyttäjää yritetään kutsua, mutta sähköposti/UID on jo sidottu toiseen organisaatioon. Moniasiakkuuden N:M \-välihuutelutauluja ei sallita.  
 * \[ \] **FinOps Rate Limiting:** Rediksen Rate Limiter torjuu liikenteen 429 Too Many Requests \-virheellä per org\_id ennen tekoäly-operaatioiden alkua, estäen Noisy Neighbor \-ilmiön.  
 * \[ \] **RLS & Soft Delete Verifioitu:** Testit varmistavat, että poistot päivittävät vain deleted\_at-kentän ja anonymisoivat datan, ja RLS estää cross-tenant vuodot ORM-tasolla.

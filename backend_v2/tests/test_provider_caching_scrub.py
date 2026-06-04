@@ -8,13 +8,23 @@ from backend_v2.models.llm import LLMProviderConfig
 
 @pytest.mark.asyncio
 async def test_provider_caching_payload_scrub_bug() -> None:
-    """TDD Repro for Tier 4 Bug Hunting: Scrubbing system instructions when cached_content is present."""
-    config = LLMProviderConfig(id="test", model_name="test_model", provider="google", tpm_limit=100000, rpm_limit=100)
+    config = LLMProviderConfig(
+        id="prv_test123456",
+        model_name="test_model",
+        provider="google",
+        tpm_limit=100000,
+        rpm_limit=100,
+    )
+
+    mock_settings = MagicMock()
+    mock_settings.vertex_location = "europe-north1"
+    mock_settings.llm_default_timeout = 10
+    mock_settings.default_safety_settings = None
 
     provider = LiteLLMProvider(
         model_name="vertex_ai/gemini-2.5-flash",
         api_key="fake-key",
-        settings=MagicMock(),
+        settings=mock_settings,
         limits={"tpm": 100000, "rpm": 100},
         config=config,
     )
@@ -22,8 +32,20 @@ async def test_provider_caching_payload_scrub_bug() -> None:
     mock_router = AsyncMock()
     # Mock Litellm Response
     mock_response = MagicMock()
-    mock_response.choices = [MagicMock(message=MagicMock(content="Mock cache response"))]
-    mock_response.usage = MagicMock()
+    mock_message = MagicMock()
+    mock_message.content = "Mock cache response"
+    mock_choice = MagicMock()
+    mock_choice.message = mock_message
+    mock_response.choices = [mock_choice]
+    mock_usage = MagicMock()
+    mock_usage.prompt_tokens = 10
+    mock_usage.completion_tokens = 10
+    mock_usage.total_tokens = 20
+    mock_usage.prompt_tokens_details = None
+    mock_usage.completion_tokens_details = None
+    mock_response.usage = mock_usage
+    mock_response.system_fingerprint = None
+    mock_response.model_dump.return_value = {}
     mock_router.acompletion.return_value = mock_response
 
     provider.router = mock_router

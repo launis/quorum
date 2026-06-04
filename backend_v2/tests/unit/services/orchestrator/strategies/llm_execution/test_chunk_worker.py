@@ -288,3 +288,46 @@ async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_c
 
     assert final["inst_12345678901234567890123456789012"] == "This is raw instruction text"
     assert final["crit_12345678901234567890123456789012"]["status"] in ["PASS", "FAIL", "DLQ"]
+
+
+@pytest.mark.asyncio
+async def test_chunk_worker_exception_group_dlq_masking(mock_executor_class: Any) -> None:
+    """Test that ExceptionGroup correctly unwraps AppException for DLQ reason."""
+    mock_compiler = MagicMock()
+    mock_client = AsyncMock()
+
+    mock_executor_instance = mock_executor_class.return_value
+
+    # We simulate a TaskGroup raising an ExceptionGroup containing an AppException
+    def raise_exception_group(*args: Any, **kwargs: Any) -> None:
+        raise ExceptionGroup(
+            "unhandled errors in a TaskGroup", [AppException("Upstream LLM service timed out", status_code=500)]
+        )
+
+    mock_executor_instance.execute_structured_task.side_effect = raise_exception_group
+
+    sem = asyncio.Semaphore(1)
+
+    final, usage, traces = await ChunkWorker.process_chunk(
+        chunk=None,
+        sem=sem,
+        compiler=mock_compiler,
+        criteria_blocks=[],
+        user_payload="<payload>",
+        base_system_prompt="Base prompt",
+        has_search=False,
+        has_shuffled_atoms=False,
+        atom_to_block_ids={},
+        effective_mcp_tools=[],
+        bound_client=mock_client,
+        step_id="step1",
+        target_locale="en",
+        synthesis_instructions=None,
+        output_profile=None,
+    )
+
+    assert final.get("_dlq_status") == "FAILED/DLQ"
+    # This assertion verifies that the DLQ reason extracts the actual inner exception's message
+    # rather than just printing the generic TaskGroup wrapper message.
+    assert "Upstream LLM service timed out" in final.get("reason", "")
+    assert "unhandled errors in a TaskGroup" not in final.get("reason", "")

@@ -209,7 +209,7 @@ async def test_vertex_fail_soft_resilience_integration(
     provider_config = LLMProviderConfig(
         id="prv_vertextest",
         provider="vertex_ai",
-        model_name="gemini-1.5-pro",
+        model_name="vertex_ai/gemini-1.5-pro",
         api_key="mock_vertex_key",
         temperature=0.7,
         tpm_limit=10000,
@@ -268,7 +268,7 @@ async def test_vertex_fail_soft_resilience_integration(
     # The actual static_messages is compiled by PromptCompilerAdapter.compile_prompt
     compiled_p = PromptCompilerAdapter().compile_prompt(messages)
     actual_hash = hashlib.sha256(json.dumps(compiled_p.static_messages, sort_keys=True).encode()).hexdigest()
-    redis_key = f"vertex_cache:gemini-1.5-pro:{actual_hash}"
+    redis_key = f"vertex_cache:vertex_ai/gemini-1.5-pro:{actual_hash}"
 
     status = await mock_redis_client.get(redis_key)
     if isinstance(status, bytes):

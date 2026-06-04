@@ -30,6 +30,7 @@ from backend_v2.models.v2_core import (
     Workflow,
     WorkflowInputs,
 )
+from backend_v2.services.execution import create_execution_record
 from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext
@@ -345,14 +346,13 @@ class DAGExecutor:
                 )
                 exec_record = exec_record.model_copy(update={"step_states": new_states})
         else:
-            exec_record = ExecutionRecord(
-                id=execution_id,
+            exec_record = create_execution_record(
+                execution_id=execution_id,
                 workflow_id=workflow.id,
-                status=ExecutionStatus.RUNNING,
                 raw_inputs=raw_inputs,
-                execution_trace=[],
-                step_states=step_states,
                 frozen_context=FrozenContext(),
+                status=ExecutionStatus.RUNNING,
+                step_states=step_states,
             )
             v_step_id = f"sys_render_{workflow.default_profile_id}"
             if v_step_id not in exec_record.step_states:

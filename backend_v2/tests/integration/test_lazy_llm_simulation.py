@@ -70,7 +70,7 @@ def test_lazy_llm_spatial_anchoring_rules() -> None:
                 "long, but completely lacks any spatial referencing or structural location anchors."
             ),
         )
-    assert "spatial/structural location reference" in str(exc.value)
+    assert "explicit structural_location reference" in str(exc.value)
 
 
 def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
