@@ -128,7 +128,9 @@ class AnchorValidationService:
                             extra={"parsed_anchor": parsed_anchor},
                         )
                         raise SemanticEvidenceError(
-                            message=f"Hallucinated Anchor: The anchor '{parsed_anchor}' does not exist in the source text.",
+                            message=(
+                                f"Hallucinated Anchor: The anchor '{parsed_anchor}' does not exist in the source text."
+                            ),
                             details={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.value},
                         )
 

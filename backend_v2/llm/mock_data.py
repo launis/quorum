@@ -63,7 +63,12 @@ MOCK_METADATA = Metadata(
 MOCK_CHAT_HISTORY = ChatHistoryDTO(
     conversation=[
         ChatMessageDTO(role="user", content="Hei, miten Sitra määrittelee megatrendit?"),
-        ChatMessageDTO(role="ai", content="Sitra kuvaa megatrendejä suurina kehityskulkuina, jotka vaikuttavat merkittävästi yhteiskuntaamme.")
+        ChatMessageDTO(
+            role="ai",
+            content=(
+                "Sitra kuvaa megatrendejä suurina kehityskulkuina, jotka vaikuttavat merkittävästi yhteiskuntaamme."
+            ),
+        ),
     ]
 )
 

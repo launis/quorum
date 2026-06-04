@@ -15,5 +15,5 @@ def mock_current_user() -> TokenData:
 async def test_get_system_hooks(mock_current_user: TokenData) -> None:
     with patch("backend_v2.api.routers.system.health.hook_registry.get_all_hooks") as mock_get_hooks:
         mock_get_hooks.return_value = ["hook1", "hook2"]
-        res = await get_system_hooks(current_user=mock_current_user)
+        res = await get_system_hooks()
         assert res.hooks == ["hook1", "hook2"]

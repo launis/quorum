@@ -195,7 +195,7 @@ def setup_logging(log_level: int = logging.INFO) -> None:
     try:
         import litellm
 
-        litellm.set_verbose = False
+        litellm.set_verbose = False  # type: ignore[attr-defined]
         litellm.suppress_debug_info = True
     except ImportError:
         logging.getLogger(__name__).info("LiteLLM module not found. Skipping LiteLLM debug configuration.")

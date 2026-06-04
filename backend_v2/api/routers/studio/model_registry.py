@@ -3,7 +3,6 @@ import logging
 from fastapi import APIRouter
 
 from backend_v2.api.dependencies import CurrentUserDep, LLMHandlerDep, StudioServiceDep
-from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.studio import ModelRegistryDeleteResponse
 from backend_v2.models.v2_core import SystemConfigModelRegistry
 
@@ -62,24 +61,8 @@ async def delete_model_registry(
     registry_id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep
 ) -> ModelRegistryDeleteResponse:
     """Delete a model registry configuration securely via SSOT Service Layer."""
-    try:
-        await studio_service.delete_system_config(current_user, registry_id)
-        return ModelRegistryDeleteResponse(status="success", deleted_id=registry_id)
-    except Exception as e:
-        if isinstance(e, AppException):
-            raise
-        logger.error(
-            "[ModelRegistryRouter] %s: %s",
-            ErrorCodes.INTERNAL_SERVER_ERROR.name,
-            str(e),
-            exc_info=True,
-            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "target_id": registry_id, "error": str(e)},
-        )
-        raise AppException(
-            message="Internal delete failure",
-            status_code=500,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-        ) from e
+    await studio_service.delete_system_config(current_user, registry_id)
+    return ModelRegistryDeleteResponse(status="success", deleted_id=registry_id)
 
 
 @router.post("/{registry_id}/clone", response_model=SystemConfigModelRegistry)

@@ -189,7 +189,7 @@ class SystemConcurrency(int, Enum):
     """Global concurrency limits for DAG Execution. Optimized for Context Caching (V3)."""
 
     MAX_CONCURRENT_WORKFLOWS = 5
-    MAX_CONCURRENT_LLM_STEPS = 10
+    MAX_CONCURRENT_LLM_STEPS = 3
     LLM_MAX_RETRIES = 2
     LLM_RETRY_MULTIPLIER = 2
     LLM_RETRY_MIN_SECONDS = 1

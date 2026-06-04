@@ -3,7 +3,6 @@ import logging
 from fastapi import APIRouter
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
-from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.studio import WorkflowDeleteResponse, WorkflowResponseDTO, WorkflowSimulationResponse
 from backend_v2.models.v2_core import Workflow
 
@@ -58,21 +57,5 @@ async def delete_workflow(
     id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep
 ) -> WorkflowDeleteResponse:
     """Delete a workflow definition block securely via SSOT Service Layer."""
-    try:
-        await studio_service.delete_workflow(current_user, id)
-        return WorkflowDeleteResponse(status="success", deleted_id=id)
-    except Exception as e:
-        if isinstance(e, AppException):
-            raise
-        logger.error(
-            "[WorkflowsRouter] %s: %s",
-            ErrorCodes.INTERNAL_SERVER_ERROR.name,
-            str(e),
-            exc_info=True,
-            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "target_id": id, "error": str(e)},
-        )
-        raise AppException(
-            message="Internal delete failure",
-            status_code=500,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-        ) from e
+    await studio_service.delete_workflow(current_user, id)
+    return WorkflowDeleteResponse(status="success", deleted_id=id)

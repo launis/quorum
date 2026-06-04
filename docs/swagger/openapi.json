@@ -695,7 +695,7 @@
           "System"
         ],
         "summary": "Get System Hooks",
-        "description": "Get all registered hooks available for dynamic assignment.\n\nRequires admin privileges to view system internals.\n\nReturns:\n    HookListResponse: List of all registered hook names.",
+        "description": "Retrieves all registered system hooks.\n\nThis endpoint returns a sorted list of all hook names currently registered\nwithin the system's hook registry. Requires admin privileges.\n\nReturns:\n    An object containing a sorted list of all registered hook names.\n\nRaises:\n    AppException: With error code `INTERNAL_SERVER_ERROR` if an unexpected\n                  internal system failure occurs.",
         "operationId": "get_system_hooks_api_v2_system_system_hooks_get",
         "responses": {
           "200": {
@@ -3209,7 +3209,7 @@
           "error_message"
         ],
         "title": "ClientErrorPayload",
-        "description": "Payload sent by the Flutter client when an unhandled or caught error occurs."
+        "description": "Payload sent by the Flutter client when an unhandled or caught error occurs.\n\nAttributes:\n    session_id: Client session or user ID if available.\n    app_version: Client application version.\n    platform: Client platform OS (e.g. android, ios, web).\n    locale: Client UI language.\n    error_message: The main error message or exception toString().\n    stack_trace: The Dart stack trace lines.\n    severity: Severity level, usually 'error' or 'fatal'.\n    context_data: Additional context or state dump."
       },
       "ComponentType": {
         "type": "string",
@@ -4130,7 +4130,7 @@
           "hooks"
         ],
         "title": "HookListResponse",
-        "description": "Schema for returning available configured hooks."
+        "description": "Schema for returning available configured hooks.\n\nAttributes:\n    hooks: A list of registered system hooks or callback identifiers."
       },
       "I18nText": {
         "properties": {
@@ -4154,7 +4154,7 @@
           "default_locale"
         ],
         "title": "I18nText",
-        "description": "V2 Strict: Frontend no-string mandate requires all localized text to be structured."
+        "description": "V2 Strict: Frontend no-string mandate requires all localized text to be structured.\n\nAttributes:\n    default_locale: The default locale used if a translation is missing.\n    translations: Dictionary mapping locale code to translated string."
       },
       "ImpersonationRequest": {
         "properties": {
@@ -4329,7 +4329,8 @@
           "status",
           "deleted_id"
         ],
-        "title": "MCPGatewayDeleteResponse"
+        "title": "MCPGatewayDeleteResponse",
+        "description": "API Response schema for deleting an MCP gateway.\n\nAttributes:\n    status: Action outcome status message.\n    deleted_id: Opaque ID of the deleted gateway."
       },
       "MatrixClaim": {
         "properties": {
@@ -4360,7 +4361,7 @@
           "tda_assertions"
         ],
         "title": "MatrixClaim",
-        "description": "Represents a single behavioral claim with an AI evaluation directive."
+        "description": "Represents a single behavioral claim with an AI evaluation directive.\n\nAttributes:\n    label: User-facing empirical claim.\n    ai_description: Specific AI enforcement rule for this claim.\n    tda_assertions: Test-Driven Assertion rules explicitly set by experts."
       },
       "MatrixRow": {
         "properties": {
@@ -4381,7 +4382,7 @@
           "ai_description"
         ],
         "title": "MatrixRow",
-        "description": "Represents a row in a 2D matrix evaluating multiple dimensions."
+        "description": "Represents a row in a 2D matrix evaluating multiple dimensions.\n\nAttributes:\n    label: User-facing row name.\n    ai_description: Dedicated AI evaluation instruction for this sub-dimension."
       },
       "MatrixScale-Input": {
         "properties": {
@@ -4422,7 +4423,7 @@
           "ai_label"
         ],
         "title": "MatrixScale",
-        "description": "Represents a single score point in a BARS matrix scale."
+        "description": "Represents a single score point in a BARS matrix scale.\n\nAttributes:\n    score: Numerical value of the scale point.\n    name: Optional name for the scale point (e.g., 'Excellent').\n    ai_label: Short uppercase AI mnemonic replacing English target label, e.g. CATASTROPHIC FAILURE.\n    claims: List of behavioral claims/criteria for this score."
       },
       "MatrixScale-Output": {
         "properties": {
@@ -4463,7 +4464,7 @@
           "ai_label"
         ],
         "title": "MatrixScale",
-        "description": "Represents a single score point in a BARS matrix scale."
+        "description": "Represents a single score point in a BARS matrix scale.\n\nAttributes:\n    score: Numerical value of the scale point.\n    name: Optional name for the scale point (e.g., 'Excellent').\n    ai_label: Short uppercase AI mnemonic replacing English target label, e.g. CATASTROPHIC FAILURE.\n    claims: List of behavioral claims/criteria for this score."
       },
       "ModelProfile": {
         "properties": {
@@ -4638,7 +4639,8 @@
           "status",
           "deleted_id"
         ],
-        "title": "ModelRegistryDeleteResponse"
+        "title": "ModelRegistryDeleteResponse",
+        "description": "API Response schema for deleting a Model Registry entry.\n\nAttributes:\n    status: Action outcome status message.\n    deleted_id: Opaque ID of the deleted model registry."
       },
       "Organization": {
         "properties": {
@@ -5527,7 +5529,7 @@
           "type"
         ],
         "title": "PromptBlock",
-        "description": "V2 PromptBlock representation.\nFuses legacy Components and Matrices into a unified directive model."
+        "description": "V2 PromptBlock representation.\nFuses legacy Components and Matrices into a unified directive model.\n\nAttributes:\n    id: Unique identifier for the prompt block.\n    slug: URL routing helper field.\n    organization_id: Tenant organization ID.\n    label: Localizable label for the UI.\n    description: Localizable description or help text for the UI.\n    ai_description: MANDATORY: English cognitive instructions for the LLM.\n    category_id: Categorization identifier.\n    is_evaluative: Whether this matrix is mathematically commensurate.\n    type: Data type of the expected extracted value.\n    allow_decimals: Whether float types allow decimals in validation.\n    output_extensions: List of requested XAI output extensions.\n    execution_persona: Defines the global system prompt rules applied to this block.\n    theory_grounding: Fetches and injects source theory as <theory_context>.\n    scale_min: Minimum score for the scales matrix.\n    scale_max: Maximum score for the scales matrix.\n    scales: BARS scale definitions with scores and localized claims.\n    rows: Optional rows for grid matrices.\n    columns: Optional columns for grid matrices.\n    computed_min: Dynamically computed absolute minimum score.\n    computed_max: Dynamically computed absolute maximum score."
       },
       "PromptBlockDeleteResponse": {
         "properties": {
@@ -5546,7 +5548,8 @@
           "status",
           "deleted_id"
         ],
-        "title": "PromptBlockDeleteResponse"
+        "title": "PromptBlockDeleteResponse",
+        "description": "API Response schema for deleting a prompt block.\n\nAttributes:\n    status: Status code or textual message.\n    deleted_id: Opaque ID of the deleted prompt block."
       },
       "PromptBlockResponseDTO": {
         "properties": {
@@ -5743,7 +5746,7 @@
           "type"
         ],
         "title": "PromptBlockResponseDTO",
-        "description": "API Response boundary for PromptBlock ensuring Data Sovereignty."
+        "description": "API Response boundary for PromptBlock ensuring Data Sovereignty.\n\nAttributes:\n    organization_id: Explicitly exposed for Admin Studio UI routing."
       },
       "PromptBlockSimulationRequest": {
         "properties": {
@@ -5761,7 +5764,8 @@
         "required": [
           "block"
         ],
-        "title": "PromptBlockSimulationRequest"
+        "title": "PromptBlockSimulationRequest",
+        "description": "Simulation configuration inputs for testing dynamic prompt construction.\n\nAttributes:\n    block: The source PromptBlock domain object.\n    mock_inputs: Arbitrary mock parameters mimicking actual workflow variables."
       },
       "PromptBlockSimulationResponse": {
         "properties": {
@@ -5794,7 +5798,8 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "PromptBlockSimulationResponse"
+        "title": "PromptBlockSimulationResponse",
+        "description": "Resulting simulation projection for a dry-run prompt rendering.\n\nAttributes:\n    valid: Indicates if simulation passed verification without errors.\n    errors: Compiled structural parsing errors list.\n    rendered_prompt: Raw text output containing the rendered prompt block template.\n    trace: Metadata containing state execution variables."
       },
       "QuestionnaireItem": {
         "properties": {
@@ -6128,7 +6133,8 @@
           "status",
           "deleted_id"
         ],
-        "title": "StepDeleteResponse"
+        "title": "StepDeleteResponse",
+        "description": "Response returned upon successful removal of a step configuration.\n\nAttributes:\n    status: Lifecycle state mapping indicating deletion complete.\n    deleted_id: Relational tracking code representing deleted target."
       },
       "StepResponseDTO": {
         "properties": {
@@ -6302,7 +6308,7 @@
           "name"
         ],
         "title": "StepResponseDTO",
-        "description": "API Response boundary for Step ensuring Data Sovereignty."
+        "description": "API Response boundary for Step ensuring Data Sovereignty.\n\nAttributes:\n    organization_id: Explicitly exposed for Admin Studio UI routing."
       },
       "StepRule": {
         "properties": {
@@ -6372,7 +6378,8 @@
         "required": [
           "step"
         ],
-        "title": "StepSimulationRequest"
+        "title": "StepSimulationRequest",
+        "description": "Isolated runtime input payload required to compile and verify a single step.\n\nAttributes:\n    step: Domain step blueprint context containing prompt configurations.\n    mock_inputs: Static evaluation anchors containing environment variables."
       },
       "StepSimulationResponse": {
         "properties": {
@@ -6405,7 +6412,8 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "StepSimulationResponse"
+        "title": "StepSimulationResponse",
+        "description": "Dry-run validation telemetry for isolated step execution.\n\nAttributes:\n    valid: Verification boolean indicator.\n    errors: Array of syntax or schema compliance issues.\n    rendered_prompt: Concrete text string sent to the target LLM task.\n    trace: Associated performance profiling variables."
       },
       "StrictnessConfigDTO": {
         "properties": {
@@ -6659,7 +6667,7 @@
         "properties": {
           "tda_id": {
             "type": "string",
-            "pattern": "^tda_[a-f0-9]{16}$",
+            "pattern": "^tda_[a-f0-9]{32}$",
             "title": "Tda Id",
             "description": "Opaque Stripe ID for this assertion."
           },
@@ -6733,7 +6741,7 @@
           "aggregation_mode"
         ],
         "title": "TDAAssertion",
-        "description": "Deterministic rule evaluated by the backend."
+        "description": "Deterministic rule evaluated by the backend.\n\nAttributes:\n    tda_id: Opaque Stripe ID for this assertion.\n    ai_rule_description: Strict enforcement rule.\n    inverse_evidence: If True, acts as a poison/penalty detector.\n    aggregation_mode: Aggregation constraint.\n    evaluation_track: Decoupled evaluation track.\n    facts_to_find: The list of facts to extract for this assertion.\n    logical_expression: Whitelisted Boolean logical expression using extracted facts.\n    allow_contextual_override: If True, allows overriding this assertion with a contextual excuse.\n    high_entropy: If True, enables multi-agent ensemble majority voting for this assertion."
       },
       "TheoryGrounding": {
         "properties": {
@@ -6755,7 +6763,7 @@
           "citation_reference"
         ],
         "title": "TheoryGrounding",
-        "description": "Used in PromptBlock to bind criteria to organizational truth."
+        "description": "Used in PromptBlock to bind criteria to organizational truth.\n\nAttributes:\n    source_url: URL or reference to the source material.\n    citation_reference: Specific section or phrase to cite from the source."
       },
       "TokenPayload": {
         "properties": {
@@ -7488,7 +7496,8 @@
           "status",
           "deleted_id"
         ],
-        "title": "WorkflowDeleteResponse"
+        "title": "WorkflowDeleteResponse",
+        "description": "API output indicating clean removal of a target workflow entity.\n\nAttributes:\n    status: Action status string.\n    deleted_id: Opaque ID representing the deleted workflow resource."
       },
       "WorkflowInputs": {
         "properties": {
@@ -7667,7 +7676,7 @@
           "default_profile_id"
         ],
         "title": "WorkflowResponseDTO",
-        "description": "API Response boundary for Workflow ensuring Data Sovereignty."
+        "description": "API Response boundary for Workflow ensuring Data Sovereignty.\n\nAttributes:\n    organization_id: Explicitly exposed for Admin Studio UI routing."
       },
       "WorkflowSimulationResponse": {
         "properties": {
@@ -7710,7 +7719,8 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "WorkflowSimulationResponse"
+        "title": "WorkflowSimulationResponse",
+        "description": "Full structural DAG validation result for complex multi-agent workflows.\n\nAttributes:\n    valid: Static verification of circularity and node compatibility.\n    errors: Aggregated failure logs throughout the graph parse pathway.\n    step_status: Compilation status map keyed by Step identifiers.\n    execution_order: Order of step executions dynamically computed from the DAG.\n    trace: Aggregated telemetry profiling outputs."
       },
       "XaiExtensionType": {
         "type": "string",
@@ -7737,7 +7747,7 @@
           "extension_type": {
             "type": "string",
             "title": "Extension Type",
-            "description": "Category of the insight (e.g. 'falsification', 'coaching', 'remediation', 'risk_flag')"
+            "description": "Category of the insight matching explicit system XaiExtensionType options."
           },
           "content": {
             "type": "string",
@@ -7751,7 +7761,8 @@
           "extension_type",
           "content"
         ],
-        "title": "XaiHighlightItem"
+        "title": "XaiHighlightItem",
+        "description": "DTO representing a highly contextual, structured XAI highlight or tip.\n\nAttributes:\n    extension_type: Category of the insight matching explicit system XaiExtensionType options.\n    content: The synthesized, deduplicated insight or tip. Max 2 sentences."
       }
     },
     "securitySchemes": {

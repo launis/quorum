@@ -1,13 +1,14 @@
 import re
-import pytest
 
 DART_ENUM_PATH = "client_app_v2/lib/core/models/enums.dart"
 PYTHON_V2_CORE_PATH = "backend_v2/models/v2_core.py"
 PYTHON_ENUMS_PATH = "backend_v2/models/enums.py"
 
+
 def read_file(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return f.read()
+
 
 def extract_dart_enum_json_values(dart_code: str, enum_name: str) -> set[str]:
     """Extracts all @JsonValue('...') strings for a specific enum."""
@@ -16,13 +17,14 @@ def extract_dart_enum_json_values(dart_code: str, enum_name: str) -> set[str]:
     match = re.search(enum_pattern, dart_code, re.DOTALL)
     if not match:
         raise ValueError(f"Enum {enum_name} not found in Dart file.")
-    
+
     enum_body = match.group(1)
-    
+
     # Find all @JsonValue('something') mappings
     # Allow single or double quotes
     values = re.findall(r"@JsonValue\(['\"]([^'\"]+)['\"]\)", enum_body)
     return set(values)
+
 
 def get_python_literal_values(python_code: str, prop_name: str) -> set[str]:
     """Finds a property like preset_view: Literal['A', 'B'] and extracts the values."""
@@ -30,48 +32,61 @@ def get_python_literal_values(python_code: str, prop_name: str) -> set[str]:
     match = re.search(pattern, python_code)
     if not match:
         raise ValueError(f"Literal for {prop_name} not found in Python v2_core.py.")
-    
+
     literal_content = match.group(1)
     values = re.findall(r"['\"]([^'\"]+)['\"]", literal_content)
     return set(values)
 
+
 def get_python_enum_values(python_code: str, enum_name: str) -> set[str]:
-    """Finds an Enum string class like class XaiExtensionType(str, Enum): A = 'a'"""
+    """Finds an Enum string class like class XaiExtensionType(str, Enum): A = 'a'."""
     enum_pattern = rf"class\s+{enum_name}\s*\(.+?\):\s*(?:\"\"\".*?\"\"\"\s*)?(.+?)(?=\n\nclass |\Z)"
     match = re.search(enum_pattern, python_code, re.DOTALL)
     if not match:
         raise ValueError(f"Enum {enum_name} not found in Python backend enums.py.")
-    
+
     enum_body = match.group(1)
     values = re.findall(r"^\s*[A-Z0-9_]+\s*=\s*['\"]([^'\"]+)['\"]", enum_body, re.MULTILINE)
     return set(values)
 
 
-def test_parity_preset_view():
+def test_parity_preset_view() -> None:
     """Fail-Fast Check: Asserts Python PresetView Literals equal Dart PresetView Enums."""
     dart_code = read_file(DART_ENUM_PATH)
     py_core_code = read_file(PYTHON_V2_CORE_PATH)
-    
+
     dart_values = extract_dart_enum_json_values(dart_code, "PresetView")
     py_values = get_python_literal_values(py_core_code, "preset_view")
-    
+
     missing_in_dart = py_values - dart_values
     missing_in_python = dart_values - py_values
-    
-    assert not missing_in_dart, f"CROSS-LANGUAGE PARITY FAILURE: Python allows preset_view {missing_in_dart} but Dart does not parse it! Add to enums.dart @JsonValue!"
-    assert not missing_in_python, f"CROSS-LANGUAGE PARITY FAILURE: Dart defines PresetView {missing_in_python} but Python does not allow it! Update v2_core.py Literal!"
+
+    assert not missing_in_dart, (
+        f"CROSS-LANGUAGE PARITY FAILURE: Python allows preset_view {missing_in_dart}"
+        " but Dart does not parse it! Add to enums.dart @JsonValue!"
+    )
+    assert not missing_in_python, (
+        f"CROSS-LANGUAGE PARITY FAILURE: Dart defines PresetView {missing_in_python}"
+        " but Python does not allow it! Update v2_core.py Literal!"
+    )
 
 
-def test_parity_xai_extensions():
+def test_parity_xai_extensions() -> None:
     """Fail-Fast Check: Asserts Python XaiExtensionType equals Dart XaiExtensionType Enums."""
     dart_code = read_file(DART_ENUM_PATH)
     py_enums_code = read_file(PYTHON_ENUMS_PATH)
-    
+
     dart_values = extract_dart_enum_json_values(dart_code, "XaiExtensionType")
     py_values = get_python_enum_values(py_enums_code, "XaiExtensionType")
-    
+
     missing_in_dart = py_values - dart_values
     missing_in_python = dart_values - py_values
-    
-    assert not missing_in_dart, f"CROSS-LANGUAGE PARITY FAILURE: The backend throws new XaiExtensionType {missing_in_dart} but Dart cannot parse it! Update enums.dart!"
-    assert not missing_in_python, f"CROSS-LANGUAGE PARITY FAILURE: Dart listens to XaiExtensionType {missing_in_python} but the backend doesn't know it! Update enums.py!"
+
+    assert not missing_in_dart, (
+        f"CROSS-LANGUAGE PARITY FAILURE: The backend throws new XaiExtensionType {missing_in_dart}"
+        " but Dart cannot parse it! Update enums.dart!"
+    )
+    assert not missing_in_python, (
+        f"CROSS-LANGUAGE PARITY FAILURE: Dart listens to XaiExtensionType {missing_in_python}"
+        " but the backend doesn't know it! Update enums.py!"
+    )

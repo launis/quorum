@@ -8,11 +8,6 @@ import sys
 
 from backend_v2.settings import get_settings
 
-try:
-    import litellm
-except ImportError:
-    litellm = None  # type: ignore[assignment]
-
 # Force UTF-8 on Windows to prevent Logfire/Rich box-drawing crashes (cp1252 to undefined)
 if sys.platform == "win32":
     try:
@@ -109,9 +104,14 @@ def configure_logfire() -> None:
         logfire.instrument_httpx()
         # logfire.instrument_redis() # Spams the console with Arq queue polling (ZRANGEBYSCORE/ZCARD) every 0.5s
 
-        if litellm is not None:
-            litellm.success_callback = ["logfire"]  # Instrument LLM Calls
-            litellm.failure_callback = ["logfire"]
+        # Lazy import: heavy AI/ML library (no_inline_imports mandate)
+        try:
+            import litellm as _litellm
+
+            _litellm.success_callback = ["logfire"]  # Instrument LLM Calls
+            _litellm.failure_callback = ["logfire"]
+        except ImportError:
+            pass
     except Exception as e:
         msg = f"[LoggingConfig] Logfire validation failed: {e}. Observability disabled."
         logging.getLogger(__name__).warning(
@@ -224,17 +224,20 @@ def setup_logging(log_level: int = logging.INFO) -> None:
         llm_logger.propagate = True
         llm_logger.setLevel(logging.INFO)
 
-    if litellm is not None:
+    # Lazy import: heavy AI/ML library (no_inline_imports mandate)
+    try:
+        import litellm as _litellm
+
         try:
-            litellm.set_verbose = False  # type: ignore[attr-defined]
-            litellm.suppress_debug_info = True  # Suppress print statements
+            _litellm.set_verbose = False  # type: ignore[attr-defined]
+            _litellm.suppress_debug_info = True  # Suppress print statements
         except Exception as e:
             logging.getLogger(__name__).error("Unexpected error configuring LiteLLM.", exc_info=True)
             raise AppException(
                 message="Failed to configure LiteLLM logging.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             ) from e
-    else:
+    except ImportError:
         logging.getLogger(__name__).info("LiteLLM module not found. Skipping LiteLLM debug configuration.")
 
     logging.info(f"Logging configured. Writing to: {log_file_path}")

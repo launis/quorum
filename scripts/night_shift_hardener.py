@@ -150,7 +150,7 @@ async def run_async_cmd(*args: str) -> tuple[str, str]:
 
     if process.returncode != 0:
         raise subprocess.CalledProcessError(
-            returncode=process.returncode, cmd=args, output=stdout_str, stderr=stderr_str
+            returncode=process.returncode or 1, cmd=args, output=stdout_str, stderr=stderr_str
         )
 
     return stdout_str, stderr_str
@@ -171,7 +171,7 @@ def analyze_file_context(code: str) -> set[str]:
     Returns:
         A set of trigger strings (e.g., 'pydantic', 'database', 'arq', 'state').
     """
-    triggers = set()
+    triggers: set[str] = set()
     try:
         tree = ast.parse(code)
     except SyntaxError:
@@ -535,41 +535,40 @@ def pydantic_field_signature_guard(original_code: str, new_code: str) -> None:
         import ast
 
         class TypeNormalizer(ast.NodeTransformer):
-            def visit_Attribute(self, node):
+            def visit_Attribute(self, node: ast.Attribute) -> ast.AST:
                 # Convert typing.Optional/Union -> Optional/Union
                 if isinstance(node.value, ast.Name) and node.value.id == "typing":
                     return ast.Name(id=node.attr, ctx=ast.Load())
                 return self.generic_visit(node)
 
-            def visit_Subscript(self, node):
-                node = self.generic_visit(node)
+            def visit_Subscript(self, node: ast.Subscript) -> ast.AST:
+                import typing
+                visited_node = typing.cast(ast.Subscript, self.generic_visit(node))
                 # Check for Optional[X] -> X | None
                 is_optional = False
-                if isinstance(node.value, ast.Name) and node.value.id == "Optional":
+                if isinstance(getattr(visited_node, "value", None), ast.Name) and getattr(visited_node, "value").id == "Optional":
                     is_optional = True
                 
                 if is_optional:
                     return ast.BinOp(
-                        left=node.slice,
+                        left=typing.cast(ast.expr, getattr(visited_node, "slice", None)),
                         op=ast.BitOr(),
                         right=ast.Constant(value=None)
                     )
                 
                 # Check for Union[X, Y] -> X | Y
                 is_union = False
-                if isinstance(node.value, ast.Name) and node.value.id == "Union":
+                if isinstance(getattr(visited_node, "value", None), ast.Name) and getattr(visited_node, "value").id == "Union":
                     is_union = True
                     
                 if is_union:
-                    if isinstance(node.slice, ast.Tuple):
-                        elements = node.slice.elts
-                        if not elements:
-                            return node
+                    if isinstance(getattr(visited_node, "slice", None), ast.Tuple) and len(getattr(visited_node, "slice").elts) >= 2:
+                        elements = getattr(visited_node, "slice").elts
                         res = elements[0]
                         for el in elements[1:]:
                             res = ast.BinOp(left=res, op=ast.BitOr(), right=el)
-                        return res
-                return node
+                        return typing.cast(ast.AST, res)
+                return visited_node
 
         try:
             tree = ast.parse(t_str, mode='eval')
@@ -944,10 +943,10 @@ async def process_file_with_retry(
                     result_dto = target_format.model_validate_json(raw_json)
                     new_code = result_dto.hardened_code
 
-                    if not is_healing:
-                        for item in result_dto.audit_matrix:
+                    if not is_healing and isinstance(result_dto, HardeningResponse):
+                        for item in getattr(result_dto, "audit_matrix", []):
                             item.pass_id = current_pass
-                        aggregated_audit_matrix.extend(result_dto.audit_matrix)
+                        aggregated_audit_matrix.extend(getattr(result_dto, "audit_matrix", []))
 
                     # Strip unexpected markdown wraps to retrieve pure compilable python code
                     new_code = new_code.strip()
@@ -1015,7 +1014,7 @@ async def process_file_with_retry(
                         if diff_lines:
                             diff_str = "\n".join(diff_lines)
                             audit_matrix_json = json.dumps(
-                                [a.model_dump() for a in result_dto.audit_matrix], ensure_ascii=False
+                                [a.model_dump() for a in getattr(result_dto, "audit_matrix", [])] if isinstance(result_dto, HardeningResponse) else [], ensure_ascii=False
                             )
                             judge_sys_prompt = (
                                 "Olet Quorum Arkkitehtuurituomari. Varmista, ettei Koodari tehnyt luvattomia loogisia muutoksia, "

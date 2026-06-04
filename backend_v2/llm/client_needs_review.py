@@ -65,7 +65,8 @@ class LLMClient:
             A configured LLMClient instance ready for execution.
 
         Raises:
-            ConfigurationError: If the Strategy does not exist or model registry is corrupted (ErrorCodes.CONFIGURATION_ERROR).
+            ConfigurationError: If the Strategy does not exist or model registry
+                is corrupted (ErrorCodes.CONFIGURATION_ERROR).
         """
         if not repository:
             raise ConfigurationError("Repository dependency must be provided to LLMClient.from_strategy.")
@@ -182,7 +183,8 @@ class LLMClient:
         Raises:
             AppException: If model configuration is missing (ErrorCodes.CONFIGURATION_ERROR).
             AgentExecutionError: If provider generation or metric loading fails (ErrorCodes.AGENT_EXECUTION_CRITICAL).
-            LLMSchemaValidationError: If parsing structured output breaches formatting constraints (ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED).
+            LLMSchemaValidationError: If parsing structured output breaches formatting
+                constraints (ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED).
         """
         if model is None:
             if not self._config:

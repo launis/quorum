@@ -47,7 +47,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                         ),
                         "tda_assertions": [
                             {
-                                "tda_id": "tda_1111111111111111",
+                                "tda_id": "tda_11111111111111111111111111111111",
                                 "ai_rule_description": "Total failure of critical faculty...",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
@@ -64,7 +64,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                         ),
                         "tda_assertions": [
                             {
-                                "tda_id": "tda_2222222222222222",
+                                "tda_id": "tda_22222222222222222222222222222222",
                                 "ai_rule_description": "Falsify immediately if any objection exists.",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
@@ -85,7 +85,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                         "ai_description": "CRITICAL EVALUATION DIRECTIVE: Engagement is purely cosmetic...",
                         "tda_assertions": [
                             {
-                                "tda_id": "tda_3333333333333333",
+                                "tda_id": "tda_33333333333333333333333333333333",
                                 "ai_rule_description": "Engagement is purely cosmetic...",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
@@ -150,7 +150,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
                         "ai_description": "Directive 1",
                         "tda_assertions": [
                             {
-                                "tda_id": "tda_4444444444444444",
+                                "tda_id": "tda_44444444444444444444444444444444",
                                 "ai_rule_description": "Directive 1",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
@@ -499,7 +499,7 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
                         "ai_description": "Minimal claim AI description",
                         "tda_assertions": [
                             {
-                                "tda_id": "tda_1111111111111111",
+                                "tda_id": "tda_11111111111111111111111111111111",
                                 "ai_rule_description": "Assertion rule",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",

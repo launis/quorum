@@ -1,7 +1,5 @@
 """Unit and precision cost-calculation tests for DeepSeekCacheAdapter."""
 
-from typing import cast
-
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -51,7 +49,7 @@ def test_deepseek_precision_calculation_scenarios() -> None:
 
     # Scenario 1: DeepSeek with cached tokens (90% read discount)
     usage_cached = TokenUsage(prompt_tokens=1000, completion_tokens=500, cached_tokens=600)
-    result_ds = cast(OpenAITokenUsage, deepseek_adapter.calculate_cost(usage_cached, pricing))
+    result_ds = deepseek_adapter.calculate_cost(usage_cached, pricing)
     assert isinstance(result_ds, OpenAITokenUsage)
     # regular = 1000 - 600 = 400
     # Cost = 400 * 0.000005 + 600 * 0.000005 * 0.10 + 500 * 0.000015

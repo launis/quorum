@@ -91,7 +91,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
                                 "ai_description": "Claim 1 Desc",
                                 "tda_assertions": [
                                     {
-                                        "tda_id": "tda_1111111111111111",
+                                        "tda_id": "tda_11111111111111111111111111111111",
                                         "ai_rule_description": "Atom 1",
                                         "inverse_evidence": False,
                                         "aggregation_mode": "EXISTS",

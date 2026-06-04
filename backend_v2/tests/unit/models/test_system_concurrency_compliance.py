@@ -3,8 +3,8 @@ from backend_v2.models.enums import SystemConcurrency
 
 def test_system_concurrency_mandatory_limits() -> None:
     """Verify that SystemConcurrency limits strictly follow the rules in 05_llm_architecture.md."""
-    # SystemConcurrency.MAX_CONCURRENT_LLM_STEPS MUST be fixed at 2 to prevent API Rate Limits (429)
-    assert SystemConcurrency.MAX_CONCURRENT_LLM_STEPS.value == 2
+    # SystemConcurrency.MAX_CONCURRENT_LLM_STEPS MUST be capped at 3 to prevent API Rate Limits (429) under RPM 5
+    assert SystemConcurrency.MAX_CONCURRENT_LLM_STEPS.value == 3
 
     # SystemConcurrency.LLM_MAX_RETRIES MUST be fixed at 2 to prevent infinite retry loops and quota depletion
     assert SystemConcurrency.LLM_MAX_RETRIES.value == 2

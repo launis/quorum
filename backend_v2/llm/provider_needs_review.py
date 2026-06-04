@@ -822,7 +822,8 @@ class MockProvider(LLMProvider):
         if isinstance(result, dict) and result.get("message") == "Mock data not found for key":
             raise ConfigurationError(
                 message=(
-                    f"Fail-Fast: Mock data not found in Seed Vault. Prompt missing mock definition: {prompt_str[:100]}..."
+                    f"Fail-Fast: Mock data not found in Seed Vault. "
+                    f"Prompt missing mock definition: {prompt_str[:100]}..."
                 ),
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )

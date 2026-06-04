@@ -108,7 +108,7 @@ def test_vertex_adapter_cost_calculation() -> None:
 
     # Scenario 1: All regular (no caching hits)
     usage = TokenUsage(prompt_tokens=1000, completion_tokens=500)
-    result = cast(VertexTokenUsage, adapter.calculate_cost(usage, pricing))
+    result = adapter.calculate_cost(usage, pricing)
     assert isinstance(result, VertexTokenUsage)
     # Cost = 1000 * 0.000002 + 500 * 0.000006 = 0.002 + 0.003 = 0.005
     assert result.cost_usd == pytest.approx(0.005)
@@ -116,7 +116,8 @@ def test_vertex_adapter_cost_calculation() -> None:
 
     # Scenario 2: With cached tokens (75% read discount / 25% cost)
     usage_cached = TokenUsage(prompt_tokens=1000, completion_tokens=500, cached_tokens=800)
-    result = cast(VertexTokenUsage, adapter.calculate_cost(usage_cached, pricing))
+    result = adapter.calculate_cost(usage_cached, pricing)
+    assert isinstance(result, VertexTokenUsage)
     # regular = 1000 - 800 = 200
     # Cost = 200 * 0.000002 + 800 * 0.000002 * 0.25 + 500 * 0.000006
     #      = 0.0004 + 0.0004 + 0.003 = 0.0038
@@ -277,7 +278,8 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
 
     returned_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
 
-    assert extra_kwargs == {"cached_content": "projects/mock-proj/locations/europe-north1/cachedContents/formatted-cache-99"}
+    expected_cache = "projects/mock-proj/locations/europe-north1/cachedContents/formatted-cache-99"
+    assert extra_kwargs == {"cached_content": expected_cache}
     assert mock_cached_contents.CachedContent.create.call_count == 1
 
     # V3: Returned messages are dynamic-only (rubrics, atoms, params)
@@ -293,10 +295,11 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
     # V3: Only static user content uploaded (system extracted to system_instruction)
     assert isinstance(passed_contents, list)
     assert len(passed_contents) == 1
-    assert passed_contents[0] == {"role": "user", "parts": [{"text": "<source_data>Base document content</source_data>"}]}
+    assert passed_contents[0] == {
+        "role": "user",
+        "parts": [{"text": "<source_data>Base document content</source_data>"}],
+    }
 
     # Verify system message was extracted to system_instruction
     assert "system_instruction" in kwargs
     assert kwargs["system_instruction"] == large_static
-
-

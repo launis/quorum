@@ -220,7 +220,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an assertive claim that is presented entirely without supporting Data or evidence.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_05dfe1f129dc4488",
+                  "tda_id": "tda_34259a6c02b74917b12f74b5f3839a66",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find dogmatic absolute markers ('is the best', 'must be done', 'is the only way'). STEP 2 (Bounding Box): Scan the paragraph containing the marker. EXTRACTION CONDITION: no empirical data or external reference exists in the same paragraph. NEGATIVE CONDITION (RETURN NULL IF MET): data exists.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -239,7 +239,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a logical leap where Data is presented, but there is zero logical connection (Warrant) to the Claim.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_fe4c8f1574634233",
+                  "tda_id": "tda_69cc84e0b0c44996a8a95e09b356c692",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find abrupt transition markers ('therefore', 'thus', 'so'). STEP 2 (Bounding Box): Scan the sentence containing the transition. EXTRACTION CONDITION: it connects two facts but lacks any explanatory mechanism ('because mechanism X'). NEGATIVE CONDITION (RETURN NULL IF MET): a mechanism is described. Do not accept explicit causal mechanisms.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -258,7 +258,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT a probabilistic or subjective statement presented as an absolute 100% fact without any Qualifiers.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_2aec15ab07984f4d",
+                  "tda_id": "tda_d9cb646741ba4750ab561bf766c94f03",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find 100% certainty markers ('guaranteed', 'undoubtedly', 'always'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the sentence makes a future prediction or subjective assessment using these markers. NEGATIVE CONDITION (RETURN NULL IF MET): it states a mathematical/historical fact. Mathematical facts.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -290,7 +290,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of a Claim and some supporting Data.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_5d572e361aef4d0f",
+                  "tda_id": "tda_f348220a3bea450b8e7e87b5f5117a1c",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find basic causal connectors ('because', 'due to', 'since'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: a claim is explicitly linked to any data point. NEGATIVE CONDITION (RETURN NULL IF MET): no data point is provided. Chronological sequences ('after that').",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -309,7 +309,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where the provided Data is logically disconnected or objectively too weak to support the Claim.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c59639ea92894862",
+                  "tda_id": "tda_3613ef7137cc4e48a2d62b9921e5583c",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find anecdotal markers ('I once saw', 'in my experience', 'some people say'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: an anecdote is used to justify a systemic rule or broad policy. NEGATIVE CONDITION (RETURN NULL IF MET): it's just a personal story without broad policy claims. Do not flag rigorous case studies.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -328,7 +328,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a one-sided argument that completely ignores obvious counter-arguments or limitations.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_d335b4457e3e4ac7",
+                  "tda_id": "tda_b03e802130ef46c781ff49c6a71d6ada",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find thought-terminating clichés ('it is simply a matter of', 'there is no alternative', 'period'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: complexity or opposing views are dismissed without data. NEGATIVE CONDITION (RETURN NULL IF MET): data is provided. Data-driven rebuttals.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -360,7 +360,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND an argument where the Claim and Data are present, and the Warrant exists but remains implicit.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_5cff62a0ae1e41d3",
+                  "tda_id": "tda_6e3e3aa6b9134a01838c3b70a35b4f32",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find weak associative language ('relates to', 'is associated with', 'impacts'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: it connects Data to a Claim without defining the exact causal mechanism. NEGATIVE CONDITION (RETURN NULL IF MET): it uses precise causal mechanism ('which directly causes'). Precise causal mechanisms.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -379,7 +379,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where the author mentions a counter-argument but dismisses it superficially without dismantling it.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_247927c98b0c46f8",
+                  "tda_id": "tda_25f0540101174b66a09fe7770a28d110",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find rhetorical bypasses ('although X is true, it does not matter', 'regardless of'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: a counter-argument is mentioned but dismissed without presenting counter-data. NEGATIVE CONDITION (RETURN NULL IF MET): counter-data is presented. Rebuttals that provide counter-data. <disambiguation>\n  REFRAMING EXCLUSION: Rhetorical reframing patterns where a concept is \n  repositioned from negative to positive framing ('not just X, but Y') are \n  STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as:\n  - counter-arguments (they do not argue AGAINST anything)\n  - dialectical syntheses (they do not reconcile two opposing theses)\n  - alternative model dismantling (they do not present a separate model)\n  - absolute conclusions (they are framing choices, not logical claims)\n  If a reframing pattern is the ONLY candidate match, return JSON null.\n</disambiguation>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -398,7 +398,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a structural weakness where the Warrant is stated but lacks deeper Backing.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_b26497410d7b422b",
+                  "tda_id": "tda_1d7531b5f5944175bb1eee7eaed44f69",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find generic consensus markers ('as everyone knows', 'it is widely accepted', 'obviously'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: consensus is the ONLY backing for a logical rule. NEGATIVE CONDITION (RETURN NULL IF MET): an empirical source is cited. Verifiable empirical sources.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -430,7 +430,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE a robust, explicitly stated Warrant that clearly bridges the Data to the Claim.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_31ae4494272845fe",
+                  "tda_id": "tda_10dd47750c9244139c394ca875f160e6",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find 'given the principle that', 'this demonstrates that mechanism' or equivalent explicit rules. STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the bridging rule between Data and Claim is explicitly stated. NEGATIVE CONDITION (RETURN NULL IF MET): it just says 'because' without stating the general rule. Do not evaluate the quality of the bridging rule.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -449,7 +449,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND epistemological humility where the author explicitly uses Qualifiers to limit the scope of their Claim.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_6bf0433f60924302",
+                  "tda_id": "tda_4a8347422e464965a6e9206dcc240c26",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find conditional qualifiers ('under these specific conditions', 'primarily when', 'tends to'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: boundaries or probabilities are explicitly defined for the claim. NEGATIVE CONDITION (RETURN NULL IF MET): vague filler words ('maybe', 'perhaps') are used to avoid taking a stance. Vague filler words.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -468,7 +468,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT an instance where the author actively engages with a Rebuttal and systematically addresses it.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_0871942d6add46f1",
+                  "tda_id": "tda_47bade191cf346ec818757f081f6aef3",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find contrast markers ('however, data shows that', 'despite X, metric Y'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: a specific counter-argument is addressed using empirical counter-data. NEGATIVE CONDITION (RETURN NULL IF MET): it's dismissed rhetorically. Rhetorical dismissals without data.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -500,7 +500,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an argument where the Warrant is fortified by explicit Backing from external expert sources.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_2dabbdba90a549ae",
+                  "tda_id": "tda_9da28945325e4486a8b4941c561299fa",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find formal citations ('according to the methodology of', 'based on the study by'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the logical rule is explicitly backed by a verifiable external methodology or study. NEGATIVE CONDITION (RETURN NULL IF MET): it's a vague reference ('research shows'). Vague references to 'studies' or 'science'. <disambiguation>\n  Regulatory framework references count as formal citations ONLY if a \n  specific sub-article, clause, or numbered principle is cited (e.g., \n  \"Article 29b(2)\", \"ISO 27001 §6.1.2\"). Generic regulatory mentions \n  without sub-clause specificity DO NOT satisfy methodology link, benchmark, \n  formal citation, or security standard extraction conditions.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -519,7 +519,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence of 'System 2' deliberation where the author acts as their own prosecutor.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_e6a0c9d3eb6c443f",
+                  "tda_id": "tda_9a08254fb47a46fdb8a78030ed68f853",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find dialectical reasoning markers ('One might argue that X, but testing showed Y because'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the author explicitly attempts to falsify their own Claim with a test/data before accepting it. NEGATIVE CONDITION (RETURN NULL IF MET): it is just a pros/cons list. Simple pros/cons lists.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -539,7 +539,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT a masterfully constructed Claim-Data-Warrant triad that leaves zero room for logical fallacy.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c8a12182ecbc4c9f",
+                  "tda_id": "tda_dff85ed8a43a4ca99c34873b2fe44d89",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find precise causal language ('which directly causes', 'the mechanism behind this is'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: a Claim is supported by empirical Data AND the exact mechanism is defined. NEGATIVE CONDITION (RETURN NULL IF MET): any of the three (Claim, Data, Warrant) is missing from the explicit text. Implicit connections.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -625,7 +625,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_9702a10efb6a9306",
+                  "tda_id": "tda_b36d3ec7b1f94fe9ad4b45795a8a104b",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find a declarative verb (e.g., 'is', 'has', 'consists of'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the sentence states a standalone fact without explanatory conjunctions (e.g., 'because', 'therefore'). Do not accept sentences that attempt to explain the 'why' or 'how'.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -644,7 +644,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_4a25fd353d8bd05b",
+                  "tda_id": "tda_d29b77c237394ccab4b8d52502f873f9",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find abrupt transition markers or the absence of them (e.g., starting a new paragraph directly with a proper noun or number). STEP 2 (Bounding Box): Scan the surrounding paragraph. EXTRACTION CONDITION: a fact is presented with zero preceding context or framing. Do not accept facts that are logically connected to the previous sentence.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -663,7 +663,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_fea09fcabdf767c1",
+                  "tda_id": "tda_216cc3fd45284deb8d51ea4cf2b2fd93",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find absolute words (e.g., 'always', 'never', 'everyone knows', 'fact'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the absolute claim is presented without any citations or stated limitations. Do not accept absolute statements that are mathematically proven or properly cited.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -695,7 +695,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_9f5da09c4b03359d",
+                  "tda_id": "tda_131403148eab4c739149e6bd29164ce2",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find reformulation markers (e.g., 'in other words', 'this means', 'essentially'). STEP 2: EXTRACTION CONDITION: found, the author is paraphrasing. Do not accept verbatim copy-pasting of definitions.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -714,7 +714,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_b8c1d460ccfd9ae4",
+                  "tda_id": "tda_b7dfe23403db4db5b92a29a8bda9957c",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find listing conjunctions (e.g., 'and', 'also', 'in addition'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: two major domain concepts are placed side-by-side without a relational verb connecting them. Do not accept sentences that explicitly define the relationship between the concepts.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -733,7 +733,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_d0b6789c895808eb",
+                  "tda_id": "tda_4ba32055738247d28e00a597f505ce9e",
                   "ai_rule_description": "<syntactic_constraint> <anchors> <anchor>either</anchor> <anchor>or</anchor> <anchor>simply boils down to</anchor> <anchor>joko</anchor> <anchor>tai</anchor> <anchor>pelkistyy</anchor> </anchors> <extraction_condition> Verify if the text explicitly frames a multi-dimensional system or complex strategic situation into exactly two opposing options using one of the binary reduction anchors from the <anchors> block, without acknowledging any middle ground or other alternatives. </extraction_condition> <ambiguity_protocol> If the binary reduction anchors from <anchors> are absent, or if there is any nuance or mention of alternative paths in the paragraph, you MUST return JSON null. Speculation is strictly banned. </ambiguity_protocol> </syntactic_constraint>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -765,7 +765,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_05fe4e6e87a0f708",
+                  "tda_id": "tda_6a779cd5e9714994b83168dd0fef0ef7",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find application markers (e.g., 'in practice', 'applied to', 'for example', 'implemented'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: an abstract framework or rule is explicitly linked to a physical, real-world noun (e.g., a specific project, person, or physical action). Do not accept purely theoretical analogies without actionable context.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -784,7 +784,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_f2ce768f99db3ff3",
+                  "tda_id": "tda_20e76f768d24458fb2cc131b2bde4e04",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find blind procedural markers (e.g., 'must follow', 'the checklist requires', 'according to protocol'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: a rule is enforced explicitly despite stated contextual evidence that it might be suboptimal. Do not accept justifiable adherence to safety or compliance protocols where no counter-evidence is presented.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -803,7 +803,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_aa3c4095c3a3fe82",
+                  "tda_id": "tda_eec00de564394e9dbcc5744ca77f8e60",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find exclusionary solution markers (e.g., 'the only solution', 'there is no other way'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: a single method is pushed without mentioning any alternatives. Do not accept solutions that have explicitly evaluated and dismissed alternatives with data.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -835,7 +835,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_1841867464c16807",
+                  "tda_id": "tda_10f455c36f754d33a3a551e9e7b61da4",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find structural breakdown verbs (e.g., 'consists of', 'divided into', 'components', 'elements'). STEP 2: EXTRACTION CONDITION: a single overarching concept is explicitly split into at least two named sub-components. Do not accept simple bullet-point lists of unrelated features.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -854,7 +854,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_df669c48d89f5d3c",
+                  "tda_id": "tda_bfbe65b639b54106913902d5bd0ae6ab",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find revelation markers (e.g., 'underlying this', 'the root cause is', 'fundamentally'). STEP 2: EXTRACTION CONDITION: the text identifies a mechanism or assumption that is not immediately visible on the surface. Do not accept superficial observations of visible symptoms.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -873,7 +873,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_58cbd7271f491351",
+                  "tda_id": "tda_686aaacdd96a4a5aa61634fc248527ef",
                   "ai_rule_description": "Extract exact quotes containing absolute declarations (e.g., 'proves unequivocally', 'the model dictates', 'undeniable', 'certainty') into List A. Extract exact quotes containing mitigating words or constraints (e.g., 'however', 'potential limit', 'constraint', 'lens', 'maybe') into List B.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -905,7 +905,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_330cf37389ffb851",
+                  "tda_id": "tda_a3d407a71ade4ea4aa3afeaf1bb61b3c",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find evaluative judgment verbs (e.g., 'assess', 'judge', 'critique', 'validate', 'falls short'). STEP 2: EXTRACTION CONDITION: the text delivers a defensible judgment on the validity or utility of an idea. Do not accept subjective emotional opinions (e.g., 'I feel', 'I like').",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -924,7 +924,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_dfa97bbeeb1dafc5",
+                  "tda_id": "tda_5198e13cde3447fe9d0737a80abe458c",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find criteria anchoring markers (e.g., 'measured against', 'based on the standard of', 'criteria'). STEP 2: EXTRACTION CONDITION: an evaluation explicitly links its judgment to a stated benchmark or metric. Do not accept floating evaluations with unstated goalposts. <disambiguation>\n  Regulatory framework references count as formal citations ONLY if a \n  specific sub-article, clause, or numbered principle is cited (e.g., \n  \"Article 29b(2)\", \"ISO 27001 §6.1.2\"). Generic regulatory mentions \n  without sub-clause specificity DO NOT satisfy methodology link, benchmark, \n  formal citation, or security standard extraction conditions.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -943,7 +943,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_f041723db3ced368",
+                  "tda_id": "tda_1336f92df9fd474cb4929d8796c86da7",
                   "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find a final absolute verdict sentence (e.g., 'is a complete failure', 'is perfect', 'is completely useless'). STEP 2 (Bounding Box & Negative Condition): Scan the paragraph containing the verdict. If the paragraph contains the verdict BUT does NOT contain comparative or weighing vocabulary (e.g., 'however', 'although', 'despite', 'on the other hand') -> ACCEPT. If it contains weighing vocabulary -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, 'praise', or 'condemnation' subjectively. Do not evaluate if the verdict is balanced or not.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -975,7 +975,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_567ee46c35852f54",
+                  "tda_id": "tda_b3c69e002634430ca9f2e2a33f7b280e",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find synthesis verbs (e.g., 'design', 'formulate', 'invent', 'combining X and Y creates'). STEP 2: EXTRACTION CONDITION: the text explicitly merges at least two disparate elements into a completely new, named framework or solution. Do not accept mere combinations of existing ideas without a novel theoretical leap.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -995,7 +995,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c819e7145229966e",
+                  "tda_id": "tda_40c435f393cb4357b31cf835ca601a54",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find hypothesis generation markers (e.g., 'propose', 'hypothesize', 'we can infer'). STEP 2: EXTRACTION CONDITION: the text generates a new hypothesis and explicitly documents the step-by-step logical friction or trade-offs in its creation. Do not accept hypotheses presented as sudden epiphanies without documented reasoning.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -1014,7 +1014,7 @@
               "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_3d3cb300ed841868",
+                  "tda_id": "tda_d95b263f55504cc38901001296374825",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find absolute novelty claims (e.g., 'a completely new paradigm', 'never seen before'). STEP 2 (Bounding Box): Scan the section. EXTRACTION CONDITION: a synthesized framework floats purely in abstraction without ANY citations or anchoring to concrete prior expert literature. Do not accept grounded hypotheses that cite valid external precedents.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1101,7 +1101,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of unexamined System 1 thinking.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_8b65277ca32d4c0d",
+                  "tda_id": "tda_3a362e01de66444c813e5b79adec27bf",
                   "ai_rule_description": "BANNED LOGIC: Do not evaluate 'depth' subjectively. STEP 1 (Syntactic Anchor): Find absolute conclusion words (e.g., 'clearly', 'obviously', 'must be', 'selvästi'). STEP 2 (Bounding Box): Scan the surrounding paragraph. EXTRACTION CONDITION: the conclusion is presented without a multi-step logical deduction. <disambiguation>\n  REFRAMING EXCLUSION: Rhetorical reframing patterns where a concept is \n  repositioned from negative to positive framing ('not just X, but Y') are \n  STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as:\n  - counter-arguments (they do not argue AGAINST anything)\n  - dialectical syntheses (they do not reconcile two opposing theses)\n  - alternative model dismantling (they do not present a separate model)\n  - absolute conclusions (they are framing choices, not logical claims)\n  If a reframing pattern is the ONLY candidate match, return JSON null.\n</disambiguation>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1120,7 +1120,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT evidence of cognitive biases or mental shortcuts.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_513d51a119ef4fd6",
+                  "tda_id": "tda_7b88a578c3824b31b83a5154f7d3667a",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find causal leaps connecting unrelated traits (Halo Effect) or prioritizing only visible evidence (WYSIATI - 'based on what we see'). STEP 2: EXTRACTION CONDITION: the text draws a definitive conclusion based solely on this limited visible evidence while actively ignoring unknowns. NEGATIVE CONDITION (RETURN NULL IF MET): the text explicitly maps out what is NOT known.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1139,7 +1139,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY subjective views or initial reactions presented as absolute truth.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c45a513f2e724e06",
+                  "tda_id": "tda_2d12f15e1c2d4488b7c2ef32d0ccfa26",
                   "ai_rule_description": "Do not judge 'tone' subjectively. STEP 1 (Syntactic Anchor): Find absolute certainty markers (e.g., '100%', 'impossible', 'the only truth', 'täysin'). STEP 2 (Bounding Box): Check the immediate paragraph. EXTRACTION CONDITION: this absolute certainty is presented without empirical data or epistemic qualifiers. NEGATIVE CONDITION (RETURN NULL IF MET): accompanied by statistical margins of error.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1171,7 +1171,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND a weak or performative attempt to engage System 2 by questioning intuition.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_8d049ce6e39a465c",
+                  "tda_id": "tda_5f0355b329a24860b62b2118e24aab69",
                   "ai_rule_description": "<syntactic_constraint> <anchors> <anchor>however</anchor> <anchor>might seem</anchor> <anchor>initially</anchor> <anchor>kuitenkin</anchor> <anchor>aluksi</anchor> <anchor>vaikuttaisi</anchor> </anchors> <extraction_condition> Check if transitional doubt from one of the words in the <anchors> block is immediately dismissed (within the same paragraph) to reaffirm the initial automatic conclusion without introducing any new empirical proof, metrics, or citations. </extraction_condition> <ambiguity_protocol> If the doubt anchors from <anchors> are absent, or if the doubt leads to a new productive hypothesis, or if it is supported by new empirical evidence, you MUST return JSON null. </ambiguity_protocol> </syntactic_constraint>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1190,7 +1190,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a one-sided argument that fails to systematically address alternative hypotheses.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_44fd8d7101a84a48",
+                  "tda_id": "tda_5568f81c93bc4d1fb524fbfc1d9f0e04",
                   "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find a proposal, claim, or argument. STEP 2: Check if the author actively refuses to consider alternative perspectives, or dogmatically declares their view as the single exclusive truth (e.g., using physical syntactic markers like 'there is no alternative', 'only option', 'is the only', 'ainoastaan', 'ainoa oikea', or explicit dismissal/exclusion of alternative options). EXTRACTION CONDITION: present. NEGATIVE CONDITION (RETURN NULL IF MET): absent. <ambiguity_protocol>ABSOLUTE EXCLUSION ENFORCEMENT: You must actively locate a sentence where the author explicitly dismisses alternative perspectives or dogmatically asserts exclusive truth. General one-sided arguments that merely lack alternatives DO NOT trigger this rule; there MUST be a physical marker of active refusal, dogmatic exclusivity, or explicit dismissal. If such a marker is absent, you MUST conclude 'CONDITION NOT MET' and return JSON null.</ambiguity_protocol>",
                   "inverse_evidence": false,
                   "aggregation_mode": "EXISTS",
@@ -1209,7 +1209,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT an instance where the text actively ignores or dismisses rebuttals.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_d5d27ea4cfe44c44",
+                  "tda_id": "tda_654d4f29e9a045a0ad58566e3fc5f942",
                   "ai_rule_description": "Do not evaluate engagement quality. STEP 1 (Syntactic Anchor): Find an explicit counter-argument or risk raised in the text (e.g., 'Despite the risk', 'Opponents argue', 'Vaikka'). STEP 2 (Bounding Box): Scan the subsequent sentences. EXTRACTION CONDITION: the counter-argument is stated but not logically dismantled with data. NEGATIVE CONDITION (RETURN NULL IF MET): it is dismantled step-by-step. <disambiguation>\n  REFRAMING EXCLUSION: Rhetorical reframing patterns where a concept is \n  repositioned from negative to positive framing ('not just X, but Y') are \n  STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as:\n  - counter-arguments (they do not argue AGAINST anything)\n  - dialectical syntheses (they do not reconcile two opposing theses)\n  - alternative model dismantling (they do not present a separate model)\n  - absolute conclusions (they are framing choices, not logical claims)\n  If a reframing pattern is the ONLY candidate match, return JSON null.\n</disambiguation>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1241,7 +1241,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE where the response systematically deconstructs the problem, explicitly overriding initial intuitions.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_f48b82675bb04c12",
+                  "tda_id": "tda_5257ba1edae34afe8b837c8c238cf743",
                   "ai_rule_description": "BANNED LOGIC: Do not evaluate 'mastery'. STEP 1 (Syntactic Anchor): Find structural breakdown markers (e.g., 'firstly', 'component A', 'broken down into', 'ensimmäiseksi'). STEP 2: EXTRACTION CONDITION: the text physically separates a complex problem into at least three distinct, testable sub-components. NEGATIVE CONDITION (RETURN NULL IF MET): it remains a single monolithic block.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -1260,7 +1260,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence of the author acting as a prosecutor against their own ideas and thoughtfully engaging rebuttals.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_92af590371ba4f3d",
+                  "tda_id": "tda_0da1a4b2bca64e62ad3225857e780004",
                   "ai_rule_description": "Do not evaluate 'thoughtfulness'. STEP 1 (Syntactic Anchor): Find dialectical markers (e.g., 'While X is true, Y proves', 'Reconciling these', 'Toisaalta'). STEP 2: EXTRACTION CONDITION: the text explicitly introduces two opposing variables and generates a third, novel conclusion (synthesis) rather than just picking one. <disambiguation>\n  REFRAMING EXCLUSION: Rhetorical reframing patterns where a concept is \n  repositioned from negative to positive framing ('not just X, but Y') are \n  STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as:\n  - counter-arguments (they do not argue AGAINST anything)\n  - dialectical syntheses (they do not reconcile two opposing theses)\n  - alternative model dismantling (they do not present a separate model)\n  - absolute conclusions (they are framing choices, not logical claims)\n  If a reframing pattern is the ONLY candidate match, return JSON null.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -1279,7 +1279,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the structured logic is explicitly tethered to external expert references.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_678ead7fcb6241ae",
+                  "tda_id": "tda_64cce5cf564a497dbbc2341248cea637",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find external citation markers (e.g., 'according to', 'study shows', 'metric [X]', 'perustuen'). STEP 2: EXTRACTION CONDITION: the logical deduction is strictly tied to a specific named methodology, framework, or external dataset. NEGATIVE CONDITION (RETURN NULL IF MET): it relies purely on internal logic.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -1366,7 +1366,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY extreme goal-hacking where the user accepts the first response without structural challenge.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_d46093a71bbbcd79",
+                  "tda_id": "tda_bfef1f4b769c426fb5707495db43a6e1",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find affirmative acceptance phrases by the user (e.g., 'looks good', 'thanks', 'perfect'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user accepts an AI output without requesting a single structural or logical change. NEGATIVE CONDITION (RETURN NULL IF MET): the user requests a modification. Do not evaluate if the response was actually 'good'.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1385,7 +1385,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY if the user actively commands the AI to ignore its own stated uncertainties.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_2f26a3b4641ea554",
+                  "tda_id": "tda_ca69bf918d324fc69c49279b16ba3cc2",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find AI uncertainty markers (e.g., 'I am not sure', 'might be inaccurate', 'as an AI'). STEP 2 (Bounding Box): Scan the user's subsequent reply. EXTRACTION CONDITION: the user commands the AI to proceed anyway without verifying the uncertainty (e.g., 'just write it', 'ignore that'). NEGATIVE CONDITION (RETURN NULL IF MET): the user provides the missing data. Do not accept if the user actively resolves the AI's uncertainty.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1404,7 +1404,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY if the user treats the AI's probabilistic generation as an infallible oracle.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_7cd559fd662724f5",
+                  "tda_id": "tda_85ef05fdcd2f48afb925fd03b6c54d4d",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find user requests for absolute truth without external verification (e.g., 'give me the absolute fact', 'what is the exact truth'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user asks the AI to act as an infallible oracle without providing an external source or document to ground it. NEGATIVE CONDITION (RETURN NULL IF MET): a document or source is provided. Requests grounded in explicitly provided documents.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1436,7 +1436,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY active corrections limited to factual, stylistic, or formatting details.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_5c82ad4f766b762e",
+                  "tda_id": "tda_a9c96a0c55fe4ac884795440c722eb5d",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find superficial correction commands by the user (e.g., 'fix the typo', 'make it shorter', 'bold the headers'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user ONLY requests formatting or minor lexical changes without challenging the logic. NEGATIVE CONDITION (RETURN NULL IF MET): logical changes are requested. Do not accept if the user challenges the underlying reasoning.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -1455,7 +1455,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY explicit optimization for a proxy metric (MOP) over the qualitative goal (Goodhart's Law).",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_a9bbdcc4d1bfc915",
+                  "tda_id": "tda_8275735bde0244e2bdbf3ab915838d59",
                   "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data. STEP 1 (Syntactic Anchor): Find explicit optimization commands for proxy metrics (e.g., 'maximize the score', 'increase the word count', 'make it sound professional'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user demands optimization of a surface metric without linking it to a qualitative real-world outcome. Do not accept if the metric is explicitly tied back to a measure of effectiveness.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1474,7 +1474,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively adopts the AI's proposed methodology without any structural negotiation.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c74c4367acc028cf",
+                  "tda_id": "tda_03d07778cbe2485cb574662ea15483c8",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. <syntactic_constraint> <anchors> <anchor>proceed with that approach</anchor> <anchor>do what you suggested</anchor> <anchor>let us use your structure</anchor> <anchor>use your steps</anchor> </anchors> <extraction_condition> Identify explicit user phrases of blind procedural surrender from the <anchors> block. </extraction_condition> <negative_condition> Reject if the user introduces at least one custom business rule, custom constraint, or alternative categorization model (e.g., 'supermegatrends') in the same message. </negative_condition> <ambiguity_protocol> If the exact surrender phrase from <anchors> is absent, or if it is followed by custom constraints in the <negative_condition> block, you MUST return JSON null. Speculation is strictly banned. </ambiguity_protocol> </syntactic_constraint>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1506,7 +1506,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively engages with the output but only targets symptoms rather than generative logic.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_569f87a921a2fb69",
+                  "tda_id": "tda_0f797e820117411d9934418a1d5d0a82",
                   "ai_rule_description": "Extract exact quotes containing user instructions to modify the final output (e.g., 'change this paragraph to') into List A. Extract exact quotes containing alterations to the underlying instructions or logic into List B.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -1525,7 +1525,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user accepts stylistic or minor tweaks while leaving the substantive core argument unchallenged.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_b1bcf8b0c203b736",
+                  "tda_id": "tda_c17684acfcbe4a918e5ae0705b452b06",
                   "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data. STEP 1 (Syntactic Anchor): Find user commands focused on tone (e.g., 'make it sound more persuasive', 'make it more academic'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user focuses solely on the performativity (tone/style) while ignoring substantive factual gaps. Revisions containing factual additions.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1544,7 +1544,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY one-sided execution without demand for alternative models.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_25973a87867690b7",
+                  "tda_id": "tda_a08f0bc1e4f14623ab2248528ae42a3d",
                   "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data. STEP 1 (Syntactic Anchor): Find single-path commands (e.g., 'just write the final version', 'skip the analysis'). STEP 2 (Bounding Box): Scan the user prompt. EXTRACTION CONDITION: the user actively refuses to explore counter-arguments or alternative models. Do not accept if the user asks for pros and cons.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1576,7 +1576,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively prevents Goodhart's Law by questioning the reliability of the metric.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_7cdd3652e248e6a9",
+                  "tda_id": "tda_bd85f009b0fb4f7899b40ff0e763dee7",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find tension markers between metrics and goals (e.g., 'this metric is flawed because', 'we need to ensure this actually works'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user explicitly questions the reliability of a proxy metric in relation to the ultimate qualitative goal. Do not accept simple metric tracking.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -1595,7 +1595,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively coaches the AI by providing concrete examples of desired formats or styles.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_8c7b6a9f0d8e411b",
+                  "tda_id": "tda_657fb164be984788a760eed250b3bc61",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find examples or model structures provided by the user (e.g., 'Esimerkki:', 'Kuten tässä:', 'esimerkiksi'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: The user provides a concrete linguistic model or structurally detailed template to direct the AI. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -1614,7 +1614,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user demands acknowledgment of uncertainties.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_b7ce46fc627dbc7e",
+                  "tda_id": "tda_86b9e792dd604b37a3443bffe25de8dd",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find demands for epistemological humility (e.g., 'tell me what you do not know', 'what are the limitations of this analysis'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user explicitly commands the AI to state its uncertainties or missing data. Demands for absolute certainty.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -1646,7 +1646,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user acts as an antagonistic prosecutor, challenging the AI's logic.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_7e2dc6d3078c7a5e",
+                  "tda_id": "tda_0728f375d1324df992086694d8f8cedd",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find antagonistic or prosecutorial language by the user (e.g., 'your logic is flawed here', 'this contradicts what you said', 'you are hallucinating'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user actively dismantles the AI's reasoning and demands a structural correction. Do not accept polite suggestions or simple typos.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -1665,7 +1665,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user acts as a Socratic steer, probing assumptions and demanding logical arguments.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_4b9a2c1f38e7456d",
+                  "tda_id": "tda_71e60846894545b2bc43a3361b7a5a9c",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find Socratic conceptual questions by the user (e.g., 'mihin oletukseen', 'mitä jos muuttaisimme', 'perustele miksi', 'miksi päädyit'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: The user actively probes the foundational reasoning or forces the AI to defend its logic. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -1685,7 +1685,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user demands external grounding and concrete expert verification.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_80f16abbc1776069",
+                  "tda_id": "tda_9fd2fff3ab4a46d29b5df31488561dd4",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find demands for external grounding (e.g., 'cite a specific source', 'base this strictly on the provided document', 'give me the exact quote'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: the user explicitly restricts the AI to an external, objective anchor. Acceptance of unsourced hallucinated facts.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -1908,7 +1908,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_bb4b422f3c8e38d8",
+                  "tda_id": "tda_7d0ef5f0be004974801b53d2af317bbe",
                   "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, the quote MUST be in an 'ai:' block. BANNED SOURCES: Never read matches from 'user:' blocks or input fields. STEP 1 (Syntactic Anchor): Find explicit rejection markers (e.g., 'Instead of following', 'I will create my own', 'I ignored'). STEP 2 (Bounding Box): Scan the sentence containing the marker. If the author explicitly states they are creating a new rule that contradicts the requested instructions. Do not evaluate 'quality' or if the new rule is better.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1927,7 +1927,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_14ef91b09c44f7a0",
+                  "tda_id": "tda_5b0573225735409b8ef3d3eac041236d",
                   "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find dogmatic absolute markers (e.g., 'always', '100% guaranteed', 'it is a fact that'). STEP 2 (Bounding Box): Scan the same paragraph. If the absolute claim is made regarding a compliance or archival rule BUT no external framework (ARMA, ISO, law) is cited in that paragraph. Do not accept absolute claims that are mathematically verifiable.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1946,7 +1946,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_6ec23f006ae49bb7",
+                  "tda_id": "tda_ce5f175f1eb341d1bcfe97d31028605d",
                   "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find explicit exposure actions (e.g., 'displaying PII', 'sharing password', 'bypassing encryption', 'publicly exposing'). STEP 2 (Bounding Box): Scan the sentence. If a physical action actively exposes sensitive data. Do not evaluate theoretical risk, only active exposure actions.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -1978,7 +1978,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_e250707e4b754c7c",
+                  "tda_id": "tda_82698279c7bd44b9a763f56423b86bda",
                   "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find physical actions of organizing or saving data (e.g., 'stored in', 'saved as', 'archived'). STEP 2 (Bounding Box): Scan the sentence. If an action is taken to store data. Do not evaluate if the storage method is 'good' or 'bad'.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -1997,7 +1997,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_dbc37b63ca5e318d",
+                  "tda_id": "tda_eb8a7a13bbe54bcca5474cc8219229e2",
                   "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find shortcut markers (e.g., 'to save time', 'we can skip', 'not strictly necessary'). STEP 2 (Bounding Box): Scan the paragraph. If the author explicitly states they are omitting a mandatory step (e.g., ARMA Accountability) for convenience. Do not accept justified omissions backed by data.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2016,7 +2016,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_b7e7f992f6175c58",
+                  "tda_id": "tda_e078baa92bf14cf19d8f4adce74c3fcf",
                   "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find absolute exclusion markers (e.g., 'only focus on', 'ignore everything else'). STEP 2 (Bounding Box): Scan the paragraph. If a single compliance rule is enforced while explicitly stating that another known constraint (e.g., Availability vs Protection) will be ignored. Do not accept balanced trade-offs.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2048,7 +2048,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_6be555cac0b9115b",
+                  "tda_id": "tda_24bdc98709e84de984aabd67b597239b",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find procedural sequential markers (e.g., 'step 1', 'checklist', 'first', 'secondly', 'then'). STEP 2 (Bounding Box & Negative Condition): Scan the paragraph containing the anchor. If the paragraph contains procedural markers BUT does NOT contain explicit synthesis or deduction verbs (e.g., 'analyzed', 'concluded', 'synthesized', 'therefore') -> ACCEPT. If it contains synthesis terminology -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, 'strategic thinking', or subjective 'literal manner'.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2067,7 +2067,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_50d614006cd53384",
+                  "tda_id": "tda_aa0b85a7febe4a3d9f580223c36a1646",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find explicit absolute status declarations (e.g., 'perfectly secure', 'no issues found', 'fully compliant'). STEP 2 (Bounding Box & Negative Condition): Scan the paragraph containing the anchor. If the paragraph contains the absolute declaration BUT does NOT contain risk or mitigation vocabulary (e.g., 'risk', 'trade-off', 'vulnerability', 'however') -> ACCEPT. If it contains risk vocabulary -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, 'sweeping nature', or subjective 'flawlessness'.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2086,7 +2086,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_8af3c72c0b5d4bfe",
+                  "tda_id": "tda_b7e1fb5427384bb6866e224a0013ed2d",
                   "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find implicit authority markers (e.g., 'it is common knowledge', 'we always do it this way', 'internally known'). STEP 2 (Bounding Box): Scan the sentence. If a procedural rule is justified solely by internal tradition without citing an external verifiable standard (ARMA Transparency violation). Do not accept explicit external citations.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2118,7 +2118,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_7284133a24e27b16",
+                  "tda_id": "tda_23df983a5c6e4eb9b8a28f2287267bd8",
                   "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find explicit methodology links (e.g., 'in accordance with', 'following the protocol defined by'). STEP 2 (Bounding Box): Scan the sentence. If an action is explicitly linked to a named guideline or procedure (ARMA Compliance). Do not evaluate the 'quality' of the methodology. <disambiguation>\n  Regulatory framework references count as formal citations ONLY if a \n  specific sub-article, clause, or numbered principle is cited (e.g., \n  \"Article 29b(2)\", \"ISO 27001 §6.1.2\"). Generic regulatory mentions \n  without sub-clause specificity DO NOT satisfy methodology link, benchmark, \n  formal citation, or security standard extraction conditions.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2137,7 +2137,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c6bcce2b818718a1",
+                  "tda_id": "tda_09a80d0f657a4a449417bdbc82059578",
                   "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find boundary definition markers (e.g., 'this applies only to', 'within the scope of', 'excluding'). STEP 2 (Bounding Box): Scan the paragraph. If the operational limits of a compliance rule are explicitly defined. Do not accept unbounded absolute rules.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2156,7 +2156,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_6758e0a8f1b3aaf8",
+                  "tda_id": "tda_643f6ce553754f8290d392356afdefba",
                   "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find conflict resolution markers (e.g., 'while X requires Y, we must also ensure Z by'). STEP 2 (Bounding Box): Scan the paragraph. If two conflicting operational constraints (e.g., Retention vs Disposition) are mentioned and a specific action is taken to resolve the tension. Do not accept rhetorical mentions of conflict without a resolution action.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2188,7 +2188,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_79f305842b933ea5",
+                  "tda_id": "tda_96354dbfd9d247f49237952ead7cacaf",
                   "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find explicit dialectical reasoning ('we evaluated option A, but chose B because'). STEP 2 (Bounding Box): Scan the paragraph. If the author explicitly documents a rejected compliance alternative and provides data-driven reasoning for the final choice. Do not accept simple lists of options without rejection reasoning. <disambiguation>\n  REFRAMING EXCLUSION: Rhetorical reframing patterns where a concept is \n  repositioned from negative to positive framing ('not just X, but Y') are \n  STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as:\n  - counter-arguments (they do not argue AGAINST anything)\n  - dialectical syntheses (they do not reconcile two opposing theses)\n  - alternative model dismantling (they do not present a separate model)\n  - absolute conclusions (they are framing choices, not logical claims)\n  If a reframing pattern is the ONLY candidate match, return JSON null.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2207,7 +2207,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_4fa47fd622e62e0d",
+                  "tda_id": "tda_10f55e6f5920473eabd081f5a94c8a89",
                   "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find formal citation markers ('according to ARMA principle of', 'ISO standard'). STEP 2 (Bounding Box): Scan the sentence. If a specific external framework is named AND a specific sub-principle or clause is cited to justify a decision. Do not accept generic references to 'standards' without naming them. <disambiguation>\n  Regulatory framework references count as formal citations ONLY if a \n  specific sub-article, clause, or numbered principle is cited (e.g., \n  \"Article 29b(2)\", \"ISO 27001 §6.1.2\"). Generic regulatory mentions \n  without sub-clause specificity DO NOT satisfy methodology link, benchmark, \n  formal citation, or security standard extraction conditions.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2226,7 +2226,7 @@
               },
               "tda_assertions": [
                 {
-                  "tda_id": "tda_733767a200047a89",
+                  "tda_id": "tda_0ab09c0daa9f4aeaad264c00944c5332",
                   "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find integration markers (e.g., 'simultaneously achieving', 'balances X and Y through'). STEP 2 (Bounding Box): Scan the paragraph. If a specific mechanism is described that actively satisfies two typically opposing ARMA principles (e.g., Protection vs Availability). Do not accept claims of balance without describing the physical mechanism.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2318,7 +2318,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): Identify if a mere association is falsely presented as a definitive cause without a mechanism.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_bce60530213249dd",
+                  "tda_id": "tda_bd90e5a66c5d433a9ed650f295132625",
                   "ai_rule_description": "Do not evaluate 'spurious'. STEP 1 (Syntactic Anchor): Find causal words (e.g. 'causes', 'because'). STEP 2 (Bounding Box): Scan the same sentence. EXTRACTION CONDITION: the causal claim is backed ONLY by a statistical correlation or simultaneous occurrence without any physical mechanism.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2337,7 +2337,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): Find instances where chronological order is the sole proof of causation.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_44bbe58533304c75",
+                  "tda_id": "tda_51a1544a321e4a18b3f4ea09b5bbe02e",
                   "ai_rule_description": "Do not evaluate 'logic'. STEP 1 (Syntactic Anchor): Find chronological sequence markers (e.g. 'after', 'then'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the text claims A caused B SOLELY because A happened before B.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2356,7 +2356,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): Extract explicit causal claims driven by metaphysical vocabulary that lack physical mechanism tokens.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_82608a4ddd7c7319",
+                  "tda_id": "tda_3eed2113bd9842f3b8fd050046505e4d",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find causal claims relying on metaphysical or subjective vocabulary (e.g., 'universal energy', 'destiny', 'pure willpower', 'manifested', 'vibes'). STEP 2 (Bounding Box & Negative Condition): Scan the paragraph containing the anchor. If the paragraph contains the metaphysical anchor BUT does NOT contain empirical intermediary vocabulary (e.g., 'mechanism', 'measured', 'calculated', 'process', 'data') -> ACCEPT. If it contains mechanism vocabulary -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, 'science', or subjective 'measurability'. Evaluate only physical token presence.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2388,7 +2388,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): Find instances attributing a complex outcome to a single, isolated factor.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_2590fb7ecb6379e7",
+                  "tda_id": "tda_8ecd3f17b3984e4fa1bb6a8cb5576b65",
                   "ai_rule_description": "Do not evaluate nuance. STEP 1 (Syntactic Anchor): Find absolute causal words ('only reason', 'entirely due to'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the text attributes a highly complex outcome to a single cause without acknowledging any other potential factors.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2407,7 +2407,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify if the text explicitly states the direction of influence between variables.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_9ca56a389cce722c",
+                  "tda_id": "tda_728cd0dff7384300bc55622fa7dfffc0",
                   "ai_rule_description": "Do not evaluate accuracy. STEP 1: Find a claim connecting two variables. STEP 2: EXTRACTION CONDITION: the text explicitly states the direction of influence (which variable affects which). NEGATIVE CONDITION (RETURN NULL IF MET): the direction is ambiguous or bi-directional without explanation.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2426,7 +2426,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): Locate universal rules derived solely from a single personal anecdote.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ffc598b99c3f13fc",
+                  "tda_id": "tda_97ec90b4d90e4fee94b071f3e0007921",
                   "ai_rule_description": "Do not evaluate relevance. STEP 1 (Syntactic Anchor): Find personal anecdotes ('for example, I', 'one time'). STEP 2: EXTRACTION CONDITION: a universal causal rule is explicitly derived SOLELY from a single personal anecdote.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2458,7 +2458,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Extract causal claims that physically contain intermediary sequential steps between the initial cause and the final effect.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_3c42555c789056a0",
+                  "tda_id": "tda_c607024dbf524f7a9d68af443901c40e",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find an explicit causal claim (e.g., 'Because of X', 'Led to Y', 'Caused'). STEP 2 (Bounding Box & Dual Condition): Scan the paragraph containing the anchor. If the paragraph contains the causal claim AND ALSO contains intermediary sequential tokens (e.g., 'which in turn', 'leading to', 'via', 'through the process of', 'first... then') -> ACCEPT. If it lacks intermediary step tokens (meaning it only states A causes C directly) -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, logical 'robustness', or whether the mechanism is 'functional'. Evaluate only token presence.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2477,7 +2477,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Locate explicit mentions of alternative variables that could explain the outcome.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_20038c836112303e",
+                  "tda_id": "tda_fda64d221181411fa70843a88689b27b",
                   "ai_rule_description": "Do not evaluate completeness. STEP 1 (Syntactic Anchor): Find words indicating alternatives ('however', 'other factors', 'confounder'). STEP 2: EXTRACTION CONDITION: the text explicitly names a potential third variable that could also explain the outcome.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2496,7 +2496,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): Identify if a causal mechanism found in one specific context is universally applied without constraints.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_32ee0cac79ad098e",
+                  "tda_id": "tda_01edff70b75047ec9f6df0c49745f46e",
                   "ai_rule_description": "Do not evaluate humility. STEP 1 (Syntactic Anchor): Find universal terms ('always', 'in every case'). STEP 2: EXTRACTION CONDITION: a causal claim derived from a specific, limited context is applied to all contexts universally without acknowledging boundaries. <ambiguity_protocol>ABSOLUTE BOUNDARY ENFORCEMENT: You must check if the causal claim is bounded. If the sentence or immediate context contains explicit boundary-setting vocabulary, limitations, or environmental constraints (e.g., 'only under', 'in this scenario', 'limited to', 'primarily when', 'but may fail if', or Finnish equivalents like 'ainoastaan', 'rajattu', 'vain silloin kun'), the absolute overgeneralization is falsified, the boundary is acknowledged, and you MUST conclude 'CONDITION NOT MET' and return JSON null.</ambiguity_protocol>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2528,7 +2528,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Extract explicit causal claims containing conditional intervention vocabulary and expected physical outcomes.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_d5e6dd27350bcf4d",
+                  "tda_id": "tda_7e0d493a62234375b180d942cb6e0bcd",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find conditional or action-oriented intervention markers (e.g., 'if we change', 'by increasing', 'by implementing', 'when we apply'). STEP 2 (Bounding Box & Dual Condition): Scan the paragraph containing the anchor. If the paragraph contains the intervention marker AND ALSO explicitly contains expected outcome vocabulary (e.g., 'the result will be', 'it causes', 'leads to', 'will change') -> ACCEPT. If it lacks explicit outcome vocabulary -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, subjective 'effectiveness', or philosophical concepts like 'Pearl\\'s Rung 2'. Evaluate only physical token presence.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2547,7 +2547,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Locate statements indicating an external variable was deliberately held constant.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_d1ad48e6d7764bfc",
+                  "tda_id": "tda_41c34ee72a5e4afc9875d446b2e2dab4",
                   "ai_rule_description": "Do not evaluate perfection. STEP 1 (Syntactic Anchor): Find control markers ('controlling for', 'holding constant', 'excluding'). STEP 2: EXTRACTION CONDITION: the text explicitly states that an external variable was deliberately held constant or mathematically isolated to prove the cause.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2566,7 +2566,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Extract explicit constraint tokens that physically bound the scope of the causal claim without universal generalizations.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_46520c9743e9b881",
+                  "tda_id": "tda_b110906545324d1f80bf3ec3b81b2b05",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find boundary or limitation markers (e.g., 'only applies to', 'limited to', 'under these conditions', 'except when'). STEP 2 (Bounding Box & Negative Condition): Scan the paragraph containing the anchor. If the paragraph contains the boundary marker BUT does NOT contain universal absolutes (e.g., 'always', 'universal', 'everyone', 'everywhere') -> ACCEPT. If it contains universal absolutes that contradict the boundary -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, 'validity', or excuse missing context. Evaluate only physical token presence.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2598,7 +2598,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Locate active simulations of an alternate timeline to prove necessary causation.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_9a0fa3967ebb2497",
+                  "tda_id": "tda_6e53ee50b3524c70ba8b087abe8a0b05",
                   "ai_rule_description": "Do not evaluate creativity. STEP 1 (Syntactic Anchor): Find counterfactual markers ('EXTRACTION CONDITION: X had not', 'would have been'). STEP 2: NEGATIVE CONDITION (RETURN NULL IF MET): the text actively simulates an alternate timeline (Pearl's Rung 3) to explicitly prove necessary causation. Otherwise.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2617,7 +2617,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Find the use of a formal, structural model to map causality.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_21d7952c2bf6393c",
+                  "tda_id": "tda_38f7965197f842f1a793194ae818765a",
                   "ai_rule_description": "Do not evaluate 'watertightness'. STEP 1: Find mathematical or structural causal terms ('do-calculus', 'directed acyclic graph', 'structural equation', 'formal model'). STEP 2: EXTRACTION CONDITION: the text explicitly uses a formal model or strict structural logic to map the causality.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2636,7 +2636,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify where the specific causal mechanism is anchored to an established theoretical law.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_3470506c151f76b1",
+                  "tda_id": "tda_14ce2d7744ed49868250c6aaeaccdf97",
                   "ai_rule_description": "Do not evaluate 'perfect'. STEP 1: Find references to established scientific theories, formal logic principles, or physical laws. STEP 2: EXTRACTION CONDITION: the specific causal mechanism is explicitly anchored to an established theoretical law.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2747,7 +2747,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): Extract absolute quantifiers that physically lack empirical measurement or data vocabulary in the same paragraph.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c6f705f7a5f94f53",
+                  "tda_id": "tda_65c125a7c28b4f8e9c33c8987ff52931",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find an absolute quantifier or declaration of certainty (e.g., 'always', 'undeniably', 'proven', 'fact', '100%'). STEP 2 (Bounding Box & Negative Condition): Scan the paragraph containing the anchor. If the paragraph contains the absolute quantifier BUT does NOT contain empirical measurement tokens (e.g., 'data', 'measurement', 'study', 'statistics', 'survey') -> ACCEPT. If it contains empirical measurement tokens -> REJECT. BANNED CONCEPTS: Do NOT evaluate subjective 'agreement' or whether an assumption is being confirmed. Evaluate only physical token presence.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2766,7 +2766,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author dismisses a contrary observation by classifying it as an exception rather than adjusting their hypothesis.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_86bd73202db64e04",
+                  "tda_id": "tda_236ebf69629e41a58b0f13eb82b44875",
                   "ai_rule_description": "REQUIRED TARGET: Find evidence. EXTRACTION CONDITION: role prefixes (user:, ai:) exist, the exact quote MUST be located in an 'ai:' block. NEGATIVE CONDITION (RETURN NULL IF MET): no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix or in user input fields are automatically REJECTED. Do not accept legitimate, statistically proven outlier exclusions (e.g., p-value tests). STEP 1 (Syntactic Anchor): Find dismissal markers (e.g., 'doesn\\'t really count', 'is an anomaly', 'was an exception', 'however, generally'). STEP 2 (Bounding Box): Scan the paragraph. If these markers are used to protect the original premise from contradictory data without changing the premise. Otherwise.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2785,7 +2785,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a sentence where the author explicitly states that a premise requires no further testing or cannot be questioned.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_93568eab47234542",
+                  "tda_id": "tda_c7e3a26277674d2aa8ab38d1ee7afb05",
                   "ai_rule_description": "REQUIRED TARGET: Find evidence. EXTRACTION CONDITION: role prefixes (user:, ai:) exist, the exact quote MUST be located in an 'ai:' block. NEGATIVE CONDITION (RETURN NULL IF MET): no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix or in user input fields are automatically REJECTED. Do not accept mathematical axioms. STEP 1 (Syntactic Anchor): Find dogmatic certainty markers (e.g., 'is self-evident', 'needs no proof', 'as we all know', 'beyond question'). STEP 2 (Bounding Box): Scan the sentence. If it explicitly blocks further empirical testing or questioning. Otherwise.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2817,7 +2817,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author presents a counter-argument lacking empirical data or citations, only to immediately dismiss it.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_e7f3eec588424a86",
+                  "tda_id": "tda_873a1fab603544048f95e612773f0574",
                   "ai_rule_description": "REQUIRED TARGET: Find evidence. EXTRACTION CONDITION: role prefixes (user:, ai:) exist, the exact quote MUST be located in an 'ai:' block. NEGATIVE CONDITION (RETURN NULL IF MET): no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix or in user input fields are automatically REJECTED. Do not evaluate 'triviality'. STEP 1 (Syntactic Anchor): Find a counter-argument transition (e.g., 'Critics might say', 'Some argue'). STEP 2 (Bounding Box): Scan the paragraph. If the presented counter-argument lacks specific citations, named sources, or numerical data, AND is immediately dismissed. Otherwise.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2836,7 +2836,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where a subordinate clause acknowledges a limitation, but the main clause confirms the original premise without altering its parameters.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_72d84ac4a1f440d5",
+                  "tda_id": "tda_a42e3168877240ad90ccd2abb37c4597",
                   "ai_rule_description": "REQUIRED TARGET: Find evidence. EXTRACTION CONDITION: role prefixes (user:, ai:) exist, the exact quote MUST be located in an 'ai:' block. NEGATIVE CONDITION (RETURN NULL IF MET): no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix or in user input fields are automatically REJECTED. Do not flag caveats that result in a mathematically or conceptually altered conclusion. STEP 1 (Syntactic Anchor): Find concessive conjunctions (e.g., 'while it is true that', 'although X fails'). STEP 2 (Bounding Box): Scan the sentence. If the concession is immediately followed by a return to the original unmodified premise (e.g., '..ultimately it holds'). Otherwise.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2855,7 +2855,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a rhetorical question posed by the author that is immediately answered in the affirmative without presenting new empirical evidence.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_7b644daf603c4f00",
+                  "tda_id": "tda_ce2566987e8f44819102d6eb1d28857d",
                   "ai_rule_description": "REQUIRED TARGET: Find evidence. EXTRACTION CONDITION: role prefixes (user:, ai:) exist, the exact quote MUST be located in an 'ai:' block. NEGATIVE CONDITION (RETURN NULL IF MET): no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix or in user input fields are automatically REJECTED. Do not flag open-ended questions explicitly left for future research. STEP 1 (Syntactic Anchor): Find a question mark '?' used by the author to question their own premise. STEP 2 (Bounding Box): Scan the following 2 sentences. If the author answers their own question confirming the premise without citing new data. Otherwise.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2887,7 +2887,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND a sentence where the author describes an observation using only descriptive verbs without proposing a testable causal mechanism.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_2ca8b77ba2dd43ad",
+                  "tda_id": "tda_3b951170f9f54f649b7da95fb9f121e6",
                   "ai_rule_description": "REQUIRED TARGET: Find evidence. EXTRACTION CONDITION: role prefixes (user:, ai:) exist, the exact quote MUST be located in an 'ai:' block. NEGATIVE CONDITION (RETURN NULL IF MET): no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix or in user input fields are automatically REJECTED. Do not accept explicit hypothesis testing. STEP 1 (Syntactic Anchor): Find descriptive reporting verbs (e.g., 'the data shows', 'we observed', 'indicates'). STEP 2 (Bounding Box): Scan the paragraph. If the observation lacks a formulated hypothesis that could be tested or disproven (e.g. no 'if X then Y' structure). Otherwise.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2906,7 +2906,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author lists methodological limitations but explicitly states no action was taken to test or mitigate them.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_8df0cd8eea9243df",
+                  "tda_id": "tda_611db266856848b68fda02dd9f602ce5",
                   "ai_rule_description": "REQUIRED TARGET: Find evidence. EXTRACTION CONDITION: role prefixes (user:, ai:) exist, the exact quote MUST be located in an 'ai:' block. NEGATIVE CONDITION (RETURN NULL IF MET): no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix or in user input fields are automatically REJECTED. Do not flag limitations that were actively tested or corrected for in the dataset. STEP 1 (Syntactic Anchor): Find limitation markers (e.g., 'small sample size', 'potential bias', 'limitation of this study'). STEP 2 (Bounding Box): Scan the paragraph. If the limitations are stated passively without a corresponding mitigation action or test. Otherwise.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2925,7 +2925,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a sentence where the author identifies two contradictory datasets but synthesizes them without a mathematical or logical resolution.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_fb1bd1ce6b6342b7",
+                  "tda_id": "tda_0af46ca3de69431e8a3eea89df104507",
                   "ai_rule_description": "REQUIRED TARGET: Find evidence. EXTRACTION CONDITION: role prefixes (user:, ai:) exist, the exact quote MUST be located in an 'ai:' block. NEGATIVE CONDITION (RETURN NULL IF MET): no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix or in user input fields are automatically REJECTED. Do not flag dialectical synthesis that mathematically resolves the conflict. STEP 1 (Syntactic Anchor): Find conflict identification markers (e.g., 'contradictory results', 'on the one hand'). STEP 2 (Bounding Box): Scan the paragraph. If the conflict is left unresolved using passive synthesis (e.g., 'both sides have valid points', 'it is a complex issue') without falsifying one. Otherwise.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -2957,7 +2957,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an explicit instance where the author defines the exact empirical conditions under which their claim would be proven false.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_0452478c939147de",
+                  "tda_id": "tda_52ffb15768ba4a62ac3a8be5824a8aa6",
                   "ai_rule_description": "REQUIRED TARGET: Find evidence. EXTRACTION CONDITION: role prefixes (user:, ai:) exist, the exact quote MUST be located in an 'ai:' block. NEGATIVE CONDITION (RETURN NULL IF MET): no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix or in user input fields are automatically REJECTED. Do not accept vague statements about future research. STEP 1 (Syntactic Anchor): Find boundary condition markers (e.g., 'this would be disproven if', 'fails under the condition', 'invalidated when'). STEP 2 (Bounding Box): Scan the paragraph. If a specific measurable condition is defined that would falsify the claim. Otherwise.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2976,7 +2976,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Extract explicit alternative hypotheses that physically contain contrary or opposing premise tokens.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_5f617816ee084663",
+                  "tda_id": "tda_b620a45d39dc4f838b6ebc7cb1c37aed",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find an explicit alternative hypothesis marker (e.g., 'Alternatively', 'null hypothesis', 'counter-hypothesis', 'if we assume instead'). STEP 2 (Bounding Box & Dual Condition): Scan the paragraph containing the anchor. If the paragraph contains the hypothesis marker AND ALSO contains explicit contrast or opposing vocabulary (e.g., 'versus', 'instead', 'opposite', 'contrary', 'differs') -> ACCEPT. If it lacks opposing vocabulary -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, whether 'distinct variables' exist logically, or if it is a 'rhetorical' scenario. Evaluate only physical token presence.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -2995,7 +2995,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT an explicit acknowledgment identifying a specific systemic variable or bias in the author's own testing methodology.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_7937cd55362b4fb2",
+                  "tda_id": "tda_43516f120e4a415bb0ee3a878a53a5bc",
                   "ai_rule_description": "REQUIRED TARGET: Find evidence. EXTRACTION CONDITION: role prefixes (user:, ai:) exist, the exact quote MUST be located in an 'ai:' block. NEGATIVE CONDITION (RETURN NULL IF MET): no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix or in user input fields are automatically REJECTED. Do not accept generic 'more data is needed' statements. STEP 1 (Syntactic Anchor): Find methodological critique markers (e.g., 'our measurement of X may overrepresent', 'the bias in our sample'). STEP 2 (Bounding Box): Scan the paragraph. If a specific structural flaw in the methodology is explicitly identified. Otherwise.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3027,7 +3027,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Extract sentences describing an executed empirical test paired physically with falsification or disproof vocabulary.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_10d455b59f374701",
+                  "tda_id": "tda_ee0f0acc110a480fb5550ed017afbd6d",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find explicit falsification or destructive testing markers (e.g., 'to disprove', 'failed when', 'subjected to', 'tested against', 'falsify'). STEP 2 (Bounding Box & Dual Condition): Scan the paragraph containing the anchor. If the paragraph contains the falsification marker AND ALSO contains empirical execution vocabulary (e.g., 'results', 'data', 'measured', 'we ran', 'test showed') -> ACCEPT. If it lacks execution vocabulary (meaning it is only a hypothetical idea to test) -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, whether it is the 'core' hypothesis, or subjective 'mastery'. Evaluate only physical token presence.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3046,7 +3046,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Extract sentences where counterarguments are physically paired with explicit citations and empirical data markers.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_fbd90f9c0f2247ed",
+                  "tda_id": "tda_8489e8dce4c34f39b294db37c6fddcf3",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find explicit counterargument markers (e.g., 'critics argue', 'opposing view', 'counterargument', 'on the other hand'). STEP 2 (Bounding Box & Dual Condition): Scan the paragraph containing the anchor. If the paragraph contains the counterargument marker AND ALSO contains physical citation markers (e.g., 'et al', '[1]', '(', 'published in') AND empirical measurement vocabulary (e.g., 'data', 'showed', 'measured') -> ACCEPT. If it lacks citations or measurement tokens -> REJECT. BANNED CONCEPTS: Do NOT evaluate subjective 'strength', 'steel-manning', or whether the argument is successfully 'dismantled'. Evaluate only physical token presence. <ambiguity_protocol> ABSOLUTE LEXICAL ENFORCEMENT: You are a mechanical parser, not a forgiving judge. If a rule demands multiple conditions (e.g., A AND B AND C), and condition C is physically missing, you MUST return NULL. You are strictly forbidden from accepting 'close enough' semantic matches. BANNED MATCHES: Academic institutions (e.g., Stanford) and research reports (e.g., TTL) DO NOT count as formal standard frameworks (ISO/ARMA).</ambiguity_protocol>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3065,7 +3065,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Extract sentences combining failure-state terminology with explicit mathematical or physical limit markers.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_1532d756b11a4259",
+                  "tda_id": "tda_db48d54b7f704f65a361a113611c3b53",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find breakdown condition markers (e.g., 'breaks down when', 'does not apply if', 'fails beyond', 'invalidated when'). STEP 2 (Bounding Box & Dual Condition): Scan the paragraph containing the anchor. If the paragraph contains the breakdown marker AND ALSO contains explicit numerical limits or physical threshold vocabulary (e.g., 'exceeds', '<', '>', 'limit of', 'threshold') -> ACCEPT. If it lacks explicit measurement limits -> REJECT. BANNED CONCEPTS: Do NOT evaluate subjective 'deep humility' or whether the claim is logically 'voided'. Evaluate only physical token presence.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3175,7 +3175,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence of 'Automation Complacency'. Extract a command where the user blindly accepts the AI's output without asking critical questions.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_58b71c9945482385",
+                  "tda_id": "tda_282059a3bea94b6c94e5f290a9cb75a7",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY the user prompts (prefixes like 'user:'). BANNED SOURCES: Never read AI outputs. Do not look for absence of critique. STEP 1 (Syntactic Anchor): Find active acceptance words ('täydellinen', 'näin', 'jatketaan', 'hyvä', 'perfect', 'looks good'). STEP 2 (Bounding Box): Scan the user prompt. EXTRACTION CONDITION: the user accepts the AI output fully in one sentence WITHOUT any modifications or follow-up tasks in the same prompt.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -3194,7 +3194,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence of 'Automation Bias'. Extract a user command where the user explicitly asks the AI to make a final decision for them.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_ade6cbd3f956fa67",
+                  "tda_id": "tda_d2e04ccdc7df428380b667e21217224a",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. Do not evaluate 'collaboration' or 'politeness'. STEP 1 (Syntactic Anchor): Find delegation verbs ('päätä', 'valitse', 'kumpi', 'decide', 'choose'). STEP 2 (Bounding Box): Scan the prompt. EXTRACTION CONDITION: the user explicitly asks the AI to make a final subjective choice or decision on their behalf.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -3213,7 +3213,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence of 'Rubber-Stamping'. Extract a user command where the user acknowledges a flaw but commands the AI to proceed anyway.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_f7a159c9be02a6ed",
+                  "tda_id": "tda_2c3c394f7c07417c9754b54602bf1353",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. BANNED LOGIC: Do not evaluate 'forgiveness'. STEP 1 (Syntactic Anchor): Find dismissive phrases ('ei haittaa', 'riittää', 'mennään näillä', 'vaikka', 'nevermind', 'good enough'). STEP 2: EXTRACTION CONDITION: the user actively acknowledges an incomplete or erroneous AI response but instructs to move forward anyway.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -3245,7 +3245,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence of superficial tweaking. Extract a user command where the user only asks for mechanical changes instead of addressing core logic.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_25b6ef8230478454",
+                  "tda_id": "tda_46b1a8e3c2304438b82420fc40c3dbc1",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. Do not evaluate 'politeness'. STEP 1 (Syntactic Anchor): Find formatting terms ('lyhennä', 'muotoile', 'bulletteina', 'shorten', 'format'). STEP 2: EXTRACTION CONDITION: the user's ONLY request is a stylistic or formatting change, completely ignoring substantive logic. NEGATIVE CONDITION (RETURN NULL IF MET): they challenge logic.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -3264,7 +3264,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND a reactive prompt where the user adds a constraint only AFTER the AI has already failed.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_e43160bbd694dc73",
+                  "tda_id": "tda_bb3511daf31f437f9be8f0abebd11c83",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. STEP 1 (Syntactic Anchor): Find reactive anchors ('unohdit', 'lisää vielä', 'korjaa tuo', 'entä', 'forgot', 'add'). STEP 2 (Bounding Box): Scan the sequence. EXTRACTION CONDITION: the user adds a new critical constraint that they forgot to specify in the previous prompt.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -3283,7 +3283,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence where the user asks the AI to summarize raw data without enforcing any specific extraction rules.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_8b1717b2ca9f25e2",
+                  "tda_id": "tda_fa4667af98f84790af9b9a12cd9d7bd0",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. BANNED LOGIC: Do not accept specific extraction commands. STEP 1 (Syntactic Anchor): Find broad summary commands ('tiivistä', 'tee yhteenveto', 'mitä tässä lukee', 'summarize'). STEP 2: EXTRACTION CONDITION: the command lacks any specific constraints and allows the AI to freely decide what is important.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -3315,7 +3315,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE a user command where specific, actionable constraints are set for the AI's output generation.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_827b9abf281eb831",
+                  "tda_id": "tda_10b1f2aff7b6426fb2e8e6002dbef2bc",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. BANNED LOGIC: Do not evaluate 'perfection'. STEP 1 (Syntactic Anchor): Find constraint markers ('vähintään', 'korkeintaan', 'rakenne:', 'muodossa', 'at least', 'format:'). STEP 2: EXTRACTION CONDITION: the user provides at least one measurable or structural constraint for the output.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3334,7 +3334,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT a user command where explicit background information, role, or target audience is provided.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_f431324e321f81aa",
+                  "tda_id": "tda_1897cd57db7c4e9b9ffc086ee544f643",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. STEP 1 (Syntactic Anchor): Find context markers ('toimit', 'kohdeyleisö', 'taustana', 'tavoite', 'audience', 'role', 'context'). STEP 2: EXTRACTION CONDITION: the user defines the situational context or role for the AI before asking for output.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3353,7 +3353,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE a user response where they correct the AI AND provide a logical reason for the correction.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_61f364dacba4566d",
+                  "tda_id": "tda_08c5a8eca0bb41a49d60b849503da2bb",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. STEP 1 (Syntactic Anchor): Find causal feedback markers ('koska', 'sillä', 'tämä ei toimi, koska', 'syynä', 'because', 'due to'). STEP 2: EXTRACTION CONDITION: the user corrects the AI and explicitly states the logical reason for the correction. NEGATIVE CONDITION (RETURN NULL IF MET): just a blind correction.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3385,7 +3385,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence where the user explicitly forces the AI to use a specific methodology, framework, or theoretical lens.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_763d6f9f0dda8f56",
+                  "tda_id": "tda_6ecd649b48c24e68824e27e30ed8a63e",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. Do not accept generic requests ('analysoi hyvin'). STEP 1 (Syntactic Anchor): Find methodology anchors ('käytä menetelmää', 'mallin mukaisesti', 'viitekehys', 'SWOT', 'PESTEL', 'teoria', 'framework'). STEP 2: EXTRACTION CONDITION: the user explicitly names a method or analytical framework the AI MUST follow.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3404,7 +3404,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT a user command that strictly breaks a complex task into discrete steps and prevents the AI from jumping to the conclusion.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_5fbf138308fa7c26",
+                  "tda_id": "tda_b4e82bca48654f9ab948d4b3004abf81",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. STEP 1 (Syntactic Anchor): Find sequence constraints ('ensin', 'sen jälkeen', 'odota lupaani', 'askel 1', 'first', 'wait for'). STEP 2: EXTRACTION CONDITION: the user explicitly forces the AI to stop and wait for human validation before proceeding to the next step.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3423,7 +3423,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE a user command where the AI is forbidden from generating new information and is forced to extract exact quotes.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_f142c3fa1d08cc2d",
+                  "tda_id": "tda_eb266643b83b48bbab94a041b6d12f6d",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. STEP 1 (Syntactic Anchor): Find extraction anchors ('poimi suoraan', 'tarkka lainaus', 'älä keksi itse', 'perustuen vain', 'exact quote', 'do not hallucinate'). STEP 2: EXTRACTION CONDITION: the user explicitly restricts the AI to the provided data and demands exact evidence.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3455,7 +3455,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT an execution where the user explicitly overrides the AI's internal logic with superior, externally verified reasoning.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_da500772aaf386b2",
+                  "tda_id": "tda_3a65513aa717469a8d2c3b821a69c4ab",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. BANNED LOGIC: Do not accept simple disagreements. STEP 1 (Syntactic Anchor): Find override phrases ('olet väärässä', 'tämä logiikka ontuu', 'faktojen vastainen', 'kumottu', 'incorrect', 'you are wrong'). STEP 2 (Bounding Box): Scan the sequence. EXTRACTION CONDITION: the user rejects the AI's reasoning and injects their own superior logical or empirical correction.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3474,7 +3474,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence where the user actively forces the AI to attack, falsify, or critically audit its own generated output.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_266bd72a48e31736",
+                  "tda_id": "tda_a9b23e07d30a4422bcc983f4308ad212",
                   "ai_rule_description": "REQUIRED TARGET: Scan ONLY user prompts. STEP 1 (Syntactic Anchor): Find audit anchors ('etsi heikkoudet', 'hyökkää tätä vastaan', 'falsifioi', 'devil\\'s advocate', 'critique'). STEP 2: EXTRACTION CONDITION: the user forces the AI to rigorously critique its own previous output or identify fatal flaws.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3493,7 +3493,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively cross-checks the AI's generated output against target sources.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_f5a8b7c2d9e144a1",
+                  "tda_id": "tda_3af2d6bfe99c4119a301706c63920524",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find active verification markers comparing output against raw documents (e.g., 'kirjoitit... mutta lähteessä', 'ei vastaa sivua', 'alkuperäisessä lukee'). STEP 2 (Bounding Box): Scan the user's prompt. EXTRACTION CONDITION: The user actively flags discrepancies between AI claims and source materials. TRACE REQUIREMENT: Output ONLY the 5-step piped Parsing Log.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3664,7 +3664,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a single instance where the synthesis includes actively contradictory statements that are left completely unresolved.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_eb46c2f21b7f4c66",
+                  "tda_id": "tda_fafbf4e70c064315bb9373e838d2ce52",
                   "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a single instance where the synthesis includes actively contradictory statements that are left completely unresolved. Look for lexical markers of conflict (e.g., 'however', 'contradicts') in the native language.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -3683,7 +3683,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a single instance where definitive conclusions are drawn using probabilistic assumptions presented as absolute truths.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_bf4127529d844313",
+                  "tda_id": "tda_b120e2c0a40840358df1e64a4b788b30",
                   "ai_rule_description": "BANNED LOGIC: Do not evaluate 'subjective'. STEP 1 (Syntactic Anchor): Find probabilistic markers ('probably', 'I think'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: a definitive conclusion is drawn from these markers as an absolute truth.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -3702,7 +3702,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): IDENTIFY a single instance where the synthesis provides a final decision but operates as a black box, failing the DARPA 'Why did you do that?' test.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_a7b31c56f6fa4c3e",
+                  "tda_id": "tda_545c0c67ba09488797f0f75cf3c2dadd",
                   "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): IDENTIFY a single instance where the synthesis provides a final decision but operates as a black box, making sudden inductive leaps without prior premises. Look for sudden conclusions like 'therefore' or 'so' without supporting facts in the native language.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -3734,7 +3734,7 @@
               "ai_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of explicit partial consensus among agents.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_d8bdf091d22d4412",
+                  "tda_id": "tda_e5f7d3a9ab2c4399be790f2ebc374fae",
                   "ai_rule_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of explicit partial consensus among agents. Look for lexical markers like 'mostly agree', 'general consensus', or 'aligns' in the native language. <ambiguity_protocol>ONTOLOGICAL BOUNDARY: You are strictly forbidden from identifying 'consensus among agents' if the source document does not physically contain multiple expert agents, panelists, or decision-makers interacting with each other. Single-author texts, simple two-party transcripts (such as a dialogue between one human and one AI), or general statements of personal uncertainty DO NOT qualify as consensus among agents. If multiple interacting entities are physically absent from the text, you MUST conclude 'CONDITION NOT MET' and return JSON null.</ambiguity_protocol>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3753,7 +3753,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a single instance where the synthesis actively ignores or dismisses alternative hypotheses without evidence.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_25749796e4814c99",
+                  "tda_id": "tda_353aa6c896db47fb9d29b06a69bf77d4",
                   "ai_rule_description": "BANNED LOGIC: Do not evaluate 'actively ignores'. STEP 1 (Syntactic Anchor): Find dismissive markers ('regardless', 'anyway'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: alternative hypotheses are dismissed without empirical evidence.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -3772,7 +3772,7 @@
               "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a single instance where a conclusion relies on abruptly fragmented or isolated quotes without context.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_db0ed17d00964afa",
+                  "tda_id": "tda_b9c9860586ca45cc8a583b174c28d874",
                   "ai_rule_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a single instance where a conclusion relies on abruptly fragmented or isolated quotes, presenting them out of context to force a narrative. Look for abruptly inserted quotes without logical transitions in the native language.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -3804,7 +3804,7 @@
               "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where agents explicitly support the synthesized outcome with absolute consensus.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_46e1f8cae342465e",
+                  "tda_id": "tda_240a994fc76546cb84269a6731ac187b",
                   "ai_rule_description": "CRITICAL DIRECTIVE: LOCATE an instance where agents explicitly support the synthesized outcome with absolute, verifiable consensus. Look for explicit markers like 'unanimously', 'completely agree', or 'all evidence points to' in the native language.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3823,7 +3823,7 @@
               "ai_description": "CRITICAL DIRECTIVE: FIND evidence that the report explicitly documents the 'how' and 'why' of the synthesized conclusion.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_d9e34b5925e348bc",
+                  "tda_id": "tda_abd17ad741e140dd8c5d4ed2fc816450",
                   "ai_rule_description": "CRITICAL DIRECTIVE: FIND evidence that the report explicitly documents the 'how' and 'why' of the synthesized conclusion, fulfilling the DARPA XAI 'Why did you do that?' requirement. Look for logical causal connectors like 'because', 'due to the fact that', or 'this implies' in the native language.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -3842,7 +3842,7 @@
               "ai_description": "CRITICAL DIRECTIVE: EXTRACT a section where the final synthesis is explicitly tethered to external, verifiable references.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_8fb029f0e59642a7",
+                  "tda_id": "tda_90549a60a8dd4d029e6b6d23196ddf2f",
                   "ai_rule_description": "CRITICAL DIRECTIVE: EXTRACT a section where the final synthesis is explicitly tethered to verifiable references or source data, ensuring zero-trust compliance. Look for explicit citation markers like 'according to', 'as seen in', or 'referenced in' in the native language.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -4597,7 +4597,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify instances where the user or system accepts generative heuristics as absolute fact without verification.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_0f95f9965a202871",
+                  "tda_id": "tda_7577d7ee8a484c64ae3968aa4ec298dc",
                   "ai_rule_description": "BANNED LOGIC: Do not evaluate 'blind trust' or 'naivety'. STEP 1 (Syntactic Anchor): Find an absolute acceptance phrase (e.g. 'the system output proves', 'we can rely on'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the acceptance is presented without an explicit verification step mentioned.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -4616,7 +4616,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify fabricated facts or hallucinatory content presented with high confidence.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_0eb49f05fdd6deb9",
+                  "tda_id": "tda_e0bf5617f4804a0d98a6b2d91dcd21ce",
                   "ai_rule_description": "Do not accept generic errors; must be an absolute fabrication (LLM09 Overreliance). STEP 1 (Syntactic Anchor): Find a factual claim (dates, names, specific data points). STEP 2 (Search Verification): Verify the claim's logic. EXTRACTION CONDITION: the claim is demonstrably false or fabricated but presented with absolute certainty.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -4635,7 +4635,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify the active dismissal or ignoring of potential security or ethical risks.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_70e014962e7e7c9a",
+                  "tda_id": "tda_91ed5fbfa665401980f2049561fcf684",
                   "ai_rule_description": "Do not evaluate 'ignorance' subjectively. STEP 1 (Syntactic Anchor): Find dismissive transition words (e.g. 'regardless', 'not an issue', 'ignore'). STEP 2 (Bounding Box): Scan the preceding sentence. EXTRACTION CONDITION: a security risk (like injection or leakage) was mentioned but immediately dismissed without physical mitigation steps.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -4667,7 +4667,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify reactive security posturing.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_0f4ab5b3344ef1a8",
+                  "tda_id": "tda_83c3a1f41fb94c8d802a60e00ad2550f",
                   "ai_rule_description": "BANNED LOGIC: Do not evaluate 'proactivity' subjectively. STEP 1 (Syntactic Anchor): Find temporal reactive markers (e.g. 'after the failure', 'once identified', 'we fixed'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: security measures are ONLY described as post-incident responses without any pre-incident checks.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -4686,7 +4686,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify superficial verification attempts.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_0b0cc9976fb0d7d6",
+                  "tda_id": "tda_b899e72085ea4d488a6e6c22a34e2d75",
                   "ai_rule_description": "Do not evaluate 'superficial' subjectively. STEP 1 (Syntactic Anchor): Find terms indicating a manual or ad-hoc check (e.g. 'glanced at', 'looks okay', 'basic check'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the verification relies entirely on human intuition rather than a systemic protocol (like OWASP).",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -4705,7 +4705,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify unmitigated acknowledged risks.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_55dfd9cb0adec620",
+                  "tda_id": "tda_453ddf8b14a442e988836098e3c7b55c",
                   "ai_rule_description": "BANNED LOGIC: Do not accept subjective assessments of risk severity. STEP 1 (Syntactic Anchor): Find risk identification markers (e.g. 'potential risk', 'hazard', 'vulnerability'). STEP 2 (Bounding Box): Scan the paragraph downwards. EXTRACTION CONDITION: the risk is identified but no physical action verb follows to mitigate it. <ambiguity_protocol>ABSOLUTE MITIGATION ENFORCEMENT: You must strictly scan the paragraph containing the risk identification marker. If the paragraph contains a physical action verb that describes a technical, administrative, or physical mitigation or control (e.g., 'encrypted', 'blocked', 'sanitized', 'implemented', 'configured', 'restricted', 'validated', or Finnish equivalents like 'salataan', 'estetään', 'tarkistetaan', 'validoidaan'), the absence of mitigation is falsified, the risk is mitigated, and you MUST conclude 'CONDITION NOT MET' and return JSON null. Proposing future plans to mitigate or dismissing the risk as 'low priority' without physical control verbs DOES NOT satisfy the mitigation requirement and the rule remains satisfied.</ambiguity_protocol>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -4737,7 +4737,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify baseline input/output validation.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_3da456b757644c46",
+                  "tda_id": "tda_c760c738451d4ca0af3bc507a2687e20",
                   "ai_rule_description": "BANNED LOGIC: Do not accept vague assertions like 'it is secure'. STEP 1 (Syntactic Anchor): Find explicit physical validation actions (e.g. 'validated', 'filtered', 'sanitized', 'checked against'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: it describes a concrete data validation rule being applied to input or output.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -4756,7 +4756,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify awareness of system limitations.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_0d8c983364b914ba",
+                  "tda_id": "tda_715eb98a6f4a4a1e944db99f5eaaded9",
                   "ai_rule_description": "BANNED LOGIC: Do not evaluate internal mental states. STEP 1 (Syntactic Anchor): Find epistemic boundary markers (e.g. 'may be inaccurate', 'verify independently', 'limitations', 'hallucination'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: there is a physical, explicit statement acknowledging the AI's limitations or a disclaimer.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -4775,7 +4775,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify adherence to visible security practices.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_2303fd9ca0b0fa67",
+                  "tda_id": "tda_793b7078035645f0a9df32e58b6de0b9",
                   "ai_rule_description": "Do not accept generic terms like 'safe'. STEP 1 (Syntactic Anchor): Find explicit references to standard security protocols (e.g. 'policy', 'standard', 'guideline', 'OWASP'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the text physically demonstrates adherence to a named standard. <disambiguation>\n  Regulatory framework references count as formal citations ONLY if a \n  specific sub-article, clause, or numbered principle is cited (e.g., \n  \"Article 29b(2)\", \"ISO 27001 §6.1.2\"). Generic regulatory mentions \n  without sub-clause specificity DO NOT satisfy methodology link, benchmark, \n  formal citation, or security standard extraction conditions.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -4807,7 +4807,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify that security is integrated by design.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_0aa8130642e56ff1",
+                  "tda_id": "tda_1c195553935e4b8aaa4ee2a86feda9e4",
                   "ai_rule_description": "BANNED LOGIC: Do not evaluate 'secure by design' subjectively. STEP 1 (Syntactic Anchor): Find proactive structural markers (e.g. 'automatically blocks', 'default deny', 'pre-processed'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: a security constraint is described as a structural, automatic mechanism rather than a manual check.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -4826,7 +4826,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify Fail-Safe handling of edge cases.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_dd0dc97fcaee4d7c",
+                  "tda_id": "tda_82f0d074668043b3a0a64aa9f8506ff2",
                   "ai_rule_description": "BANNED LOGIC: Do not accept theoretical resilience. STEP 1 (Syntactic Anchor): Find error handling markers (e.g. 'rejected', 'fallback', 'graceful degradation', 'safely ignored'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: it describes physically rejecting invalid input or defaulting to a safe state without crashing.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -4845,7 +4845,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify applied cognitive friction before execution.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_f1f6335cf78ee3d1",
+                  "tda_id": "tda_813590488e6643ddb47464d3404ad49c",
                   "ai_rule_description": "Do not evaluate 'deliberation' without a physical pause. STEP 1 (Syntactic Anchor): Find friction markers (e.g. 'requires confirmation', 'are you sure', 'second approval'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: an explicit multi-step confirmation or manual override is required before a risky execution.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -4877,7 +4877,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify perfect security hygiene. The interaction must inherently demonstrate zero-trust processing.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_b7712f8a6c4619b4",
+                  "tda_id": "tda_131ffcb70bbc4c29bef079047002bc91",
                   "ai_rule_description": "BANNED LOGIC: Do not accept general 'secure' statements. STEP 1 (Syntactic Anchor): Find zero-trust markers (e.g. 'zero implicit trust', 'independent verification', 'cryptographic', 'strict boundary'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the processing demonstrates explicit zero-trust architecture where every input/output is treated as potentially hostile.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -4896,7 +4896,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify the presence of absolute System 2 cognitive friction applied to security evaluations.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_5f71c2e291f1ae4e",
+                  "tda_id": "tda_76df73280fc943cc9434d44efc8116e8",
                   "ai_rule_description": "BANNED LOGIC: Do not accept 'fully justified' without a traced reasoning path. STEP 1 (Syntactic Anchor): Find causal justification markers (e.g. 'because of risk X', 'to prevent Y', 'therefore blocked'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: a security action is paired with an explicit, documented risk assessment.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -4915,7 +4915,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify that the security logic is grounded in established frameworks.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_545bffdc85a31f0e",
+                  "tda_id": "tda_65cb33b82c54425aa86df7e84b66ffde",
                   "ai_rule_description": "Reject superficial mentions of frameworks. STEP 1 (Syntactic Anchor): Find exact framework citations (e.g. 'OWASP LLM01', 'NIST', 'ISO 27001'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the specific framework clause is directly linked to the physical security action taken. <ambiguity_protocol> ABSOLUTE LEXICAL ENFORCEMENT: You are a mechanical parser, not a forgiving judge. If a rule demands multiple conditions (e.g., A AND B AND C), and condition C is physically missing, you MUST return NULL. You are strictly forbidden from accepting 'close enough' semantic matches. BANNED MATCHES: Academic institutions (e.g., Stanford) and research reports (e.g., TTL) DO NOT count as formal standard frameworks (ISO/ARMA).</ambiguity_protocol>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5135,7 +5135,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Extract retrospective claims of intent where the originally claimed parameters are physically missing from the preceding instruction.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_be74d9af83716dcc",
+                  "tda_id": "tda_1361cf5ec5b5420c905cd2a1f80893a7",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in a 'user:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'ai:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find explicit retrospective claims of intent (e.g., 'That is what I meant', 'I intended', 'As expected'). STEP 2 (Bounding Box & Negative Condition): Scan the text preceding this claim (the original instruction). If the preceding text DOES NOT physically contain the exact parameters now being claimed -> ACCEPT. If the preceding text physically contains the parameters -> REJECT. BANNED CONCEPTS: Do NOT evaluate subjective 'sincerity' or 'post-hoc rationalization'. Evaluate only the physical presence or absence of the claimed parameters in the prior text.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -5154,7 +5154,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify instances where the AI generated value independently without user causal direction.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_61c1b43bc6f5406f",
+                  "tda_id": "tda_d262dd4421bd4af68191eb1f4d0faf26",
                   "ai_rule_description": "EXTRACTION CONDITION: role prefixes exist, focus on 'ai:' output compared to 'user:' input. BANNED LOGIC: Do not evaluate 'coincidence' abstractly. STEP 1 (Syntactic Anchor): Identify a novel concept, specific methodology, or data point introduced by the AI. STEP 2 (Bounding Box): Scan the preceding 'user:' prompt. NEGATIVE CONDITION (RETURN NULL IF MET): the user prompt did NOT explicitly request this concept or methodology. If the user requested it.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -5173,7 +5173,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Extract absolute conclusions that physically lack counterfactual or alternative vocabulary.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_063dc7919d7bbb9f",
+                  "tda_id": "tda_d467244b1f5f412f92d3200691028bc0",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find an absolute conclusion or decision (e.g., 'Therefore', 'The solution is', 'Must be'). STEP 2 (Bounding Box & Negative Condition): Scan the paragraph containing this conclusion. If the paragraph contains the conclusion BUT does NOT contain lexical markers of a counterfactual (e.g., 'Alternatively', 'What if', 'Although', 'However') -> ACCEPT. If it contains counterfactual vocabulary -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, subjective 'failure', or excuse missing context.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -5205,7 +5205,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify vague instructions lacking causal force.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_0ef25ba13c507ec8",
+                  "tda_id": "tda_0b7512034e6f40db9b4ea46b64af4e0d",
                   "ai_rule_description": "Focus on 'user:' blocks EXTRACTION CONDITION: prefixes exist. Do not judge 'vagueness' subjectively. STEP 1 (Syntactic Anchor): Find a directive verb (e.g. 'Make', 'Improve', 'Change'). STEP 2 (Bounding Box): Scan the sentence containing the verb. NEGATIVE CONDITION (RETURN NULL IF MET): the sentence DOES NOT contain a measurable threshold, a specific framework name, or a quantifiable metric. If specific metrics exist.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -5224,7 +5224,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify confirmation bias.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_8f668ea29869ba8b",
+                  "tda_id": "tda_c512ea7305614bfabf468fe838420dda",
                   "ai_rule_description": "BANNED LOGIC: Do not guess psychological bias. STEP 1 (Syntactic Anchor): Find an evaluation of an outcome (e.g. 'Success', 'Worked well', 'Correct'). STEP 2 (Bounding Box): Scan the surrounding section. EXTRACTION CONDITION: the text lists supporting evidence but completely omits any mention of edge cases, failures, or limitations (e.g. 'Failed', 'Error', 'However') in the same section. NEGATIVE CONDITION (RETURN NULL IF MET): limitations are discussed.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -5243,7 +5243,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Extract explicit causal claims that physically lack empirical measurement terminology or numbers.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_d0ed9f689cfbcc3b",
+                  "tda_id": "tda_569a2c551bae4301b1217c8a7107cc2c",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in an 'ai:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'user:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find an explicit causal claim (e.g., 'Because of X', 'Led to Y', 'Caused', 'Resulted in'). STEP 2 (Bounding Box & Negative Condition): Scan the paragraph containing the anchor. If the paragraph contains the causal claim BUT does NOT contain empirical data vocabulary (e.g., numbers, percentages, 'log', 'quote', 'measured', 'statistically') -> ACCEPT. If it contains empirical measurement vocabulary -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, subjective 'unproven' nature, or 'truth'.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -5275,7 +5275,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify baseline causal alignment.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_9650d4189cfcb832",
+                  "tda_id": "tda_1473cecaeb4c495c9bd0d28710e602b4",
                   "ai_rule_description": "Focus on 'user:' to 'ai:' interaction. BANNED LOGIC: Do not accept vague requests. STEP 1 (Syntactic Anchor): Find an explicit user instruction containing at least two specific constraints (e.g. format, tone, length). STEP 2 (Bounding Box): Scan the subsequent user response. EXTRACTION CONDITION: the user explicitly verifies those exact constraints (e.g. 'Constraint A met, Constraint B failed'). NEGATIVE CONDITION (RETURN NULL IF MET): verification is absent or generic.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5294,7 +5294,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify basic evaluation of alternatives.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_22859da57aad9c65",
+                  "tda_id": "tda_65541c8fa62649038b52553cad9eab8a",
                   "ai_rule_description": "Do not accept implicit alternatives. STEP 1 (Syntactic Anchor): Find a comparative marker (e.g. 'Option A vs Option B', 'Instead of', 'Compared to'). STEP 2 (Bounding Box): Scan the surrounding sentences. EXTRACTION CONDITION: the text explicitly names at least two distinct approaches before selecting one. NEGATIVE CONDITION (RETURN NULL IF MET): only one approach is discussed.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5313,7 +5313,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify objective matching of intent and result.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_a0d291c37c5bd92e",
+                  "tda_id": "tda_e407bc0297324a5da95c9091d08b88bc",
                   "ai_rule_description": "BANNED LOGIC: Do not use subjective words like 'good'. STEP 1 (Syntactic Anchor): Find a stated objective containing a measurable goal (e.g. 'Reduce word count', 'Include 3 examples'). STEP 2 (Bounding Box): Scan the result evaluation. EXTRACTION CONDITION: the text quotes the exact measurable goal and confirms it with a physical measurement or count. NEGATIVE CONDITION (RETURN NULL IF MET): the confirmation is purely qualitative.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5345,7 +5345,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify active falsification of hypotheses.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_713c6cd20146d1c2",
+                  "tda_id": "tda_45b5e5067e2743dbbc275ac472e4cc06",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find a falsification marker (e.g. 'Let\\'s try to break this', 'What EXTRACTION CONDITION: the opposite is true', 'Counter-argument'). STEP 2 (Bounding Box): Scan the paragraph. NEGATIVE CONDITION (RETURN NULL IF MET): the user explicitly introduces a scenario designed to make their own hypothesis fail. If no active stress-test is present.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5364,7 +5364,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify pre-generation friction.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_823c84f71d94ce84",
+                  "tda_id": "tda_049eb80a94164c519d5a322d55499707",
                   "ai_rule_description": "BANNED LOGIC: Do not accept post-generation complaints. STEP 1 (Syntactic Anchor): Find a friction marker prior to an action (e.g. 'This is difficult because', 'The risk here is', 'We must balance'). STEP 2 (Bounding Box): Scan the chronological flow. EXTRACTION CONDITION: the conflict or trade-off is articulated BEFORE the final output is generated. NEGATIVE CONDITION (RETURN NULL IF MET): the friction is only discussed afterwards.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5383,7 +5383,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify end-to-end causal traceability.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_80c038ed35173cb4",
+                  "tda_id": "tda_86ccd40936bb4dfc9a6d1f532568c05c",
                   "ai_rule_description": "BANNED LOGIC: Do not assume connections. STEP 1 (Syntactic Anchor): Find a multi-step sequence marker (e.g. 'Step 1.. Step 2.. Step 3', 'First.. Then.. Finally'). STEP 2 (Bounding Box): Scan the entire causal chain. EXTRACTION CONDITION: the text explicitly links at least three distinct sequential actions where each depends entirely on the previous one. NEGATIVE CONDITION (RETURN NULL IF MET): the chain is less than three steps or broken.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5415,7 +5415,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Extract physical architectural blueprints that include multi-variable constraints and explicit conflict terminology prior to the AI response.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_073aecbc29db5fc9",
+                  "tda_id": "tda_680dc2c703b3425fa0b0d943dbd5af16",
                   "ai_rule_description": "REQUIRED TARGET: If role prefixes ('user:', 'ai:') exist, the exact quote MUST be located in a 'user:' block. If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under 'ai:' prefix are REJECTED. STEP 1 (Syntactic Anchor): Find a structural blueprint or architectural parameter list (e.g., 'must contain', 'requirements are', 'architecture must'). STEP 2 (Bounding Box & Dual Condition): Scan the paragraph containing the anchor. If the paragraph contains the blueprint AND ALSO contains conflict or constraint vocabulary (e.g., 'conflict', 'hard part', 'trade-off', 'issue', 'balance', 'problem') -> ACCEPT. If it lacks constraint vocabulary -> REJECT. BANNED CONCEPTS: Do NOT evaluate user intent, psychological 'cognitive friction', or 'pre-meditated' status. Evaluate only physical token presence.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5434,7 +5434,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify that the user acted as an antagonistic prosecutor, actively testing counterfactuals.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_4956abf072945f43",
+                  "tda_id": "tda_9eff656db790437dafb7f75be5f64b0c",
                   "ai_rule_description": "Do not accept brief dismissals (e.g. 'Option B is bad'). STEP 1 (Syntactic Anchor): Find an explicit reference to an established alternative model or framework. STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the text dismantles the alternative model by citing specific data points or logical contradictions that render it invalid in this context. NEGATIVE CONDITION (RETURN NULL IF MET): the alternative is dismissed without evidence. <disambiguation>\n  REFRAMING EXCLUSION: Rhetorical reframing patterns where a concept is \n  repositioned from negative to positive framing ('not just X, but Y') are \n  STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as:\n  - counter-arguments (they do not argue AGAINST anything)\n  - dialectical syntheses (they do not reconcile two opposing theses)\n  - alternative model dismantling (they do not present a separate model)\n  - absolute conclusions (they are framing choices, not logical claims)\n  If a reframing pattern is the ONLY candidate match, return JSON null.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5453,7 +5453,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify mandatory source anchoring.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_bdbdc546677cc222",
+                  "tda_id": "tda_832ed2ffa597406e8606d2bbfda57e84",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find a formal citation, academic framework, or recognized methodology (e.g. 'Pearl\\'s do-calculus', 'Bayesian updating'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the causal reasoning is explicitly justified by applying the rules of this named external framework. NEGATIVE CONDITION (RETURN NULL IF MET): the framework is merely name-dropped without applying its rules.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5644,7 +5644,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify instances where the system provides an answer without any explanation of how it was reached.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_a383d38d1f47ce65",
+                  "tda_id": "tda_a935aa7d237849259142a2a8936bdec0",
                   "ai_rule_description": "EXTRACTION CONDITION: role prefixes exist, focus on the 'ai:' block. BANNED LOGIC: Do not evaluate 'opaque' subjectively. STEP 1 (Syntactic Anchor): Find a definitive conclusion or final answer (e.g. 'Therefore', 'The result is', 'In conclusion'). STEP 2 (Bounding Box): Scan the preceding text. NEGATIVE CONDITION (RETURN NULL IF MET): the conclusion is presented WITHOUT any preceding step-by-step mathematical, logical, or variable-level decomposition. If steps exist.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -5663,7 +5663,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify reliance on unstated rules or black-box heuristics.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_a66f2e5d339ffd4a",
+                  "tda_id": "tda_45885ef98e7d481084b4378d5b3f2f3f",
                   "ai_rule_description": "BANNED LOGIC: Do not accept appeals to authority. STEP 1 (Syntactic Anchor): Find heuristic or dismissive phrases (e.g. 'typically', 'usually', 'it is known', 'obviously'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the phrase is used to justify a decision WITHOUT citing a specific dataset, numerical weight, or verifiable rule. NEGATIVE CONDITION (RETURN NULL IF MET): a specific source is cited.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -5682,7 +5682,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify active refusal to provide transparency.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_fcd1cc0b3d45f94d",
+                  "tda_id": "tda_23968b1b6d644f7a96e8f3721817754e",
                   "ai_rule_description": "Do not evaluate 'refusal' based on tone. STEP 1 (Syntactic Anchor): Find evasive or black-box phrases (e.g. 'too complex to explain', 'beyond the scope', 'internal logic', 'black box'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the text explicitly states an inability or unwillingness to decompose a decision.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -5714,7 +5714,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify generic or templated explanations.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_4fb15d2eff06dbb4",
+                  "tda_id": "tda_41c6b31cee074d05b3024bb3437bedc1",
                   "ai_rule_description": "BANNED LOGIC: Do not judge 'vagueness' subjectively. STEP 1 (Syntactic Anchor): Find a justification sentence (e.g. 'This is because', 'Due to'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the justification DOES NOT contain any specific domain variables, numbers, or exact verbatim quotes from the input data (relying only on generic templates). NEGATIVE CONDITION (RETURN NULL IF MET): specific variables are present.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -5733,7 +5733,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify selective transparency (hiding failures).",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_9ab273ce743ac29e",
+                  "tda_id": "tda_2d59c195d8324fc0a22838ef53417686",
                   "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find a paragraph evaluating a successful outcome or positive achievement. STEP 2: Verify if the paragraph or immediate surrounding section completely omits any epistemic boundary or uncertainty markers. <ambiguity_protocol>ABSOLUTE ABSENCE ENFORCEMENT: You must prove that epistemic boundary markers are COMPLETELY absent from the surrounding section. Epistemic boundary markers include words/phrases like 'however', 'limitations', 'failed to', 'uncertainty', 'but', 'silti', 'kuitenkin', 'rajoitus', 'epävarmuus'. If you locate even a single such marker in the section, the absence is falsified, the negative condition is met, and you MUST conclude 'CONDITION NOT MET' and return JSON null.</ambiguity_protocol>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -5752,7 +5752,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify incomplete causal mapping.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_5b0fbdd9eeacdfeb",
+                  "tda_id": "tda_5113d195df8e4eeb9d901af1c00a754d",
                   "ai_rule_description": "Do not evaluate subjective 'importance'. STEP 1 (Syntactic Anchor): Find a stated decision outcome. STEP 2 (Bounding Box): Scan the explanation. EXTRACTION CONDITION: the text mentions a causal factor but DOES NOT explicitly assign a quantitative weight, rank, or specific value to it (e.g. 'Factor X was considered' vs 'Factor X had a 40% impact'). NEGATIVE CONDITION (RETURN NULL IF MET): weights/ranks exist.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -5784,7 +5784,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify baseline causal linkage.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_617dc4f9171286fa",
+                  "tda_id": "tda_18fd37ad3f1f4903a812c12346d0ca8e",
                   "ai_rule_description": "BANNED LOGIC: Do not assume connections. STEP 1 (Syntactic Anchor): Find a direct causal linkage statement (e.g. 'Because of X, Y happened', 'Input A resulted in B'). STEP 2 (Bounding Box): Scan the statement. EXTRACTION CONDITION: the exact input variable is explicitly named and connected to the specific output. NEGATIVE CONDITION (RETURN NULL IF MET): the connection is merely implied.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5803,7 +5803,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify explicit variable definition.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_77e63f17e745628a",
+                  "tda_id": "tda_44793a48813843f0b48364e890eeba1e",
                   "ai_rule_description": "Do not accept vague lists. STEP 1 (Syntactic Anchor): Find an explicit listing of factors or variables (e.g. 'Based on the following factors:', 'Variables considered:'). STEP 2 (Bounding Box): Scan the list. EXTRACTION CONDITION: at least two distinct variables or weights are physically defined in the text. NEGATIVE CONDITION (RETURN NULL IF MET): fewer than two are defined.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5822,7 +5822,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify acknowledgment of system limits.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_09d4ef9d436a49e3",
+                  "tda_id": "tda_19e1957773db4cfd820cb167ae1d8ec3",
                   "ai_rule_description": "BANNED LOGIC: Do not accept implicit modesty. STEP 1 (Syntactic Anchor): Find an explicit epistemic boundary marker (e.g. 'may not apply', 'exception', 'edge case', 'out of scope'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the text physically identifies a scenario where the model or logic fails or is limited. NEGATIVE CONDITION (RETURN NULL IF MET): absent.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5854,7 +5854,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify end-to-end causal documentation.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_6c5e6687e067e311",
+                  "tda_id": "tda_fcdde66df02c4edb9e090172c3e2b956",
                   "ai_rule_description": "BANNED LOGIC: Do not synthesize steps yourself. STEP 1 (Syntactic Anchor): Find sequential logic markers (e.g. 'First', 'Second', 'Finally', 'Step 1'). STEP 2 (Bounding Box): Scan the block. EXTRACTION CONDITION: a continuous, unbroken chain of at least three explicit logical steps is documented. NEGATIVE CONDITION (RETURN NULL IF MET): fewer than three steps.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5873,7 +5873,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify System 2 friction in the explanation.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_8b00e1f77f38317e",
+                  "tda_id": "tda_ae5dd6ac930544f4abd77d3438c59ddd",
                   "ai_rule_description": "Do not accept post-decision doubt. STEP 1 (Syntactic Anchor): Find an option-weighing or friction marker (e.g. 'Option A vs B', 'Trade-off', 'On the other hand'). STEP 2 (Bounding Box): Scan the chronological flow. EXTRACTION CONDITION: the alternatives are explicitly compared and evaluated BEFORE the final decision is stated. NEGATIVE CONDITION (RETURN NULL IF MET): evaluated after.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5892,7 +5892,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify proactive communication of certainty boundaries.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_4891c33b1cfa12bb",
+                  "tda_id": "tda_6f4f8fc663c241acad6da5bff5abe321",
                   "ai_rule_description": "BANNED LOGIC: Do not accept generic disclaimers. STEP 1 (Syntactic Anchor): Find an explicit warning or certainty boundary (e.g. 'Warning', 'Cannot guarantee', 'Strictly limited to'). STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the warning specifies EXACTLY what the model or logic cannot do using specific domain terms. NEGATIVE CONDITION (RETURN NULL IF MET): it is a generic 'AI can make mistakes' disclaimer.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5924,7 +5924,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify flawless dialectical synthesis.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_8b9199261d997ad2",
+                  "tda_id": "tda_6e904f7c369a410ab9988e49ca3213e0",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find a counterfactual scenario (e.g. 'What if', 'Alternatively', 'Had we used'). STEP 2 (Bounding Box): Scan the paragraph. EXTRACTION CONDITION: the scenario is systematically dismantled with specific data points or mathematical proofs to validate the primary conclusion. NEGATIVE CONDITION (RETURN NULL IF MET): it is merely mentioned without data-driven refutation.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5943,7 +5943,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify absolute System 2 friction.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_2d670bf31419dd73",
+                  "tda_id": "tda_a18475703cc541fda2a9af6757b86005",
                   "ai_rule_description": "BANNED LOGIC: Do not accept qualitative confidence (e.g. 'very sure'). STEP 1 (Syntactic Anchor): Find a quantitative confidence metric or strict certainty boundary (e.g. 'Confidence level', 'Margin of error', 'p-value', '95%'). STEP 2 (Bounding Box): Scan the logic block. EXTRACTION CONDITION: the text rigorously defines the EXACT quantitative or structural boundary of its own certainty. NEGATIVE CONDITION (RETURN NULL IF MET): missing quantitative boundaries.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -5962,7 +5962,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify mandatory source anchoring.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_876867d219c2ccf3",
+                  "tda_id": "tda_ac3b078498e048889ad3bc46b634c2ee",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find an external citation, mathematical theorem, or recognized academic framework. STEP 2 (Bounding Box): Scan the sentence. EXTRACTION CONDITION: the explanation explicitly tethers its logic to this external, verifiable source (e.g. applying a specific rule from the source). NEGATIVE CONDITION (RETURN NULL IF MET): the source is merely named without application.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -6516,7 +6516,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify explicitly absolute claims that bypass the WYSIATI limitation without empirical backing.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_b703c28111bfc8f5",
+                  "tda_id": "tda_92680081ffb244d8abbdc99120a3291f",
                   "ai_rule_description": "REQUIRED TARGET: Scan the target document. BANNED SOURCES: Reject matches from user inputs or 'user:' prefixes. STEP 1 (Syntactic Anchor): Find an absolute certainty marker (e.g., 'undeniably', '100%', 'proven fact'). STEP 2 (Bounding Box): Scan the paragraph containing the marker. STEP 3: EXTRACTION CONDITION: no empirical data is provided within that exact paragraph to justify the claim. NEGATIVE CONDITION (RETURN NULL IF MET): empirical data exists. Do not evaluate 'arrogance'.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -6535,7 +6535,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify declarations of exhaustive or complete knowledge.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_5d6ad535f76d0d14",
+                  "tda_id": "tda_003f932abb9642fc8c3147b04fac95c5",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find declarations of completeness (e.g., 'exhaustive', 'covers everything', 'the only possible'). STEP 2: Document the reasoning. STEP 3: EXTRACTION CONDITION: the text explicitly claims that there are zero unknown variables remaining.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -6554,7 +6554,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify active dismissal of alternative perspectives without data.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_03419e9a41f304ce",
+                  "tda_id": "tda_c2968c987f1a4ac5824f15653df3dc8f",
                   "ai_rule_description": "STEP 1 (Syntactic Anchor): Find dismissive markers towards alternatives (e.g., 'obviously false', 'nonsense', 'irrelevant'). STEP 2 (Bounding Box): Scan the paragraph. STEP 3: EXTRACTION CONDITION: the dismissal occurs without citing an external verifiable source or empirical data.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -6586,7 +6586,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify superficial performative hedging.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_2ad2b0c891be62f7",
+                  "tda_id": "tda_00245380f839424abfe3d923c1ae322f",
                   "ai_rule_description": "STEP 1: Find performative hedging markers (e.g., 'it may be that', 'some might say'). STEP 2: Check the sentence immediately following the hedge. EXTRACTION CONDITION: the following sentence immediately returns to an absolute certainty marker (e.g., 'but ultimately it is a proven fact'). NEGATIVE CONDITION (RETURN NULL IF MET): it maintains nuance.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -6605,7 +6605,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify immediate rationalization of constraints.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_3d3f1162d2ff1558",
+                  "tda_id": "tda_84b7784951c84e948c131c189261f564",
                   "ai_rule_description": "<syntactic_constraint> <anchors> <anchor>a limitation is</anchor> <anchor>rajoituksena on</anchor> <anchor>puutteena on</anchor> <anchor>heikkoutena on</anchor> </anchors> <transitions> <transition>however</transition> <transition>regardless</transition> <transition>kuitenkin</transition> <transition>silti</transition> </transitions> <extraction_condition> Verify if a limitation acknowledgment from the <anchors> block is immediately followed (within two sentences) by a dismissive logical transition word from the <transitions> block that rationalizes away the limitation. </extraction_condition> <ambiguity_protocol> If the limitation anchor from <anchors> is absent, or if the dismissive marker from <transitions> is missing, or if new empirical data is cited to solve the limitation, you MUST return JSON null. Do not rationalize or excuse missing evidence. </ambiguity_protocol> </syntactic_constraint>",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -6624,7 +6624,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify failure to explore named alternatives.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_c1a05b0ce5f88033",
+                  "tda_id": "tda_72d297df24fb45c3a85dc0b8248b9188",
                   "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find a named alternative model or theory. STEP 2 (Bounding Box): Scan the same paragraph. EXTRACTION CONDITION: the alternative is mentioned but the paragraph contains exactly 0 counter-arguments or comparative data points. Do not evaluate 'depth', simply count the data points.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
@@ -6656,7 +6656,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify baseline neutral tone without absolute claims.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_82e8242331deddab",
+                  "tda_id": "tda_cb7637a8eae04303ae9a3e8085b075b4",
                   "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find a factual claim. STEP 2: Check for qualifying terms (e.g., 'indicates', 'suggests', 'is correlated'). EXTRACTION CONDITION: present AND absolute markers (e.g., 'proves', 'always') are strictly absent in the same sentence.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -6675,7 +6675,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify purely passive informational delivery.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_aa54c6b40e9c4160",
+                  "tda_id": "tda_a946688e5f5549e8ac30584d1a02ad26",
                   "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find a paragraph containing statistical or factual reporting. STEP 2: Count the first-person pronouns ('I', 'we') or explicit self-reflective verbs ('assume', 'interpret'). EXTRACTION CONDITION: the count is exactly 0. NEGATIVE CONDITION (RETURN NULL IF MET): greater than 0. <ambiguity_protocol>ABSOLUTE ZERO ENFORCEMENT: The count of first-person references must be EXACTLY zero. You are strictly forbidden from ignoring possessive suffixes, bound morphemes, verb inflections, or clitics that grammatically denote a first-person perspective in the source document's target language (e.g., the Finnish suffix '-mme' in 'yrityksemme' or verb inflection '-n' in 'oletan'). If any such morpho-syntactic marker is found, the count is greater than zero, the negative condition is met, and you MUST conclude 'CONDITION NOT MET' and return JSON null.</ambiguity_protocol>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -6694,7 +6694,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Identify uncritical acceptance of data sources.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_9630753fb197bbf5",
+                  "tda_id": "tda_ca74247488fe49d49c70e96cf74a31a7",
                   "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find a citation or data source introduction (e.g., 'according to', 'data shows'). STEP 2 (Bounding Box): Scan the same paragraph. EXTRACTION CONDITION: terms like 'bias', 'margin of error', or 'limitation' are completely missing.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -6726,7 +6726,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify explicit recognition of methodological constraints.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_d204baf0bdf74ff7",
+                  "tda_id": "tda_932258446a91486ea2f4691b895668bf",
                   "ai_rule_description": "<syntactic_constraint> <anchors> <anchor>this does not apply to</anchor> <anchor>a key constraint is</anchor> <anchor>our analysis is limited to</anchor> <anchor>rajoituksena on</anchor> </anchors> <extraction_condition> Extract the exact quote containing the physical anchor word from the <anchors> block. </extraction_condition> <ambiguity_protocol> If the physical anchors from <anchors> are absent or vague in the text, you MUST return JSON null. Speculation is strictly banned. </ambiguity_protocol> </syntactic_constraint>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -6745,7 +6745,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify explicit boundary setting.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_2e9bcc09113cb0e3",
+                  "tda_id": "tda_f29c602444b446a3a6973aa9953a0b01",
                   "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find contextual qualifiers (e.g., 'in this specific context', 'under these conditions'). STEP 2: Extract the exact_quote containing the qualifier. EXTRACTION CONDITION: found.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -6764,7 +6764,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify engagement with alternative perspectives.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_b630abc4de19948b",
+                  "tda_id": "tda_a63362bd05964c318a222e8590d3a07f",
                   "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find a counter-hypothesis (e.g., 'an alternative explanation', 'critics might argue'). STEP 2 (Bounding Box): Scan the same paragraph for external data or citations used to address this counter-hypothesis. EXTRACTION CONDITION: found.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -6796,7 +6796,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify systemic self-scrutiny.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_04a1f24c02e6dba2",
+                  "tda_id": "tda_c642cbc768fa4f54a8718452d779c607",
                   "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Locate a section dedicated to methodology or limitations. STEP 2: Find at least three distinct listed data gaps or foundational assumptions. Document them step-by-step. EXTRACTION CONDITION: 3 or more exist. NEGATIVE CONDITION (RETURN NULL IF MET): less than 3.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -6815,7 +6815,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify thorough dismantling of counterarguments.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_cee9db6717cdafb7",
+                  "tda_id": "tda_fba3218b2c5443d89ad105d945f71255",
                   "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Locate a risk assessment or 'pre-mortem' structure. STEP 2: Find explicit dismantling of a risk using a verifiable external citation or empirical data. EXTRACTION CONDITION: both the risk and the empirical counter-data are found.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
@@ -6834,7 +6834,7 @@
               "ai_description": "CRITICAL DIRECTIVE: Verify mandatory source anchoring and visible cognitive friction.",
               "tda_assertions": [
                 {
-                  "tda_id": "tda_653b3f5497b9147e",
+                  "tda_id": "tda_a0cd26d7749c412d92aff072e34f512d",
                   "ai_rule_description": "REQUIRED TARGET: Scan the document. STEP 1: Find explicit external anchoring for uncertainty (e.g., 'due to X, as noted by [Source]'). STEP 2: Map the cognitive friction. EXTRACTION CONDITION: an external citation is used specifically to justify why a variable remains unknown.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",

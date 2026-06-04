@@ -19,7 +19,7 @@ async def get_all_organizations(current_user: CurrentUserDep, auth_service: Auth
     to the injected AuthService to enforce the Anemic Routers mandate.
     """
     try:
-        res: list[Organization] = await auth_service.list_organizations(current_user)  # type: ignore[attr-defined, no-any-return]
+        res: list[Organization] = await auth_service.list_organizations(current_user)  # type: ignore[attr-defined]
         return res
     except AppException as e:
         logger.error("AppException in get_all_organizations: %s", e.message, exc_info=True)
@@ -44,7 +44,7 @@ async def get_all_organizations(current_user: CurrentUserDep, auth_service: Auth
 async def get_organization(id: str, current_user: CurrentUserDep, auth_service: AuthServiceDep) -> Organization:
     """Retrieve a specific organization securely via SSOT Service Layer."""
     try:
-        res: Organization = await auth_service.get_organization(current_user, id)  # type: ignore[no-any-return]
+        res: Organization = await auth_service.get_organization(current_user, id)
         return res
     except AppException as e:
         logger.error("AppException in get_organization for id %s: %s", id, e.message, exc_info=True)
@@ -71,7 +71,7 @@ async def save_organization(
 ) -> Organization:
     """Create or update an organization securely via SSOT Service Layer."""
     try:
-        res: Organization = await auth_service.update_organization(current_user, id, data)  # type: ignore[attr-defined, no-any-return]
+        res: Organization = await auth_service.update_organization(current_user, id, data)
         return res
     except AppException as e:
         logger.error("AppException in save_organization for id %s: %s", id, e.message, exc_info=True)

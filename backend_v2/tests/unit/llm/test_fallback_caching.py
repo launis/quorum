@@ -1,9 +1,10 @@
 import asyncio
+from typing import Any
 from unittest.mock import AsyncMock
-import pytest
-import litellm
 
-from backend_v2.exceptions import ServiceUnavailableError
+import litellm
+import pytest
+
 from backend_v2.llm.provider import LiteLLMProvider
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.settings import get_settings
@@ -11,6 +12,7 @@ from backend_v2.settings import get_settings
 
 class MockRateLimitError(Exception):
     """Mock rate limit exception to trigger transient error recovery."""
+
     status_code = 429
 
 
@@ -19,10 +21,7 @@ async def test_lite_llm_provider_fallback_strips_cache_control(monkeypatch: pyte
     """Test that cache_control is stripped from system message when falling back to flash."""
     mock_sleep = AsyncMock()
     monkeypatch.setattr(asyncio, "sleep", mock_sleep)
-    monkeypatch.setattr(
-        "backend_v2.llm.adapters.base_adapter.apply_provider_pacing",
-        AsyncMock()
-    )
+    monkeypatch.setattr("backend_v2.llm.adapters.base_adapter.apply_provider_pacing", AsyncMock())
     monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.001)
 
     settings = get_settings()
@@ -47,16 +46,18 @@ async def test_lite_llm_provider_fallback_strips_cache_control(monkeypatch: pyte
     )
 
     # 1. Mock router.acompletion to fail 2 times
-    mock_router_acompletion = AsyncMock(side_effect=[
-        MockRateLimitError("First rate limit"),
-        MockRateLimitError("Second rate limit"),
-    ])
+    mock_router_acompletion = AsyncMock(
+        side_effect=[
+            MockRateLimitError("First rate limit"),
+            MockRateLimitError("Second rate limit"),
+        ]
+    )
     provider.router.acompletion = mock_router_acompletion
 
     # 2. Mock litellm.acompletion to succeed on the 3rd attempt (the fallback attempt)
     class MockMessage:
         content = "mocked successful response from flash"
-        tool_calls = []
+        tool_calls: list[object] = []
 
     class MockChoice:
         message = MockMessage()
@@ -64,9 +65,10 @@ async def test_lite_llm_provider_fallback_strips_cache_control(monkeypatch: pyte
 
     class MockLiteLLMResponse:
         choices = [MockChoice()]
-        model_extra = {}
+        model_extra: dict[str, object] = {}
         usage = None
-        def model_dump(self):
+
+        def model_dump(self) -> dict[str, object]:
             return {}
 
     mock_litellm_response = MockLiteLLMResponse()
@@ -74,17 +76,12 @@ async def test_lite_llm_provider_fallback_strips_cache_control(monkeypatch: pyte
     monkeypatch.setattr(litellm, "acompletion", mock_acompletion)
 
     # Call generate with cache_control structure in system messages
-    messages = [
+    messages: list[dict[str, Any]] = [
         {
             "role": "system",
-            "content": [
-                {"type": "text", "text": "System instructions here", "cache_control": {"type": "ephemeral"}}
-            ]
+            "content": [{"type": "text", "text": "System instructions here", "cache_control": {"type": "ephemeral"}}],
         },
-        {
-            "role": "user",
-            "content": "User prompt"
-        }
+        {"role": "user", "content": "User prompt"},
     ]
 
     response = await provider.generate(

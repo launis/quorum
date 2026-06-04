@@ -576,7 +576,7 @@ class ExecutionService:
                         message=msg,
                         status_code=500,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
+                    ) from None
 
             transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
             dto = await transformer.build_report_dto(
@@ -620,7 +620,7 @@ class ExecutionService:
                         message=msg,
                         status_code=500,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
+                    ) from None
 
             transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)
             dto = await transformer.build_report_dto(

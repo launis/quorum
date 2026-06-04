@@ -16,7 +16,7 @@ from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import ExecutionPersona
-from backend_v2.models.prompt import CompiledPrompt, PromptMessage
+from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
@@ -61,8 +61,8 @@ class LLMTaskExecutor:
             compiled_prompt = messages.model_copy(deep=True)
         else:
             # Minimal fallback if it is a list, adapting to CompiledPrompt
-            dynamic = [PromptMessage(role=m.get("role", "user"), content=m.get("content", "")) for m in messages]
-            compiled_prompt = CompiledPrompt(system_instruction="", dynamic_messages=dynamic)
+            dynamic = [{"role": m.get("role", "user"), "content": m.get("content", "")} for m in messages]
+            compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=dynamic)
             if validation_context:
                 compiled_prompt = compiled_prompt.model_copy(update={"metadata": validation_context})
 
@@ -169,18 +169,17 @@ class LLMTaskExecutor:
                         error_msg=error_msg,
                         is_logical_error=False,
                         is_eof=is_eof,
-                        raw_payload=raw_payload,
                     )
 
                     healing_content = f"\n\n<PREVIOUS_SCHEMA_ERROR>\n{correction_prompt}\n</PREVIOUS_SCHEMA_ERROR>"
 
-                    new_dynamic = [m.model_copy() for m in compiled_prompt.dynamic_messages]
+                    new_dynamic = [m.copy() for m in compiled_prompt.dynamic_messages]
                     if new_dynamic:
                         target_msg = new_dynamic[-1]
-                        original_content = target_msg.content if hasattr(target_msg, "content") else ""
-                        new_dynamic[-1] = target_msg.model_copy(update={"content": original_content + healing_content})
+                        original_content = target_msg.get("content", "")
+                        new_dynamic[-1]["content"] = original_content + healing_content
                     else:
-                        new_dynamic.append(PromptMessage(role="user", content=healing_content.strip()))
+                        new_dynamic.append({"role": "user", "content": healing_content.strip()})
                     compiled_prompt = compiled_prompt.model_copy(update={"dynamic_messages": new_dynamic})
 
                 except LogicalValidationError as e:
@@ -240,7 +239,7 @@ class LLMTaskExecutor:
                                     elif field_info.default is not PydanticUndefined:
                                         fallback_data[name] = field_info.default
                                     elif field_info.default_factory is not None:
-                                        fallback_data[name] = field_info.default_factory()
+                                        fallback_data[name] = field_info.default_factory()  # type: ignore[call-arg]
                                     else:
                                         fallback_data[name] = None
 
@@ -274,7 +273,6 @@ class LLMTaskExecutor:
                         error_msg=error_msg,
                         is_logical_error=True,
                         is_eof=False,
-                        raw_payload=failed_json,
                     )
 
                     coaching_notes = []
@@ -299,13 +297,13 @@ class LLMTaskExecutor:
                         f"</PREVIOUS_SCHEMA_ERROR>"
                     )
 
-                    new_dynamic = [m.model_copy() for m in compiled_prompt.dynamic_messages]
+                    new_dynamic = [m.copy() for m in compiled_prompt.dynamic_messages]
                     if new_dynamic:
                         target_msg = new_dynamic[-1]
-                        original_content = target_msg.content if hasattr(target_msg, "content") else ""
-                        new_dynamic[-1] = target_msg.model_copy(update={"content": original_content + healing_content})
+                        original_content = target_msg.get("content", "")
+                        new_dynamic[-1]["content"] = original_content + healing_content
                     else:
-                        new_dynamic.append(PromptMessage(role="user", content=healing_content.strip()))
+                        new_dynamic.append({"role": "user", "content": healing_content.strip()})
                     compiled_prompt = compiled_prompt.model_copy(update={"dynamic_messages": new_dynamic})
         finally:
             if client._config and client._config.caching_strategy:

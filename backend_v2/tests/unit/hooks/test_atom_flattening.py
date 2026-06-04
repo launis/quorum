@@ -43,7 +43,7 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> PromptB
                 ai_description=f"Desc {score}",
                 tda_assertions=[
                     TDAAssertion(
-                        tda_id=f"tda_{score:08x}{i:08x}",
+                        tda_id=f"tda_{score:016x}{i:016x}",
                         ai_rule_description=f"Atom {score}-{i}",
                         inverse_evidence=False,
                         aggregation_mode="EXISTS",

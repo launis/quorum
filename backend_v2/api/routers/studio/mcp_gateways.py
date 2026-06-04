@@ -3,7 +3,6 @@ import logging
 from fastapi import APIRouter
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
-from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.studio import MCPGatewayDeleteResponse
 from backend_v2.models.v2_core import SystemConfigMCPGateways
 
@@ -54,24 +53,8 @@ async def delete_mcp_gateway(
     gateway_id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep
 ) -> MCPGatewayDeleteResponse:
     """Delete an MCP Gateway configuration securely via SSOT Service Layer."""
-    try:
-        await studio_service.delete_system_config(current_user, gateway_id)
-        return MCPGatewayDeleteResponse(status="success", deleted_id=gateway_id)
-    except Exception as e:
-        if isinstance(e, AppException):
-            raise
-        logger.error(
-            "[MCPGatewaysRouter] %s: %s",
-            ErrorCodes.INTERNAL_SERVER_ERROR.name,
-            str(e),
-            exc_info=True,
-            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "target_id": gateway_id, "error": str(e)},
-        )
-        raise AppException(
-            message="Internal delete failure",
-            status_code=500,
-            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-        ) from e
+    await studio_service.delete_system_config(current_user, gateway_id)
+    return MCPGatewayDeleteResponse(status="success", deleted_id=gateway_id)
 
 
 @router.post("/{gateway_id}/clone", response_model=SystemConfigMCPGateways)

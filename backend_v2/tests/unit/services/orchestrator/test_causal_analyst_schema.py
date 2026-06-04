@@ -63,7 +63,7 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
                             "ai_description": "Massive claim AI description explaining strict details...",
                             "tda_assertions": [
                                 {
-                                    "tda_id": "tda_1111222233334444",
+                                    "tda_id": "tda_11112222333344441111222233334444",
                                     "ai_rule_description": "Assertion rule causal details...",
                                     "inverse_evidence": False,
                                     "aggregation_mode": "ALL_MUST_COMPLY",

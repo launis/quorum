@@ -720,3 +720,24 @@ class ExecutionService:
             custom_preface_md=custom_preface_md,
             local_time_str=local_time_str,
         )
+
+    async def get_workflow_ui_schema(self, workflow_id: str) -> dict[str, Any]:
+        """Retrieve the expected inputs schema for frontend dynamic rendering.
+
+        Enforces Fail-Fast if the workflow is missing or structurally invalid.
+
+        Args:
+            workflow_id: The opaque Stripe ID of the target workflow.
+
+        Returns:
+            The UI schema dictionary for dynamic form generation.
+
+        Raises:
+            ResourceNotFoundError: If the workflow does not exist.
+        """
+        workflow_record = await self.workflow_repo.get_workflow_by_id(workflow_id)
+        if not workflow_record:
+            raise ResourceNotFoundError(resource_type="workflow", resource_id=workflow_id)
+
+        workflow = Workflow.model_validate(workflow_record)
+        return dict(workflow.ui_schema)

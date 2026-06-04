@@ -6,7 +6,7 @@ Implements dynamic, append-only, and I18N-capable models according to V2 specs.
 from __future__ import annotations
 
 import logging
-import secrets
+import uuid
 from datetime import datetime, timezone
 from typing import Annotated, Any, Literal, cast
 
@@ -180,8 +180,8 @@ class TDAAssertion(V2CoreBase):
     """
 
     tda_id: str = Field(
-        default_factory=lambda: f"tda_{secrets.token_hex(8)}",
-        pattern=r"^tda_[a-f0-9]{16}$",
+        default_factory=lambda: f"tda_{uuid.uuid4().hex}",
+        pattern=r"^tda_[a-f0-9]{32}$",
         description="Opaque Stripe ID for this assertion.",
     )
     ai_rule_description: str = Field(description="Strict enforcement rule.")

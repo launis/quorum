@@ -176,9 +176,13 @@ class UsageService:
                             hit_rate = total_cached / total_all_tokens
                             if hit_rate < 0.80:
                                 hit_rate_pct = int(hit_rate * 100)
-                                # Rule 66: Standard f-strings are permitted for internal logging and non-injection-sensitive formatting
+                                # Rule 66: Standard f-strings are permitted for internal
+                                # logging and non-injection-sensitive formatting
                                 logger.error(
-                                    f"PROMPT_CACHING_DRIFT_ALERT: Cache hit rate has degraded to {hit_rate_pct}% for workflow Y. Investigate prompt mutations immediately."
+                                    "PROMPT_CACHING_DRIFT_ALERT: Cache hit rate has degraded "
+                                    "to %d%% for workflow Y. Investigate prompt mutations "
+                                    "immediately.",
+                                    hit_rate_pct,
                                 )
 
             return record

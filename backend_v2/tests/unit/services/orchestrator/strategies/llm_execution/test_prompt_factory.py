@@ -42,13 +42,13 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
                                 "ai_description": "Claim 1 Desc",
                                 "tda_assertions": [
                                     {
-                                        "tda_id": "tda_1111111111111111",
+                                        "tda_id": "tda_11111111111111111111111111111111",
                                         "ai_rule_description": "Atom 1",
                                         "inverse_evidence": False,
                                         "aggregation_mode": "EXISTS",
                                     },
                                     {
-                                        "tda_id": "tda_2222222222222222",
+                                        "tda_id": "tda_22222222222222222222222222222222",
                                         "ai_rule_description": "Atom 2",
                                         "inverse_evidence": False,
                                         "aggregation_mode": "EXISTS",

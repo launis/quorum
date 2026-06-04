@@ -3,27 +3,25 @@ from pydantic import ValidationError
 
 from backend_v2.models.domain.xai import (
     CitationExtension,
-    XAIOutputDTO,
     ComparisonDataDTO,
+    XAIOutputDTO,
 )
 from backend_v2.models.dtos.report import MatrixObservabilityDTO
-from backend_v2.models.enums import XaiExtensionType, ReferenceTitle
+from backend_v2.models.enums import ReferenceTitle, XaiExtensionType
 
-def test_matrix_observability_dto_strictness():
+
+def test_matrix_observability_dto_strictness() -> None:
     """Test that MatrixObservabilityDTO forbids extra fields."""
     dto = MatrixObservabilityDTO(true_atoms_count=5, false_atoms_count=2)
     assert dto.true_atoms_count == 5
 
     with pytest.raises(ValidationError):
-        MatrixObservabilityDTO(true_atoms_count=5, false_atoms_count=2, extra_field="should fail")
+        MatrixObservabilityDTO(true_atoms_count=5, false_atoms_count=2, extra_field="should fail")  # type: ignore[call-arg]
 
-def test_xai_output_dto_polymorphic_extensions():
+
+def test_xai_output_dto_polymorphic_extensions() -> None:
     """Test the discriminated union in XAIOutputDTO."""
-    ext = CitationExtension(
-        source_id="src_1",
-        snippet="Important quote",
-        url="http://example.com"
-    )
+    ext = CitationExtension(source_id="src_1", snippet="Important quote", url="http://example.com")
     dto = XAIOutputDTO(
         thought_process="Mock thought process",
         conclusion="Mock conclusion",
@@ -43,7 +41,8 @@ def test_xai_output_dto_polymorphic_extensions():
     assert len(dto.output_extensions) == 1
     assert dto.output_extensions[0].extension_type == XaiExtensionType.CITATION
 
-def test_reference_title_enum():
+
+def test_reference_title_enum() -> None:
     """Test the newly added ReferenceTitle Enum."""
-    assert ReferenceTitle.WEB_SEARCH == "REF_WEB_SEARCH"
-    assert ReferenceTitle.INTERNAL_DOCUMENT == "REF_INTERNAL_DOCUMENT"
+    assert ReferenceTitle.WEB_SEARCH.value == "REF_WEB_SEARCH"
+    assert ReferenceTitle.INTERNAL_DOCUMENT.value == "REF_INTERNAL_DOCUMENT"

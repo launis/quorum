@@ -4,10 +4,8 @@ from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Query, Request, status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
-from pydantic import ValidationError
 
 from backend_v2.api.dependencies import ArqPoolDep, CurrentUserDep, DocumentExtractionServiceDep, ExecutionServiceDep
-from backend_v2.exceptions import AppException
 from backend_v2.models.v2_core import ExecutionCreate, ExecutionRecord, ExecutionStatus, JobAcceptedDTO
 
 logger = logging.getLogger(__name__)
@@ -33,29 +31,13 @@ async def start_execution(
     doc_service: DocumentExtractionServiceDep,
 ) -> ExecutionRecord:
     """Start an asynchronous workflow execution securely via SSOT."""
-    try:
-        data = await request.json()
-    except Exception as e:
-        logger.error("[ExecutionRouter] Failed to parse JSON payload", exc_info=True)
-        raise AppException(
-            message="Invalid JSON payload",
-            status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": "VALIDATION_FAILED"},
-        ) from e
+    data = await request.json()
 
     # EAGER EXTRACTION MUST HAPPEN HERE BEFORE PYDANTIC VALIDATION
     if isinstance(data, dict) and "raw_inputs" in data:
         await doc_service.process_raw_inputs(data["raw_inputs"])
 
-    try:
-        payload = ExecutionCreate.model_validate(data)
-    except ValidationError as e:
-        logger.error("[ExecutionRouter] Payload validation failed", exc_info=True)
-        raise AppException(
-            message=f"Payload validation failed: {str(e)}",
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            details={"error_code": "VALIDATION_FAILED", "errors": e.errors()},
-        ) from e
+    payload = ExecutionCreate.model_validate(data)
 
     return await execution_service.start_execution(initiator=current_user, payload=payload, arq_pool=arq_pool)
 

@@ -60,7 +60,7 @@ class LogicNodeStrategy(NodeStrategy):
             if getattr(d, "step_id", None) == "raw_inputs"
         }
 
-        current_state: dict[str, Any] = {
+        _current_state: dict[str, Any] = {
             "steps": projector.snapshot,
             "inputs": inputs_payload,
             "raw_inputs": raw_inputs_payload,

@@ -152,7 +152,7 @@ def test_route_and_prune_with_allowed_extensions() -> None:
     assert exc_info.value.details["extension"] == str(XaiExtensionType.COACHING)
 
 
-def test_route_and_prune_success():
+def test_route_and_prune_success() -> None:
     """Test successful pruning of a trace event."""
     trace_event = {
         "normalized_score": 85.0,
@@ -162,93 +162,87 @@ def test_route_and_prune_success():
         "extensions": {
             XaiExtensionType.CITATION: "Source A",
             XaiExtensionType.COACHING: "Improve here.",
-            "falsification": "No issues found."
-        }
+            "falsification": "No issues found.",
+        },
     }
-    
-    output_profile = OutputProfileConfig(
-        visible_extensions=[XaiExtensionType.CITATION, XaiExtensionType.FALSIFICATION]
-    )
-    
+
+    output_profile = OutputProfileConfig(visible_extensions=[XaiExtensionType.CITATION, XaiExtensionType.FALSIFICATION])
+
     result = ContextRouter.route_and_prune(trace_event, output_profile)
-    
+
     assert result.normalized_score == 85.0
     assert result.level_breakdown == {"4.0": {"hits": 1, "total": 1}}
     assert result.justification == "Good logic."
     assert result.evaluated_atoms == {"atom_1": True, "atom_2": False}
-    
+
     # Extensions should ONLY contain the requested ones, and handle Enum vs string keys
     assert len(result.extensions) == 2
     assert result.extensions[XaiExtensionType.CITATION] == "Source A"
     assert result.extensions[XaiExtensionType.FALSIFICATION] == "No issues found."
 
 
-def test_route_and_prune_missing_profile():
+def test_route_and_prune_missing_profile() -> None:
     """Test that all extensions are returned when output profile is missing."""
     trace_event = {
         "normalized_score": 50.0,
         "level_breakdown": {"2.0": {"hits": 1, "total": 1}},
         "justification": "Test",
         "evaluated_atoms": {},
-        "extensions": {"falsification": "Some falsification"}
+        "extensions": {"falsification": "Some falsification"},
     }
-    
+
     result = ContextRouter.route_and_prune(trace_event, None)
-    assert result.extensions["falsification"] == "Some falsification"
+    assert result.extensions[XaiExtensionType.FALSIFICATION] == "Some falsification"
 
 
-def test_route_and_prune_missing_base_field():
+def test_route_and_prune_missing_base_field() -> None:
     """Test that ConfigurationError is raised when a base field is missing."""
     trace_event = {
         "normalized_score": 50.0,
         "level_breakdown": {"2.0": {"hits": 1, "total": 1}},
         "justification": "Test",
         # evaluated_atoms is missing
-        "extensions": {}
+        "extensions": {},
     }
-    
+
     output_profile = OutputProfileConfig(visible_extensions=[])
-    
+
     with pytest.raises(ConfigurationError) as exc_info:
         ContextRouter.route_and_prune(trace_event, output_profile)
-    
+
     assert "Missing required base field" in exc_info.value.message
 
 
-def test_route_and_prune_missing_extension():
+def test_route_and_prune_missing_extension() -> None:
     """Test that MissingXaiExtensionError is raised when a required extension is missing."""
     trace_event = {
         "normalized_score": 50.0,
         "level_breakdown": {"2.0": {"hits": 1, "total": 1}},
         "justification": "Test",
         "evaluated_atoms": {},
-        "extensions": {
-            XaiExtensionType.CITATION: "Source A"
-        }
+        "extensions": {XaiExtensionType.CITATION: "Source A"},
     }
-    
+
     # We require COACHING, but it's not in the trace
-    output_profile = OutputProfileConfig(
-        visible_extensions=[XaiExtensionType.CITATION, XaiExtensionType.COACHING]
-    )
-    
+    output_profile = OutputProfileConfig(visible_extensions=[XaiExtensionType.CITATION, XaiExtensionType.COACHING])
+
     with pytest.raises(MissingXaiExtensionError) as exc_info:
         ContextRouter.route_and_prune(trace_event, output_profile)
-    
+
     assert exc_info.value.details["extension"] == str(XaiExtensionType.COACHING)
 
 
-def test_validate_routing_mode_success():
+def test_validate_routing_mode_success() -> None:
     """Test successful validation of routing mode."""
     mapping_config = {"routing_mode": "strict_booleans_only", "other_key": "value"}
     result = ContextRouter.validate_routing_mode("$steps.step_A", mapping_config)
     assert result == "strict_booleans_only"
 
 
-def test_validate_routing_mode_missing():
+def test_validate_routing_mode_missing() -> None:
     """Test that MissingRoutingModeError is raised when routing mode is missing."""
     mapping_config = {"other_key": "value"}
     with pytest.raises(MissingRoutingModeError) as exc_info:
         ContextRouter.validate_routing_mode("$steps.step_A", mapping_config)
-    
+
     assert exc_info.value.details["mapping_path"] == "$steps.step_A"

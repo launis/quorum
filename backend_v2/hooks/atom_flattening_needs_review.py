@@ -8,14 +8,12 @@ LLM context fatigue and JSON token explosion.
 
 import logging
 import random
-from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.v2_core import PromptBlock, Step
-from backend_v2.utils.hashing import generate_atom_hash
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +113,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
 
     # 3. Retrieve and filter blocks
     all_blocks_raw = await deps.comp_repo.get_all_prompt_blocks()
-    all_blocks = [cast(dict[str, Any], rb) for rb in all_blocks_raw]
+    all_blocks = all_blocks_raw
 
     unique_atoms: dict[str, str] = {}
 
@@ -123,12 +121,11 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
         try:
             block = PromptBlock.model_validate(raw_block)
             if block.id in prompt_block_ids and block.category_id == "matrix":
-                if block.data and isinstance(block.data, list):
-                    for atom in block.data:
-                        if isinstance(atom, dict) and "text" in atom:
-                            text = str(atom["text"])
-                            atom_id = generate_atom_hash(block.id, text)
-                            unique_atoms[atom_id] = text
+                if block.scales:
+                    for scale in block.scales:
+                        for claim in scale.claims:
+                            for assertion in claim.tda_assertions:
+                                unique_atoms[assertion.tda_id] = assertion.ai_rule_description
         except Exception as e:
             logger.warning("Failed to parse prompt block %s: %s", raw_block.get("id"), e, exc_info=True)
             continue

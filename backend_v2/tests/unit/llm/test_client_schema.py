@@ -144,8 +144,8 @@ async def test_structured_json_injects_schema_instructions() -> None:
         passed_schema = kwargs.get("response_schema")
         assert passed_schema == {"type": "json_object"}
 
-        # Verify that the schema instruction is injected into the system prompt
-        system_content = passed_messages[0]["content"]
-        assert "[SYSTEM: STRICT JSON STRUCTURE MANDATE]" in system_content
-        assert "exact_quote" in system_content
-        assert "nested_list" in system_content
+        # Verify that the schema instruction is injected into the user prompt
+        user_content = passed_messages[1]["content"]
+        assert "[SYSTEM: STRICT JSON STRUCTURE MANDATE]" in user_content
+        assert "exact_quote" in user_content
+        assert "nested_list" in user_content

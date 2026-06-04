@@ -26,6 +26,7 @@ def test_lazy_llm_unauthorized_override_failed() -> None:
     item = AtomEvaluationItemDTO(
         atom_id="test_atom_unauthorized",
         contextual_override=True,
+        structural_location="page 3, paragraph 2",
         semantic_reasoning=(
             "This is a long semantic explanation referencing page 3 to satisfy "
             "the strict spatial referencing and length constraints."
@@ -53,6 +54,7 @@ def test_lazy_llm_spatial_anchoring_rules() -> None:
         AtomEvaluationItemDTO(
             atom_id="atom_short_reasoning",
             contextual_override=True,
+            structural_location="page 12",
             semantic_reasoning="Too short page 12.",
         )
     assert "at least 50 characters" in str(exc.value)
@@ -62,6 +64,7 @@ def test_lazy_llm_spatial_anchoring_rules() -> None:
         AtomEvaluationItemDTO(
             atom_id="atom_no_anchor",
             contextual_override=True,
+            structural_location="N/A",
             semantic_reasoning=(
                 "This is a very long semantic explanation that is definitely over fifty characters "
                 "long, but completely lacks any spatial referencing or structural location anchors."
@@ -81,7 +84,7 @@ def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
     # 1. Setup chronological rule description
     rule_desc = "Scan document. Ensure no major product failure occurs before phase 2."
     assertion = TDAAssertion(
-        tda_id="tda_e6f8a9b0c2d3e4f5",
+        tda_id="tda_e6f8a9b0c2d3e4f5e6f8a9b0c2d3e4f5",
         ai_rule_description=rule_desc,
         inverse_evidence=True,  # Negative state / poison claim
         aggregation_mode="EXISTS",
@@ -131,6 +134,8 @@ def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
     evaluation = AtomEvaluationItemDTO(
         atom_id=assertion.tda_id,
         contextual_override=False,
+        structural_location="N/A",
+        semantic_reasoning="No evidence found for failure before phase 2 in the sliced context.",
         exact_quote="None",  # Blacklisted sentinel meaning no quote found
     )
     assert evaluation.evidence_found is False
@@ -169,6 +174,7 @@ def test_zero_variance_shannon_entropy_and_kappa_benchmark() -> None:
         item = AtomEvaluationItemDTO(
             atom_id="stress_test_atom",
             contextual_override=True,
+            structural_location=page_num,
             semantic_reasoning=reasoning_text,
         )
 

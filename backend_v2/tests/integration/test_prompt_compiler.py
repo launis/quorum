@@ -28,13 +28,13 @@ def test_inverse_logic_injected() -> None:
                         "ai_description": "Legacy desc",
                         "tda_assertions": [
                             {
-                                "tda_id": "tda_1111111111111111",
+                                "tda_id": "tda_11111111111111111111111111111111",
                                 "ai_rule_description": "Standard rule",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             },
                             {
-                                "tda_id": "tda_2222222222222222",
+                                "tda_id": "tda_22222222222222222222222222222222",
                                 "ai_rule_description": "Inverse rule",
                                 "inverse_evidence": True,
                                 "aggregation_mode": "EXISTS",

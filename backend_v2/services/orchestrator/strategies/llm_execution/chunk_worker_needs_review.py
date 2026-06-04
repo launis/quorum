@@ -290,13 +290,13 @@ class ChunkWorker:
                                             )
                                         )
                                         tasks_list.append(t_task)
-                            except* ExceptionGroup:
+                            except* Exception:
                                 logger.error("Parallel execution failed in TaskGroup", exc_info=True)
                                 raise AppException(
                                     message="Parallel LLM operations failed",
                                     status_code=500,
                                     details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.value},
-                                )
+                                ) from None
                             for t in tasks_list:
                                 res, usg = t.result()
                                 results_list.append(res.model_dump(mode="json"))

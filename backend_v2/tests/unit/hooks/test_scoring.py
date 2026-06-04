@@ -11,7 +11,7 @@ from backend_v2.models.enums import XaiExtensionType
 
 
 def generate_atom_hash(text: str, mandate: Any = None) -> str:
-    return f"tda_{hashlib.md5(text.encode()).hexdigest()[:16]}"
+    return f"tda_{hashlib.md5(text.encode()).hexdigest()[:32]}"
 
 
 def _build_valid_scale(score: Any, micro_atoms: list[str] | None = None) -> dict[str, Any]:
@@ -23,7 +23,7 @@ def _build_valid_scale(score: Any, micro_atoms: list[str] | None = None) -> dict
                 "ai_description": "Test Claim Desc",
                 "tda_assertions": [
                     {
-                        "tda_id": f"tda_{hashlib.md5(atom.encode()).hexdigest()[:16]}",
+                        "tda_id": f"tda_{hashlib.md5(atom.encode()).hexdigest()[:32]}",
                         "ai_rule_description": atom,
                         "inverse_evidence": False,
                         "aggregation_mode": "EXISTS",
@@ -375,6 +375,8 @@ async def test_matrix_scoring_hook_ignores_instructions() -> None:
                     "atom_id": atom_hash,
                     "status": "PASS",
                     "semantic_reasoning": "",
+                    "contextual_override": False,
+                    "structural_location": "",
                 }
             ],
             "extracted_facts": {},
@@ -409,6 +411,8 @@ async def test_matrix_scoring_hook_pass_all() -> None:
                 "atom_id": atom_hash,
                 "status": "PASS",
                 "semantic_reasoning": "Hyväksytty",
+                "contextual_override": False,
+                "structural_location": "",
             }
         )
 
@@ -454,6 +458,8 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
                 "atom_id": atom_hash,
                 "status": "PASS" if is_hit else "FAIL",
                 "semantic_reasoning": "",
+                "contextual_override": False,
+                "structural_location": "",
             }
         )
 
@@ -502,6 +508,8 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
                 "atom_id": atom_hash,
                 "status": "PASS" if is_hit else "FAIL",
                 "semantic_reasoning": reasoning,
+                "contextual_override": False,
+                "structural_location": "",
             }
         )
 
@@ -593,6 +601,8 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "atom_id": generate_atom_hash("L1_A1", mandate),
             "status": "PASS",
             "semantic_reasoning": "Oikein",
+            "contextual_override": False,
+            "structural_location": "",
         }
     )
     evaluations.append(
@@ -600,6 +610,8 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "atom_id": generate_atom_hash("L1_A2", mandate),
             "status": "PASS",
             "semantic_reasoning": "Oikein",
+            "contextual_override": False,
+            "structural_location": "",
         }
     )
 
@@ -609,6 +621,8 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "atom_id": generate_atom_hash("L2_A1", mandate),
             "status": "PASS",
             "semantic_reasoning": "Oikein",
+            "contextual_override": False,
+            "structural_location": "",
         }
     )
     evaluations.append(
@@ -616,6 +630,8 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "atom_id": generate_atom_hash("L2_A2", mandate),
             "status": "PASS",
             "semantic_reasoning": "Oikein",
+            "contextual_override": False,
+            "structural_location": "",
         }
     )
 
@@ -625,6 +641,8 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "atom_id": generate_atom_hash("L3_A1", mandate),
             "status": "PASS",
             "semantic_reasoning": "Oikein",
+            "contextual_override": False,
+            "structural_location": "",
         }
     )
     evaluations.append(
@@ -632,6 +650,8 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "atom_id": generate_atom_hash("L3_A2", mandate),
             "status": "FAIL",
             "semantic_reasoning": "Aihetodistetta EI esitetty.",
+            "contextual_override": False,
+            "structural_location": "",
         }
     )
 
@@ -641,6 +661,8 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "atom_id": generate_atom_hash("L4_A1", mandate),
             "status": "PASS",
             "semantic_reasoning": "Hieno oivallus!",
+            "contextual_override": False,
+            "structural_location": "",
         }
     )
 
@@ -650,6 +672,8 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "atom_id": generate_atom_hash("L5_A1", mandate),
             "status": "FAIL",
             "semantic_reasoning": "Ei yltänyt tälle tasolle.",
+            "contextual_override": False,
+            "structural_location": "",
         }
     )
 
@@ -693,6 +717,8 @@ async def test_matrix_scoring_hook_missing_status_key() -> None:
         {
             "atom_id": generate_atom_hash("atom_1", mandate),
             "semantic_reasoning": "Valid analytical statement",
+            "contextual_override": False,
+            "structural_location": "",
         }
     )
 
@@ -729,4 +755,3 @@ async def test_matrix_scoring_hook_missing_status_key() -> None:
     assert result.state_delta is not None
     # Verify it processed atom_1 and not the DLQ chunk
     assert "pb_1234567890123456" in result.state_delta
-

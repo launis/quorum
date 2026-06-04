@@ -76,7 +76,7 @@ async def test_run_structured_task_self_healing_success(mock_repository: MagicMo
     mock_provider.generate.side_effect = [bad_response, good_response]
 
     with patch("backend_v2.llm.provider.LLMFactory.create_provider", return_value=mock_provider):
-        messages = [{"role": "user", "content": "Hello"}]
+        messages = [{"role": "user", "content": "Hello world this is a properly sized payload for testing"}]
 
         result, usage = await executor.execute_structured_task(
             client=client,
@@ -125,7 +125,9 @@ async def test_run_structured_task_self_healing_exhaustion(mock_repository: Magi
             # Limit retries to 2 for exhaust test
             await executor.execute_structured_task(
                 client=client,
-                messages=[{"role": "user", "content": "Execute!"}],
+                messages=[
+                    {"role": "user", "content": "Execute! This is a long enough payload to pass the fail-fast check"}
+                ],
                 response_model=DummyModel,
                 max_schema_retries=1,
                 max_logical_retries=0,

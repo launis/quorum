@@ -27,9 +27,17 @@ class SecurityPayloadDTO(RootModel[dict[str, Any]]):
         strict: bool | None = None,
         from_attributes: bool | None = None,
         context: Any | None = None,
+        extra: Any | None = None,
+        by_alias: bool | None = None,
+        by_name: bool | None = None,
     ) -> SecurityPayloadDTO:
         """Validate an object against the model."""
-        return super().model_validate(obj, strict=strict, from_attributes=from_attributes, context=context)
+        return super().model_validate(
+            obj,
+            strict=strict,
+            from_attributes=from_attributes,
+            context=context,
+        )
 
 
 class SanitizationResultDTO(BaseModel):

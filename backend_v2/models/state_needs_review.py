@@ -53,7 +53,10 @@ class ReasoningTrace(V2CoreBase):
     thought_process: str = Field(
         min_length=1,
         pattern=r"\S",
-        description="The raw chain-of-thought or reasoning trace. MUST be written strictly in English to ensure cross-run determinism.",
+        description=(
+            "The raw chain-of-thought or reasoning trace. "
+            "MUST be written strictly in English to ensure cross-run determinism."
+        ),
     )
     conclusion: str = Field(
         min_length=1,

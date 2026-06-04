@@ -9,16 +9,16 @@ def test_tda_assertion_validation() -> None:
     """Strict test verifying the inverse_evidence mathematical logic constraint."""
     # Should pass
     valid = TDAAssertion(
-        tda_id="tda_1234567812345678",
+        tda_id="tda_12345678123456781234567812345678",
         ai_rule_description="Test rule",
         inverse_evidence=False,
         aggregation_mode="ALL_MUST_COMPLY",
     )
-    assert valid.tda_id == "tda_1234567812345678"
+    assert valid.tda_id == "tda_12345678123456781234567812345678"
 
     # Should pass
     valid_inverse = TDAAssertion(
-        tda_id="tda_8765432187654321",
+        tda_id="tda_87654321876543218765432187654321",
         ai_rule_description="Poison test",
         inverse_evidence=True,
         aggregation_mode="EXISTS",
@@ -28,7 +28,7 @@ def test_tda_assertion_validation() -> None:
     # Should fail-fast
     with pytest.raises(ValidationError) as exc:
         TDAAssertion(
-            tda_id="tda_abcdef1234567890",
+            tda_id="tda_abcdef1234567890abcdef1234567890",
             ai_rule_description="Invalid poison test",
             inverse_evidence=True,
             aggregation_mode="ALL_MUST_COMPLY",
@@ -47,7 +47,7 @@ async def test_atomizer_deterministic_mapping() -> None:
     )
 
     tda2 = TDAAssertion(
-        tda_id="tda_1234123412341234",  # Intentionally preset to test persistence
+        tda_id="tda_12341234123412341234123412341234",  # Intentionally preset to test persistence
         ai_rule_description="Rule 2",
         inverse_evidence=True,
         aggregation_mode="EXISTS",
@@ -92,4 +92,4 @@ async def test_atomizer_deterministic_mapping() -> None:
     assert len(updated_claim.tda_assertions[0].tda_id) >= 12
 
     # tda2 should retain its preset ID
-    assert updated_claim.tda_assertions[1].tda_id == "tda_1234123412341234"
+    assert updated_claim.tda_assertions[1].tda_id == "tda_12341234123412341234123412341234"

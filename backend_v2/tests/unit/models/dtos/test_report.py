@@ -110,4 +110,3 @@ def test_trace_matrix_payload_accepts_allowed_extensions() -> None:
     dto = TraceMatrixPayloadDTO.model_validate(payload)
     assert dto.raw_score == 4.5
     assert dto.allowed_extensions == ["falsification", "coaching", "remediation_steps"]
-

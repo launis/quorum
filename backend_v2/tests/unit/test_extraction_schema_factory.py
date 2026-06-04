@@ -62,12 +62,20 @@ def test_basetdaextraction_override_logic() -> None:
     payload_invalid = {
         "localized_anchors_found": ["anchor 1"],
         "semantic_reasoning": "Reasoning logic",
-        "exact_quote": "quote",
-        "contextual_override": True,
+        "exact_quote": "[CONTEXTUAL_OVERRIDE_APPLIED]",
+        "contextual_override": False,
     }
 
     with pytest.raises(ValidationError) as exc:
         BaseTDAExtraction.model_validate(payload_invalid)
-    assert "exact_quote MUST be empty, null, or '[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is True" in str(
-        exc.value
-    )
+    assert "exact_quote cannot be '[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False" in str(exc.value)
+
+    # Test silent overwrite logic
+    payload_silent = {
+        "localized_anchors_found": ["anchor 1"],
+        "semantic_reasoning": "Reasoning logic",
+        "exact_quote": "quote",
+        "contextual_override": True,
+    }
+    instance2 = BaseTDAExtraction.model_validate(payload_silent)
+    assert instance2.exact_quote is None

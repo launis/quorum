@@ -521,7 +521,7 @@ class ChunkWorker:
 
                 return chunk_final, chunk_usage, chunk_traces
 
-            except (LLMSchemaValidationError, AppException) as e:
+            except (LLMSchemaValidationError, AppException, ExceptionGroup) as e:
                 logger.error(
                     f"[ChunkWorker] Caught error: {e}. Routing to DLQ.",
                     extra={"error_code": "DLQ_ROUTING"},

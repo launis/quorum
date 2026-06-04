@@ -6,12 +6,8 @@ localized_anchors_found items from Finnish Sitra data, but Pydantic
 schema enforced max_length=5.
 """
 
-import pytest
-from pydantic import ValidationError
-
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.services.orchestrator.prompt_compiler import StrippedBaseTDAExtraction
-
 
 # The exact payload from the production crash log (L530-532)
 SITRA_ANCHORS_7 = [

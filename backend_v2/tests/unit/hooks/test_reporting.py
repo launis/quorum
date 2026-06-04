@@ -167,7 +167,7 @@ def test_reporting_hook_success_with_valid_schema() -> None:
     assert result.state_delta is not None
     assert "report_context" in result.state_delta
     ctx = result.state_delta["report_context"]
-    assert ctx["summary"] == "All looks great."
-    assert ctx["critical_findings"] == ["Finding A", "Finding B"]
-    assert "dim1" in ctx["scores"]
-    assert ctx["scores"]["dim1"]["score"] == 4.5
+    assert ctx.summary == "All looks great."
+    assert ctx.critical_findings == ["Finding A", "Finding B"]
+    assert "dim1" in ctx.scores
+    assert ctx.scores["dim1"].score == 4.5

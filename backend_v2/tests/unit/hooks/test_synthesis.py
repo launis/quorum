@@ -745,7 +745,12 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
                             }
                         },
                     },  # noqa: E501
-                    {"step_id": "stp_2222222222222222", "block_id": "b2", "data_type": "text", "payload": {"result": 1337}},
+                    {
+                        "step_id": "stp_2222222222222222",
+                        "block_id": "b2",
+                        "data_type": "text",
+                        "payload": {"result": 1337},
+                    },
                     {
                         "step_id": "stp_3333333333333333",
                         "block_id": "b3",

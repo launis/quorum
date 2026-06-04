@@ -21,7 +21,7 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
     async def get_workflow_definition(self, workflow_id: str) -> Workflow | None:
         """Retrieve workflow definition from database or local fallback storage."""
         raw_data = await self.driver.get("workflows", workflow_id)
-        data = cast(dict[str, Any] | None, raw_data)
+        data = raw_data
 
         if not data:
             file_path = f"data/workflows/{workflow_id}.json"
@@ -66,25 +66,25 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
                 filters.append(Filter("organization_id", "in", [organization_id, SystemOrganizations.ROOT_SYSTEM]))
 
         results = await self.driver.query("workflows", filters)
-        return cast(list[dict[str, Any]], results)
+        return results
 
     async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
         """Get workflow raw dictionary representation by ID."""
         result = await self.driver.get("workflows", workflow_id)
-        return cast(dict[str, Any] | None, result)
+        return result
 
     async def get_workflow_by_slug(self, slug: str) -> dict[str, Any] | None:
         """Get workflow by unique slug identifier."""
         res = await self.driver.query("workflows", [Filter("slug", "==", slug)], limit=1)
         if res:
-            return cast(dict[str, Any], res[0])
+            return res[0]
         return None
 
     async def create_workflow(self, workflow_data: dict[str, Any]) -> str:
         """Insert or replace workflow entry in the database."""
         doc_id = workflow_data["id"]
         result = await self.driver.upsert("workflows", workflow_data, doc_id)
-        return cast(str, result)
+        return result
 
     async def update_workflow(self, workflow_id: str, updates: dict[str, Any]) -> str:
         """Update an existing workflow by creating a new version of the definition."""
@@ -114,25 +114,25 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
     async def delete_workflow(self, workflow_id: str) -> bool:
         """Delete workflow instance from the repository."""
         result = await self.driver.delete("workflows", workflow_id)
-        return cast(bool, result)
+        return result
 
     async def count_workflows(self) -> int:
         """Get total number of workflows in system repository."""
         result = await self.driver.count("workflows")
-        return cast(int, result)
+        return result
 
     # --- Steps ---
 
     async def get_all_steps(self) -> list[dict[str, Any]]:
         """Retrieve list of all standalone steps."""
         results = await self.driver.query("steps")
-        return cast(list[dict[str, Any]], results)
+        return results
 
     async def get_step_by_id(self, step_id: str) -> dict[str, Any] | None:
         """Locate step definition by ID, falling back to scanning active workflows if needed."""
         step = await self.driver.get("steps", step_id)
         if step:
-            return cast(dict[str, Any], step)
+            return step
 
         all_wfs = await self.driver.query("workflows")
         for wf in all_wfs:
@@ -152,7 +152,7 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
         """Add new task execution step metadata payload to repository."""
         doc_id = step_data["id"]
         result = await self.driver.upsert("steps", step_data, doc_id)
-        return cast(str, result)
+        return result
 
     async def update_step(self, step_id: str, updates: dict[str, Any]) -> str:
         """Apply fields updates to workflow task execution step definition."""
@@ -194,4 +194,4 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
                         )
 
         result = await self.driver.delete("steps", step_id)
-        return cast(bool, result)
+        return result

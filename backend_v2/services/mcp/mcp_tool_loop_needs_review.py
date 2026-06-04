@@ -14,7 +14,7 @@ import json
 import logging
 import time
 from datetime import datetime, timezone
-from typing import Any, TypeVar
+from typing import Any
 
 from fastapi import status
 from pydantic import BaseModel
@@ -171,10 +171,7 @@ def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dic
     }
 
 
-T = TypeVar("T", bound=BaseModel)
-
-
-async def execute_tool_loop(
+async def execute_tool_loop[T: BaseModel](
     llm_client: Any,
     executor: Any,
     messages: list[dict[str, Any]],

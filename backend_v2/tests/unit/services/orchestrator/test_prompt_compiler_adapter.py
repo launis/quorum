@@ -45,7 +45,7 @@ def test_prompt_compiler_adapter_compile_chunk_prompt() -> None:
                         "ai_description": "Directive 1",
                         "tda_assertions": [
                             {
-                                "tda_id": "tda_1111111111111111",
+                                "tda_id": "tda_11111111111111111111111111111111",
                                 "ai_rule_description": "Directive 1",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
@@ -156,7 +156,7 @@ def test_prompt_caching_cryptographic_determinism_proof() -> None:
                         "ai_description": "Directive 1",
                         "tda_assertions": [
                             {
-                                "tda_id": "tda_2222222222222222",
+                                "tda_id": "tda_22222222222222222222222222222222",
                                 "ai_rule_description": "Directive 1",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",

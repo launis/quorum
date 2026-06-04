@@ -503,4 +503,3 @@ class TraceMatrixPayloadDTO(BaseDTO):
     evaluated_atoms: dict[str, bool | str] | None = None
     xai_log: dict[str, Any] | None = None
     allowed_extensions: list[str] | None = None
-

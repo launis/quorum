@@ -11,7 +11,7 @@ localized strings for AI-generated content.
 
 import json
 import logging
-from typing import Any, TypeVar
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -179,10 +179,9 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         ) from e
 
 
-TModel = TypeVar("TModel", bound=BaseModel)
-
-
-async def translate_sdui_payload(obj: TModel, target_language: str, repo: IComponentRepository) -> TModel:
+async def translate_sdui_payload[TModel: BaseModel](
+    obj: TModel, target_language: str, repo: IComponentRepository
+) -> TModel:
     """Epic 35: API Pipeline Splicing Translation Hook.
 
     Delegates UI translation to the Frontend 'No-String Mandate' (.arb files).

@@ -42,44 +42,79 @@ Kehityksessä on noudatettava tiukasti seuraavia `c:\src\quorum\.agents\rules` -
 
 ```mermaid
 graph TD
-    V2CoreBase[models.core_base.V2CoreBase] -->|Inherits Config extra=forbid| ECF[models.v2_core.ExecutionCoreFields]
-    ECF -->|Core Fields SSOT| WS[models.state.WorkflowState]
-    ECF -->|Core Fields SSOT| ER[models.v2_core.ExecutionRecord]
+    V2CoreBase["models.core_base.V2CoreBase"] -->|Inherits Config extra=forbid| ECF["models.execution_core.ExecutionCoreFields (NEW FILE)"]
+    ECF -->|Core Fields SSOT| WS["models.state.WorkflowState"]
+    ECF -->|Core Fields SSOT| ER["models.v2_core.ExecutionRecord"]
     
-    WS -->|Pure Domain / add_event, get_context| WS_Run[Workflow execution context]
-    ER -->|Presentation / pdf_report_path, profile_syntheses| PT[BlueprintTransformer & PDF Engine]
+    WS -->|Pure Domain / add_event, get_context| WS_Run["Workflow execution context"]
+    ER -->|Presentation / pdf_report_path, profile_syntheses| PT["BlueprintTransformer & PDF Engine"]
+    
+    state_mod["models.state.py (TraceEvent, ErrorTraceEvent, TombstoneEvent)"] -.->|type import| ECF
+    state_mod -.->|type import| ER_import["models.v2_core.py"]
 ```
+
+> [!CAUTION]
+> **CIRCULAR IMPORT PREVENTION (Agentille Kriittinen Ohje)**:
+> `ExecutionCoreFields` **EI SAA** sijaita `models/v2_core.py`-tiedostossa, koska `v2_core.py` importtaa jo `models/state.py`:stä `TraceEvent`-tyypit (rivi 35). Jos `state.py` alkaisi importtaamaan `v2_core.py`:stä `ExecutionCoreFields`-luokkaa, syntyisi välitön `ImportError`-ympyrä.
+>
+> **Ratkaisu**: Luodaan uusi lehtimoduuli `backend_v2/models/execution_core.py`, joka importtaa `TraceEvent`-tyypit `state.py`:stä ja `V2CoreBase`-luokan `core_base.py`:stä. Sekä `v2_core.py` että `state.py` importtaavat kantaluokan tästä uudesta lehtimoduulista. Inline-importit ovat **01-python-backend.md `no_inline_imports`** -säännön nojalla kiellettyjä.
 
 ### 3.1. Abstrakti jaettu tietorunko (`ExecutionCoreFields`)
 
-Esitellään uusi abstrakti kantaluokka `backend_v2/models/v2_core.py` -tiedostoon:
+Esitellään uusi abstrakti kantaluokka **uuteen erilliseen lehtimoduuliin** `backend_v2/models/execution_core.py`:
 
 ```python
+# backend_v2/models/execution_core.py  [NEW FILE]
+"""Shared SSOT structural core for workflow executions.
+
+This module is an intentional LEAF MODULE in the import graph.
+It imports TraceEvent types from state.py and V2CoreBase from core_base.py,
+but NOTHING imports this module's siblings (v2_core.py) to prevent circular imports.
+"""
+from __future__ import annotations
+
+from typing import Any, Literal  # R24: X | None, ei Optional
+
+from pydantic import Field
+
+from backend_v2.models.core_base import V2CoreBase  # R73: global import, ei inline
+from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
+
+
 class ExecutionCoreFields(V2CoreBase):
     """The Single Source of Truth (SSOT) structural core for workflow executions.
-    
+
     Inherited by both the active domain state (WorkflowState) and the
     historical persistent database record (ExecutionRecord).
+
+    Attributes:
+        status: Current lifecycle status of the execution.
+        execution_trace: Append-only log of all trace events.
+        execution_trace_storage_path: Cloud Storage offload path for large traces.
+        context_variables: Dynamic blackboard for cross-step data sharing.
+        context_variables_storage_path: Cloud Storage offload path for large context.
     """
+    # R55-59: PEP 257 Google-style docstring above ^
+
     status: Literal["pending", "running", "completed", "failed"] = Field(
         default="pending",
-        description="Current status of the workflow execution."
+        description="Current status of the workflow execution.",
     )
     execution_trace: list[ErrorTraceEvent | TombstoneEvent | TraceEvent] = Field(
         default_factory=list,
-        description="Immutable log of all events."
+        description="Immutable log of all events.",
     )
-    execution_trace_storage_path: str | None = Field(
+    execution_trace_storage_path: str | None = Field(  # R24: X | None
         default=None,
-        description="Path to offloaded trace JSON in Cloud Storage."
+        description="Path to offloaded trace JSON in Cloud Storage.",
     )
     context_variables: dict[str, Any] = Field(
         default_factory=dict,
-        description="Current snapshots of context variables (the dynamic blackboard)."
+        description="Current snapshots of context variables (the dynamic blackboard).",
     )
     context_variables_storage_path: str | None = Field(
         default=None,
-        description="Path to offloaded context variables JSON in Cloud Storage."
+        description="Path to offloaded context variables JSON in Cloud Storage.",
     )
 ```
 
@@ -87,7 +122,7 @@ class ExecutionCoreFields(V2CoreBase):
 
 #### 1. Domain-malli (`WorkflowState`) tiedostossa `backend_v2/models/state.py`
 ```python
-from backend_v2.models.v2_core import ExecutionCoreFields
+from backend_v2.models.execution_core import ExecutionCoreFields
 
 class WorkflowState(ExecutionCoreFields):
     """Aggregate root containing the active execution trace and transient domain state."""
@@ -106,6 +141,10 @@ class WorkflowState(ExecutionCoreFields):
 ```
 
 #### 2. Persistointi- ja visualisointimalli (`ExecutionRecord`) tiedostossa `backend_v2/models/v2_core.py`
+
+> [!NOTE]
+> `v2_core.py`:n olemassa oleva `from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent` (rivi 35) **korvataan** importilla `from backend_v2.models.execution_core import ExecutionCoreFields`. TraceEvent-tyypit tulevat nyt transitiivisesti `ExecutionCoreFields`-luokan kautta, tai ne voidaan importata suoraan `state.py`:stä rinnakkain.
+
 ```python
 class ExecutionRecord(ExecutionCoreFields):
     """Record of a workflow execution, including presentation caches and persistent logs."""
@@ -140,50 +179,126 @@ class ExecutionRecord(ExecutionCoreFields):
 
 ### 3.3. Tyyppiturvallinen Adapteri (`Factory Pattern`)
 
-Korvataan epäsuorat `dict`-muunnokset `backend_v2/services/execution.py` -tasolla tai erillisellä adapterifunktiolla:
+> [!WARNING]
+> **Agentille Kriittinen Ohje**: Nykyisessä koodikannassa `WorkflowState`-oliota **ei koskaan muunneta suoraan** `ExecutionRecord`:iksi. `DAGExecutor` operoi alusta loppuun suoraan `ExecutionRecord`-instanssilla. Tehdasmetodin lisäksi on **etsittävä ja refaktoroitava** seuraavat kaksi olemassa olevaa suoraa `ExecutionRecord(...)` -instansiointia:
+>
+> 1. **`backend_v2/services/orchestrator/dag_executor.py` rivi ~348**: `exec_record = ExecutionRecord(id=execution_id, workflow_id=workflow.id, ...)` — uuden ajon luonti DAG-suorituksen alussa.
+> 2. **`backend_v2/services/execution.py` rivi ~319**: `initial_record = ExecutionRecord(id=execution_id, workflow_id=workflow.id, ...)` — `start_execution()`-metodin initialisointi.
+>
+> Molemmat kohdat on korvattava `create_execution_record`-tehdasmetodilla tai niiden ydinkenttien on tultava `ExecutionCoreFields`-perintänä eikä käsin kopioituna.
+
+Tehdasmetodi sijoitetaan `backend_v2/services/execution.py` -tiedostoon:
 
 ```python
-def create_execution_record_from_state(
-    state: WorkflowState, 
+def create_execution_record(
+    execution_id: str,
     workflow_id: str,
     raw_inputs: WorkflowInputs,
     frozen_context: FrozenContext,
-    **extra_persistence_fields
+    **extra_persistence_fields: Any,  # R7: explicit Any type for **kwargs
 ) -> ExecutionRecord:
-    """Tyyppiturvallinen tehdasmetodi, joka muuntaa domain-tilan persistoitavaksi DTO-olioksi."""
-    return ExecutionRecord(
-        id=f"exe_{state.execution_id.hex[:16]}",
-        workflow_id=workflow_id,
-        status=state.status,
-        execution_trace=state.execution_trace,
-        execution_trace_storage_path=state.execution_trace_storage_path,
-        context_variables=state.context_variables,
-        context_variables_storage_path=state.context_variables_storage_path,
-        raw_inputs=raw_inputs,
-        frozen_context=frozen_context,
-        **extra_persistence_fields
-    )
+    """Type-safe factory for ExecutionRecord creation.
+
+    Centralizes initialization logic to prevent field drift between
+    dag_executor.py and execution.py instantiation sites.
+
+    Args:
+        execution_id: Opaque Stripe ID for the execution.
+        workflow_id: ID of the workflow definition.
+        raw_inputs: Validated user inputs by role.
+        frozen_context: Immutable snapshot of context at execution start.
+        **extra_persistence_fields: Additional presentation-layer fields.
+
+    Returns:
+        A strictly validated ExecutionRecord instance.
+
+    Raises:
+        AppException: If Pydantic validation fails (VALIDATION_FAILED).
+    """
+    # R80: Explicit Pydantic instantiation, NOT dict(model)
+    # R18: AppException wrapping, NOT raw ValueError
+    try:
+        return ExecutionRecord(
+            id=execution_id,
+            workflow_id=workflow_id,
+            status=ExecutionStatus.PENDING,
+            raw_inputs=raw_inputs,
+            frozen_context=frozen_context,
+            **extra_persistence_fields,
+        )
+    except ValidationError as e:
+        logger.error(
+            "[ExecutionService] Fail-Fast: ExecutionRecord creation failed: %s",
+            e,
+            exc_info=True,
+        )
+        raise AppException(
+            message=f"ExecutionRecord creation failed: {e}",
+            status_code=500,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        ) from e
 ```
 
 ---
 
 ## 4. Toteutusvaiheet (Implementation Phases)
 
-### Phase 1: Kantaluokan `ExecutionCoreFields` luonti (Core Refactor)
-* **Toimenpide**: Esitellään `ExecutionCoreFields`-luokka `backend_v2/models/v2_core.py`-tiedostoon.
-* **Perintä**: Päivitetään `ExecutionRecord` perimään tämä kantaluokka ja poistetaan siitä monistetut ydinkentät.
+### Phase 1: Lehtimoduulin `execution_core.py` luonti ja `ExecutionRecord`-päivitys (Core Refactor)
+* **Uusi tiedosto**: Luodaan `backend_v2/models/execution_core.py` -lehtimoduuli, joka sisältää `ExecutionCoreFields`-kantaluokan. Tämä moduuli importtaa `TraceEvent`-tyypit `state.py`:stä ja `V2CoreBase`-luokan `core_base.py`:stä.
+* **Import-graafin eheys**: `execution_core.py` on puhdas lehtimoduuli — se EI importtaa `v2_core.py`:stä mitään. Tämä estää import-ympyrät.
+* **`v2_core.py`-päivitys**: `ExecutionRecord` päivitetään perimään `ExecutionCoreFields` (importattu `execution_core.py`:stä). Poistetaan `ExecutionRecord`:ista monistetut ydinkentät (`status`, `execution_trace`, `execution_trace_storage_path`, `context_variables`, `context_variables_storage_path`). Poistetaan `v2_core.py`:n suora `from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent` -import (rivi 35) ja korvataan se `from backend_v2.models.execution_core import ExecutionCoreFields` -importilla.
 
 ### Phase 2: Domain-mallin `WorkflowState` päivitys (Domain Sync)
-* **Toimenpide**: Päivitetään `WorkflowState` (`backend_v2/models/state.py`) perimään `ExecutionCoreFields` ja poistetaan siitä monistetut kentät.
-* **Tyyppikorjaukset**: Korjataan mahdolliset MyPy-varoitukset tai import-riippuvuussyklihaasteet varmistamalla siisti pakettirakenne.
+* **Toimenpide**: Päivitetään `WorkflowState` (`backend_v2/models/state.py`) perimään `ExecutionCoreFields` (importattu `execution_core.py`:stä) ja poistetaan siitä monistetut kentät (`status`, `execution_trace`, `execution_trace_storage_path`, `context_variables`, `context_variables_storage_path`).
+* **Import-tarkistus**: `state.py` importtaa `from backend_v2.models.execution_core import ExecutionCoreFields`. Koska `execution_core.py` importtaa `state.py`:stä `TraceEvent`-tyypit, on varmistettava ettei synny ympyrää: `execution_core.py`:n `TraceEvent`-import on jo resolvautunut ennen kuin `state.py` importtaa `ExecutionCoreFields`. Tämä toimii, koska `TraceEvent` on määritelty `state.py`:ssä ennen `WorkflowState`-luokkaa.
+* **Tyyppikorjaukset**: Korjataan kaikki MyPy-varoitukset. `WorkflowState`-luokan `execution_trace`-kenttä käytti aiemmin `list[TraceEvent]` (ilman union-tyyppejä), mutta kantaluokan kautta se saa nyt `list[ErrorTraceEvent | TombstoneEvent | TraceEvent]` -tyypin. Tämä on oikein ja tarkoituksellinen pariteettipäivitys.
 
 ### Phase 3: Adapterin ja Rajapintojen Hardening (API Boundaries)
-* **Toimenpide**: Toteutetaan `create_execution_record_from_state` -tehdasmetodi ja päivitetään worker- ja execution-palvelut hyödyntämään sitä raakojen sanakirjamuunnosten sijaan.
+* **Tehdasmetodi**: Toteutetaan `create_execution_record` -tehdasmetodi `backend_v2/services/execution.py` -tiedostoon.
+* **Korvattavat instansioinnit** (eksplisiittinen lista):
+    1. `backend_v2/services/orchestrator/dag_executor.py` — `ExecutionRecord(id=execution_id, ...)` -kutsu `execute_workflow()`-metodissa (~rivi 348). Korvataan `create_execution_record()`-kutsulla.
+    2. `backend_v2/services/execution.py` — `initial_record = ExecutionRecord(id=execution_id, ...)` -kutsu `start_execution()`-metodissa (~rivi 319). Korvataan `create_execution_record()`-kutsulla.
 * **Fail-Fast**: Varmistetaan, että `UnifiedWorkflowRepository` ja `PdfReportService` validoivat ladattavat aineistot heti tiukasti.
 
 ### Phase 4: CI-tason Meta-yksikkötestin toteutus (Automated Parity Quality Gate)
 * **Toimenpide**: Lisätään `backend_v2/tests/unit/test_v2_core_models.py` -tiedostoon `test_strict_schema_parity_for_core_execution_fields` -yksikkötesti.
 * **Varmistus**: Testataan sen toimivuus muuttamalla kokeellisesti jotain tyyppiä ja varmistamalla, että testiajo kaatuu välittömästi punaiseksi.
+
+> [!WARNING]
+> **Agentille Kriittinen Ohje (Meta-testin logiikka)**:
+> Pydanticin `model_fields` sisältää **sekä** perityt **että** luokan omat kentät, joten sitä EI voi käyttää uudelleenmäärittelyjen tunnistamiseen. Sen sijaan käytetään `cls.__annotations__`-attribuuttia, joka sisältää **vain kyseisen luokan tasolla** eksplisiittisesti määritellyt kentät.
+>
+> ```python
+> def test_strict_schema_parity_for_core_execution_fields():
+>     """Meta-test: Enforce that child classes inherit and do NOT redefine core fields."""
+>     from backend_v2.models.execution_core import ExecutionCoreFields
+>     from backend_v2.models.state import WorkflowState
+>     from backend_v2.models.v2_core import ExecutionRecord
+>
+>     core_field_names = set(ExecutionCoreFields.model_fields.keys())
+>     assert len(core_field_names) >= 5, "ExecutionCoreFields must define at least 5 shared fields"
+>
+>     for child_cls in [WorkflowState, ExecutionRecord]:
+>         # 1. Verify inheritance
+>         assert issubclass(child_cls, ExecutionCoreFields), (
+>             f"{child_cls.__name__} must inherit from ExecutionCoreFields"
+>         )
+>
+>         # 2. Verify NO redefinition of core fields using __annotations__
+>         own_annotations = child_cls.__annotations__  # Only THIS class level
+>         redefined = core_field_names & set(own_annotations.keys())
+>         assert not redefined, (
+>             f"{child_cls.__name__} illegally redefines inherited core fields: {redefined}. "
+>             f"These must be defined ONLY in ExecutionCoreFields."
+>         )
+>
+>         # 3. Verify all core fields are accessible on the child
+>         child_all_fields = set(child_cls.model_fields.keys())
+>         missing = core_field_names - child_all_fields
+>         assert not missing, (
+>             f"{child_cls.__name__} is missing inherited core fields: {missing}"
+>         )
+> ```
 
 ### Phase 5: Tietokannan ja Siemenaineiston Pyyhintä (Clean-Slate DB Reset)
 * **Toimenpide**: Koska vanhoja ajoja ei tarvitse tukea, pyyhitään `data/db_v2.json` kehitys- ja testitietokannat.
@@ -192,11 +307,33 @@ def create_execution_record_from_state(
   uv run python backend_v2/seed/run_seed.py
   ```
 
-### Phase 6: Laadunvarmistus ja Auditoinnit (Hardening Verification)
-* **Toimenpide**: Suoritetaan täysi Ruff-linttaus, Ruff-formatointi ja tiukka MyPy-tyyppitarkastus koko backend-koodille laatuportin läpäisemiseksi:
+### Phase 6: Laadunvarmistus, Hardening ja Auditoinnit (Hardening Verification)
+* **Toimenpide 1**: Suoritetaan täysi Ruff-linttaus, Ruff-formatointi ja tiukka MyPy-tyyppitarkastus koko backend-koodille laatuportin läpäisemiseksi:
   ```powershell
   uv run python scripts/backend_audit_loop.py backend_v2/ --test
   ```
+* **Toimenpide 2**: Ajetaan `/tier2-hardening-backend` kaikille muutetuille tiedostoille `hardening.xml` -profiilia vasten. Muutetut tiedostot:
+  - `models/execution_core.py` (NEW)
+  - `models/v2_core.py`
+  - `models/state.py`
+  - `services/execution.py`
+  - `services/orchestrator/dag_executor.py`
+
+> [!IMPORTANT]
+> **Hardening-compliance tarkistuslista (hardening.xml -säännöt)**:
+> Agentti MUST varmistaa, että jokainen muutettu tiedosto noudattaa seuraavia sääntöjä:
+>
+> | Sääntö | ID | Vaatimus tässä Epicissä |
+> |---|---|---|
+> | R2 | `strict_pydantic_v2_rust` | `ExecutionCoreFields` käyttää `V2CoreBase`:n `ConfigDict(strict=True, extra="forbid")` -perintää |
+> | R18 | `rfc7807_dual_reporting_strict` | Tehdasmetodin virheet → `AppException(error_code=ErrorCodes.XYZ)`, ei `ValueError` |
+> | R24 | `python_314_modern_syntax` | `X \| None`, ei `Optional[X]`. PEP 695 generics. |
+> | R55-59 | `pep257_google_style` | Kaikki uudet luokat, metodit ja funktiot: Summary + Attributes/Args/Returns/Raises |
+> | R73 | `no_inline_imports_unless_ml` | Kaikki importit globaaleja paitsi ML SDK:t |
+> | R80 | `pydantic_validation_bypass_ban` | `model_validate()`, ei `dict(model)` |
+> | R92 | `pydantic_mutation_optimization` | `.model_copy(update={...})`, ei `model_dump() → type(model)(**dict)` |
+>
+> **R78/R85 poikkeus**: Tässä Epicissä EI tehdä kenttien uudelleennimeämistä — ydinkentät siirretään kantaluokkaan sellaisenaan. R78/R85 eivät ole riskissä.
 
 ---
 

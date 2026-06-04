@@ -11,16 +11,16 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# Ensure the root quorum directory is in sys.path BEFORE any backend_v2 imports
+root_dir = Path(__file__).resolve().parent.parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+
 from backend_v2.exceptions import AppException, ErrorCodes
 
 # Configure structured system logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Ensure the root quorum directory is in sys.path via absolute lookup using Path (Rule 64)
-root_dir = Path(__file__).resolve().parent.parent.parent
-if str(root_dir) not in sys.path:
-    sys.path.insert(0, str(root_dir))
 
 
 def main() -> None:
