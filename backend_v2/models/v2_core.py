@@ -800,6 +800,10 @@ class MatrixScorecardRowDTO(V2CoreBase):
 
     is_evaluative: bool = Field(..., description="Whether this block contributes to global average.")
 
+    quotes_list: list[str] | None = Field(
+        default=None, description="Array of exact quotes hoisted from successful atoms. Truncated to 150 chars each."
+    )
+
     tda_state: dict[str, Any] | None = Field(default=None, description="TDAState union representation.")
 
 
@@ -824,7 +828,7 @@ class SynthesisConfigDTO(V2CoreBase):
         default_factory=list, description="Enabled MCP tool identifiers for pre-fetch synthesis phase."
     )
     matrix_visible_columns: list[str] = Field(
-        default_factory=lambda: ["label", "score", "distribution", "row_explanation"],
+        default_factory=lambda: ["label", "score", "distribution", "row_explanation", "quotes"],
         description="Visible columns for the global matrix summary table.",
     )
 
@@ -873,7 +877,7 @@ class ReportDataDTO(V2CoreBase):
     )
     layouts: list[ReportLayoutDTO] = Field(default_factory=list)
     matrix_visible_columns: list[str] = Field(
-        default_factory=lambda: ["label", "score", "distribution", "row_explanation"]
+        default_factory=lambda: ["label", "score", "distribution", "row_explanation", "quotes"]
     )
 
     # Execution Diagnostic Metadata
@@ -943,9 +947,13 @@ class OutputProfile(V2CoreBase):
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
         description="List of metadata fields visible on the UI and PDF cover header.",
     )
-    visible_extensions: list[LaxXaiExtensionType] = Field(
+    visible_block_extensions: list[LaxXaiExtensionType] = Field(
         default_factory=list,
-        description="List of XAI extensions visible at the end of the report.",
+        description="Block-level XAI extensions (per-matrix, LLM-produced).",
+    )
+    visible_workflow_extensions: list[LaxXaiExtensionType] = Field(
+        default_factory=list,
+        description="Workflow-level global extensions (mathematical engines).",
     )
     max_extension_items: int = Field(
         default=3,
@@ -981,9 +989,13 @@ class EmbeddedOutputProfile(V2CoreBase):
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
         description="List of metadata fields visible on the UI and PDF cover header.",
     )
-    visible_extensions: list[LaxXaiExtensionType] = Field(
+    visible_block_extensions: list[LaxXaiExtensionType] = Field(
         default_factory=list,
-        description="List of XAI extensions visible at the end of the report.",
+        description="Block-level XAI extensions (per-matrix, LLM-produced).",
+    )
+    visible_workflow_extensions: list[LaxXaiExtensionType] = Field(
+        default_factory=list,
+        description="Workflow-level global extensions (mathematical engines).",
     )
     max_extension_items: int | None = Field(
         default=None,
