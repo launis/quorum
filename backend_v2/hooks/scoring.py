@@ -621,6 +621,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         block_scale_stats: dict[str, dict[float, dict[str, int]]] = {}
         missing_atoms_by_block: dict[str, list[str]] = {}
         evaluated_atoms_by_block: dict[str, dict[str, bool | str]] = {}
+        atom_quotes_by_block: dict[str, list[str]] = {}
 
         # 2. Iterate evaluations using whitelisted ASTEvaluator for 3-State Logic
 
@@ -656,6 +657,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             block_scale_stats[pb_id] = {}
             missing_atoms_by_block[pb_id] = []
             evaluated_atoms_by_block[pb_id] = {}
+            atom_quotes_by_block[pb_id] = []
 
             for scale in scales:
                 s_val = float(scale.score)
@@ -721,6 +723,14 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 final_state = "DLQ"
                                             else:
                                                 final_state = "TRUE" if is_satisfied else "FALSE"
+
+                                                if final_state == "TRUE":
+                                                    if ev_dto.exact_quote:
+                                                        atom_quotes_by_block[pb_id].append(ev_dto.exact_quote)
+                                                    elif ev_dto.contextual_override and effective_override:
+                                                        loc = ev_dto.structural_location if ev_dto.structural_location and ev_dto.structural_location != "N/A" else "Tuntematon sijainti"
+                                                        reasoning = ev_dto.semantic_reasoning if ev_dto.semantic_reasoning else "Ei perustelua"
+                                                        atom_quotes_by_block[pb_id].append(f"📍 {loc}: {reasoning}")
                                             break
 
                             # Record the 3-state logic outcomes
@@ -740,6 +750,14 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
         # 3. Hybrid Calculation
         new_payload = content_payload.copy()
+
+        # Inject atom quotes into payload early
+        if "atom_quotes" not in new_payload:
+            new_payload["atom_quotes"] = {}
+        for pb_id, quotes in atom_quotes_by_block.items():
+            if quotes:
+                new_payload["atom_quotes"][pb_id] = quotes
+
         updates_made = False
 
         total_true_atoms = 0
