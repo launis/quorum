@@ -175,7 +175,7 @@ class SynthesisEditorCard extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
-              ...['label', 'score', 'distribution', 'row_explanation'].map((
+              ...['label', 'score', 'distribution', 'row_explanation', 'quotes'].map((
                 col,
               ) {
                 final String colTitle = switch (col) {
@@ -183,35 +183,54 @@ class SynthesisEditorCard extends StatelessWidget {
                   'score' => 'Pisteet (score)',
                   'distribution' => 'Jakauma (distribution)',
                   'row_explanation' => 'Selite (row_explanation)',
+                  'quotes' => 'Lainaukset (quotes)',
                   _ => col,
                 };
-                return CheckboxListTile(
-                  title: Text(colTitle),
-                  value: syn.matrixVisibleColumns.contains(col),
-                  onChanged: (val) {
-                    final masterOrder = [
-                      'label',
-                      'score',
-                      'distribution',
-                      'row_explanation',
-                    ];
-                    final list = List<String>.from(syn.matrixVisibleColumns);
-                    if (val == true) {
-                      if (!list.contains(col)) list.add(col);
-                    } else {
-                      list.remove(col);
-                    }
-                    list.sort((a, b) {
-                      final indexA = masterOrder.indexOf(a);
-                      final indexB = masterOrder.indexOf(b);
-                      if (indexA == -1 || indexB == -1) return 0;
-                      return indexA.compareTo(indexB);
-                    });
-                    onChanged(syn.copyWith(matrixVisibleColumns: list));
-                  },
-                  controlAffinity: ListTileControlAffinity.leading,
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CheckboxListTile(
+                      title: Text(colTitle),
+                      value: syn.matrixVisibleColumns.contains(col),
+                      onChanged: (val) {
+                        final masterOrder = [
+                          'label',
+                          'score',
+                          'distribution',
+                          'row_explanation',
+                          'quotes',
+                        ];
+                        final list = List<String>.from(syn.matrixVisibleColumns);
+                        if (val == true) {
+                          if (!list.contains(col)) list.add(col);
+                        } else {
+                          list.remove(col);
+                        }
+                        list.sort((a, b) {
+                          final indexA = masterOrder.indexOf(a);
+                          final indexB = masterOrder.indexOf(b);
+                          if (indexA == -1 || indexB == -1) return 0;
+                          return indexA.compareTo(indexB);
+                        });
+                        onChanged(syn.copyWith(matrixVisibleColumns: list));
+                      },
+                      controlAffinity: ListTileControlAffinity.leading,
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    if (col == 'quotes' && syn.matrixVisibleColumns.contains(col))
+                      Padding(
+                        padding: const EdgeInsets.only(left: 32.0, bottom: 8.0),
+                        child: Text(
+                          '*(Tip: saves space by replacing the standard explanation)*',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                  ],
                 );
               }),
             ],

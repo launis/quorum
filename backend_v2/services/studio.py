@@ -101,7 +101,8 @@ class StudioService:
                         description=p.description,
                         custom_preface=p.custom_preface,
                         visible_metadata=list(p.visible_metadata),
-                        visible_extensions=list(p.visible_extensions),
+                        visible_block_extensions=list(p.visible_block_extensions),
+                        visible_workflow_extensions=list(p.visible_workflow_extensions),
                         max_extension_items=p.max_extension_items,
                         display_scale=p.display_scale,
                         synthesis=p.synthesis,
@@ -141,6 +142,28 @@ class StudioService:
 
         stitched = await self._stitch_profiles_to_workflows([wf])
         return stitched[0]
+
+    async def get_workflow_available_extensions(self, initiator: TokenData, id: str) -> list[str]:
+        workflow = await self.get_workflow(initiator, id)
+        all_steps = await self.list_steps(initiator)
+        step_map = {s.id: s for s in all_steps}
+
+        used_block_ids = set()
+        for step_rule in workflow.steps:
+            step = step_map.get(step_rule.task_blueprint)
+            if step and step.criteria_block_ids:
+                used_block_ids.update(step.criteria_block_ids)
+
+        extensions = set()
+        for block_id in used_block_ids:
+            try:
+                block = await self.get_prompt_block(initiator, block_id)
+                if block.category_id == "matrix" and block.output_extensions:
+                    extensions.update(block.output_extensions)
+            except Exception:
+                pass
+
+        return sorted(list(extensions))
 
     async def save_workflow(self, initiator: TokenData, id: str, data: Workflow) -> Workflow:
         self._enforce_modification_rights(initiator, data.organization_id)

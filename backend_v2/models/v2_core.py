@@ -17,7 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import (
     BlockDataType,
@@ -1135,7 +1135,7 @@ class ExecutionCreate(V2CoreBase):
             "10 locally to mitigate LLM JSON schema context limits."
         ),
     )
-    raw_inputs: WorkflowInputs = Field(default_factory=WorkflowInputs, description="User provided raw inputs")
+    raw_inputs: WorkflowInputsIngress = Field(default_factory=WorkflowInputsIngress, description="User provided raw inputs")
 
 
 class ExecutionStepState(V2CoreBase):

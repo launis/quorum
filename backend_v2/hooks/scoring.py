@@ -728,9 +728,13 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                     if ev_dto.exact_quote:
                                                         atom_quotes_by_block[pb_id].append(ev_dto.exact_quote)
                                                     elif ev_dto.contextual_override and effective_override:
-                                                        loc = ev_dto.structural_location if ev_dto.structural_location and ev_dto.structural_location != "N/A" else "Tuntematon sijainti"
-                                                        reasoning = ev_dto.semantic_reasoning if ev_dto.semantic_reasoning else "Ei perustelua"
-                                                        atom_quotes_by_block[pb_id].append(f"📍 {loc}: {reasoning}")
+                                                        l_raw = ev_dto.structural_location
+                                                        loc = (
+                                                            l_raw if l_raw and l_raw != "N/A" else "Tuntematon sijainti"
+                                                        )
+                                                        r_raw = ev_dto.semantic_reasoning
+                                                        rsn = r_raw if r_raw else "Ei perustelua"
+                                                        atom_quotes_by_block[pb_id].append(f"📍 {loc}: {rsn}")
                                             break
 
                             # Record the 3-state logic outcomes

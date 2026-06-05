@@ -1636,6 +1636,54 @@
         ]
       }
     },
+    "/api/v2/studio/workflows/{id}/available-extensions": {
+      "get": {
+        "tags": [
+          "Admin Studio V2 - Workflows"
+        ],
+        "summary": "Get Workflow Available Extensions",
+        "description": "Calculate the union of all output_extensions defined across all Target Matrices within a specific DAG.",
+        "operationId": "get_workflow_available_extensions_api_v2_studio_workflows__id__available_extensions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowAvailableExtensionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v2/studio/workflows/{id}/clone": {
       "post": {
         "tags": [
@@ -3326,13 +3374,21 @@
             "title": "Visible Metadata",
             "description": "List of metadata fields visible on the UI and PDF cover header."
           },
-          "visible_extensions": {
+          "visible_block_extensions": {
             "items": {
               "$ref": "#/components/schemas/XaiExtensionType"
             },
             "type": "array",
-            "title": "Visible Extensions",
-            "description": "List of XAI extensions visible at the end of the report."
+            "title": "Visible Block Extensions",
+            "description": "Block-level XAI extensions (per-matrix, LLM-produced)."
+          },
+          "visible_workflow_extensions": {
+            "items": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "array",
+            "title": "Visible Workflow Extensions",
+            "description": "Workflow-level global extensions (mathematical engines)."
           },
           "max_extension_items": {
             "anyOf": [
@@ -3453,13 +3509,21 @@
             "title": "Visible Metadata",
             "description": "List of metadata fields visible on the UI and PDF cover header."
           },
-          "visible_extensions": {
+          "visible_block_extensions": {
             "items": {
               "$ref": "#/components/schemas/XaiExtensionType"
             },
             "type": "array",
-            "title": "Visible Extensions",
-            "description": "List of XAI extensions visible at the end of the report."
+            "title": "Visible Block Extensions",
+            "description": "Block-level XAI extensions (per-matrix, LLM-produced)."
+          },
+          "visible_workflow_extensions": {
+            "items": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "array",
+            "title": "Visible Workflow Extensions",
+            "description": "Workflow-level global extensions (mathematical engines)."
           },
           "max_extension_items": {
             "anyOf": [
@@ -5182,13 +5246,21 @@
             "title": "Visible Metadata",
             "description": "List of metadata fields visible on the UI and PDF cover header."
           },
-          "visible_extensions": {
+          "visible_block_extensions": {
             "items": {
               "$ref": "#/components/schemas/XaiExtensionType"
             },
             "type": "array",
-            "title": "Visible Extensions",
-            "description": "List of XAI extensions visible at the end of the report."
+            "title": "Visible Block Extensions",
+            "description": "Block-level XAI extensions (per-matrix, LLM-produced)."
+          },
+          "visible_workflow_extensions": {
+            "items": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "array",
+            "title": "Visible Workflow Extensions",
+            "description": "Workflow-level global extensions (mathematical engines)."
           },
           "max_extension_items": {
             "anyOf": [
@@ -5320,12 +5392,19 @@
             "type": "array",
             "title": "Visible Metadata"
           },
-          "visible_extensions": {
+          "visible_block_extensions": {
             "items": {
               "$ref": "#/components/schemas/XaiExtensionType"
             },
             "type": "array",
-            "title": "Visible Extensions"
+            "title": "Visible Block Extensions"
+          },
+          "visible_workflow_extensions": {
+            "items": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "array",
+            "title": "Visible Workflow Extensions"
           },
           "max_extension_items": {
             "anyOf": [
@@ -7542,6 +7621,21 @@
         ],
         "title": "Workflow",
         "description": "Dynamic Directed Acyclic Graph orchestrator model."
+      },
+      "WorkflowAvailableExtensionsResponse": {
+        "properties": {
+          "available_extensions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Available Extensions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "WorkflowAvailableExtensionsResponse",
+        "description": "API Response containing available XAI extensions for a workflow.\n\nAttributes:\n    available_extensions: Union of all output_extensions defined across all Target Matrices."
       },
       "WorkflowDeleteResponse": {
         "properties": {

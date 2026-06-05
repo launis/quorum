@@ -59,6 +59,35 @@ class XaiExtensionType(str, Enum):
     VARIANCE_VALIDATION = "variance_validation"
 
 
+class XaiExtensionScope(str, Enum):
+    """Scope classification for XAI Extensions.
+
+    Attributes:
+        BLOCK: Extensions computed at the matrix/block level by the LLM.
+        WORKFLOW: Global extensions computed by deterministic engines at the workflow level.
+    """
+
+    BLOCK = "block"
+    WORKFLOW = "workflow"
+
+
+XAI_EXTENSION_SCOPE: dict[XaiExtensionType, XaiExtensionScope] = {
+    XaiExtensionType.CITATION: XaiExtensionScope.BLOCK,
+    XaiExtensionType.JUSTIFICATION: XaiExtensionScope.BLOCK,
+    XaiExtensionType.FALSIFICATION: XaiExtensionScope.BLOCK,
+    XaiExtensionType.THEORY_LINK: XaiExtensionScope.BLOCK,
+    XaiExtensionType.RISK_FLAG: XaiExtensionScope.BLOCK,
+    XaiExtensionType.COACHING: XaiExtensionScope.BLOCK,
+    XaiExtensionType.MISSING_CONTEXT: XaiExtensionScope.BLOCK,
+    XaiExtensionType.REMEDIATION_STEPS: XaiExtensionScope.BLOCK,
+    XaiExtensionType.EMOTIONAL_SENTIMENT: XaiExtensionScope.BLOCK,
+    XaiExtensionType.CONFIDENCE: XaiExtensionScope.BLOCK,
+    XaiExtensionType.SOURCE_ID: XaiExtensionScope.BLOCK,
+    XaiExtensionType.CONTEXTUAL_OVERRIDE: XaiExtensionScope.BLOCK,
+    XaiExtensionType.VARIANCE_VALIDATION: XaiExtensionScope.WORKFLOW,
+}
+
+
 class SelfHealingThresholdRatio(float, Enum):
     """Semantic Self-Healing strictness ratios for LLM Evaluation.
     Defines what top percentage of a numerical scale triggers mandatory evidence constraints.
@@ -211,6 +240,7 @@ class SystemConcurrency(int, Enum):
     PACING_DELAY_VERTEX_SECONDS = 3
     PACING_DELAY_OPENAI_SECONDS = 0
     PACING_DELAY_MOCK_SECONDS = 0
+    REDIS_CONNECTION_TIMEOUT_SECONDS = 10
 
 
 # --- Restored V1 Enums ---

@@ -14,7 +14,8 @@ void main() {
           },
           "description": null,
           "visible_metadata": ["date", "organization"],
-          "visible_extensions": [],
+          "visible_block_extensions": [],
+          "visible_workflow_extensions": [],
           "max_extension_items": 3,
           "display_scale": "original",
           "synthesis": null,
@@ -40,7 +41,11 @@ void main() {
           },
           "description": null,
           "visible_metadata": ["date", "organization"],
-          "visible_extensions": ["variance_validation", "contextual_override"],
+          "visible_block_extensions": [
+            "variance_validation",
+            "contextual_override",
+          ],
+          "visible_workflow_extensions": [],
           "max_extension_items": 3,
           "display_scale": "original",
           "synthesis": null,
@@ -51,13 +56,13 @@ void main() {
         final result = EmbeddedOutputProfile.fromJson(jsonPayload);
 
         expect(
-          result.visibleExtensions.contains(
+          result.visibleBlockExtensions.contains(
             XaiExtensionType.varianceValidation,
           ),
           isTrue,
         );
         expect(
-          result.visibleExtensions.contains(
+          result.visibleBlockExtensions.contains(
             XaiExtensionType.contextualOverride,
           ),
           isTrue,

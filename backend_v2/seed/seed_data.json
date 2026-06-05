@@ -7181,11 +7181,13 @@
             "date",
             "organization"
           ],
-          "visible_extensions": [
+          "visible_block_extensions": [
             "falsification",
             "coaching",
             "remediation_steps",
-            "emotional_sentiment",
+            "emotional_sentiment"
+          ],
+          "visible_workflow_extensions": [
             "variance_validation"
           ],
           "display_scale": "original",
@@ -8236,11 +8238,13 @@
         "date",
         "organization"
       ],
-      "visible_extensions": [
+      "visible_block_extensions": [
         "justification",
         "coaching",
         "falsification",
-        "remediation_steps",
+        "remediation_steps"
+      ],
+      "visible_workflow_extensions": [
         "variance_validation"
       ],
       "display_scale": "normalized_100",

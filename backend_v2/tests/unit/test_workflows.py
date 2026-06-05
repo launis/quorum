@@ -6,9 +6,13 @@ from fastapi.testclient import TestClient
 
 from backend_v2.api.dependencies import get_current_user_from_header, get_studio_service
 from backend_v2.exceptions import PermissionDeniedError
-from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.services.studio import StudioService
+from unittest.mock import patch
+
+# Mock setup_logging to avoid litellm crash on Pydantic V2 during tests
+patch("backend_v2.main.setup_logging").start()
+from backend_v2.main import app
 
 
 def mock_get_current_user_member() -> Any:

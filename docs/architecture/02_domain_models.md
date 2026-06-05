@@ -22,6 +22,10 @@ Varmistaaksemme, että Pydantic V2 -mallien perintäketjut eivät koskaan aiheut
 Tämä testi käyttää Pythonin `__annotations__`-introspektiota valvomaan aliluokkia (esim. `ExecutionRecord` ja `WorkflowState`), varmistaen että ne **eivät koskaan määrittele uudelleen** kantaluokasta (`ExecutionCoreFields`) perittyjä SSOT-kenttiä.
 Jos kehittäjä epähuomiossa lisää jo perityn kentän uudelleen aliluokkaan (mikä loisi kaksi irtonaista totuuden lähdettä), CI-pipeline kaatuu välittömästi (Fail-Fast). Tämä pakottaa nollatoleranssin rakenteelliselle siirtymälle ydinmallien ja tietokantatallennuksen välillä.
 
+### Extension Scope Completeness Meta-Test (CI-Level)
+
+Kaikki järjestelmän XAI-laajennokset on reititettävä luotettavasti joko `block`- tai `workflow`-tasolle. Tämän varmistamiseksi CI-putkessa ajetaan automaattinen Meta-testi (`test_xai_extension_scope_completeness`), joka iteroi läpi jokaisen `XaiExtensionType`-enumeraation jäsenen ja varmistaa "Fail-Fast"-periaatteella, että kyseiselle laajennokselle on määritelty skooppi `XAI_EXTENSION_SCOPE` -sanakirjassa. Tämä estää hiljaiset virheet uusien laajennosten lisäämisen yhteydessä. Myös alkulatausdata (`seed_data.json`) noudattaa tätä kaksiportaista jaottelua `visible_block_extensions`- ja `visible_workflow_extensions`-määritysten avulla.
+
 ## Ydinmallisto ja Opaque ID -reititys
 
 Järjestelmä hylkää ihmisluettavat "slugit" identifioijina taustalogiikassa. Kaikki relaatiot ja datamallit pakottavat joustavan "Opaque Stripe ID" -reitityksen (esim. `blk_abc12345`), joka takaa sen, että mallien sisäiset ihmisluettavat nimimuutokset eivät koskaan riko järjestelmän topologiaa.
@@ -173,7 +177,8 @@ classDiagram
         +I18nText name
         +I18nText description
         +List~String~ visible_metadata
-        +List~String~ visible_extensions
+        +List~String~ visible_block_extensions
+        +List~String~ visible_workflow_extensions
         +int max_extension_items
         +String display_scale
         +bool include_diagnostic_scorecard

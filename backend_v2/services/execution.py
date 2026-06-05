@@ -403,7 +403,7 @@ class ExecutionService:
         initial_record = create_execution_record(
             execution_id=execution_id,
             workflow_id=workflow.id,
-            raw_inputs=payload.raw_inputs,
+            raw_inputs=WorkflowInputs.model_validate(payload.raw_inputs.model_dump(exclude_unset=True)),
             frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
             output_profile_id=resolved_profile_id,
             step_states=step_states,

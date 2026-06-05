@@ -31,6 +31,7 @@ void main() {
               ],
               informationalMatrices: [],
               visibleColumns: const [
+                'label',
                 'score',
                 'normalized_score',
                 'distribution',
@@ -62,7 +63,12 @@ void main() {
           body: DiagnosticScorecardWidget(
             evaluativeMatrices: [],
             informationalMatrices: [],
-            visibleColumns: const ['score', 'normalized_score', 'distribution'],
+            visibleColumns: const [
+              'label',
+              'score',
+              'normalized_score',
+              'distribution',
+            ],
           ),
         ),
       ),

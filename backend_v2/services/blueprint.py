@@ -197,9 +197,10 @@ class BlueprintTransformer:
         layout_defs = profile.layouts
         display_scale = profile.display_scale
 
-        # Epic: XAI Output Extensions
-        visible_extensions = [v.value for v in getattr(profile, "visible_extensions", [])]
-        grouped_extensions: dict[str, list[Any]] = {ext: [] for ext in visible_extensions}
+        # Epic 68: Extension Scope Separation
+        block_ext_values = [v.value for v in getattr(profile, "visible_block_extensions", [])]
+        workflow_ext_values = [v.value for v in getattr(profile, "visible_workflow_extensions", [])]
+        grouped_extensions: dict[str, list[Any]] = {ext: [] for ext in block_ext_values + workflow_ext_values}
 
         # We must pre-fetch blocks early for resolving axis_label
         all_blocks_models = await self.comp_repo.get_all_prompt_blocks_models()
@@ -278,50 +279,52 @@ class BlueprintTransformer:
                 {group_key: highlight.content, "content": highlight.content, "_score": -999.0, "_is_synthesized": True}
             )
 
-        # Extract global output extensions (like variance_validation) from report_context in execution context_variables
+        # Extract global output extensions from report_context in execution context_variables
         report_context_dict = execution.context_variables.get("report_context")
         if isinstance(report_context_dict, dict):
             output_exts = report_context_dict["output_extensions"] if "output_extensions" in report_context_dict else []
             if isinstance(output_exts, list):
                 for ext in output_exts:
-                    if isinstance(ext, dict) and ext.get("extension_type") == "variance_validation":
-                        if "variance_validation" in grouped_extensions:
+                    if isinstance(ext, dict) and ext.get("extension_type") in workflow_ext_values:
+                        e_type = ext.get("extension_type")
+                        if e_type in grouped_extensions:
                             ext_copy = ext.copy()
                             ext_copy["_is_synthesized"] = True
-                            grouped_extensions["variance_validation"].append(ext_copy)
+                            grouped_extensions[e_type].append(ext_copy)
 
-        # Calculate mechanical-cognitive variance dynamically if the extension is requested but not present
-        if "variance_validation" in grouped_extensions and not grouped_extensions["variance_validation"]:
-            authenticity_score = 3.0
-            performative_phrases_count = 0
+        # Calculate dynamically if the extension is requested but not present
+        for wf_ext in workflow_ext_values:
+            if wf_ext == "variance_validation" and wf_ext in grouped_extensions and not grouped_extensions[wf_ext]:
+                authenticity_score = 3.0
+                performative_phrases_count = 0
 
-            # Scan folded results for detector and linguistics steps
-            for dto in results:
-                if dto.step_id == "step_detector" or dto.block_id == "step_detector":
-                    if isinstance(dto.payload, dict) and "raw_score" in dto.payload:
-                        val = dto.payload["raw_score"]
-                        if val is not None:
-                            authenticity_score = float(val)
-                elif dto.step_id == "step_linguistics" or dto.block_id == "step_linguistics":
-                    if isinstance(dto.payload, dict) and "performative_patterns" in dto.payload:
-                        patterns = dto.payload["performative_patterns"]
-                        if isinstance(patterns, list):
-                            performative_phrases_count = len(patterns)
+                # Scan folded results for detector and linguistics steps
+                for dto in results:
+                    if dto.step_id == "step_detector" or dto.block_id == "step_detector":
+                        if isinstance(dto.payload, dict) and "raw_score" in dto.payload:
+                            val = dto.payload["raw_score"]
+                            if val is not None:
+                                authenticity_score = float(val)
+                    elif dto.step_id == "step_linguistics" or dto.block_id == "step_linguistics":
+                        if isinstance(dto.payload, dict) and "performative_patterns" in dto.payload:
+                            patterns = dto.payload["performative_patterns"]
+                            if isinstance(patterns, list):
+                                performative_phrases_count = len(patterns)
 
-            variance_res = calculate_mechanical_cognitive_variance(
-                llm_authenticity_score=authenticity_score,
-                performative_phrases_count=performative_phrases_count,
-            )
+                variance_res = calculate_mechanical_cognitive_variance(
+                    llm_authenticity_score=authenticity_score,
+                    performative_phrases_count=performative_phrases_count,
+                )
 
-            dynamic_ext = {
-                "extension_type": "variance_validation",
-                "mechanical_metric_ref": "performative_phrases_count",
-                "cognitive_metric_ref": "llm_authenticity_score",
-                "variance_score": float(variance_res["variance_score"]),
-                "alignment_verdict": str(variance_res["alignment_verdict"]),
-                "_is_synthesized": True,
-            }
-            grouped_extensions["variance_validation"].append(dynamic_ext)
+                dynamic_ext = {
+                    "extension_type": "variance_validation",
+                    "mechanical_metric_ref": "performative_phrases_count",
+                    "cognitive_metric_ref": "llm_authenticity_score",
+                    "variance_score": float(variance_res["variance_score"]),
+                    "alignment_verdict": str(variance_res["alignment_verdict"]),
+                    "_is_synthesized": True,
+                }
+                grouped_extensions[wf_ext].append(dynamic_ext)
 
         if any(dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload for dto in results):
             has_warning = True
@@ -353,6 +356,10 @@ class BlueprintTransformer:
         evaluative_matrices: list[MatrixScorecardRowDTO] = []
         informational_matrices: list[MatrixScorecardRowDTO] = []
         all_parsed_matrices: dict[str, MatrixScorecardRowDTO] = {}
+
+        syn_profile = getattr(profile, "synthesis", None)
+        fallback_cols = ["label", "score", "distribution", "row_explanation", "quotes"]
+        matrix_visible_cols = syn_profile.matrix_visible_columns if syn_profile else fallback_cols
 
         # Grand Unification: Single extraction loop for all Matrix blocks
         for dto in results:
@@ -531,6 +538,25 @@ class BlueprintTransformer:
             synth_explanation = row_explanations_cache.get(b_id)
             final_explanation = synth_explanation if synth_explanation else justification
 
+            # EPIC 70 Phase 3: Hoisted quotes
+            quotes_list = None
+            if "quotes" in matrix_visible_cols:
+                atom_quotes = {}
+                for r_dto in results:
+                    if r_dto.step_id == step_id and r_dto.block_id == "atom_quotes" and isinstance(r_dto.payload, dict):
+                        atom_quotes = r_dto.payload
+                        break
+
+                raw_quotes = atom_quotes.get(b_id, [])
+                if raw_quotes and isinstance(raw_quotes, list):
+                    quotes_list = []
+                    for q in raw_quotes:
+                        q_str = str(q)
+                        if len(q_str) > 150:
+                            quotes_list.append(q_str[:147] + "...")
+                        else:
+                            quotes_list.append(q_str)
+
             row_dto = MatrixScorecardRowDTO(
                 block_id=b_id,
                 name=axis_name,
@@ -565,6 +591,7 @@ class BlueprintTransformer:
                 ui_boundary_labels=ui_boundary_labels,
                 ui_plot_ratio=ui_plot_ratio,
                 is_evaluative=pb_meta.is_evaluative,
+                quotes_list=quotes_list,
             )
 
             unique_k = f"{step_id}_{b_id}"
@@ -586,7 +613,7 @@ class BlueprintTransformer:
         max_items = getattr(profile, "max_extension_items", 2)
         if max_items is not None and max_items > 0:
             for ext_key in grouped_extensions:
-                if ext_key == "variance_validation":
+                if ext_key in workflow_ext_values:
                     continue
                 # If a synthesized global highlight exists, it EXCLUSIVELY takes over the category
                 # suppressing all raw fragmented matrix extensions (no theory titles).
@@ -867,9 +894,8 @@ class BlueprintTransformer:
             scoring_strategy = (p_score if p_score is not None else workflow_obj.default_scoring_strategy).value
 
             syn = profile.synthesis
-            matrix_visible_cols = (
-                syn.matrix_visible_columns if syn else ["label", "score", "distribution", "row_explanation"]
-            )
+            fallback_cols = ["label", "score", "distribution", "row_explanation", "quotes"]
+            matrix_visible_cols = syn.matrix_visible_columns if syn else fallback_cols
 
             resolved_preface_md = custom_preface_md
             if hasattr(profile, "custom_preface") and profile.custom_preface:

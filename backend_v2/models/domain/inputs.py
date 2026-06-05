@@ -19,11 +19,10 @@ class Base64Attachment(V2CoreBase):
     content_type: str | None = Field(default=None, description="Optional MIME type")
 
 
-class WorkflowInputs(V2CoreBase):
-    """Strict input payload for the workflow (Content).
-
-    This model defines the DATA content that the workflow processes.
-    It does NOT include configuration (model parameters, API keys), which belong in StepConfig.
+class WorkflowInputsIngress(V2CoreBase):
+    """API Ingress payload for the workflow (Content).
+    
+    Allows Base64 attachments during initial API routing, before Eager Extraction happens.
     """
 
     organization_id: str | None = Field(default=None, description="Tenant ID for multi-tenancy.", min_length=1)
@@ -31,11 +30,17 @@ class WorkflowInputs(V2CoreBase):
     simulation_mode: bool = Field(default=False, description="If True, indicates a test/simulation run.")
     language: str = Field(default="en", description="Target language code (e.g., 'en', 'fi').", min_length=1)
 
-    # To support dynamic DAG inputs in a strict schema, we must encapsulate them in a structured dictionary
-    # rather than relying on top-level extra="allow" which violates the Zero-Compromise pledge.
     dynamic_inputs: dict[str, Any] = Field(
         default_factory=dict, description="Structured dictionary for dynamic workflow inputs."
     )
+
+
+class WorkflowInputs(WorkflowInputsIngress):
+    """Strict Domain payload for the workflow (Content).
+
+    This model defines the DATA content that the workflow processes.
+    It rigorously BANS base64 payloads to protect the DB.
+    """
 
     @model_validator(mode="before")
     @classmethod

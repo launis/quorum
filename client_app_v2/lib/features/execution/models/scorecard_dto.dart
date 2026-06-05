@@ -69,6 +69,9 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
     @JsonKey(name: 'is_evaluative') @Default(true) bool isEvaluative,
     @JsonKey(name: 'contextual_override') bool? contextualOverride,
     @JsonKey(name: 'semantic_reasoning') String? semanticReasoning,
+
+    // Epic 70: Forensic Evidence Quotes
+    @JsonKey(name: 'quotes_list') @Default([]) List<String> quotesList,
   }) = _MatrixScorecardRowDto;
 
   factory MatrixScorecardRowDto.fromJson(Map<String, dynamic> json) =>

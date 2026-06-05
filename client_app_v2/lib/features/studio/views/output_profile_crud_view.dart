@@ -40,6 +40,19 @@ class OutputProfileCrudView extends HookConsumerWidget {
     final stepsState = ref.watch(stepsControllerProvider);
     final formState = ref.watch(outputProfileFormProvider(id));
 
+    // Fallback to controller text if form state isn't loaded,
+    // but prefer payload workflowId directly to ensure we fetch extensions properly on first load.
+    final controllerWorkflowId = useValueListenable(workflowIdController).text;
+
+    final payloadWorkflowId = formState.value?.workflowId ?? '';
+    final currentWorkflowId = payloadWorkflowId.isNotEmpty
+        ? payloadWorkflowId
+        : controllerWorkflowId;
+
+    final availableExtensionsState = ref.watch(
+      workflowAvailableExtensionsProvider(currentWorkflowId),
+    );
+
     return formState.when(
       loading: () => Scaffold(
         appBar: AppBar(title: Text(l10n.editOutputProfileTitle)),
@@ -75,6 +88,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
           promptBlocksState,
           workflowsState,
           stepsState,
+          availableExtensionsState,
           enableThreePaneLayout,
         );
       },
@@ -94,6 +108,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
     AsyncValue<List<dynamic>> promptBlocksState,
     AsyncValue<List<dynamic>> workflowsState,
     AsyncValue<List<dynamic>> stepsState,
+    AsyncValue<List<String>> availableExtensionsState,
     ValueNotifier<bool> enableThreePaneLayout,
   ) {
     var layouts = List<OutputLayoutBlock>.from(payload.layouts);
@@ -553,33 +568,153 @@ class OutputProfileCrudView extends HookConsumerWidget {
               const SizedBox(height: 24),
               InputDecorator(
                 decoration: const InputDecoration(
-                  labelText: 'Visible XAI Extensions',
+                  labelText: 'Vaihekohtaiset laajennokset (Block-level)',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                ),
+                child: availableExtensionsState.when(
+                  data: (availableExtensions) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: XaiExtensionType.values.map((ext) {
+                        final l10n = AppLocalizations.of(context)!;
+                        String label = ext.backendValue;
+                        switch (ext) {
+                          case XaiExtensionType.citation:
+                            label = l10n.xaiSourceCitation;
+                            break;
+                          case XaiExtensionType.justification:
+                            label = l10n.xaiJustification;
+                            break;
+                          case XaiExtensionType.falsification:
+                            label = l10n.xaiDevilsAdvocate;
+                            break;
+                          case XaiExtensionType.theoryLink:
+                            label = l10n.xaiTheoryLink;
+                            break;
+                          case XaiExtensionType.riskFlag:
+                            label = l10n.xaiRiskFlag;
+                            break;
+                          case XaiExtensionType.coaching:
+                            label = l10n.xaiCoachingTip;
+                            break;
+                          case XaiExtensionType.missingContext:
+                            label = l10n.xaiMissingContext;
+                            break;
+                          case XaiExtensionType.remediationSteps:
+                            label = l10n.xaiRemediation;
+                            break;
+                          case XaiExtensionType.emotionalSentiment:
+                            label = l10n.xaiSentiment;
+                            break;
+                          case XaiExtensionType.confidence:
+                            label = l10n.xaiConfidence;
+                            break;
+                          case XaiExtensionType.sourceId:
+                            label = l10n.xaiSourceId;
+                            break;
+                          case XaiExtensionType.contextualOverride:
+                            label = l10n.xaiContextualOverride;
+                            break;
+                          case XaiExtensionType.varianceValidation:
+                            label = l10n.xaiVarianceValidationTitle;
+                            break;
+                        }
+
+                        // Dynamic Dropdown Population
+                        if (!availableExtensions.contains(ext.backendValue)) {
+                          return const SizedBox.shrink();
+                        }
+
+                        final isWorkflowExtension = [
+                          XaiExtensionType.varianceValidation,
+                          XaiExtensionType.confidence,
+                        ].contains(ext);
+
+                        if (isWorkflowExtension) return const SizedBox.shrink();
+
+                        return CheckboxListTile(
+                          title: Text(label),
+                          value: payload.visibleBlockExtensions.contains(ext),
+                          onChanged: (val) {
+                            final updatedList = List<XaiExtensionType>.from(
+                              payload.visibleBlockExtensions,
+                            );
+                            if (val == true) {
+                              updatedList.add(ext);
+                            } else {
+                              updatedList.remove(ext);
+                            }
+                            updatePayload(
+                              payload.copyWith(
+                                visibleBlockExtensions: updatedList,
+                              ),
+                            );
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                          dense: true,
+                        );
+                      }).toList(),
+                    );
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, st) => Text('Error loading extensions: $e'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              InputDecorator(
+                decoration: const InputDecoration(
+                  labelText:
+                      'Globaalit työnkulun laajennokset (Workflow-level)',
                   isDense: true,
                   border: OutlineInputBorder(),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: XaiExtensionType.values.map((ext) {
-                    return CheckboxListTile(
-                      title: Text(ext.name),
-                      value: payload.visibleExtensions.contains(ext),
-                      onChanged: (val) {
-                        final updatedList = List<XaiExtensionType>.from(
-                          payload.visibleExtensions,
-                        );
-                        if (val == true) {
-                          updatedList.add(ext);
-                        } else {
-                          updatedList.remove(ext);
+                  children:
+                      [
+                        XaiExtensionType.varianceValidation,
+                        XaiExtensionType
+                            .confidence, // Assuming confidence might be workflow-level or keep it static?
+                      ].map((ext) {
+                        final l10n = AppLocalizations.of(context)!;
+                        String label = ext.name;
+                        switch (ext) {
+                          case XaiExtensionType.varianceValidation:
+                            label = l10n.xaiVarianceValidationTitle;
+                            break;
+                          case XaiExtensionType.confidence:
+                            label = l10n.xaiConfidence;
+                            break;
+                          default:
+                            break;
                         }
-                        updatePayload(
-                          payload.copyWith(visibleExtensions: updatedList),
+
+                        return CheckboxListTile(
+                          title: Text(label),
+                          value: payload.visibleWorkflowExtensions.contains(
+                            ext,
+                          ),
+                          onChanged: (val) {
+                            final updatedList = List<XaiExtensionType>.from(
+                              payload.visibleWorkflowExtensions,
+                            );
+                            if (val == true) {
+                              updatedList.add(ext);
+                            } else {
+                              updatedList.remove(ext);
+                            }
+                            updatePayload(
+                              payload.copyWith(
+                                visibleWorkflowExtensions: updatedList,
+                              ),
+                            );
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                          dense: true,
                         );
-                      },
-                      controlAffinity: ListTileControlAffinity.leading,
-                      dense: true,
-                    );
-                  }).toList(),
+                      }).toList(),
                 ),
               ),
             ],

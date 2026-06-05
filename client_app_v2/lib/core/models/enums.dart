@@ -189,3 +189,36 @@ class PromptBlockCategoryGroups {
     'text',
   ];
 }
+
+extension XaiExtensionTypeValue on XaiExtensionType {
+  String get backendValue {
+    switch (this) {
+      case XaiExtensionType.citation:
+        return 'citation';
+      case XaiExtensionType.justification:
+        return 'justification';
+      case XaiExtensionType.falsification:
+        return 'falsification';
+      case XaiExtensionType.theoryLink:
+        return 'theory_link';
+      case XaiExtensionType.riskFlag:
+        return 'risk_flag';
+      case XaiExtensionType.coaching:
+        return 'coaching';
+      case XaiExtensionType.missingContext:
+        return 'missing_context';
+      case XaiExtensionType.remediationSteps:
+        return 'remediation_steps';
+      case XaiExtensionType.emotionalSentiment:
+        return 'emotional_sentiment';
+      case XaiExtensionType.confidence:
+        return 'confidence';
+      case XaiExtensionType.sourceId:
+        return 'source_id';
+      case XaiExtensionType.contextualOverride:
+        return 'contextual_override';
+      case XaiExtensionType.varianceValidation:
+        return 'variance_validation';
+    }
+  }
+}

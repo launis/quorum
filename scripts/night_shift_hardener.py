@@ -262,6 +262,17 @@ class HealingResponse(BaseModel):
     )
 
 
+class HunkAnnotation(BaseModel):
+    """Pydantic model representing the Judge's reasoning for a single diff hunk."""
+    
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    hunk_header: str = Field(..., description="Esimerkiksi '@@ -10,6 +10,7 @@'")
+    rule_ids: list[int] = Field(..., description="Säännöt jotka perustelevat tämän lohkon muutokset")
+    justification: str = Field(..., description="Lyhyt perustelu miksi nämä säännöt selittävät nämä rivit")
+    is_authorized: bool = Field(..., description="True jos kaikki lohkon muutokset ovat sallittuja ja perusteltuja")
+
+
 class JudgeResponse(BaseModel):
     """Pydantic model representing the Adversarial Judge's verdict on the LLM's modifications.
 
@@ -280,6 +291,10 @@ class JudgeResponse(BaseModel):
             "(sallittu ilman mainintaa matriisissa) vai 2) looginen/algoritminen muutos "
             "(VAATII vastaavan maininnan matriisissa). Listaa löydöksesi."
         ),
+    )
+    hunk_annotations: list[HunkAnnotation] = Field(
+        ..., 
+        description="Käy läpi raa'an diffin jokainen lohko (hunk) yksitellen ja erittele syyt."
     )
     is_approved: bool = Field(..., description="True jos kaikki loogiset muutokset diffissä on perusteltu matriisissa.")
     rejection_reason: str = Field(..., description="Jos hylättiin, miksi? Mikä muutos diffissä ei täsmää matriisiin?")
@@ -659,6 +674,30 @@ def pydantic_field_signature_guard(original_code: str, new_code: str) -> None:
             f"Pydantic Schema Freeze Guard (Rule 85) REJECTED the change:\n{detail}"
         )
 
+def size_variance_guard(original_code: str, new_code: str, threshold: float = 0.20) -> None:
+    """Verify that the hardened code is not drastically smaller than the original code.
+
+    Prevents the LLM from hallucinating by returning truncated outputs like 
+    '// ... rest of the code remains the same ...'.
+
+    Args:
+        original_code: The original Python source code before hardening.
+        new_code: The hardened Python source code produced by the LLM.
+        threshold: The maximum allowed reduction in line count (e.g., 0.20 for 20%).
+
+    Raises:
+        ValueError: If the new code is significantly shorter than the original.
+    """
+    orig_lines = len(original_code.splitlines())
+    new_lines = len(new_code.splitlines())
+    
+    if orig_lines > 10 and new_lines < orig_lines * (1.0 - threshold):
+        raise ValueError(
+            f"Size Variance Guard REJECTED the change: "
+            f"Line count dropped from {orig_lines} to {new_lines} "
+            f"(reduction > {threshold * 100:.0f}%). Possible truncation hallucination."
+        )
+
 def pydantic_decorator_stacking_guard(code: str) -> None:
     """Verify that Pydantic V2 computed fields have decorators in the correct order.
 
@@ -745,6 +784,7 @@ async def process_file_with_retry(
     semaphore: asyncio.Semaphore,
     state_file_path: Path,
     resume_mode: bool = False,
+    quarantine_file: Path | None = None,
 ) -> bool:
     """Refactor a single file, runs self-healing loops on linter/compiler errors, and rolls back on exhaustion.
 
@@ -759,6 +799,7 @@ async def process_file_with_retry(
         semaphore: The concurrency controller limiting simultaneous active API calls.
         state_file_path: Path object pointing to the state JSON file.
         resume_mode: Boolean indicating if this is a specialized run for _needs_review files.
+        quarantine_file: The path to the isolated quarantine file for resuming.
 
     Returns:
         True if the file was successfully hardened and passed verification, False otherwise.
@@ -783,6 +824,9 @@ async def process_file_with_retry(
         # Phase 3: Multi-Pass Execution Pipeline
         passes = ["1", "2", "3"] if not resume_mode else ["3"]
         current_code_to_fix = original_code
+        if resume_mode and quarantine_file and quarantine_file.exists():
+            current_code_to_fix = quarantine_file.read_text(encoding="utf-8")
+            
         aggregated_audit_matrix: list[AuditItem] = []
 
         for current_pass in passes:
@@ -799,7 +843,7 @@ async def process_file_with_retry(
 
             if resume_mode:
                 # We already have a mostly correct file. Let's just generate a validation failure locally.
-                real_file = target_file.with_name(target_file.name.replace("_needs_review", ""))
+                real_file = target_file
                 
                 # Rule 60 concurrency protection: Secure global filesystem before writing unverified code
                 await fs_validation_lock.acquire()
@@ -839,6 +883,7 @@ async def process_file_with_retry(
 
             rejected_code = ''
             seen_code_hashes: set[str] = set()  # Track all LLM outputs to detect A-B-A yo-yo loops
+            current_annotated_diff = ""
 
             # Rule 4: Context Injection to prevent hallucinations
             # Hoisted outside retry loop: these files don't change during the run.
@@ -979,6 +1024,14 @@ async def process_file_with_retry(
                         rejected_code = new_code
                         raise stacking_err
 
+                    # Phase 2.8: Size Variance Guard
+                    try:
+                        size_variance_guard(current_code_to_fix, new_code)
+                    except ValueError as size_err:
+                        logger.warning(f"🛡️ Size Variance Guard REJECTED {target_file.name}: {size_err}")
+                        rejected_code = new_code
+                        raise size_err
+
                     # --- ADVERSARIAL JUDGE PASS ---
                     if not is_healing and new_code != current_code_to_fix:
                         import difflib
@@ -1019,6 +1072,8 @@ async def process_file_with_retry(
                             judge_sys_prompt = (
                                 "Olet Quorum Arkkitehtuurituomari. Varmista, ettei Koodari tehnyt luvattomia loogisia muutoksia, "
                                 "joita ei ole selkeästi mainittu Audit-matriisissa.\n\n"
+                                "Sinun on eriteltynä läpikäytävä Git Diffin jokainen '@@ -x,y +a,b @@' lohko. "
+                                "Määritä jokaiselle lohkolle, mitä Audit-matriisin sääntöjä siihen on sovellettu.\n"
                                 "SALLITUT muutokset (ei tarvitse matriisimerkintää):\n"
                                 "- Tyypitysten tarkentaminen (esim. dict -> dict[str, Any], Optional[X] -> X | None)\n"
                                 "- Docstringien lisäys tai päivitys PEP 257 -muotoon\n"
@@ -1028,7 +1083,10 @@ async def process_file_with_retry(
                                 "- Algoritmin tai funktion alkuperäisen toimintalogiikan muutos\n"
                                 "- Ehtolauseiden (if/else) lisäys, poisto tai muutos\n"
                                 "- Virheenkäsittelyn (try/except) lisäys, poisto tai muutos\n\n"
-                                "Jos löydät luvattoman loogisen muutoksen, aseta is_approved=False ja kerro tarkka syy."
+                                "Jos löydät yksittäisenkin lisätyn tai poistetun koodirivin (joka ei ole pelkkä kosmeettinen "
+                                "muutos tai yllä mainittu poikkeus), jota EI mainita Audit-matriisissa, "
+                                "aseta sen lohkon is_authorized=False ja koko JudgeResponsen is_approved=False. "
+                                "ÄLÄ koskaan keksi omia sääntöjä tai perusteluja! Käytä vain matriisin sääntöjä."
                             )
                             judge_user_prompt = f"Audit-matriisi:\n{audit_matrix_json}\n\nGit Diff:\n{diff_str}"
 
@@ -1051,12 +1109,68 @@ async def process_file_with_retry(
                                 raw_judge_json = raw_judge_json.removeprefix("```").removesuffix("```").strip()
 
                             judge_result = JudgeResponse.model_validate_json(raw_judge_json)
+                            
+                            # --- ZERO-TRUST VALIDATION LOOP ---
+                            # 1. Reverse Proof & False Approvals
+                            if judge_result.is_approved:
+                                for hunk in judge_result.hunk_annotations:
+                                    if not hunk.is_authorized:
+                                        logger.warning(f"❌ Tuomari hyväksyi kokonaisuuden, mutta lohko '{hunk.hunk_header}' on luvaton. Hallusinaatio estetty!")
+                                        judge_result.is_approved = False
+                                        judge_result.rejection_reason = f"Lohko {hunk.hunk_header} sisältää koodia jota matriisi ei selitä."
+                                        break
+                                
+                                # 2. Fake Rule Prevention
+                                primary_rule_ids = {a.rule_id for a in getattr(result_dto, "audit_matrix", [])} if isinstance(result_dto, HardeningResponse) else set()
+                                for hunk in judge_result.hunk_annotations:
+                                    for rule_id in hunk.rule_ids:
+                                        if rule_id not in primary_rule_ids:
+                                            logger.warning(f"❌ Tuomari hallusinoi fake-säännön {rule_id} lohkossa '{hunk.hunk_header}'!")
+                                            judge_result.is_approved = False
+                                            judge_result.rejection_reason = f"Tuomari vetosi sääntöön {rule_id}, jota ei ole alkuperäisessä matriisissa."
+                                            break
+                                            
+                                # 3. Missing Hunk Prevention
+                                raw_hunks = [line for line in diff_lines if line.startswith("@@")]
+                                if len(raw_hunks) != len(judge_result.hunk_annotations):
+                                    logger.warning(f"❌ Diffissä on {len(raw_hunks)} lohkoa, mutta Tuomari analysoi vain {len(judge_result.hunk_annotations)} lohkoa.")
+                                    judge_result.is_approved = False
+                                    judge_result.rejection_reason = "Kaikkia muuttuneita koodilohkoja ei analysoitu."
+                            
                             if not judge_result.is_approved:
                                 logger.warning(f"❌ Tuomari hylkäsi muutoksen: {judge_result.rejection_reason}")
                                 rejected_code = new_code
                                 raise ValueError(f"Strict Judge Rejection: {judge_result.rejection_reason}")
                             else:
-                                logger.info("✅ Tuomari hyväksyi diffin!")
+                                logger.info("✅ Tuomari hyväksyi diffin mekanismien kera!")
+                                
+                            # Annotate diff string to save later
+                            md_lines = []
+                            hunk_idx = 0
+                            in_diff = False
+                            for line in diff_lines:
+                                if line.startswith("@@") and hunk_idx < len(judge_result.hunk_annotations):
+                                    if in_diff:
+                                        md_lines.append("```\n")
+                                    ann = judge_result.hunk_annotations[hunk_idx]
+                                    md_lines.append(f"\n## {ann.hunk_header}")
+                                    md_lines.append(f"**Säännöt:** {ann.rule_ids}")
+                                    md_lines.append(f"**Perustelu:** {ann.justification}")
+                                    md_lines.append(f"```diff\n{line}")
+                                    in_diff = True
+                                    hunk_idx += 1
+                                elif line.startswith("---") or line.startswith("+++"):
+                                    if not in_diff:
+                                        md_lines.append(f"```diff\n{line}")
+                                        in_diff = True
+                                    else:
+                                        md_lines.append(line)
+                                else:
+                                    md_lines.append(line)
+                            if in_diff:
+                                md_lines.append("```\n")
+                                
+                            current_annotated_diff = "\n".join(md_lines)
 
                     # Jojo-silmukan esto (Yo-Yo effect) - hash-pohjainen tilahistoria
                     import hashlib
@@ -1215,16 +1329,21 @@ async def process_file_with_retry(
                             f"❌ FATAL: Tiedostoa {target_file.name} ei saatu korjattua turvallisesti (Pass {current_pass}). Virhe: {e}",
                             exc_info=True,
                         )
-                        # Soft Fail: Tallenna needs_review -tiedosto
-                        clean_stem = target_file.stem.replace("_needs_review", "")
-                        review_file = target_file.with_name(f"{clean_stem}_needs_review.py")
+                        # Soft Fail: Tallenna eristettyyn karanteeniin
+                        failed_dir = Path("tmp/night_shift/failed_reviews")
+                        try:
+                            rel_path = target_file.relative_to("backend_v2")
+                        except ValueError:
+                            rel_path = target_file
+                        review_file = failed_dir / "backend_v2" / rel_path
+                        review_file.parent.mkdir(parents=True, exist_ok=True)
                         try:
                             review_file.write_text(current_code_to_fix, encoding="utf-8")
-                            logger.warning(f"💾 Tallennettu osittain korjattu versio: {review_file.name}")
+                            logger.warning(f"💾 Tallennettu puolikuntoinen versio karanteeniin: {review_file.as_posix()}")
                         except OSError as write_err:
-                            logger.error(f"Failed to save review file: {write_err}")
+                            logger.error(f"Failed to save review file to quarantine: {write_err}")
 
-                        original_posix = target_file.as_posix().replace("_needs_review", "")
+                        original_posix = target_file.as_posix()
                         await safe_update_state(original_posix, "FAILED_VERIFICATION", state_file_path)
                         return False
                 finally:
@@ -1261,6 +1380,14 @@ async def process_file_with_retry(
                 f"⚠️ Lopullisen raportin tallennus epäonnistui kohteelle {target_file.name}: {report_err}",
                 exc_info=True,
             )
+
+        if current_annotated_diff:
+            diff_file = report_dir / f"{target_file.stem}_FINAL_{timestamp}_annotated_diff.md"
+            try:
+                diff_file.write_text(f"# Annotated Diff: {target_file.name}\n\n{current_annotated_diff}", encoding="utf-8")
+                logger.info(f"🔍 Annotoitu Diff-raportti tallennettu aamun auditointia varten: {diff_file.as_posix()}")
+            except Exception as e:
+                logger.error(f"⚠️ Diff-tiedoston tallennus epäonnistui: {e}")
 
         if resume_mode:
             if target_file.exists():
@@ -1372,12 +1499,22 @@ async def main() -> None:
 
         pending_files = []
         if resume_mode:
+            failed_dir = Path("tmp/night_shift/failed_reviews")
             logger.info(
-                "🛠️ Resume Mode: Etsitään osittain korjatut *_needs_review.py -tiedostot mikrokorjausta varten..."
+                f"🛠️ Resume Mode: Etsitään puolikuntoiset .py -tiedostot eristetystä karanteenista ({failed_dir})..."
             )
-            for p in BACKEND_DIR.rglob("*_needs_review.py"):
-                pending_files.append(p)
-            logger.info(f"Resume Mode löysi {len(pending_files)} puolikuntoista tiedostoa.")
+            if failed_dir.exists():
+                for p in failed_dir.rglob("*.py"):
+                    try:
+                        # Quarantine structure mimics source: tmp/night_shift/failed_reviews/backend_v2/...
+                        # We only care about backend_v2 files for now
+                        if "backend_v2" in p.parts:
+                            idx = p.parts.index("backend_v2")
+                            orig_p = Path(*p.parts[idx:])
+                            pending_files.append((p, orig_p))
+                    except ValueError:
+                        pass
+            logger.info(f"Resume Mode löysi {len(pending_files)} karanteenitiedostoa.")
         elif git_mode:
             logger.info("🎯 Etsitään muuttuneet tiedostot Git-tilasta...")
             git_files = get_git_modified_files()
@@ -1408,8 +1545,6 @@ async def main() -> None:
                             continue
                         if p.name == "__init__.py" and p.stat().st_size == 0:
                             continue
-                        if p.name.endswith("_needs_review.py"):
-                            continue
                         # Varmistetaan, että emme prosessoi valmiita tiedostoja uudelleen
                         if state.get(p.as_posix()) != "DONE":
                             pending_files.append(p)
@@ -1426,8 +1561,6 @@ async def main() -> None:
                     continue
                 if p.name == "__init__.py" and p.stat().st_size == 0:
                     continue
-                if p.name.endswith("_needs_review.py"):
-                    continue
                 if state.get(p.as_posix()) != "DONE":
                     pending_files.append(p)
 
@@ -1441,10 +1574,16 @@ async def main() -> None:
         # Pass the immutable state file path directly to avoid sharing mutable dictionary references
         results = []
         async with asyncio.TaskGroup() as tg:
-            tasks = [
-                tg.create_task(process_file_with_retry(system_prompt, f, semaphore, STATE_FILE, resume_mode))
-                for f in pending_files
-            ]
+            if resume_mode:
+                tasks = [
+                    tg.create_task(process_file_with_retry(system_prompt, orig_f, semaphore, STATE_FILE, True, q_f))
+                    for q_f, orig_f in pending_files
+                ]
+            else:
+                tasks = [
+                    tg.create_task(process_file_with_retry(system_prompt, f, semaphore, STATE_FILE, False))
+                    for f in pending_files
+                ]
 
         results = [t.result() for t in tasks]
 

@@ -118,6 +118,7 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
         'is_evaluative',
         'contextual_override',
         'semantic_reasoning',
+        'quotes_list',
       ],
     );
     final val = _MatrixScorecardRowDto(
@@ -198,6 +199,11 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
         'semantic_reasoning',
         (v) => v as String?,
       ),
+      quotesList: $checkedConvert(
+        'quotes_list',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
     );
     return val;
   },
@@ -228,6 +234,7 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
     'isEvaluative': 'is_evaluative',
     'contextualOverride': 'contextual_override',
     'semanticReasoning': 'semantic_reasoning',
+    'quotesList': 'quotes_list',
   },
 );
 
@@ -266,6 +273,7 @@ Map<String, dynamic> _$MatrixScorecardRowDtoToJson(
   'is_evaluative': instance.isEvaluative,
   'contextual_override': instance.contextualOverride,
   'semantic_reasoning': instance.semanticReasoning,
+  'quotes_list': instance.quotesList,
 };
 
 const _$EvidenceTypeEnumMap = {

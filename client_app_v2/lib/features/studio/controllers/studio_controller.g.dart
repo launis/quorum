@@ -87,6 +87,93 @@ final class WorkflowByIdFamily extends $Family
   String toString() => r'workflowByIdProvider';
 }
 
+/// Fetches available extensions for a Workflow natively by ID
+
+@ProviderFor(workflowAvailableExtensions)
+final workflowAvailableExtensionsProvider =
+    WorkflowAvailableExtensionsFamily._();
+
+/// Fetches available extensions for a Workflow natively by ID
+
+final class WorkflowAvailableExtensionsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<String>>,
+          List<String>,
+          FutureOr<List<String>>
+        >
+    with $FutureModifier<List<String>>, $FutureProvider<List<String>> {
+  /// Fetches available extensions for a Workflow natively by ID
+  WorkflowAvailableExtensionsProvider._({
+    required WorkflowAvailableExtensionsFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'workflowAvailableExtensionsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$workflowAvailableExtensionsHash();
+
+  @override
+  String toString() {
+    return r'workflowAvailableExtensionsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<String>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<String>> create(Ref ref) {
+    final argument = this.argument as String;
+    return workflowAvailableExtensions(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WorkflowAvailableExtensionsProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$workflowAvailableExtensionsHash() =>
+    r'c1ba2b7b456fa8ca6e11cb79a9499bffef68da16';
+
+/// Fetches available extensions for a Workflow natively by ID
+
+final class WorkflowAvailableExtensionsFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<String>>, String> {
+  WorkflowAvailableExtensionsFamily._()
+    : super(
+        retry: null,
+        name: r'workflowAvailableExtensionsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Fetches available extensions for a Workflow natively by ID
+
+  WorkflowAvailableExtensionsProvider call(String id) =>
+      WorkflowAvailableExtensionsProvider._(argument: id, from: this);
+
+  @override
+  String toString() => r'workflowAvailableExtensionsProvider';
+}
+
 /// Fetches a single Step natively by ID
 
 @ProviderFor(stepById)

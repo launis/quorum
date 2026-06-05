@@ -70,7 +70,8 @@ def mock_repo_transformer() -> Any:
                     }
                 ],
                 "display_scale": "original",
-                "visible_extensions": [],
+                "visible_block_extensions": [],
+                "visible_workflow_extensions": [],
             }
         ]
     )
@@ -155,7 +156,7 @@ async def test_build_report_dto_maps_correctly(mock_repo_transformer: Any) -> No
     axis = dto.layouts[0].axes[0]
     assert axis.name in ["Mock Workflow", "step_analyst", "matrix_logic1234", "test_k", "Logic", "Logic *"]  # noqa: E501
     assert axis.score == 75.0
-    assert axis.row_explanation == "Very logical."
+    assert axis.row_explanation == ""  # Epic 70 Phase 3: row_explanation is cleared when quotes are enabled
 
 
 @pytest.mark.asyncio
@@ -230,7 +231,8 @@ def mock_repo_microcot() -> Any:
                     }
                 ],
                 "display_scale": "original",
-                "visible_extensions": [],
+                "visible_block_extensions": [],
+                "visible_workflow_extensions": [],
             }
         ]
     )
@@ -390,7 +392,8 @@ def mock_repo_sdui() -> AsyncMock:
                     }
                 ],
                 "display_scale": "original",
-                "visible_extensions": [],
+                "visible_block_extensions": [],
+                "visible_workflow_extensions": [],
             }
         ]
     )
@@ -576,7 +579,7 @@ async def test_xai_extraction_works_for_nested_dict(mock_repo_transformer: Any) 
     assert len(dto.layouts) == 1
     axis = dto.layouts[0].axes[0]
     assert axis.score == 85.0
-    assert axis.row_explanation == "Strictly suffix-based justification."
+    assert axis.row_explanation == ""  # Epic 70 Phase 3: row_explanation is cleared when quotes are enabled
     assert axis.coaching == "Keep it up"
 
 

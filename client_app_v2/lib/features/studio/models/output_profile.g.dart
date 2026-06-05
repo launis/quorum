@@ -223,7 +223,8 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
             'description',
             'custom_preface',
             'visible_metadata',
-            'visible_extensions',
+            'visible_block_extensions',
+            'visible_workflow_extensions',
             'max_extension_items',
             'display_scale',
             'synthesis',
@@ -267,11 +268,21 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
                 (v as List<dynamic>?)?.map((e) => e as String).toList() ??
                 const ['date', 'organization'],
           ),
-          visibleExtensions: $checkedConvert(
-            'visible_extensions',
-            (v) => (v as List<dynamic>)
-                .map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
-                .toList(),
+          visibleBlockExtensions: $checkedConvert(
+            'visible_block_extensions',
+            (v) =>
+                (v as List<dynamic>?)
+                    ?.map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
+                    .toList() ??
+                const [],
+          ),
+          visibleWorkflowExtensions: $checkedConvert(
+            'visible_workflow_extensions',
+            (v) =>
+                (v as List<dynamic>?)
+                    ?.map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
+                    .toList() ??
+                const [],
           ),
           maxExtensionItems: $checkedConvert(
             'max_extension_items',
@@ -318,7 +329,8 @@ _OutputProfile _$OutputProfileFromJson(Map<String, dynamic> json) =>
         'organizationId': 'organization_id',
         'customPreface': 'custom_preface',
         'visibleMetadata': 'visible_metadata',
-        'visibleExtensions': 'visible_extensions',
+        'visibleBlockExtensions': 'visible_block_extensions',
+        'visibleWorkflowExtensions': 'visible_workflow_extensions',
         'maxExtensionItems': 'max_extension_items',
         'displayScale': 'display_scale',
         'includeDiagnosticScorecard': 'include_diagnostic_scorecard',
@@ -338,7 +350,10 @@ Map<String, dynamic> _$OutputProfileToJson(
   'description': instance.description?.toJson(),
   'custom_preface': instance.customPreface?.toJson(),
   'visible_metadata': instance.visibleMetadata,
-  'visible_extensions': instance.visibleExtensions
+  'visible_block_extensions': instance.visibleBlockExtensions
+      .map((e) => _$XaiExtensionTypeEnumMap[e]!)
+      .toList(),
+  'visible_workflow_extensions': instance.visibleWorkflowExtensions
       .map((e) => _$XaiExtensionTypeEnumMap[e]!)
       .toList(),
   'max_extension_items': instance.maxExtensionItems,
@@ -379,7 +394,8 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
         'description',
         'custom_preface',
         'visible_metadata',
-        'visible_extensions',
+        'visible_block_extensions',
+        'visible_workflow_extensions',
         'max_extension_items',
         'display_scale',
         'synthesis',
@@ -408,11 +424,21 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
             (v as List<dynamic>?)?.map((e) => e as String).toList() ??
             const ['date', 'organization'],
       ),
-      visibleExtensions: $checkedConvert(
-        'visible_extensions',
-        (v) => (v as List<dynamic>)
-            .map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
-            .toList(),
+      visibleBlockExtensions: $checkedConvert(
+        'visible_block_extensions',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
+                .toList() ??
+            const [],
+      ),
+      visibleWorkflowExtensions: $checkedConvert(
+        'visible_workflow_extensions',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => $enumDecode(_$XaiExtensionTypeEnumMap, e))
+                .toList() ??
+            const [],
       ),
       maxExtensionItems: $checkedConvert(
         'max_extension_items',
@@ -456,7 +482,8 @@ _EmbeddedOutputProfile _$EmbeddedOutputProfileFromJson(
   fieldKeyMap: const {
     'customPreface': 'custom_preface',
     'visibleMetadata': 'visible_metadata',
-    'visibleExtensions': 'visible_extensions',
+    'visibleBlockExtensions': 'visible_block_extensions',
+    'visibleWorkflowExtensions': 'visible_workflow_extensions',
     'maxExtensionItems': 'max_extension_items',
     'displayScale': 'display_scale',
     'includeDiagnosticScorecard': 'include_diagnostic_scorecard',
@@ -472,7 +499,10 @@ Map<String, dynamic> _$EmbeddedOutputProfileToJson(
   'description': instance.description?.toJson(),
   'custom_preface': instance.customPreface?.toJson(),
   'visible_metadata': instance.visibleMetadata,
-  'visible_extensions': instance.visibleExtensions
+  'visible_block_extensions': instance.visibleBlockExtensions
+      .map((e) => _$XaiExtensionTypeEnumMap[e]!)
+      .toList(),
+  'visible_workflow_extensions': instance.visibleWorkflowExtensions
       .map((e) => _$XaiExtensionTypeEnumMap[e]!)
       .toList(),
   'max_extension_items': instance.maxExtensionItems,

@@ -73,10 +73,10 @@ Quorum V2:n arkkitehtuurissa on tunnistettu kaksi merkittävää koodihajua (cod
 
 ## 5. Onnistumisen Kriteerit
 
-* [ ] API-reititin [executions.py](file:///c:/src/quorum/backend_v2/api/routers/execution/executions.py) ei sisällä yhtään manuaalista `request.json()` -hakua tai `while True` -silmukkaa.
-* [ ] Eager-uutto käynnistyy palvelukerroksen sisällä Pydantic-validoinnin jälkeen.
-* [ ] [v2_core.py](file:///c:/src/quorum/backend_v2/models/v2_core.py)-tiedostossa ei käytetä `object.__setattr__` -metodia Pydantic-mallien väkivaltaiseen mutatoimiseen.
-* [ ] Kaikki yksikkö- ja integraatiotestit menevät läpi onnistuneesti (`uv run pytest`).
+* [x] API-reititin [executions.py](file:///c:/src/quorum/backend_v2/api/routers/execution/executions.py) ei sisällä yhtään manuaalista `request.json()` -hakua tai `while True` -silmukkaa.
+* [x] Eager-uutto käynnistyy palvelukerroksen sisällä Pydantic-validoinnin jälkeen.
+* [x] [v2_core.py](file:///c:/src/quorum/backend_v2/models/v2_core.py)-tiedostossa ei käytetä `object.__setattr__` -metodia Pydantic-mallien väkivaltaiseen mutatoimiseen.
+* [x] Kaikki yksikkö- ja integraatiotestit menevät läpi onnistuneesti (`uv run pytest`).
 
 ---
 

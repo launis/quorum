@@ -196,6 +196,32 @@
     </rule_block>
 </architectural_invariants>
 
+<agentic_safety_guardrails>
+    <rule_block id="architecture_lock_mandate">
+        <banned_pattern>Refactoring, modifying control flow, or changing data traversal logic in code blocks protected by an `ARCHITECTURE LOCK` comment.</banned_pattern>
+        <mandatory_pattern>You MUST strictly preserve these blocks as they contain verified logic. You MAY only add or update PEP 257 docstrings.</mandatory_pattern>
+        <catastrophic_reason>Treating protected algorithmic blocks as "defensive programming" violations breaks human-verified TDD logic.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="pydantic_schema_freeze_mandate">
+        <banned_pattern>Autonomously tightening structural types, removing `Optional` (`| None`) bounds, or changing field signatures on existing Pydantic models.</banned_pattern>
+        <mandatory_pattern>If a schema seems improperly typed, DO NOT fix it; instead log a Warning in the audit matrix. Schema mutability is strictly forbidden without explicit instruction.</mandatory_pattern>
+        <catastrophic_reason>Modifying strictness autonomously breaks downstream validation of the SSOT database.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="pydantic_validation_bypass_ban">
+        <banned_pattern>Using `dict(model)`, list comprehensions casting to raw dicts, or mutating objects via full serialization cycles (`type(model)(**model_dump())`) to bypass validation constraints.</banned_pattern>
+        <mandatory_pattern>ALWAYS use `model.model_copy(update={...})` for shallow, instant updates when altering isolated identifiers or keys.</mandatory_pattern>
+        <catastrophic_reason>Bypassing validation causes runtime AttributeErrors, while full serialization forces recursive O(N) validation cycles.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="data_and_file_preservation_mandate">
+        <banned_pattern>Autonomously refactoring, truncating, or "simplifying" existing file I/O operations, data extraction loops, string concatenations, or dictionary traversals purely for aesthetics.</banned_pattern>
+        <mandatory_pattern>Your mandate is strictly architectural (typing, docstrings, modern syntax), NOT algorithmic optimization. You MUST preserve functional I/O and parsing logic entirely.</mandatory_pattern>
+        <catastrophic_reason>Deleting or altering working File I/O or parsing loops causes catastrophic Fail-Fast bypasses.</catastrophic_reason>
+    </rule_block>
+</agentic_safety_guardrails>
+
 <testing_and_verification_mandate>
     <instruction>Executing Python tooling ALWAYS requires this explicit unified format calling the audit loop script:</instruction>
     <command>`uv run python scripts/backend_audit_loop.py backend_v2/[TARGET_FILES] --openapi`</command>

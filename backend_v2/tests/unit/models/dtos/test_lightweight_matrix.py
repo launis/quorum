@@ -11,19 +11,20 @@ from backend_v2.models.enums import XaiExtensionType
 
 def test_output_profile_config_strictness() -> None:
     """Test OutputProfileConfig enforces Fail-Fast constraints."""
-    config = OutputProfileConfig(visible_extensions=[XaiExtensionType.CITATION])
-    assert XaiExtensionType.CITATION in config.visible_extensions
+    config = OutputProfileConfig(visible_block_extensions=[XaiExtensionType.CITATION], visible_workflow_extensions=[])
+    assert XaiExtensionType.CITATION in config.visible_block_extensions
 
     # Test strictness / forbid extra
     with pytest.raises(ValidationError):
         OutputProfileConfig(
-            visible_extensions=[XaiExtensionType.CITATION],
+            visible_block_extensions=[XaiExtensionType.CITATION],
+            visible_workflow_extensions=[],
             extra_field="should_fail",  # type: ignore
         )
 
     # Test mutability (frozen=True)
     with pytest.raises(ValidationError):
-        config.visible_extensions = []  # type: ignore
+        config.visible_block_extensions = []  # type: ignore
 
 
 def test_lightweight_matrix_output_strictness() -> None:

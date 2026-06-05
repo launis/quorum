@@ -36,6 +36,7 @@ void main() {
               body: AtomMatrixTableWidget(
                 matrices: matrices,
                 visibleColumns: const [
+                  'label',
                   'score',
                   'normalized_score',
                   'distribution',
@@ -85,6 +86,7 @@ void main() {
                 body: AtomMatrixTableWidget(
                   matrices: matrices,
                   visibleColumns: const [
+                    'label',
                     'score',
                     'normalized_score',
                     'distribution',

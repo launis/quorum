@@ -41,7 +41,7 @@ void main() {
                 "label_en": "Logicality",
                 "name": "Loogisuus",
                 "score": 88.0,
-                "justification": "Analyysi perustelu...",
+                "row_explanation": "Analyysi perustelu...",
               },
             ],
           },

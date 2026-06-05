@@ -63,6 +63,8 @@ def test_generate_report_hook_variance_aligned() -> None:
         "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
         "layouts": [],
         "display_scale": "original",
+        "visible_block_extensions": [],
+        "visible_workflow_extensions": ["variance_validation"],
     }
     deps = HookDependencies(
         exec_repo=mock_exec_repo,
@@ -128,6 +130,8 @@ def test_generate_report_hook_variance_misaligned_sycophancy() -> None:
         "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
         "layouts": [],
         "display_scale": "original",
+        "visible_block_extensions": [],
+        "visible_workflow_extensions": ["variance_validation"],
     }
     deps = HookDependencies(
         exec_repo=mock_exec_repo,

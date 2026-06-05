@@ -119,6 +119,15 @@ class StudioClient {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Retrieves available block-level extensions for a workflow.
+  Future<List<String>> getWorkflowAvailableExtensions(String id) async {
+    final response = await _dio.get(
+      'studio/workflows/$id/available-extensions',
+    );
+    final data = response.data as Map<String, dynamic>;
+    return List<String>.from(data['available_extensions'] ?? []);
+  }
+
   // --- Steps ---
 
   /// Retrieves all steps.

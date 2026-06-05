@@ -613,7 +613,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         logger.error("[SynthesisHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-    active_exts = active_profile_dto.visible_extensions
+    active_exts = getattr(active_profile_dto, "visible_block_extensions", [])
     max_items = active_profile_dto.max_extension_items or 2
 
     sys_prompt = "<system_directive>\n<execution_parameters>\n"
@@ -742,7 +742,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
         raw_audits = [a.model_dump(mode="json") for a in audit_traces] if audit_traces else []
 
-        active_exts = active_profile_dto.visible_extensions
+        active_exts = getattr(active_profile_dto, "visible_block_extensions", [])
         if active_exts and not result.xai_highlights:
             msg = (
                 "Fail-Fast: Synthesis LLM failed to produce any requested XAI "

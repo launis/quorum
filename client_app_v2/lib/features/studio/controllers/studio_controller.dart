@@ -25,6 +25,14 @@ Future<Workflow> workflowById(Ref ref, String id) async {
   return Workflow.parseInBackground(str);
 }
 
+/// Fetches available extensions for a Workflow natively by ID
+@riverpod
+Future<List<String>> workflowAvailableExtensions(Ref ref, String id) async {
+  if (id.isEmpty) return [];
+  final client = ref.watch(studioClientProvider);
+  return client.getWorkflowAvailableExtensions(id);
+}
+
 /// Fetches a single Step natively by ID
 @riverpod
 Future<NodeStrategy> stepById(Ref ref, String id) async {

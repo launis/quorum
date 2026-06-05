@@ -51,10 +51,17 @@ async def get_redis_client_for_pacing() -> Any:
         else:
             from arq.connections import RedisSettings, create_pool
 
+            from backend_v2.models.enums import SystemConcurrency
             from backend_v2.settings import get_settings
 
             settings = get_settings()
-            _redis_pool = await create_pool(RedisSettings(host=settings.redis_host, port=settings.redis_port))
+            _redis_pool = await create_pool(
+                RedisSettings(
+                    host=settings.redis_host,
+                    port=settings.redis_port,
+                    conn_timeout=int(SystemConcurrency.REDIS_CONNECTION_TIMEOUT_SECONDS.value),
+                )
+            )
             _redis_loop = current_loop
     except Exception as e:
         logger.error("Failed to initialize Redis pool for pacing.", exc_info=True)

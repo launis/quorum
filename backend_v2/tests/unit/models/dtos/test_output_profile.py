@@ -17,11 +17,12 @@ def test_output_profile_create_dto_strictness() -> None:
             "slug": "my-profile",
             "workflow_id": "wf_123",
             "name": {"default_locale": "en", "translations": {"en": "Name"}},
-            "visible_extensions": [XaiExtensionType.CITATION, XaiExtensionType.JUSTIFICATION],
+            "visible_block_extensions": [XaiExtensionType.CITATION, XaiExtensionType.JUSTIFICATION],
+            "visible_workflow_extensions": [],
         }
     )
     assert dto.id == "prf_1234abcd"
-    assert XaiExtensionType.CITATION in dto.visible_extensions
+    assert XaiExtensionType.CITATION in dto.visible_block_extensions
 
     # Immutability check
     with pytest.raises(ValidationError, match="Instance is frozen"):

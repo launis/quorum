@@ -30,6 +30,9 @@ class ProfileEditorView extends HookConsumerWidget {
     final formState = ref.watch(workflowFormProvider(workflowId));
     final promptBlocksState = ref.watch(promptBlocksControllerProvider);
     final stepsState = ref.watch(stepsControllerProvider);
+    final availableExtensionsState = ref.watch(
+      workflowAvailableExtensionsProvider(workflowId),
+    );
 
     return switch (formState) {
       AsyncData(:final value) => _buildScaffold(
@@ -40,6 +43,7 @@ class ProfileEditorView extends HookConsumerWidget {
         value,
         promptBlocksState,
         stepsState,
+        availableExtensionsState,
       ),
       AsyncError(:final error, :final stackTrace) => Scaffold(
         appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowId))),
@@ -65,6 +69,7 @@ class ProfileEditorView extends HookConsumerWidget {
     Workflow payload,
     AsyncValue<List<dynamic>> promptBlocksState,
     AsyncValue<List<dynamic>> stepsState,
+    AsyncValue<List<String>> availableExtensionsState,
   ) {
     Set<String> allowedBlockIds = {};
     if (stepsState.hasValue) {
@@ -95,7 +100,8 @@ class ProfileEditorView extends HookConsumerWidget {
               defaultLocale: 'en',
               translations: {'fi': 'Oletusraportti', 'en': 'Default Report'},
             ),
-            visibleExtensions: [],
+            visibleBlockExtensions: [],
+            visibleWorkflowExtensions: [],
             layouts: [
               OutputLayoutBlock(
                 presetView: PresetView.metrics1d,
@@ -173,7 +179,8 @@ class ProfileEditorView extends HookConsumerWidget {
                     defaultLocale: 'en',
                     translations: {'fi': 'Uusi profiili', 'en': 'New Profile'},
                   ),
-                  visibleExtensions: [],
+                  visibleBlockExtensions: [],
+                  visibleWorkflowExtensions: [],
                   layouts: [],
                 );
 
@@ -248,6 +255,7 @@ class ProfileEditorView extends HookConsumerWidget {
                 entry.value,
                 allowedBlockIds,
                 promptBlocksState,
+                availableExtensionsState,
               ),
             ),
           ],
@@ -265,6 +273,7 @@ class ProfileEditorView extends HookConsumerWidget {
     EmbeddedOutputProfile profileDef,
     Set<String> allowedBlockIds,
     AsyncValue<List<dynamic>> promptBlocksState,
+    AsyncValue<List<String>> availableExtensionsState,
   ) {
     final layouts = List<OutputLayoutBlock>.from(profileDef.layouts);
 
@@ -367,80 +376,152 @@ class ProfileEditorView extends HookConsumerWidget {
             ),
             const SizedBox(height: 24),
             InputDecorator(
-              decoration: InputDecoration(
-                labelText: AppLocalizations.of(
-                  context,
-                )!.profileEditorVisibleExtensions,
+              decoration: const InputDecoration(
+                labelText: 'Vaihekohtaiset laajennokset (Block-level)',
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
+              child: availableExtensionsState.when(
+                data: (availableExtensions) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: XaiExtensionType.values.map((ext) {
+                      final l10n = AppLocalizations.of(context)!;
+                      String label = ext.name;
+                      switch (ext) {
+                        case XaiExtensionType.citation:
+                          label = l10n.xaiSourceCitation;
+                          break;
+                        case XaiExtensionType.justification:
+                          label = l10n.xaiJustification;
+                          break;
+                        case XaiExtensionType.falsification:
+                          label = l10n.xaiDevilsAdvocate;
+                          break;
+                        case XaiExtensionType.theoryLink:
+                          label = l10n.xaiTheoryLink;
+                          break;
+                        case XaiExtensionType.riskFlag:
+                          label = l10n.xaiRiskFlag;
+                          break;
+                        case XaiExtensionType.coaching:
+                          label = l10n.xaiCoachingTip;
+                          break;
+                        case XaiExtensionType.missingContext:
+                          label = l10n.xaiMissingContext;
+                          break;
+                        case XaiExtensionType.remediationSteps:
+                          label = l10n.xaiRemediation;
+                          break;
+                        case XaiExtensionType.emotionalSentiment:
+                          label = l10n.xaiSentiment;
+                          break;
+                        case XaiExtensionType.confidence:
+                          label = l10n.xaiConfidence;
+                          break;
+                        case XaiExtensionType.sourceId:
+                          label = l10n.xaiSourceId;
+                          break;
+                        case XaiExtensionType.contextualOverride:
+                          label = l10n.xaiContextualOverride;
+                          break;
+                        case XaiExtensionType.varianceValidation:
+                          label = l10n.xaiVarianceValidationTitle;
+                          break;
+                      }
+
+                      // Dynamic Dropdown Population
+                      if (!availableExtensions.contains(ext.backendValue)) {
+                        return const SizedBox.shrink();
+                      }
+
+                      final isWorkflowExtension = [
+                        XaiExtensionType.varianceValidation,
+                        XaiExtensionType.confidence,
+                      ].contains(ext);
+
+                      if (isWorkflowExtension) return const SizedBox.shrink();
+
+                      return CheckboxListTile(
+                        title: Text(label),
+                        value: profileDef.visibleBlockExtensions.contains(ext),
+                        onChanged: (val) {
+                          final updatedList = List<XaiExtensionType>.from(
+                            profileDef.visibleBlockExtensions,
+                          );
+                          if (val == true) {
+                            updatedList.add(ext);
+                          } else {
+                            updatedList.remove(ext);
+                          }
+                          rebuildProfile(
+                            profileDef.copyWith(
+                              visibleBlockExtensions: updatedList,
+                            ),
+                          );
+                        },
+                        controlAffinity: ListTileControlAffinity.leading,
+                        dense: true,
+                      );
+                    }).toList(),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, st) => Text('Error loading extensions: $e'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            InputDecorator(
+              decoration: const InputDecoration(
+                labelText: 'Globaalit työnkulun laajennokset (Workflow-level)',
                 isDense: true,
                 border: OutlineInputBorder(),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: XaiExtensionType.values.map((ext) {
-                  final l10n = AppLocalizations.of(context)!;
-                  String label = ext.name;
-                  switch (ext) {
-                    case XaiExtensionType.citation:
-                      label = l10n.xaiSourceCitation;
-                      break;
-                    case XaiExtensionType.justification:
-                      label = l10n.xaiJustification;
-                      break;
-                    case XaiExtensionType.falsification:
-                      label = l10n.xaiDevilsAdvocate;
-                      break;
-                    case XaiExtensionType.theoryLink:
-                      label = l10n.xaiTheoryLink;
-                      break;
-                    case XaiExtensionType.riskFlag:
-                      label = l10n.xaiRiskFlag;
-                      break;
-                    case XaiExtensionType.coaching:
-                      label = l10n.xaiCoachingTip;
-                      break;
-                    case XaiExtensionType.missingContext:
-                      label = l10n.xaiMissingContext;
-                      break;
-                    case XaiExtensionType.remediationSteps:
-                      label = l10n.xaiRemediation;
-                      break;
-                    case XaiExtensionType.emotionalSentiment:
-                      label = l10n.xaiSentiment;
-                      break;
-                    case XaiExtensionType.confidence:
-                      label = l10n.xaiConfidence;
-                      break;
-                    case XaiExtensionType.sourceId:
-                      label = l10n.xaiSourceId;
-                      break;
-                    case XaiExtensionType.contextualOverride:
-                      label = l10n.xaiContextualOverride;
-                      break;
-                    case XaiExtensionType.varianceValidation:
-                      label = l10n.xaiVarianceValidationTitle;
-                      break;
-                  }
-
-                  return CheckboxListTile(
-                    title: Text(label),
-                    value: profileDef.visibleExtensions.contains(ext),
-                    onChanged: (val) {
-                      final updatedList = List<XaiExtensionType>.from(
-                        profileDef.visibleExtensions,
-                      );
-                      if (val == true) {
-                        updatedList.add(ext);
-                      } else {
-                        updatedList.remove(ext);
+                children:
+                    [
+                      XaiExtensionType.varianceValidation,
+                      XaiExtensionType
+                          .confidence, // Assuming confidence might be workflow-level or keep it static?
+                    ].map((ext) {
+                      final l10n = AppLocalizations.of(context)!;
+                      String label = ext.name;
+                      switch (ext) {
+                        case XaiExtensionType.varianceValidation:
+                          label = l10n.xaiVarianceValidationTitle;
+                          break;
+                        case XaiExtensionType.confidence:
+                          label = l10n.xaiConfidence;
+                          break;
+                        default:
+                          break;
                       }
-                      rebuildProfile(
-                        profileDef.copyWith(visibleExtensions: updatedList),
+
+                      return CheckboxListTile(
+                        title: Text(label),
+                        value: profileDef.visibleWorkflowExtensions.contains(
+                          ext,
+                        ),
+                        onChanged: (val) {
+                          final updatedList = List<XaiExtensionType>.from(
+                            profileDef.visibleWorkflowExtensions,
+                          );
+                          if (val == true) {
+                            updatedList.add(ext);
+                          } else {
+                            updatedList.remove(ext);
+                          }
+                          rebuildProfile(
+                            profileDef.copyWith(
+                              visibleWorkflowExtensions: updatedList,
+                            ),
+                          );
+                        },
+                        controlAffinity: ListTileControlAffinity.leading,
+                        dense: true,
                       );
-                    },
-                    controlAffinity: ListTileControlAffinity.leading,
-                    dense: true,
-                  );
-                }).toList(),
+                    }).toList(),
               ),
             ),
             const SizedBox(height: 24),

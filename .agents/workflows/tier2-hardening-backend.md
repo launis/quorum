@@ -27,7 +27,7 @@ Ensimmäisenä tehtävänäsi on käyttää työkaluja (esim. kansioiden listaus
 Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
 1. Valitse listan ENSIMMÄINEN tekemätön alihakemisto TAI yksittäinen tiedosto.
 2. Lue tiukasti kyseisen kohteen `.py`-tiedostot (tai vain se yksittäinen annettu tiedosto) huomioiden sivuutettavat kansiot. Määrittele auditointitaulukko koskemaan Vain valittua laajuutta.
-3. **MANDATOITU TRACEABILITY MATRIX**: Sinun on **EHDOTTOMASTI** raportoitava havaintosi tulostamalla chattiin tarkka Markdown-taulukko ("Audit Matrix"). Taulukon on **PAKKO** sisältää oma erillinen rivinsä jokaiselle säännölle (yhteensä 50 kpl), ja jokainen on arvioitava (Pass/Fail/NA):
+3. **MANDATOITU TRACEABILITY MATRIX**: Sinun on **EHDOTTOMASTI** raportoitava havaintosi tulostamalla chattiin tarkka Markdown-taulukko ("Audit Matrix"). Taulukon on **PAKKO** sisältää oma erillinen rivinsä jokaiselle säännölle (yhteensä 66 kpl), ja jokainen on arvioitava (Pass/Fail/NA):
 
    **1. Pydantic V2 & Strict Nirvana**
    - **`1. the_zero_compromise_pledge`**: Ei `.get("default")` fallbackeja liiketoimintalogiikassa. Pydantic-validointi pakollinen.
@@ -89,13 +89,30 @@ Kun annan luvan edetä ("PROCEED"), aloitamme virtuaalisen listan purkamisen:
    - **`49. docstring_raises_fail_fast`**: `Raises:` -osiossa on EKSPLISIITTISESTI mainittava Quorumin `AppException` -virhekoodit, jotka koodi voi laukaista (Fail-Fast läpinäkyvyys).
    - **`50. dry_typing_in_docstrings`**: Koska käytössä on Python 3.14 tyypitys, ÄLÄ toista tietotyyppejä docstringin `Args:`, `Returns:` tai `Attributes:` -osioissa, jos ne on jo koodissa. Formaatti: `muuttuja: Kuvaus.` Moniriviset kuvaukset sisennetään 4 välilyönnillä.
 
+   **6. Refactoring & Safety Guardrails (XML Mandates)**
+   - **`51. strict_attribute_integrity`**: Ei `getattr()` fallbackeja. Kunnioita olemassa olevia string-etuliitteitä (prefixes).
+   - **`52. zero_field_renaming`**: Pydantic-kenttien omavaltainen uudelleennimeäminen on EHDOTTOMASTI KIELLETTY.
+   - **`53. api_service_separation`**: ID-generointi uusille entiteeteille vain Service-kerroksessa, ei koskaan API reitittimessä.
+   - **`54. pydantic_validation_bypass_ban`**: Älä koskaan käytä `dict(model)` tai listakomprehensioita ohittaaksesi Pydantic-validoinnin.
+   - **`55. setdefault_hydration`**: Sanakirjojen täyttöön on käytettävä natiivia `dict.setdefault("key", val)` funktiota.
+   - **`56. data_parsing_preservation`**: Älä "yksinkertaista" tai refaktoroi toimivia tiedon jäsentelylooppeja esteettisistä syistä.
+   - **`57. inline_comment_preservation`**: Olemassa olevien arkkitehtuurikommenttien (esim. `# ...`) poistaminen on kielletty.
+   - **`58. pydantic_config_warning`**: Älä kiristä `extra="allow"` asetusta omavaltaisesti `forbid`-tilaan; kirjaa vain Warning.
+   - **`59. pydantic_schema_freeze`**: Älä kiristä rakenteellisia tyyppejä tai poista `| None` sallimuksia omavaltaisesti.
+   - **`60. decorator_stacking_mandate`**: `@computed_field` ON OLTAVA `@property` yläpuolella (`# type: ignore[prop-decorator]`).
+   - **`61. file_io_preservation`**: Älä koskaan poista tai refaktoroi tiedostojen luku/kirjoitusoperaatioita (File I/O) omavaltaisesti.
+   - **`62. architecture_lock`**: Älä koske koodilohkoihin, joiden edellä on kommentti `ARCHITECTURE LOCK`.
+   - **`63. srp_god_method`**: Pura massiiviset "God Methodit" yksityisiin apufunktioihin.
+   - **`64. fail_fast_payload_length`**: Pakota minimipituus poimitulle tekstille ennen LLM-kontekstiin lähettämistä.
+   - **`65. async_io_lock_isolation`**: Älä aja hidasta I/O-operaatiota `asyncio.Lock()`-lohkossa. Käytä Two-Lock strategiaa.
+   - **`66. pydantic_mutation_optimization`**: Käytä objektien mutatoinnissa aina `.model_copy(update={...})`, älä sarjallista koko objektia.
    Käytä sarakkeita: `| Nro | Sääntö ID | Tila (Pass / Fail) | Löydökset & Perustelu |`.
    Varmista, että todella käyt läpi koodista asiat kohta kohdalta. Tämä poistaa hallusinaatiot ja ohitukset.
 
     <critical_anti_laziness_mandate>
       KIELTO: Audit Matrixin tiivistäminen, rivien yhdistäminen tai sääntöjen pois jättäminen on ANKARASTI KIELLETTY (Anti-Laziness Mandate). 
-      Sinun on PAKKO tulostaa taulukkoon tasan 50 numeroitua riviä (1-50) joka ikinen kerta, vaikka 49 niistä olisi "Pass". 
-      Jos tulostat taulukkoon alle 50 riviä, rikot suoraan järjestelmän pääarkkitehtuurin sääntöjä. Jokainen Phase 9 -sääntö on käytävä läpi eksplisiittisesti, jotta pakotat oman huomiomekanismisi (attention mechanism) tarkistamaan koodin tuon säännön osalta.
+      Sinun on PAKKO tulostaa taulukkoon tasan 66 numeroitua riviä (1-66) joka ikinen kerta, vaikka 65 niistä olisi "Pass". 
+      Jos tulostat taulukkoon alle 66 riviä, rikot suoraan järjestelmän pääarkkitehtuurin sääntöjä. Jokainen Phase 9 -sääntö on käytävä läpi eksplisiittisesti, jotta pakotat oman huomiomekanismisi (attention mechanism) tarkistamaan koodin tuon säännön osalta.
     </critical_anti_laziness_mandate>
 
 4. Pysähdy taulukon tulostamisen jälkeen. Odotan sen näkemistä. Jää odottamaan komentoa "FIX" (jos asioita on korjattavana / Fail) tai komentoa "NEXT" (jos kaikki säännöt olivat puhtaasti Pass).

@@ -174,3 +174,13 @@ class WorkflowDeleteResponse(BaseResponseDTO):
 
     status: str
     deleted_id: str
+
+
+class WorkflowAvailableExtensionsResponse(BaseResponseDTO):
+    """API Response containing available XAI extensions for a workflow.
+
+    Attributes:
+        available_extensions: Union of all output_extensions defined across all Target Matrices.
+    """
+
+    available_extensions: list[str] = Field(default_factory=list)

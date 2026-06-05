@@ -12,7 +12,8 @@ from backend_v2.models.enums import LaxXaiExtensionType
 class OutputProfileConfig(V2CoreBase):
     """Configuration for Output Profile extensions."""
 
-    visible_extensions: list[LaxXaiExtensionType]
+    visible_block_extensions: list[LaxXaiExtensionType]
+    visible_workflow_extensions: list[LaxXaiExtensionType]
 
 
 class XAILogDto(V2CoreBase):

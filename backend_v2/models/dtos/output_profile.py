@@ -35,9 +35,13 @@ class OutputProfileCreateDTO(V2CoreBase):
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
         description="List of metadata fields visible on the UI and PDF cover header.",
     )
-    visible_extensions: list[LaxXaiExtensionType] = Field(
+    visible_block_extensions: list[LaxXaiExtensionType] = Field(
         default_factory=list,
-        description="List of XAI extensions visible at the end of the report.",
+        description="Block-level XAI extensions (per-matrix, LLM-produced).",
+    )
+    visible_workflow_extensions: list[LaxXaiExtensionType] = Field(
+        default_factory=list,
+        description="Workflow-level global extensions (mathematical engines).",
     )
     max_extension_items: int | None = Field(
         default=None,
@@ -71,9 +75,13 @@ class OutputProfileUpdateDTO(V2CoreBase):
         default=None,
         description="List of metadata fields visible on the UI and PDF cover header.",
     )
-    visible_extensions: list[LaxXaiExtensionType] | None = Field(
+    visible_block_extensions: list[LaxXaiExtensionType] | None = Field(
         default=None,
-        description="List of XAI extensions visible at the end of the report.",
+        description="Block-level XAI extensions (per-matrix, LLM-produced).",
+    )
+    visible_workflow_extensions: list[LaxXaiExtensionType] | None = Field(
+        default=None,
+        description="Workflow-level global extensions (mathematical engines).",
     )
     max_extension_items: int | None = Field(
         default=None,
@@ -106,7 +114,8 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     visible_metadata: list[str] = Field(
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"]
     )
-    visible_extensions: list[LaxXaiExtensionType] = Field(default_factory=list)
+    visible_block_extensions: list[LaxXaiExtensionType] = Field(default_factory=list)
+    visible_workflow_extensions: list[LaxXaiExtensionType] = Field(default_factory=list)
     max_extension_items: int | None = None
     display_scale: Literal["original", "custom", "normalized_100"] = "original"
     synthesis: SynthesisConfigDTO = Field(default_factory=SynthesisConfigDTO)

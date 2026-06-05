@@ -206,7 +206,7 @@ elif preset_view == "2d_compare" and len(axes) < 2:
 Jos layout-konfiguraatio on virheellinen, järjestelmä kaatuu backendissä, ei Flutterissa.
 
 ### F. XAI Extensions ja Grouped Highlights
-`OutputProfile.visible_extensions` määrää mitä XAI-laajennusryhmiä populoidaan. Extension-data poimitaan V2-skeemasta nested dict -rakenteesta:
+`OutputProfile.visible_block_extensions` (ja `visible_workflow_extensions`) määrää mitä XAI-laajennusryhmiä populoidaan. Extension-data poimitaan V2-skeemasta nested dict -rakenteesta:
 ```python
 ext_dict = matrix_payload.extensions or {}
 coaching = ext_dict.get("coaching")

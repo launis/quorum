@@ -3,7 +3,12 @@ import logging
 from fastapi import APIRouter
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioServiceDep
-from backend_v2.models.dtos.studio import WorkflowDeleteResponse, WorkflowResponseDTO, WorkflowSimulationResponse
+from backend_v2.models.dtos.studio import (
+    WorkflowAvailableExtensionsResponse,
+    WorkflowDeleteResponse,
+    WorkflowResponseDTO,
+    WorkflowSimulationResponse,
+)
 from backend_v2.models.v2_core import Workflow
 
 logger = logging.getLogger(__name__)
@@ -36,6 +41,15 @@ async def simulate_workflow(
     """Dry-run and validate a workflow DAG topology before saving."""
     result = await studio_service.simulate_workflow(current_user, data)
     return WorkflowSimulationResponse(**result)
+
+
+@router.get("/{id}/available-extensions", response_model=WorkflowAvailableExtensionsResponse)
+async def get_workflow_available_extensions(
+    id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep
+) -> WorkflowAvailableExtensionsResponse:
+    """Calculate the union of all output_extensions defined across all Target Matrices within a specific DAG."""
+    extensions = await studio_service.get_workflow_available_extensions(current_user, id)
+    return WorkflowAvailableExtensionsResponse(available_extensions=extensions)
 
 
 @router.post("/{id}/clone", response_model=WorkflowResponseDTO)

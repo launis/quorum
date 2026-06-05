@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/features/execution/models/scorecard_dto.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/shared/widgets/output_renderer.dart';
 
 /// Renders the atomic level breakdown for the given matrix in a tabular format.
 /// Enforces Zero-Math SDUI rules: only renders data provided by the backend DTO.
@@ -108,6 +109,14 @@ class AtomMatrixTableWidget extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
+              if (visibleColumns.contains('quotes'))
+                const Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Lainaukset (quotes)',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
               if (visibleColumns.contains('normalized_score'))
                 Expanded(
                   flex: 1,
@@ -210,6 +219,24 @@ class AtomMatrixTableWidget extends StatelessWidget {
                             fontStyle: FontStyle.italic,
                           ),
                         ),
+                      ),
+                    if (visibleColumns.contains('quotes'))
+                      Expanded(
+                        flex: 3,
+                        child: m.quotesList.isEmpty
+                            ? const Text(
+                                '-',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontStyle: FontStyle.italic,
+                                  color: Colors.grey,
+                                ),
+                              )
+                            : OutputRenderer(
+                                markdownContent: m.quotesList
+                                    .map((q) => '- $q')
+                                    .join('\n'),
+                              ),
                       ),
                     if (visibleColumns.contains('normalized_score'))
                       Expanded(
@@ -317,6 +344,13 @@ class AtomMatrixTableWidget extends StatelessWidget {
                       fontSize: 13,
                       fontStyle: FontStyle.italic,
                     ),
+                  ),
+                ),
+              if (visibleColumns.contains('quotes') && m.quotesList.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: OutputRenderer(
+                    markdownContent: m.quotesList.map((q) => '- $q').join('\n'),
                   ),
                 ),
             ],

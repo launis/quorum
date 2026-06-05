@@ -159,7 +159,7 @@ class Settings(BaseSettings):
     max_precedent_return_count: Annotated[int, Field(description="Max precedents to return")] = 2
 
     # --- Redis & Arq ---
-    redis_host: Annotated[str, Field(description="Redis Host")] = "localhost"
+    redis_host: Annotated[str, Field(description="Redis Host")] = "127.0.0.1"
     redis_port: Annotated[int, Field(description="Redis Port")] = 6379
     worker_job_timeout: Annotated[int, Field(description="Max seconds Arq worker processes a job")] = 14400
 
