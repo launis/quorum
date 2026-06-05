@@ -21,7 +21,7 @@ dependencies:
   flutter_dotenv:
 
   # Firebase
-  firebase_core:
+  firebase_core: 4.6.0
   firebase_auth:
   firebase_ui_auth:
   firebase_ui_localizations:
