@@ -531,5 +531,29 @@ class ChunkWorker:
                     extra={"error_code": "DLQ_ROUTING"},
                     exc_info=True,
                 )
-                chunk_final = {"_dlq_status": "FAILED/DLQ", "reason": reason_str}
+                chunk_final = {}
+                fallback_reason = f"Chunk Processing Failed: {reason_str}"
+                
+                # Graceful DLQ Fallback: Map the failure to individual elements
+                if has_shuffled_atoms and chunk is not None:
+                    chunk_final["evaluations"] = []
+                    for item in getattr(chunk, "items", []):
+                        aid = item.get("atom_id") if isinstance(item, dict) else None
+                        if aid:
+                            chunk_final["evaluations"].append({
+                                "atom_id": aid,
+                                "status": "DLQ",
+                                "exact_quote": None,
+                                "contextual_override": False,
+                                "semantic_reasoning": fallback_reason
+                            })
+                else:
+                    for crit in chunk_criteria:
+                        chunk_final[crit.id] = {
+                            "status": "DLQ",
+                            "exact_quote": None,
+                            "contextual_override": False,
+                            "semantic_reasoning": fallback_reason
+                        }
+                        
                 return chunk_final, None, []

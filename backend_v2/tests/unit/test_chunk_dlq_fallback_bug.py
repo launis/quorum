@@ -1,0 +1,125 @@
+import pytest
+import asyncio
+from typing import Any
+
+from backend_v2.services.orchestrator.strategies.llm_execution.chunk_worker import ChunkWorker
+from backend_v2.exceptions import LLMSchemaValidationError
+
+class MockChunk:
+    def __init__(self, items):
+        self.items = items
+
+class MockCompiler:
+    def build_dynamic_schema(self, *args, **kwargs):
+        class DummySchema:
+            pass
+        return DummySchema
+    
+    def compile_chunk_prompt(self, *args, **kwargs):
+        class DummyCompiledPrompt:
+            dynamic_messages = []
+            def model_copy(self, *args, **kwargs):
+                return self
+        return DummyCompiledPrompt()
+
+class MockLLMClient:
+    pass
+
+class DummyPromptBlock:
+    def __init__(self, block_id, category_id="matrix", b_type="instruction"):
+        self.id = block_id
+        self.category_id = category_id
+        self.type = b_type
+        self.execution_persona = None
+        self.scales = []
+
+@pytest.mark.asyncio
+async def test_chunk_worker_dlq_fallback_for_shuffled_atoms(monkeypatch): 
+    # We want to test that if execute_structured_task raises an exception,
+    # process_chunk returns a graceful DLQ list instead of {"_dlq_status": "FAILED/DLQ"}
+    
+    from backend_v2.services.llm_task_executor import LLMTaskExecutor
+    async def mock_execute(*args, **kwargs):
+        raise LLMSchemaValidationError("Mock validation error", "mock_msg")
+
+    monkeypatch.setattr(LLMTaskExecutor, "execute_structured_task", mock_execute)
+    
+    chunk = MockChunk([{"atom_id": "atom_123"}, {"atom_id": "atom_456"}])
+    sem = asyncio.Semaphore(1)
+    compiler = MockCompiler()
+    
+    # We pass empty criteria because has_shuffled_atoms=True maps from chunk.items
+    chunk_criteria = []
+    
+    # Pass a dummy object that circumvents Pydantic validation
+    class DummyCompiledPrompt:
+        dynamic_messages = []
+    compiled_prompt = DummyCompiledPrompt()
+    
+    chunk_final, usage, traces = await ChunkWorker.process_chunk(
+        chunk=chunk,
+        sem=sem,
+        compiler=compiler,
+        criteria_blocks=chunk_criteria,
+        user_payload="test payload",
+        base_system_prompt="test",
+        has_search=False,
+        has_shuffled_atoms=True,
+        atom_to_block_ids={"atom_123": {"matrix_abc"}, "atom_456": {"matrix_abc"}},
+        effective_mcp_tools=[],
+        bound_client=MockLLMClient(),
+        step_id="step_test",
+        target_locale="en",
+        synthesis_instructions=None,
+        output_profile=None
+    )
+    
+    # Currently, it returns {"_dlq_status": "FAILED/DLQ", "reason": "..."}
+    # This test will initially fail because we will assert that it should return:
+    # {"evaluations": [{"atom_id": "atom_123", "status": "DLQ", ...}, ...]}
+    
+    assert "evaluations" in chunk_final, f"Expected graceful DLQ fallback list, got {chunk_final}"
+    assert len(chunk_final["evaluations"]) == 2
+    assert chunk_final["evaluations"][0]["atom_id"] == "atom_123"
+    assert chunk_final["evaluations"][0]["status"] == "DLQ"
+
+@pytest.mark.asyncio
+async def test_chunk_worker_dlq_fallback_for_standard_blocks(monkeypatch):
+    from backend_v2.services.llm_task_executor import LLMTaskExecutor
+    async def mock_execute(*args, **kwargs):
+        raise LLMSchemaValidationError("Mock validation error", "mock_msg")
+
+    monkeypatch.setattr(LLMTaskExecutor, "execute_structured_task", mock_execute)
+    
+    sem = asyncio.Semaphore(1)
+    compiler = MockCompiler()
+    
+    crit_1 = DummyPromptBlock("crit_1", "extraction", "criteria")
+    crit_2 = DummyPromptBlock("crit_2", "extraction", "criteria")
+    
+    chunk_criteria = [crit_1, crit_2]
+    
+    class DummyCompiledPrompt:
+        dynamic_messages = []
+    compiled_prompt = DummyCompiledPrompt()
+    
+    chunk_final, usage, traces = await ChunkWorker.process_chunk(
+        chunk=None,
+        sem=sem,
+        compiler=compiler,
+        criteria_blocks=chunk_criteria,
+        user_payload="test payload",
+        base_system_prompt="test",
+        has_search=False,
+        has_shuffled_atoms=False,
+        atom_to_block_ids={},
+        effective_mcp_tools=[],
+        bound_client=MockLLMClient(),
+        step_id="step_test",
+        target_locale="en",
+        synthesis_instructions=None,
+        output_profile=None
+    )
+    
+    assert "crit_1" in chunk_final, f"Expected graceful DLQ dict for crit_1, got {chunk_final}"
+    assert chunk_final["crit_1"]["status"] == "DLQ"

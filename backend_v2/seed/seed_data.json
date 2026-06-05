@@ -1909,7 +1909,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_7d0ef5f0be004974801b53d2af317bbe",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, the quote MUST be in an 'ai:' block. BANNED SOURCES: Never read matches from 'user:' blocks or input fields. STEP 1 (Syntactic Anchor): Find explicit rejection markers (e.g., 'Instead of following', 'I will create my own', 'I ignored'). STEP 2 (Bounding Box): Scan the sentence containing the marker. If the author explicitly states they are creating a new rule that contradicts the requested instructions. Do not evaluate 'quality' or if the new rule is better.",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find explicit rejection markers (e.g., 'Instead of following', 'I will create my own', 'I ignored'). STEP 2 (Bounding Box): Scan the sentence containing the marker. If the author explicitly states they are creating a new rule that contradicts the requested instructions. Do not evaluate 'quality' or if the new rule is better.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false
@@ -1928,7 +1928,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_5b0573225735409b8ef3d3eac041236d",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find dogmatic absolute markers (e.g., 'always', '100% guaranteed', 'it is a fact that'). STEP 2 (Bounding Box): Scan the same paragraph. If the absolute claim is made regarding a compliance or archival rule BUT no external framework (ARMA, ISO, law) is cited in that paragraph. Do not accept absolute claims that are mathematically verifiable.",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find dogmatic absolute markers (e.g., 'always', '100% guaranteed', 'it is a fact that'). STEP 2 (Bounding Box): Scan the same paragraph. If the absolute claim is made regarding a compliance or archival rule BUT no external framework (ARMA, ISO, law) is cited in that paragraph. Do not accept absolute claims that are mathematically verifiable.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false
@@ -1947,7 +1947,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_ce5f175f1eb341d1bcfe97d31028605d",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find explicit exposure actions (e.g., 'displaying PII', 'sharing password', 'bypassing encryption', 'publicly exposing'). STEP 2 (Bounding Box): Scan the sentence. If a physical action actively exposes sensitive data. Do not evaluate theoretical risk, only active exposure actions.",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find explicit exposure actions (e.g., 'displaying PII', 'sharing password', 'bypassing encryption', 'publicly exposing'). STEP 2 (Bounding Box): Scan the sentence. If a physical action actively exposes sensitive data. Do not evaluate theoretical risk, only active exposure actions.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false
@@ -1979,7 +1979,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_82698279c7bd44b9a763f56423b86bda",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find physical actions of organizing or saving data (e.g., 'stored in', 'saved as', 'archived'). STEP 2 (Bounding Box): Scan the sentence. If an action is taken to store data. Do not evaluate if the storage method is 'good' or 'bad'.",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find physical actions of organizing or saving data (e.g., 'stored in', 'saved as', 'archived'). STEP 2 (Bounding Box): Scan the sentence. If an action is taken to store data. Do not evaluate if the storage method is 'good' or 'bad'.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false
@@ -1998,7 +1998,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_eb8a7a13bbe54bcca5474cc8219229e2",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find shortcut markers (e.g., 'to save time', 'we can skip', 'not strictly necessary'). STEP 2 (Bounding Box): Scan the paragraph. If the author explicitly states they are omitting a mandatory step (e.g., ARMA Accountability) for convenience. Do not accept justified omissions backed by data.",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find shortcut markers (e.g., 'to save time', 'we can skip', 'not strictly necessary'). STEP 2 (Bounding Box): Scan the paragraph. If the author explicitly states they are omitting a mandatory step (e.g., ARMA Accountability) for convenience. Do not accept justified omissions backed by data.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false
@@ -2017,7 +2017,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_e078baa92bf14cf19d8f4adce74c3fcf",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find absolute exclusion markers (e.g., 'only focus on', 'ignore everything else'). STEP 2 (Bounding Box): Scan the paragraph. If a single compliance rule is enforced while explicitly stating that another known constraint (e.g., Availability vs Protection) will be ignored. Do not accept balanced trade-offs.",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find absolute exclusion markers (e.g., 'only focus on', 'ignore everything else'). STEP 2 (Bounding Box): Scan the paragraph. If a single compliance rule is enforced while explicitly stating that another known constraint (e.g., Availability vs Protection) will be ignored. Do not accept balanced trade-offs.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false
@@ -2087,7 +2087,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_b7e1fb5427384bb6866e224a0013ed2d",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find implicit authority markers (e.g., 'it is common knowledge', 'we always do it this way', 'internally known'). STEP 2 (Bounding Box): Scan the sentence. If a procedural rule is justified solely by internal tradition without citing an external verifiable standard (ARMA Transparency violation). Do not accept explicit external citations.",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find implicit authority markers (e.g., 'it is common knowledge', 'we always do it this way', 'internally known'). STEP 2 (Bounding Box): Scan the sentence. If a procedural rule is justified solely by internal tradition without citing an external verifiable standard (ARMA Transparency violation). Do not accept explicit external citations.",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false
@@ -2119,7 +2119,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_23df983a5c6e4eb9b8a28f2287267bd8",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find explicit methodology links (e.g., 'in accordance with', 'following the protocol defined by'). STEP 2 (Bounding Box): Scan the sentence. If an action is explicitly linked to a named guideline or procedure (ARMA Compliance). Do not evaluate the 'quality' of the methodology. <disambiguation>\n  Regulatory framework references count as formal citations ONLY if a \n  specific sub-article, clause, or numbered principle is cited (e.g., \n  \"Article 29b(2)\", \"ISO 27001 §6.1.2\"). Generic regulatory mentions \n  without sub-clause specificity DO NOT satisfy methodology link, benchmark, \n  formal citation, or security standard extraction conditions.\n</disambiguation>",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find explicit methodology links (e.g., 'in accordance with', 'following the protocol defined by'). STEP 2 (Bounding Box): Scan the sentence. If an action is explicitly linked to a named guideline or procedure (ARMA Compliance). Do not evaluate the 'quality' of the methodology. <disambiguation>\n  Regulatory framework references count as formal citations ONLY if a \n  specific sub-article, clause, or numbered principle is cited (e.g., \n  \"Article 29b(2)\", \"ISO 27001 §6.1.2\"). Generic regulatory mentions \n  without sub-clause specificity DO NOT satisfy methodology link, benchmark, \n  formal citation, or security standard extraction conditions.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false
@@ -2138,7 +2138,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_09a80d0f657a4a449417bdbc82059578",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find boundary definition markers (e.g., 'this applies only to', 'within the scope of', 'excluding'). STEP 2 (Bounding Box): Scan the paragraph. If the operational limits of a compliance rule are explicitly defined. Do not accept unbounded absolute rules.",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find boundary definition markers (e.g., 'this applies only to', 'within the scope of', 'excluding'). STEP 2 (Bounding Box): Scan the paragraph. If the operational limits of a compliance rule are explicitly defined. Do not accept unbounded absolute rules.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true
@@ -2157,7 +2157,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_643f6ce553754f8290d392356afdefba",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find conflict resolution markers (e.g., 'while X requires Y, we must also ensure Z by'). STEP 2 (Bounding Box): Scan the paragraph. If two conflicting operational constraints (e.g., Retention vs Disposition) are mentioned and a specific action is taken to resolve the tension. Do not accept rhetorical mentions of conflict without a resolution action.",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find conflict resolution markers (e.g., 'while X requires Y, we must also ensure Z by'). STEP 2 (Bounding Box): Scan the paragraph. If two conflicting operational constraints (e.g., Retention vs Disposition) are mentioned and a specific action is taken to resolve the tension. Do not accept rhetorical mentions of conflict without a resolution action.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false
@@ -2189,7 +2189,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_96354dbfd9d247f49237952ead7cacaf",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find explicit dialectical reasoning ('we evaluated option A, but chose B because'). STEP 2 (Bounding Box): Scan the paragraph. If the author explicitly documents a rejected compliance alternative and provides data-driven reasoning for the final choice. Do not accept simple lists of options without rejection reasoning. <disambiguation>\n  REFRAMING EXCLUSION: Rhetorical reframing patterns where a concept is \n  repositioned from negative to positive framing ('not just X, but Y') are \n  STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as:\n  - counter-arguments (they do not argue AGAINST anything)\n  - dialectical syntheses (they do not reconcile two opposing theses)\n  - alternative model dismantling (they do not present a separate model)\n  - absolute conclusions (they are framing choices, not logical claims)\n  If a reframing pattern is the ONLY candidate match, return JSON null.\n</disambiguation>",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find explicit dialectical reasoning ('we evaluated option A, but chose B because'). STEP 2 (Bounding Box): Scan the paragraph. If the author explicitly documents a rejected compliance alternative and provides data-driven reasoning for the final choice. Do not accept simple lists of options without rejection reasoning. <disambiguation>\n  REFRAMING EXCLUSION: Rhetorical reframing patterns where a concept is \n  repositioned from negative to positive framing ('not just X, but Y') are \n  STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as:\n  - counter-arguments (they do not argue AGAINST anything)\n  - dialectical syntheses (they do not reconcile two opposing theses)\n  - alternative model dismantling (they do not present a separate model)\n  - absolute conclusions (they are framing choices, not logical claims)\n  If a reframing pattern is the ONLY candidate match, return JSON null.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false
@@ -2208,7 +2208,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_10f55e6f5920473eabd081f5a94c8a89",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find formal citation markers ('according to ARMA principle of', 'ISO standard'). STEP 2 (Bounding Box): Scan the sentence. If a specific external framework is named AND a specific sub-principle or clause is cited to justify a decision. Do not accept generic references to 'standards' without naming them. <disambiguation>\n  Regulatory framework references count as formal citations ONLY if a \n  specific sub-article, clause, or numbered principle is cited (e.g., \n  \"Article 29b(2)\", \"ISO 27001 §6.1.2\"). Generic regulatory mentions \n  without sub-clause specificity DO NOT satisfy methodology link, benchmark, \n  formal citation, or security standard extraction conditions.\n</disambiguation>",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find formal citation markers ('according to ARMA principle of', 'ISO standard'). STEP 2 (Bounding Box): Scan the sentence. If a specific external framework is named AND a specific sub-principle or clause is cited to justify a decision. Do not accept generic references to 'standards' without naming them. <disambiguation>\n  Regulatory framework references count as formal citations ONLY if a \n  specific sub-article, clause, or numbered principle is cited (e.g., \n  \"Article 29b(2)\", \"ISO 27001 §6.1.2\"). Generic regulatory mentions \n  without sub-clause specificity DO NOT satisfy methodology link, benchmark, \n  formal citation, or security standard extraction conditions.\n</disambiguation>",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true
@@ -2227,7 +2227,7 @@
               "tda_assertions": [
                 {
                   "tda_id": "tda_0ab09c0daa9f4aeaad264c00944c5332",
-                  "ai_rule_description": "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. STEP 1 (Syntactic Anchor): Find integration markers (e.g., 'simultaneously achieving', 'balances X and Y through'). STEP 2 (Bounding Box): Scan the paragraph. If a specific mechanism is described that actively satisfies two typically opposing ARMA principles (e.g., Protection vs Availability). Do not accept claims of balance without describing the physical mechanism.",
+                  "ai_rule_description": "STEP 1 (Syntactic Anchor): Find integration markers (e.g., 'simultaneously achieving', 'balances X and Y through'). STEP 2 (Bounding Box): Scan the paragraph. If a specific mechanism is described that actively satisfies two typically opposing ARMA principles (e.g., Protection vs Availability). Do not accept claims of balance without describing the physical mechanism.",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false
@@ -6949,7 +6949,7 @@
               "en": "Attach chat log between human and AI."
             }
           },
-          "ai_description": "PROCESS EVIDENCE DIRECTIVE: This artifact contains the chronological dialogue unspooled between the human operator and the AI system leading up to the final product. You must analyze this strictly for developmental trajectory, cognitive dependencies, prompt compliance, and the balance of intellectual labor. Do not treat this as the final product itself, but rather the scaffolding that built it.",
+          "ai_description": "--- AI INSTRUCTION FOR THIS SOURCE (chat_log) ---\nPROCESS EVIDENCE DIRECTIVE: This artifact contains the chronological dialogue unspooled between the human operator and the AI system leading up to the final product. You must analyze this strictly for developmental trajectory, cognitive dependencies, prompt compliance, and the balance of intellectual labor. Do not treat this as the final product itself, but rather the scaffolding that built it.\n\nMANDATE_HUMAN_EVALUATION: You must evaluate ONLY the human user's cognitive level, steering skills, and domain expertise. \n\nEXTRACTION_RULE: You MUST extract 'exact_quote' evidence STRICTLY from lines starting with \"user:\". \n\nCONTEXT_RULE: Text starting with \"ai:\" is strictly background context. NEVER use the AI's output, intelligence, or reasoning as evidence of the human's competence.",
           "questionnaire_definition": []
         },
         {
@@ -7972,7 +7972,7 @@
       "allowed_mcp_tools": [],
       "safety": "safe",
       "type": "llm",
-      "model_strategy": "fast",
+      "model_strategy": "deep",
       "expected_inputs": [
         "inputs"
       ],
