@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.llm.schema_builder import SchemaCompilerService
-from backend_v2.models.enums import BlockDataType, XaiExtensionType
+from backend_v2.models.enums import BlockDataType, PromptBlockCategory, XaiExtensionType
 from backend_v2.models.v2_core import I18nText, PromptBlock
 
 
@@ -14,7 +14,7 @@ def create_mock_block(slug: str, btype: BlockDataType, extensions: list[str]) ->
         label=I18nText(default_locale="en", translations={"en": "Test Label"}),
         description=I18nText(default_locale="en", translations={"en": "Test Desc"}),
         ai_description="Test AI instruction",
-        category_id="test_cat",
+        category_id=PromptBlockCategory.SYSTEM_RULE,
         is_evaluative=True,
         type=btype,
         allow_decimals=False,

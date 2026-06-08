@@ -145,7 +145,9 @@ class ChunkWorker:
                 target_locale=target_locale,
             )
 
-            persona = chunk_criteria[0].execution_persona if chunk_criteria else None
+            is_lightweight = False
+            if step_metadata and step_metadata.get("is_lightweight_extraction"):
+                is_lightweight = True
 
             # V3 Cache Fix: Use CompiledPrompt with separated static/dynamic tiers
             compiled_prompt = compiler.compile_chunk_prompt(
@@ -177,7 +179,7 @@ class ChunkWorker:
                         validation_context={
                             "strictness_level": strictness_level,
                             "source_text": user_payload,
-                            "persona": persona,
+                            "is_lightweight_extraction": is_lightweight,
                             "estimated_token_count": step_metadata.get("estimated_token_count", 0)
                             if step_metadata
                             else 0,
@@ -252,7 +254,7 @@ class ChunkWorker:
                                             validation_context={
                                                 "strictness_level": strictness_level,
                                                 "source_text": user_payload,
-                                                "persona": persona,
+                                                "is_lightweight_extraction": is_lightweight,
                                                 "estimated_token_count": step_metadata.get("estimated_token_count", 0)
                                                 if step_metadata
                                                 else 0,
@@ -276,7 +278,7 @@ class ChunkWorker:
                                 validation_context={
                                     "strictness_level": strictness_level,
                                     "source_text": user_payload,
-                                    "persona": persona,
+                                    "is_lightweight_extraction": is_lightweight,
                                     "estimated_token_count": step_metadata.get("estimated_token_count", 0)
                                     if step_metadata
                                     else 0,
@@ -531,29 +533,33 @@ class ChunkWorker:
                     extra={"error_code": "DLQ_ROUTING"},
                     exc_info=True,
                 )
-                chunk_final = {}
                 fallback_reason = f"Chunk Processing Failed: {reason_str}"
-                
+                chunk_final = {
+                    "_dlq_status": "FAILED/DLQ",
+                    "reason": fallback_reason,
+                }
                 # Graceful DLQ Fallback: Map the failure to individual elements
                 if has_shuffled_atoms and chunk is not None:
                     chunk_final["evaluations"] = []
                     for item in getattr(chunk, "items", []):
                         aid = item.get("atom_id") if isinstance(item, dict) else None
                         if aid:
-                            chunk_final["evaluations"].append({
-                                "atom_id": aid,
-                                "status": "DLQ",
-                                "exact_quote": None,
-                                "contextual_override": False,
-                                "semantic_reasoning": fallback_reason
-                            })
+                            chunk_final["evaluations"].append(
+                                {
+                                    "atom_id": aid,
+                                    "status": "DLQ",
+                                    "exact_quote": None,
+                                    "contextual_override": False,
+                                    "semantic_reasoning": fallback_reason,
+                                }
+                            )
                 else:
                     for crit in chunk_criteria:
                         chunk_final[crit.id] = {
                             "status": "DLQ",
                             "exact_quote": None,
                             "contextual_override": False,
-                            "semantic_reasoning": fallback_reason
+                            "semantic_reasoning": fallback_reason,
                         }
-                        
+
                 return chunk_final, None, []

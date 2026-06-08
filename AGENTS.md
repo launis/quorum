@@ -6,10 +6,10 @@
 </system_context>
 
 <catastrophic_system_bans>
-    <rule_block id="win11_run_command_crash">
-        <banned_pattern>Calling the `run_command` tool natively, predicting `&&` chains, or proposing Linux shell commands like `ls` or `rm -rf`.</banned_pattern>
-        <mandatory_pattern>DELEGATE EXECUTION: Output exact native PowerShell commands (chaining with `;`) in a Markdown block and EXPLICITLY ASK THE USER to run them.</mandatory_pattern>
-        <catastrophic_reason>Antigravity V6.1 sandboxing fails on Windows 11. Using the automated tool triggers a "failed to set up sandbox" cascade crash.</catastrophic_reason>
+    <rule_block id="win11_run_command_crash_exceptions">
+        <banned_pattern>Calling the `run_command` tool natively for arbitrary Linux commands, `&&` chains, or heavy build tools (like `flutter gen-l10n`).</banned_pattern>
+        <mandatory_pattern>DELEGATE EXECUTION for arbitrary commands. EXCEPTION: You MUST use the `run_command` tool natively to run automated testing via `uv run python scripts/backend_audit_loop.py . --test` and `uv run python scripts/flutter_audit_loop.py client_app_v2` after every significant change.</mandatory_pattern>
+        <catastrophic_reason>While general sandboxing might fail on Windows 11, the automated Python audit loops MUST be run by the AI to guarantee Tier 2 constraints and Universal Quality Gates are met.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="direct_database_mutation">

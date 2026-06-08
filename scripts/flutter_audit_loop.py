@@ -1,5 +1,4 @@
-"""
-Flutter Audit Loop Script (Antigravity Phase 9)
+"""Flutter Audit Loop Script (Antigravity Phase 9)
 
 **Mitä tämä skripti tekee:**
 Tämä skripti on Automatisoitu Laatuportti (Quality Gate) Flutter-käyttöliittymälle (`client_app_v2`). Se suorittaa peräkkäiset koodin puhtaanapitotoimet:
@@ -38,6 +37,10 @@ from pathlib import Path
 
 
 def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+
     if len(sys.argv) < 2:
         print("Käyttö: python flutter_audit_loop.py <kohdekansio> [--build]")
         sys.exit(1)
@@ -58,7 +61,7 @@ def main():
     print(f"\n🚀 Suoritetaan quality-loop kansiolle: {target_dir}")
     print("--------------------------------------------------")
 
-    # Korjaus: Koska skripti hyppää jo `client_app_v2` kansion sisään, 
+    # Korjaus: Koska skripti hyppää jo `client_app_v2` kansion sisään,
     # komento-argumentit pitää muuttaa muotoon "." jos pyydettiin koko kansiota,
     # tai poistaa 'client_app_v2/' polun alusta.
     cmd_dir = target_dir
@@ -73,7 +76,7 @@ def main():
         if res_l10n.returncode != 0:
             print("❌ L10N Generointi kaatui! Keskeytetään.")
             sys.exit(res_l10n.returncode)
-        
+
         res = subprocess.run(["dart", "run", "build_runner", "build", "-d"], shell=True)
         if res.returncode != 0:
             print("❌ Generaattori kaatui! Keskeytetään.")

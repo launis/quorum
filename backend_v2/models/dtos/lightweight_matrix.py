@@ -101,6 +101,59 @@ class MergedFactsDTO(V2CoreBase):
     model_config = ConfigDict(extra="allow", frozen=True)
 
 
+class LightweightExtractionAtom(V2CoreBase):
+    """Strict schema for Zero-Reasoning extraction protocols.
+
+    This model enforces the 'Zero-Reasoning Mandate' by lacking cognitive fields
+    like semantic_reasoning. This reduces token load and prevents hallucination.
+    """
+
+    atom_id: str
+    extracted_facts: dict[str, str | None] = Field(default_factory=dict)
+    exact_quote: str | None = None
+    status: Literal["PASS", "FAIL", "DLQ"] | None = Field(
+        default=None, description="The evaluation status. Must be one of PASS, FAIL, DLQ."
+    )
+
+    @property
+    def evidence_found(self) -> bool:
+        """Phantom Boolean -esto: Sanitoi LLM:n tuottamat haamu-nullit."""
+        blacklist = {"null", "none", "n/a", "false", "", "ei löydy", "not found", "-", "[]", "{}"}
+        if self.exact_quote is not None and self.exact_quote.strip().lower() not in blacklist:
+            return True
+        for val in self.extracted_facts.values():
+            if val is not None and val.strip().lower() not in blacklist:
+                return True
+        return False
+
+    def calculate_rule_satisfied(self, inverse_evidence: bool, allow_contextual_override: bool = False) -> bool | str:
+        """Deterministinen tuomiovalta. Kevyt uutto ei tue contextual_overridea."""
+        if self.status:
+            if self.status == "DLQ":
+                return "DLQ"
+            evidence_found = self.status == "PASS"
+            if inverse_evidence:
+                return not evidence_found
+            return evidence_found
+
+        if inverse_evidence:
+            return not self.evidence_found
+        return self.evidence_found
+
+    # Compatibility properties for scoring.py
+    @property
+    def contextual_override(self) -> bool:
+        return False
+
+    @property
+    def structural_location(self) -> str:
+        return "N/A"
+
+    @property
+    def semantic_reasoning(self) -> str:
+        return "N/A (Kevyt poiminta)"
+
+
 class AtomEvaluationItemDTO(V2CoreBase):
     """Strict schema for individual atom evaluations in the waterfall pipeline."""
 

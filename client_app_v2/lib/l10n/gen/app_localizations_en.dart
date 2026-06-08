@@ -1777,6 +1777,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workflowAgentTypeLabel => 'Role (Cognitive Strategy)';
 
   @override
+  String get executionPersonaTitle => 'Execution Persona Block';
+
+  @override
+  String get executionPersonaDescription =>
+      'Select the global behavioral profile for the AI (e.g. XAI Reporter, Coach).';
+
+  @override
   String get workflowDependsOnLabel => 'Depends On (DAG Edges):';
 
   @override
@@ -2504,6 +2511,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get categoryRuntimeVariables => 'Runtime Variables';
+
+  @override
+  String get categoryExecutionPersona => 'Execution Persona';
 
   @override
   String get technicalDetails => 'Technical Details';

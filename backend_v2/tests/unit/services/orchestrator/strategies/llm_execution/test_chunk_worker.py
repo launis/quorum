@@ -138,11 +138,23 @@ async def test_chunk_worker_process_chunk_failure(mock_executor_class: Any) -> N
 
     sem = asyncio.Semaphore(1)
 
+    crit_std = PromptBlock.model_validate(
+        {
+            "id": "crit_12345678901234567890123456789012",
+            "slug": "criteria_slug",
+            "label": {"default_locale": "en", "translations": {"en": "Criteria Label", "fi": "Kriteeri"}},
+            "description": {"default_locale": "en", "translations": {"en": "Criteria Desc", "fi": "Kriteeri"}},
+            "type": "string",
+            "category_id": "system_rule",
+            "scales": None,
+        }
+    )
+
     final, usage, traces = await ChunkWorker.process_chunk(
         chunk=None,
         sem=sem,
         compiler=mock_compiler,
-        criteria_blocks=[],
+        criteria_blocks=[crit_std],
         user_payload="<payload>",
         base_system_prompt="Base prompt",
         has_search=False,
@@ -156,8 +168,8 @@ async def test_chunk_worker_process_chunk_failure(mock_executor_class: Any) -> N
         output_profile=None,
     )
 
-    assert final.get("_dlq_status") == "FAILED/DLQ"
-    assert "LLM connection error" in final.get("reason", "")
+    assert final["crit_12345678901234567890123456789012"]["status"] == "DLQ"
+    assert "LLM connection error" in final["crit_12345678901234567890123456789012"]["semantic_reasoning"]
     assert usage is None
     assert traces == []
 
@@ -240,7 +252,7 @@ async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_c
             "label": {"default_locale": "en", "translations": {"en": "Instruction Label", "fi": "Ohje"}},
             "description": {"default_locale": "en", "translations": {"en": "Instruction Desc", "fi": "Ohje"}},
             "type": "instruction",
-            "category_id": "criteria",
+            "category_id": "system_rule",
             "scales": None,
         }
     )
@@ -251,7 +263,7 @@ async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_c
             "label": {"default_locale": "en", "translations": {"en": "Criteria Label", "fi": "Kriteeri"}},
             "description": {"default_locale": "en", "translations": {"en": "Criteria Desc", "fi": "Kriteeri"}},
             "type": "string",
-            "category_id": "criteria",
+            "category_id": "system_rule",
             "scales": None,
         }
     )
@@ -308,11 +320,23 @@ async def test_chunk_worker_exception_group_dlq_masking(mock_executor_class: Any
 
     sem = asyncio.Semaphore(1)
 
+    crit_std = PromptBlock.model_validate(
+        {
+            "id": "crit_12345678901234567890123456789012",
+            "slug": "criteria_slug",
+            "label": {"default_locale": "en", "translations": {"en": "Criteria Label", "fi": "Kriteeri"}},
+            "description": {"default_locale": "en", "translations": {"en": "Criteria Desc", "fi": "Kriteeri"}},
+            "type": "string",
+            "category_id": "system_rule",
+            "scales": None,
+        }
+    )
+
     final, usage, traces = await ChunkWorker.process_chunk(
         chunk=None,
         sem=sem,
         compiler=mock_compiler,
-        criteria_blocks=[],
+        criteria_blocks=[crit_std],
         user_payload="<payload>",
         base_system_prompt="Base prompt",
         has_search=False,
@@ -326,8 +350,8 @@ async def test_chunk_worker_exception_group_dlq_masking(mock_executor_class: Any
         output_profile=None,
     )
 
-    assert final.get("_dlq_status") == "FAILED/DLQ"
+    assert final["crit_12345678901234567890123456789012"]["status"] == "DLQ"
     # This assertion verifies that the DLQ reason extracts the actual inner exception's message
     # rather than just printing the generic TaskGroup wrapper message.
-    assert "Upstream LLM service timed out" in final.get("reason", "")
-    assert "unhandled errors in a TaskGroup" not in final.get("reason", "")
+    assert "Upstream LLM service timed out" in final["crit_12345678901234567890123456789012"]["semantic_reasoning"]
+    assert "unhandled errors in a TaskGroup" not in final["crit_12345678901234567890123456789012"]["semantic_reasoning"]

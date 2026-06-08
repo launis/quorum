@@ -15,7 +15,9 @@ enum PromptBlockCategory {
   @JsonValue('protocol')
   protocol,
   @JsonValue('runtime_variables')
-  runtimeVariables;
+  runtimeVariables,
+  @JsonValue('execution_persona')
+  executionPersona;
 
   String get id {
     switch (this) {
@@ -31,6 +33,8 @@ enum PromptBlockCategory {
         return 'protocol';
       case PromptBlockCategory.runtimeVariables:
         return 'runtime_variables';
+      case PromptBlockCategory.executionPersona:
+        return 'execution_persona';
     }
   }
 
@@ -59,6 +63,8 @@ extension PromptBlockCategoryL10n on PromptBlockCategory {
         return l10n.categoryProtocol;
       case PromptBlockCategory.runtimeVariables:
         return l10n.categoryRuntimeVariables;
+      case PromptBlockCategory.executionPersona:
+        return l10n.categoryExecutionPersona;
     }
   }
 }

@@ -17,7 +17,6 @@ from backend_v2.exceptions import (
 )
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import ExecutionPersona
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -203,8 +202,8 @@ class LLMTaskExecutor:
 
                     # --- SYSTEM-WIDE LEXICAL VERIFIER (FAIL-FAST) ---
                     if validation_context and "source_text" in validation_context:
-                        persona = validation_context.get("persona")
-                        if not persona or persona == ExecutionPersona.DETERMINISTIC_PARSER:
+                        is_lightweight = validation_context.get("is_lightweight_extraction")
+                        if not is_lightweight:
                             _perform_semantic_validation(validated_model, validation_context["source_text"])
 
                     if attempt > 0:

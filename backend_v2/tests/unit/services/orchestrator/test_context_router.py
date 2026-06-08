@@ -72,7 +72,7 @@ def test_route_and_prune_strictly_follows_block_extensions() -> None:
     # variance_validation is a workflow extension, so it's handled elsewhere.
     output_profile = OutputProfileConfig(
         visible_block_extensions=[XaiExtensionType.FALSIFICATION],
-        visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION]
+        visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
     )
 
     trace_event = {
@@ -101,7 +101,7 @@ def test_route_and_prune_with_allowed_extensions() -> None:
             XaiExtensionType.COACHING,
             XaiExtensionType.EMOTIONAL_SENTIMENT,
         ],
-        visible_workflow_extensions=[]
+        visible_workflow_extensions=[],
     )
 
     # The block ONLY allows Falsification and Coaching. Sentiment is not supported by this block.
@@ -164,7 +164,10 @@ def test_route_and_prune_success() -> None:
         },
     }
 
-    output_profile = OutputProfileConfig(visible_block_extensions=[XaiExtensionType.CITATION, XaiExtensionType.FALSIFICATION], visible_workflow_extensions=[])
+    output_profile = OutputProfileConfig(
+        visible_block_extensions=[XaiExtensionType.CITATION, XaiExtensionType.FALSIFICATION],
+        visible_workflow_extensions=[],
+    )
 
     result = ContextRouter.route_and_prune(trace_event, output_profile)
 
@@ -222,7 +225,9 @@ def test_route_and_prune_missing_extension() -> None:
     }
 
     # We require COACHING, but it's not in the trace
-    output_profile = OutputProfileConfig(visible_block_extensions=[XaiExtensionType.CITATION, XaiExtensionType.COACHING], visible_workflow_extensions=[])
+    output_profile = OutputProfileConfig(
+        visible_block_extensions=[XaiExtensionType.CITATION, XaiExtensionType.COACHING], visible_workflow_extensions=[]
+    )
 
     with pytest.raises(MissingXaiExtensionError) as exc_info:
         ContextRouter.route_and_prune(trace_event, output_profile)

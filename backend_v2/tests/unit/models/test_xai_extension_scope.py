@@ -1,5 +1,3 @@
-import pytest
-
 from backend_v2.models.enums import XAI_EXTENSION_SCOPE, XaiExtensionType
 
 

@@ -19,6 +19,9 @@ Tämän Epicin tavoitteena on provisioida ja konfiguroida tuotantoinfrastruktuur
 5. **Vertex AI** pysyy LLM-rajapintana (ei muutoksia)
 6. **Tietokannan seeding** suoritetaan kerran tuotantokantaan
 
+> [!NOTE]
+> **IAM-YHTEENSOPIVUUS**: Tämä infrastruktuuri mahdollistaa uuden B2B SaaS IAM -arkkitehtuurin (Epic IAM-003) käyttöönoton, tarjoten Memorystoren (Redis) nopeaan luvituksen kill-switchiin ja Cloud SQL:n natiivin Row-Level Security (RLS) -tuen tenant-eristykseen.
+
 ### Tuotantoarkkitehtuuri
 
 ```
@@ -78,7 +81,9 @@ Tämän Epicin tavoitteena on provisioida ja konfiguroida tuotantoinfrastruktuur
 ### 2.2. Security (01-python-backend.md)
 
 * **security_logging_ban**: API-avaimet Secret Managerissa — ei ympäristömuuttujissa.
-* **Firebase Auth**: JWT-validointi pysyy ennallaan — vain backend-URL vaihtuu.
+* **Firebase Auth & JWT**: Firebase Auth hoitaa tunnistautumisen, mutta backend vastaa lokaalista Quorum JWT -valtuutuksesta.
+* **Zero-Latency AuthZ & Rate Limiting**: Memorystore (Redis) mahdollistaa Quorum JWT:n Kill-Switch -tarkistuksen (Blocklist) ja tenant-kohtaisen rate limitingin (AI FinOps) täysin asynkronisesti alle 1 ms latenssilla.
+* **Webhook Security**: Cloud Run API on määritelty vastaanottamaan turvallisesti Firebasen `auth.user.deleted` -tapahtuman pehmeää tietokantapoistoa (Soft Delete) varten.
 * **VPC**: Cloud SQL ja Memorystore eivät ole julkisessa verkossa.
 
 ---
@@ -325,6 +330,7 @@ async def health_check():
 
 * **Vaatii Epic 72**: PostgreSQL-driver oltava valmis ja testattu
 * **Vaatii Epic 73**: Docker build ja CI/CD-putki oltava toimiva
+* **Mahdollistaa Epic IAM-003**: Tarjoaa vaaditun infran uuden B2B IAM -mallin Redis-pohjaiselle kill-switchille ja Cloud SQL RLS-eristykselle.
 * **Ei muuta koodia**: Tämä Epic on 100% infraa — ei backend-koodimuutoksia
 * **Firebase Auth pysyy**: JWT-validointi ei muutu — vain API-URL vaihtuu
 * **Vertex AI pysyy**: LLM-kutsut eivät muutu — sama region (europe-north1)

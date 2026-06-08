@@ -148,19 +148,6 @@ enum AggregationMode {
   allMustComply,
 }
 
-/// Epic 55: Execution Personas
-@JsonEnum()
-enum ExecutionPersona {
-  @JsonValue('DETERMINISTIC_PARSER')
-  deterministicParser,
-  @JsonValue('GENERATIVE_ASSISTANT')
-  generativeAssistant,
-  @JsonValue('XAI_REPORTER')
-  xaiReporter,
-  @JsonValue('COACH')
-  coach,
-}
-
 /// Decoupled evaluation track for TDA Assertions: extractive logic vs cognitive judgement.
 @JsonEnum()
 enum EvaluationTrack {
@@ -175,8 +162,13 @@ class PromptBlockCategoryGroups {
   /// Categories allowed for Role Blocks.
   static final List<String> roleCategories = ['agent_role'];
 
+  /// Categories allowed for Execution Persona Blocks.
+  static final List<String> personaCategories = [
+    'execution_persona',
+  ];
+
   /// Categories allowed for Protocol Blocks.
-  static final List<String> protocolCategories = ['instruction', 'system_rule'];
+  static final List<String> protocolCategories = ['protocol'];
 
   /// Categories allowed for Criteria Blocks.
   static final List<String> criteriaCategories = [
@@ -184,7 +176,7 @@ class PromptBlockCategoryGroups {
     'system_rule',
     'runtime_variables',
     'task_definition',
-    'instruction',
+    'protocol',
     'criteria',
     'text',
   ];

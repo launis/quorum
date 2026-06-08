@@ -325,7 +325,7 @@ class MockRepoWaterfallMixed:
                 ],
             )
         else:
-            return _build_valid_pb_dict(self.pb_instruction, [], pb_type="instruction", category_id="instruction")  # noqa: E501
+            return _build_valid_pb_dict(self.pb_instruction, [], pb_type="instruction", category_id="system_rule")  # noqa: E501
 
     async def get_execution(self, execution_id: str) -> dict[str, Any]:
         return _build_valid_execution_dict(execution_id)

@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.enums import BlockDataType
+from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import I18nText, PromptBlock, Step
 
 
@@ -16,7 +16,7 @@ def test_prompt_block_allow_decimals_requires_numeric() -> None:
         slug="valid_slug",
         label=label,
         description=desc,
-        category_id="test_cat",
+        category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,  # Valid
         allow_decimals=True,
         output_extensions=[],
@@ -30,7 +30,7 @@ def test_prompt_block_allow_decimals_requires_numeric() -> None:
             slug="invalid_slug",
             label=label,
             description=desc,
-            category_id="test_cat",
+            category_id=PromptBlockCategory.SYSTEM_RULE,
             type=BlockDataType.INSTRUCTION,  # Invalid for decimals
             allow_decimals=True,
             output_extensions=[],
@@ -79,7 +79,7 @@ def test_opaque_id_regex_validation() -> None:
             slug="valid_slug",
             label=label,
             description=label,
-            category_id="test_cat",
+            category_id=PromptBlockCategory.SYSTEM_RULE,
             type=BlockDataType.STRING,
             output_extensions=[],
         )

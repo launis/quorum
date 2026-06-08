@@ -3350,6 +3350,18 @@ abstract class AppLocalizations {
   /// **'Role (Cognitive Strategy)'**
   String get workflowAgentTypeLabel;
 
+  /// No description provided for @executionPersonaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution Persona Block'**
+  String get executionPersonaTitle;
+
+  /// No description provided for @executionPersonaDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Select the global behavioral profile for the AI (e.g. XAI Reporter, Coach).'**
+  String get executionPersonaDescription;
+
   /// No description provided for @workflowDependsOnLabel.
   ///
   /// In en, this message translates to:
@@ -4639,6 +4651,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Runtime Variables'**
   String get categoryRuntimeVariables;
+
+  /// No description provided for @categoryExecutionPersona.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution Persona'**
+  String get categoryExecutionPersona;
 
   /// No description provided for @technicalDetails.
   ///

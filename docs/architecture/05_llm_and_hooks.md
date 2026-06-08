@@ -134,6 +134,25 @@ Kaistanleveyden LLM-työkalut noudattavat lukittua **"Two-Tier" roolierottelua**
 *   **Roolien Ehdoton Eristäminen (`system` vs `user`):** Kaikki infrastruktuurin parserointiohjeet eristetään tiedoston yläosaan globaaliksi `_SYSTEM_INSTRUCTION` vakioksi ja lähetetään `{"role": "system"}` -viestissä. Tuntematon, ulkoinen tuontidata työnnetään täysin erilliseen `{"role": "user"}` -viestiin hyödyntäen Hybrid Prompting (Markdown + XML tags) lähestymistä.
 *   **Zero-Fallback ja Centralized Routing:** Sisäiset LLM-työkalut erillisine arkkitehtuurin vastuineen eivät koskaan instansoi omia kääreitään tai käytä API-mallien suoria SDK-kutsuja. Kaikki sisäiset työkalut ohjataan poikkeuksetta keskitetyn `LLMTaskExecutor.execute_structured_task()` reitityksen kautta, mikä eliminoi täysin vaarallisten paljaiden sanakirjojen (Naked Dicts) käytön.
 
+### Kognitiivinen Reititys ja Persoonien Eristäminen (Epic Execution Optimization)
+
+Järjestelmä on siirtynyt raskaasta monoliittisesta Zero-Trust -ajattelusta dynaamiseen **Kognitiiviseen Reititykseen**, jossa tekoälyn suoritus eristetään kolmeen täysin modulaariseen ja tiukasti tyypitettyyn ohjauskerrokseen (Prompt Blocks):
+
+1. **Execution Persona (Globaali perusvire):**
+   * Määrittelee tekoälyn ohjelmallisen luonteen ja sen, millä globaaleilla säännöillä se operoi (esim. *Deterministic Parser*, *XAI Reporter*, *Coach*).
+   * Esimerkiksi *Deterministic Parser* -persoona pakottaa mallin ymmärtämään kieltä ainoastaan mekaanisten morfosyntaktisten sääntöjen kautta (Kielto semanttiselle joustolle). Nämä injektoidaan aina `{"role": "system"}` -viestin ensimmäiseksi riviksi.
+
+2. **Evidenssin Poimintaprotokolla (Uuttosäännöt):**
+   * Määrittelee, *miten* tieto kerätään lähdemateriaalista. Tämä ohjaa suoraan `schema_builder.py`:n luomaa Pydantic-mallia.
+   * **Kevyt JSON-uutto (Lightweight Extraction):** Käytetään laajoissa rutiinihauissa (kuten `step_input_processing`), joissa "ajattelukentät" on karsittu nollaan (poistettu `semantic_reasoning`, `contextual_override` jne.). Suoritus tallentuu `LightweightExtractionAtom` -malliin. Tämä pienentää LLM:n kognitiivista taakkaa ja token-määrää merkittävästi.
+   * **Globaali Zero-Trust (Heavy Extraction):** Käytetään kriittisissä päätöksentekovaiheissa (kuten `step_deep_analysis`), missä tarvitaan syvää selitettävyyttä ja spatiaalista ankkurointia (`AtomEvaluationItemDTO`).
+
+3. **Tekoälyn Roolipersoona (Dynaaminen asiantuntijuus):**
+   * Määrittelee *kuka* tekoäly on suhteessa arvioitavaan dataan (esim. *Asiantuntijatuomaristo*, *Kriittinen Analyytikko*).
+   * Tämä ohjaa ainoastaan asiantuntijuuden tulkintakulmaa ja kytketään mukaan arviointistepissä. Se eristetään poimintaprotokollasta, jottei roolileikki sotke mekaanista JSON-uuttoa.
+
+Näiden kolmen parametrin dynaaminen yhdistely PromptBlock-tietokannassa takaa, että LLM:ää ei pakoteta raskaaseen selittämiseen silloin, kun tehtävänä on vain mekaaninen faktanlouhinta.
+
 ## Epic 57: Raportointikoukku ja Varianssianalyysi (`reporting.py`)
 
 Epic 57 laajensi asynkronista synteesiprosessia tuomalla mekaaniset metriikat ja matemaattisen varianssianalyysin suoraan osaksi raportointikoukkua (`reporting.py`):

@@ -256,7 +256,7 @@ async def test_execute_success_path_structured_output(
         {
             "id": "blk_0123456789abcdef0123456789abcdef",
             "slug": "test_block",
-            "category_id": "llm",
+            "category_id": "system_rule",
             "type": "string",
             "label": {"default_locale": "en", "translations": {"en": "Label"}},
             "description": {"default_locale": "en", "translations": {"en": "Desc"}},
@@ -477,7 +477,7 @@ async def test_execute_raises_app_exception_if_chunk_routes_to_dlq(
         {
             "id": "blk_0123456789abcdef0123456789abcdef",
             "slug": "test_block",
-            "category_id": "llm",
+            "category_id": "system_rule",
             "type": "string",
             "label": {"default_locale": "en", "translations": {"en": "Label"}},
             "description": {"default_locale": "en", "translations": {"en": "Desc"}},

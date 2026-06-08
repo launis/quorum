@@ -175,9 +175,13 @@ class SynthesisEditorCard extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
-              ...['label', 'score', 'distribution', 'row_explanation', 'quotes'].map((
-                col,
-              ) {
+              ...[
+                'label',
+                'score',
+                'distribution',
+                'row_explanation',
+                'quotes',
+              ].map((col) {
                 final String colTitle = switch (col) {
                   'label' => 'Otsikko (label)',
                   'score' => 'Pisteet (score)',
@@ -200,7 +204,9 @@ class SynthesisEditorCard extends StatelessWidget {
                           'row_explanation',
                           'quotes',
                         ];
-                        final list = List<String>.from(syn.matrixVisibleColumns);
+                        final list = List<String>.from(
+                          syn.matrixVisibleColumns,
+                        );
                         if (val == true) {
                           if (!list.contains(col)) list.add(col);
                         } else {
@@ -218,7 +224,8 @@ class SynthesisEditorCard extends StatelessWidget {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                     ),
-                    if (col == 'quotes' && syn.matrixVisibleColumns.contains(col))
+                    if (col == 'quotes' &&
+                        syn.matrixVisibleColumns.contains(col))
                       Padding(
                         padding: const EdgeInsets.only(left: 32.0, bottom: 8.0),
                         child: Text(
@@ -226,7 +233,9 @@ class SynthesisEditorCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontStyle: FontStyle.italic,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),

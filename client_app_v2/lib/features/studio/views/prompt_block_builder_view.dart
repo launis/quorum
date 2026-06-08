@@ -13,7 +13,6 @@ import 'package:client_app/features/studio/views/components/bars_matrix_builder.
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/models/prompt_block_category.dart';
-import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -419,40 +418,6 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                         );
                                   }
                                 },
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Execution Persona
-                        DropdownButtonFormField<ExecutionPersona>(
-                          decoration: const InputDecoration(
-                            labelText: 'Execution Persona',
-                          ),
-                          initialValue: payload.executionPersona,
-                          items: ExecutionPersona.values.map((persona) {
-                            final label = switch (persona) {
-                              ExecutionPersona.deterministicParser =>
-                                'Deterministic Parser',
-                              ExecutionPersona.generativeAssistant =>
-                                'Generative Assistant',
-                              ExecutionPersona.xaiReporter => 'XAI Reporter',
-                              ExecutionPersona.coach => 'Coach',
-                            };
-                            return DropdownMenuItem(
-                              value: persona,
-                              child: Text(label),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              ref
-                                  .read(
-                                    promptBlockFormProvider(blockId).notifier,
-                                  )
-                                  .forceRebuild(
-                                    payload.copyWith(executionPersona: val),
-                                  );
-                            }
-                          },
                         ),
                         const SizedBox(height: 16),
 

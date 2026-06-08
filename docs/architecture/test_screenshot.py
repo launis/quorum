@@ -1,5 +1,6 @@
-from playwright.sync_api import sync_playwright
 import os
+
+from playwright.sync_api import sync_playwright
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
@@ -7,7 +8,7 @@ with sync_playwright() as p:
     file_path = f"file:///{os.path.abspath('test_mermaid.html').replace(os.sep, '/')}"
     page.goto(file_path, wait_until='networkidle')
     page.wait_for_timeout(2000)
-    
+
     # Take screenshot of the first error
     error_el = page.locator('svg[id^="mermaid-"] text:has-text("Syntax error")').first
     if error_el.count() > 0:

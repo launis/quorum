@@ -52,7 +52,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
             "label": {"default_locale": "en", "translations": {"en": "Role Critic", "fi": "Kriitikko"}},
             "description": {"default_locale": "en", "translations": {"en": "Role Desc", "fi": "Kuvaus"}},
             "ai_description": "ROLE: ANTAGONISTIC PROSECUTOR",
-            "category_id": "role",
+            "category_id": "agent_role",
             "type": "string",
         }
     )
@@ -64,7 +64,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
             "label": {"default_locale": "en", "translations": {"en": "Extraction Protocol", "fi": "Protokolla"}},
             "description": {"default_locale": "en", "translations": {"en": "Protocol Desc", "fi": "Kuvaus"}},
             "ai_description": "EXTRACTION INSTRUCTION: Locate raw facts and return exact quotes.",
-            "category_id": "instruction",
+            "category_id": "system_rule",
             "type": "instruction",
         }
     )
@@ -109,6 +109,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
         compiler=compiler,
         role_block=role_block,
         protocol_block=protocol_block,
+        execution_persona_block=None,
         criteria_blocks=criteria_blocks,
         target_locale="en",
         effective_mcp_tools=None,

@@ -48,6 +48,7 @@ class PromptFactory:
         compiler: Any,
         role_block: PromptBlock | None,
         protocol_block: PromptBlock | None,
+        execution_persona_block: PromptBlock | None,
         criteria_blocks: list[PromptBlock],
         target_locale: str,
         effective_mcp_tools: list[str] | None,
@@ -222,6 +223,9 @@ class PromptFactory:
             anchors_xml += "</mechanical_anchors>"
 
         base_system_prompt = "You are a highly accurate, structured evaluation assistant."
+        if execution_persona_block and execution_persona_block.ai_description:
+            base_system_prompt = execution_persona_block.ai_description
+
         if role_block and role_block.ai_description:
             base_system_prompt += f"\n\n<ROLE_DIRECTIVE>\n{role_block.ai_description}\n</ROLE_DIRECTIVE>"
             if is_grounded_step:

@@ -20,7 +20,7 @@ def mock_repo() -> Any:
             "slug": "task_bp",
             "label": {"default_locale": "fi", "translations": {"fi": "Testi", "en": "Test"}},
             "description": {"default_locale": "fi", "translations": {"fi": "Kuvaus", "en": "Desc"}},
-            "category_id": "test",
+            "category_id": "system_rule",
             "type": BlockDataType.STRING,
             "allow_decimals": False,
             "output_extensions": [],

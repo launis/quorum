@@ -11,7 +11,7 @@ def test_prompt_block_fail_fast_on_corrupt_type() -> None:
         "slug": "pb_1",
         "label": {"default_locale": "en", "translations": {"en": "T"}},
         "description": {"default_locale": "en", "translations": {"en": "D"}},
-        "category_id": "c1",
+        "category_id": "system_rule",
         "type": "INVALID_TYPE",
     }
     with pytest.raises(ValidationError) as exc_info:

@@ -1,4 +1,5 @@
 import export_to_pdf
+
 md = export_to_pdf.read_markdown_file('koko_arkkitehtuuri.md')
 d = export_to_pdf.extract_mermaid_diagrams(md)
 m1 = export_to_pdf.replace_mermaid_with_placeholders(md, d)

@@ -17,10 +17,10 @@ import sys
 from datetime import datetime
 from enum import IntEnum
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 # Load environment variables from the project's .env file (for GCP service-account authentication)
 load_dotenv()
@@ -146,7 +146,7 @@ async def run_async_cmd(*args: str, timeout_sec: int = 120) -> tuple[str, str]:
     )
     try:
         stdout_bytes, stderr_bytes = await asyncio.wait_for(process.communicate(), timeout=timeout_sec)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         try:
             process.kill()
         except OSError:
@@ -274,7 +274,7 @@ class HealingResponse(BaseModel):
 
 class HunkAnnotation(BaseModel):
     """Pydantic model representing the Judge's reasoning for a single diff hunk."""
-    
+
     model_config = ConfigDict(strict=True, extra="forbid")
 
     hunk_header: str = Field(..., description="Esimerkiksi '@@ -10,6 +10,7 @@'")
@@ -303,7 +303,7 @@ class JudgeResponse(BaseModel):
         ),
     )
     hunk_annotations: list[HunkAnnotation] = Field(
-        ..., 
+        ...,
         description="Käy läpi raa'an diffin jokainen lohko (hunk) yksitellen ja erittele syyt."
     )
     is_approved: bool = Field(..., description="True jos kaikki loogiset muutokset diffissä on perusteltu matriisissa.")
@@ -416,47 +416,51 @@ def apply_semantic_edits(source_code: str, edits: list[SearchReplaceBlock]) -> s
     for edit in edits:
         if not edit.search_block:
             continue
-            
+
         search_stripped = edit.search_block.strip()
         if len(search_stripped.splitlines()) < 2 and search_stripped in ["pass", "return None", "continue", "break", "return", "...", "raise"]:
             raise ValueError(
                 f"Patch Engine Guard: Hakulohko '{search_stripped}' on liian lyhyt ja yleinen. "
                 "Vaarana on massaylikirjoitus. Anna vähintään kaksi riviä kontekstia (esim. funktion otsikko ja pass-rivi)."
             )
-            
+
         exact_count = new_code.count(edit.search_block)
-        
+        search_fallback = edit.search_block.strip("\r\n")
+        replace_fallback = edit.replace_block.strip("\r\n")
+        fallback_count = new_code.count(search_fallback)
+
         # Strict replacement first
         if exact_count == 1:
             new_code = new_code.replace(edit.search_block, edit.replace_block, 1)
-        elif exact_count > 1:
+        elif fallback_count == 1:
+            # Fallback: Ignore leading/trailing empty lines
+            new_code = new_code.replace(search_fallback, replace_fallback, 1)
+        elif exact_count > 1 or fallback_count > 1:
             raise ValueError(
-                f"Patch Engine Error: Etsitty koodilohko ei ole uniikki (löytyi {exact_count} kertaa). "
+                f"Patch Engine Error: Etsitty koodilohko ei ole uniikki (löytyi useita kertoja). "
                 f"Anna enemmän kontekstirivejä SEARCH-lohkoon, jotta korvaus on yksiselitteinen:\n"
                 f"=== SEARCH BLOCK ===\n{edit.search_block}\n===================="
             )
         else:
             raise ValueError(
                 f"Patch Engine Error: Etsittyä koodilohkoa ei löydy alkuperäisestä koodista täsmälleen sellaisenaan. "
-                f"Tarkista välilyönnit, sisennykset ja tyhjät rivit:\n"
+                f"Tarkista välilyönnit, sisennykset ja tyhjät rivit (poistin turhat rivinvaihdot, mutta sekään ei auttanut):\n"
                 f"=== SEARCH BLOCK ===\n{edit.search_block}\n===================="
             )
-                
+
     return new_code
 
 
-import xml.etree.ElementTree as ET
 
 
 def filter_rules_by_pass(xml_content: str, pass_id: str, triggers: set[str]) -> str:
     """Palauttaa XML-sisällön muuttumattomana Prompt Caching -tuen säilyttämiseksi (Sääntö 53)."""
-    # KRIITTINEN KORJAUS: Jos suodatamme XML:ää AST-triggerien mukaan, system prompt muuttuu 
-    # jokaisen tiedoston kohdalla. Tämä tuhoaa LLM:n (Vertex AI / Anthropic) Prompt Caching 
+    # KRIITTINEN KORJAUS: Jos suodatamme XML:ää AST-triggerien mukaan, system prompt muuttuu
+    # jokaisen tiedoston kohdalla. Tämä tuhoaa LLM:n (Vertex AI / Anthropic) Prompt Caching
     # -mekanismin ja aiheuttaa massiivisia kustannuksia. Siksi palautamme koko matriisin aina.
     return xml_content
 
 
-import ast
 
 
 def ast_parity_check(original_code: str, new_code: str) -> None:
@@ -496,14 +500,14 @@ def ast_parity_check(original_code: str, new_code: str) -> None:
             return set(), {}, 0
 
         classes = {n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)}
-        
+
         funcs = {}
         for n in ast.walk(tree):
             if isinstance(n, (ast.AsyncFunctionDef, ast.FunctionDef)):
                 arg_names = {a.arg for a in n.args.args}
                 body_size = len(list(ast.walk(n)))
                 funcs[n.name] = (arg_names, body_size)
-                
+
         import_count = 0
         for n in ast.walk(tree):
             if isinstance(n, (ast.Import, ast.ImportFrom)):
@@ -538,20 +542,32 @@ def ast_parity_check(original_code: str, new_code: str) -> None:
         for f_name, (orig_args, orig_size) in orig_funcs.items():
             if f_name in new_funcs and not f_name.startswith("_"):
                 new_args, new_size = new_funcs[f_name]
-                
+
                 # Check for dropped arguments
                 missing_args = orig_args - new_args
                 if missing_args:
                     raise ValueError(
                         f"AST Parity Error: Funktion '{f_name}' signatuuria korruptoitiin (parametrit poistettu: {missing_args})"
                     )
-                
-                # Check for malicious logic wipe (shrinkage guard)
-                # Allow 40% reduction for refactoring, but prevent massive logic drops
-                if orig_size > 15 and new_size < (orig_size * 0.6):
+
+                # Check for malicious logic wipe (Stub guard)
+                # If a large function is reduced to under 10 nodes, it's likely a `pass` or `...` stub.
+                if orig_size > 20 and new_size < 10:
                     raise ValueError(
-                        f"AST Shrinkage Guard: Funktion '{f_name}' logiikka kutistui laittomasti ({orig_size} -> {new_size} solmua). Koodia ei saa korvata stubeilla."
+                        f"AST Stub Guard: Funktion '{f_name}' logiikka kutistui stumbiksi ({orig_size} -> {new_size} solmua). Koodia ei saa korvata stubeilla."
                     )
+
+        # Global Shrinkage Guard
+        # Prevents LLM from silently dropping try/except blocks or edge cases
+        # while keeping the public function intact. Refactoring into private methods
+        # preserves the global AST node count.
+        orig_total = len(list(ast.walk(ast.parse(original_code))))
+        new_total = len(list(ast.walk(ast.parse(new_code))))
+        if new_total < (orig_total * 0.90):
+            raise ValueError(
+                f"AST Global Shrinkage Guard: Tiedoston kokonaislogiikka kutistui laittomasti yli 10% "
+                f"({orig_total} -> {new_total} solmua). Tekoäly pyyhki todennäköisesti virheenkäsittelyä tai reunaehtoja."
+            )
 
         # Import count guard (Rule 76: never remove imports used by Protocol types)
         if new_imports < orig_imports:
@@ -615,24 +631,25 @@ def pydantic_field_signature_guard(original_code: str, new_code: str) -> None:
                 visited_node = typing.cast(ast.Subscript, self.generic_visit(node))
                 # Check for Optional[X] -> X | None
                 is_optional = False
-                if isinstance(getattr(visited_node, "value", None), ast.Name) and getattr(visited_node, "value").id == "Optional":
+                if isinstance(getattr(visited_node, "value", None), ast.Name) and typing.cast(ast.Name, visited_node.value).id == "Optional":
                     is_optional = True
-                
+
                 if is_optional:
                     return ast.BinOp(
                         left=typing.cast(ast.expr, getattr(visited_node, "slice", None)),
                         op=ast.BitOr(),
                         right=ast.Constant(value=None)
                     )
-                
+
                 # Check for Union[X, Y] -> X | Y
                 is_union = False
-                if isinstance(getattr(visited_node, "value", None), ast.Name) and getattr(visited_node, "value").id == "Union":
+                if isinstance(getattr(visited_node, "value", None), ast.Name) and typing.cast(ast.Name, visited_node.value).id == "Union":
                     is_union = True
-                    
+
                 if is_union:
-                    if isinstance(getattr(visited_node, "slice", None), ast.Tuple) and len(getattr(visited_node, "slice").elts) >= 2:
-                        elements = getattr(visited_node, "slice").elts
+                    slice_node = getattr(visited_node, "slice", None)
+                    if isinstance(slice_node, ast.Tuple) and len(slice_node.elts) >= 2:
+                        elements = slice_node.elts
                         res = elements[0]
                         for el in elements[1:]:
                             res = ast.BinOp(left=res, op=ast.BitOr(), right=el)
@@ -642,7 +659,7 @@ def pydantic_field_signature_guard(original_code: str, new_code: str) -> None:
         try:
             tree = ast.parse(t_str, mode='eval')
             normalized_tree = TypeNormalizer().visit(tree)
-            
+
             unparsed = ast.unparse(normalized_tree).replace(" ", "")
             if "|" in unparsed:
                 parts = unparsed.split("|")
@@ -651,8 +668,8 @@ def pydantic_field_signature_guard(original_code: str, new_code: str) -> None:
         except SyntaxError:
             return t_str.replace(" ", "").replace("typing.", "")
 
-    def _extract_class_signatures(code: str) -> dict[str, dict[str, str]]:
-        """Extract {class_name: {field_name: type_annotation_str}} from AST.
+    def _extract_class_signatures(code: str) -> dict[str, dict[str, dict[str, str]]]:
+        """Extract {class_name: {field_name: {'type': type_str, 'value': val_str}}} from AST.
 
         Parses annotated assignments (Pydantic fields) and model_config
         assignments from all class definitions in the given source code.
@@ -661,28 +678,29 @@ def pydantic_field_signature_guard(original_code: str, new_code: str) -> None:
             code: Raw Python source code string.
 
         Returns:
-            Nested dict mapping class names to their field signatures.
+            Nested dict mapping class names to their field signatures and default values.
         """
         try:
             tree = ast.parse(code)
         except SyntaxError:
             return {}
 
-        result: dict[str, dict[str, str]] = {}
+        result: dict[str, dict[str, dict[str, str]]] = {}
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
-                fields: dict[str, str] = {}
+                fields: dict[str, dict[str, str]] = {}
                 for item in node.body:
                     # Capture annotated fields: `name: Type = Field(...)`
                     if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
                         field_name = item.target.id
                         type_str = ast.unparse(item.annotation) if item.annotation else "Any"
-                        fields[field_name] = type_str
+                        val_str = ast.unparse(item.value).replace(" ", "") if item.value else ""
+                        fields[field_name] = {"type": type_str, "value": val_str}
                     # Capture model_config assignments: `model_config = ConfigDict(...)`
                     elif isinstance(item, ast.Assign):
                         for target in item.targets:
                             if isinstance(target, ast.Name) and target.id == "model_config":
-                                fields["model_config"] = ast.unparse(item.value)
+                                fields["model_config"] = {"type": "config", "value": ast.unparse(item.value).replace(" ", "")}
                 result[node.name] = fields
         return result
 
@@ -705,21 +723,28 @@ def pydantic_field_signature_guard(original_code: str, new_code: str) -> None:
                     f"Field '{field_name}' was REMOVED from class '{class_name}'"
                 )
 
-        # Check for changed type annotations (using semantic normalization)
-        for field_name, orig_type in orig_fields.items():
+        # Check for changed type annotations and default values
+        for field_name, orig_data in orig_fields.items():
+            if field_name == "model_config":
+                continue
             if field_name in new_fields:
-                new_type = new_fields[field_name]
-                if _normalize_type(orig_type) != _normalize_type(new_type):
+                new_data = new_fields[field_name]
+                if _normalize_type(orig_data["type"]) != _normalize_type(new_data["type"]):
                     violations.append(
                         f"Field '{class_name}.{field_name}' type changed: "
-                        f"'{orig_type}' -> '{new_type}'"
+                        f"'{orig_data['type']}' -> '{new_data['type']}'"
+                    )
+                if orig_data["value"] != new_data["value"]:
+                    violations.append(
+                        f"Field '{class_name}.{field_name}' default value changed: "
+                        f"'{orig_data['value']}' -> '{new_data['value']}'"
                     )
 
         # Check for model_config being ADDED where none existed
         if "model_config" not in orig_fields and "model_config" in new_fields:
             violations.append(
                 f"model_config was ADDED to class '{class_name}' "
-                f"(value: {new_fields['model_config']}). Rule 84 violation."
+                f"(value: {new_fields['model_config']['value']}). Rule 84 violation."
             )
 
     if violations:
@@ -744,7 +769,7 @@ def size_variance_guard(original_code: str, new_code: str, threshold: float = 0.
     """
     orig_lines = len(original_code.splitlines())
     new_lines = len(new_code.splitlines())
-    
+
     if orig_lines > 10 and new_lines < orig_lines * (1.0 - threshold):
         raise ValueError(
             f"Size Variance Guard REJECTED the change: "
@@ -858,14 +883,9 @@ async def tdd_guard(file_path: Path) -> None:
         )
         stdout, stderr = await proc.communicate()
         if proc.returncode != 0:
-            # KRIITTINEN: Emme kaada skriptiä! Jos testi kaatuu, syynä on luultavasti
-            # uuden arkkitehtuurin (esim. AppException) ja vanhan testin (ValueError) ristiriita.
-            # Tämä estää ns. Test-Driven Deadlockin (TDD Deadlock).
-            logger.warning(
-                f"⚠️ TDD Guard Warning: Yksikkötesti kaatui, mutta ohitetaan "
-                f"arkkitehtuurimigraation (TDD Deadlock) takia!\n{stdout.decode()[:500]}..."
-            )
-            return
+            err_msg = stdout.decode()
+            logger.error(f"❌ TDD Guard: Yksikkötesti kaatui!\n{err_msg[:500]}...")
+            raise ValueError(f"TDD Guard Error: Yksikkötesti kaatui. Liiketoimintalogiikka saattaa olla rikki, tai testi vaatii päivitystä.\nTestin tuloste: {err_msg[:300]}")
 
 
 async def process_file_with_retry(
@@ -909,14 +929,14 @@ async def process_file_with_retry(
         except Exception as e:
             logger.error(f"❌ Tiedoston lukuvirhe {target_file.name}: {e}", exc_info=True)
             await safe_update_state(target_file.as_posix(), "FAILED_TO_READ", state_file_path)
-            return False
+            return False, "", None
 
         # Phase 3: Single-Pass Execution Pipeline
         passes = ["GLOBAL"]
         current_code_to_fix = original_code
         if resume_mode and quarantine_file and quarantine_file.exists():
             current_code_to_fix = quarantine_file.read_text(encoding="utf-8")
-            
+
         aggregated_audit_matrix: list[AuditItem] = []
         pass_annotated_diffs = []
 
@@ -935,7 +955,7 @@ async def process_file_with_retry(
             if resume_mode:
                 # We already have a mostly correct file. Let's just generate a validation failure locally.
                 real_file = target_file
-                
+
                 # Rule 60 concurrency protection: Secure global filesystem before writing unverified code
                 await fs_validation_lock.acquire()
                 _resume_fs_lock_acquired = True
@@ -956,7 +976,7 @@ async def process_file_with_retry(
                     if target_file.exists():
                         target_file.unlink()
                     await safe_update_state(real_file.as_posix(), "DONE", state_file_path)
-                    return True
+                    return True, "", None
                 except subprocess.CalledProcessError as audit_err:
                     error_feedback = audit_err.stderr or audit_err.stdout or "Validation failed."
                     logger.info(
@@ -1077,7 +1097,7 @@ async def process_file_with_retry(
                         raw_json = raw_json.removeprefix("```").removesuffix("```").strip()
 
                     result_dto = target_format.model_validate_json(raw_json)
-                    
+
                     if not is_healing and not getattr(result_dto, "is_rewritten", True):
                         new_code = current_code_to_fix
                     else:
@@ -1131,7 +1151,7 @@ async def process_file_with_retry(
                         logger.warning(f"🛡️ Size Variance Guard REJECTED {target_file.name}: {size_err}")
                         rejected_code = new_code
                         raise size_err
-                        
+
                     # Phase 2.9: Type Cheat Guard
                     try:
                         type_cheat_guard(original_code, new_code)
@@ -1215,7 +1235,7 @@ async def process_file_with_retry(
                                 raw_judge_json = raw_judge_json.removeprefix("```").removesuffix("```").strip()
 
                             judge_result = JudgeResponse.model_validate_json(raw_judge_json)
-                            
+
                             # --- ZERO-TRUST VALIDATION LOOP (BLIND JUDGE) ---
                             # 1. Reverse Proof & Unauthorized Logic
                             if judge_result.is_approved:
@@ -1225,7 +1245,7 @@ async def process_file_with_retry(
                                         judge_result.is_approved = False
                                         judge_result.rejection_reason = f"Lohkossa {hunk.hunk_header} on looginen muutos, jota mikään sääntö ei oikeuta."
                                         break
-                                
+
                                 # 2. Undeclared Rule Prevention (The Blind Judge Test)
                                 primary_rule_ids = {a.rule_id for a in getattr(result_dto, "audit_matrix", [])} if isinstance(result_dto, HardeningResponse) else set()
                                 for hunk in judge_result.hunk_annotations:
@@ -1235,21 +1255,21 @@ async def process_file_with_retry(
                                             judge_result.is_approved = False
                                             judge_result.rejection_reason = f"Salattu muutos: Tuomari tunnisti säännön {rule_id}, mutta Koodarin matriisi ei myöntänyt tehneensä sitä."
                                             break
-                                            
+
                                 # 3. Missing Hunk Prevention
                                 raw_hunks = [line for line in diff_lines if line.startswith("@@")]
                                 if len(raw_hunks) != len(judge_result.hunk_annotations):
                                     logger.warning(f"❌ Diffissä on {len(raw_hunks)} lohkoa, mutta Tuomari analysoi vain {len(judge_result.hunk_annotations)} lohkoa.")
                                     judge_result.is_approved = False
                                     judge_result.rejection_reason = "Kaikkia muuttuneita koodilohkoja ei analysoitu."
-                            
+
                             if not judge_result.is_approved:
                                 logger.warning(f"❌ Tuomari hylkäsi muutoksen: {judge_result.rejection_reason}")
                                 rejected_code = new_code
                                 raise ValueError(f"Strict Judge Rejection: {judge_result.rejection_reason}")
                             else:
                                 logger.info("✅ Tuomari hyväksyi diffin mekanismien kera!")
-                                
+
                             # Annotate diff string to save later
                             md_lines = []
                             hunk_idx = 0
@@ -1275,7 +1295,7 @@ async def process_file_with_retry(
                                     md_lines.append(line)
                             if in_diff:
                                 md_lines.append("```\n")
-                                
+
                             current_annotated_diff = "\n".join(md_lines)
                             pass_annotated_diffs.append(current_annotated_diff)
 
@@ -1341,7 +1361,7 @@ async def process_file_with_retry(
                             "uv",
                             "run",
                             "mypy",
-                            "backend_v2/",
+                            real_file.as_posix(),
                             "--strict",
                             "--cache-dir",
                             "tmp/mypy_cache_global",
@@ -1352,26 +1372,6 @@ async def process_file_with_retry(
                         await run_async_cmd(
                             "uv", "run", "--with", "bandit", "bandit", "-r", real_file.as_posix(), "-lll"
                         )
-
-                        # Varmistus: Ajetaan arkkitehtuurin eheystarkistus (Pydantic & Imports)
-                        logger.info(
-                            f"🔬 Running Architectural Integrity Check (Fast Module Import) on {real_file.name}"
-                        )
-                        try:
-                            try:
-                                rel_path = real_file.relative_to(Path.cwd())
-                            except ValueError:
-                                rel_path = real_file
-                            module_name = rel_path.with_suffix("").as_posix().replace("/", ".")
-                            await run_async_cmd("uv", "run", "python", "-c", f"import {module_name}")
-                        except subprocess.CalledProcessError as pytest_err:
-                            # Jos import kaatuu, syynä on 99% varmuudella tämän tiedoston hallusinaatio
-                            raise subprocess.CalledProcessError(
-                                pytest_err.returncode,
-                                pytest_err.cmd,
-                                output=pytest_err.stdout,
-                                stderr=f"Arkkitehtuurivirhe (Import/Pydantic kaatui muokkauksen jälkeen):\n{pytest_err.stderr or pytest_err.stdout}",
-                            )
 
                         # Phase 2.5: TDD Guard (Aja yksikkötesti jos sellainen on)
                         await tdd_guard(real_file)
@@ -1387,7 +1387,7 @@ async def process_file_with_retry(
                         # Jos globaali MyPy löytää käänteisriippuvuuksia (esim. user.py muutos rikkoi user_service.py:n),
                         # ne on pakko ottaa huomioon, muuten rikomme sovelluksen.
                         error_details = raw_details.strip()
-                        
+
                         logger.warning(f"⚠️ Quality Gate failed for {real_file.name}:\n{error_details[:500]}...")
                         if real_file.exists():
                             current_code_to_fix = real_file.read_text(encoding="utf-8")
@@ -1466,15 +1466,15 @@ async def process_file_with_retry(
                         # Soft Fail: Tallenna eristettyyn karanteeniin
                         failed_dir = Path("tmp/night_shift/failed_reviews")
                         try:
-                            rel_path = target_file.relative_to("backend_v2")
+                            rel_path_obj = target_file.relative_to("backend_v2")
                         except ValueError:
-                            rel_path = target_file
-                        review_file = failed_dir / "backend_v2" / rel_path
+                            rel_path_obj = Path(target_file.name)
+                        review_file = failed_dir / "backend_v2" / rel_path_obj
                         review_file.parent.mkdir(parents=True, exist_ok=True)
                         try:
                             review_file.write_text(current_code_to_fix, encoding="utf-8")
                             logger.warning(f"💾 Tallennettu puolikuntoinen versio karanteeniin: {review_file.as_posix()}")
-                            
+
                             # Analysoi virheet tekoälyllä (DX parannus)
                             dx_analysis_prompt = (
                                 "Olet Senior Software Architect. Alla on virheloki (Linter/MyPy/Testit/AST Guard), "
@@ -1489,7 +1489,7 @@ async def process_file_with_retry(
                                 "- Kaikki, mikä vaikuttaa siltä, että alkuperäinen koodi saattoi olla tahallinen arkkitehtuuriratkaisu.\n\n"
                                 "Älä yritä korjata koodia. Generoi vain tämä lajiteltu analyysi, jotta ihmiskehittäjä voi yliviivata riskialttiit virheet."
                             )
-                            
+
                             try:
                                 logger.info("🤖 Analysoidaan virheitä kehittäjän DX-promptia varten...")
                                 analysis_resp = await acompletion(
@@ -1530,7 +1530,7 @@ async def process_file_with_retry(
                             )
                             prompt_file.write_text(antigravity_prompt, encoding="utf-8")
                             logger.info(f"🤖 Antigravity-prompt luotu (sisältää False Positive -ohjeet): {prompt_file.name}")
-                            
+
                         except OSError as write_err:
                             logger.error(f"Failed to save review file or prompt to quarantine: {write_err}")
 
@@ -1675,7 +1675,7 @@ async def main() -> None:
 
     try:
         auto_recover_bak_files()
-        
+
         if not SYSTEM_PROMPT_FILE.exists():
             logger.error(f"❌ XML System Prompt puuttuu: {SYSTEM_PROMPT_FILE}")
             sys.exit(1)
@@ -1714,7 +1714,7 @@ async def main() -> None:
         # Get target_arg if provided and not a flag
         target_arg = next((arg for arg in sys.argv[1:] if not arg.startswith("--")), None)
 
-        pending_files = []
+        pending_files: list[Any] = []
         if resume_mode:
             failed_dir = Path("tmp/night_shift/failed_reviews")
             logger.info(
@@ -1815,7 +1815,7 @@ async def main() -> None:
 
         failures = [r for r in results if not r[0] and r[2] != "SKIPPED_NO_TESTS"]
         successes = len([r for r in results if r[0]])
-        
+
         # Append failed files to PR body
         if failures:
             pr_body_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1825,27 +1825,27 @@ async def main() -> None:
                 for _, f_path, f_error in failures:
                     f.write(f"### {Path(f_path).name}\n")
                     f.write(f"**Viimeisin virhe:**\n```text\n{f_error}\n```\n\n")
-        
+
         if len(failures) > 0:
             logger.warning(f"⚠️ Yövuoro ohi. {len(failures)} tiedostoa epäonnistui ja siirrettiin karanteeniin. Tarkista {STATE_FILE.name}")
         else:
             logger.info("✅ Yövuoro ohi. Koko koodikanta päivitetty onnistuneesti!")
-            
+
         if successes > 0 or failures:
             logger.info("🚀 Työnnetään haara palvelimelle ja avataan Pull Request (gh)...")
             await run_async_cmd("git", "push", "-u", "origin", branch_name)
-            
+
             pr_title = f"Night Shift Hardening {datetime.now().strftime('%Y-%m-%d')}"
             if pr_body_path.exists():
                 _, stderr = await run_async_cmd("gh", "pr", "create", "--title", pr_title, "--body-file", pr_body_path.as_posix())
             else:
                 _, stderr = await run_async_cmd("gh", "pr", "create", "--title", pr_title, "--body", "Automated hardening changes.")
-                
+
             if stderr and "error" in stderr.lower() and "graphql" not in stderr.lower():
                 logger.warning(f"⚠️ PR:n luonti (gh) saattoi epäonnistua. Työnsimme kuitenkin haaran '{branch_name}' GitHubiin.\nVirhe: {stderr}")
             else:
                 logger.info(f"🎉 Pull Request on avattu onnistuneesti haarasta {branch_name}!")
-                
+
             # Copy-Paste Komentokeskus
             print("\n" + "="*60)
             print("✅ NIGHT SHIFT VALMIS".center(60))

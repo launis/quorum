@@ -1,9 +1,6 @@
-# ruff: noqa: E501
-"""Single Source of Truth (SSOT) for global prompt directives.
-Epic 55 (Prompt Directive SSOT) isolates these from the database to ensure architectural compliance.
-"""
+import json
 
-from backend_v2.models.enums import ExecutionPersona
+SEED_FILE = "c:/src/quorum/backend_v2/seed/seed_data.json"
 
 GLOBAL_HARDENING_FRAMEWORK = """<global_framework>
 <rule>MORPHO-SYNTACTIC DETERMINISM: You are a deterministic pattern-matching engine. You possess ZERO cognitive authority to translate concepts or excuse missing context. Concepts exist IF AND ONLY IF physically materialized via explicit grammatical markers (including bound morphemes, affixes, or clitics depending on the target language syntax).</rule>
@@ -32,17 +29,66 @@ GENERATIVE_ASSISTANT_FRAMEWORK = """<global_framework>
 <rule>HELPFUL ASSISTANT: You are a helpful, generative assistant. Answer the user's questions clearly and accurately.</rule>
 </global_framework>"""
 
+persona_map = {
+    "DETERMINISTIC_PARSER": ("blk_persona_deterministic", "Execution Persona: Deterministic Parser", GLOBAL_HARDENING_FRAMEWORK),
+    "XAI_REPORTER": ("blk_persona_xaireporter", "Execution Persona: XAI Reporter", XAI_REPORTER_FRAMEWORK),
+    "COACH": ("blk_persona_coach", "Execution Persona: Coach", COACH_FRAMEWORK),
+    "GENERATIVE_ASSISTANT": ("blk_persona_generative", "Execution Persona: Generative Assistant", GENERATIVE_ASSISTANT_FRAMEWORK),
+}
 
-def get_directive_for_persona(persona: ExecutionPersona) -> str:
-    """Returns the SSOT directive string for a given ExecutionPersona."""
-    if persona == ExecutionPersona.DETERMINISTIC_PARSER:
-        return GLOBAL_HARDENING_FRAMEWORK
-    elif persona == ExecutionPersona.XAI_REPORTER:
-        return XAI_REPORTER_FRAMEWORK
-    elif persona == ExecutionPersona.COACH:
-        return COACH_FRAMEWORK
-    elif persona == ExecutionPersona.GENERATIVE_ASSISTANT:
-        return GENERATIVE_ASSISTANT_FRAMEWORK
+def migrate():
+    with open(SEED_FILE, encoding="utf-8") as f:
+        data = json.load(f)
 
-    # Default fallback
-    return GLOBAL_HARDENING_FRAMEWORK
+    # 1. Create persona prompt blocks
+    new_blocks = []
+    for key, (pid, label, desc) in persona_map.items():
+        new_blocks.append({
+            "id": pid,
+            "slug": f"block_persona_{key.lower()}",
+            "organization_id": "SYSTEM",
+            "category_id": "execution_persona",
+            "type": "instruction",
+            "label": {
+                "en": label,
+                "fi": label
+            },
+            "ai_description": desc,
+            "output_extensions": [],
+            "criteria_block_ids": [],
+            "scales": []
+        })
+
+    # Prepend new blocks
+    data["prompt_blocks"] = new_blocks + data.get("prompt_blocks", [])
+
+    # 2. Extract step personas based on criteria_block[0]
+    step_personas = {}
+    for s in data.get("steps", []):
+        crit_ids = s.get("criteria_block_ids", [])
+        s_persona = None
+        for cid in crit_ids:
+            b = next((x for x in data["prompt_blocks"] if x.get("id") == cid), None)
+            if b and b.get("execution_persona"):
+                s_persona = b.get("execution_persona")
+                break
+        if not s_persona:
+            s_persona = "DETERMINISTIC_PARSER"
+        step_personas[s["id"]] = persona_map[s_persona][0]
+
+    # 3. Strip execution_persona from prompt_blocks
+    for b in data.get("prompt_blocks", []):
+        if "execution_persona" in b:
+            del b["execution_persona"]
+
+    # 4. Inject execution_persona_block_id into steps
+    for s in data.get("steps", []):
+        s["execution_persona_block_id"] = step_personas[s["id"]]
+
+    with open(SEED_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+    print("Migration complete.")
+
+if __name__ == "__main__":
+    migrate()

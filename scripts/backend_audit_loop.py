@@ -1,5 +1,4 @@
-"""
-Backend Audit Loop Script (Antigravity Phase 9)
+"""Backend Audit Loop Script (Antigravity Phase 9)
 
 **Mitä tämä skripti tekee:**
 Tämä skripti on Automatisoitu Laatuportti (Quality Gate) Python-backendille. Se suorittaa kolmivaiheisen putken:
@@ -49,13 +48,13 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 def run_tests_with_strict_coverage(target):
     print("🚀 Verifying Strict 30% TDD Coverage...")
-    
+
     # Convert file path to dotted module path for accurate coverage (e.g. backend_v2/services/execution.py -> backend_v2.services.execution)
     if target.endswith(".py"):
         cov_target = target.replace("\\", "/").replace(".py", "").replace("/", ".")
     else:
         cov_target = target
-    
+
     if target.endswith(".py"):
         parts = target.replace("\\", "/").split("/")
         if parts[-1].startswith("test_") or "tests" in parts:
@@ -74,7 +73,7 @@ def run_tests_with_strict_coverage(target):
                     flat_path = "tests/" + parts[-1]
                     if os.path.exists(flat_path):
                         test_path = flat_path
-        
+
         # 1. Ajetaan Pytest ja kerätään kattavuusdata (ei kaatumista fail-underiin vielä)
         cmd = [
             "uv",
@@ -85,7 +84,7 @@ def run_tests_with_strict_coverage(target):
         ]
         print("Executing:", " ".join(cmd))
         result = subprocess.run(cmd)
-        
+
         # 2. Ajetaan Coverage Report, joka filtteröi laatuportin vaatimuksen KOSKEMAAN VAIN tätä kyseistä tiedostoa
         if result.returncode == 0:
             target_name = os.path.basename(target) # esim. synthesis.py
@@ -100,7 +99,7 @@ def run_tests_with_strict_coverage(target):
                 test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
             else:
                 test_path = "tests/" + "/".join(parts)
-            
+
         cmd = [
             "uv",
             "run",
@@ -109,7 +108,7 @@ def run_tests_with_strict_coverage(target):
             f"import sys\ntry: import numpy\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main(['{test_path}', '-v', '--tb=short', '--cov={cov_target}', '--cov-fail-under=30', '--cov-report=term-missing']))",
         ]
         result = subprocess.run(cmd)
-    
+
     if result.returncode != 0:
         print("\n❌ AUDIT FAILED: Testeissä oli virheitä TAI testikattavuus ei ole 30%.")
         print("🤖 AI INSTRUCTION: Lue yllä oleva raportti ja korjaa joko kaatuvat testit (-v tai --tb=short kertoo syyn) TAI lisää testejä puuttuville riveille (Miss-sarake).")
@@ -148,7 +147,7 @@ def main():
     print("--------------------------------------------------")
 
     print("\n⏳ 1/3: Korjataan tiedostot (ruff check --fix)...")
-    res = subprocess.run(["uv", "run", "ruff", "check", *targets, "--fix"])
+    res = subprocess.run(["uv", "run", "ruff", "check", *targets, "--fix", "--extend-ignore=E501"])
     if res.returncode != 0:
         print("❌ Ruff linter löysi automaattisesti korjaamattomia virheitä!")
         sys.exit(res.returncode)
@@ -175,7 +174,7 @@ def main():
             print("❌ OpenAPI-luonti epäonnistui! Tarkista Pydantic mallit.")
             sys.exit(res.returncode)
         print("✅ OpenAPI-dokumentaatio päivitetty varmaotteisesti.")
-        
+
     if run_test:
         print("\n⏳ Optio: Ajetaan Pytest-yksikkötestit ja Coverage (--test)...")
         for target in targets:

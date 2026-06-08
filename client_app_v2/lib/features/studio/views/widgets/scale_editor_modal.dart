@@ -535,6 +535,60 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                       ),
                                     ],
                                   ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Vaatii enemmistöäänestyksen (High Entropy)',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Ajaa koko kriteeristön 3 kertaa rinnakkain tämän atomin varianssin poistamiseksi.',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Switch(
+                                        value: tda.highEntropy,
+                                        onChanged: (newVal) {
+                                          setState(() {
+                                            final newTdas =
+                                                List<TDAAssertion>.from(
+                                                  claim.tdaAssertions,
+                                                );
+                                            newTdas[tdaIdx] = tda.copyWith(
+                                              highEntropy: newVal,
+                                            );
+                                            final newClaims =
+                                                List<MatrixClaim>.from(
+                                                  _editableScale.claims,
+                                                );
+                                            newClaims[index] = claim.copyWith(
+                                              tdaAssertions: newTdas,
+                                            );
+                                            _editableScale = _editableScale
+                                                .copyWith(claims: newClaims);
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                   if (tda.evaluationTrack ==
                                       EvaluationTrack.extractiveSensor) ...[
                                     const SizedBox(height: 8),

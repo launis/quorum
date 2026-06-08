@@ -455,14 +455,17 @@ class PromptCompiler:
         if has_shuffled_atoms:
 
             class AtomResponse(StrippedBaseTDAExtraction):
-                atom_id: str = Field(..., description="The unique system identifier of the target evaluation atom.")
+                atom_id: str = Field(
+                    ...,
+                    description="The EXACT system identifier. MUST exactly match one of the items provided in <BLIND_ATOMS_TO_EVALUATE>.",
+                )
 
             fields["evaluations"] = (
                 list[AtomResponse],
                 Field(
                     ...,
                     max_length=SystemConcurrency.SCHEMA_MAX_EVALUATIONS,
-                    description="List of atomic evaluations mapped strictly to specific test criteria items.",
+                    description="List of atomic evaluations. You MUST evaluate ONLY the exact atoms explicitly listed in <BLIND_ATOMS_TO_EVALUATE>. You MUST include the exact 'atom_id' for each evaluation. Do NOT hallucinate, invent, or evaluate any unlisted concepts.",
                 ),
             )
 
@@ -504,7 +507,8 @@ class PromptCompiler:
 
             # Dynamic short and concise description for the LLM to understand this specific evaluation field
             label_str = self.resolve_i18n(crit.label, target_locale) if crit.label else ""
-            desc_val = f"Evaluation field for {crit.category_id or 'criteria'} block '{crit_id}' ({label_str})."
+            cat_val = crit.category_id.value if hasattr(crit.category_id, "value") else (crit.category_id or "criteria")
+            desc_val = f"Evaluation field for {cat_val} block '{crit_id}' ({label_str})."
             # plan: Restore full ai_description without truncation since FSM
             # serving limit is bypassed via strict=False.
             if crit.ai_description:
@@ -590,16 +594,14 @@ class PromptCompiler:
                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             ) from e
 
-    def compile_xml_rubrics(self, criteria: list[PromptBlock], target_locale: str) -> str:
+    def compile_xml_rubrics(
+        self, criteria: list[PromptBlock], target_locale: str, execution_persona_block: PromptBlock | None = None
+    ) -> str:
         """Epic 12/55: Generates Thick XML/Markdown rubrics for the System Prompt with Persona SSOT."""
-        from backend_v2.core.system_directives import get_directive_for_persona
-        from backend_v2.models.enums import ExecutionPersona
+        xml_blocks = []
+        if execution_persona_block and execution_persona_block.ai_description:
+            xml_blocks.append(f"<EXECUTION_PERSONA>\n{execution_persona_block.ai_description}\n</EXECUTION_PERSONA>")
 
-        persona = ExecutionPersona.DETERMINISTIC_PARSER
-        if criteria:
-            persona = criteria[0].execution_persona
-
-        xml_blocks = [get_directive_for_persona(persona)]
         xml_blocks.append("<EVALUATION_RUBRICS>")
         for crit in criteria:
             if crit.category_id != "matrix":
@@ -678,10 +680,11 @@ class PromptCompiler:
         # Anti-ID Mandate to prevent raw UUID/System-ID hallucination
         anti_id_mandate = (
             "<ANTI_ID_MANDATE>\n"
-            "CRITICAL FORMATTING RULE: You MUST NEVER include raw system IDs, UUIDs, or MD5 hashes "
-            "(e.g. 'sr_566e...', 'f6091a1defeae...') in your final output text, reasoning, or justification. "
-            "Do NOT use `atom_id` values as citations. Always refer to concepts by their human-readable "
-            "names or descriptions.\n"
+            "CRITICAL FORMATTING RULE for textual fields (e.g., semantic_reasoning, exact_quote):\n"
+            "Do NOT include raw system IDs in your explanatory text. "
+            "Refer to concepts by their human-readable names in your text.\n"
+            "HOWEVER, the JSON key `atom_id` MUST ALWAYS be populated with the correct system ID. "
+            "Never omit the `atom_id` from the JSON object.\n"
             "</ANTI_ID_MANDATE>"
         )
         xml_blocks.append(anti_id_mandate)
@@ -999,6 +1002,9 @@ class PromptCompiler:
             "[SYSTEM: STRICT JSON SCHEMA VALIDATION FAILED]\n"
             "Your previous response contained invalid JSON or failed Pydantic schema validation.\n"
             f"Error details: {error_msg}\n\n"
-            "You MUST return ONLY valid JSON matching the exact schema requested. "
-            "Do not include markdown blocks, conversational text, or any explanations outside the JSON."
+            "CRITICAL SCHEMA RULES:\n"
+            "1. You MUST return ONLY valid JSON matching the exact schema requested.\n"
+            "2. If the error says 'Field required' (e.g., missing 'atom_id'), you MUST provide it. Every evaluation MUST have a valid 'atom_id' from your <BLIND_ATOMS_TO_EVALUATE> list.\n"
+            "3. If you evaluated a concept that was NOT explicitly listed in your instructions, REMOVE that evaluation block entirely. Do not hallucinate items.\n"
+            "4. Do not include markdown blocks, conversational text, or any explanations outside the JSON."
         )

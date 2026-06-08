@@ -188,6 +188,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'hook',
         'role_block_id',
         'extraction_protocol_block_id',
+        'execution_persona_block_id',
         'criteria_block_ids',
         'pre_hooks',
         'post_hooks',
@@ -229,6 +230,13 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
           const StrictOpaqueIdConverter().fromJson,
         ),
       ),
+      executionPersonaBlockId: $checkedConvert(
+        'execution_persona_block_id',
+        (v) => _$JsonConverterFromJson<String, String>(
+          v,
+          const StrictOpaqueIdConverter().fromJson,
+        ),
+      ),
       criteriaBlockIds: $checkedConvert(
         'criteria_block_ids',
         (v) =>
@@ -268,6 +276,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
   fieldKeyMap: const {
     'roleBlockId': 'role_block_id',
     'extractionProtocolBlockId': 'extraction_protocol_block_id',
+    'executionPersonaBlockId': 'execution_persona_block_id',
     'criteriaBlockIds': 'criteria_block_ids',
     'preHooks': 'pre_hooks',
     'postHooks': 'post_hooks',
@@ -293,6 +302,10 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       ),
       'extraction_protocol_block_id': _$JsonConverterToJson<String, String>(
         instance.extractionProtocolBlockId,
+        const StrictOpaqueIdConverter().toJson,
+      ),
+      'execution_persona_block_id': _$JsonConverterToJson<String, String>(
+        instance.executionPersonaBlockId,
         const StrictOpaqueIdConverter().toJson,
       ),
       'criteria_block_ids': instance.criteriaBlockIds,
@@ -333,6 +346,7 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'hook',
         'role_block_id',
         'extraction_protocol_block_id',
+        'execution_persona_block_id',
         'criteria_block_ids',
         'pre_hooks',
         'post_hooks',
@@ -374,6 +388,13 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
           const StrictOpaqueIdConverter().fromJson,
         ),
       ),
+      executionPersonaBlockId: $checkedConvert(
+        'execution_persona_block_id',
+        (v) => _$JsonConverterFromJson<String, String>(
+          v,
+          const StrictOpaqueIdConverter().fromJson,
+        ),
+      ),
       criteriaBlockIds: $checkedConvert(
         'criteria_block_ids',
         (v) =>
@@ -413,6 +434,7 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
   fieldKeyMap: const {
     'roleBlockId': 'role_block_id',
     'extractionProtocolBlockId': 'extraction_protocol_block_id',
+    'executionPersonaBlockId': 'execution_persona_block_id',
     'criteriaBlockIds': 'criteria_block_ids',
     'preHooks': 'pre_hooks',
     'postHooks': 'post_hooks',
@@ -438,6 +460,10 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       ),
       'extraction_protocol_block_id': _$JsonConverterToJson<String, String>(
         instance.extractionProtocolBlockId,
+        const StrictOpaqueIdConverter().toJson,
+      ),
+      'execution_persona_block_id': _$JsonConverterToJson<String, String>(
+        instance.executionPersonaBlockId,
         const StrictOpaqueIdConverter().toJson,
       ),
       'criteria_block_ids': instance.criteriaBlockIds,

@@ -1,5 +1,4 @@
 import json
-import os
 
 SEED_FILE = r"c:\src\quorum\backend_v2\seed\seed_data.json"
 TARGET_STRING = "REQUIRED TARGET: EXTRACTION CONDITION: role prefixes exist, target 'ai:' block. BANNED SOURCES: 'user:' blocks. "
@@ -14,7 +13,7 @@ EXTRACTION_RULE: You MUST extract 'exact_quote' evidence STRICTLY from lines sta
 CONTEXT_RULE: Text starting with "ai:" is strictly background context. NEVER use the AI's output, intelligence, or reasoning as evidence of the human's competence."""
 
 def update_seed_data():
-    with open(SEED_FILE, 'r', encoding='utf-8') as f:
+    with open(SEED_FILE, encoding='utf-8') as f:
         data = json.load(f)
 
     # 1. Update chat_log ai_description recursively
@@ -32,7 +31,7 @@ def update_seed_data():
                 update_chat_log_description(item)
 
     update_chat_log_description(data)
-    
+
     # 2. Recursively remove the TARGET_STRING from all string values
     def recursive_remove(obj):
         if isinstance(obj, dict):

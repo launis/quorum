@@ -27,17 +27,17 @@ description: Tier 4 (Bug Hunting & RCA) - Workflow for deep root cause analysis 
     
     <step id="2" name="IDENTIFY RCA">Trace data flow back to its true origin. DO NOT patch symptoms. Identify the exact Pydantic strictness issue (`extra="forbid"`), mutated frozen state, or logical flaw causing the divergence.</step>
     
-    <step id="3" name="TDD REPRO (RED STATE)">Write a failing `pytest` or `flutter test` that reliably reproduces the bug at its architectural root. Write this file directly to the disk using your file-editing tools.
+    <step id="3" name="TDD REPRO (RED STATE)">Write a failing test that reliably reproduces the bug at its architectural root. Write this file directly to the disk using your file-editing tools.
     - If testing backend Pydantic models, you MUST use `polyfactory` to generate strict fixtures. Do not use `MagicMock` or arbitrary dictionaries for data objects.
     - If testing external endpoints or LLMs, you MUST use `backend_v2/llm/mock_data.py`. No live API calls allowed.</step>
     
-    <step id="4" name="PROOF OF FAILURE (PAUSE HERE)">Output the exact PowerShell test command (e.g., `uv run pytest tests/path/to/test_file.py -v`) and instruct the user to run it. You MUST WAIT for the user to paste the raw failing test trace output. Do not proceed until you see the test fail (RED).</step>
+    <step id="4" name="PROOF OF FAILURE (PAUSE HERE)">Output the exact Universal Quality Gate test command (e.g., `uv run python scripts/backend_audit_loop.py [target_path] --test`) and instruct the user to run it. Naked `pytest` is forbidden. You MUST WAIT for the user to paste the raw failing test trace output. Do not proceed until you see the test fail (RED).</step>
     
     <step id="5" name="EXPLAIN & RFC 7807 MAP">Briefly explain the Root Cause and structural mechanism of the bug based on the failed test trace. Link the failure explicitly to a Quorum Phase 9 architectural mandate (e.g., "Violates Fail-Fast hydration" or "Duck-typing detected"). Explain how your fix will correctly handle the error (e.g., via `AppException`).</step>
     
     <step id="6" name="FIX (GREEN STATE)">Propose an atomic, high-fidelity code fix ensuring Zero-Duct-Tape principles. PAUSE HERE. Do NOT modify any files until the user explicitly responds with "PERMISSION GRANTED". Once granted, use your internal file tools to apply the fix directly to the disk.</step>
     
-    <step id="7" name="VERIFY & CIRCUIT BREAKER">Instruct the user to run the Universal Quality Gate command (e.g., `uv run python scripts/backend_audit_loop.py [tiedostot] --test` or `flutter_audit_loop.py`). If verification fails 3 times, you MUST trigger the Circuit Breaker: instruct the user to run `git restore .` to revert the broken code, and STOP to prevent architectural damage.</step>
+    <step id="7" name="VERIFY & CIRCUIT BREAKER">Instruct the user to run the Universal Quality Gate command (e.g., `uv run python scripts/backend_audit_loop.py [target_path] --test` or `flutter_audit_loop.py`). If verification fails 3 times, you MUST trigger the Circuit Breaker: instruct the user to run `git restore .` to revert the broken code, and STOP to prevent architectural damage.</step>
     
     <step id="8" name="ATOMIC COMMIT">Once verified green, output the exact native PowerShell git commands (no `git add .`, use precise relative paths) and instruct the user to commit the changes using English conventional commit messages (e.g., `fix(execution): enforce strict bounds on causal float grammar`).</step>
   </execution_protocol>

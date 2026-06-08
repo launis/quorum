@@ -230,10 +230,13 @@ class LiteLLMProvider(LLMProvider):
 
         # Initialize and store Semaphore dynamically to throttle HTTP-level requests
         if cache_key not in self.__class__._semaphores:
-            if rpm <= 20:
-                concurrency_limit = 2
+            if rpm <= SystemConcurrency.SEMAPHORE_LOW_RPM_THRESHOLD.value:
+                concurrency_limit = SystemConcurrency.SEMAPHORE_LOW_RPM_LIMIT.value
             else:
-                concurrency_limit = min(5, max(1, rpm // 10))
+                concurrency_limit = min(
+                    SystemConcurrency.SEMAPHORE_MAX_CONCURRENCY.value,
+                    max(1, rpm // SystemConcurrency.SEMAPHORE_RPM_DIVISOR.value),
+                )
 
             logger.info(
                 "[LiteLLMProvider] Initializing HTTP concurrency semaphore for cache_key '%s' with limit %d",
@@ -368,6 +371,7 @@ class LiteLLMProvider(LLMProvider):
                 # Therefore, we disable safety filters for the Analyzer.
                 "safety_settings": self.settings.default_safety_settings,
             }
+
             # Inject dynamic extra params (top_p, top_k, etc.) provided via kwargs
             # Filter out internal keys if necessary, but litellm.drop_params=True handles most.
             call_kwargs.update(kwargs)

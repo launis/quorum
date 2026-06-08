@@ -661,90 +661,6 @@ class StepBuilderView extends HookConsumerWidget {
                 const SizedBox(height: 24),
 
                 if (payload is NodeStrategyLlm) ...[
-                  // 1. Role Selection Dropdown
-                  const SizedBox(height: 24),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.roleBlockLabel,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            l10n.roleBlockDescription,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                            initialValue:
-                                promptBlocks.any(
-                                  (m) =>
-                                      m.id == payload.roleBlockId &&
-                                      PromptBlockCategoryGroups.roleCategories
-                                          .contains(m.categoryId),
-                                )
-                                ? payload.roleBlockId
-                                : null,
-                            items: [
-                              DropdownMenuItem<String>(
-                                value: null,
-                                child: Text(l10n.noneDefaultLabel),
-                              ),
-                              ...promptBlocks
-                                  .where(
-                                    (m) => PromptBlockCategoryGroups
-                                        .roleCategories
-                                        .contains(m.categoryId),
-                                  )
-                                  .map((m) {
-                                    final currentLocale =
-                                        Localizations.localeOf(
-                                          context,
-                                        ).languageCode;
-                                    final rawLabel =
-                                        m.label.translations[currentLocale] ??
-                                        m.label.translations['en'] ??
-                                        m.id;
-                                    return DropdownMenuItem(
-                                      value: m.id,
-                                      child: Text(
-                                        '$rawLabel (${m.id})',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    );
-                                  }),
-                            ],
-                            onChanged: (val) {
-                              ref
-                                  .read(stepFormProvider(stepId).notifier)
-                                  .forceRebuild(
-                                    payload.copyWith(roleBlockId: val),
-                                  );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
                   // 2. Extraction Protocol Dropdown
                   const SizedBox(height: 24),
                   Card(
@@ -833,7 +749,94 @@ class StepBuilderView extends HookConsumerWidget {
                     ),
                   ),
 
-                  // 3. Criteria Blocks List (Reorderable)
+                  // 3. Execution Persona Protocol Dropdown
+                  const SizedBox(height: 24),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.executionPersonaTitle,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.executionPersonaDescription,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            initialValue:
+                                promptBlocks.any(
+                                  (m) =>
+                                      m.id == payload.executionPersonaBlockId &&
+                                      PromptBlockCategoryGroups
+                                          .personaCategories
+                                          .contains(m.categoryId),
+                                )
+                                ? payload.executionPersonaBlockId
+                                : null,
+                            items: [
+                              DropdownMenuItem<String>(
+                                value: null,
+                                child: Text(l10n.noneDefaultLabel),
+                              ),
+                              ...promptBlocks
+                                  .where(
+                                    (m) => PromptBlockCategoryGroups
+                                        .personaCategories
+                                        .contains(m.categoryId),
+                                  )
+                                  .map((m) {
+                                    final currentLocale =
+                                        Localizations.localeOf(
+                                          context,
+                                        ).languageCode;
+                                    final rawLabel =
+                                        m.label.translations[currentLocale] ??
+                                        m.label.translations['en'] ??
+                                        m.id;
+                                    return DropdownMenuItem(
+                                      value: m.id,
+                                      child: Text(
+                                        '$rawLabel (${m.id})',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    );
+                                  }),
+                            ],
+                            onChanged: (val) {
+                              ref
+                                  .read(stepFormProvider(stepId).notifier)
+                                  .forceRebuild(
+                                    payload.copyWith(
+                                      executionPersonaBlockId: val,
+                                    ),
+                                  );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // 4. Criteria Blocks List (Reorderable)
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,

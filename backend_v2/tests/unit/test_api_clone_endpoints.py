@@ -8,7 +8,7 @@ from backend_v2.api.dependencies import get_current_user_from_header, get_studio
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.enums import BlockDataType, HistoricalContextMode
+from backend_v2.models.enums import BlockDataType, HistoricalContextMode, PromptBlockCategory
 from backend_v2.models.v2_core import (
     I18nText,
     PromptBlock,
@@ -67,7 +67,7 @@ def mock_studio_service() -> AsyncMock:
         slug="test_block_clone",
         label=I18nText(default_locale="en", translations={"en": "Block (Copy)"}),
         description=I18nText(default_locale="en", translations={"en": "desc"}),
-        category_id="test",
+        category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,
     )
     service.clone_system_config.return_value = SystemConfigModelRegistry(

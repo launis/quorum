@@ -68,7 +68,16 @@ async def test_successful_hardening(temp_workspace: tuple[Path, Path, Path], mon
     async def mock_acompletion(*args: tuple[Any, ...], **kwargs: dict[str, Any]) -> MockResponse:
         if getattr(kwargs.get("response_format"), "__name__", "") == "JudgeResponse":
             return MockResponse(
-                json.dumps({"chain_of_thought": "Looks good", "is_approved": True, "rejection_reason": ""})
+                json.dumps(
+                    {
+                        "chain_of_thought": "Looks good",
+                        "hunk_annotations": [
+                            {"hunk_header": "@@", "rule_ids": [1], "justification": "Ok", "is_authorized": True}
+                        ],
+                        "is_approved": True,
+                        "rejection_reason": "",
+                    }
+                )
             )
 
         mock_checks = [
@@ -79,15 +88,25 @@ async def test_successful_hardening(temp_workspace: tuple[Path, Path, Path], mon
             {
                 "audit_matrix": mock_checks,
                 "is_rewritten": True,
-                "hardened_code": ('def work() -> None:\n    """Execute work with strict validation."""\n    pass\n'),
+                "edits": [
+                    {
+                        "search_block": "def work():\n    pass\n",
+                        "replace_block": 'def work() -> None:\n    """Execute work with strict validation."""\n    pass\n',
+                    }
+                ],
             }
         )
         is_healing = getattr(kwargs.get("response_format"), "__name__", "") == "HealingResponse"
 
         if is_healing:
-            return MockResponse(
-                json.dumps({"hardened_code": __import__("json").loads(json_data).get("hardened_code", "")})
-            )
+            hc = __import__("json").loads(json_data).get("edits", [{}])[0].get("replace_block", "")
+            # If the previous output was compilable but failed quality, it was written to file
+            # Thus the search_block should be the broken code
+            if hc == "def work() -> None:\n    x = 10\n":
+                sb = "def work() -> None:\n    x = 10\n"
+            else:
+                sb = "def work():\n    pass\n"
+            return MockResponse(json.dumps({"edits": [{"search_block": sb, "replace_block": hc}]}))
 
         return MockResponse(json_data)
 
@@ -106,12 +125,12 @@ async def test_successful_hardening(temp_workspace: tuple[Path, Path, Path], mon
     monkeypatch.setattr(night_shift_hardener, "pre_linting", mock_pre_linting)
 
     semaphore = asyncio.Semaphore(1)
-    success = await night_shift_hardener.process_file_with_retry(
+    success_tuple = await night_shift_hardener.process_file_with_retry(
         system_prompt="Rule 1", target_file=target_file, semaphore=semaphore, state_file_path=state_file
     )
 
     # Confirm processing returned success and state is saved as DONE
-    assert success is True
+    assert success_tuple[0] is True
     assert "strict validation" in target_file.read_text(encoding="utf-8")
 
     with open(state_file, encoding="utf-8") as f:
@@ -129,9 +148,18 @@ async def test_syntax_validation_failure_triggers_rollback(
 
     # Mock litellm acompletion to return invalid python syntax with correct number of checks
     async def mock_acompletion(*args: tuple[Any, ...], **kwargs: dict[str, Any]) -> MockResponse:
-        if "Adversarial Judge" in str(kwargs.get("messages", [])):
+        if getattr(kwargs.get("response_format"), "__name__", "") == "JudgeResponse":
             return MockResponse(
-                json.dumps({"chain_of_thought": "Looks good", "is_approved": True, "rejection_reason": ""})
+                json.dumps(
+                    {
+                        "chain_of_thought": "Looks good",
+                        "hunk_annotations": [
+                            {"hunk_header": "@@", "rule_ids": [1], "justification": "Ok", "is_authorized": True}
+                        ],
+                        "is_approved": True,
+                        "rejection_reason": "",
+                    }
+                )
             )
 
         mock_checks = [
@@ -139,14 +167,23 @@ async def test_syntax_validation_failure_triggers_rollback(
             for i in range(1, night_shift_hardener.RuleLimits.TOTAL_RULES.value + 1)
         ]
         json_data = json.dumps(
-            {"audit_matrix": mock_checks, "is_rewritten": True, "hardened_code": "def work( -> None:\n    pass"}
+            {
+                "audit_matrix": mock_checks,
+                "is_rewritten": True,
+                "edits": [{"search_block": "def work():\n    pass\n", "replace_block": "def work( -> None:\n    pass"}],
+            }
         )
         is_healing = getattr(kwargs.get("response_format"), "__name__", "") == "HealingResponse"
 
         if is_healing:
-            return MockResponse(
-                json.dumps({"hardened_code": __import__("json").loads(json_data).get("hardened_code", "")})
-            )
+            hc = __import__("json").loads(json_data).get("edits", [{}])[0].get("replace_block", "")
+            # If the previous output was compilable but failed quality, it was written to file
+            # Thus the search_block should be the broken code
+            if hc == "def work() -> None:\n    x = 10\n":
+                sb = "def work() -> None:\n    x = 10\n"
+            else:
+                sb = "def work():\n    pass\n"
+            return MockResponse(json.dumps({"edits": [{"search_block": sb, "replace_block": hc}]}))
 
         return MockResponse(json_data)
 
@@ -155,12 +192,12 @@ async def test_syntax_validation_failure_triggers_rollback(
     monkeypatch.setattr(litellm, "acompletion", mock_acompletion)
 
     semaphore = asyncio.Semaphore(1)
-    success = await night_shift_hardener.process_file_with_retry(
+    success_tuple = await night_shift_hardener.process_file_with_retry(
         system_prompt="Rule 1", target_file=target_file, semaphore=semaphore, state_file_path=state_file
     )
 
     # Confirm processing failed and original file content was fully restored
-    assert success is False
+    assert success_tuple[0] is False
     assert target_file.read_text(encoding="utf-8") == original_content
 
     with open(state_file, encoding="utf-8") as f:
@@ -178,9 +215,18 @@ async def test_quality_gate_failure_triggers_rollback(
 
     # Mock litellm acompletion to return compilable but bad code with correct number of checks
     async def mock_acompletion(*args: tuple[Any, ...], **kwargs: dict[str, Any]) -> MockResponse:
-        if "Adversarial Judge" in str(kwargs.get("messages", [])):
+        if getattr(kwargs.get("response_format"), "__name__", "") == "JudgeResponse":
             return MockResponse(
-                json.dumps({"chain_of_thought": "Looks good", "is_approved": True, "rejection_reason": ""})
+                json.dumps(
+                    {
+                        "chain_of_thought": "Looks good",
+                        "hunk_annotations": [
+                            {"hunk_header": "@@", "rule_ids": [1], "justification": "Ok", "is_authorized": True}
+                        ],
+                        "is_approved": True,
+                        "rejection_reason": "",
+                    }
+                )
             )
 
         mock_checks = [
@@ -188,14 +234,25 @@ async def test_quality_gate_failure_triggers_rollback(
             for i in range(1, night_shift_hardener.RuleLimits.TOTAL_RULES.value + 1)
         ]
         json_data = json.dumps(
-            {"audit_matrix": mock_checks, "is_rewritten": True, "hardened_code": "def work() -> None:\n    x = 10\n"}
+            {
+                "audit_matrix": mock_checks,
+                "is_rewritten": True,
+                "edits": [
+                    {"search_block": "def work():\n    pass\n", "replace_block": "def work() -> None:\n    x = 10\n"}
+                ],
+            }
         )
         is_healing = getattr(kwargs.get("response_format"), "__name__", "") == "HealingResponse"
 
         if is_healing:
-            return MockResponse(
-                json.dumps({"hardened_code": __import__("json").loads(json_data).get("hardened_code", "")})
-            )
+            hc = __import__("json").loads(json_data).get("edits", [{}])[0].get("replace_block", "")
+            # If the previous output was compilable but failed quality, it was written to file
+            # Thus the search_block should be the broken code
+            if hc == "def work() -> None:\n    x = 10\n":
+                sb = "def work() -> None:\n    x = 10\n"
+            else:
+                sb = "def work():\n    pass\n"
+            return MockResponse(json.dumps({"edits": [{"search_block": sb, "replace_block": hc}]}))
 
         return MockResponse(json_data)
 
@@ -217,12 +274,12 @@ async def test_quality_gate_failure_triggers_rollback(
     monkeypatch.setattr(night_shift_hardener, "pre_linting", mock_pre_linting)
 
     semaphore = asyncio.Semaphore(1)
-    success = await night_shift_hardener.process_file_with_retry(
+    success_tuple = await night_shift_hardener.process_file_with_retry(
         system_prompt="Rule 1", target_file=target_file, semaphore=semaphore, state_file_path=state_file
     )
 
     # Confirm processing failed, original file content was rolled back, and state was marked accordingly
-    assert success is False
+    assert success_tuple[0] is False
     assert target_file.read_text(encoding="utf-8") == original_content
 
     with open(state_file, encoding="utf-8") as f:
@@ -260,9 +317,18 @@ async def test_self_healing_success_on_second_attempt(
 
     # Mock litellm acompletion to return syntax error on first call and success on second call
     async def mock_acompletion(*args: tuple[Any, ...], **kwargs: dict[str, Any]) -> MockResponse:
-        if "Adversarial Judge" in str(kwargs.get("messages", [])):
+        if getattr(kwargs.get("response_format"), "__name__", "") == "JudgeResponse":
             return MockResponse(
-                json.dumps({"chain_of_thought": "Looks good", "is_approved": True, "rejection_reason": ""})
+                json.dumps(
+                    {
+                        "chain_of_thought": "Looks good",
+                        "hunk_annotations": [
+                            {"hunk_header": "@@", "rule_ids": [1], "justification": "Ok", "is_authorized": True}
+                        ],
+                        "is_approved": True,
+                        "rejection_reason": "",
+                    }
+                )
             )
 
         nonlocal call_count
@@ -274,13 +340,24 @@ async def test_self_healing_success_on_second_attempt(
         if call_count == 1:
             # Return syntactically broken code on the first attempt
             json_data = json.dumps(
-                {"audit_matrix": mock_checks, "is_rewritten": True, "hardened_code": "def work( -> None:\n    pass"}
+                {
+                    "audit_matrix": mock_checks,
+                    "is_rewritten": True,
+                    "edits": [
+                        {"search_block": "def work():\n    pass\n", "replace_block": "def work( -> None:\n    pass"}
+                    ],
+                }
             )
             is_healing = getattr(kwargs.get("response_format"), "__name__", "") == "HealingResponse"
             if is_healing:
-                return MockResponse(
-                    json.dumps({"hardened_code": __import__("json").loads(json_data).get("hardened_code", "")})
-                )
+                hc = __import__("json").loads(json_data).get("edits", [{}])[0].get("replace_block", "")
+                # If the previous output was compilable but failed quality, it was written to file
+                # Thus the search_block should be the broken code
+                if hc == "def work() -> None:\n    x = 10\n":
+                    sb = "def work() -> None:\n    x = 10\n"
+                else:
+                    sb = "def work():\n    pass\n"
+                return MockResponse(json.dumps({"edits": [{"search_block": sb, "replace_block": hc}]}))
             return MockResponse(json_data)
         else:
             # Return correct, hardened code on the second attempt
@@ -288,16 +365,24 @@ async def test_self_healing_success_on_second_attempt(
                 {
                     "audit_matrix": mock_checks,
                     "is_rewritten": True,
-                    "hardened_code": (
-                        'def work() -> None:\n    """Execute work with strict validation."""\n    pass\n'
-                    ),
+                    "edits": [
+                        {
+                            "search_block": "def work():\n    pass\n",
+                            "replace_block": 'def work() -> None:\n    """Execute work with strict validation."""\n    pass\n',
+                        }
+                    ],
                 }
             )
             is_healing = getattr(kwargs.get("response_format"), "__name__", "") == "HealingResponse"
             if is_healing:
-                return MockResponse(
-                    json.dumps({"hardened_code": __import__("json").loads(json_data).get("hardened_code", "")})
-                )
+                hc = __import__("json").loads(json_data).get("edits", [{}])[0].get("replace_block", "")
+                # If the previous output was compilable but failed quality, it was written to file
+                # Thus the search_block should be the broken code
+                if hc == "def work() -> None:\n    x = 10\n":
+                    sb = "def work() -> None:\n    x = 10\n"
+                else:
+                    sb = "def work():\n    pass\n"
+                return MockResponse(json.dumps({"edits": [{"search_block": sb, "replace_block": hc}]}))
             return MockResponse(json_data)
 
     import litellm
@@ -316,13 +401,13 @@ async def test_self_healing_success_on_second_attempt(
     monkeypatch.setattr(night_shift_hardener, "pre_linting", mock_pre_linting)
 
     semaphore = asyncio.Semaphore(1)
-    success = await night_shift_hardener.process_file_with_retry(
+    success_tuple = await night_shift_hardener.process_file_with_retry(
         system_prompt="Rule 1", target_file=target_file, semaphore=semaphore, state_file_path=state_file
     )
 
     # Confirm processing eventually succeeded, called LLM twice, and saved the result
-    assert success is True
-    assert call_count == 4
+    assert success_tuple[0] is True
+    assert call_count == 2
     assert "strict validation" in target_file.read_text(encoding="utf-8")
 
     with open(state_file, encoding="utf-8") as f:
@@ -353,9 +438,18 @@ async def test_dual_tier_model_escalation(
 
     # Mock litellm acompletion to capture the model name used for each call
     async def mock_acompletion(*args: tuple[Any, ...], **kwargs: dict[str, Any]) -> MockResponse:
-        if "Adversarial Judge" in str(kwargs.get("messages", [])):
+        if getattr(kwargs.get("response_format"), "__name__", "") == "JudgeResponse":
             return MockResponse(
-                json.dumps({"chain_of_thought": "Looks good", "is_approved": True, "rejection_reason": ""})
+                json.dumps(
+                    {
+                        "chain_of_thought": "Looks good",
+                        "hunk_annotations": [
+                            {"hunk_header": "@@", "rule_ids": [1], "justification": "Ok", "is_authorized": True}
+                        ],
+                        "is_approved": True,
+                        "rejection_reason": "",
+                    }
+                )
             )
 
         model = kwargs.get("model")
@@ -367,7 +461,13 @@ async def test_dual_tier_model_escalation(
         if len(models_used) == 1:
             # First attempt fails syntax compilation
             json_data = json.dumps(
-                {"audit_matrix": mock_checks, "is_rewritten": True, "hardened_code": "def work( -> None:\n    pass"}
+                {
+                    "audit_matrix": mock_checks,
+                    "is_rewritten": True,
+                    "edits": [
+                        {"search_block": "def work():\n    pass\n", "replace_block": "def work( -> None:\n    pass"}
+                    ],
+                }
             )
         else:
             # Second attempt succeeds
@@ -375,15 +475,22 @@ async def test_dual_tier_model_escalation(
                 {
                     "audit_matrix": mock_checks,
                     "is_rewritten": True,
-                    "hardened_code": "def work() -> None:\n    pass\n",
+                    "edits": [
+                        {"search_block": "def work():\n    pass\n", "replace_block": "def work() -> None:\n    pass\n"}
+                    ],
                 }
             )
         is_healing = getattr(kwargs.get("response_format"), "__name__", "") == "HealingResponse"
 
         if is_healing:
-            return MockResponse(
-                json.dumps({"hardened_code": __import__("json").loads(json_data).get("hardened_code", "")})
-            )
+            hc = __import__("json").loads(json_data).get("edits", [{}])[0].get("replace_block", "")
+            # If the previous output was compilable but failed quality, it was written to file
+            # Thus the search_block should be the broken code
+            if hc == "def work() -> None:\n    x = 10\n":
+                sb = "def work() -> None:\n    x = 10\n"
+            else:
+                sb = "def work():\n    pass\n"
+            return MockResponse(json.dumps({"edits": [{"search_block": sb, "replace_block": hc}]}))
 
         return MockResponse(json_data)
 
@@ -403,12 +510,12 @@ async def test_dual_tier_model_escalation(
     monkeypatch.setattr(night_shift_hardener, "pre_linting", mock_pre_linting)
 
     semaphore = asyncio.Semaphore(1)
-    success = await night_shift_hardener.process_file_with_retry(
+    success_tuple = await night_shift_hardener.process_file_with_retry(
         system_prompt="Rule 1", target_file=target_file, semaphore=semaphore, state_file_path=state_file
     )
 
-    assert success is True
-    assert len(models_used) == 4
+    assert success_tuple[0] is True
+    assert len(models_used) == 2
     # Verify primary model on 1st run, healing model on retry
     assert str(models_used[0]) == night_shift_hardener.PRIMARY_MODEL
     assert str(models_used[1]) == night_shift_hardener.HEALING_MODEL
@@ -421,9 +528,18 @@ async def test_audit_report_saving(temp_workspace: tuple[Path, Path, Path], monk
 
     # Mock litellm acompletion to return valid hardened python code with correct number of audit items
     async def mock_acompletion(*args: tuple[Any, ...], **kwargs: dict[str, Any]) -> MockResponse:
-        if "Adversarial Judge" in str(kwargs.get("messages", [])):
+        if getattr(kwargs.get("response_format"), "__name__", "") == "JudgeResponse":
             return MockResponse(
-                json.dumps({"chain_of_thought": "Looks good", "is_approved": True, "rejection_reason": ""})
+                json.dumps(
+                    {
+                        "chain_of_thought": "Looks good",
+                        "hunk_annotations": [
+                            {"hunk_header": "@@", "rule_ids": [1], "justification": "Ok", "is_authorized": True}
+                        ],
+                        "is_approved": True,
+                        "rejection_reason": "",
+                    }
+                )
             )
 
         mock_checks = [
@@ -434,15 +550,22 @@ async def test_audit_report_saving(temp_workspace: tuple[Path, Path, Path], monk
             {
                 "audit_matrix": mock_checks,
                 "is_rewritten": True,
-                "hardened_code": "def work() -> None:\n    pass\n",
+                "edits": [
+                    {"search_block": "def work():\n    pass\n", "replace_block": "def work() -> None:\n    pass\n"}
+                ],
             }
         )
         is_healing = getattr(kwargs.get("response_format"), "__name__", "") == "HealingResponse"
 
         if is_healing:
-            return MockResponse(
-                json.dumps({"hardened_code": __import__("json").loads(json_data).get("hardened_code", "")})
-            )
+            hc = __import__("json").loads(json_data).get("edits", [{}])[0].get("replace_block", "")
+            # If the previous output was compilable but failed quality, it was written to file
+            # Thus the search_block should be the broken code
+            if hc == "def work() -> None:\n    x = 10\n":
+                sb = "def work() -> None:\n    x = 10\n"
+            else:
+                sb = "def work():\n    pass\n"
+            return MockResponse(json.dumps({"edits": [{"search_block": sb, "replace_block": hc}]}))
 
         return MockResponse(json_data)
 
@@ -468,11 +591,11 @@ async def test_audit_report_saving(temp_workspace: tuple[Path, Path, Path], monk
             f.unlink()
 
     semaphore = asyncio.Semaphore(1)
-    success = await night_shift_hardener.process_file_with_retry(
+    success_tuple = await night_shift_hardener.process_file_with_retry(
         system_prompt="Rule 1", target_file=target_file, semaphore=semaphore, state_file_path=state_file
     )
 
-    assert success is True
+    assert success_tuple[0] is True
     # Confirm report is saved using glob since it has a timestamp
     reports = list(report_dir.glob(f"{target_file.stem}_*_audit_report.json"))
     assert len(reports) == 1
@@ -480,7 +603,7 @@ async def test_audit_report_saving(temp_workspace: tuple[Path, Path, Path], monk
 
     with open(report_file, encoding="utf-8") as rf:
         report_data = json.load(rf)
-    assert len(report_data["audit_matrix"]) == night_shift_hardener.RuleLimits.TOTAL_RULES.value * 3
+    assert len(report_data["audit_matrix"]) == night_shift_hardener.RuleLimits.TOTAL_RULES.value
     assert report_data["is_rewritten"] is True
 
 

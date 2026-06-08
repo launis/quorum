@@ -31,6 +31,18 @@ class BlockDataType(str, Enum):
     CRITERIA = "criteria"
 
 
+class PromptBlockCategory(str, Enum):
+    """Strictly defined categories for PromptBlocks to guarantee Fail-Fast parity with Frontend."""
+
+    MATRIX = "matrix"
+    AGENT_ROLE = "agent_role"
+    TASK_DEFINITION = "task_definition"
+    SYSTEM_RULE = "system_rule"
+    PROTOCOL = "protocol"
+    RUNTIME_VARIABLES = "runtime_variables"
+    EXECUTION_PERSONA = "execution_persona"
+
+
 class ComponentType(str, Enum):
     """Component types allowed for SDUI Frontend Hint mapping."""
 
@@ -205,15 +217,6 @@ class PromptCacheStatus(str, Enum):
     FAILED = "FAILED"
 
 
-class ExecutionPersona(str, Enum):
-    """Execution Personas to inject SSOT global directives directly into System Prompts."""
-
-    DETERMINISTIC_PARSER = "DETERMINISTIC_PARSER"
-    GENERATIVE_ASSISTANT = "GENERATIVE_ASSISTANT"
-    XAI_REPORTER = "XAI_REPORTER"
-    COACH = "COACH"
-
-
 class SystemConcurrency(int, Enum):
     """Global concurrency limits for DAG Execution. Optimized for Context Caching (V3)."""
 
@@ -224,10 +227,14 @@ class SystemConcurrency(int, Enum):
     LLM_RETRY_MIN_SECONDS = 1
     LLM_RETRY_MAX_SECONDS = 30
     FAIL_FAST_MAX_RETRIES = 2
-    LLM_MAX_CHUNK_SIZE = 10
+    LLM_MAX_CHUNK_SIZE = 4
     MATRIX_SAMPLING_LIMIT = 0
-    LLM_DEFAULT_TIMEOUT_SECONDS = 120
+    LLM_DEFAULT_TIMEOUT_SECONDS = 600
     RATE_LIMIT_COOLDOWN_SECONDS = 10
+    SEMAPHORE_LOW_RPM_THRESHOLD = 20
+    SEMAPHORE_LOW_RPM_LIMIT = 2
+    SEMAPHORE_MAX_CONCURRENCY = 5
+    SEMAPHORE_RPM_DIVISOR = 10
     MAX_SAFE_TOKENS = 1000000
     SCHEMA_MAX_LOCALIZED_ANCHORS = 10
     SCHEMA_MAX_EVALUATIONS = 15
@@ -455,4 +462,4 @@ LaxComponentType = Annotated[ComponentType, Field(strict=False)]
 LaxHistoricalContextMode = Annotated[HistoricalContextMode, Field(strict=False)]
 LaxScoringStrategy = Annotated[ScoringStrategy, Field(strict=False)]
 LaxVirtualSystemStepID = Annotated[VirtualSystemStepID, Field(strict=False)]
-LaxExecutionPersona = Annotated[ExecutionPersona, Field(strict=False)]
+LaxPromptBlockCategory = Annotated[PromptBlockCategory, Field(strict=False)]

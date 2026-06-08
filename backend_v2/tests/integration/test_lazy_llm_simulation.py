@@ -11,7 +11,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.dtos.lightweight_matrix import AtomEvaluationItemDTO
-from backend_v2.models.enums import BlockDataType
+from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, PromptBlock, TDAAssertion
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 
@@ -105,7 +105,7 @@ def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
         slug="chronomnesia_matrix",
         label=I18nText(default_locale="en", translations={"en": "Chronomnesia Matrix"}),
         description=I18nText(default_locale="en", translations={"en": "Description"}),
-        category_id="matrix",
+        category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.STRING,
         scale_min=1,
         scale_max=5,

@@ -122,7 +122,25 @@ class StudioService:
 
     async def list_workflows(self, initiator: TokenData) -> list[Workflow]:
         all_data = await self.workflow_repo.get_all_workflows()
-        workflows = [Workflow.model_validate(x) for x in all_data]
+
+        from pydantic import ValidationError
+
+        workflows = []
+        for x in all_data:
+            try:
+                workflows.append(Workflow.model_validate(x))
+            except ValidationError as e:
+                logger.error(
+                    "[StudioService] %s: Workflow %s failed hydration. DB is corrupt. Error: %s",
+                    ErrorCodes.STATE_INTEGRITY_ERROR.name,
+                    x.get("id"),
+                    str(e),
+                )
+                raise AppException(
+                    message=f"Database integrity error: Workflow {x.get('id')} failed strict validation.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
+                ) from e
 
         if initiator.role in ["ROOT", UserRole.ROOT]:
             return await self._stitch_profiles_to_workflows(workflows)
@@ -296,7 +314,25 @@ class StudioService:
 
     async def list_steps(self, initiator: TokenData) -> list[Step]:
         all_data = await self.workflow_repo.get_all_steps()
-        steps = [Step.model_validate(x) for x in all_data]
+
+        from pydantic import ValidationError
+
+        steps = []
+        for x in all_data:
+            try:
+                steps.append(Step.model_validate(x))
+            except ValidationError as e:
+                logger.error(
+                    "[StudioService] %s: Step %s failed hydration. DB is corrupt. Error: %s",
+                    ErrorCodes.STATE_INTEGRITY_ERROR.name,
+                    x.get("id"),
+                    str(e),
+                )
+                raise AppException(
+                    message=f"Database integrity error: Step {x.get('id')} failed strict validation.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
+                ) from e
 
         if initiator.role in ["ROOT", UserRole.ROOT]:
             return steps
@@ -396,7 +432,25 @@ class StudioService:
 
     async def list_prompt_blocks(self, initiator: TokenData) -> list[PromptBlock]:
         all_data = await self.component_repo.get_all_prompt_blocks()
-        blocks = [PromptBlock.model_validate(x) for x in all_data]
+
+        from pydantic import ValidationError
+
+        blocks = []
+        for x in all_data:
+            try:
+                blocks.append(PromptBlock.model_validate(x))
+            except ValidationError as e:
+                logger.error(
+                    "[StudioService] %s: PromptBlock %s failed hydration. DB is corrupt. Error: %s",
+                    ErrorCodes.STATE_INTEGRITY_ERROR.name,
+                    x.get("id"),
+                    str(e),
+                )
+                raise AppException(
+                    message=f"Database integrity error: PromptBlock {x.get('id')} failed strict validation.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
+                ) from e
 
         if initiator.role in ["ROOT", UserRole.ROOT]:
             return blocks

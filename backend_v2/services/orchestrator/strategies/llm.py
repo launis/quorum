@@ -170,6 +170,15 @@ class LLMNodeStrategy(NodeStrategy):
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
+        execution_persona_block = None
+        if step_obj.execution_persona_block_id:
+            execution_persona_block = block_map.get(step_obj.execution_persona_block_id)
+            if not execution_persona_block:
+                raise ConfigurationError(
+                    f"Execution Persona Block '{step_obj.execution_persona_block_id}' not found.",
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
+
         criteria_blocks_models: list[PromptBlock] = []
         for m_id in step_obj.criteria_block_ids:
             b = block_map.get(m_id)
@@ -214,6 +223,8 @@ class LLMNodeStrategy(NodeStrategy):
                         all_bp_blocks.append(blueprint_obj.role_block_id)
                     if blueprint_obj.extraction_protocol_block_id:
                         all_bp_blocks.append(blueprint_obj.extraction_protocol_block_id)
+                    if blueprint_obj.execution_persona_block_id:
+                        all_bp_blocks.append(blueprint_obj.execution_persona_block_id)
                     all_bp_blocks.extend(blueprint_obj.criteria_block_ids)
 
                     for m_id in all_bp_blocks:
@@ -258,6 +269,7 @@ class LLMNodeStrategy(NodeStrategy):
             compiler=self.compiler,
             role_block=role_block,
             protocol_block=protocol_block,
+            execution_persona_block=execution_persona_block,
             criteria_blocks=criteria_blocks,
             target_locale=target_locale,
             effective_mcp_tools=effective_mcp_tools,

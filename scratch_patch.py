@@ -1,7 +1,6 @@
-import os
 
 filepath = 'backend_v2/tests/unit/models/dtos/test_lightweight_matrix.py'
-with open(filepath, 'r', encoding='utf-8') as f:
+with open(filepath, encoding='utf-8') as f:
     data = f.read()
 
 data = data.replace('structural_location=None', 'structural_location="N/A"')

@@ -15,7 +15,7 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
     <step id="2">EVALUATE: Analyze the incoming goal. If it requires updating DTOs, Repository interfaces, AND Frontend, it's NOT a Tier 3 refactor. STOP and instruct the user to use `/tier1-planner`.</step>
     <step id="3">DISCOVER: Locate the specific file and read its contents.</step>
     <step id="4">EXECUTE & PAUSE: Present the root cause or execution plan, get confirmation ("PERMISSION GRANTED"), and write the code adhering strictly to the rules in `.agents/rules/`.</step>
-    <step id="5">TDD MANDATE & QUALITY GATE: Every new feature or refactor must include the creation/update of a Unit Test. You must present The Universal Quality Gate command to the user for final test verification: `uv run python scripts/backend_audit_loop.py [tiedostot] --test` (which automatically runs the corresponding Pytest files, making separate direct execution of `pytest` redundant and unnecessary).</step>
+    <step id="5">TDD MANDATE & QUALITY GATE: Every new feature or refactor must include the creation/update of a Unit Test. You must present The Universal Quality Gate command to the user for final test verification: `uv run python scripts/backend_audit_loop.py [target_path] --test` (which automatically runs the corresponding Pytest files, making separate direct execution of `pytest` redundant and unnecessary).</step>
   </execution_protocol>
 </system_prompt>
 ```

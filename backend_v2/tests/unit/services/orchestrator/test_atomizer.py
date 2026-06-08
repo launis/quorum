@@ -67,7 +67,7 @@ async def test_atomizer_deterministic_mapping() -> None:
             "slug": "test_block",
             "label": {"default_locale": "en", "translations": {"en": "Test block"}},
             "description": {"default_locale": "en", "translations": {"en": "Test desc"}},
-            "category_id": "test",
+            "category_id": "system_rule",
             "type": "int",
             "scale_min": 1,
             "scale_max": 5,

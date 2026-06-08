@@ -1,11 +1,12 @@
+import glob
 import json
+import math
 import os
 import sys
-import glob
-import math
+
 
 def get_all_evals(path: str) -> dict[str, dict[str, object]]:
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, encoding='utf-8') as f:
         data = json.load(f)
     all_evals: dict[str, dict[str, object]] = {}
     for step in data:
@@ -44,8 +45,7 @@ def calculate_pairwise_consistency(states: list[str]) -> float:
     return agreed_pairs / total_pairs
 
 def calculate_cohens_kappa(atom_states_list: list[list[str]], categories: list[str]) -> float:
-    """
-    Laskee Cohenin kapan tasan kahdelle ajolle (M = 2).
+    """Laskee Cohenin kapan tasan kahdelle ajolle (M = 2).
     atom_states_list: lista listoista, joissa jokaisessa on tasan 2 tilaa.
     categories: lista mahdollisista tiloista (esim. ['true', 'false']).
     """
@@ -54,33 +54,32 @@ def calculate_cohens_kappa(atom_states_list: list[list[str]], categories: list[s
         return 0.0
     if len(atom_states_list[0]) != 2:
         raise ValueError("Cohenin kappa vaatii tasan kaksi arvioijaa (ajoa).")
-        
+
     cat_to_idx = {cat: idx for idx, cat in enumerate(categories)}
     num_classes = len(categories)
-    
+
     confusion_matrix = [[0] * num_classes for _ in range(num_classes)]
     for states in atom_states_list:
         idx1 = cat_to_idx.get(states[0])
         idx2 = cat_to_idx.get(states[1])
         if idx1 is not None and idx2 is not None:
             confusion_matrix[idx1][idx2] += 1
-            
+
     observed_agreement = sum(confusion_matrix[i][i] for i in range(num_classes)) / N
-    
+
     row_sums = [sum(confusion_matrix[i][j] for j in range(num_classes)) for i in range(num_classes)]
     col_sums = [sum(confusion_matrix[i][j] for i in range(num_classes)) for j in range(num_classes)]
-    
+
     expected_agreement = sum((row_sums[i] / N) * (col_sums[i] / N) for i in range(num_classes))
-    
+
     if expected_agreement >= 1.0:
         return 1.0
-        
+
     kappa = (observed_agreement - expected_agreement) / (1.0 - expected_agreement)
     return kappa
 
 def calculate_fleiss_kappa(atom_states_list: list[list[str]], categories: list[str]) -> float:
-    """
-    Laskee Fleissin kapan annetuille syötteille (atomit) ja niiden tiloille eri ajoissa.
+    """Laskee Fleissin kapan annetuille syötteille (atomit) ja niiden tiloille eri ajoissa.
     atom_states_list: list of lists, missä jokainen sisempi lista sisältää atomin tilat eri ajoissa.
     categories: lista kaikista mahdollisista kategorioista/tiloista (esim. ['true', 'false']).
     """
@@ -195,7 +194,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     # Etsi säännön kuvaus tietokannasta
-    with open('backend_v2/seed/seed_data.json', 'r', encoding='utf-8') as f:
+    with open('backend_v2/seed/seed_data.json', encoding='utf-8') as f:
         seed = json.load(f)
     atom_rules = {}
     for block in seed.get('prompt_blocks', []):
@@ -215,10 +214,10 @@ if __name__ == '__main__':
         states = [get_state(evals[atom]) for evals in evals_list]
         for s in states:
             unique_categories.add(s)
-        
+
         entropy = calculate_entropy(states)
         consistency = calculate_pairwise_consistency(states)
-        
+
         atom_states[atom] = states
         atom_entropies[atom] = entropy
         atom_consistencies[atom] = consistency
@@ -264,37 +263,37 @@ if __name__ == '__main__':
 
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write('# Mittauksen Luotettavuus ja Vakausraportti (Reliability & Consistency)\n\n')
-        
+
         f.write('## Globaalit Metriikat\n')
         f.write(f'- **Arvioitujen ajojen määrä ($M$):** {len(evals_list)}\n')
         f.write(f'- **Yhteisten arvioitujen atomien määrä ($N$):** {len(common_atoms)}\n')
         f.write(f'- **Havaittujen luokkien kirjo:** {", ".join(categories_list)}\n')
         f.write(f'- **Parittainen konsistenssi (Self-Consistency):** {global_consistency * 100:.2f} %\n')
-        f.write(f'  > *Kuvaa mallin itse-konsistenssia eli kuinka todennäköisesti kaksi satunnaista ajoa päätyy samaan lopputulokseen samalla syötteellä.*\n')
+        f.write('  > *Kuvaa mallin itse-konsistenssia eli kuinka todennäköisesti kaksi satunnaista ajoa päätyy samaan lopputulokseen samalla syötteellä.*\n')
         f.write(f'- **Fleissin Kappa ($\\kappa_{{Fleiss}}$):** {global_kappa:.4f}\n')
-        f.write(f'  > *Yleinen tieteellinen sopivuuskerroin, joka eliminoi puhtaan sattuman vaikutuksen arvioinnissa ja toimii kaikilla ajomäärillä.*\n')
+        f.write('  > *Yleinen tieteellinen sopivuuskerroin, joka eliminoi puhtaan sattuman vaikutuksen arvioinnissa ja toimii kaikilla ajomäärillä.*\n')
         if cohen_kappa is not None:
             f.write(f'- **Cohenin Kappa ($\\kappa_{{Cohen}}$):** {cohen_kappa:.4f}\n')
-            f.write(f'  > *Spesifi sopivuuskerroin tasan kahden ajon vertailuun. Jos Cohenin kappa on Fleissin kappaa korkeampi, ajojen välillä on systemaattinen jakaumaero tiukkuudessa (Marginal Bias), mutta hyvä keskinäinen korrelaatio.*\n')
+            f.write('  > *Spesifi sopivuuskerroin tasan kahden ajon vertailuun. Jos Cohenin kappa on Fleissin kappaa korkeampi, ajojen välillä on systemaattinen jakaumaero tiukkuudessa (Marginal Bias), mutta hyvä keskinäinen korrelaatio.*\n')
         f.write(f'- **Keskimääräinen Shannonin Entropia:** {global_entropy:.4f}\n')
-        f.write(f'  > *Mittaa vastausten yleistä epävarmuutta ja hajontaa. Lähellä nollaa oleva arvo tarkoittaa erittäin stabiilia mallia.*\n\n')
-        
+        f.write('  > *Mittaa vastausten yleistä epävarmuutta ja hajontaa. Lähellä nollaa oleva arvo tarkoittaa erittäin stabiilia mallia.*\n\n')
+
         f.write('## Kahden viimeisimmän ajon siirtymätilat (Run 1 -> Run 2)\n')
         f.write(f'- **Erimielisyyttä näiden välillä:** {len([a for a in common_atoms if get_state(evals_1[a]) != get_state(evals_2[a])])} kpl\n')
         f.write(f'- **PASSED -> FAILED:** {summary_2way["PASSED->FAILED"]}\n')
         f.write(f'- **FAILED -> PASSED:** {summary_2way["FAILED->PASSED"]}\n')
         f.write(f'- **Muut siirtymät:** {summary_2way["Other"]}\n\n')
-        
+
         f.write('## Epävakaimmat Testitapaukset / Prompt-säännöt (Järjestetty Entropian mukaan)\n')
         f.write('Alla on listattu kaikki säännöt, joissa ilmeni erimielisyyttä tai epävakautta eri ajokertojen välillä. Kaikkein vaihtelevimmat/epävakaimmat tapaukset (korkein entropia) ovat listan alussa.\n\n')
-        
+
         for atom in mismatching_atoms:
             entropy = atom_entropies[atom]
             consistency = atom_consistencies[atom]
             states = atom_states[atom]
             f.write(f'### Atom-ID: `{atom}` (Entropia: {entropy:.3f}, Konsistenssi: {consistency*100:.1f}%)\n')
             f.write(f'**Arviointisääntö:** {atom_rules.get(atom, "Unknown")}\n\n')
-            
+
             f.write('**Havaitut tilat ajoittain:**\n')
             for run_idx, (run_name, state) in enumerate(zip(loaded_runs, states)):
                 eval_item = evals_list[run_idx][atom]

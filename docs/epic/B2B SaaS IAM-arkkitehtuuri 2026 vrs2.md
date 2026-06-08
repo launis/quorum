@@ -195,6 +195,32 @@ Tietokantaa ei koskaan manipuloida fyysisesti .json-tiedostoa editoimalla.
 
 ## ---
 
+**🔗 8\. Infra & Riippuvuudet (Epic 72 & Epic 74)**
+
+Tämä IAM-arkkitehtuuri (Epic 003) nojaa vahvasti Quorum V2:n tuleviin infrastruktuuri- ja datakerroksen migraatioihin:
+
+* **Epic 72 (PostgreSQL Driver):** 
+  * Mahdollistaa Firebasen UID:n käytön suoraan litteän datamallin pääavaimena (`TEXT PRIMARY KEY`).
+  * Tarjoaa natiivin tuen **Row-Level Securitylle (RLS)**, joka on välttämätön `SET LOCAL quorum.current_org` -eristyksen onnistumiselle (`asyncpg`-ajurissa).
+* **Epic 74 (Production Deployment GCP):** 
+  * Provisioi **Memorystore (Redis)** -palvelun, joka tekee 0 ms latenssin Kill-Switchistä (Blocklist) ja tenant-kohtaisesta AI Rate Limitingistä teknisesti mahdollisen ja salamannopean.
+  * Tarjoaa Cloud Run -ympäristön, joka kykenee vastaanottamaan tietoturvallisesti Firebasen "Soft Delete" -webhookit (Right to Erasure).
+
+## ---
+
+**🚀 9\. Transitiovaihe (Implementation Bridge: IAM Ensin)**
+
+IAM-arkkitehtuurin (Epic 003) toteuttaminen **ennen** Epic 72 (PostgreSQL) ja Epic 74 (GCP) -migraatioita on strategisesti erittäin järkevää. Tämä lukitsee järjestelmän tietoturvan, Pydantic-mallien litteyden ja Flutter-sovelluksen Auth-logiikan ennen massiivista tietokantamuutosta. 
+
+Jotta järjestelmä pysyy täysin toimintakykyisenä nykyisen infran (TinyDB) päällä ennen tuotantomigraatiota, sovelletaan seuraavia välivaiheen ratkaisuja:
+
+1. **TinyDB ja Pääavaimet (PK):** Vaikka TinyDB nojaa sisäisiin kokonaislukuihin (`doc_id`), pakotamme Pydantic-malleihin `id`-kentäksi Firebase UID:n (string). Repositoriokerros etsii käyttäjät kyselyllä `Query().id == "UID"`. Tämä tekee tulevasta PostgreSQL `TEXT PRIMARY KEY` -migraatiosta täysin kivuttoman.
+2. **App-Level Tenant Eristys (Ennen RLS:ää):** Koska TinyDB ei tue tietokantatason Row-Level Securitya (RLS), tenant-eristys jää välivaiheessa 100-prosenttisesti sovelluskerroksen vastuulle. Ohjelmoijan on muistettava lisätä `.filter(organization_id=org_xxx)` kaikkiin hakuihin. Automaattinen tietokantatason "Defense-in-Depth" (RLS) astuu voimaan vasta Epic 72:n myötä.
+3. **Redis Kill-Switch & FinOps:** Quorum V2 hyödyntää jo lokaalia Redistä Arq-taustatyöntekijöille. Voimme käyttää tätä olemassa olevaa lokaalia Redistä (esim. Dockerissa) täysimääräisesti API-rajapintojen Blocklist- ja Rate Limiting -ominaisuuksiin jo nyt, siirtyen myöhemmin Epic 74:ssä saumattomasti Memorystoreen.
+4. **Soft Delete & Webhook:** Firebase "Right to Erasure" -webhookia ei voida kytkeä julkiseksi ennen Epic 74:n Cloud Run -tuotantoa. Välivaiheessa pehmeät poistot (Soft Delete) testataan lokaalisti kutsumalla backendin `/firebase-delete` -rajapintaa manuaalisesti.
+
+## ---
+
 **✅ Laatuportit (Definition of Done)**
 
 Jokaisen arkkitehtuuriin koskevan Pull Requestin (PR) on läpäistävä nämä testit ja katselmoinnit CI/CD-putkessa:

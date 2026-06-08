@@ -110,7 +110,7 @@ def test_core_response_dto_strictness() -> None:
             "slug": "test-block",
             "label": {"default_locale": "en", "translations": {"en": "Test Block"}},
             "description": {"default_locale": "en", "translations": {"en": "Test Block Desc"}},
-            "category_id": "test_cat",
+            "category_id": "system_rule",
             "type": "string",
             "organization_id": valid_id_org,
         }

@@ -142,6 +142,26 @@ CREATE TABLE organizations (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Users (IAM integration)
+CREATE TABLE users (
+    id              TEXT PRIMARY KEY, -- Firebase UID
+    organization_id TEXT NOT NULL REFERENCES organizations(id),
+    role            TEXT NOT NULL,
+    deleted_at      TIMESTAMPTZ, -- Soft delete for GDPR
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(organization_id, id)
+);
+
+-- Invitations (IAM integration)
+CREATE TABLE invitations (
+    id              TEXT PRIMARY KEY,
+    organization_id TEXT NOT NULL REFERENCES organizations(id),
+    email           TEXT NOT NULL,
+    role            TEXT NOT NULL,
+    invite_token    TEXT NOT NULL UNIQUE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- Audit log (append-only, tamper-proof)
 CREATE TABLE audit_log (
     id          BIGSERIAL PRIMARY KEY,
@@ -159,6 +179,7 @@ CREATE INDEX idx_trace_events_exec ON trace_events(exec_id, seq);
 CREATE INDEX idx_workflows_slug ON workflows(slug);
 CREATE INDEX idx_audit_log_exec ON audit_log(exec_id);
 CREATE INDEX idx_executions_metadata ON executions USING GIN(metadata);
+CREATE INDEX idx_users_org ON users(organization_id);
 ```
 
 ### 3.2. Trace Events: Append-Only -arkkitehtuuri
@@ -190,6 +211,12 @@ async def get_execution(self, exec_id: str) -> dict[str, Any] | None:
     result["execution_trace"] = [dict(r) for r in trace_rows]
     return result
 ```
+
+### 3.3. Row-Level Security (RLS) ja Tenant-eristys (IAM-tuki)
+
+Tietokantakerros tulee tukemaan **B2B SaaS IAM -arkkitehtuurin (Epic IAM-003)** vaatimaa loogista eristystä Row-Level Securityn (RLS) avulla.
+* Kun `PostgreSQLDriver` ottaa yhteyden altaasta (connection pool) ja API-reitin kontekstissa on organisaatio, yhteys injektoi lokaalin session muuttujan: `SET LOCAL quorum.current_org = '<org_id>'`.
+* Tämä estää inhimilliset virheet (ORM Data Leakage) pysäyttämällä ristiinluvut suoraan kanta-tasolla.
 
 ---
 

@@ -1783,6 +1783,13 @@ class AppLocalizationsFi extends AppLocalizations {
   String get workflowAgentTypeLabel => 'Rooli (Kognitiivinen Taso)';
 
   @override
+  String get executionPersonaTitle => 'Execution Persona Block';
+
+  @override
+  String get executionPersonaDescription =>
+      'Valitse tekoälyn globaali käyttäytymisprofiili (esim. XAI Reporter, Coach).';
+
+  @override
   String get workflowDependsOnLabel => 'Riippuvuudet (DAG-reunat):';
 
   @override
@@ -2284,7 +2291,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get blueprintDefaultVariant => 'oletus (default)';
 
   @override
-  String get blueprintCopyVariant => 'Kopioi Tuloste';
+  String get blueprintCopyVariant => 'Copy Blueprint';
 
   @override
   String get blueprintGridRowLabel => 'Rinnakkainen (Grid Row)';
@@ -2516,6 +2523,9 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get categoryRuntimeVariables => 'Ajonaikaiset muuttujat';
+
+  @override
+  String get categoryExecutionPersona => 'Suorituspersoona';
 
   @override
   String get technicalDetails => 'Tekniset tiedot';

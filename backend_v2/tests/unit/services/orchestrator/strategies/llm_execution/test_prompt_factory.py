@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.enums import PromptBlockCategory
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
 
 
@@ -66,6 +67,7 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
         compiler=mock_compiler,
         role_block=None,
         protocol_block=None,
+        execution_persona_block=None,
         criteria_blocks=criteria_blocks,
         target_locale="en",
         effective_mcp_tools=None,
@@ -100,7 +102,7 @@ def test_prompt_factory_flat_instruction_no_blind_contamination(mock_compiler: M
                 "label": {"default_locale": "en", "translations": {"en": "Test Label", "fi": "Testi"}},
                 "description": {"default_locale": "en", "translations": {"en": "Test Desc", "fi": "Testi"}},
                 "type": "string",
-                "category_id": "text",
+                "category_id": "system_rule",
             }
         )
     ]
@@ -109,6 +111,7 @@ def test_prompt_factory_flat_instruction_no_blind_contamination(mock_compiler: M
         compiler=mock_compiler,
         role_block=None,
         protocol_block=None,
+        execution_persona_block=None,
         criteria_blocks=criteria_blocks,
         target_locale="en",
         effective_mcp_tools=None,
@@ -131,7 +134,7 @@ def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock) -> None
     criteria_blocks = [
         PromptBlock.model_construct(  # type: ignore[call-arg]
             id="blk_12345678901234567890123456789012",
-            category_id="matrix",
+            category_id=PromptBlockCategory.MATRIX,
             scales=[
                 MatrixScale.model_construct(  # type: ignore[call-arg]
                     score=1,
@@ -146,6 +149,7 @@ def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock) -> None
             compiler=mock_compiler,
             role_block=None,
             protocol_block=None,
+            execution_persona_block=None,
             criteria_blocks=criteria_blocks,
             target_locale="en",
             effective_mcp_tools=None,

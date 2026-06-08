@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,7 +8,6 @@ from backend_v2.api.dependencies import get_current_user_from_header, get_studio
 from backend_v2.exceptions import PermissionDeniedError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.services.studio import StudioService
-from unittest.mock import patch
 
 # Mock setup_logging to avoid litellm crash on Pydantic V2 during tests
 patch("backend_v2.main.setup_logging").start()

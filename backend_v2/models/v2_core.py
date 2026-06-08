@@ -22,14 +22,13 @@ from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import (
     BlockDataType,
     ComponentType,
-    ExecutionPersona,
     ExecutionStatus,
     HistoricalContextMode,
     LaxBlockDataType,
     LaxComponentType,
-    LaxExecutionPersona,
     LaxExecutionStatus,
     LaxHistoricalContextMode,
+    LaxPromptBlockCategory,
     LaxScoringStrategy,
     LaxXaiExtensionType,
     ScoringStrategy,
@@ -333,7 +332,9 @@ class PromptBlock(V2CoreBase):
             "AI prompt from UI localizations."
         ),
     )
-    category_id: str = Field(description="Categorization identifier (e.g. 'scientific_theory', 'system_rule').")
+    category_id: LaxPromptBlockCategory = Field(
+        description="Categorization identifier (e.g. 'scientific_theory', 'system_rule')."
+    )
     is_evaluative: bool = Field(
         default=True,
         description="Whether this matrix is mathematically commensurate and contributes to the global average score.",
@@ -344,10 +345,7 @@ class PromptBlock(V2CoreBase):
         default_factory=list,
         description="List of requested XAI output extensions (e.g. 'justification', 'risk_flag').",
     )
-    execution_persona: LaxExecutionPersona = Field(
-        default=ExecutionPersona.DETERMINISTIC_PARSER,
-        description="Epic 55 SSOT Directive Injection. Defines the global system prompt rules applied to this block.",
-    )
+    # Epic 55: execution_persona field REMOVED. execution_persona_block_id now resides on the Step model.
     theory_grounding: TheoryGrounding | None = Field(
         default=None,
         description="If provided, fetches and injects source theory as <theory_context> to prompt.",
@@ -577,6 +575,11 @@ class Step(V2CoreBase):
         default=None,
         pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
         description="Reference to global evidence extraction protocol block",
+    )
+    execution_persona_block_id: str | None = Field(
+        default=None,
+        pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+        description="Reference to the Execution Persona PromptBlock",
     )
     criteria_block_ids: list[str] = Field(
         default_factory=list,
@@ -1135,7 +1138,9 @@ class ExecutionCreate(V2CoreBase):
             "10 locally to mitigate LLM JSON schema context limits."
         ),
     )
-    raw_inputs: WorkflowInputsIngress = Field(default_factory=WorkflowInputsIngress, description="User provided raw inputs")
+    raw_inputs: WorkflowInputsIngress = Field(
+        default_factory=WorkflowInputsIngress, description="User provided raw inputs"
+    )
 
 
 class ExecutionStepState(V2CoreBase):

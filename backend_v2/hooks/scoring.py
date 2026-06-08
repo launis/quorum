@@ -13,6 +13,7 @@ from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import SanitizationResultDTO
 from backend_v2.models.dtos.lightweight_matrix import (
     AtomEvaluationItemDTO,
+    LightweightExtractionAtom,
     LightweightMatrixOutput,
 )
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
@@ -698,20 +699,26 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                         if is_ev_dlq:
                                             continue
 
+                                        ev_dto: AtomEvaluationItemDTO | LightweightExtractionAtom
                                         try:
+                                            # Try heavy protocol first
                                             ev_dto = AtomEvaluationItemDTO.model_validate(ev)
-                                        except ValidationError as e:
-                                            logger.error(
-                                                "[ScoringHook] %s: Invalid evaluation item format: %s",
-                                                ErrorCodes.VALIDATION_FAILED.name,
-                                                e,
-                                                exc_info=True,
-                                            )
-                                            raise AppException(
-                                                message=f"Strict Fail-Fast: Invalid evaluation item format: {e}",
-                                                status_code=500,
-                                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                            ) from e
+                                        except ValidationError:
+                                            try:
+                                                # Fallback to lightweight protocol
+                                                ev_dto = LightweightExtractionAtom.model_validate(ev)
+                                            except ValidationError as e:
+                                                logger.error(
+                                                    "[ScoringHook] %s: Invalid evaluation item format (both heavy and light failed): %s",
+                                                    ErrorCodes.VALIDATION_FAILED.name,
+                                                    e,
+                                                    exc_info=True,
+                                                )
+                                                raise AppException(
+                                                    message=f"Strict Fail-Fast: Invalid evaluation item format: {e}",
+                                                    status_code=500,
+                                                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                                ) from e
                                         if ev_dto.atom_id == aid:
                                             allow_override = tda.allow_contextual_override
                                             effective_override = enable_contextual_overrides and allow_override

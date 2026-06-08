@@ -21,7 +21,7 @@ class Base64Attachment(V2CoreBase):
 
 class WorkflowInputsIngress(V2CoreBase):
     """API Ingress payload for the workflow (Content).
-    
+
     Allows Base64 attachments during initial API routing, before Eager Extraction happens.
     """
 

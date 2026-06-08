@@ -6,7 +6,7 @@ import pytest
 from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.atom_flattening import process_matrix_flattening
-from backend_v2.models.enums import BlockDataType
+from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import (
     I18nText,
     MatrixClaim,
@@ -65,7 +65,7 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> PromptB
         slug=f"slug-{block_id}",
         label=I18nText(default_locale="en", translations={"en": f"Label {block_id}"}),
         description=I18nText(default_locale="en", translations={"en": f"Desc {block_id}"}),
-        category_id="matrix",
+        category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
         scale_min=1,
         scale_max=5,
