@@ -1206,6 +1206,7 @@ class ExecutionRecord(ExecutionCoreFields):
     )
 
     duration_ms: int = Field(default=0, description="Total execution duration in milliseconds")
+    cost_estimate: float = Field(default=0.0, description="Estimated total cost of the execution in USD")
     models_used: dict[str, int] = Field(
         default_factory=dict, description="Dictionary of models used and their usage count/tokens"
     )

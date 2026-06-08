@@ -2,7 +2,11 @@
 
 import logging
 import os
+import threading
+import time
 from abc import ABC, abstractmethod
+from collections.abc import Generator
+from contextlib import contextmanager
 from typing import Any
 
 from tinydb import TinyDB
@@ -24,6 +28,95 @@ try:
 except ImportError:
     FIRESTORE_AVAILABLE = False
     logger.warning("firebase_admin not installed or import failed. Firestore functionality will be unavailable.")
+
+
+# --- Cross-Process and Cross-Thread locking for TinyDB ---
+_thread_lock = threading.Lock()
+
+try:
+    import msvcrt
+
+    HAS_MSVCRT = True
+except ImportError:
+    HAS_MSVCRT = False
+
+try:
+    import fcntl
+
+    HAS_FCNTL = True
+except ImportError:
+    HAS_FCNTL = False
+
+
+@contextmanager
+def db_lock(db_path: str) -> Generator[None]:
+    """Acquire cross-process and cross-thread lock for TinyDB file access."""
+    lock_file_path = db_path + ".lock"
+    with _thread_lock:
+        if HAS_MSVCRT:
+            fd = os.open(lock_file_path, os.O_CREAT | os.O_RDWR)
+            try:
+                start_time = time.time()
+                while True:
+                    try:
+                        os.lseek(fd, 0, os.SEEK_SET)
+                        msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+                        break
+                    except OSError as e:
+                        if time.time() - start_time > 15.0:
+                            raise TimeoutError(f"Database lock timeout on {lock_file_path}") from e
+                        time.sleep(0.02)
+                yield
+            finally:
+                try:
+                    os.lseek(fd, 0, os.SEEK_SET)
+                    msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+                except OSError:
+                    pass
+                os.close(fd)
+        elif HAS_FCNTL:
+            f = open(lock_file_path, "w")
+            try:
+                start_time = time.time()
+                while True:
+                    try:
+                        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)  # type: ignore[attr-defined] # Unix-only attribute
+                        break
+                    except BlockingIOError as e:
+                        if time.time() - start_time > 15.0:
+                            raise TimeoutError(f"Database lock timeout on {lock_file_path}") from e
+                        time.sleep(0.02)
+                yield
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)  # type: ignore[attr-defined] # Unix-only attribute
+                f.close()
+        else:
+            lock_dir = db_path + ".lock_dir"
+            start_time = time.time()
+            acquired = False
+            while not acquired:
+                try:
+                    os.makedirs(lock_dir)
+                    acquired = True
+                except FileExistsError as e:
+                    try:
+                        mtime = os.path.getmtime(lock_dir)
+                        if time.time() - mtime > 10.0:
+                            os.rmdir(lock_dir)
+                            continue
+                    except OSError:
+                        pass
+                    if time.time() - start_time > 15.0:
+                        raise TimeoutError(f"Database lock timeout on {lock_dir}") from e
+                    time.sleep(0.02)
+            try:
+                yield
+            finally:
+                try:
+                    os.rmdir(lock_dir)
+                except OSError:
+                    pass
+
 
 # --- Abstract Base Classes ---
 
@@ -112,55 +205,65 @@ class TinyDBTable(AbstractTable):
 
     def insert(self, document: dict[str, Any]) -> int:
         """Insert document."""
-        with TinyDB(self._path, encoding="utf-8") as db:
-            return self._get_table(db).insert(document)  # type: ignore
+        with db_lock(self._path):
+            with TinyDB(self._path, encoding="utf-8") as db:
+                return self._get_table(db).insert(document)  # type: ignore
 
     def all(self) -> list[dict[str, Any]]:
         """Retrieve all documents."""
-        with TinyDB(self._path, encoding="utf-8") as db:
-            return self._get_table(db).all()  # type: ignore
+        with db_lock(self._path):
+            with TinyDB(self._path, encoding="utf-8") as db:
+                return self._get_table(db).all()  # type: ignore
 
     def search(self, query: Any) -> list[dict[str, Any]]:
         """Search documents."""
-        with TinyDB(self._path, encoding="utf-8") as db:
-            return self._get_table(db).search(query)  # type: ignore
+        with db_lock(self._path):
+            with TinyDB(self._path, encoding="utf-8") as db:
+                return self._get_table(db).search(query)  # type: ignore
 
     def get(self, query: Any) -> dict[str, Any] | None:
         """Get document."""
-        with TinyDB(self._path, encoding="utf-8") as db:
-            return self._get_table(db).get(query)  # type: ignore
+        with db_lock(self._path):
+            with TinyDB(self._path, encoding="utf-8") as db:
+                return self._get_table(db).get(query)  # type: ignore
 
     def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
         """Update documents."""
-        with TinyDB(self._path, encoding="utf-8") as db:
-            return self._get_table(db).update(fields, cond=query, doc_ids=doc_ids)  # type: ignore
+        with db_lock(self._path):
+            with TinyDB(self._path, encoding="utf-8") as db:
+                return self._get_table(db).update(fields, cond=query, doc_ids=doc_ids)  # type: ignore
 
     def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
         """Upsert document."""
-        with TinyDB(self._path, encoding="utf-8") as db:
-            return self._get_table(db).upsert(document, query)  # type: ignore
+        with db_lock(self._path):
+            with TinyDB(self._path, encoding="utf-8") as db:
+                return self._get_table(db).upsert(document, query)  # type: ignore
 
     def remove(self, query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
         """Remove documents."""
-        with TinyDB(self._path, encoding="utf-8") as db:
-            return self._get_table(db).remove(query, doc_ids=doc_ids)  # type: ignore
+        with db_lock(self._path):
+            with TinyDB(self._path, encoding="utf-8") as db:
+                return self._get_table(db).remove(query, doc_ids=doc_ids)  # type: ignore
 
     def truncate(self) -> None:
         """Truncate table."""
-        with TinyDB(self._path, encoding="utf-8") as db:
-            self._get_table(db).truncate()  # type: ignore
+        with db_lock(self._path):
+            with TinyDB(self._path, encoding="utf-8") as db:
+                self._get_table(db).truncate()  # type: ignore
 
     def count(self, query: Any = None) -> int:
         """Count documents."""
-        with TinyDB(self._path, encoding="utf-8") as db:
-            if query:
-                return self._get_table(db).count(query)  # type: ignore
-            return len(self._get_table(db))  # type: ignore
+        with db_lock(self._path):
+            with TinyDB(self._path, encoding="utf-8") as db:
+                if query:
+                    return self._get_table(db).count(query)  # type: ignore
+                return len(self._get_table(db))  # type: ignore
 
     def contains(self, query: Any) -> bool:
         """Check if document exists."""
-        with TinyDB(self._path, encoding="utf-8") as db:
-            return self._get_table(db).contains(query)  # type: ignore
+        with db_lock(self._path):
+            with TinyDB(self._path, encoding="utf-8") as db:
+                return self._get_table(db).contains(query)  # type: ignore
 
 
 class TinyDBClient(AbstractDatabase):

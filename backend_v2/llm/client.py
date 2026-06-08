@@ -26,6 +26,38 @@ from backend_v2.utils.pydantic_utils import inflate
 logger = logging.getLogger(__name__)
 
 
+def _clean_json_payload(raw_content: str) -> str:
+    """Repair common JSON formatting defects from LLM outputs.
+
+    Handles:
+    - Trailing unescaped double quotes inside values (e.g. ryhmätyötiloiksi."",)
+    - Raw control characters (newlines, tabs) inside string literals
+    - Trailing commas in objects or arrays without losing formatting
+    """
+    raw_content = raw_content.strip()
+
+    # 1. Repair trailing unescaped double quotes in properties (e.g. ryhmätyötiloiksi."",)
+    raw_content = re.sub(
+        r':\s*"((?:[^"\\]|\\.)+?)""(?=\s*[,}\]])',
+        r': "\1\""',
+        raw_content,
+    )
+
+    # 2. Repair raw newlines/tabs inside JSON string values
+    def escape_control_chars(match: re.Match[str]) -> str:
+        content = match.group(1)
+        content = content.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+        return f'"{content}"'
+
+    string_pattern = r'"((?:[^"\\]|\\.)*?)"'
+    raw_content = re.sub(string_pattern, escape_control_chars, raw_content)
+
+    # 3. Repair trailing commas in objects or arrays (e.g., {"a": 1,} -> {"a": 1}) without losing formatting
+    raw_content = re.sub(r",(?=\s*[}\]])", "", raw_content)
+
+    return raw_content
+
+
 class LLMClient:
     """LLM Client wrapper adapting LLMFactory for structured outputs.
 
@@ -379,6 +411,9 @@ class LLMClient:
                         raw_content = raw_content[start_idx : end_idx + 1]
 
                 raw_content = raw_content.strip()
+
+                # Run best practice JSON repairs
+                raw_content = _clean_json_payload(raw_content)
 
                 # Epic 56 Phase 3: Defensive wrap for single-key array hallucinations
                 if raw_content.startswith("[") and raw_content.endswith("]"):

@@ -197,7 +197,9 @@ PostgreSQL:
   → 100× vähemmän I/O, rinnakkain, ilman lukkoja
 ```
 
-Trace-tapahtumat rekonstruoidaan lukuhetkellä:
+*   **Rinnakkaisuustuki (MVCC):** Kukin agentti suorittaa `INSERT`-kutsuja omaan tauluunsa. Tämä ehkäisee päätaulun `executions` lukitustilat ja välttää rinnakkaisten ajojen deadlockit.
+*   **Jälleenrakennus (Reconstruction on Read):** Trace-historian kokonaiskuva kootaan lukuhetkellä järjestämällä tapahtumat järjestykseen `seq`-avaimen mukaan:
+
 ```python
 async def get_execution(self, exec_id: str) -> dict[str, Any] | None:
     row = await self.pool.fetchrow("SELECT * FROM executions WHERE id = $1", exec_id)
@@ -214,9 +216,30 @@ async def get_execution(self, exec_id: str) -> dict[str, Any] | None:
 
 ### 3.3. Row-Level Security (RLS) ja Tenant-eristys (IAM-tuki)
 
-Tietokantakerros tulee tukemaan **B2B SaaS IAM -arkkitehtuurin (Epic IAM-003)** vaatimaa loogista eristystä Row-Level Securityn (RLS) avulla.
-* Kun `PostgreSQLDriver` ottaa yhteyden altaasta (connection pool) ja API-reitin kontekstissa on organisaatio, yhteys injektoi lokaalin session muuttujan: `SET LOCAL quorum.current_org = '<org_id>'`.
-* Tämä estää inhimilliset virheet (ORM Data Leakage) pysäyttämällä ristiinluvut suoraan kanta-tasolla.
+Tietokantakerros toteuttaa tiukan B2B SaaS -asiakaseristyksen suoraan tietokantamoottorin Row-Level Security (RLS) -säännöillä:
+*   **Istuntokohtainen istuntoeristys:** Kun `PostgreSQLDriver` hakee yhteyden altaasta (Connection Pool), se injektoi transaktion alussa lokaalin session muuttujan:
+    ```sql
+    SET LOCAL quorum.current_org = '<org_id>';
+    ```
+*   **Automaattinen nollaus:** Käyttämällä avainsanaa `LOCAL`, PostgreSQL tyhjentää organisaatiotunnisteen heti transaktion päätyttyä (`COMMIT` tai `ROLLBACK`). Tämä estää tietovuodot tilanteissa, joissa samaa fyysistä yhteyttä käytetään myöhemmin toisen organisaation pyyntöihin.
+*   **Vikasietoisuus (BOLA/IDOR-estot):** Vaikka sovelluskoodista unohdettaisiin `.filter(org_id=...)` -ehto, tietokantamoottori hylkää lukemisen tai kirjoittamisen suoraan kanta-tasolla.
+
+### 3.4. Pydantic Pure Hydration Boundary (Tyyppimuunnokset)
+
+Suorituskyvyn maksimoimiseksi ja tyyppiturvallisuuden säilyttämiseksi noudatetaan seuraavaa rajapintajakoa:
+*   **API-rajat (Ingress):** Rajapinnat käyttävät tiukkaa validointia (`strict=True`) suojaamaan järjestelmää hallitsemattomalta käyttäjäsyötteeltä.
+*   **Tietokantarajat (Hydration):** Kun dataa luetaan PostgreSQL-tietokannasta Python-tasolle repositoriokerroksessa, Pydantic-malleja hydratoidaan käyttäen `strict=False` -asetusta:
+    ```python
+    return Execution.model_validate(row_dict, strict=False)
+    ```
+*   **Miksi:** Tämä antaa PostgreSQL-ajurin (`asyncpg`) palauttaa suoraan natiiveja Python-tyyppejä (kuten asynkronisia `datetime`- ja `UUID`-oliota) ja sallii Pydanticin Rust-pohjaisen ytimen suorittaa tyyppimuunnokset lennosta ilman kallista Base64- tai JSON-sarjallistamisen CPU-kuormaa.
+
+### 3.5. Tiedostojen eristys tietokannasta (Separation of Storage & DB)
+
+Järjestelmä eristää suuret binääritiedostot (PDF-raportit, syötedokumentit) kokonaan PostgreSQL-kannan ulkopuolelle:
+*   **Base64-kielto:** `WorkflowInputs`-domainmalli tarkistaa ja kieltää binäärisen Base64-tiedostodata pääsyn kantaan (`prevent_base64_pollution`).
+*   **Tallennuspaikka:** Kaikki raakasyötteet ja valmiit raportit tallennetaan tiedostovarastoon (`AbstractStorage` -> `LocalFileStorage` / `FirebaseStorage`).
+*   **Viittaukset:** Tietokannan `executions`-taulun `pdf_report_path` (`TEXT`) tallentaa ainoastaan polun/URI-viitteen tiedostoon, ja `raw_inputs` (`JSONB`) tallentaa ainoastaan tiedostojen metatiedot ja tekstimuotoiset erottelut. Tämä estää tietokannan koon paisumisen (Database Bloat).
 
 ---
 

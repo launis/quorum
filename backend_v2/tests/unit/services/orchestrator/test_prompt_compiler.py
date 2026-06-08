@@ -453,7 +453,7 @@ def test_fsm_serving_state_safety_limits() -> None:
 
     # Vertex AI FSM -kääntäjä ei hyväksy liian suuria sisäkkäisiä taulukkorajoja.
     # Varmistetaan matemaattinen yläraja tilojen määrälle.
-    assert SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS <= 10
+    assert SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS <= 15
     assert SystemConcurrency.SCHEMA_MAX_EVALUATIONS <= 15
     assert SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS <= 15
 

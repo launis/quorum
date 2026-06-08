@@ -4,45 +4,55 @@ Production crash: exe_51311c08e1fe4e299a3529dc49560363
 Step sr_5a8ae009eee44fe2 (Analyst) failed because LLM returned 7
 localized_anchors_found items from Finnish Sitra data, but Pydantic
 schema enforced max_length=5.
+
+NEW Production crash (Jun 8): exe_34c81955401d4a0688476416402f06bb
+Step failed because LLM returned 12 localized_anchors_found items
+(e.g., 'Koska', 'johtaneet', etc.), but Pydantic enforced max_length=10.
 """
 
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.services.orchestrator.prompt_compiler import StrippedBaseTDAExtraction
 
-# The exact payload from the production crash log (L530-532)
-SITRA_ANCHORS_7 = [
-    "Viite",
-    "Sitran",
-    "2017",
-    "2020",
-    "2023",
-    "CSRD-direktiivin",
-    "EU-taksonomian",
+# The exact payload from the new production crash log
+SITRA_ANCHORS_12 = [
+    "Koska",
+    "johtaneet",
+    "estää",
+    "mahdollistaa",
+    "pitää",
+    "Jos",
+    "täyttyvät",
+    "ei puututa",
+    "Kun",
+    "voimme",
+    "säästää",
+    "vapauttaa",
 ]
 
 
-def test_localized_anchors_accepts_7_items() -> None:
-    """Verify that StrippedBaseTDAExtraction accepts >5 localized anchors.
+def test_localized_anchors_accepts_12_items() -> None:
+    """Verify that StrippedBaseTDAExtraction accepts >10 localized anchors.
 
-    This reproduces the exact production crash where Finnish multi-reference
-    data legitimately produces more than 5 anchor keywords.
+    This reproduces the exact production crash where the strictly formatted
+    XML prompt mandates extracting all physical anchors, legitimately producing
+    12 anchor keywords.
     """
     payload = {
-        "localized_anchors_found": SITRA_ANCHORS_7,
-        "semantic_reasoning": "Sitra megatrendien viittaus kattaa koko 2017-2023 aikajakson.",
+        "localized_anchors_found": SITRA_ANCHORS_12,
+        "semantic_reasoning": "Säännön ankkurit löydetty monikollisesti tekstistä.",
         "contextual_override": False,
         "structural_location": "N/A",
-        "exact_quote": "Sitran megatrendiraportti 2017–2023 ja CSRD-direktiivin vaatimukset",
+        "exact_quote": "Koska syyt ovat johtaneet tähän...",
     }
 
-    # This MUST NOT raise ValidationError — 7 anchors is valid Finnish data
+    # This MUST NOT raise ValidationError
     instance = StrippedBaseTDAExtraction.model_validate(payload, strict=True)
-    assert len(instance.localized_anchors_found) == 7
+    assert len(instance.localized_anchors_found) == 12
 
 
-def test_schema_max_localized_anchors_is_at_least_10() -> None:
+def test_schema_max_localized_anchors_is_at_least_15() -> None:
     """Verify the SystemConcurrency constant allows sufficient anchors."""
-    assert SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS >= 10, (
+    assert SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS >= 15, (
         f"SCHEMA_MAX_LOCALIZED_ANCHORS={SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS} "
-        f"is too low for multilingual data. Must be >= 10."
+        f"is too low for strict multi-word anchor searches. Must be >= 15."
     )

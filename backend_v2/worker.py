@@ -690,23 +690,36 @@ async def generate_profile_synthesis_and_pdf_task(
             if step_metadata_updates and "token_usage" in step_metadata_updates:
                 usage = step_metadata_updates["token_usage"]
                 if usage:
+                    # Recalculate totals from all events in the trace to maintain absolute consistency
+                    total_p_tokens = 0
+                    total_c_tokens = 0
+                    total_t_tokens = 0
+                    total_cost = 0.0
+
+                    for event in execution.execution_trace:
+                        if event.event_type == "output" and isinstance(event.content, dict):
+                            step_meta = event.content.get("_step_metadata", {})
+                            u = step_meta.get("token_usage", {})
+                            if u:
+                                total_p_tokens += u.get("prompt_tokens", 0)
+                                total_c_tokens += u.get("completion_tokens", 0)
+                                total_t_tokens += u.get("total_tokens", 0)
+                                total_cost += u.get("cost_usd", 0.0)
+
+                    # Add synthesis cost itself
+                    total_p_tokens += usage.get("prompt_tokens", 0)
+                    total_c_tokens += usage.get("completion_tokens", 0)
+                    total_t_tokens += usage.get("total_tokens", 0)
+                    total_cost += usage.get("cost_usd", 0.0)
+
                     meta = dict(execution.metadata) if execution.metadata else {}
-                    t_tokens = meta["total_tokens"] if "total_tokens" in meta else 0
-                    t_tokens += usage["total_tokens"] if "total_tokens" in usage else 0
-                    meta["total_tokens"] = t_tokens
+                    meta["total_tokens"] = total_t_tokens
+                    meta["prompt_tokens"] = total_p_tokens
+                    meta["completion_tokens"] = total_c_tokens
+                    meta["cost_estimate"] = total_cost
 
-                    p_tokens = meta["prompt_tokens"] if "prompt_tokens" in meta else 0
-                    p_tokens += usage["prompt_tokens"] if "prompt_tokens" in usage else 0
-                    meta["prompt_tokens"] = p_tokens
-
-                    c_tokens = meta["completion_tokens"] if "completion_tokens" in meta else 0
-                    c_tokens += usage["completion_tokens"] if "completion_tokens" in usage else 0
-                    meta["completion_tokens"] = c_tokens
-
-                    c_est = meta["cost_estimate"] if "cost_estimate" in meta else 0.0
-                    c_est += usage["cost_estimate"] if "cost_estimate" in usage else 0.0
-                    meta["cost_estimate"] = c_est
                     update_payload["metadata"] = meta
+                    update_payload["cost_estimate"] = total_cost
 
             # Save the updated trace with dynamically calculated matrix scores
             update_payload["execution_trace"] = [evt.model_dump(mode="json") for evt in execution.execution_trace]

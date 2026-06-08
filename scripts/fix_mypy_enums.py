@@ -13,20 +13,20 @@ files_to_fix = [
 
 for file_path in files_to_fix:
     full_path = os.path.join('c:/src/quorum', file_path)
-    with open(full_path, 'r', encoding='utf-8') as f:
+    with open(full_path, encoding='utf-8') as f:
         content = f.read()
-    
+
     # Ensure import exists
     if 'PromptBlockCategory' not in content:
         content = re.sub(r'(from backend_v2\.models\.enums import.*?)\n', r'\1, PromptBlockCategory\n', content, count=1)
         if 'PromptBlockCategory' not in content:
             content = 'from backend_v2.models.enums import PromptBlockCategory\n' + content
-            
+
     # Replace strings with Enum references
     content = content.replace('category_id="system_rule"', 'category_id=PromptBlockCategory.SYSTEM_RULE')
     content = content.replace("category_id='system_rule'", 'category_id=PromptBlockCategory.SYSTEM_RULE')
     content = content.replace('category_id="matrix"', 'category_id=PromptBlockCategory.MATRIX')
     content = content.replace("category_id='matrix'", 'category_id=PromptBlockCategory.MATRIX')
-    
+
     with open(full_path, 'w', encoding='utf-8') as f:
         f.write(content)
