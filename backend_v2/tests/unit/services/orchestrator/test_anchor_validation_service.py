@@ -24,18 +24,17 @@ def test_lcs_normalization_retains_raw_pdf_mapping() -> None:
     assert extracted == "Tämä  on\n\t tär\xadkeä \u00adsopimus"
 
 
-def test_fuzzy_match() -> None:
-    """Test Phase 2 RapidFuzz O(N) anchoring."""
+def test_strict_match() -> None:
+    """Test Phase 2 Strict O(N) anchoring."""
     pdf_text = "This is a long document about various things. The exact quote we want is here."
-    assert AnchorValidationService.fuzzy_match(pdf_text, "The exact quote we want is here.") is True
-    assert AnchorValidationService.fuzzy_match(pdf_text, "The ecxat quote we want is here") is True
-    assert AnchorValidationService.fuzzy_match(pdf_text, "Something completely different.") is False
-    assert AnchorValidationService.fuzzy_match("", "quote") is False
-    assert AnchorValidationService.fuzzy_match(pdf_text, "") is False
+    assert AnchorValidationService.strict_match(pdf_text, "The exact quote we want is here.") is True
+    assert AnchorValidationService.strict_match(pdf_text, "Something completely different.") is False
+    assert AnchorValidationService.strict_match("", "quote") is False
+    assert AnchorValidationService.strict_match(pdf_text, "") is False
 
 
 def test_validate_evidence_success() -> None:
-    """Test the deterministic RapidFuzz path success."""
+    """Test the deterministic strict path success."""
     pdf_text = "This is a long document. Very important evidence is right here. And some more."
     quote = "Very important evidence is right here"
     final_quote = AnchorValidationService.validate_evidence(pdf_text, quote)

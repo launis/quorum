@@ -126,4 +126,15 @@
         <mandatory_pattern>Enforce Square Root Dampening. The hierarchical energy flow modifier MUST be softened natively using `modifier = modifier * math.sqrt(hit_rate)`. This mathematics guarantees natural Gaussian curves and ensures Absolute Zero (Fail-Fast) bypasses are perfectly organic.</mandatory_pattern>
         <catastrophic_reason>Pure linear multiplication decays probabilities exponentially, artificially crushing all real-world variance into absolute 0. This forces bad architectural practices like arbitrary UX 'leniency floors', corrupting the integrity of the math.</catastrophic_reason>
     </rule_block>
+    <rule_block id="strict_physical_anchoring_mandate">
+        <banned_pattern>Using fuzzy string matching (e.g., `RapidFuzz` or `fuzz.partial_ratio`) to validate LLM evidence extraction.</banned_pattern>
+        <mandatory_pattern>Enforce strict, deterministic `O(N)` physical anchoring using `str.find` on normalized strings. If an exact lexical match is not found in the original source document, the extraction MUST immediately trigger a Fail-Fast `SemanticEvidenceError`.</mandatory_pattern>
+        <catastrophic_reason>Fuzzy matching introduces unacceptable variance and allows the LLM to successfully hallucinate pseudo-quotes that sound similar but do not physically exist in the source, destroying the Single Source of Truth (SSOT) guarantee.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="ensemble_parallel_evaluation_mandate">
+        <banned_pattern>Using multi-pass "negative rules" logic or chained sequential verifications for high-entropy / inverse-evidence PromptBlocks.</banned_pattern>
+        <mandatory_pattern>Execute high-entropy and negative validation steps using a single-pass "Best-of-3" ensemble. You MUST run parallel LLM calls cleanly wrapped in `asyncio.TaskGroup` and resolve the final output via a strict majority vote where lexically invalid hallucinations are discarded before counting.</mandatory_pattern>
+        <catastrophic_reason>Multi-pass negative logic forces the LLM into "double-negative" confusion, causing severe output oscillation. Parallel Best-of-3 polling mathematically smooths statistical anomalies without convoluting the system prompts.</catastrophic_reason>
+    </rule_block>
 </architectural_invariants>

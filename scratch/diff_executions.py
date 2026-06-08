@@ -145,12 +145,21 @@ def get_trace(e: dict[str, object]) -> str:
         return str(e['mechanical_trace'])
     return ""
 
+def uses_contextual_override(e: dict[str, object]) -> bool:
+    if e.get('contextual_override') is True:
+        return True
+    eq = e.get('exact_quote')
+    if isinstance(eq, str) and '[INFERRED]' in eq:
+        return True
+    return False
+
 if __name__ == '__main__':
     # Automaattinen viimeisimpien ajojen haku
     exe_dirs = glob.glob('data/files/executions/exe_*')
     exe_dirs.sort(key=os.path.getmtime, reverse=True)
 
     loaded_runs = []
+    loaded_paths = []
     evals_list = []
 
     if len(sys.argv) > 1:
@@ -165,6 +174,7 @@ if __name__ == '__main__':
             if os.path.exists(path):
                 evals_list.append(get_all_evals(path))
                 loaded_runs.append(name)
+                loaded_paths.append(path)
             else:
                 print(f"Polkua ei löydy: {path}")
     else:
@@ -173,6 +183,7 @@ if __name__ == '__main__':
             if os.path.exists(path):
                 evals_list.append(get_all_evals(path))
                 loaded_runs.append(os.path.basename(d))
+                loaded_paths.append(path)
 
     if len(evals_list) < 2:
         print("Virhe: Vertailuun tarvitaan vähintään kaksi ajoa.")
@@ -257,12 +268,28 @@ if __name__ == '__main__':
             else:
                 summary_2way["Other"] += 1
 
+    contextual_override_mismatches = 0
+    for atom in mismatching_atoms:
+        used_override = False
+        for evals in evals_list:
+            if atom in evals and uses_contextual_override(evals[atom]):
+                used_override = True
+                break
+        if used_override:
+            contextual_override_mismatches += 1
+
     # Tallenna raportti luettavaan Markdown-muotoon
     os.makedirs('scratch', exist_ok=True)
     report_path = 'scratch/mismatch_traces_raw.md'
 
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write('# Mittauksen Luotettavuus ja Vakausraportti (Reliability & Consistency)\n\n')
+
+        f.write('## Ajo-tiedot (Runs)\n')
+        for idx, (run_name, exe_path) in enumerate(zip(loaded_runs, loaded_paths)):
+            abs_path = os.path.abspath(exe_path).replace('\\', '/')
+            f.write(f'- **Run {idx + 1}:** `{run_name}` (Lähde: [{exe_path}](file:///{abs_path}))\n')
+        f.write('\n')
 
         f.write('## Globaalit Metriikat\n')
         f.write(f'- **Arvioitujen ajojen määrä ($M$):** {len(evals_list)}\n')
@@ -280,6 +307,7 @@ if __name__ == '__main__':
 
         f.write('## Kahden viimeisimmän ajon siirtymätilat (Run 1 -> Run 2)\n')
         f.write(f'- **Erimielisyyttä näiden välillä:** {len([a for a in common_atoms if get_state(evals_1[a]) != get_state(evals_2[a])])} kpl\n')
+        f.write(f'- **Contextual Override -lähtöiset erimielisyydet koko setissä:** {contextual_override_mismatches} / {len(mismatching_atoms)}\n')
         f.write(f'- **PASSED -> FAILED:** {summary_2way["PASSED->FAILED"]}\n')
         f.write(f'- **FAILED -> PASSED:** {summary_2way["FAILED->PASSED"]}\n')
         f.write(f'- **Muut siirtymät:** {summary_2way["Other"]}\n\n')
@@ -298,7 +326,8 @@ if __name__ == '__main__':
             for run_idx, (run_name, state) in enumerate(zip(loaded_runs, states)):
                 eval_item = evals_list[run_idx][atom]
                 trace_content = get_trace(eval_item).replace('\n', ' ')
-                f.write(f'- **Run {run_idx+1} ({run_name}) - [{state.upper()}]:**\n')
+                override_tag = " **[CONTEXTUAL OVERRIDE]**" if uses_contextual_override(eval_item) else ""
+                f.write(f'- **Run {run_idx+1} ({run_name}) - [{state.upper()}]{override_tag}:**\n')
                 f.write(f'  > *{trace_content}*\n')
             f.write('\n---\n\n')
 

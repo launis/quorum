@@ -16,6 +16,13 @@ class EvaluationMandate(str, Enum):
     )
 
 
+class EvaluationRunCount(int, Enum):
+    """Määrittää suorituskertojen määrän TDA-matriisiarvioinneille."""
+
+    STANDARD = 1
+    ENSEMBLE = 3
+
+
 class BlockDataType(str, Enum):
     """Data types allowed for PromptBlock extracted values.
     Accepts core extraction types, plus valid legacy structural types.
@@ -226,14 +233,14 @@ class SystemConcurrency(int, Enum):
     LLM_RETRY_MULTIPLIER = 2
     LLM_RETRY_MIN_SECONDS = 1
     LLM_RETRY_MAX_SECONDS = 30
-    FAIL_FAST_MAX_RETRIES = 2
-    LLM_MAX_CHUNK_SIZE = 2
+    FAIL_FAST_MAX_RETRIES = 1
+    LLM_MAX_CHUNK_SIZE = 4
     MATRIX_SAMPLING_LIMIT = 0
     LLM_DEFAULT_TIMEOUT_SECONDS = 600
     RATE_LIMIT_COOLDOWN_SECONDS = 10
     SEMAPHORE_LOW_RPM_THRESHOLD = 20
     SEMAPHORE_LOW_RPM_LIMIT = 2
-    SEMAPHORE_MAX_CONCURRENCY = 5
+    SEMAPHORE_MAX_CONCURRENCY = 15
     SEMAPHORE_RPM_DIVISOR = 10
     MAX_SAFE_TOKENS = 1000000
     SCHEMA_MAX_LOCALIZED_ANCHORS = 15
@@ -244,7 +251,7 @@ class SystemConcurrency(int, Enum):
     CONTEXT_CACHE_LOCK_POLL_INTERVAL_MS = 500
     CONTEXT_CACHE_LOCK_WAIT_LIMIT_SECONDS = 20
     CONTEXT_CACHE_MINIMUM_TOKEN_LIMIT = 2048
-    PACING_DELAY_VERTEX_SECONDS = 3
+    PACING_DELAY_VERTEX_SECONDS = 0
     PACING_DELAY_OPENAI_SECONDS = 0
     PACING_DELAY_MOCK_SECONDS = 0
     REDIS_CONNECTION_TIMEOUT_SECONDS = 10
@@ -463,3 +470,4 @@ LaxHistoricalContextMode = Annotated[HistoricalContextMode, Field(strict=False)]
 LaxScoringStrategy = Annotated[ScoringStrategy, Field(strict=False)]
 LaxVirtualSystemStepID = Annotated[VirtualSystemStepID, Field(strict=False)]
 LaxPromptBlockCategory = Annotated[PromptBlockCategory, Field(strict=False)]
+LaxEvaluationRunCount = Annotated[EvaluationRunCount, Field(strict=False)]

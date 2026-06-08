@@ -109,9 +109,11 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             "localized_anchors_found": ["mock anchor"],
             "status": "PASS",
         }
+        from backend_v2.models.domain.usage import TokenUsage
+
         mock_bound_client.run_structured_task.return_value = (
             MagicMock(model_dump=lambda **kwargs: {"blk_0123456789abcdef0123456789ab": mock_payload}),
-            {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30, "cost_usd": 0.05},
+            TokenUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
         )
         mock_strategy.return_value = mock_bound_client
 

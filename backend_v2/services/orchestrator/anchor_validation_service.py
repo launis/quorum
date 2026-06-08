@@ -2,15 +2,13 @@ import logging
 import re
 import unicodedata
 
-from rapidfuzz import fuzz
-
 from backend_v2.exceptions import SemanticEvidenceError
 
 logger = logging.getLogger(__name__)
 
 
 class AnchorValidationService:
-    """TDD-testable service for deterministic evidence anchoring using RapidFuzz.
+    """TDD-testable service for deterministic evidence anchoring using strict substring matching.
 
     Enforces a strict Fail-Fast architecture. If lexical validation fails,
     a SemanticEvidenceError is raised immediately to eliminate LLM hallucinations.
@@ -35,8 +33,8 @@ class AnchorValidationService:
         return "".join(norm_chars), index_map
 
     @staticmethod
-    def fuzzy_match(pdf_text: str, exact_quote: str, threshold: float = 85.0) -> bool:
-        """Phase 2: O(N) Anchoring using RapidFuzz partial_ratio."""
+    def strict_match(pdf_text: str, exact_quote: str) -> bool:
+        """Phase 2: O(N) Anchoring using strict substring matching."""
         if not exact_quote or not pdf_text:
             return False
 
@@ -46,8 +44,7 @@ class AnchorValidationService:
         if not norm_quote:
             return False
 
-        score = fuzz.partial_ratio(norm_quote, norm_pdf)
-        return score >= threshold
+        return norm_quote in norm_pdf
 
     @staticmethod
     def validate_evidence(
@@ -56,7 +53,7 @@ class AnchorValidationService:
         reasoning_trace: str | None = None,
         contextual_override: bool = False,
     ) -> str | None:
-        """Validates evidence with RapidFuzz and extracts the exact physical string.
+        """Validates evidence strictly and extracts the exact physical string.
 
         Args:
             pdf_text: The source text context.
@@ -101,7 +98,7 @@ class AnchorValidationService:
             if anchor_match:
                 parsed_anchor = anchor_match.group(1)
                 if parsed_anchor.lower() not in ["none", "n/a"]:
-                    if not AnchorValidationService.fuzzy_match(pdf_text, parsed_anchor, threshold=85.0):
+                    if not AnchorValidationService.strict_match(pdf_text, parsed_anchor):
                         logger.warning(
                             "Lexical Verifier failed: Hallucinated Anchor.",
                             extra={"parsed_anchor": parsed_anchor},
@@ -118,11 +115,11 @@ class AnchorValidationService:
         if not norm_quote:
             raise SemanticEvidenceError(message="Lexical validation failed: exact_quote normalized to empty string.")
 
-        # Use partial_ratio_alignment to find the exact indices
-        alignment = fuzz.partial_ratio_alignment(norm_quote, norm_pdf)
-        if alignment is not None and alignment.score >= 85.0:
-            start_idx = pdf_map[alignment.dest_start]
-            end_idx = pdf_map[alignment.dest_end - 1]
+        # Use exact O(N) search on normalized text to find indices
+        start_norm_idx = norm_pdf.find(norm_quote)
+        if start_norm_idx != -1:
+            start_idx = pdf_map[start_norm_idx]
+            end_idx = pdf_map[start_norm_idx + len(norm_quote) - 1]
             extracted = pdf_text[start_idx : end_idx + 1]
             return extracted
 

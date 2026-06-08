@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from backend_v2.exceptions import AppException, ErrorCodes, LLMSchemaValidationError, SemanticEvidenceError
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import SystemConcurrency
+from backend_v2.models.enums import EvaluationRunCount, SystemConcurrency
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.models.view.sdui import AnySduiBlock
@@ -29,15 +29,20 @@ class ExtractionPayload(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     exact_quote: str | None = ""
     contextual_override: bool = False
+    premise_1_quote: str | None = None
+    premise_2_quote: str | None = None
     semantic_reasoning: str | None = ""
 
 
-def evaluate_extraction(extraction: BaseModel, source_text: str, is_negative_rule: bool) -> str:
+def evaluate_extraction(
+    extraction: Any, source_text: str, is_negative_rule: bool, strictness_level: int = 50
+) -> str:
     """Evaluates the deterministic extraction with dual-track validation.
     Returns PASS, FAIL, or DLQ.
     """
     exact_quote = getattr(extraction, "exact_quote", None)
     contextual_override = getattr(extraction, "contextual_override", False)
+    premise_1_quote = getattr(extraction, "premise_1_quote", None)
     semantic_reasoning = getattr(extraction, "semantic_reasoning", None)
 
     # Track A: Physical Match
@@ -55,7 +60,21 @@ def evaluate_extraction(extraction: BaseModel, source_text: str, is_negative_rul
     # Track B: Semantic Override
     else:
         if contextual_override:
-            status = "DLQ"
+            if strictness_level >= 100:
+                status = "FAIL"
+            elif premise_1_quote:
+                try:
+                    AnchorValidationService.validate_evidence(
+                        pdf_text=source_text,
+                        exact_quote=premise_1_quote,
+                        reasoning_trace=semantic_reasoning,
+                        contextual_override=True,
+                    )
+                    status = "PASS"
+                except SemanticEvidenceError:
+                    status = "FAIL"
+            else:
+                status = "FAIL"
         else:
             status = "FAIL"
 
@@ -221,17 +240,9 @@ class ChunkWorker:
                                         if tda.tda_id in HIGH_ENTROPY_ATOMS:
                                             is_ensemble_step = True
 
-                    has_negative_rule = False
-                    for crit in chunk_criteria:
-                        if crit.scales:
-                            for scale in crit.scales:
-                                for claim in scale.claims:
-                                    for tda in claim.tda_assertions:
-                                        if getattr(tda, "inverse_evidence", False):
-                                            has_negative_rule = True
-                                            break
-
-                    llm_count = 3 if is_ensemble_step else 1
+                    llm_count = (
+                        EvaluationRunCount.ENSEMBLE.value if is_ensemble_step else EvaluationRunCount.STANDARD.value
+                    )
 
                     async def run_llm_calls(
                         prompt: CompiledPrompt, model_schema: type[BaseModel], count: int
@@ -239,54 +250,61 @@ class ChunkWorker:
                         """Execute LLM calls using native CompiledPrompt architecture."""
                         results_list = []
                         total_usage = TokenUsage()
-                        if count == 3:
+
+                        async def _safe_execute() -> tuple[Any, Any]:
+                            try:
+                                return await executor.execute_structured_task(
+                                    client=bound_client,
+                                    messages=prompt,
+                                    response_model=model_schema,
+                                    mock_identity=step_id,
+                                    max_schema_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
+                                    max_logical_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
+                                    validation_context={
+                                        "strictness_level": strictness_level,
+                                        "source_text": user_payload,
+                                        "is_lightweight_extraction": is_lightweight,
+                                        "estimated_token_count": step_metadata.get("estimated_token_count", 0)
+                                        if step_metadata
+                                        else 0,
+                                    },
+                                )
+                            except Exception as e:
+                                logger.warning(f"Single LLM call failed in ensemble: {e}")
+                                return e, None
+
+                        last_error = None
+                        if count > 1:
                             tasks_list = []
                             async with asyncio.TaskGroup() as tg:
-                                for _ in range(3):
-                                    t_task = tg.create_task(
-                                        executor.execute_structured_task(
-                                            client=bound_client,
-                                            messages=prompt,
-                                            response_model=model_schema,
-                                            mock_identity=step_id,
-                                            max_schema_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
-                                            max_logical_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
-                                            validation_context={
-                                                "strictness_level": strictness_level,
-                                                "source_text": user_payload,
-                                                "is_lightweight_extraction": is_lightweight,
-                                                "estimated_token_count": step_metadata.get("estimated_token_count", 0)
-                                                if step_metadata
-                                                else 0,
-                                            },
-                                        )
-                                    )
-                                    tasks_list.append(t_task)
+                                for _ in range(count):
+                                    tasks_list.append(tg.create_task(_safe_execute()))
                             for t in tasks_list:
                                 res, usg = t.result()
-                                results_list.append(res.model_dump(mode="json"))
+                                if isinstance(res, Exception):
+                                    last_error = res
+                                elif res:
+                                    results_list.append(res.model_dump(mode="json"))
                                 if usg:
                                     total_usage = total_usage + usg
                         else:
-                            res, usg = await executor.execute_structured_task(
-                                client=bound_client,
-                                messages=prompt,
-                                response_model=model_schema,
-                                mock_identity=step_id,
-                                max_schema_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
-                                max_logical_retries=SystemConcurrency.FAIL_FAST_MAX_RETRIES.value,
-                                validation_context={
-                                    "strictness_level": strictness_level,
-                                    "source_text": user_payload,
-                                    "is_lightweight_extraction": is_lightweight,
-                                    "estimated_token_count": step_metadata.get("estimated_token_count", 0)
-                                    if step_metadata
-                                    else 0,
-                                },
-                            )
-                            results_list.append(res.model_dump(mode="json"))
+                            res, usg = await _safe_execute()
+                            if isinstance(res, Exception):
+                                last_error = res
+                            elif res:
+                                results_list.append(res.model_dump(mode="json"))
                             if usg:
                                 total_usage = total_usage + usg
+
+                        if not results_list:
+                            if last_error:
+                                raise last_error
+                            raise AppException(
+                                message="All LLM calls failed in the ensemble/standard run.",
+                                status_code=500,
+                                details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.value},
+                            )
+
                         return results_list, total_usage
 
                     def resolve_majority_vote(
@@ -297,6 +315,16 @@ class ChunkWorker:
                         if len(res_list) == 1:
                             return res_list[0]
                         merged = copy.deepcopy(res_list[0])
+
+                        def is_vote_valid(v: dict[str, Any]) -> bool:
+                            payload = ExtractionPayload(
+                                exact_quote=v.get("exact_quote"),
+                                contextual_override=v.get("contextual_override", False),
+                                premise_1_quote=v.get("premise_1_quote"),
+                                premise_2_quote=v.get("premise_2_quote"),
+                                semantic_reasoning=v.get("semantic_reasoning", ""),
+                            )
+                            return evaluate_extraction(payload, user_payload, False, strictness_level) in ("PASS", "DLQ")
 
                         if is_shuffled and "evaluations" in merged:
                             num_evals = len(merged["evaluations"])
@@ -309,29 +337,13 @@ class ChunkWorker:
                                         if item["atom_id"] == atom_id:
                                             votes.append(item)
                                 if votes:
-                                    overrides = [v.get("contextual_override", False) for v in votes]
-                                    quotes = [v.get("exact_quote") for v in votes]
-                                    reasonings = [v.get("semantic_reasoning", "") for v in votes]
-
-                                    final_override = sum(1 for o in overrides if o) >= 2
-                                    valid_quotes = [q for q in quotes if q and q != "[CONTEXTUAL_OVERRIDE_APPLIED]"]
-                                    if valid_quotes and not final_override:
-                                        final_quote = max(set(valid_quotes), key=valid_quotes.count)
-                                    else:
-                                        final_quote = None
-                                    final_reasoning = max(set(reasonings), key=reasonings.count)
-
-                                    merged["evaluations"][idx]["contextual_override"] = final_override
-                                    merged["evaluations"][idx]["exact_quote"] = final_quote
-                                    merged["evaluations"][idx]["semantic_reasoning"] = final_reasoning
-                        else:
-                            for block in criteria_blocks:
-                                if block.id in merged and block.category_id != "matrix" and block.type != "instruction":
-                                    votes = [res[block.id] for res in res_list if block.id in res]
-                                    if votes:
-                                        overrides = [v.get("contextual_override", False) for v in votes]
-                                        quotes = [v.get("exact_quote") for v in votes]
-                                        reasonings = [v.get("semantic_reasoning", "") for v in votes]
+                                    valid_votes = [v for v in votes if is_vote_valid(v)]
+                                    if len(valid_votes) >= 2:
+                                        overrides = [v.get("contextual_override", False) for v in valid_votes]
+                                        quotes = [v.get("exact_quote") for v in valid_votes]
+                                        p1_quotes = [v.get("premise_1_quote") for v in valid_votes]
+                                        p2_quotes = [v.get("premise_2_quote") for v in valid_votes]
+                                        reasonings = [v.get("semantic_reasoning", "") for v in valid_votes]
 
                                         final_override = sum(1 for o in overrides if o) >= 2
                                         valid_quotes = [q for q in quotes if q and q != "[CONTEXTUAL_OVERRIDE_APPLIED]"]
@@ -339,60 +351,83 @@ class ChunkWorker:
                                             final_quote = max(set(valid_quotes), key=valid_quotes.count)
                                         else:
                                             final_quote = None
+                                            
+                                        valid_p1_quotes = [q for q in p1_quotes if q]
+                                        final_p1 = max(set(valid_p1_quotes), key=valid_p1_quotes.count) if valid_p1_quotes else None
+                                        valid_p2_quotes = [q for q in p2_quotes if q]
+                                        final_p2 = max(set(valid_p2_quotes), key=valid_p2_quotes.count) if valid_p2_quotes else None
+                                            
                                         final_reasoning = max(set(reasonings), key=reasonings.count)
+                                        
+                                        is_high_entropy = len(valid_votes) < len(res_list) or len(set(overrides)) > 1 or len(set(valid_quotes)) > 1
 
-                                        merged[block.id]["contextual_override"] = final_override
-                                        merged[block.id]["exact_quote"] = final_quote
-                                        merged[block.id]["semantic_reasoning"] = final_reasoning
+                                        merged["evaluations"][idx]["contextual_override"] = final_override
+                                        merged["evaluations"][idx]["exact_quote"] = final_quote
+                                        merged["evaluations"][idx]["premise_1_quote"] = final_p1
+                                        merged["evaluations"][idx]["premise_2_quote"] = final_p2
+                                        merged["evaluations"][idx]["semantic_reasoning"] = final_reasoning
+                                        if is_high_entropy:
+                                            merged["evaluations"][idx]["high_entropy_flag"] = True
+                                    else:
+                                        merged["evaluations"][idx]["contextual_override"] = False
+                                        merged["evaluations"][idx]["exact_quote"] = None
+                                        merged["evaluations"][idx]["semantic_reasoning"] = (
+                                            "Failed majority vote: Not enough lexically valid quotes."
+                                        )
+                        else:
+                            for block in criteria_blocks:
+                                if block.id in merged and block.category_id != "matrix" and block.type != "instruction":
+                                    votes = [res[block.id] for res in res_list if block.id in res]
+                                    if votes:
+                                        valid_votes = [v for v in votes if is_vote_valid(v)]
+                                        if len(valid_votes) >= 2:
+                                            overrides = [v.get("contextual_override", False) for v in valid_votes]
+                                            quotes = [v.get("exact_quote") for v in valid_votes]
+                                            p1_quotes = [v.get("premise_1_quote") for v in valid_votes]
+                                            p2_quotes = [v.get("premise_2_quote") for v in valid_votes]
+                                            reasonings = [v.get("semantic_reasoning", "") for v in valid_votes]
+
+                                            final_override = sum(1 for o in overrides if o) >= 2
+                                            valid_quotes = [
+                                                q for q in quotes if q and q != "[CONTEXTUAL_OVERRIDE_APPLIED]"
+                                            ]
+                                            if valid_quotes and not final_override:
+                                                final_quote = max(set(valid_quotes), key=valid_quotes.count)
+                                            else:
+                                                final_quote = None
+                                                
+                                            valid_p1_quotes = [q for q in p1_quotes if q]
+                                            final_p1 = max(set(valid_p1_quotes), key=valid_p1_quotes.count) if valid_p1_quotes else None
+                                            valid_p2_quotes = [q for q in p2_quotes if q]
+                                            final_p2 = max(set(valid_p2_quotes), key=valid_p2_quotes.count) if valid_p2_quotes else None
+                                                
+                                            final_reasoning = max(set(reasonings), key=reasonings.count)
+                                            
+                                            is_high_entropy = len(valid_votes) < len(res_list) or len(set(overrides)) > 1 or len(set(valid_quotes)) > 1
+
+                                            merged[block.id]["contextual_override"] = final_override
+                                            merged[block.id]["exact_quote"] = final_quote
+                                            merged[block.id]["premise_1_quote"] = final_p1
+                                            merged[block.id]["premise_2_quote"] = final_p2
+                                            merged[block.id]["semantic_reasoning"] = final_reasoning
+                                            if is_high_entropy:
+                                                merged[block.id]["high_entropy_flag"] = True
+                                        else:
+                                            merged[block.id]["contextual_override"] = False
+                                            merged[block.id]["exact_quote"] = None
+                                            merged[block.id]["semantic_reasoning"] = (
+                                                "Failed majority vote: Not enough lexically valid quotes."
+                                            )
+
                         return merged
 
-                    if has_negative_rule:
-                        # V3: Falsification passes via model_copy instead of deepcopy
-                        # Milestone 3 Pass 1: Presence Detection
-                        falsification_1 = (
-                            "\n\n<DECOUPLED_FALSIFICATION_PASS>\n"
-                            "PRESENCE_DETECTION: Focus on finding any positive occurrence, "
-                            "claim, or presence of the target concepts (e.g. X is present). "
-                            "Do not look for exceptions or limits.\n"
-                            "</DECOUPLED_FALSIFICATION_PASS>"
-                        )
-                        new_dynamic_1 = [dict(m) for m in compiled_prompt.dynamic_messages]
-                        new_dynamic_1[-1] = {
-                            **new_dynamic_1[-1],
-                            "content": new_dynamic_1[-1]["content"] + falsification_1,
-                        }
-                        compiled_prompt_1 = compiled_prompt.model_copy(update={"dynamic_messages": new_dynamic_1})
-
-                        # Milestone 3 Pass 2: Exception Detection
-                        falsification_2 = (
-                            "\n\n<DECOUPLED_FALSIFICATION_PASS>\n"
-                            "EXCEPTION_DETECTION: Focus exclusively on finding any exceptions, "
-                            "caveats, limits, or mitigating statements that justify or permit "
-                            "the target concepts. If none are found, exact_quote MUST be null.\n"
-                            "</DECOUPLED_FALSIFICATION_PASS>"
-                        )
-                        new_dynamic_2 = [dict(m) for m in compiled_prompt.dynamic_messages]
-                        new_dynamic_2[-1] = {
-                            **new_dynamic_2[-1],
-                            "content": new_dynamic_2[-1]["content"] + falsification_2,
-                        }
-                        compiled_prompt_2 = compiled_prompt.model_copy(update={"dynamic_messages": new_dynamic_2})
-
-                        # Execute with CompiledPrompt architecture
-                        res_list_1, usage1 = await run_llm_calls(compiled_prompt_1, local_dynamic_schema, llm_count)
-                        res_list_2, usage2 = await run_llm_calls(compiled_prompt_2, local_dynamic_schema, llm_count)
-
-                        chunk_final = resolve_majority_vote(res_list_1, has_shuffled_atoms, chunk_criteria)
-                        chunk_final_2 = resolve_majority_vote(res_list_2, has_shuffled_atoms, chunk_criteria)
-                        chunk_usage = usage1 + usage2
-                    else:
-                        target_schema = (
-                            SduiResponseList
-                            if (output_profile is not None and not criteria_blocks)
-                            else local_dynamic_schema
-                        )
-                        res_list, chunk_usage = await run_llm_calls(compiled_prompt, target_schema, llm_count)
-                        chunk_final = resolve_majority_vote(res_list, has_shuffled_atoms, chunk_criteria)
+                    target_schema = (
+                        SduiResponseList
+                        if (output_profile is not None and not criteria_blocks)
+                        else local_dynamic_schema
+                    )
+                    res_list, chunk_usage = await run_llm_calls(compiled_prompt, target_schema, llm_count)
+                    chunk_final = resolve_majority_vote(res_list, has_shuffled_atoms, chunk_criteria)
 
                     # Step 4: Map-Merge Orchestration & Trace Continuity Injection
                     if has_shuffled_atoms and "evaluations" in chunk_final:
@@ -401,56 +436,27 @@ class ChunkWorker:
                             atom_id = atom_data["atom_id"]
 
                             temp_atom1 = ExtractionPayload(
-                                exact_quote=atom_data["exact_quote"],
-                                contextual_override=atom_data["contextual_override"],
+                                exact_quote=atom_data.get("exact_quote"),
+                                contextual_override=atom_data.get("contextual_override", False),
+                                premise_1_quote=atom_data.get("premise_1_quote"),
+                                premise_2_quote=atom_data.get("premise_2_quote"),
                                 semantic_reasoning=atom_data.get("semantic_reasoning", ""),
                             )
-                            status1 = evaluate_extraction(temp_atom1, user_payload, False)
+                            is_negative_rule = False
+                            for crit in chunk_criteria:
+                                if crit.scales:
+                                    for scale in crit.scales:
+                                        for claim in scale.claims:
+                                            for tda in claim.tda_assertions:
+                                                if tda.tda_id == atom_id and tda.inverse_evidence:
+                                                    is_negative_rule = True
+                                                    break
 
-                            if has_negative_rule and "evaluations" in chunk_final_2:
-                                atom_data2 = next(
-                                    (a for a in chunk_final_2["evaluations"] if a["atom_id"] == atom_id), None
-                                )
-                                if atom_data2:
-                                    temp_atom2 = ExtractionPayload(
-                                        exact_quote=atom_data2["exact_quote"],
-                                        contextual_override=atom_data2["contextual_override"],
-                                        semantic_reasoning=atom_data2.get("semantic_reasoning", ""),
-                                    )
-                                    status2 = evaluate_extraction(temp_atom2, user_payload, False)
-
-                                    if status1 == "PASS" and status2 != "PASS":
-                                        status = "PASS"
-                                    else:
-                                        status = "FAIL"
-
-                                    atom_data["status"] = status
-                                    if status == "PASS":
-                                        atom_data["exact_quote"] = atom_data["exact_quote"]
-                                        atom_data["semantic_reasoning"] = (
-                                            f"Presence detected: {atom_data['semantic_reasoning']}. "
-                                            f"Exceptions audit: {atom_data2['semantic_reasoning']}"
-                                        )
-                                    else:
-                                        if status2 == "PASS":
-                                            atom_data["exact_quote"] = atom_data2["exact_quote"]
-                                            atom_data["semantic_reasoning"] = (
-                                                f"Mitigating exception found: {atom_data2['semantic_reasoning']}"
-                                            )
-                                        else:
-                                            atom_data["exact_quote"] = None
-                                            atom_data["semantic_reasoning"] = (
-                                                "No presence of target concept detected: "
-                                                f"{atom_data['semantic_reasoning']}"
-                                            )
-                                else:
-                                    status = status1
-                                    atom_data["status"] = status
-                            else:
-                                status = status1
-                                atom_data["status"] = status
-
-                            sr = atom_data["semantic_reasoning"]
+                            status = evaluate_extraction(temp_atom1, user_payload, is_negative_rule, strictness_level)
+                            atom_data["status"] = status
+                            if temp_atom1.contextual_override and temp_atom1.semantic_reasoning:
+                                atom_data["exact_quote"] = f"[INFERRED] {temp_atom1.semantic_reasoning}"
+                            sr = atom_data.get("semantic_reasoning", "")
                             atom_data["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
                             chunk_final["evaluations"][i] = atom_data
 
@@ -470,50 +476,18 @@ class ChunkWorker:
                                                     break
 
                                 temp_block1 = ExtractionPayload(
-                                    exact_quote=block_data["exact_quote"],
-                                    contextual_override=block_data["contextual_override"],
+                                    exact_quote=block_data.get("exact_quote"),
+                                    contextual_override=block_data.get("contextual_override", False),
+                                    premise_1_quote=block_data.get("premise_1_quote"),
+                                    premise_2_quote=block_data.get("premise_2_quote"),
                                     semantic_reasoning=block_data.get("semantic_reasoning", ""),
                                 )
-                                status1 = evaluate_extraction(temp_block1, user_payload, False)
+                                status = evaluate_extraction(temp_block1, user_payload, is_negative_rule, strictness_level)
+                                block_data["status"] = status
+                                if temp_block1.contextual_override and temp_block1.semantic_reasoning:
+                                    block_data["exact_quote"] = f"[INFERRED] {temp_block1.semantic_reasoning}"
 
-                                if is_negative_rule and has_negative_rule and crit.id in chunk_final_2:
-                                    block_data2 = chunk_final_2[crit.id]
-                                    temp_block2 = ExtractionPayload(
-                                        exact_quote=block_data2["exact_quote"],
-                                        contextual_override=block_data2["contextual_override"],
-                                        semantic_reasoning=block_data2.get("semantic_reasoning", ""),
-                                    )
-                                    status2 = evaluate_extraction(temp_block2, user_payload, False)
-
-                                    if status1 == "PASS" and status2 != "PASS":
-                                        status = "PASS"
-                                    else:
-                                        status = "FAIL"
-
-                                    block_data["status"] = status
-                                    if status == "PASS":
-                                        block_data["exact_quote"] = block_data["exact_quote"]
-                                        block_data["semantic_reasoning"] = (
-                                            f"Presence detected: {block_data['semantic_reasoning']}. "
-                                            f"Exceptions audit: {block_data2['semantic_reasoning']}"
-                                        )
-                                    else:
-                                        if status2 == "PASS":
-                                            block_data["exact_quote"] = block_data2["exact_quote"]
-                                            block_data["semantic_reasoning"] = (
-                                                f"Mitigating exception found: {block_data2['semantic_reasoning']}"
-                                            )
-                                        else:
-                                            block_data["exact_quote"] = None
-                                            block_data["semantic_reasoning"] = (
-                                                "No presence of target concept detected: "
-                                                f"{block_data['semantic_reasoning']}"
-                                            )
-                                else:
-                                    status = evaluate_extraction(temp_block1, user_payload, is_negative_rule)
-                                    block_data["status"] = status
-
-                                sr = block_data["semantic_reasoning"]
+                                sr = block_data.get("semantic_reasoning", "")
                                 block_data["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
                                 chunk_final[crit.id] = block_data
 
