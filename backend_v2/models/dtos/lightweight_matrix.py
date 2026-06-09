@@ -59,8 +59,6 @@ class LightweightMatrixOutput(V2CoreBase):
         }
 
         # Phase 4 Zero-Variance: Drop structural list fields that do not belong in matrix extensions
-        mapped_data.pop("localized_anchors_found", None)
-
         for flat_key, enum_str in mapping.items():
             if flat_key in mapped_data:
                 val = mapped_data.pop(flat_key)
@@ -160,11 +158,10 @@ class AtomEvaluationItemDTO(V2CoreBase):
     atom_id: str
     extracted_facts: dict[str, str | None] = Field(default_factory=dict)
     exact_quote: str | None = None
-    post_quote_anchor: str | None = None
+
     status: Literal["PASS", "FAIL", "DLQ"] | None = Field(
         default=None, description="The evaluation status. Must be one of PASS, FAIL, DLQ."
     )
-    localized_anchors_found: list[str] = Field(default_factory=list)
     semantic_reasoning: str = Field(
         description="Detailed reasoning for the evaluation. Must be in the Localized Target Language.",
     )

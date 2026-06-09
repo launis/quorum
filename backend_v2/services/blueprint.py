@@ -541,8 +541,6 @@ class BlueprintTransformer:
             # EPIC 70 Phase 3: Hoisted quotes
             quotes_list = None
             if "quotes" in matrix_visible_cols:
-                # Suppress explanation if we show quotes, to prevent wall-of-text
-                final_explanation = ""
                 atom_quotes = {}
                 for r_dto in results:
                     if r_dto.step_id == step_id and r_dto.block_id == "atom_quotes" and isinstance(r_dto.payload, dict):
@@ -552,8 +550,12 @@ class BlueprintTransformer:
                 raw_quotes = atom_quotes.get(b_id, [])
                 if raw_quotes and isinstance(raw_quotes, list):
                     quotes_list = []
+                    seen_quotes = set()
                     for q in raw_quotes:
-                        q_str = str(q)
+                        q_str = str(q).strip()
+                        if not q_str or q_str in seen_quotes:
+                            continue
+                        seen_quotes.add(q_str)
                         if len(q_str) > 150:
                             quotes_list.append(q_str[:147] + "...")
                         else:

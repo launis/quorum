@@ -59,7 +59,7 @@ class LLMResponse(BaseDTO):
     token_usage: Annotated[
         TokenUsage,
         Field(description="Token usage statistics (prompt, completion, total, cost)."),
-    ] = Field(default_factory=TokenUsage)
+    ] = Field(default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0))
     provider_metadata: Annotated[
         dict[str, Any],
         Field(description="Provider-specific raw metadata (e.g. finish_reason)."),

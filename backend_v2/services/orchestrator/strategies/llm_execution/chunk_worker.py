@@ -249,7 +249,7 @@ class ChunkWorker:
                     ) -> tuple[list[dict[str, Any]], TokenUsage]:
                         """Execute LLM calls using native CompiledPrompt architecture."""
                         results_list = []
-                        total_usage = TokenUsage()
+                        total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
                         async def _safe_execute() -> tuple[Any, Any]:
                             try:

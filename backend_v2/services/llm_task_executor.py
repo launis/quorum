@@ -64,8 +64,7 @@ def _build_null_fallback(model_cls: type[BaseModel], existing: Any | None = None
                     fallback_data[name] = "[SYSTEM ERROR: LLM Unable to verify.]"
             elif name in ["justification", "semantic_reasoning", "step_3_implicit_justification", "step_4_reasoning"]:
                 fallback_data[name] = "[SYSTEM ERROR: LLM Unable to verify.]"
-            elif name in ["localized_anchors_found"]:
-                fallback_data[name] = []
+
             elif name in ["contextual_override"]:
                 fallback_data[name] = False
             else:
@@ -156,7 +155,7 @@ class LLMTaskExecutor:
         validation_context: dict[str, Any] | None = None,
     ) -> tuple[T, TokenUsage]:
         """Execute a structured LLM task with Self-Healing, FinOps, and Strict Fail-Fast."""
-        cumulative_usage = TokenUsage()
+        cumulative_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
         from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 

@@ -36,16 +36,7 @@ def print_stats(name, path):
                 synthesis_payload_evals = prompt.count("exact_quote")
                 print(f"  Synthesis Step Tokens: {tokens} (Prompt Evals: {synthesis_payload_evals})")
 
-        # Count anchors from analyst
-        if event_type == "step_output" and step_name == "sr_5a8ae009eee44fe2":
-            result = content.get("output", {})
-            if isinstance(result, dict):
-                for k, v in result.items():
-                    if isinstance(v, dict) and "localized_anchors_found" in v:
-                        analyst_anchors += len(v["localized_anchors_found"])
-
     print(f"  Total API Tokens: {total_tokens}")
-    print(f"  Analyst Anchors Found: {analyst_anchors}")
     print(f"  Total Events: {len(data)}\n")
 
 print_stats("OLD (Ennen korjausta)", OLD_EXE)

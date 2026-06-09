@@ -27,7 +27,7 @@ from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workfl
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-from backend_v2.utils.dict_utils import compress_anchors
+
 
 logger = logging.getLogger(__name__)
 
@@ -173,13 +173,8 @@ def _compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisS
     def _strip_heavy_keys(obj: Any) -> None:
         if isinstance(obj, dict):
             obj.pop("shuffled_atoms", None)
-            obj.pop("post_quote_anchor", None)
 
-            # Centralized anchor compression — dict_utils.compress_anchors
-            if "localized_anchors_found" in obj:
-                anchors = obj["localized_anchors_found"]
-                if isinstance(anchors, list) and len(anchors) > 2:
-                    obj["localized_anchors_found"] = compress_anchors(anchors)
+
 
             # EPIC 70 Lite: Preserve evidence from evaluations for synthesis grounding
             # ARCHITECTURE LOCK (Rule 82/83): This evaluations filtering algorithm is a
@@ -791,17 +786,27 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             "</system_directive>"
         )
 
+        atom_quotes: dict[str, list[str]] = {}
+        for step_dto_obj in available_dtos:
+            if step_dto_obj.block_id == "atom_quotes" and isinstance(step_dto_obj.payload, dict):
+                atom_quotes.update(step_dto_obj.payload)
+
         matrices_to_explain: list[dict[str, Any]] = []
         for step_dto_obj in available_dtos:
             payload = step_dto_obj.payload
             block_id = step_dto_obj.block_id
-            if isinstance(payload, dict) and "justification" in payload and "normalized_score" in payload:
+            if isinstance(payload, dict) and "normalized_score" in payload:
+                quotes_list = atom_quotes.get(block_id, [])
+                if not quotes_list:
+                    continue
+                justification_text = "\n".join([f"- {q}" for q in quotes_list])
+                
                 if not any(m["matrix_id"] == block_id for m in matrices_to_explain):
                     matrices_to_explain.append(
                         {
                             "matrix_id": block_id,
                             "score": payload["normalized_score"],
-                            "justification": payload["justification"],
+                            "justification": justification_text,
                         }
                     )
 

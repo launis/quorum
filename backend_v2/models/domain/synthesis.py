@@ -32,7 +32,9 @@ class SynthesisMetadataDTO(V2CoreBase):
     """
 
     target_locale: str = Field(..., min_length=1)
-    token_usage: TokenUsage = Field(default_factory=TokenUsage)
+    token_usage: TokenUsage = Field(
+        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+    )
     step_results: list[StepOutputDTO] = Field(default_factory=list)
     profile_id: str | None = Field(default=None)
     target_profile_id: str | None = Field(default=None)
@@ -57,4 +59,6 @@ class SynthesisStepDataDTO(StepExecutionEnvelope):
     model_config = ConfigDict(extra="ignore", frozen=True)
 
     reasoning_trace: ReasoningTrace | None = Field(default=None)
-    token_usage: TokenUsage = Field(default_factory=TokenUsage)
+    token_usage: TokenUsage = Field(
+        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+    )

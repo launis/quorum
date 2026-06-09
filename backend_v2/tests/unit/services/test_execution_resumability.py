@@ -41,27 +41,79 @@ async def test_check_resumability_failed_only() -> None:
 
 
 @pytest.mark.asyncio
-async def test_check_resumability_needs_output_checkpoint() -> None:
+async def test_check_resumability_allows_zero_outputs() -> None:
     repo_mock = AsyncMock()
+    usage_mock = AsyncMock()
     service = ExecutionService(
         exec_repo=repo_mock,
         workflow_repo=repo_mock,
         comp_repo=repo_mock,
         identity_repo=repo_mock,
-        usage_service=AsyncMock(),
+        usage_service=usage_mock,
         executor=Mock(),
     )
 
-    # Execution trace lacking event_type == "output" should fail check_resumability
+    usage_mock.check_quota.return_value = True
+
+    # Execution trace lacking event_type == "output" SHOULD be resumable (e.g. crashed on very first node)
     record = Mock(spec=ExecutionRecord)
     record.status = ExecutionStatus.FAILED
-
-    # Ingestion input event only
+    record.workflow_id = "wf_1"
+    record.organization_id = "org_1"
+    record.metadata = {"workflow_version": 1}
+    record.step_states = {"step_0dfb0101e4714c58bb0d4b430b4b81e3": Mock()}
     record.execution_trace = [TraceEvent(step_name="inputs", event_type="input", content={})]
 
-    # Milestone 3, Rule 2: Needs at least one output event checkpoint
-    is_res = await service.check_resumability(record)
-    assert is_res is False
+    mock_wf = Mock(spec=Workflow)
+    mock_wf.version = 1
+    mock_wf.steps = [StepRule(id="step_0dfb0101e4714c58bb0d4b430b4b81e3", task_blueprint="b1")]
+    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
+
+    # Resumption is allowed even if no step has completed (zero output events)
+    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+        is_res = await service.check_resumability(record)
+
+    assert is_res is True
+
+
+@pytest.mark.asyncio
+async def test_check_resumability_allows_sys_render_virtual_steps() -> None:
+    repo_mock = AsyncMock()
+    usage_mock = AsyncMock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=repo_mock,
+        comp_repo=repo_mock,
+        identity_repo=repo_mock,
+        usage_service=usage_mock,
+        executor=Mock(),
+    )
+
+    usage_mock.check_quota.return_value = True
+
+    # Execution has a virtual 'sys_render_' step injected by the PDF generator
+    record = Mock(spec=ExecutionRecord)
+    record.status = ExecutionStatus.FAILED
+    record.workflow_id = "wf_1"
+    record.organization_id = "org_1"
+    record.metadata = {"workflow_version": 1}
+    record.step_states = {
+        "step_0dfb0101e4714c58bb0d4b430b4b81e3": Mock(),
+        "sys_render_prof_1": Mock(),
+    }
+    record.execution_trace = []
+
+    # But the active blueprint only has the original DAG step
+    mock_wf = Mock(spec=Workflow)
+    mock_wf.version = 1
+    mock_wf.steps = [StepRule(id="step_0dfb0101e4714c58bb0d4b430b4b81e3", task_blueprint="b1")]
+    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
+
+    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+        is_res = await service.check_resumability(record)
+
+    # Must be resumable even with the virtual step present
+    assert is_res is True
 
 
 @pytest.mark.asyncio
@@ -226,10 +278,10 @@ async def test_resume_execution_firewall_denied() -> None:
         executor=Mock(),
     )
 
-    # Unresumable record (e.g. status FAILED but has no output checkpoints)
+    # Unresumable record (e.g. status COMPLETED)
     record = Mock(spec=ExecutionRecord)
     record.id = "exe_1"
-    record.status = ExecutionStatus.FAILED
+    record.status = ExecutionStatus.COMPLETED
     record.execution_trace = []  # Empty trace
     record.organization_id = "org_1"
     record.created_by = "u2"

@@ -45,10 +45,6 @@ class StrippedBaseTDAExtraction(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    localized_anchors_found: list[str] = Field(
-        max_length=SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS,
-        description="Physical text anchors found in the localized target text.",
-    )
     semantic_reasoning: str = Field(description="Strict semantic justification for the extraction decision.")
     contextual_override: bool = Field(
         description=(
@@ -454,11 +450,18 @@ class PromptCompiler:
 
         if has_shuffled_atoms:
 
-            class AtomResponse(StrippedBaseTDAExtraction):
+            class AtomResponseBase(BaseModel):
+                model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
                 atom_id: str = Field(
                     ...,
                     description="The EXACT system identifier. MUST exactly match one of the items provided in <BLIND_ATOMS_TO_EVALUATE>.",
                 )
+
+            # V3 Fix: Pydantic multiple inheritance resolves right-to-left for fields.
+            # By placing AtomResponseBase LAST in the inheritance chain, its fields (atom_id)
+            # are collected FIRST by Pydantic's reverse-MRO iteration, ensuring the LLM emits it first.
+            class AtomResponse(StrippedBaseTDAExtraction, AtomResponseBase):
+                pass
 
             fields["evaluations"] = (
                 list[AtomResponse],

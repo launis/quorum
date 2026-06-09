@@ -86,9 +86,15 @@ async def test_lite_llm_provider_adaptive_retry_success_on_retry(monkeypatch: py
         message = MockMessage()
         finish_reason = "stop"
 
+    class MockUsage:
+        prompt_tokens = 10
+        completion_tokens = 5
+        total_tokens = 15
+
     class MockLiteLLMResponse:
         choices = [MockChoice()]
         model_extra: dict[str, object] = {}
+        usage = MockUsage()
 
         def model_dump(self) -> dict[str, object]:
             return {}

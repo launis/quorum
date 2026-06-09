@@ -75,35 +75,4 @@ def resolve_dot_notation(state: Any, path: str) -> Any:
     return curr
 
 
-def compress_anchors(anchors: list[Any]) -> list[str]:
-    """Compress anchor list using Hybrid Semantic Projection.
 
-    Preserves the best (longest) anchor truncated to 100 chars for
-    downstream LLM semantic reasoning, plus a meta-summary with total count.
-    Returns list[str] to maintain Pydantic schema contract.
-
-    This is the single source of truth for anchor compression.
-    Used by ContextBuilder._project_compressed and synthesis._strip_heavy_keys.
-
-    Args:
-        anchors: Raw list of localized text anchors.
-
-    Returns:
-        Original list if ≤2 items, otherwise two-element hybrid signal list.
-    """
-    if not isinstance(anchors, list):
-        return anchors
-    if len(anchors) <= 2:
-        return [str(a) if not isinstance(a, str) else a for a in anchors]
-
-    best = ""
-    for a in anchors:
-        a_str = str(a)
-        if len(a_str) > len(best):
-            best = a_str
-
-    trunc = (best[:100] + "...") if len(best) > 100 else best
-    return [
-        trunc,
-        f"[+{len(anchors) - 1} additional anchors found]",
-    ]

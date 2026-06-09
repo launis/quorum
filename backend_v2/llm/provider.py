@@ -16,9 +16,7 @@ from tenacity import (
     AsyncRetrying,
     retry_if_exception,
     stop_after_attempt,
-    wait_combine,
-    wait_exponential,
-    wait_random,
+    wait_exponential_jitter,
 )
 
 from backend_v2.exceptions import (
@@ -438,13 +436,11 @@ class LiteLLMProvider(LLMProvider):
             # Phase 3, Step 4: Enforce Exponential Backoff with Random Jitter
             async for attempt in AsyncRetrying(
                 stop=stop_after_attempt(max_rate_limit_retries + 1),
-                wait=wait_combine(
-                    wait_exponential(
-                        multiplier=SystemConcurrency.LLM_RETRY_MULTIPLIER.value,
-                        min=SystemConcurrency.LLM_RETRY_MIN_SECONDS.value,
-                        max=SystemConcurrency.LLM_RETRY_MAX_SECONDS.value,
-                    ),
-                    wait_random(1, 5),
+                wait=wait_exponential_jitter(
+                    initial=SystemConcurrency.LLM_RETRY_JITTER_INITIAL_SECONDS.value,
+                    max=SystemConcurrency.LLM_RETRY_MAX_SECONDS.value,
+                    exp_base=SystemConcurrency.LLM_RETRY_JITTER_EXP_BASE.value,
+                    jitter=1,
                 ),
                 retry=retry_if_exception(_is_transient_llm_error),
                 reraise=True,
@@ -548,20 +544,22 @@ class LiteLLMProvider(LLMProvider):
                 me = response.model_extra
                 reasoning_token = me["thought_signature"] if "thought_signature" in me else None
 
-            usage: dict[str, Any] = {
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "total_tokens": 0,
-                "cached_tokens": 0,
-                "reasoning_tokens": 0,
-            }
+            usage: dict[str, Any] = {}
             if hasattr(response, "usage") and response.usage:
-                if hasattr(response.usage, "prompt_tokens") and response.usage.prompt_tokens is not None:
-                    usage["prompt_tokens"] = response.usage.prompt_tokens
-                if hasattr(response.usage, "completion_tokens") and response.usage.completion_tokens is not None:
-                    usage["completion_tokens"] = response.usage.completion_tokens
-                if hasattr(response.usage, "total_tokens") and response.usage.total_tokens is not None:
-                    usage["total_tokens"] = response.usage.total_tokens
+                p_tokens = getattr(response.usage, "prompt_tokens", None)
+                c_tokens = getattr(response.usage, "completion_tokens", None)
+                t_tokens = getattr(response.usage, "total_tokens", None)
+
+                if p_tokens is not None:
+                    usage["prompt_tokens"] = p_tokens
+                if c_tokens is not None:
+                    usage["completion_tokens"] = c_tokens
+                if t_tokens is not None:
+                    usage["total_tokens"] = t_tokens
+                elif p_tokens is not None or c_tokens is not None:
+                    # STRICT MATHEMATICAL INVARIANT: Calculated explicitly at the boundary
+                    # rather than relying on silent fallbacks in the domain model.
+                    usage["total_tokens"] = (p_tokens or 0) + (c_tokens or 0)
 
                 if hasattr(response.usage, "prompt_tokens_details") and response.usage.prompt_tokens_details:
                     details = response.usage.prompt_tokens_details

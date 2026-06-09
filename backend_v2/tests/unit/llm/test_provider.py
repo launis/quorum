@@ -27,9 +27,15 @@ async def test_lite_llm_provider_top_k_top_p() -> None:
         message = MockMessage()
         finish_reason = "stop"
 
+    class MockUsage:
+        prompt_tokens = 10
+        completion_tokens = 5
+        total_tokens = 15
+
     class MockLiteLLMResponse:
         choices = [MockChoice()]
         model_extra: dict[str, Any] = {}
+        usage = MockUsage()
 
         def model_dump(self) -> dict[str, Any]:
             return {}
@@ -103,9 +109,15 @@ async def test_lite_llm_provider_additional_params(monkeypatch: pytest.MonkeyPat
         message = MockMessage()
         finish_reason = "stop"
 
+    class MockUsage:
+        prompt_tokens = 10
+        completion_tokens = 5
+        total_tokens = 15
+
     class MockLiteLLMResponse:
         choices = [MockChoice()]
         model_extra: dict[str, Any] = {}
+        usage = MockUsage()
 
         def model_dump(self) -> dict[str, Any]:
             return {}

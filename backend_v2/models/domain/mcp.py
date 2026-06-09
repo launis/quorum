@@ -43,7 +43,10 @@ class MCPToolLoopResult(V2CoreBase):
 
     result_data: dict[str, Any] = Field(description="Final structured output dict.")
     audit_traces: list[MCPAuditTrace] = Field(default_factory=list, description="Audit log of all tool invocations.")
-    usage: TokenUsage = Field(default_factory=TokenUsage, description="Cumulative token usage.")
+    usage: TokenUsage = Field(
+        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        description="Cumulative token usage.",
+    )
 
 
 class MCPSynthesisInstructionsDTO(V2CoreBase):

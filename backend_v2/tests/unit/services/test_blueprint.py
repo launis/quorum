@@ -156,7 +156,7 @@ async def test_build_report_dto_maps_correctly(mock_repo_transformer: Any) -> No
     axis = dto.layouts[0].axes[0]
     assert axis.name in ["Mock Workflow", "step_analyst", "matrix_logic1234", "test_k", "Logic", "Logic *"]  # noqa: E501
     assert axis.score == 75.0
-    assert axis.row_explanation == ""  # Epic 70 Phase 3: row_explanation is cleared when quotes are enabled
+    assert axis.row_explanation == "Very logical."
 
 
 @pytest.mark.asyncio
@@ -579,7 +579,7 @@ async def test_xai_extraction_works_for_nested_dict(mock_repo_transformer: Any) 
     assert len(dto.layouts) == 1
     axis = dto.layouts[0].axes[0]
     assert axis.score == 85.0
-    assert axis.row_explanation == ""  # Epic 70 Phase 3: row_explanation is cleared when quotes are enabled
+    assert axis.row_explanation == "Strictly suffix-based justification."
     assert axis.coaching == "Keep it up"
 
 
@@ -772,3 +772,64 @@ async def test_blueprint_xai_extensions_type_coercion(mock_repo_transformer: Any
     assert axis.confidence is None
     assert axis.risk_flag is True
     assert axis.remediation_steps == "Step 1\nStep 2"
+
+
+@pytest.mark.asyncio
+async def test_blueprint_quotes_and_row_explanation_visibility(mock_repo_transformer: Any) -> None:
+    """Tier 4 Bug Hunting: Reproduce bug where row_explanation is suppressed when quotes are shown,
+    and quotes are not deduplicated.
+    """
+    from backend_v2.models.v2_core import RenderedSynthesisCache
+
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000008",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.COMPLETED,
+        profile_syntheses={
+            "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                synthesized_markdown="Global MD",
+                row_explanations={"blk_1234abcd1234abcd": "This should not be empty!"}
+            )
+        },
+        execution_trace=[
+            TraceEvent(
+                step_name="step_test",
+                event_type="output",
+                content={
+                    "blk_1234abcd1234abcd": {
+                        "raw_score": 100.0,
+                    },
+                    "atom_quotes": {
+                        "blk_1234abcd1234abcd": [
+                            "This is a duplicated quote.",
+                            "This is a duplicated quote.",
+                            "This is a unique quote.",
+                        ]
+                    }
+                },
+            )
+        ],
+        active_profile_id="prf_dddd1111dddd1111",
+        metadata={"target_locale": "en"},
+    )
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+    )
+    
+    dto = await transformer.build_report_dto("exe_0000000000000008", accept_language="en")
+
+    assert len(dto.layouts) == 1
+    axis = dto.layouts[0].axes[0]
+    
+    # 1. row_explanation MUST NOT be suppressed when quotes are visible
+    assert axis.row_explanation == "This should not be empty!"
+    
+    # 2. Duplicate quotes MUST be removed
+    assert axis.quotes_list is not None
+    assert len(axis.quotes_list) == 2
+    assert "This is a duplicated quote." in axis.quotes_list
+    assert "This is a unique quote." in axis.quotes_list

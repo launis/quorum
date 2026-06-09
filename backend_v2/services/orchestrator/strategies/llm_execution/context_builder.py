@@ -7,7 +7,7 @@ from typing import Any
 from backend_v2.exceptions import AppException, ErrorCodes, TokenLimitExceededError
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.services.orchestrator.context_router import ContextRouter
-from backend_v2.utils.dict_utils import compress_anchors, resolve_dot_notation
+from backend_v2.utils.dict_utils import resolve_dot_notation
 
 logger = logging.getLogger(__name__)
 
@@ -115,12 +115,9 @@ class ContextBuilder:
         if isinstance(obj, dict):
             result: dict[str, Any] = {}
             for k, v in obj.items():
-                if k in ("post_quote_anchor", "shuffled_atoms"):
+                if k in ("shuffled_atoms",):
                     continue
-                if k == "localized_anchors_found" and isinstance(v, list):
-                    result[k] = compress_anchors(v)
-                else:
-                    result[k] = ContextBuilder._project_compressed(v)
+                result[k] = ContextBuilder._project_compressed(v)
             return result
         elif isinstance(obj, list):
             return [ContextBuilder._project_compressed(item) for item in obj]

@@ -445,10 +445,8 @@ class ExecutionService:
         if record.status != ExecutionStatus.FAILED:
             return False
 
-        # Rule 2: Successful checkpoints check (requires at least one output trace event)
-        has_output_checkpoint = any(event.event_type == "output" for event in record.execution_trace)
-        if not has_output_checkpoint:
-            return False
+        # Rule 2: Removed Duck-Typing check. Executions that crash before their first 'output' checkpoint MUST be resumable.
+        # This guarantees that early failures (e.g., Pydantic validation on the first LLM call) can be retired via the Event Sourced history.
 
         # Rule 3: Workflow Blueprint & Seed structural parity check
         workflow_dict = await self.workflow_repo.get_workflow_by_id(record.workflow_id)
@@ -460,7 +458,8 @@ class ExecutionService:
 
         # Structural validation: Step set parity (detect if DAG was restructured mid-flight)
         workflow_step_ids = {step.id for step in workflow.steps}
-        exec_step_ids = set(record.step_states.keys())
+        # V2 Fix: Filter out virtual system steps (sys_render_*) that are dynamically injected for PDF rendering.
+        exec_step_ids = {k for k in record.step_states.keys() if not k.startswith("sys_render_")}
         if workflow_step_ids != exec_step_ids:
             return False
 

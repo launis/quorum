@@ -200,7 +200,7 @@ async def execute_tool_loop[T: BaseModel](
         return MCPToolLoopResult(
             result_data=result.model_dump(mode="json"),
             audit_traces=[],
-            usage=usage if usage else TokenUsage(),
+            usage=usage if usage else TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         )
 
     # --- PHASE 1: Probe with tool_choice="auto" ---
@@ -393,7 +393,7 @@ async def execute_tool_loop[T: BaseModel](
         return MCPToolLoopResult(
             result_data=result.model_dump(mode="json"),
             audit_traces=audit_traces,
-            usage=usage if usage else TokenUsage(),
+            usage=usage if usage else TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         )
     except AppException:
         raise

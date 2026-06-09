@@ -75,6 +75,7 @@ class UsageService:
                 usage_obj = TokenUsage(
                     prompt_tokens=input_tokens,
                     completion_tokens=output_tokens,
+                    total_tokens=input_tokens + output_tokens,
                     cached_tokens=cached_tokens,
                     cache_creation_input_tokens=cache_creation_input_tokens,
                     reasoning_tokens=reasoning_tokens,

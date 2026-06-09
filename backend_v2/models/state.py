@@ -62,7 +62,10 @@ class ReasoningTrace(V2CoreBase):
     )
     confidence_score: float = Field(ge=0.0, le=1.0, description="Confidence in the conclusion.")
     model_name: str | None = Field(default=None, description="The model used for reasoning.")
-    token_usage: TokenUsage = Field(default_factory=TokenUsage, description="Token usage statistics.")
+    token_usage: TokenUsage = Field(
+        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        description="Token usage statistics.",
+    )
 
 
 class TraceEvent(V2CoreBase):

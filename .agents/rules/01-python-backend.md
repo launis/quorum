@@ -3,11 +3,13 @@
 *** UNIVERSAL MANDATE & ARCHITECTURE CONSTRAINTS FOR PYTHON ***
 
 <catastrophic_system_bans>
-    <rule_block id="silent_failures">
-        <banned_pattern>Swallowing exceptions silently using `try: ... except Exception: pass`.</banned_pattern>
-        <mandatory_pattern>Exceptions must ALWAYS be logged natively (`logger.error`) and re-thrown or handled explicitly via `AppException` (RFC 7807).</mandatory_pattern>
-        <catastrophic_reason>Silent failures mask root causes of memory leaks and DB corruption.</catastrophic_reason>
+    <rule_block id="the_duct_tape_ban">
+        <banned_pattern>"God Blocks" (`except Exception: pass`), returning empty dicts `{}` on failure, or using `.get("key", default)` to suppress missing data.</banned_pattern>
+        <mandatory_pattern>All errors MUST be caught, logged, and re-raised via `AppException`. Rely strictly on Pydantic validation. The architectural mandate from `hardening.xml` strictly forbids "Duct-Tape" programming.</mandatory_pattern>
+        <catastrophic_reason>Duct-tape fixes mask root causes, corrupt data flows, and violate the Zero-Compromise Pledge.</catastrophic_reason>
     </rule_block>
+    
+    <rule_block id="silent_failures">
     
     <rule_block id="anemic_routers">
         <banned_pattern>Putting business logic, database CRUD, or RBAC checks in API routers (`backend_v2/api/`).</banned_pattern>

@@ -25,11 +25,11 @@ def test_token_usage_valid() -> None:
 def test_token_usage_invalid_negative() -> None:
     """Test TokenUsage validation for negative values."""
     with pytest.raises(ValidationError) as exc:
-        TokenUsage(prompt_tokens=-1)
+        TokenUsage(prompt_tokens=-1, completion_tokens=0, total_tokens=0)
     assert "ge" in str(exc.value)
 
     with pytest.raises(ValidationError) as exc:
-        TokenUsage(cost_usd=-0.01)
+        TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0, cost_usd=-0.01)
     assert "ge" in str(exc.value)
 
 
@@ -68,7 +68,7 @@ def test_usage_aggregate_valid() -> None:
         scope="system",
         entity_id="test_org",
         period="2026-05",
-        usage=TokenUsage(prompt_tokens=10),
+        usage=TokenUsage(prompt_tokens=10, completion_tokens=0, total_tokens=10),
         total_executions=5,
     )
     assert agg.scope == "system"
@@ -102,7 +102,7 @@ def test_usage_report_valid() -> None:
         scope="organization",
         entity_id="org_123",
         period="all-time",
-        usage=TokenUsage(total_tokens=1000),
+        usage=TokenUsage(prompt_tokens=500, completion_tokens=500, total_tokens=1000),
         quota_limit_usd=10.0,
         percentage_used=50.0,
     )
@@ -127,12 +127,12 @@ def test_usage_report_invalid_negative() -> None:
 
 def test_models_frozen_and_extra_forbid() -> None:
     """Test that all models are frozen and forbid extra fields."""
-    usage = TokenUsage()
+    usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
     with pytest.raises(ValidationError):
         usage.prompt_tokens = 10  # type: ignore
 
     with pytest.raises(ValidationError):
-        TokenUsage(extra_field="invalid")  # type: ignore
+        TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0, extra_field="invalid")  # type: ignore
 
     agg = UsageAggregate(scope="sys", period="all")
     with pytest.raises(ValidationError):

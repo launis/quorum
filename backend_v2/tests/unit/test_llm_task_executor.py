@@ -152,8 +152,8 @@ async def test_execute_structured_task_logical_error_retry(
             raise LogicalValidationError(validation_error_msg="Logical flaw detected")
 
     mock_client.run_structured_task.side_effect = [
-        (MockResponseSchema(value="bad logic"), {"total_tokens": 10}),
-        (expected_model, {"total_tokens": 15}),
+        (MockResponseSchema(value="bad logic"), {"total_tokens": 10, "prompt_tokens": 5, "completion_tokens": 5}),
+        (expected_model, {"total_tokens": 15, "prompt_tokens": 7, "completion_tokens": 8}),
     ]
 
     res_model, res_usage = await executor.execute_structured_task(

@@ -337,7 +337,7 @@ class LLMNodeStrategy(NodeStrategy):
         MAX_RETRIES = 2
         retry_count = 0
         final_dict: dict[str, Any] = {}
-        usage_agg = TokenUsage()
+        usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
         latency_ms = 0
 
         while retry_count <= MAX_RETRIES:
@@ -425,7 +425,7 @@ class LLMNodeStrategy(NodeStrategy):
             latency_ms = int((time.time() - telemetry_start_time) * 1000)
 
             accumulator = ChunkAccumulator()
-            usage_agg = TokenUsage()
+            usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
             if redis:
                 all_chunks = await redis.hgetall(hkey)
