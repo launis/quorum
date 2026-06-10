@@ -12,7 +12,7 @@ class DampeningScoringEngine(ScoringEngineBase):
     """
 
     def calculate(
-        self, stats: dict[float, dict[str, int]], math_min: float, math_max: float, strictness_level: int = 50
+        self, stats: dict[float, dict[str, int]], math_min: float, math_max: float, strictness_level: int = 85
     ) -> tuple[float, XAILogDto, dict[str, dict[str, int]]]:
         config = get_strictness_config(strictness_level)
         dampening_score = calculate_progressive_dampening_score(stats, math_min, math_max, config)

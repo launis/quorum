@@ -28,7 +28,6 @@ from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -791,24 +790,22 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
             if step_dto_obj.block_id == "atom_quotes" and isinstance(step_dto_obj.payload, dict):
                 atom_quotes.update(step_dto_obj.payload)
 
-        matrices_to_explain: list[dict[str, Any]] = []
+        matrices_to_explain_map: dict[str, dict[str, Any]] = {}
         for step_dto_obj in available_dtos:
             payload = step_dto_obj.payload
             block_id = step_dto_obj.block_id
-            if isinstance(payload, dict) and "normalized_score" in payload:
-                quotes_list = atom_quotes.get(block_id, [])
-                if not quotes_list:
-                    continue
-                justification_text = "\n".join([f"- {q}" for q in quotes_list])
-                
-                if not any(m["matrix_id"] == block_id for m in matrices_to_explain):
-                    matrices_to_explain.append(
-                        {
-                            "matrix_id": block_id,
-                            "score": payload["normalized_score"],
-                            "justification": justification_text,
-                        }
-                    )
+            
+            if isinstance(payload, dict) and "normalized_score" in payload and block_id in atom_quotes:
+                quotes_list = atom_quotes[block_id]
+                if quotes_list and block_id not in matrices_to_explain_map:
+                    justification_text = "\n".join([f"- {q}" for q in quotes_list])
+                    matrices_to_explain_map[block_id] = {
+                        "matrix_id": block_id,
+                        "score": payload["normalized_score"],
+                        "justification": justification_text,
+                    }
+        
+        matrices_to_explain = list(matrices_to_explain_map.values())
 
         if matrices_to_explain:
             try:

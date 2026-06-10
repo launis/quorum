@@ -22,17 +22,36 @@ class StrictnessConfig(BaseModel):
 
 
 STRICTNESS_ANCHOR_CONFIGS = {
-    StrictnessAnchor.FLEXIBLE: StrictnessConfig(base_forgiveness=1.0, sigmoid_midpoint=0.1, dynamic_exponent=0.2),
-    StrictnessAnchor.LENIENT: StrictnessConfig(base_forgiveness=0.60, sigmoid_midpoint=0.3, dynamic_exponent=0.3),
-    StrictnessAnchor.BALANCED: StrictnessConfig(base_forgiveness=0.30, sigmoid_midpoint=0.5, dynamic_exponent=0.5),
     StrictnessAnchor.STRICT: StrictnessConfig(base_forgiveness=0.10, sigmoid_midpoint=0.7, dynamic_exponent=1.5),
     StrictnessAnchor.ABSOLUTE: StrictnessConfig(base_forgiveness=0.00, sigmoid_midpoint=0.9, dynamic_exponent=3.0),
 }
 
 
 def get_strictness_config(strictness_level: int) -> StrictnessConfig:
-    """Hakee joko suoran ankkurin tai laskee tarkan Linear Interpolationin ankkurien väliltä."""
-    level = max(0, min(100, strictness_level))
+    """Retrieves or interpolates the StrictnessConfig for a given level.
+
+    Calculates exact linear interpolation between anchor points if the level
+    falls between STRICT and ABSOLUTE.
+
+    Args:
+        strictness_level: Integer representing the strictness (must be >= 85).
+
+    Returns:
+        StrictnessConfig: Configuration containing math penalties.
+
+    Raises:
+        AppException: If strictness_level is below the absolute minimum of 85.
+    """
+    if strictness_level < 85:
+        msg = f"Strictness level {strictness_level} is too low. Only STRICT (85) and ABSOLUTE (100) are allowed."
+        logger.error("[MathUtils] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+
+    level = min(100, strictness_level)
 
     for anchor, config in STRICTNESS_ANCHOR_CONFIGS.items():
         if anchor.value == level:
@@ -45,7 +64,7 @@ def get_strictness_config(strictness_level: int) -> StrictnessConfig:
     lower_cfg = STRICTNESS_ANCHOR_CONFIGS[lower_anchor]
     upper_cfg = STRICTNESS_ANCHOR_CONFIGS[upper_anchor]
 
-    t = (level - lower_anchor) / (upper_anchor - lower_anchor)
+    t = (level - lower_anchor.value) / (upper_anchor.value - lower_anchor.value)
 
     def lerp(start: float, end: float, t: float) -> float:
         return start + (end - start) * t
@@ -146,8 +165,15 @@ def scale_to_custom_range(score: float, raw_min: float, raw_max: float, target_m
 
 
 def convert_strictness_to_forgiveness(strictness_level: int) -> float:
-    """(DEPRECATED) Käytä get_strictness_config() suoraan. Jätetty vanhojen moottorien tueksi.
-    Convert UI strictness level (0-100) to a forgiveness multiplier (0.0 - 1.0).
+    """Converts UI strictness level to a forgiveness multiplier.
+
+    DEPRECATED: Use get_strictness_config() directly. Left for legacy engine support.
+
+    Args:
+        strictness_level: Integer representing the strictness (must be >= 85).
+
+    Returns:
+        float: The base forgiveness multiplier (0.0 - 1.0).
     """
     return get_strictness_config(strictness_level).base_forgiveness
 

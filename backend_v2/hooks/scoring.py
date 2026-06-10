@@ -700,7 +700,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                             continue
 
                                         ev_dict = ev if isinstance(ev, dict) else (ev.model_dump() if hasattr(ev, "model_dump") else ev.__dict__)
-                                        
+
                                         try:
                                             # Try heavy protocol first by stripping dynamic fields (e.g. premise_1_quote injected by chunk_worker)
                                             heavy_payload = {k: v for k, v in ev_dict.items() if k in AtomEvaluationItemDTO.model_fields}

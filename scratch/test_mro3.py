@@ -1,8 +1,9 @@
-from pydantic import BaseModel, Field, model_validator, ConfigDict
+from pydantic import BaseModel, Field, model_validator
+
 
 class BaseA(BaseModel):
     field_a: str = Field(...)
-    
+
     @model_validator(mode="after")
     def val_a(self):
         if self.field_a == "invalid":

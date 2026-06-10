@@ -236,7 +236,7 @@ class SystemConcurrency(int, Enum):
     LLM_RETRY_JITTER_INITIAL_SECONDS = 1
     LLM_RETRY_JITTER_EXP_BASE = 2
     FAIL_FAST_MAX_RETRIES = 1
-    LLM_MAX_CHUNK_SIZE = 4
+    LLM_MAX_CHUNK_SIZE = 15
     MATRIX_SAMPLING_LIMIT = 0
     LLM_DEFAULT_TIMEOUT_SECONDS = 600
     RATE_LIMIT_COOLDOWN_SECONDS = 10
@@ -265,9 +265,6 @@ class SystemConcurrency(int, Enum):
 class StrictnessAnchor(IntEnum):
     """UI:n kiinteät Strictness-tasot. Määrittää pehmeyden (forgiveness) ankkuripisteet."""
 
-    FLEXIBLE = 0
-    LENIENT = 15
-    BALANCED = 50
     STRICT = 85
     ABSOLUTE = 100
 

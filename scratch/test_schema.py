@@ -1,6 +1,6 @@
-from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-from backend_v2.models.v2_core import PromptBlock
 from backend_v2.models.enums import BlockDataType
+from backend_v2.models.v2_core import PromptBlock
+from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 mock_matrix_block = {
     "id": "blk_1234567890abcdef",

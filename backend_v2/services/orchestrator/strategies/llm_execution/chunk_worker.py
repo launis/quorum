@@ -34,9 +34,7 @@ class ExtractionPayload(BaseModel):
     semantic_reasoning: str | None = ""
 
 
-def evaluate_extraction(
-    extraction: Any, source_text: str, is_negative_rule: bool, strictness_level: int = 50
-) -> str:
+def evaluate_extraction(extraction: Any, source_text: str, is_negative_rule: bool, strictness_level: int = 50) -> str:
     """Evaluates the deterministic extraction with dual-track validation.
     Returns PASS, FAIL, or DLQ.
     """
@@ -168,6 +166,10 @@ class ChunkWorker:
             if step_metadata and step_metadata.get("is_lightweight_extraction"):
                 is_lightweight = True
 
+            # Phase 5: Fast-Model Compensator - Enforce Contextual Override Ban
+            if is_lightweight or has_shuffled_atoms:
+                strictness_level = max(strictness_level, 100)
+
             # V3 Cache Fix: Use CompiledPrompt with separated static/dynamic tiers
             compiled_prompt = compiler.compile_chunk_prompt(
                 base_system_prompt=base_system_prompt,
@@ -269,7 +271,7 @@ class ChunkWorker:
                                         else 0,
                                     },
                                 )
-                            except Exception as e:
+                            except (LLMSchemaValidationError, AppException, ExceptionGroup) as e:
                                 logger.warning(f"Single LLM call failed in ensemble: {e}")
                                 return e, None
 
@@ -324,7 +326,10 @@ class ChunkWorker:
                                 premise_2_quote=v.get("premise_2_quote"),
                                 semantic_reasoning=v.get("semantic_reasoning", ""),
                             )
-                            return evaluate_extraction(payload, user_payload, False, strictness_level) in ("PASS", "DLQ")
+                            return evaluate_extraction(payload, user_payload, False, strictness_level) in (
+                                "PASS",
+                                "DLQ",
+                            )
 
                         if is_shuffled and "evaluations" in merged:
                             num_evals = len(merged["evaluations"])
@@ -351,15 +356,27 @@ class ChunkWorker:
                                             final_quote = max(set(valid_quotes), key=valid_quotes.count)
                                         else:
                                             final_quote = None
-                                            
+
                                         valid_p1_quotes = [q for q in p1_quotes if q]
-                                        final_p1 = max(set(valid_p1_quotes), key=valid_p1_quotes.count) if valid_p1_quotes else None
+                                        final_p1 = (
+                                            max(set(valid_p1_quotes), key=valid_p1_quotes.count)
+                                            if valid_p1_quotes
+                                            else None
+                                        )
                                         valid_p2_quotes = [q for q in p2_quotes if q]
-                                        final_p2 = max(set(valid_p2_quotes), key=valid_p2_quotes.count) if valid_p2_quotes else None
-                                            
+                                        final_p2 = (
+                                            max(set(valid_p2_quotes), key=valid_p2_quotes.count)
+                                            if valid_p2_quotes
+                                            else None
+                                        )
+
                                         final_reasoning = max(set(reasonings), key=reasonings.count)
-                                        
-                                        is_high_entropy = len(valid_votes) < len(res_list) or len(set(overrides)) > 1 or len(set(valid_quotes)) > 1
+
+                                        is_high_entropy = (
+                                            len(valid_votes) < len(res_list)
+                                            or len(set(overrides)) > 1
+                                            or len(set(valid_quotes)) > 1
+                                        )
 
                                         merged["evaluations"][idx]["contextual_override"] = final_override
                                         merged["evaluations"][idx]["exact_quote"] = final_quote
@@ -395,15 +412,27 @@ class ChunkWorker:
                                                 final_quote = max(set(valid_quotes), key=valid_quotes.count)
                                             else:
                                                 final_quote = None
-                                                
+
                                             valid_p1_quotes = [q for q in p1_quotes if q]
-                                            final_p1 = max(set(valid_p1_quotes), key=valid_p1_quotes.count) if valid_p1_quotes else None
+                                            final_p1 = (
+                                                max(set(valid_p1_quotes), key=valid_p1_quotes.count)
+                                                if valid_p1_quotes
+                                                else None
+                                            )
                                             valid_p2_quotes = [q for q in p2_quotes if q]
-                                            final_p2 = max(set(valid_p2_quotes), key=valid_p2_quotes.count) if valid_p2_quotes else None
-                                                
+                                            final_p2 = (
+                                                max(set(valid_p2_quotes), key=valid_p2_quotes.count)
+                                                if valid_p2_quotes
+                                                else None
+                                            )
+
                                             final_reasoning = max(set(reasonings), key=reasonings.count)
-                                            
-                                            is_high_entropy = len(valid_votes) < len(res_list) or len(set(overrides)) > 1 or len(set(valid_quotes)) > 1
+
+                                            is_high_entropy = (
+                                                len(valid_votes) < len(res_list)
+                                                or len(set(overrides)) > 1
+                                                or len(set(valid_quotes)) > 1
+                                            )
 
                                             merged[block.id]["contextual_override"] = final_override
                                             merged[block.id]["exact_quote"] = final_quote
@@ -482,7 +511,9 @@ class ChunkWorker:
                                     premise_2_quote=block_data.get("premise_2_quote"),
                                     semantic_reasoning=block_data.get("semantic_reasoning", ""),
                                 )
-                                status = evaluate_extraction(temp_block1, user_payload, is_negative_rule, strictness_level)
+                                status = evaluate_extraction(
+                                    temp_block1, user_payload, is_negative_rule, strictness_level
+                                )
                                 block_data["status"] = status
                                 if temp_block1.contextual_override and temp_block1.semantic_reasoning:
                                     block_data["exact_quote"] = f"[INFERRED] {temp_block1.semantic_reasoning}"

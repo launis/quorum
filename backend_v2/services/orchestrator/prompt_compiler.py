@@ -45,12 +45,9 @@ class StrippedBaseTDAExtraction(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    semantic_reasoning: str = Field(description="Strict semantic justification for the extraction decision.")
-    contextual_override: bool = Field(
-        description=(
-            "Set to True only if no literal evidence exists but the rule is implicitly matched. "
-            "exact_quote MUST be empty if True."
-        )
+    exact_quote: str | None = Field(
+        default=None,
+        description="Verbatim quote from the original text. MUST be empty if contextual_override is True.",
     )
     structural_location: str = Field(
         description=(
@@ -59,10 +56,18 @@ class StrippedBaseTDAExtraction(BaseModel):
             "If contextual_override is True, you MUST provide the concrete location."
         ),
     )
-    exact_quote: str | None = Field(
-        default=None,
-        description="Verbatim quote from the original text. MUST be empty if contextual_override is True.",
+    localized_anchors_found: list[str] = Field(
+        default_factory=list,
+        max_length=15,
+        description="Keywords in target language mapping English rule.",
     )
+    contextual_override: bool = Field(
+        description=(
+            "Set to True only if no literal evidence exists but the rule is implicitly matched. "
+            "exact_quote MUST be empty if True."
+        )
+    )
+    semantic_reasoning: str = Field(description="Strict semantic justification for the extraction decision.")
 
     @model_validator(mode="after")
     def validate_override_logic(self) -> StrippedBaseTDAExtraction:
@@ -487,7 +492,7 @@ class PromptCompiler:
                 logger.warning("[PromptCompiler] Found criterion without a valid string 'id': %s. Skipping.", crit)
                 continue
 
-            if getattr(crit, "type", None) == "instruction":
+            if crit.category_id != "matrix" and getattr(crit, "type", None) == "instruction":
                 fields[crit_id] = (
                     str,
                     Field(

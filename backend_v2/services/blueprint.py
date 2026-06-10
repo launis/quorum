@@ -535,8 +535,13 @@ class BlueprintTransformer:
                 total_atoms = len(matrix_payload.evaluated_atoms)
 
             # Epic 50: Use dynamically generated row explanation if available, else raw justification
-            synth_explanation = row_explanations_cache.get(b_id)
-            final_explanation = synth_explanation if synth_explanation else justification
+            if b_id in row_explanations_cache:
+                final_explanation = row_explanations_cache[b_id]
+            else:
+                final_explanation = justification
+            
+            if final_explanation and len(final_explanation) > 300:
+                final_explanation = final_explanation[:297] + "..."
 
             # EPIC 70 Phase 3: Hoisted quotes
             quotes_list = None
@@ -547,19 +552,26 @@ class BlueprintTransformer:
                         atom_quotes = r_dto.payload
                         break
 
-                raw_quotes = atom_quotes.get(b_id, [])
-                if raw_quotes and isinstance(raw_quotes, list):
-                    quotes_list = []
-                    seen_quotes = set()
-                    for q in raw_quotes:
-                        q_str = str(q).strip()
-                        if not q_str or q_str in seen_quotes:
-                            continue
-                        seen_quotes.add(q_str)
-                        if len(q_str) > 150:
-                            quotes_list.append(q_str[:147] + "...")
-                        else:
-                            quotes_list.append(q_str)
+                if b_id in atom_quotes and isinstance(atom_quotes[b_id], list):
+                    raw_quotes = atom_quotes[b_id]
+                    if raw_quotes:
+                        quotes_list = []
+                        seen_quotes = set()
+                        for q in raw_quotes:
+                            q_str = str(q).strip()
+                            if not q_str or q_str in seen_quotes:
+                                continue
+                            seen_quotes.add(q_str)
+                            # Clean Markdown formatting (bold, italics, headers)
+                            q_str = re.sub(r'[*_#`>]', '', q_str).strip()
+                            if not q_str:
+                                continue
+                            # Ensure capitalization
+                            q_str = q_str[0].upper() + q_str[1:]
+                            if len(q_str) > 150:
+                                quotes_list.append(q_str[:147] + "...")
+                            else:
+                                quotes_list.append(q_str)
 
             row_dto = MatrixScorecardRowDTO(
                 block_id=b_id,

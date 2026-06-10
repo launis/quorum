@@ -32,6 +32,7 @@ from backend_v2.models.enums import (
     LaxScoringStrategy,
     LaxXaiExtensionType,
     ScoringStrategy,
+    StrictnessAnchor,
     SystemConcurrency,
 )
 from backend_v2.models.execution_core import ExecutionCoreFields
@@ -975,7 +976,7 @@ class OutputProfile(V2CoreBase):
     include_diagnostic_scorecard: bool = Field(
         default=False, description="Epic 24: Enable appending the independent diagnostic scorecard."
     )
-    strictness_level: int | None = Field(default=None, ge=0, le=100, description="Profile-level strictness override.")
+    strictness_level: Literal[85, 100] | None = Field(default=None, description="Profile-level strictness override.")
     scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
 
@@ -1248,13 +1249,15 @@ class BaseTDAExtraction(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    localized_anchors_found: list[str] = Field(description="Keywords in target language mapping English rule.")
-    semantic_reasoning: str = Field(description="Mapping logic explanation in target language.")
-    contextual_override: bool = Field(description="Escape hatch for implicit matches.")
     exact_quote: str | None = Field(
         default=None,
         description="Verbatim quote from original text.",
     )
+    localized_anchors_found: list[str] = Field(
+        max_length=15, description="Keywords in target language mapping English rule."
+    )
+    contextual_override: bool = Field(description="Escape hatch for implicit matches.")
+    semantic_reasoning: str = Field(description="Mapping logic explanation in target language.")
 
     @model_validator(mode="before")
     @classmethod

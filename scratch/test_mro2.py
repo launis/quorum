@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+
 class BaseA(BaseModel):
     field_a: str = Field(...)
 

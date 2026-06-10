@@ -819,15 +819,15 @@ async def test_blueprint_quotes_and_row_explanation_visibility(mock_repo_transfo
         comp_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
     )
-    
+
     dto = await transformer.build_report_dto("exe_0000000000000008", accept_language="en")
 
     assert len(dto.layouts) == 1
     axis = dto.layouts[0].axes[0]
-    
+
     # 1. row_explanation MUST NOT be suppressed when quotes are visible
     assert axis.row_explanation == "This should not be empty!"
-    
+
     # 2. Duplicate quotes MUST be removed
     assert axis.quotes_list is not None
     assert len(axis.quotes_list) == 2

@@ -2,19 +2,20 @@ import json
 import sys
 from collections import Counter
 
+
 def analyze_atoms(file_path):
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, encoding='utf-8') as f:
         data = json.load(f)
-    
+
     atom_states = Counter()
     total_matrices = 0
-    
+
     print("=== Execution Analysis ===")
-    
+
     for event in data:
         if event.get("event_type") == "output":
             content = event.get("content", {})
-            
+
             # The scoring output stores the matrices as their block IDs.
             for k, v in content.items():
                 if isinstance(v, dict) and "evaluated_atoms" in v:
