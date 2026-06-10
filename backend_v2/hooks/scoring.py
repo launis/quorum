@@ -699,16 +699,28 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                         if is_ev_dlq:
                                             continue
 
-                                        ev_dict = ev if isinstance(ev, dict) else (ev.model_dump() if hasattr(ev, "model_dump") else ev.__dict__)
+                                        ev_dict = (
+                                            ev
+                                            if isinstance(ev, dict)
+                                            else (ev.model_dump() if hasattr(ev, "model_dump") else ev.__dict__)
+                                        )
 
                                         try:
                                             # Try heavy protocol first by stripping dynamic fields (e.g. premise_1_quote injected by chunk_worker)
-                                            heavy_payload = {k: v for k, v in ev_dict.items() if k in AtomEvaluationItemDTO.model_fields}
+                                            heavy_payload = {
+                                                k: v
+                                                for k, v in ev_dict.items()
+                                                if k in AtomEvaluationItemDTO.model_fields
+                                            }
                                             ev_dto = AtomEvaluationItemDTO.model_validate(heavy_payload)
                                         except ValidationError:
                                             try:
                                                 # Fallback to lightweight protocol by stripping ALL heavy cognitive fields
-                                                light_payload = {k: v for k, v in ev_dict.items() if k in LightweightExtractionAtom.model_fields}
+                                                light_payload = {
+                                                    k: v
+                                                    for k, v in ev_dict.items()
+                                                    if k in LightweightExtractionAtom.model_fields
+                                                }
                                                 ev_dto = LightweightExtractionAtom.model_validate(light_payload)  # type: ignore
                                             except ValidationError as e:
                                                 logger.error(

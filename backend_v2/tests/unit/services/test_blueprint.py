@@ -787,8 +787,7 @@ async def test_blueprint_quotes_and_row_explanation_visibility(mock_repo_transfo
         status=ExecutionStatus.COMPLETED,
         profile_syntheses={
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
-                synthesized_markdown="Global MD",
-                row_explanations={"blk_1234abcd1234abcd": "This should not be empty!"}
+                synthesized_markdown="Global MD", row_explanations={"blk_1234abcd1234abcd": "This should not be empty!"}
             )
         },
         execution_trace=[
@@ -805,7 +804,7 @@ async def test_blueprint_quotes_and_row_explanation_visibility(mock_repo_transfo
                             "This is a duplicated quote.",
                             "This is a unique quote.",
                         ]
-                    }
+                    },
                 },
             )
         ],

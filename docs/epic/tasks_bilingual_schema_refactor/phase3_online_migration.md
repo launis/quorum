@@ -11,6 +11,7 @@ Replace the flat `ai_rule_description: str` with structured Pydantic fields in t
 - `backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py`
 - `backend_v2/seed/seed_data.json` (Replace with the draft)
 - `backend_v2/llm/mock_data.py`
+- `backend_v2/tests/unit/hooks/test_scoring.py`
 
 ## Targets (Delete)
 - `backend_v2/utils/hashing.py`

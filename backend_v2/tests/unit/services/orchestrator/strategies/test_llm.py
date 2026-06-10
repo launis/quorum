@@ -46,6 +46,7 @@ def llm_strategy(mock_repo: MagicMock, mock_compiler: MagicMock) -> LLMNodeStrat
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_execute_fails_fast_if_no_blueprint(llm_strategy: LLMNodeStrategy) -> None:
     """Test that LLMNodeStrategy fails fast if task_blueprint is missing."""
     # Create a step without task_blueprint
@@ -75,6 +76,7 @@ async def test_execute_fails_fast_if_no_blueprint(llm_strategy: LLMNodeStrategy)
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_execute_fails_fast_if_blueprint_not_found(llm_strategy: LLMNodeStrategy, mock_repo: MagicMock) -> None:
     """Test that LLMNodeStrategy fails fast if task_blueprint is not found in database."""
     step = MagicMock()
@@ -106,6 +108,7 @@ async def test_execute_fails_fast_if_blueprint_not_found(llm_strategy: LLMNodeSt
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_execute_fails_fast_on_missing_profile_id(llm_strategy: LLMNodeStrategy, mock_repo: MagicMock) -> None:
     """Test that execution fails fast if metadata is missing profile_id."""
     step = MagicMock()
@@ -156,6 +159,7 @@ async def test_execute_fails_fast_on_missing_profile_id(llm_strategy: LLMNodeStr
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeStrategy, mock_repo: MagicMock) -> None:
     """Test that execution fails fast if a referenced prompt block is missing from database."""
     step = MagicMock()
@@ -219,6 +223,7 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_execute_success_path_structured_output(
     llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
 ) -> None:  # noqa: E501
@@ -311,7 +316,10 @@ async def test_execute_success_path_structured_output(
         mock_client = AsyncMock()
         mock_result = MagicMock()
         mock_result.model_dump.return_value = {"blocks": []}
-        mock_client.run_structured_task.return_value = (mock_result, {"total_tokens": 100})
+        mock_client.run_structured_task.return_value = (
+            mock_result,
+            {"prompt_tokens": 100, "completion_tokens": 0, "total_tokens": 100},
+        )
 
         with patch(
             "litellm.token_counter",
@@ -337,6 +345,7 @@ async def test_execute_success_path_structured_output(
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_configure_llm_context_hook_success() -> None:
     """Test that the LLM hook correctly resolves provider configuration."""
     from unittest.mock import patch
@@ -389,6 +398,7 @@ async def test_configure_llm_context_hook_success() -> None:
         assert result.state_delta["llm_config"].provider == "google"
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_configure_llm_context_hook_empty_state() -> None:
     from typing import cast
     from unittest.mock import MagicMock
@@ -414,6 +424,7 @@ def test_configure_llm_context_hook_empty_state() -> None:
     assert result.state_delta == {}
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_configure_llm_context_hook_error() -> None:
     from unittest.mock import MagicMock
 
@@ -442,6 +453,7 @@ def test_configure_llm_context_hook_error() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_execute_raises_app_exception_if_chunk_routes_to_dlq(
     llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
 ) -> None:

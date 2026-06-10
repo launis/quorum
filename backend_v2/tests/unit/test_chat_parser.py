@@ -40,7 +40,10 @@ async def test_chat_parser_role_segregation_and_success(
             ChatMessageDTO(role="AI", content="Hi"),
         ]
     )
-    mock_client.run_structured_task.return_value = (mock_dto, {"prompt_tokens": 10})
+    mock_client.run_structured_task.return_value = (
+        mock_dto,
+        {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10},
+    )
 
     mock_from_strategy.return_value = mock_client
 

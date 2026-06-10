@@ -40,7 +40,7 @@ def valid_output_profile_data_for_synthesis() -> dict[str, Any]:
         "slug": "test_profile",
         "workflow_id": "wf_00000000000000000000",
         "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
-        "strictness_level": 50,
+        "strictness_level": 85,
         "scoring_strategy": "WATERFALL",
         "display_scale": "original",
         "synthesis": {

@@ -9,7 +9,7 @@ from pydantic import Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.base import BaseResponseDTO
-from backend_v2.models.enums import LaxScoringStrategy, LaxXaiExtensionType, StrictnessAnchor
+from backend_v2.models.enums import LaxScoringStrategy, LaxXaiExtensionType
 from backend_v2.models.v2_core import (
     I18nText,
     OutputLayoutBlock,

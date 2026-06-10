@@ -27,7 +27,7 @@ Create and execute a standalone, offline Python script to migrate the `seed_data
    - `syntactic_anchors`
    - Set `enforce_pre_flight = false`.
 3. The script must use `LLMTaskExecutor` for the conversion, applying the Opaque Stripe ID mandate for missing `tda_id` fields.
-4. Add the new `Lightweight JSON Extraction` instruction block (`blk_lightweight_extract_01`) to the DB seed file.
+4. Add the new `Lightweight JSON Extraction` instruction block (`blk_lightweight_extract_01`) to the DB seed file. Ensure this block has `"is_lightweight_protocol": true`.
 5. Save the output as `backend_v2/seed/seed_data_v2_draft.json` and request manual human review.
 
 ## Testing & Quality Gate Plan

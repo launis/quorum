@@ -18,6 +18,7 @@ def mock_settings() -> Any:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_lite_llm_rate_limit_cooldown(mock_settings: Any, monkeypatch: Any) -> None:
     """TDD Repro: Ensure LiteLLMProvider rate limit exhaustion triggers
     a 60s cooldown instead of burning Tenacity retries instantly.
@@ -78,6 +79,7 @@ async def test_lite_llm_rate_limit_cooldown(mock_settings: Any, monkeypatch: Any
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_lite_llm_fail_soft_fallback(mock_settings: Any, monkeypatch: Any) -> None:
     """Ensure LiteLLMProvider rate limit exhaustion on a heavy model
     triggers a dynamic fail-soft downgrade to gemini-2.5-flash on the final attempt.

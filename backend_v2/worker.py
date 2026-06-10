@@ -254,7 +254,7 @@ async def execute_workflow_job(
             p_dict = await repository.get_output_profile_by_id(profile_id) if profile_id else None
             active_profile_dto = OutputProfileResponseDTO.model_validate(p_dict) if p_dict else None
 
-            strictness_level = None
+            strictness_level: int | None = None
             if active_profile_dto and active_profile_dto.strictness_level is not None:
                 strictness_level = active_profile_dto.strictness_level
             elif workflow_def:

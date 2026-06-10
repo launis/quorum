@@ -18,15 +18,17 @@
 * Oletustilaksi pakotetaan nollahypoteesi: malli ei palauta osumaa, ellei se pysty poimimaan tekstistä tarkkaa lainausta, joka vastaa vaadittuja ankkurisanoja.
 * Sääntöjen osat (kuten ohjeteksti, ankkurisanat ja poissulkusäännöt) eristetään arkkitehtuurisesti toisistaan, jotta ankkurit voidaan syöttää mallille erillisenä kohdekielisenä sanalistana (Zero Semantic Drift).
 
-### Miten (Toteutuksen vaiheet)
-Tämä Epic on jaettu ydinvaiheisiin (Atomic Commit) sekä erillisiin, itsenäisesti suoritettaviin pre- ja post-vaiheisiin riskien minimoimiseksi.
+### Miten (Toteutuksen vaiheet: Expand & Contract)
+Tämä Epic on jaettu peräkkäisiin, rinnakkaisiin ja taaksepäin yhteensopiviin vaiheisiin (**Expand & Contract** -malli), jotta vältetään valtavien "God Commit" -muutosten aiheuttamat koodin rikkoutumiset. Järjestelmä pidetään koko ajan 100% suoritettavana.
 
-**Ydinvaiheet (The Atomic Commit):**
-* **Vaihe 1 (Backend ja Skeema-arkkitehtuuri):** Pydantic-skeemoista poistetaan litteä `ai_rule_description` ja tilalle tuodaan rakenteelliset kentät: `concept_description`, `acceptance_criteria`, `anti_patterns` ja `contrastive_example`. Kehotteen kognitiivinen ohjauslogiikka pakotetaan aina englanniksi älykkyyden säilyttämiseksi, kun taas uusi `syntactic_anchors` -lista syötetään kohdekielellä. `GLOBAL_HARDENING_FRAMEWORK`:iin tuodaan *Zero-Reasoning Mandate* ja skeemasta luodaan erillinen karsittu `LightweightExtractionAtom`. Lisäksi toteutetaan valinnainen säännöllisiin lausekkeisiin perustuva Pre-Flight Fail-Fast -tarkistus, joka voi hylätä tekstin suoraan kooditasolla ennen tekoälyn kutsumista.
-* **Vaihe 2 (Tietokantamigraatio):** Vanha litteä tietokanta (`seed_data.json`) muutetaan offline-tilassa uuteen rakenteelliseen muotoon LLM-avusteisen skriptin avulla. Samalla tietokantaan luodaan uusi "Kevyt JSON-uutto" -protokolla rutiiniaskeleille ja kytketään ne uuteen poimintaan. Uusi tietokanta ja Phase 1:n koodimuutokset on vietävä tuotantoon tismalleen samassa git-commitissa sovelluksen kaatumisen estämiseksi.
-* **Vaihe 3 (Frontend ja UI):** Flutter-käyttöliittymän Dart/Freezed-mallit synkronoidaan välittömästi uusiin Pydantic-rakenteisiin. Vanhat tekstikentät korvataan uudella strukturoidulla editorilla, joka sisältää omat kenttänsä sääntöjen eri osioille.
+**Expand & Contract -vaiheet:**
+* **Vaihe 1 (God Object Refactor):** Ennakko-siivous. Pilkotaan PromptCompiler pienempiin SRP-moduuleihin ilman rakenteellisia skeemamuutoksia.
+* **Vaihe 2 (Schema Expand):** Pydantic-skeemoihin ja Flutter-malleihin LISÄTÄÄN uudet rakenteelliset kentät (`concept_description`, `acceptance_criteria`, jne.) alkuun `Optional` tai sallivina arvoina. **Vanhaa litteää `ai_rule_description` -kenttää EI POISTETA vielä**. Tämä takaa, että vanha koodi ja UI toimivat yhä (Expand). Lisätään myös uusi "Kevyt JSON-uutto" -protokolla rutiiniaskeleille.
+* **Vaihe 3 (Online Database Migration):** Rakennetaan taustaskripti (ETL), joka lukee tietokannasta (`seed_data.json`) vanhan `ai_rule_description`-kentän, luo LLM:n avulla sen pohjalta uudet rakenteelliset kentät ja tallentaa NE MOLEMMAT tietokantaan. Järjestelmää voidaan ajaa koko ajan.
+* **Vaihe 4 (Frontend Sync & Routing):** Frontendin DTO:t synkronoidaan uusiin kenttiin ja Admin Studio V2 -UI päivitetään tukemaan uusia kenttiä rinnakkain vanhojen kanssa. Rakennetaan uusi Best-of-3 Flash reitityslogiikka.
+* **Vaihe 5 (Schema Contract):** Vasta kun kaikki koodi osaa lukea ja kirjoittaa uusia rakenteellisia kenttiä, **poistetaan vanha `ai_rule_description` kokonaan** Backendin Pydantic-malleista, Frontendin DTO:ista ja tietokannasta. Pakotetaan uudet kentät pakollisiksi (Contract).
 
-*(Huom: Refaktorointi, kielellinen siivous ja kognitio-reititys on eriytetty omiin erillisiin kokonaisuuksiinsa asiakirjan loppuun, jotta ydin-Epicin laajuus pysyy hallittavana ja Regressio-riskit minimoituvat.)*
+*(Huom: Kielellinen siivous ja rajatapausten määrittely on eriytetty omaksi jälkikokonaisuudekseen, jotta ydin-Epicin laajuus pysyy hallittavana ja Regressio-riskit minimoituvat.)*
 
 ## Tausta ja Ongelma (The Variance Crisis)
 Analysoimme järjestelmän varianssia (Entropia 1.0) TDA-putkessa raskaiden matriisien osalta. Löysimme kolme kriittistä varianssilähdettä:
@@ -45,14 +47,17 @@ Analysoimme järjestelmän varianssia (Entropia 1.0) TDA-putkessa raskaiden matr
 
 <!-- Phase 0 siirretty itsenäisiin työkokonaisuuksiin asiakirjan loppuun -->
 
-## Phase 1: Backend & Schema Architecture (Strukturoitu malli heti alusta)
+## Phase 2: Schema Expand (Strukturoitu malli rinnalle)
 > **Kriittinen Käsitteellinen Rajoitus (`ai_rule_description` vs `ai_description`):** Tämä refaktorointi koskee AINOASTAAN `TDAAssertion`-mallin `ai_rule_description`-kenttää. `PromptBlock`- ja `MatrixClaim`-mallien englanninkieliset `ai_description`-kentät pysyvät litteinä merkkijonoina, koska ne toimivat LLM:n ylätason ohjeina, eivätkä ne tarvitse rakenteellista jakoa. Älä muuta `ai_description`-kenttiä.
-1. **Pydantic V2 -muutokset:** Poistetaan kenttä `ai_rule_description: str` tiedoston `backend_v2/models/v2_core.py` skeemasta `TDAAssertion`. Korvataan se suoraan seuraavilla strukturoiduilla kentillä:
-   - `concept_description: I18nText` (Mitä tekoäly etsii?)
-   - `acceptance_criteria: I18nText` (Hyväksymiskynnys / Standard of Proof)
-   - `anti_patterns: I18nText` (Hylkäyskriteerit / poikkeussäännöt)
+1. **Pydantic V2 Expand -muutokset:** LISÄTÄÄN tiedoston `backend_v2/models/v2_core.py` skeemaan `TDAAssertion` uudet rakenteelliset kentät **ilman, että poistetaan vanhaa `ai_rule_description`-kenttää vielä**. Kaikki uudet kentät asetetaan alkuun muotoon `Optional[...] = Field(default=None)`, jotta tietokannan luku ei kaadu. Uudet kentät ovat:
+   - `concept_description: I18nText | None` (Mitä tekoäly etsii?)
+   - `acceptance_criteria: I18nText | None` (Hyväksymiskynnys / Standard of Proof)
+   - `anti_patterns: I18nText | None` (Hylkäyskriteerit / poikkeussäännöt)
    - `contrastive_example: I18nText | None` (Valinnainen "läheltä piti" -esimerkki nollahypoteesin ankkurointiin, Few-Shot)
-   *(HUOM: Ei taaksepäin yhteensopivuutta tai fallbackeja `str`-tyypille. Vanha data migroidaan kerralla Phase 2:ssa, jotta noudatetaan the_no_legacy_mandate- ja universal_fail_fast -sääntöjä ja vältetään tuplamuutokset).*
+   
+   > **KRIITTINEN SÄÄNTÖ (NO BACKWARDS COMPATIBILITY FOR EXECUTIONS):** 
+   > Taaksepäin yhteensopivuus koskee AINOASTAAN `seed_data.json`-määrityksiä koodin suoritettavuuden takaamiseksi siirtymän aikana. **Historiallisiin ajoihin (executions / historical runs) EI SAA OLLA taaksepäin yhteensopivuutta.** Pydantic-malleihin on ehdottomasti KIELLETTYÄ kirjoittaa `obj.get("ai_rule_description")` -tyyppisiä fallback-purkkapatentteja vanhojen ajojen tukemiseksi. Paikallinen ajotietokanta (TinyDB/Firestore) tyhjennetään kylmästi, ja vanhat ajot saavat (ja niiden pitää) kaatua Fail-Fast -virheeseen.
+
    > **Arkkitehtuurisääntö (hardening.xml):**
    > - Rule 1 (the_zero_compromise_pledge): No `.get("default")` fallbacks permitted in business logic. Strict Pydantic validation is absolutely mandatory.
    > - Rule 2 (strict_pydantic_v2_rust): Enforce `.model_validate()`, NEVER use the legacy `parse_obj()`. All NEW classes MUST define `model_config = ConfigDict(strict=True, extra="forbid")`.
@@ -69,6 +74,7 @@ Analysoimme järjestelmän varianssia (Entropia 1.0) TDA-putkessa raskaiden matr
 2. **Syntactic Anchors & Pre-flight flags:** 
    - Lisää uusi kenttä `syntactic_anchors: dict[str, list[str]] | None = Field(default=None)` vastaaviin Pydantic-skeemoihin. Tämä pitää säännöt puhtaina ja sallii sanalistojen mekaanisen validoinnin.
    - Lisää uusi kenttä `enforce_pre_flight: bool = Field(default=False)` TDAAssertion-luokkaan.
+   - Lisää uusi kenttä `is_lightweight_protocol: bool = Field(default=False)` `PromptBlock`-luokkaan, jotta kevyiden ja raskaiden analyysien reititys voidaan tehdä turvallisesti.
 3. **Pre-Flight Fail-Fast -tarkistus (Kooditason Nollahypoteesi):** Ennen kalliin LLM-kutsun tekemistä ohjelma voi ajaa kohdetekstin kevyen säännöllisen lausekkeen läpi, joka tarkistaa `syntactic_anchors` -sanalistan esiintyvyyden.
    * **Enforce Pre-flight -kytkin (Opt-in):** Tämä tarkistus on ajettava **vain jos** `enforce_pre_flight` on asetettu arvoon `True`. Koska suomen kieli on erittäin rikas ja agglutinatiivinen, kova kooditason (regex) filtteri väistämättä hylkäisi taivutusmuotoja ja romahduttaisi osumatarkkuuden (recall collapse). Siksi oletusarvoisesti `enforce_pre_flight = False`, jolloin ankkurit syötetään vain LLM:lle osaksi system promptin sääntöjä, ja LLM (joka hallitsee suomen morfologian) tekee semanttis-syntaktisen ankkuritarkistuksen ilman kooditason short-circuitia.
    * Jos `enforce_pre_flight` on `True` ja ankkurit on määritelty, mutta yksikään ei esiinny tekstissä, palautetaan suoraan deterministinen `null` eikä LLM:ää kutsuta.
@@ -106,13 +112,12 @@ Analysoimme järjestelmän varianssia (Entropia 1.0) TDA-putkessa raskaiden matr
 6. **Blacklist-sanakirjojen synkronointi (Lightweight Matrix):** Päivitä `backend_v2/models/dtos/lightweight_matrix.py`. Varmista, että mahdolliset `evidence_found`-metodin käyttämät negatiiviset blacklist-sanastot synkronoidaan dynaamisesti `anti_patterns` tai `syntactic_anchors` -kenttien logiikan kanssa haamuhavaintojen estämiseksi.
 7. **Skeemojen dynaaminen injektointi (Zero-Bilingual Leak):** Vaikka koko `I18nText`-rakenne (kaikki kielet) palautetaan UI/Frontend -kerrokselle esitettäväksi asiantuntijoille, Prompt Compiler eristää kielet täydellisesti LLM:ltä. LLM:n konteksti-ikkunaan (ja Structured Outputs JSON-skeemaan) injektoidaan vain yksinkertainen englanninkielinen ohjenauha ja kohdekielinen ankkurilista. Malli ei koskaan näe koko monimutkaista kielirakennetta, jolloin promptin resoluutio ja Prompt Caching pysyvät täydellisinä.
 
-## Phase 2: Tietokantamigraatio (Structured Seed Data Migration)
+## Phase 3: Online Tietokantamigraatio (Structured Seed Data Migration)
 
-> **Kriittinen System 2 Arkkitehtuurivaroitus (The Chicken-and-Egg Migration):**
-> Phase 1 (Pydantic-muutokset ilman str-fallbackeja) ja Phase 2 (Datan migraatio) ovat loogisesti riippuvaisia toisistaan. Jos Pydantic-mallit päivitetään koodiin ensin, järjestelmä (ja `backend_audit_loop.py`) kaatuu heti käynnistyksessä lukiessaan vanhaa `seed_data.json` -tiedostoa `ValidationError` -poikkeukseen.
-> **Ratkaisu:** Koko tietokantamigraatio on suorytettava *offline-tilassa* (esim. erillisenä tilapäisskriptinä vanhalla koodipohjalla) ennen uusien Pydantic-mallien käyttöönottoa. Uusi generoitu `seed_data.json` on kommitoitava yhdessä Phase 1:n koodimuutosten kanssa **täysin samassa Git-commitissa (Atomic Commit)**. Järjestelmä ei kestä tilaa, jossa uusi koodi lukee vanhaa dataa. *(HUOM: Historiallista ajodataa eli vanhoja ajoja ei tarvitse tukea tai migroida. Vain järjestelmän konfiguraatio `seed_data.json` on vietävä uuteen muotoon. Paikallinen ajonaikainen tietokanta voidaan pyyhkiä puhtaalta pöydältä).*
+> **Expand & Contract Online Migration:**
+> Koska vanha kenttä on yhä olemassa koodissa (Expand-vaihe), Pydantic ei kaadu lukiessaan vanhaa dataa. Siksi voimme ajaa datamigraation asynkronisena online-tilassa (tai tallentavana skriptinä) rikomatta koodikantaa. Uusi generoitu `seed_data.json` sisältää sekä vanhan `ai_rule_description` -kentän että uudet rakenteelliset kentät.
 
-1. Koodaa väliaikainen Python-skripti (offline-ETL), joka käy läpi koko olemassa olevan `backend_v2/seed/seed_data.json` -tiedoston. Skriptin on osattava navigoida syvälle oikeaan JSON-polkuun: `prompt_blocks` -> `scales` -> `claims` -> `tda_assertions` löytääkseen muokattavat kohteet. Skriptin tulee asettaa myös uuden `enforce_pre_flight` kentän oletusarvoksi `false`.
+1. Koodaa Python-skripti (ETL), joka käy läpi koko olemassa olevan `backend_v2/seed/seed_data.json` -tiedoston. Skriptin on osattava navigoida syvälle oikeaan JSON-polkuun: `prompt_blocks` -> `scales` -> `claims` -> `tda_assertions` löytääkseen muokattavat kohteet. Skriptin tulee asettaa myös uuden `enforce_pre_flight` kentän oletusarvoksi `false`.
    > **Arkkitehtuurisääntö (hardening.xml):**
    > - Rule 59 (free_threading_concurrency): Utilizing the `multiprocessing` module is EXPLICITLY FORBIDDEN. Employ lightweight threads or `asyncio`.
    > - Rule 61 (taskgroup_exceptiongroup_mandate): In concurrent async execution, `asyncio.gather` is FORBIDDEN. Background routines MUST ALWAYS be orchestrated utilizing the `asyncio.TaskGroup` context.
@@ -144,20 +149,22 @@ Analysoimme järjestelmän varianssia (Entropia 1.0) TDA-putkessa raskaiden matr
    >   "description": {"default_locale": "fi", "translations": {"fi": "Kevyt nollahypoteesi-uutto", "en": "Lightweight null hypothesis extraction"}},
    >   "ai_description": "ZERO-REASONING MANDATE: Extract data mechanically without step-by-step reasoning...",
    >   "category_id": "execution_persona",
-   >   "type": "instruction"
+   >   "type": "instruction",
+   >   "is_lightweight_protocol": true
    > }
    > ```
 5. **Kriittinen korjaus (Matrix Type Sync Validation):** Aiempi oletus, että matrix-lohkojen `type` olisi virheellisesti `"instruction"`, on tarkistettu dataa vasten ja havaittu vääräksi. Matrix-lohkot (`category_id == "matrix"`) palauttavat numeerisia arvosanoja (esim. 1-5, `allow_decimals: true`), joten niiden `type` on jo tällä hetkellä oikein `"float"`. Skriptin ei pidä mennä muuttamaan näitä `"string"` tai `"instruction"` tyyppisiksi, jotta numeerinen validointi ei rikkoudu. Varmista vain, että `execution_persona` -tyyppiset lohkot säilyttävät `type: "instruction"`.
 6. **Testien ja Mock-datan päivittäminen:** Koska fallback-logiikka ei ole sallittua (Hardening Rule 22), kaikki yksikkö- ja integraatiotestit, jotka pohjautuvat vanhaan `ai_rule_description` -kenttään, rikkoutuvat välittömästi. Etsi kaikki testitiedostot ja fixturet, ja refaktoroi testien käyttämä Mock-data vastaamaan uutta Pydantic-skeemaa (LocalizedText-kentät). Tämä on kriittinen askel ennen testiluuppien (`backend_audit_loop.py`) ajamista.
    - **Kriittinen Testi-Gap:** Päivitettävät kohteet: `backend_v2/llm/mock_data.py` (Rivi 360 rakentaa litteän TDA-diktiä, tämä on rakennettava täydeksi lokalisaatiorakenteeksi, muuten `backend_audit_loop.py` kaatuu), `backend_v2/tests/unit/test_hashing.py` (POISTETTAVA KOKONAAN), `backend_v2/tests/unit/hooks/test_scoring.py` (Korvaa kaikki 13 `generate_atom_hash` -kutsua staattisilla `tda_123` UUID-tunnisteilla, hashien käyttö luonnollisille avaimille on arkkitehtuurisesti kielletty), ja itse `backend_v2/utils/hashing.py` (POISTETTAVA KOKONAAN).
 
-## Phase 3: Frontend & Admin Studio V2 (Structured Editor)
+## Phase 4: Frontend Sync & Routing
 
-> **Kriittinen System 2 Arkkitehtuurivaroitus (Flutter/Freezed Crash):**
-> Vaikka koodista poistetaan `str`-taaksepäin yhteensopivuus, Frontendin verkkokerros kaatuu välittömästi `CheckedFromJsonException` -virheisiin syvällä deserialisoinnissa, jos uutta `I18nText` JSON:ia yritetään lukea vanhalla DTO-mallilla. Tämä ohittaisi puhtaan `AppExceptionBoundary` -virheenkäsittelyn. DTO-mallit on synkronoitava heti.
+> **Expand & Contract UI Sync:**
+> Koska koodikanta ei ole rikki, voimme lisätä Flutterin puolelle uudet kentät rinnakkaisena päivityksenä. Kun UI pystyy tallentamaan ja lukemaan kumpaakin formaattia, UI voidaan kytkeä uusiin rakenteellisiin kenttiin.
 
-1. Päivitä Flutter-client (`client_app_v2`): Välitön Dart/Freezed DTO -mallien päivitys.
-   - Poista `aiRuleDescription` Flutterin `TDAAssertion` -Freezed-mallista (joka sijaitsee `prompt_block.dart` / `prompt_block.freezed.dart` tiedostoissa) ja korvaa se uusilla `I18nText` (label-tyypin mukaisesti) ja `syntacticAnchors` rakennekentillä vastaamaan täydellisesti Backendin Pydantic-muutoksia. Lisää myös `enforcePreFlight` kenttä.
+1. Päivitä Flutter-client (`client_app_v2`): Välitön Dart/Freezed DTO -mallien Expand-päivitys.
+   - **Säilytä** `aiRuleDescription` Flutterin `TDAAssertion` -Freezed-mallissa väliaikaisesti. LISÄÄ uudet `I18nText` ja `syntacticAnchors` -kentät `Optional` muodossa (`?`) vastaamaan Backendin Pydantic Expand-muutoksia.
+   - **Kriittinen Pariteettikorjaus:** Lisää Flutterin `PromptBlock` -Freezed-malliin kenttä `isLightweightProtocol` vastaamaan Backendin luomaa reitityslippua.
    - **Pariteettivian korjaus:** Huomaa, että Flutterin `TDAAssertion.evaluationTrack` oletusarvo on tällä hetkellä `EvaluationTrack.extractiveSensor`, mutta Backendin oletusarvo on `COGNITIVE_JUDGEMENT`. Korjaa tämä pariteettivika synkronoimalla oletusarvo.
    - Aja `dart run build_runner build -d` ennen minkään UI-muutoksen koodaamista, jotta verkkokerroksen deserialisointi saadaan stabiiliksi.
 2. Etsi UI-komponentit, joissa hallinnoidaan PromptBlockien arviointisääntöjä (entinen `ai_rule_description`). Näihin kuuluvat erityisesti `client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart` ja `client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart`.
@@ -203,8 +210,17 @@ Ennen uusien kieli- ja ankkuriominaisuuksien lisäämistä `backend_v2/services/
    - **Klusteri B (Reframing Exclusion):** Määritetään sääntö, jonka mukaan *"Rhetorical reframing patterns (e.g., 'not just X, but Y') are STYLISTIC DEVICES, not argumentative structures. Do NOT extract them as counter-arguments or dialectical syntheses."*
    - Kun rajatapauksille (kuten yllä mainitut) annetaan eksplisiittiset ja lokalisoidut hylkäyskriteerit `anti_patterns` -kentässä, malli ei arvo kahden vaiheilla, vaan palauttaa stabiilisti `null` kaikilla ajokerroilla. Tavoitteena on nostaa luotettavuus (Cohen's κ) yli 0.85 tason.
 
-### Jälki-Epic C: Kognitio-Reititys ja Best-of-Three Flash (Entiset Phase 5 & 6)
-**Voidaan suorittaa riippumattomana kokonaisuutena LLM-orkestrointikerroksessa.** Tämä tehostaa ajoja merkittävästi.
+## Phase 5: Schema Contract & Best-of-Three Routing
+
+**Suoritetaan vasta kun Phase 1-4 ovat ajossa ja luotettavia.**
+Tämä vaihe siivoaa "Expand" jäänteet ja poistaa litteän merkkijonon. Lisäksi reitityslogiikka viimeistellään kokonaisuudessaan.
+
+### Contract (Cleanup)
+1. **Pydantic Hardening:** Poistetaan `ai_rule_description` TDAAssertion Pydantic -mallista. Muutetaan uudet strukturoidut kentät pakollisiksi (`Optional` -> vaadittu) niiltä osin kuin se on liiketoimintalogiikassa tarpeen.
+2. **Tietokannan siivous:** Siivotaan `seed_data.json` poistamalla vanhat litteät kentät.
+3. **Flutter Hardening:** Poistetaan `aiRuleDescription` Freezed-malleista.
+
+### Kognitio-Reititys ja Best-of-Three Flash
 1. **Reitityslogiikka:** Järjestelmän tulee ohjelmallisesti suojella syväanalyysien laatua estämällä kevyen protokollan käyttö väärissä paikoissa:
    - *Mekaaninen tiedonhaku:* Käytetään uutta Kevyttä protokollaa + nopeaa Flash-mallia + `LightweightExtractionAtom` -skeemaa (säästää rahaa ja aikaa poistamalla reasoning-tokenit).
    - *Syväanalyysi (esim. Kahneman, Bloom jne.):* Kielletään Kevyt protokolla. Pakotetaan "Globaali Zero-Trust" (5-vaiheinen lokitus on sallittu/pakotettu) ja reititetään raskaammalle Pro-mallille + alkuperäiselle isolle skeemalle, sillä näissä tehtävissä kognitiivisia "reasoning"-tokeneita on pakko käyttää oikeellisuuden saavuttamiseksi.
@@ -232,10 +248,9 @@ Kyllä. Koodianalyysi vahvistaa, että:
 * `prompt_compiler.py` tekee massiivista iterointia (`compile_xml_rubrics` yms.), jonka siirto erilliseen `localization_compiler.py` -moduuliin osuu suoraan God Object -ongelman ytimeen.
 
 **3. Onko koodi muutettavissa hardening ohjeiden mukaan ja mikä on vaikutus?**
-Koodi on täysin muutettavissa, mutta arkkitehtuurinen vaikutus on **poikkeuksellisen suuri (Blast Radius)**.
-* Koska the_no_legacy_mandate (Sääntö 22) kieltää `obj.get("ai_rule_description", "")` kaltaiset fallbackit, tuotantokoodi katkeaa kerrasta niiltä osin kuin se käsittelee vanhaa dataa. **Onneksi on vahvistettu, että aidosti vanhoja ajoja (historiallista ajodataa) ei tarvitse tukea.** Tämä poistaa valtavan teknisen esteen, sillä ajonaikaista tietokantaa ei tarvitse migroida – ainoastaan staattinen `seed_data.json` vaatii Atomic Commit -käsittelyn. Paikallinen `db_v2.json` voidaan tyhjentää (esim. `/tier3-database-reset` -työnkululla).
-* Vaikutus ulottuu välittömästi Flutter-sovelluksen Freezed DTO -malleihin, jotka kaatuvat serialisointivirheeseen (Rule 44 Parity), jos rajapinta palauttaa rakenteellista I18nText-dataa vanhan litteän stringin tilalla.
-* Koodi on muutettavissa *vain*, jos `seed_data.json` migraatio tehdään offlinessa LLM-skriptillä (jossa hyödynnetään asyncio.TaskGroupia multiprocessingin sijaan sääntöjen 59 ja 61 mukaisesti) ja julkaistaan samassa Git-commitissa.
+Koodi on täysin muutettavissa turvallisesti **Expand & Contract** -mallin ansiosta. Koska `ai_rule_description` pidetään mukana, koodi ja testit säilyvät "100% executable" koko migraation ajan.
+* "God Commit" vältetään pilkkomalla muutos rinnakkaisiin askeliin, jotka eivät riko tuotantoa.
+* Vaikutus ulottuu välittömästi Flutter-sovelluksen Freezed DTO -malleihin, mutta taaksepäin yhteensopivuus takaa (Expand-vaiheessa), että deserialisointi ei kaadu.
 
 ## Huomioita Tier 1 Plannerille
 - Tämä Epic leikkaa Frontendin, Backendin ja Data-kerroksen välistä rajapintaa massiivisesti.

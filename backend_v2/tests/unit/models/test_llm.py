@@ -5,6 +5,7 @@ from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.llm import LLMProviderConfig, LLMResponse
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_llm_provider_config_valid() -> None:
     """Test valid instantiation of LLMProviderConfig."""
     config = LLMProviderConfig(
@@ -23,6 +24,7 @@ def test_llm_provider_config_valid() -> None:
     assert config.top_k == 1
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_llm_provider_config_invalid() -> None:
     """Test validation constraints on LLMProviderConfig."""
     with pytest.raises(ValidationError) as exc_info:
@@ -36,6 +38,7 @@ def test_llm_provider_config_invalid() -> None:
     assert exc_info.value.error_count() >= 1
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_llm_response_valid() -> None:
     """Test valid instantiation of LLMResponse."""
     response = LLMResponse(

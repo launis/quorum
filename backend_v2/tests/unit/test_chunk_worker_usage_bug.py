@@ -50,7 +50,7 @@ async def test_chunk_worker_usage_name_error() -> None:
         target_locale="fi",
         synthesis_instructions=None,
         output_profile=None,
-        strictness_level=50,
+        strictness_level=85,
     )
 
     assert res == {"evaluations": []}

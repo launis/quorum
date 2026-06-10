@@ -27,7 +27,7 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
 
     # Empty layout (should not invoke chart rendering)
     dto = ReportDataDTO(
-        strictness_level=50,
+        strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
         profile_name=I18nText(default_locale="en", translations={"en": "Test Profile"}),
@@ -59,7 +59,7 @@ async def test_html_generator_chart_injection_failure_safe() -> None:
 
     # Empty layout (should not invoke chart rendering)
     dto = ReportDataDTO(
-        strictness_level=50,
+        strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
         profile_name=I18nText(default_locale="en", translations={"en": "Test Profile"}),

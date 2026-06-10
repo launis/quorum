@@ -32,7 +32,6 @@ from backend_v2.models.enums import (
     LaxScoringStrategy,
     LaxXaiExtensionType,
     ScoringStrategy,
-    StrictnessAnchor,
     SystemConcurrency,
 )
 from backend_v2.models.execution_core import ExecutionCoreFields

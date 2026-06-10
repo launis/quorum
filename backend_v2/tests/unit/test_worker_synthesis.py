@@ -40,7 +40,7 @@ async def test_worker_invokes_synthesis_hook(
         "workflow_id": "wf_123",
         "name": {"default_locale": "en", "translations": {"en": "Test"}},
         "id": "default",
-        "strictness_level": 50,
+        "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "layouts": [],
         "display_scale": "original",

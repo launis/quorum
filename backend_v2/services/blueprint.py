@@ -539,7 +539,7 @@ class BlueprintTransformer:
                 final_explanation = row_explanations_cache[b_id]
             else:
                 final_explanation = justification
-            
+
             if final_explanation and len(final_explanation) > 300:
                 final_explanation = final_explanation[:297] + "..."
 
@@ -563,7 +563,7 @@ class BlueprintTransformer:
                                 continue
                             seen_quotes.add(q_str)
                             # Clean Markdown formatting (bold, italics, headers)
-                            q_str = re.sub(r'[*_#`>]', '', q_str).strip()
+                            q_str = re.sub(r"[*_#`>]", "", q_str).strip()
                             if not q_str:
                                 continue
                             # Ensure capitalization

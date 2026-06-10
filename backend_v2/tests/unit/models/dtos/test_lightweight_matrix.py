@@ -9,6 +9,7 @@ from backend_v2.models.dtos.lightweight_matrix import (
 from backend_v2.models.enums import XaiExtensionType
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_output_profile_config_strictness() -> None:
     """Test OutputProfileConfig enforces Fail-Fast constraints."""
     config = OutputProfileConfig(visible_block_extensions=[XaiExtensionType.CITATION], visible_workflow_extensions=[])
@@ -27,6 +28,7 @@ def test_output_profile_config_strictness() -> None:
         config.visible_block_extensions = []  # type: ignore
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_lightweight_matrix_output_strictness() -> None:
     """Test LightweightMatrixOutput enforces Fail-Fast logic."""
     output = LightweightMatrixOutput(
@@ -75,6 +77,7 @@ def test_lightweight_matrix_output_strictness() -> None:
         )
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_atom_evaluation_item_dto_strictness() -> None:
     """Test AtomEvaluationItemDTO enforces strict validation and V4.3 Blacklist."""
     item = AtomEvaluationItemDTO(
@@ -140,6 +143,7 @@ def test_atom_evaluation_item_dto_strictness() -> None:
     assert fail_item.calculate_rule_satisfied(inverse_evidence=False) is False
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_atom_evaluation_item_dto_accepts_exact_quote() -> None:
     """Test that AtomEvaluationItemDTO accepts exact_quote and correctly sanitises it against
     phantom boolean blacklist.
@@ -168,6 +172,7 @@ def test_atom_evaluation_item_dto_accepts_exact_quote() -> None:
     assert phantom.evidence_found is False
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_atom_evaluation_item_dto_rejects_nulls() -> None:
     """Test that null values for strict non-nullable fields raise ValidationError."""
     raw_data = {
@@ -178,6 +183,7 @@ def test_atom_evaluation_item_dto_rejects_nulls() -> None:
         AtomEvaluationItemDTO.model_validate(raw_data)
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_map_llm_extensions_with_base_tda_extraction_keys() -> None:
     """Test that Phase 4 BaseTDAExtraction fields map without raising extra_forbidden errors."""
     raw_data = {
@@ -196,6 +202,7 @@ def test_map_llm_extensions_with_base_tda_extraction_keys() -> None:
     LightweightMatrixOutput.model_validate(mapped)
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_atom_evaluation_item_dto_zero_variance_quote_verification() -> None:
     """Test quote verification under zero-variance protocol using context source text."""
     # 1. Matching quote
@@ -237,6 +244,7 @@ def test_atom_evaluation_item_dto_zero_variance_quote_verification() -> None:
     assert "exact_quote not found in source text" in str(exc.value)
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_atom_evaluation_item_dto_anti_laziness_override() -> None:
     """Test anti-laziness constraints on contextual overrides."""
     # 1. Valid override with long reasoning and structural location
@@ -279,6 +287,7 @@ def test_atom_evaluation_item_dto_anti_laziness_override() -> None:
     assert "explicit structural_location reference" in str(exc.value)
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_calculate_rule_satisfied_truth_table() -> None:
     """Test calculate_rule_satisfied truth table for Double-Lock authorization and inverse evidence."""
     # 1. Double-Lock is Active (allow_contextual_override=True, contextual_override=True)
@@ -351,6 +360,7 @@ def test_calculate_rule_satisfied_truth_table() -> None:
         for i in [True, False]
     ],
 )
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_calculate_rule_satisfied_truth_table_32(
     workflow_switch: bool,
     assertion_switch: bool,

@@ -173,8 +173,6 @@ def _compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisS
         if isinstance(obj, dict):
             obj.pop("shuffled_atoms", None)
 
-
-
             # EPIC 70 Lite: Preserve evidence from evaluations for synthesis grounding
             # ARCHITECTURE LOCK (Rule 82/83): This evaluations filtering algorithm is a
             # deliberate business logic change — NOT defensive programming. The .get() calls
@@ -794,7 +792,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
         for step_dto_obj in available_dtos:
             payload = step_dto_obj.payload
             block_id = step_dto_obj.block_id
-            
+
             if isinstance(payload, dict) and "normalized_score" in payload and block_id in atom_quotes:
                 quotes_list = atom_quotes[block_id]
                 if quotes_list and block_id not in matrices_to_explain_map:
@@ -804,7 +802,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                         "score": payload["normalized_score"],
                         "justification": justification_text,
                     }
-        
+
         matrices_to_explain = list(matrices_to_explain_map.values())
 
         if matrices_to_explain:

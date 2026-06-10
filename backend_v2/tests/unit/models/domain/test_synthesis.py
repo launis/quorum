@@ -7,7 +7,7 @@ from backend_v2.models.domain.synthesis import SynthesisMetadataDTO, SynthesisSt
 def test_synthesis_metadata_dto_valid() -> None:
     data = {
         "target_locale": "fi",
-        "token_usage": {"prompt_tokens": 10},
+        "token_usage": {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10},
         "step_results": [],
         "profile_id": "prof_1",
         "target_profile_id": "prof_2",

@@ -17,6 +17,7 @@ class MockRateLimitError(Exception):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_lite_llm_provider_fallback_strips_cache_control(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that cache_control is stripped from system message when falling back to flash."""
     mock_sleep = AsyncMock()

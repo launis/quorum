@@ -59,7 +59,7 @@ async def test_pydantic_max_length_fail_fast_and_dlq_routing() -> None:
             target_locale="en",
             synthesis_instructions=None,
             output_profile=None,
-            strictness_level=50,
+            strictness_level=85,
         )
 
         # Assert returned DLQ status
@@ -113,7 +113,7 @@ async def test_programmatic_errors_bubble_up_and_crash_fail_fast() -> None:
                 target_locale="en",
                 synthesis_instructions=None,
                 output_profile=None,
-                strictness_level=50,
+                strictness_level=85,
             )
         assert "string indices must be integers" in str(exc_info.value)
 
@@ -150,7 +150,7 @@ async def test_worker_evaluate_chunk_job_aborts_on_dlq_status() -> None:
                 effective_mcp_tools=[],
                 target_locale="en",
                 synthesis_instructions=None,
-                strictness_level=50,
+                strictness_level=85,
             )
 
         assert exc_info.value.status_code == 500

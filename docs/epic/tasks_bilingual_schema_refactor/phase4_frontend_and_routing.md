@@ -21,7 +21,8 @@ Synchronize the Flutter application's Freezed models to match the backend's new 
 ## Implementation Steps
 1. **Freezed DTO Update**: Remove `aiRuleDescription` from the `TDAAssertion` Dart class.
 2. Add structured `I18nText` properties (`conceptDescription`, `acceptanceCriteria`, `antiPatterns`, `contrastiveExample`), `syntacticAnchors`, and `enforcePreFlight`.
-3. Ensure `TDAAssertion.evaluationTrack` default value is set to `COGNITIVE_JUDGEMENT` to mirror the backend.
+3. Add `isLightweightProtocol` boolean to the `PromptBlock` Dart class to match the backend's new schema.
+4. Ensure `TDAAssertion.evaluationTrack` default value is set to `COGNITIVE_JUDGEMENT` to mirror the backend.
 4. Run `dart run build_runner build -d` to regenerate the JSON parsers.
 5. **UI Refactor**: Replace the old singular text area with separate `LocalizedTextInputWidget` fields for the four new text properties. Add a list editor for `syntacticAnchors`.
 

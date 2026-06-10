@@ -96,7 +96,7 @@ def test_mcp_tool_loop_result_valid() -> None:
     data = {
         "result_data": {"key": "value"},
         "audit_traces": [audit.model_dump()],
-        "usage": {"total_tokens": 100},
+        "usage": {"prompt_tokens": 100, "completion_tokens": 0, "total_tokens": 100},
     }
     model = MCPToolLoopResult.model_validate(data)
     assert model.result_data["key"] == "value"

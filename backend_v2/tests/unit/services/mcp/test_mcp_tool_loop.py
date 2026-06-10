@@ -39,7 +39,7 @@ def _make_mock_executor(
         executor.execute_structured_task = AsyncMock(return_value=structured_returns)
     else:
         mock_result = MockResponseModel(score=4.5, reasoning="Well-supported claim.")
-        usage = TokenUsage(total_tokens=100)
+        usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=100)
         executor.execute_structured_task = AsyncMock(return_value=(mock_result, usage))
 
     executor.execute_chat_task = AsyncMock(return_value="Direct text response.")
@@ -53,7 +53,9 @@ async def test_tool_loop_no_tools_passthrough() -> None:
 
     mock_result = MockResponseModel(score=3.0, reasoning="No tools needed.")
     client = _make_mock_llm_client()
-    executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=50)))
+    executor = _make_mock_executor(
+        structured_returns=(mock_result, TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=50))
+    )
 
     result = await execute_tool_loop(
         llm_client=client,
@@ -94,7 +96,9 @@ async def test_tool_loop_single_search() -> None:
     from backend_v2.models.domain.usage import TokenUsage
 
     mock_result = MockResponseModel(score=4.5, reasoning="Supported by search.")
-    mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=200)))
+    mock_executor = _make_mock_executor(
+        structured_returns=(mock_result, TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=200))
+    )
     mock_executor.execute_chat_task = AsyncMock(
         side_effect=[
             tool_call_response,
@@ -153,7 +157,9 @@ async def test_tool_loop_max_calls_enforced() -> None:
     from backend_v2.models.domain.usage import TokenUsage
 
     mock_result = MockResponseModel(score=2.0, reasoning="Limited evidence.")
-    mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=300)))
+    mock_executor = _make_mock_executor(
+        structured_returns=(mock_result, TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=300))
+    )
     mock_executor.execute_chat_task = AsyncMock(return_value=tool_call_response)
 
     with patch("backend_v2.services.mcp.mcp_tool_loop._execute_tavily_search") as mock_search:
@@ -205,7 +211,9 @@ async def test_tool_loop_tavily_failure_graceful() -> None:
     from backend_v2.models.domain.usage import TokenUsage
 
     mock_result = MockResponseModel(score=3.5, reasoning="Proceeded without evidence.")
-    mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=150)))
+    mock_executor = _make_mock_executor(
+        structured_returns=(mock_result, TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=150))
+    )
     # First chat returns tool_call, second returns text (loop exits)
     mock_executor.execute_chat_task = AsyncMock(
         side_effect=[
@@ -278,7 +286,9 @@ async def test_tool_call_id_preserved_from_llm() -> None:
     from backend_v2.models.domain.usage import TokenUsage
 
     mock_result = MockResponseModel(score=5.0, reasoning="Regression test.")
-    mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=100)))
+    mock_executor = _make_mock_executor(
+        structured_returns=(mock_result, TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=100))
+    )
     mock_executor.execute_chat_task = AsyncMock(
         side_effect=[
             tool_call_response,
@@ -398,7 +408,9 @@ async def test_phase2_messages_contain_tool_roles() -> None:
     from backend_v2.models.domain.usage import TokenUsage
 
     mock_result = MockResponseModel(score=4.0, reasoning="Phase 2 test.")
-    mock_executor = _make_mock_executor(structured_returns=(mock_result, TokenUsage(total_tokens=150)))
+    mock_executor = _make_mock_executor(
+        structured_returns=(mock_result, TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=150))
+    )
     mock_executor.execute_chat_task = AsyncMock(
         side_effect=[
             tool_call_response,

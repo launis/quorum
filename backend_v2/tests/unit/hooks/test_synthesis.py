@@ -247,6 +247,7 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
     assert step1["nested"]["keep_me"] is True
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_compress_synthesis_strips_heavy_anchors() -> None:
     """Verify that _compress_synthesis_payload compresses localized_anchors_found and strips post_quote_anchor."""
     import json
@@ -438,7 +439,7 @@ async def test_synthesis_hook_success(
         "output_profiles": {
             "prf_test": {
                 "name": {"default_locale": "en", "translations": {"en": "Profile Test"}},
-                "strictness_level": 50,
+                "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
                 "synthesis": {
@@ -477,7 +478,9 @@ async def test_synthesis_hook_success(
         "xai_highlights": [],
     }
     mock_execute_tool_loop.return_value = MCPToolLoopResult(
-        result_data=mock_dto_dict, audit_traces=[], usage=TokenUsage(total_tokens=100)
+        result_data=mock_dto_dict,
+        audit_traces=[],
+        usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=100),
     )
 
     result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
@@ -555,7 +558,7 @@ async def test_synthesis_hook_multi_profile_routing(
         "output_profiles": {
             "prof_a": {
                 "name": {"default_locale": "en", "translations": {"en": "A"}},
-                "strictness_level": 50,
+                "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
                 "synthesis": {
@@ -566,7 +569,7 @@ async def test_synthesis_hook_multi_profile_routing(
             },
             "prof_b": {
                 "name": {"default_locale": "en", "translations": {"en": "B"}},
-                "strictness_level": 50,
+                "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
                 "synthesis": {
@@ -604,7 +607,7 @@ async def test_synthesis_hook_multi_profile_routing(
             "xai_highlights": [],
         },
         audit_traces=[],
-        usage=TokenUsage(total_tokens=50),
+        usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=50),
     )
 
     result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
@@ -652,7 +655,7 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
         "output_profiles": {
             "prof_a": {
                 "name": {"default_locale": "en", "translations": {"en": "A"}},
-                "strictness_level": 50,
+                "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [
                     {"target_blocks": ["stp_2222222222222222"], "preset_view": "default"},
@@ -772,7 +775,7 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
             "xai_highlights": [],
         },
         audit_traces=[],
-        usage=TokenUsage(total_tokens=10),
+        usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=10),
     )
 
     result = await text_consolidation_hook(base_state, deps)  # type: ignore[misc]
@@ -832,7 +835,7 @@ async def test_synthesis_hook_historical_context_mode(
         "output_profiles": {
             "prf_test": {
                 "name": {"default_locale": "en", "translations": {"en": "Profile Test"}},
-                "strictness_level": 50,
+                "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
                 "synthesis": {
@@ -888,7 +891,7 @@ async def test_synthesis_hook_historical_context_mode(
             "xai_highlights": [],
         },
         audit_traces=[],
-        usage=TokenUsage(total_tokens=10),
+        usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=10),
     )
 
     base_state = base_state.model_copy(

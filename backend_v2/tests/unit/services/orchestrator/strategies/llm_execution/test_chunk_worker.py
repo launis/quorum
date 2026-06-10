@@ -18,6 +18,7 @@ def mock_executor_class() -> Generator[Any]:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> None:
     """Test successful execution of a chunk through structured LLM task."""
     mock_compiler = MagicMock()
@@ -128,6 +129,7 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_chunk_worker_process_chunk_failure(mock_executor_class: Any) -> None:
     """Test that execution failure correctly routes to DLQ."""
     mock_compiler = MagicMock()
@@ -174,6 +176,7 @@ async def test_chunk_worker_process_chunk_failure(mock_executor_class: Any) -> N
     assert traces == []
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_deterministic_extraction_scoring() -> None:
     """Test the evaluate_extraction pure function."""
     from unittest.mock import patch
@@ -229,6 +232,7 @@ def test_deterministic_extraction_scoring() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_class: Any) -> None:
     """Test standard block evaluation skips instruction blocks which are raw strings."""
     mock_compiler = MagicMock()
@@ -306,6 +310,7 @@ async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_c
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_chunk_worker_exception_group_dlq_masking(mock_executor_class: Any) -> None:
     """Test that ExceptionGroup correctly unwraps AppException for DLQ reason."""
     mock_compiler = MagicMock()

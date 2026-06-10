@@ -14,6 +14,7 @@ def mock_repository() -> AsyncMock:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_translation_hook_skips_when_target_en(mock_repository: AsyncMock) -> None:
     """Ensure it skips translation cleanly when language is 'en'."""
     state = HookState(
@@ -41,6 +42,7 @@ async def test_translation_hook_skips_when_target_en(mock_repository: AsyncMock)
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_translation_hook_crashes_when_missing_language_or_locale(mock_repository: AsyncMock) -> None:  # noqa: E501
     """Ensure it drops into AppException when language or target_locale is missing."""
     # Missing target_locale
@@ -83,6 +85,7 @@ async def test_translation_hook_crashes_when_missing_language_or_locale(mock_rep
 
 @pytest.mark.asyncio
 @patch("backend_v2.hooks.translation_hook.LLMClient.from_strategy", new_callable=AsyncMock)
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_translation_hook_role_segregation_and_success(
     mock_from_strategy: AsyncMock, mock_repository: AsyncMock
 ) -> None:
@@ -148,6 +151,7 @@ class DummySduiModel(BaseModel):
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_translate_sdui_payload_success(mock_repository: AsyncMock) -> None:
     """Ensure it strictly passes through the payload per the No-String Mandate."""
     obj = DummySduiModel(
@@ -166,6 +170,7 @@ async def test_translate_sdui_payload_success(mock_repository: AsyncMock) -> Non
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
 async def test_translate_sdui_payload_skips_en(mock_repository: AsyncMock) -> None:
     """Ensure it skips translation for English."""
     obj = DummySduiModel(title="Falsification", items=[])

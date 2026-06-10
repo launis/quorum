@@ -73,6 +73,3 @@ def resolve_dot_notation(state: Any, path: str) -> Any:
             ) from e
 
     return curr
-
-
-

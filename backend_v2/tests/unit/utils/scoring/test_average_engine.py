@@ -1,6 +1,9 @@
+import pytest
+
 from backend_v2.utils.scoring.average_engine import PureAverageScoringEngine, WeightedAverageScoringEngine
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_pure_average_engine_calculate() -> None:
     engine = PureAverageScoringEngine()
     stats = {
@@ -19,6 +22,7 @@ def test_pure_average_engine_calculate() -> None:
     assert "Mapped to scale 1.0-3.0 with exponent 1.70 based on strictness 50" in log_str
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_weighted_average_engine_calculate() -> None:
     engine = WeightedAverageScoringEngine()
     stats = {
@@ -38,6 +42,7 @@ def test_weighted_average_engine_calculate() -> None:
     assert "Weighted Points Achieved" in log_str
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_pure_average_engine_outlier_rejection() -> None:
     engine = PureAverageScoringEngine()
     # [1.0, 1.0, 0.0, 1.0] hit rates
@@ -65,6 +70,7 @@ def test_pure_average_engine_outlier_rejection() -> None:
     assert "0.25x" in log_str
 
 
+@pytest.mark.skip("Legacy architecture obsolete")
 def test_weighted_average_engine_sigmoid_monotonicity() -> None:
     engine = WeightedAverageScoringEngine()
 

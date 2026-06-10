@@ -158,7 +158,7 @@ async def test_self_healing_static_purity_preservation(
                 raw_llm_payload="invalid-json",
                 validation_error_msg="Missing closing brace",
                 is_eof=False,
-                token_usage=TokenUsage(prompt_tokens=10),
+                token_usage=TokenUsage(prompt_tokens=10, completion_tokens=0, total_tokens=10),
             )
         return expected_model, TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15)
 
@@ -236,7 +236,7 @@ async def test_vertex_fail_soft_resilience_integration(
         return LLMResponse(
             content=json.dumps({"extracted_value": "fail-soft-success"}),
             parsed_content=None,
-            token_usage=TokenUsage(prompt_tokens=200000, completion_tokens=100),
+            token_usage=TokenUsage(prompt_tokens=200000, completion_tokens=100, total_tokens=200100),
             provider_metadata={},
         )
 

@@ -114,10 +114,23 @@ async def test_audit_repo(mock_driver: AsyncMock) -> None:
     assert res == []
 
     await repo.log_audit_event({"action": "test"})
-    await repo.log_usage({"prompt_tokens": 10})
+    await repo.log_usage({"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10})
     await repo.get_usage_records("organization", "org1")
     await repo.get_detailed_usage("org", "org1")
 
-    await repo.upsert_usage_aggregate("org", "org1", "2026-04", {"usage": {"prompt_tokens": 10}, "total_executions": 1})  # noqa: E501
-    mock_driver.get.return_value = {"usage": {"prompt_tokens": 10}, "total_executions": 1}
-    await repo.upsert_usage_aggregate("org", "org1", "2026-04", {"usage": {"prompt_tokens": 5}, "total_executions": 1})
+    await repo.upsert_usage_aggregate(
+        "org",
+        "org1",
+        "2026-04",
+        {"usage": {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10}, "total_executions": 1},
+    )  # noqa: E501
+    mock_driver.get.return_value = {
+        "usage": {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10},
+        "total_executions": 1,
+    }
+    await repo.upsert_usage_aggregate(
+        "org",
+        "org1",
+        "2026-04",
+        {"usage": {"prompt_tokens": 5, "completion_tokens": 0, "total_tokens": 5}, "total_executions": 1},
+    )

@@ -25,9 +25,6 @@ class StrictnessConfigListResponse(BaseResponseDTO):
 async def get_strictness_configurations() -> StrictnessConfigListResponse:
     """Get the available strictness configurations and their localization keys."""
     configs = [
-        StrictnessConfigDTO(level=StrictnessAnchor.FLEXIBLE.value, localization_key="strictnessFullFlex"),
-        StrictnessConfigDTO(level=StrictnessAnchor.LENIENT.value, localization_key="strictnessLenient"),
-        StrictnessConfigDTO(level=StrictnessAnchor.BALANCED.value, localization_key="strictnessBalanced"),
         StrictnessConfigDTO(level=StrictnessAnchor.STRICT.value, localization_key="strictnessStrict"),
         StrictnessConfigDTO(level=StrictnessAnchor.ABSOLUTE.value, localization_key="strictnessAbsolute"),
     ]
