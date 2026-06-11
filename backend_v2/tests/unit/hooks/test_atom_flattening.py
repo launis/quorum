@@ -39,12 +39,14 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> PromptB
     for score in [1, 5]:
         claims = [
             MatrixClaim(
-                label=I18nText(default_locale="en", translations={"en": f"Claim {score}"}),
+                label=I18nText(default_locale="en", translations={"en": f"Claim {score}", "fi": f"Claim {score}"}),
                 ai_description=f"Desc {score}",
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=f"tda_{score:016x}{i:016x}",
-                        ai_rule_description=f"Atom {score}-{i}",
+                        concept_description=I18nText(
+                            default_locale="en", translations={"en": f"Atom {score}-{i}", "fi": f"Atom {score}-{i}"}
+                        ),
                         inverse_evidence=False,
                         aggregation_mode="EXISTS",
                     )
@@ -63,8 +65,8 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> PromptB
     return PromptBlock(
         id=block_id,
         slug=f"slug-{block_id}",
-        label=I18nText(default_locale="en", translations={"en": f"Label {block_id}"}),
-        description=I18nText(default_locale="en", translations={"en": f"Desc {block_id}"}),
+        label=I18nText(default_locale="en", translations={"en": f"Label {block_id}", "fi": f"Label {block_id}"}),
+        description=I18nText(default_locale="en", translations={"en": f"Desc {block_id}", "fi": f"Desc {block_id}"}),
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
         scale_min=1,
@@ -90,7 +92,7 @@ def base_hook_state() -> HookState:
 def mock_step() -> Step:
     return Step(
         id="step_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test Step"}),
+        name=I18nText(default_locale="en", translations={"en": "Test Step", "fi": "Test Step"}),
         slug="test-step",
         role_block_id=None,
         extraction_protocol_block_id="blk_573802341db9d68c",

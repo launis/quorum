@@ -14,9 +14,9 @@ from pathlib import Path
 from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.settings import get_settings
+from backend_v2.models.v2_core import I18nText, PromptBlock
 from backend_v2.models.enums import EvaluationMandate
-from backend_v2.models.v2_core import PromptBlock
-from backend_v2.utils.hashing import generate_atom_hash
 
 logger = logging.getLogger(__name__)
 
@@ -267,14 +267,10 @@ class PromptFactory:
                     continue
                 for scale in block_model.scales:
                     for claim in scale.claims:
-                        mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
                         tda_assertions = claim.tda_assertions
                         if tda_assertions and len(tda_assertions) > 0:
                             for tda in tda_assertions:
-                                if tda.tda_id and str(tda.tda_id).startswith("tda_"):
-                                    aid = str(tda.tda_id)
-                                else:
-                                    aid = generate_atom_hash(tda.ai_rule_description, mandate)
+                                aid = str(tda.tda_id)
                                 if aid not in atom_to_block_ids:
                                     atom_to_block_ids[aid] = set()
                                 mock_block_set = atom_to_block_ids[aid]

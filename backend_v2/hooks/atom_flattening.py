@@ -15,7 +15,6 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import EvaluationMandate
 from backend_v2.models.v2_core import PromptBlock, Step
-from backend_v2.utils.hashing import generate_atom_hash
 
 logger = logging.getLogger(__name__)
 
@@ -124,11 +123,8 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                         tda_assertions = claim.tda_assertions
                         if tda_assertions and len(tda_assertions) > 0:
                             for tda in tda_assertions:
-                                if tda.tda_id and str(tda.tda_id).startswith("tda_"):
-                                    aid = str(tda.tda_id)
-                                else:
-                                    aid = generate_atom_hash(tda.ai_rule_description, mandate)
-                                scale_atoms.append((aid, tda.ai_rule_description.strip()))
+                                aid = str(tda.tda_id)
+                                scale_atoms.append((aid, tda.concept_description.resolve("en").strip() if hasattr(tda, "concept_description") else ""))
                         else:
                             msg = (
                                 f"PromptBlock '{block.id}' claim is missing mandatory 'tda_assertions' during runtime."

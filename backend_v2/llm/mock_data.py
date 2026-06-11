@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import Any
+import uuid
 
 from backend_v2.models.domain import (
     AnalystOutput,
@@ -356,8 +357,11 @@ def get_fallback_data(key: str) -> dict[str, Any]:
     elif key == "atomize_mock":
         assertions = [
             {
-                "tda_id": f"atom{i}",
-                "ai_rule_description": f"Atom {i}",
+                "tda_id": f"tda_{uuid.uuid4().hex}",
+                "concept_description": {
+                    "default_locale": "en",
+                    "translations": {"en": f"Atom {i}", "fi": f"Atomi {i}"},
+                },
                 "inverse_evidence": False,
                 "aggregation_mode": "EXISTS",
             }

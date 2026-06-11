@@ -39,12 +39,12 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
             "id": "blk_1234567890abcdef",
             "slug": "causal_analyst",
             "category_id": "matrix",
-            "description": {"default_locale": "en", "translations": {"en": "Causal Analyst Evaluation"}},
+            "description": {"default_locale": "en", "translations": {"en": "Causal Analyst Evaluation", "fi": "Causal Analyst Evaluation"}},
             "type": "float",
             "allow_decimals": True,
             "scale_min": 1,
             "scale_max": 5,
-            "label": {"default_locale": "en", "translations": {"en": "Causal Analyst"}},
+            "label": {"default_locale": "en", "translations": {"en": "Causal Analyst", "fi": "Causal Analyst"}},
             "ai_description": (
                 "<global_framework>\n"
                 "MORPHO-SYNTACTIC DETERMINISM: pattern-matching engine... "
@@ -59,12 +59,12 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
                     "ai_label": "ONE",
                     "claims": [
                         {
-                            "label": {"default_locale": "en", "translations": {"en": "Claim 1"}},
+                            "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Claim 1"}},
                             "ai_description": "Massive claim AI description explaining strict details...",
                             "tda_assertions": [
                                 {
                                     "tda_id": "tda_11112222333344441111222233334444",
-                                    "ai_rule_description": "Assertion rule causal details...",
+                                    "concept_description": {"default_locale": "en", "translations": {"en": "Assertion rule causal details...", "fi": "Assertion rule causal details..."}},
                                     "inverse_evidence": False,
                                     "aggregation_mode": "ALL_MUST_COMPLY",
                                 }

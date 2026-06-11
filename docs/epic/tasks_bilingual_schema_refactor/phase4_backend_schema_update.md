@@ -35,13 +35,13 @@ Replace the flat `ai_rule_description: str` with structured Pydantic fields in t
 - **Rule 69 (PEP 736)**: New model instantiations should use kwargs shorthand.
 
 ## Implementation Steps
-1. **Schema Update**: In `v2_core.py`, update `TDAAssertion`. Remove `ai_rule_description` and add `concept_description: I18nText`, `acceptance_criteria: I18nText`, `anti_patterns: I18nText`, `syntactic_anchors: dict[str, list[str]] | None`, and `enforce_pre_flight: bool = False`. Also, add `is_lightweight_protocol: bool = Field(default=False)` to `PromptBlock` to enable safe routing.
-2. **Atom Schema Update**: In `backend_v2/models/dtos/lightweight_matrix.py`, add `confidence: float | None = Field(default=None, ge=0.0, le=1.0)` to `LightweightExtractionAtom`.
-3. **Wire Up Dormant Routing**: In `execution_strategy.py`, wire up the dormant Best-of-Three logic (from Phase 2) so that it triggers dynamically if `block.is_lightweight_protocol` is True.
-4. **Hook Parity**: In `atom_flattening.py`, replace `generate_atom_hash` with `tda.tda_id` and replace `ai_rule_description` usage with `tda.concept_description.resolve("en")`.
-5. **Database Swap**: Physically replace `backend_v2/seed/seed_data.json` with the contents of `backend_v2/seed/seed_data_v2_draft.json`.
-6. **Test Fixtures Fix**: Deeply update `mock_data.py` (around line 360) so it matches the full `I18nText` nested structure instead of flat strings, otherwise tests will crash. Fix `test_scoring.py` to use UUIDs instead of hashes. Remove `test_hashing.py`.
-7. **RapidFuzz Tolerance & SSOT**: The `fuzz.partial_ratio` threshold is currently hardcoded to 95.0 in both `lightweight_matrix.py` and `integrity.py`. Create a global Enum (e.g., `QuorumLexicalConfig.FUZZ_THRESHOLD_BILINGUAL = 85.0`) in the backend settings or constants file. Replace the hardcoded `95` values in both `lightweight_matrix.py` and `integrity.py` with this new Enum variable. This guarantees Single Source of Truth and increases recall for Finnish morphology.
+1. `[x]` **Schema Update**: In `v2_core.py`, update `TDAAssertion`. Remove `ai_rule_description` and add `concept_description: I18nText`, `acceptance_criteria: I18nText`, `anti_patterns: I18nText`, `syntactic_anchors: dict[str, list[str]] | None`, and `enforce_pre_flight: bool = False`. Also, add `is_lightweight_protocol: bool = Field(default=False)` to `PromptBlock` to enable safe routing.
+2. `[x]` **Atom Schema Update**: In `backend_v2/models/dtos/lightweight_matrix.py`, add `confidence: float | None = Field(default=None, ge=0.0, le=1.0)` to `LightweightExtractionAtom`.
+3. `[x]` **Wire Up Dormant Routing**: In `execution_strategy.py`, wire up the dormant Best-of-Three logic (from Phase 2) so that it triggers dynamically if `block.is_lightweight_protocol` is True.
+4. `[x]` **Hook Parity**: In `atom_flattening.py`, replace `generate_atom_hash` with `tda.tda_id` and replace `ai_rule_description` usage with `tda.concept_description.resolve("en")`.
+5. `[x]` **Database Swap**: Physically replace `backend_v2/seed/seed_data.json` with the contents of `backend_v2/seed/seed_data_v2_draft.json`.
+6. `[x]` **Test Fixtures Fix**: Deeply update `mock_data.py` (around line 360) so it matches the full `I18nText` nested structure instead of flat strings, otherwise tests will crash. Fix `test_scoring.py` to use UUIDs instead of hashes. Remove `test_hashing.py`.
+7. `[x]` **RapidFuzz Tolerance & SSOT**: The `fuzz.partial_ratio` threshold is currently hardcoded to 95.0 in both `lightweight_matrix.py` and `integrity.py`. Create a global Enum (e.g., `QuorumLexicalConfig.FUZZ_THRESHOLD_BILINGUAL = 85.0`) in the backend settings or constants file. Replace the hardcoded `95` values in both `lightweight_matrix.py` and `integrity.py` with this new Enum variable. This guarantees Single Source of Truth and increases recall for Finnish morphology.
 
 ## Testing & Quality Gate Plan
 - **Integration Tests**: Re-run the global test suite against the new seed data and mock data.

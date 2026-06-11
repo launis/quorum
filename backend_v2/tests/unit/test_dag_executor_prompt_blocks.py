@@ -30,8 +30,8 @@ def mock_repo() -> Any:
             "slug": "zero_trust_extraction_protocol",
             "category_id": "system_rule",
             "type": BlockDataType.STRING,
-            "label": {"default_locale": "en", "translations": {"en": "Zero-Trust"}},
-            "description": {"default_locale": "en", "translations": {"en": "Zero-Trust"}},
+            "label": {"default_locale": "en", "translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+            "description": {"default_locale": "en", "translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
             "ai_description": "Strict extraction protocol.",
             "allow_decimals": False,
             "output_extensions": [],
@@ -54,8 +54,8 @@ def mock_repo() -> Any:
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_dddd1111dddd1111",
-        "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test WF", "fi": "Test WF"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "steps": [{"id": "step_1111111111111111", "task_blueprint": "task_bp"}],
     }
     repo.get_output_profile_by_id.return_value = None
@@ -93,8 +93,8 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Test WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(default_locale="en", translations={"en": "Test WF", "fi": "Test WF"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
         steps=[StepRule(id="step_1111111111111111", task_blueprint="task_bp")],
     )
 

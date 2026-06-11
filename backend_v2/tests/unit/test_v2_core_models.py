@@ -9,8 +9,8 @@ def test_prompt_block_fail_fast_on_corrupt_type() -> None:
     data = {
         "id": "blk_testblock123",
         "slug": "pb_1",
-        "label": {"default_locale": "en", "translations": {"en": "T"}},
-        "description": {"default_locale": "en", "translations": {"en": "D"}},
+        "label": {"default_locale": "en", "translations": {"en": "T", "fi": "T"}},
+        "description": {"default_locale": "en", "translations": {"en": "D", "fi": "D"}},
         "category_id": "system_rule",
         "type": "INVALID_TYPE",
     }
@@ -40,8 +40,8 @@ from typing import Any
 def test_embedded_output_profile_description_parsing() -> None:
     # 1. Success case with valid I18nText
     valid_data: dict[str, Any] = {
-        "name": {"default_locale": "en", "translations": {"en": "My Profile"}},
-        "description": {"default_locale": "en", "translations": {"en": "A valid description"}},
+        "name": {"default_locale": "en", "translations": {"en": "My Profile", "fi": "My Profile"}},
+        "description": {"default_locale": "en", "translations": {"en": "A valid description", "fi": "A valid description"}},
         "display_scale": "original",
         "synthesis": None,
         "layouts": [],
@@ -52,7 +52,7 @@ def test_embedded_output_profile_description_parsing() -> None:
 
     # 2. Fail-fast case with invalid description
     invalid_data: dict[str, Any] = {
-        "name": {"default_locale": "en", "translations": {"en": "My Profile"}},
+        "name": {"default_locale": "en", "translations": {"en": "My Profile", "fi": "My Profile"}},
         "description": "This is a simple string instead of I18nText dict",
         "display_scale": "original",
     }

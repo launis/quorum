@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, PromptBlock, TDAAssertion
 from backend_v2.services.orchestrator.atomizer import PromptAtomizer
+from backend_v2.models.v2_core import I18nText
 
 
 def test_tda_assertion_validation() -> None:
@@ -10,7 +11,7 @@ def test_tda_assertion_validation() -> None:
     # Should pass
     valid = TDAAssertion(
         tda_id="tda_12345678123456781234567812345678",
-        ai_rule_description="Test rule",
+        concept_description=I18nText(default_locale="en", translations={"en": "Test rule", "fi": "Test rule"}),
         inverse_evidence=False,
         aggregation_mode="ALL_MUST_COMPLY",
     )
@@ -19,7 +20,7 @@ def test_tda_assertion_validation() -> None:
     # Should pass
     valid_inverse = TDAAssertion(
         tda_id="tda_87654321876543218765432187654321",
-        ai_rule_description="Poison test",
+        concept_description=I18nText(default_locale="en", translations={"en": "Poison test", "fi": "Poison test"}),
         inverse_evidence=True,
         aggregation_mode="EXISTS",
     )
@@ -29,7 +30,7 @@ def test_tda_assertion_validation() -> None:
     with pytest.raises(ValidationError) as exc:
         TDAAssertion(
             tda_id="tda_abcdef1234567890abcdef1234567890",
-            ai_rule_description="Invalid poison test",
+            concept_description=I18nText(default_locale="en", translations={"en": "Invalid poison test", "fi": "Invalid poison test"}),
             inverse_evidence=True,
             aggregation_mode="ALL_MUST_COMPLY",
         )
@@ -41,20 +42,20 @@ async def test_atomizer_deterministic_mapping() -> None:
     """Test the O(1) deterministic mapping of TDA assertions in PromptAtomizer."""
     # Arrange
     tda1 = TDAAssertion(
-        ai_rule_description="Rule 1",
+        concept_description=I18nText(default_locale="en", translations={"en": "Rule 1", "fi": "Rule 1"}),
         inverse_evidence=False,
         aggregation_mode="ALL_MUST_COMPLY",
     )
 
     tda2 = TDAAssertion(
         tda_id="tda_12341234123412341234123412341234",  # Intentionally preset to test persistence
-        ai_rule_description="Rule 2",
+        concept_description=I18nText(default_locale="en", translations={"en": "Rule 2", "fi": "Rule 2"}),
         inverse_evidence=True,
         aggregation_mode="EXISTS",
     )
 
     claim = MatrixClaim(
-        label=I18nText(default_locale="en", translations={"en": "Test claim"}),
+        label=I18nText(default_locale="en", translations={"en": "Test claim", "fi": "Test claim"}),
         ai_description="Test",
         tda_assertions=[tda1, tda2],
     )
@@ -65,8 +66,8 @@ async def test_atomizer_deterministic_mapping() -> None:
         {
             "id": "blk_1234567890abcdef",
             "slug": "test_block",
-            "label": {"default_locale": "en", "translations": {"en": "Test block"}},
-            "description": {"default_locale": "en", "translations": {"en": "Test desc"}},
+            "label": {"default_locale": "en", "translations": {"en": "Test block", "fi": "Test block"}},
+            "description": {"default_locale": "en", "translations": {"en": "Test desc", "fi": "Test desc"}},
             "category_id": "system_rule",
             "type": "int",
             "scale_min": 1,

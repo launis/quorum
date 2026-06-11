@@ -110,7 +110,11 @@ class LocalizationCompiler:
                 for s in scales:
                     for c in s.claims:
                         for assertion in c.tda_assertions:
-                            substance = (assertion.ai_rule_description or "").strip()
+                            substance = (
+                                assertion.concept_description.resolve("en").strip()
+                                if hasattr(assertion, "concept_description")
+                                else ""
+                            )
                             if substance:
                                 rule_text = substance
                                 if assertion.inverse_evidence:

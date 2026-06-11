@@ -9,14 +9,14 @@ def test_inverse_logic_injected() -> None:
         "id": "blk_1234567890abcdef",
         "slug": "test_matrix",
         "category_id": "matrix",
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "type": "float",
         "allow_decimals": True,
         "scale_min": 1,
         "scale_max": 5,
         "computed_min": 1,
         "computed_max": 5,
-        "label": {"default_locale": "en", "translations": {"en": "Inverse Test Matrix"}},
+        "label": {"default_locale": "en", "translations": {"en": "Inverse Test Matrix", "fi": "Inverse Test Matrix"}},
         "ai_description": "Test description",
         "scales": [
             {
@@ -24,18 +24,18 @@ def test_inverse_logic_injected() -> None:
                 "ai_label": "ONE",
                 "claims": [
                     {
-                        "label": {"default_locale": "en", "translations": {"en": "Claim 1"}},
+                        "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Claim 1"}},
                         "ai_description": "Legacy desc",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
-                                "ai_rule_description": "Standard rule",
+                                "concept_description": {"default_locale": "en", "translations": {"en": "Standard rule", "fi": "Standard rule"}},
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             },
                             {
                                 "tda_id": "tda_22222222222222222222222222222222",
-                                "ai_rule_description": "Inverse rule",
+                                "concept_description": {"default_locale": "en", "translations": {"en": "Inverse rule", "fi": "Inverse rule"}},
                                 "inverse_evidence": True,
                                 "aggregation_mode": "EXISTS",
                             },

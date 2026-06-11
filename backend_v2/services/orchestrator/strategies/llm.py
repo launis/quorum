@@ -195,6 +195,13 @@ class LLMNodeStrategy(NodeStrategy):
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
+        # Phase 4 Step 3: Wire Best-of-Three ensemble flag
+        is_lightweight = any(getattr(block, "is_lightweight_protocol", False) for block in criteria_blocks_models)
+        if is_lightweight:
+            if hook_state.metadata is None:
+                hook_state.metadata = {}
+            hook_state.metadata["is_lightweight_extraction"] = True
+
         if "target_locale" not in context.metadata or not context.metadata["target_locale"]:
             msg = f"Execution metadata missing mandatory 'target_locale' for workflow {context.workflow_id}."
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})

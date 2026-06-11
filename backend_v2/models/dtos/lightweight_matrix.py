@@ -112,6 +112,7 @@ class LightweightExtractionAtom(V2CoreBase):
     status: Literal["PASS", "FAIL", "DLQ"] | None = Field(
         default=None, description="The evaluation status. Must be one of PASS, FAIL, DLQ."
     )
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
 
     @property
     def evidence_found(self) -> bool:

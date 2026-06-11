@@ -70,7 +70,7 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
 
 def test_opaque_id_regex_validation() -> None:
     """Epic 10: Enforce Fail-Fast 422 on legacy slug usage in IDs."""
-    label = I18nText(default_locale="en", translations={"en": "Test"})
+    label = I18nText(default_locale="en", translations={"en": "Test", "fi": "Test"})
 
     # 1. Test PromptBlock creation rejection
     with pytest.raises(ValidationError) as exc_pb:

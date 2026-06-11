@@ -54,8 +54,8 @@ async def test_taskgroup_cancels_sibling_on_error(mock_repo: AsyncMock, mock_com
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "TG Test"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(default_locale="en", translations={"en": "TG Test", "fi": "TG Test"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
         steps=[
             # Two independent steps running in parallel without depends_on
             StepRule(id="step_ffff1111ffff1111", task_blueprint="bp_fail"),

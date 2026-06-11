@@ -27,8 +27,8 @@ async def test_worker_invokes_synthesis_hook(
     mock_repo.get_workflow_by_id.return_value = {
         "id": "wf_1234567812345678",
         "slug": "test_workflow",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "default",
@@ -38,7 +38,7 @@ async def test_worker_invokes_synthesis_hook(
     mock_repo.get_output_profile_by_id.return_value = {
         "slug": "test_slug",
         "workflow_id": "wf_123",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
         "id": "default",
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",

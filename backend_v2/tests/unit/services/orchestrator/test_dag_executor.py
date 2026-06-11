@@ -39,8 +39,8 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Test WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(default_locale="en", translations={"en": "Test WF", "fi": "Test WF"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
         steps=[],
     )
 
@@ -78,8 +78,8 @@ async def test_dag_executor_fails_fast_on_hook_error(mock_repo: Any, mock_compil
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Test WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(default_locale="en", translations={"en": "Test WF", "fi": "Test WF"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
         steps=[],
     )
 
@@ -130,8 +130,8 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Test WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(default_locale="en", translations={"en": "Test WF", "fi": "Test WF"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
         steps=[],
     )
 

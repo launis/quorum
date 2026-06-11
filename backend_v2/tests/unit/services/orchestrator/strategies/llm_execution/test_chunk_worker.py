@@ -71,13 +71,13 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
                                 "tda_assertions": [
                                     {
                                         "tda_id": "tda_11111111111111111111111111111111",
-                                        "ai_rule_description": "Atom 1",
+                                        "concept_description": {"default_locale": "en", "translations": {"en": "Atom 1", "fi": "Atom 1"}},
                                         "inverse_evidence": False,
                                         "aggregation_mode": "EXISTS",
                                     },
                                     {
                                         "tda_id": "tda_22222222222222222222222222222222",
-                                        "ai_rule_description": "Atom 2",
+                                        "concept_description": {"default_locale": "en", "translations": {"en": "Atom 2", "fi": "Atom 2"}},
                                         "inverse_evidence": False,
                                         "aggregation_mode": "EXISTS",
                                     },

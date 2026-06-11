@@ -79,8 +79,8 @@ def test_core_response_dto_strictness() -> None:
         {
             "id": valid_id_wf,
             "slug": "test-wf",
-            "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
-            "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+            "name": {"default_locale": "en", "translations": {"en": "Test Workflow", "fi": "Test Workflow"}},
+            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
             "version": 1,
             "status": "draft",
             "default_profile_id": valid_id_prf,
@@ -93,7 +93,7 @@ def test_core_response_dto_strictness() -> None:
         {
             "id": valid_id_stp,
             "slug": "test-step",
-            "name": {"default_locale": "en", "translations": {"en": "Test Step"}},
+            "name": {"default_locale": "en", "translations": {"en": "Test Step", "fi": "Test Step"}},
             "type": "llm",
             "description": {"default_locale": "en", "translations": {"en": "test", "fi": "testi"}},
             "model_strategy": "fast",
@@ -108,8 +108,8 @@ def test_core_response_dto_strictness() -> None:
         {
             "id": valid_id_blk,
             "slug": "test-block",
-            "label": {"default_locale": "en", "translations": {"en": "Test Block"}},
-            "description": {"default_locale": "en", "translations": {"en": "Test Block Desc"}},
+            "label": {"default_locale": "en", "translations": {"en": "Test Block", "fi": "Test Block"}},
+            "description": {"default_locale": "en", "translations": {"en": "Test Block Desc", "fi": "Test Block Desc"}},
             "category_id": "system_rule",
             "type": "string",
             "organization_id": valid_id_org,

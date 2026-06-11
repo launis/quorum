@@ -107,9 +107,9 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
         if not quote or len(quote) < 4:
             return False
         norm_q = quote.lower().strip()
-        # O(1) best case, early return on first partial fuzzy match >= 95%
+        # O(1) best case, early return on first partial fuzzy match >= 85%
         for chunk in corpus_chunks:
-            if fuzz.partial_ratio(norm_q, chunk) >= 95:
+            if fuzz.partial_ratio(norm_q, chunk) >= 85:
                 return False
         return True
 

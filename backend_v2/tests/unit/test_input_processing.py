@@ -17,8 +17,8 @@ class MockRepository:
         return {
             "id": "wor_1234567890abcdef12",
             "slug": "test-wf",
-            "name": {"translations": {"en": "Test WF"}, "default_locale": "en"},
-            "description": {"translations": {"en": "Desc"}, "default_locale": "en"},
+            "name": {"translations": {"en": "Test WF", "fi": "Test WF"}, "default_locale": "en"},
+            "description": {"translations": {"en": "Desc", "fi": "Desc"}, "default_locale": "en"},
             "status": "draft",
             "version": 1,
             "default_profile_id": "prof_123",
@@ -26,7 +26,7 @@ class MockRepository:
                 {
                     "input_key": "QUESTIONNAIRE",
                     "label": {"translations": {"en": "My Form", "fi": "Lomake"}, "default_locale": "en"},
-                    "description": {"translations": {"en": "Form input"}, "default_locale": "en"},
+                    "description": {"translations": {"en": "Form input", "fi": "Form input"}, "default_locale": "en"},
                     "input_modes": ["text"],
                     "required": True,
                     "is_chat_history": False,
@@ -35,7 +35,7 @@ class MockRepository:
                 {
                     "input_key": "DOCUMENT_TEXT",
                     "label": {"translations": {"en": "Doc", "fi": "Dokkari"}, "default_locale": "en"},
-                    "description": {"translations": {"en": "Doc input"}, "default_locale": "en"},
+                    "description": {"translations": {"en": "Doc input", "fi": "Doc input"}, "default_locale": "en"},
                     "input_modes": ["text"],
                     "required": False,
                     "is_chat_history": False,

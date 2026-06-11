@@ -38,8 +38,8 @@ def test_workflow_api_fails_fast_on_invalid_model_strategy(client_admin: Any) ->
     """Test that putting an invalid model strategy to the workflow root fails at the API boundary."""
     payload = {
         "id": "wf_1111111111111111",
-        "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test WF", "fi": "Test WF"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
@@ -60,8 +60,8 @@ def test_workflow_api_fails_fast_on_invalid_step_id(client_admin: Any) -> None:
     """Test that providing an invalid Step ID pattern fails fast."""
     payload = {
         "id": "wf_1111111111111111",
-        "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test WF", "fi": "Test WF"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
@@ -89,8 +89,8 @@ def test_workflow_api_strips_illegal_step_attributes(client_admin: Any, mock_stu
     """
     payload = {
         "id": "wf_1111111111111111",
-        "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test WF", "fi": "Test WF"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
@@ -130,9 +130,9 @@ def test_prompt_block_api_fails_fast_on_invalid_type(client_admin: Any) -> None:
     payload = {
         "id": "blk_test123",
         "slug": "test_block",
-        "name": {"default_locale": "en", "translations": {"en": "Test Block"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test Block", "fi": "Test Block"}},
         "type": "illegal_type_enum",  # ILLEGAL ENUM (e.g., BlockDataType)
-        "content_template": {"default_locale": "en", "translations": {"en": "Content"}},
+        "content_template": {"default_locale": "en", "translations": {"en": "Content", "fi": "Content"}},
     }
     response = client_admin.put("/api/v2/studio/prompt-blocks/blk_test123", json=payload)
     if response.status_code == 404:
@@ -147,7 +147,7 @@ def test_step_api_fails_fast_on_invalid_extra_attributes(client_admin: Any) -> N
     payload = {
         "id": "step_valid_blueprint",
         "slug": "valid_bp",
-        "name": {"default_locale": "en", "translations": {"en": "Test BP"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test BP", "fi": "Test BP"}},
         "type": "llm",
         "model_strategy": "fast",
         "role_block_id": None,
@@ -169,8 +169,8 @@ def test_workflow_api_fails_fast_on_orphan_dependency(client_admin: Any) -> None
     """Test that a Workflow with a dependency pointing to a missing step is outright rejected."""
     payload = {
         "id": "wf_1111111111111111",
-        "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test WF", "fi": "Test WF"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
@@ -195,8 +195,8 @@ def test_workflow_api_fails_fast_on_cyclic_dependency(client_admin: Any) -> None
     """Test that a Workflow with A -> B -> A cyclical dependencies is outright rejected."""
     payload = {
         "id": "wf_1111111111111111",
-        "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test WF", "fi": "Test WF"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
@@ -226,8 +226,8 @@ def test_workflow_api_succeeds_with_valid_data(client_admin: Any, mock_studio_se
     """Test the happy path: a valid Workflow DAG saves successfully passing all strict Pydantic locks."""
     payload = {
         "id": "wf_1111111111111111",
-        "name": {"default_locale": "en", "translations": {"en": "Happy Path WF"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"default_locale": "en", "translations": {"en": "Happy Path WF", "fi": "Happy Path WF"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",

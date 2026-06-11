@@ -9,7 +9,7 @@ def test_output_profile_fails_fast_on_invalid_id() -> None:
         "id": "INVALID",
         "slug": "test_slug",
         "workflow_id": "wf_1234abcd",
-        "name": {"default_locale": "en", "translations": {"en": "Title"}},
+        "name": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
         "layouts": [],
     }
     with pytest.raises(ValidationError) as exc_info:
@@ -22,7 +22,7 @@ def test_output_profile_fails_fast_on_empty_slug() -> None:
         "id": "prf_1234abcd",
         "slug": "   ",
         "workflow_id": "wf_1234abcd",
-        "name": {"default_locale": "en", "translations": {"en": "Title"}},
+        "name": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
         "layouts": [],
     }
     with pytest.raises(ValidationError) as exc_info:

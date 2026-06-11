@@ -26,7 +26,6 @@ from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workflow
 from backend_v2.services.orchestrator.ast_evaluator import ASTEvaluator
 from backend_v2.settings import get_settings
-from backend_v2.utils.hashing import generate_atom_hash
 from backend_v2.utils.math_utils import (
     normalize_score_to_100,
     scale_to_custom_range,
@@ -593,14 +592,11 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                     if tda_assertions:
                         mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
                         for tda in tda_assertions:
-                            if tda.tda_id and str(tda.tda_id).startswith("tda_"):
-                                aid = str(tda.tda_id)
-                            else:
-                                aid = generate_atom_hash(tda.ai_rule_description, mandate)
+                            aid = str(tda.tda_id)
                             atom_mapping[aid] = (
                                 pb_id,
                                 s_val,
-                                tda.ai_rule_description,
+                                tda.concept_description.resolve("en") if hasattr(tda, "concept_description") else "",
                                 str(tda.aggregation_mode),
                                 tda.inverse_evidence,
                                 tda.allow_contextual_override,
@@ -670,7 +666,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                     if tda_assertions:
                         for tda in tda_assertions:
                             aid = tda.tda_id
-                            text = tda.ai_rule_description
+                            text = tda.concept_description.resolve("en") if hasattr(tda, "concept_description") else ""
 
                             # Determine evaluation track
                             if tda.evaluation_track == "EXTRACTIVE_SENSOR" and tda.logical_expression:

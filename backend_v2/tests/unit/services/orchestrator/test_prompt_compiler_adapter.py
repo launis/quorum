@@ -31,9 +31,9 @@ def test_prompt_compiler_adapter_compile_chunk_prompt() -> None:
         "id": "blk_1234567890abcdef",
         "slug": "test",
         "category_id": "matrix",
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "type": BlockDataType.FLOAT,
-        "label": {"default_locale": "en", "translations": {"en": "Score"}},
+        "label": {"default_locale": "en", "translations": {"en": "Score", "fi": "Score"}},
         "ai_description": "Audit criteria",
         "scales": [
             {
@@ -41,12 +41,12 @@ def test_prompt_compiler_adapter_compile_chunk_prompt() -> None:
                 "ai_label": "UNCRITICAL ACCEPTANCE",
                 "claims": [
                     {
-                        "label": {"default_locale": "en", "translations": {"en": "Claim 1"}},
+                        "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Claim 1"}},
                         "ai_description": "Directive 1",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
-                                "ai_rule_description": "Directive 1",
+                                "concept_description": {"default_locale": "en", "translations": {"en": "Directive 1", "fi": "Directive 1"}},
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             }
@@ -142,9 +142,9 @@ def test_prompt_caching_cryptographic_determinism_proof() -> None:
         "id": "blk_a1b2c3d4e5f6a7b8",
         "slug": "proof",
         "category_id": "matrix",
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "type": BlockDataType.FLOAT,
-        "label": {"default_locale": "en", "translations": {"en": "Parity"}},
+        "label": {"default_locale": "en", "translations": {"en": "Parity", "fi": "Parity"}},
         "ai_description": "Proof criteria",
         "scales": [
             {
@@ -152,12 +152,12 @@ def test_prompt_caching_cryptographic_determinism_proof() -> None:
                 "ai_label": "PARITY",
                 "claims": [
                     {
-                        "label": {"default_locale": "en", "translations": {"en": "Claim 1"}},
+                        "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Claim 1"}},
                         "ai_description": "Directive 1",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_22222222222222222222222222222222",
-                                "ai_rule_description": "Directive 1",
+                                "concept_description": {"default_locale": "en", "translations": {"en": "Directive 1", "fi": "Directive 1"}},
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             }

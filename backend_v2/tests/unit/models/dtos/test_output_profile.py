@@ -16,7 +16,7 @@ def test_output_profile_create_dto_strictness() -> None:
             "id": "prf_1234abcd",
             "slug": "my-profile",
             "workflow_id": "wf_123",
-            "name": {"default_locale": "en", "translations": {"en": "Name"}},
+            "name": {"default_locale": "en", "translations": {"en": "Name", "fi": "Name"}},
             "visible_block_extensions": [XaiExtensionType.CITATION, XaiExtensionType.JUSTIFICATION],
             "visible_workflow_extensions": [],
         }
@@ -35,7 +35,7 @@ def test_output_profile_create_dto_strictness() -> None:
                 "id": "prf_1234abcd",
                 "slug": "my-profile",
                 "workflow_id": "wf_123",
-                "name": {"default_locale": "en", "translations": {"en": "Name"}},
+                "name": {"default_locale": "en", "translations": {"en": "Name", "fi": "Name"}},
                 "extra": "bad",
             }
         )
@@ -58,7 +58,7 @@ def test_output_profile_response_dto_strictness() -> None:
             "id": "prf_1234abcd",
             "slug": "my-profile",
             "workflow_id": "wf_123",
-            "name": {"default_locale": "en", "translations": {"en": "Name"}},
+            "name": {"default_locale": "en", "translations": {"en": "Name", "fi": "Name"}},
             "layouts": [],
         }
     )

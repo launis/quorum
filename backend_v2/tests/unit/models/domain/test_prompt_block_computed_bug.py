@@ -11,8 +11,8 @@ def test_prompt_block_computed_min_max_float() -> None:
     payload = {
         "id": "blk_123456789012345678901234",
         "slug": "test_block",
-        "label": {"default_locale": "en", "translations": {"en": "Test Label"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+        "label": {"default_locale": "en", "translations": {"en": "Test Label", "fi": "Test Label"}},
+        "description": {"default_locale": "en", "translations": {"en": "Test Desc", "fi": "Test Desc"}},
         "ai_description": "AI prompt",
         "category_id": "matrix",
         "is_evaluative": True,
@@ -35,8 +35,8 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
     payload = {
         "id": "blk_123456789012345678901234",
         "slug": "test_block",
-        "label": {"default_locale": "en", "translations": {"en": "Test Label"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+        "label": {"default_locale": "en", "translations": {"en": "Test Label", "fi": "Test Label"}},
+        "description": {"default_locale": "en", "translations": {"en": "Test Desc", "fi": "Test Desc"}},
         "ai_description": "AI prompt",
         "category_id": "matrix",
         "is_evaluative": True,
@@ -50,12 +50,12 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
                 "ai_label": "POOR",
                 "claims": [
                     {
-                        "label": {"default_locale": "en", "translations": {"en": "Bad"}},
+                        "label": {"default_locale": "en", "translations": {"en": "Bad", "fi": "Bad"}},
                         "ai_description": "bad",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
-                                "ai_rule_description": "bad",
+                                "concept_description": {"default_locale": "en", "translations": {"en": "bad", "fi": "bad"}},
                                 "inverse_evidence": False,
                                 "aggregation_mode": "EXISTS",
                             }
@@ -68,12 +68,12 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
                 "ai_label": "EXCELLENT",
                 "claims": [
                     {
-                        "label": {"default_locale": "en", "translations": {"en": "Good"}},
+                        "label": {"default_locale": "en", "translations": {"en": "Good", "fi": "Good"}},
                         "ai_description": "good",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_22222222222222222222222222222222",
-                                "ai_rule_description": "good",
+                                "concept_description": {"default_locale": "en", "translations": {"en": "good", "fi": "good"}},
                                 "inverse_evidence": False,
                                 "aggregation_mode": "EXISTS",
                             }

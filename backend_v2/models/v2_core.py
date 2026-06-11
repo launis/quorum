@@ -87,7 +87,9 @@ class I18nText(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_i18n(self) -> I18nText:
-        """Validates that English translation is always present.
+        """Validates that English translation is always present as a baseline fallback.
+        The schema is multi-lingual, allowing any number of languages (primarily English and Finnish)
+        to be added as needed.
 
         Raises:
             ValueError: If the English translation is missing or empty.
@@ -95,12 +97,12 @@ class I18nText(V2CoreBase):
         Returns:
             The validated I18nText instance.
         """
-        # Enforce English-Only Mandate: 'en' translation must ALWAYS exist.
+        # Enforce baseline fallback: 'en' translation must ALWAYS exist.
         en_trans = self.translations.get("en")
         if not en_trans or not en_trans.strip():
             msg = (
-                "I18nText must contain a valid English ('en') translation due to the "
-                f"English-Only Mandate. Payload: {self.translations}"
+                "I18nText must contain a valid English ('en') translation as a baseline fallback. "
+                f"Payload: {self.translations}"
             )
             raise ValueError(msg)
 
@@ -167,6 +169,20 @@ class TheoryGrounding(V2CoreBase):
     citation_reference: str = Field(description="Specific section or phrase to cite from the source.")
 
 
+class AcceptanceCriterion(V2CoreBase):
+    """Structured acceptance criterion with bilingual instruction."""
+
+    instruction: I18nText = Field(description="Structured bilingual instruction.")
+    requires_contextual_override: bool = Field(default=False)
+
+
+class AntiPattern(V2CoreBase):
+    """Known anti-pattern with bilingual description."""
+
+    pattern: I18nText = Field(description="Known anti-pattern with I18n description.")
+    allows_contextual_excuse: bool = Field(default=False)
+
+
 class TDAAssertion(V2CoreBase):
     """Deterministic rule evaluated by the backend.
 
@@ -187,7 +203,6 @@ class TDAAssertion(V2CoreBase):
         pattern=r"^tda_[a-f0-9]{32}$",
         description="Opaque Stripe ID for this assertion.",
     )
-    ai_rule_description: str = Field(description="Strict enforcement rule.")
     inverse_evidence: bool = Field(description="If True, acts as a poison/penalty detector.")
     aggregation_mode: Literal["EXISTS", "ALL_MUST_COMPLY"] = Field(description="Aggregation constraint.")
 
@@ -211,6 +226,29 @@ class TDAAssertion(V2CoreBase):
     high_entropy: bool = Field(
         default=False,
         description="If True, enables multi-agent ensemble majority voting for this assertion.",
+    )
+
+    # Phase 4: Bilingual structured fields (migrated from flat ai_rule_description)
+    concept_description: I18nText = Field(description="Structured bilingual concept description.")
+    acceptance_criteria: list[AcceptanceCriterion] = Field(
+        default_factory=list,
+        description="Structured acceptance criteria with I18n instructions.",
+    )
+    anti_patterns: list[AntiPattern] = Field(
+        default_factory=list,
+        description="Known anti-patterns with I18n descriptions.",
+    )
+    contrastive_example: I18nText | None = Field(
+        default=None,
+        description="Bilingual contrastive example showing correct vs incorrect.",
+    )
+    syntactic_anchors: list[str] = Field(
+        default_factory=list,
+        description="Exact syntactic markers for extractive matching.",
+    )
+    enforce_pre_flight: bool = Field(
+        default=False,
+        description="If True, enables pre-flight validation before LLM evaluation.",
     )
 
     @model_validator(mode="after")
@@ -348,7 +386,11 @@ class PromptBlock(V2CoreBase):
     # Epic 55: execution_persona field REMOVED. execution_persona_block_id now resides on the Step model.
     theory_grounding: TheoryGrounding | None = Field(
         default=None,
-        description="If provided, fetches and injects source theory as <theory_context> to prompt.",
+        description="Fetches and injects source theory as <theory_context>.",
+    )
+    is_lightweight_protocol: bool = Field(
+        default=False,
+        description="If True, enables Best-of-Three ensemble evaluation routing.",
     )
     scale_min: int | None = Field(
         default=None, description="Minimum score for the scales matrix. Required if scales are present."

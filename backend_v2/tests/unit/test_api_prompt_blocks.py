@@ -24,8 +24,8 @@ def mock_studio_service() -> Any:
     pb = PromptBlock(
         id="blk_ffff6666ffff6666",
         slug="mock_pb_1",
-        label=I18nText(default_locale="en", translations={"en": "Test Label"}),
-        description=I18nText(default_locale="en", translations={"en": "Test Desc"}),
+        label=I18nText(default_locale="en", translations={"en": "Test Label", "fi": "Test Label"}),
+        description=I18nText(default_locale="en", translations={"en": "Test Desc", "fi": "Test Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,
         output_extensions=[],

@@ -29,7 +29,7 @@ def mock_repo_transformer() -> Any:
             "id": "wf_1234abcd1234abcd",
             "slug": "wf_1",
             "name": {"default_locale": "en", "translations": {"en": "Mock Workflow", "fi": "Testi Työnkulku"}},
-            "description": {"default_locale": "en", "translations": {"en": "desc"}},
+            "description": {"default_locale": "en", "translations": {"en": "desc", "fi": "desc"}},
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_dddd1111dddd1111",
@@ -38,13 +38,13 @@ def mock_repo_transformer() -> Any:
             "steps": [],
             "output_profiles": {
                 "prf_dddd1111dddd1111": {
-                    "name": {"default_locale": "en", "translations": {"en": "Default"}},
+                    "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
                     "synthesis": None,
                     "layouts": [
                         {
                             "preset_view": "1d_metrics",
                             "text_delivery_mode": "full",
-                            "title": {"default_locale": "en", "translations": {"en": "Title"}},
+                            "title": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
                             "target_blocks": ["*"],
                         }
                     ],
@@ -57,14 +57,14 @@ def mock_repo_transformer() -> Any:
             {
                 "id": "prf_dddd1111dddd1111",
                 "slug": "default",
-                "name": {"default_locale": "en", "translations": {"en": "Default"}},
+                "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
                 "workflow_id": "wf_1234abcd1234abcd",
                 "synthesis": None,
                 "layouts": [
                     {
                         "preset_view": "1d_metrics",
                         "text_delivery_mode": "full",
-                        "title": {"default_locale": "en", "translations": {"en": "Title"}},
+                        "title": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
                         "target_blocks": ["*"],
                         "description": None,
                     }
@@ -92,7 +92,7 @@ def mock_repo_transformer() -> Any:
                         "ai_label": "zero",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
@@ -103,7 +103,7 @@ def mock_repo_transformer() -> Any:
                         "ai_label": "full",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
@@ -188,23 +188,23 @@ def mock_repo_microcot() -> Any:
         {
             "id": "wf_1234567890abcdef",
             "slug": "mock_workflow",
-            "description": {"default_locale": "en", "translations": {"en": "desc"}},
+            "description": {"default_locale": "en", "translations": {"en": "desc", "fi": "desc"}},
             "status": "published",
             "version": 1,
-            "name": {"default_locale": "en", "translations": {"en": "Mock Workflow"}},
+            "name": {"default_locale": "en", "translations": {"en": "Mock Workflow", "fi": "Mock Workflow"}},
             "default_profile_id": "prf_1234567890abcdef",
             "default_strictness_level": 50,
             "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [],
             "output_profiles": {
                 "prf_1234567890abcdef": {
-                    "name": {"default_locale": "en", "translations": {"en": "Default Profile"}},
+                    "name": {"default_locale": "en", "translations": {"en": "Default Profile", "fi": "Default Profile"}},
                     "synthesis": None,
                     "layouts": [
                         {
                             "preset_view": "2d_compare",
                             "text_delivery_mode": "full",
-                            "title": {"default_locale": "en", "translations": {"en": "Micro-CoT Map"}},
+                            "title": {"default_locale": "en", "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"}},
                             "target_blocks": ["*"],
                             "description": None,
                         }
@@ -218,14 +218,14 @@ def mock_repo_microcot() -> Any:
             {
                 "id": "prf_1234567890abcdef",
                 "slug": "default",
-                "name": {"default_locale": "en", "translations": {"en": "Default Profile"}},
+                "name": {"default_locale": "en", "translations": {"en": "Default Profile", "fi": "Default Profile"}},
                 "workflow_id": "wf_1234567890abcdef",
                 "synthesis": None,
                 "layouts": [
                     {
                         "preset_view": "2d_compare",
                         "text_delivery_mode": "full",
-                        "title": {"default_locale": "en", "translations": {"en": "Micro-CoT Map"}},
+                        "title": {"default_locale": "en", "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"}},
                         "target_blocks": ["*"],
                         "description": None,
                     }
@@ -244,27 +244,27 @@ def mock_repo_microcot() -> Any:
                 "category_id": "matrix",
                 "type": "float",
                 "is_evaluative": True,
-                "description": {"default_locale": "en", "translations": {"en": "Description"}},
+                "description": {"default_locale": "en", "translations": {"en": "Description", "fi": "Description"}},
                 "label": {"default_locale": "en", "translations": {"en": "Kahneman T1", "fi": "Kaksoisprosessiteoria"}},  # noqa: E501
                 "scales": [
                     {
                         "score": 0,
-                        "name": {"default_locale": "en", "translations": {"en": "Zero"}},
+                        "name": {"default_locale": "en", "translations": {"en": "Zero", "fi": "Zero"}},
                         "ai_label": "zero",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
                     },
                     {
                         "score": 3,
-                        "name": {"default_locale": "en", "translations": {"en": "Full"}},
+                        "name": {"default_locale": "en", "translations": {"en": "Full", "fi": "Full"}},
                         "ai_label": "full",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
@@ -281,27 +281,27 @@ def mock_repo_microcot() -> Any:
                 "category_id": "matrix",
                 "type": "float",
                 "is_evaluative": True,
-                "description": {"default_locale": "en", "translations": {"en": "Description"}},
+                "description": {"default_locale": "en", "translations": {"en": "Description", "fi": "Description"}},
                 "label": {"default_locale": "en", "translations": {"en": "Epistemic", "fi": "Episteeminen Nöyryys"}},  # noqa: E501
                 "scales": [
                     {
                         "score": 0,
-                        "name": {"default_locale": "en", "translations": {"en": "Zero"}},
+                        "name": {"default_locale": "en", "translations": {"en": "Zero", "fi": "Zero"}},
                         "ai_label": "zero",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
                     },
                     {
                         "score": 5,
-                        "name": {"default_locale": "en", "translations": {"en": "Full"}},
+                        "name": {"default_locale": "en", "translations": {"en": "Full", "fi": "Full"}},
                         "ai_label": "full",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
@@ -363,8 +363,8 @@ def mock_repo_sdui() -> AsyncMock:
         {
             "id": "wf_1234abcd1234abcd",
             "slug": "wf_test",
-            "name": {"default_locale": "en", "translations": {"en": "Mock"}},
-            "description": {"default_locale": "en", "translations": {"en": "desc"}},
+            "name": {"default_locale": "en", "translations": {"en": "Mock", "fi": "Mock"}},
+            "description": {"default_locale": "en", "translations": {"en": "desc", "fi": "desc"}},
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_1234abcd1234abcd",
@@ -385,7 +385,7 @@ def mock_repo_sdui() -> AsyncMock:
                     {
                         "preset_view": "1d_metrics",
                         "text_delivery_mode": "full",
-                        "title": {"default_locale": "en", "translations": {"en": "Metrics"}},
+                        "title": {"default_locale": "en", "translations": {"en": "Metrics", "fi": "Metrics"}},
                         "steps": [],
                         "target_blocks": ["*"],
                         "description": None,
@@ -405,8 +405,8 @@ def mock_repo_sdui() -> AsyncMock:
                 "category_id": "matrix",
                 "type": "float",
                 "is_evaluative": True,
-                "description": {"default_locale": "en", "translations": {"en": "Description"}},
-                "label": {"default_locale": "en", "translations": {"en": "Metric Category"}},
+                "description": {"default_locale": "en", "translations": {"en": "Description", "fi": "Description"}},
+                "label": {"default_locale": "en", "translations": {"en": "Metric Category", "fi": "Metric Category"}},
                 "computed_min": 0,
                 "computed_max": 5,
                 "scale_min": 0,
@@ -414,22 +414,22 @@ def mock_repo_sdui() -> AsyncMock:
                 "scales": [
                     {
                         "score": 0,
-                        "name": {"default_locale": "en", "translations": {"en": "Zero"}},
+                        "name": {"default_locale": "en", "translations": {"en": "Zero", "fi": "Zero"}},
                         "ai_label": "zero",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
                     },
                     {
                         "score": 5,
-                        "name": {"default_locale": "en", "translations": {"en": "Full"}},
+                        "name": {"default_locale": "en", "translations": {"en": "Full", "fi": "Full"}},
                         "ai_label": "full",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
@@ -472,8 +472,8 @@ async def test_blueprint_zero_math_rounding(mock_repo_sdui: AsyncMock) -> None:
         {
             "id": "wor_1234abcd1234abcd",
             "slug": "mock-workflow",
-            "name": {"default_locale": "en", "translations": {"en": "Mock"}},
-            "description": {"default_locale": "en", "translations": {"en": "Mock"}},
+            "name": {"default_locale": "en", "translations": {"en": "Mock", "fi": "Mock"}},
+            "description": {"default_locale": "en", "translations": {"en": "Mock", "fi": "Mock"}},
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_1234abcd1234abcd",
@@ -521,8 +521,8 @@ async def test_blueprint_synthesis_markdown_packaging(mock_repo_sdui: AsyncMock)
         {
             "id": "wor_1234abcd1234abcd",
             "slug": "mock-workflow",
-            "name": {"default_locale": "en", "translations": {"en": "Mock"}},
-            "description": {"default_locale": "en", "translations": {"en": "Mock"}},
+            "name": {"default_locale": "en", "translations": {"en": "Mock", "fi": "Mock"}},
+            "description": {"default_locale": "en", "translations": {"en": "Mock", "fi": "Mock"}},
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_1234abcd1234abcd",

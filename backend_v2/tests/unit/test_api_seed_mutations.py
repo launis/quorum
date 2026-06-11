@@ -42,8 +42,8 @@ def get_seed_data() -> Any:
 def get_audit_workflow() -> Any:
     return {
         "id": "wf_1111111111111111",
-        "name": {"default_locale": "en", "translations": {"en": "Test WF"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test WF", "fi": "Test WF"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
@@ -60,8 +60,8 @@ def get_seed_prompt_block() -> Any:
     return {
         "id": "blk_test1234567",
         "slug": "test_block",
-        "label": {"default_locale": "en", "translations": {"en": "Test Block"}},
-        "description": {"default_locale": "en", "translations": {"en": "Content"}},
+        "label": {"default_locale": "en", "translations": {"en": "Test Block", "fi": "Test Block"}},
+        "description": {"default_locale": "en", "translations": {"en": "Content", "fi": "Content"}},
         "category_id": "matrix",
         "type": "float",
         "computed_min": 1,
@@ -74,7 +74,7 @@ def get_seed_step() -> Any:
         "id": "step_abc123456",
         "slug": "step_test",
         "type": "llm",
-        "name": {"default_locale": "en", "translations": {"en": "Step"}},
+        "name": {"default_locale": "en", "translations": {"en": "Step", "fi": "Step"}},
         "execution_logic": "prompt",
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_573802341db9d68c",
@@ -162,11 +162,11 @@ def test_seed_workflow_illegal_input_contradiction(client_admin: Any, mock_studi
     wf["expected_inputs"].append(
         {
             "input_key": "illegal_input",
-            "label": {"default_locale": "en", "translations": {"en": "Label"}},
+            "label": {"default_locale": "en", "translations": {"en": "Label", "fi": "Label"}},
             "required": True,
             "is_chat_history": True,  # CONTRADICTION 1
             "input_modes": ["questionnaire"],  # CONTRADICTION 2
-            "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
             "ai_description": "Will fail validation",
         }
     )

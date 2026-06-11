@@ -22,8 +22,8 @@ def valid_workflow_data() -> dict[str, Any]:
     return {
         "id": "wf_1234567890abcdef1234567890abcdef",
         "slug": "test_workflow",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_1234567890abcdef1234567890abcdef",
@@ -49,7 +49,7 @@ def valid_output_profile_data() -> dict[str, Any]:
         "id": "prof_1234567890abcdef1234567890abcdef",
         "slug": "test_profile",
         "workflow_id": "wf_1234567890abcdef1234567890abcdef",
-        "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test Profile", "fi": "Test Profile"}},
         "display_scale": "original",
         "synthesis": {
             "system_prompt": "You are a synthesizer.",
@@ -292,8 +292,8 @@ def test_build_title_map() -> None:
     wf = Workflow(
         id="wf_1234567890abcdef1234567890abcdef",
         slug="test",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(default_locale="en", translations={"en": "Test", "fi": "Test"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
         status="draft",
         version=1,
         default_profile_id="prof_1234567890abcdef1234567890abcdef",
@@ -314,7 +314,7 @@ def test_build_title_map() -> None:
                     "label": I18nText(default_locale="en", translations={"en": "Input X", "fi": "Syöte X"}),
                     "required": True,
                     "input_modes": ["text"],
-                    "description": I18nText(default_locale="en", translations={"en": "Desc"}),
+                    "description": I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
                 }
             ],
         ),
@@ -326,7 +326,7 @@ def test_build_title_map() -> None:
         type="llm",
         model_strategy="standard",
         name=I18nText(default_locale="en", translations={"en": "Test Step", "fi": "Testi Vaihe"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
         extraction_protocol_block_id="blk_573802341db9d68c",
         criteria_block_ids=["block_1"],
     )
@@ -431,21 +431,21 @@ async def test_synthesis_hook_success(
     mock_workflow: dict[str, Any] = {
         "id": "wf_1111111111111111",
         "slug": "test-workflow",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "status": "published",
         "version": 1,
         "default_profile_id": "prf_test",
         "output_profiles": {
             "prf_test": {
-                "name": {"default_locale": "en", "translations": {"en": "Profile Test"}},
+                "name": {"default_locale": "en", "translations": {"en": "Profile Test", "fi": "Profile Test"}},
                 "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
                 "synthesis": {
                     "system_prompt": "Test sys prompt",
                     "length_constraint": 500,
-                    "preamble_text": {"default_locale": "en", "translations": {"en": "Always be concise."}},
+                    "preamble_text": {"default_locale": "en", "translations": {"en": "Always be concise.", "fi": "Always be concise."}},
                     "omit_empty_sections": True,
                     "enable_pii_masking": True,
                 },
@@ -550,32 +550,32 @@ async def test_synthesis_hook_multi_profile_routing(
     mock_workflow: dict[str, Any] = {
         "id": "wf_1111111111111111",
         "slug": "test-workflow",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "status": "published",
         "version": 1,
         "default_profile_id": "prof_a",
         "output_profiles": {
             "prof_a": {
-                "name": {"default_locale": "en", "translations": {"en": "A"}},
+                "name": {"default_locale": "en", "translations": {"en": "A", "fi": "A"}},
                 "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
                 "synthesis": {
                     "system_prompt": "Test sys prompt",
                     "length_constraint": 100,
-                    "preamble_text": {"default_locale": "en", "translations": {"en": "Alpha"}},
+                    "preamble_text": {"default_locale": "en", "translations": {"en": "Alpha", "fi": "Alpha"}},
                 },
             },
             "prof_b": {
-                "name": {"default_locale": "en", "translations": {"en": "B"}},
+                "name": {"default_locale": "en", "translations": {"en": "B", "fi": "B"}},
                 "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
                 "synthesis": {
                     "system_prompt": "Test sys prompt",
                     "length_constraint": 900,
-                    "preamble_text": {"default_locale": "en", "translations": {"en": "Beta"}},
+                    "preamble_text": {"default_locale": "en", "translations": {"en": "Beta", "fi": "Beta"}},
                 },
             },
         },
@@ -642,8 +642,8 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
     mock_workflow: dict[str, Any] = {
         "id": "wf_1111111111111111",
         "slug": "test-workflow",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "status": "published",
         "version": 1,
         "default_profile_id": "prof_a",
@@ -654,7 +654,7 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
         ],
         "output_profiles": {
             "prof_a": {
-                "name": {"default_locale": "en", "translations": {"en": "A"}},
+                "name": {"default_locale": "en", "translations": {"en": "A", "fi": "A"}},
                 "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [
@@ -664,7 +664,7 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
                 "synthesis": {
                     "system_prompt": "Test sys prompt",
                     "length_constraint": 100,
-                    "preamble_text": {"default_locale": "en", "translations": {"en": "Alpha"}},
+                    "preamble_text": {"default_locale": "en", "translations": {"en": "Alpha", "fi": "Alpha"}},
                 },
             }
         },
@@ -681,7 +681,7 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
                 "slug": "step-1",
                 "type": "logic",
                 "hook": "some_hook",
-                "name": {"default_locale": "en", "translations": {"en": "Step 1"}},
+                "name": {"default_locale": "en", "translations": {"en": "Step 1", "fi": "Step 1"}},
                 "role_block_id": None,
                 "extraction_protocol_block_id": None,
                 "criteria_block_ids": [],
@@ -691,7 +691,7 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
                 "slug": "step-2",
                 "type": "logic",
                 "hook": "some_hook",
-                "name": {"default_locale": "en", "translations": {"en": "Step 2"}},
+                "name": {"default_locale": "en", "translations": {"en": "Step 2", "fi": "Step 2"}},
                 "role_block_id": None,
                 "extraction_protocol_block_id": None,
                 "criteria_block_ids": [],
@@ -701,7 +701,7 @@ async def test_synthesis_hook_target_blocks_wildcard_bypass(
                 "slug": "step-3",
                 "type": "logic",
                 "hook": "some_hook",
-                "name": {"default_locale": "en", "translations": {"en": "Step 3"}},
+                "name": {"default_locale": "en", "translations": {"en": "Step 3", "fi": "Step 3"}},
                 "role_block_id": None,
                 "extraction_protocol_block_id": None,
                 "criteria_block_ids": [],
@@ -827,21 +827,21 @@ async def test_synthesis_hook_historical_context_mode(
     mock_workflow: dict[str, Any] = {
         "id": "wf_1111111111111111",
         "slug": "test-workflow",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "status": "published",
         "version": 1,
         "default_profile_id": "prf_test",
         "output_profiles": {
             "prf_test": {
-                "name": {"default_locale": "en", "translations": {"en": "Profile Test"}},
+                "name": {"default_locale": "en", "translations": {"en": "Profile Test", "fi": "Profile Test"}},
                 "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
                 "layouts": [{"target_blocks": ["*"], "preset_view": "default"}],
                 "synthesis": {
                     "historical_context_mode": "SLIDING_WINDOW_3",
                     "system_prompt": "Test sys prompt",
-                    "preamble_text": {"default_locale": "en", "translations": {"en": "Alpha"}},
+                    "preamble_text": {"default_locale": "en", "translations": {"en": "Alpha", "fi": "Alpha"}},
                     "length_constraint": 100,
                 },
             }

@@ -11,8 +11,8 @@ def create_mock_block(slug: str, btype: BlockDataType, extensions: list[str]) ->
     return PromptBlock(
         id="blk_1234567890abcdef1234567890abcdef",
         slug=slug,
-        label=I18nText(default_locale="en", translations={"en": "Test Label"}),
-        description=I18nText(default_locale="en", translations={"en": "Test Desc"}),
+        label=I18nText(default_locale="en", translations={"en": "Test Label", "fi": "Test Label"}),
+        description=I18nText(default_locale="en", translations={"en": "Test Desc", "fi": "Test Desc"}),
         ai_description="Test AI instruction",
         category_id=PromptBlockCategory.SYSTEM_RULE,
         is_evaluative=True,

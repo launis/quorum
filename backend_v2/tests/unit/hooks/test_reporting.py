@@ -20,8 +20,8 @@ valid_execution_data = {
 valid_workflow_data = {
     "id": "wf_123",
     "slug": "test_workflow",
-    "name": {"default_locale": "en", "translations": {"en": "Test"}},
-    "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+    "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+    "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
     "status": "draft",
     "version": 1,
     "default_profile_id": "prof_123",
@@ -49,7 +49,7 @@ def test_reporting_hook_fail_fast_on_invalid_inputs() -> None:
         "id": "prof_123",
         "slug": "test_profile",
         "workflow_id": "wf_123",
-        "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test Profile", "fi": "Test Profile"}},
         "layouts": [],
         "display_scale": "original",
     }  # noqa: E501
@@ -95,7 +95,7 @@ def test_reporting_hook_fail_fast_on_invalid_pydantic_schema() -> None:
         "id": "prof_123",
         "slug": "test_profile",
         "workflow_id": "wf_123",
-        "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test Profile", "fi": "Test Profile"}},
         "layouts": [],
         "display_scale": "original",
     }  # noqa: E501
@@ -147,7 +147,7 @@ def test_reporting_hook_success_with_valid_schema() -> None:
         "id": "prof_123",
         "slug": "test_profile",
         "workflow_id": "wf_123",
-        "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
+        "name": {"default_locale": "en", "translations": {"en": "Test Profile", "fi": "Test Profile"}},
         "layouts": [],
         "display_scale": "original",
     }  # noqa: E501
