@@ -346,12 +346,12 @@ if __name__ == '__main__':
                     block_stats_by_run = []
                     for evals in evals_list:
                         block_stats = {}
-                        for atom_id, e in evals.items():
+                        for atom_id, ev in evals.items():
                             bid = atom_to_block.get(atom_id)
                             if bid:
                                 if bid not in block_stats:
                                     block_stats[bid] = {'PASS': 0, 'FAIL': 0, 'DLQ': 0, 'OTHER': 0}
-                                s = get_state(e).lower()
+                                s = get_state(ev).lower()
                                 if s in ['true', 'pass']:
                                     block_stats[bid]['PASS'] += 1
                                 elif s in ['false', 'fail']:
