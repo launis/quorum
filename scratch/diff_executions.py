@@ -208,11 +208,15 @@ if __name__ == '__main__':
     with open('backend_v2/seed/seed_data.json', encoding='utf-8') as f:
         seed = json.load(f)
     atom_rules = {}
+    atom_to_block = {}
     for block in seed.get('prompt_blocks', []):
+        bid = block.get('id')
         for s_idx, scale in enumerate(block.get('scales', [])):
             for c_idx, claim in enumerate(scale.get('claims', [])):
                 for tda in claim.get('tda_assertions', []):
                     atom_rules[tda.get('tda_id')] = tda.get('ai_rule_description')
+                    if bid:
+                        atom_to_block[tda.get('tda_id')] = bid
 
     # Lasketaan metriikat jokaiselle atomille
     atom_states = {}
@@ -282,13 +286,141 @@ if __name__ == '__main__':
     os.makedirs('scratch', exist_ok=True)
     report_path = 'scratch/mismatch_traces_raw.md'
 
+    # Hae Git-konteksti ja ympäristön tila (Epic / Git branch & commit)
+    import subprocess
+    git_info = "Ei saatavilla"
+    try:
+        git_branch = subprocess.check_output(['git', 'branch', '--show-current'], text=True).strip()
+        git_commit = subprocess.check_output(['git', 'log', '-1', '--pretty=format:%h - %s (%cd)'], text=True).strip()
+        git_info = f"Branch: {git_branch} | Commit: {git_commit}"
+    except Exception:
+        pass
+
+    # Hae tärkeät Enum-arvot ja järjestelmäkonfiguraatio
+    sys_enums = "Ei saatavilla"
+    try:
+        import sys
+        if '.' not in sys.path:
+            sys.path.insert(0, '.')
+        import backend_v2.models.enums as enums
+        
+        EvalRunCount = getattr(enums, 'EvaluationRunCount', None)
+        ensemble_val = getattr(EvalRunCount, 'ENSEMBLE', None)
+        standard_val = getattr(EvalRunCount, 'STANDARD', None)
+        ensemble_v = ensemble_val.value if ensemble_val else 'N/A'
+        standard_v = standard_val.value if standard_val else 'N/A'
+
+        VerifResult = getattr(enums, 'VerificationResult', None)
+        pass_val = getattr(VerifResult, 'VERIFIED', None)
+        fail_val = getattr(VerifResult, 'DEBUNKED', None)
+        pass_v = pass_val.value if pass_val else 'N/A'
+        fail_v = fail_val.value if fail_val else 'N/A'
+
+        sys_enums = (
+            f"  - **EvaluationRunCount**: ENSEMBLE = {ensemble_v}, STANDARD = {standard_v}\n"
+            f"  - **VerificationResult**: VERIFIED = {pass_v}, DEBUNKED = {fail_v}"
+        )
+        
+        SysConcurrency = getattr(enums, 'SystemConcurrency', None)
+        if SysConcurrency:
+            # Otetaan koko SystemConcurrency-enum dynaamisesti (jotta L227-259 asiat tulostuvat)
+            sc_items = []
+            for k, v in SysConcurrency.__members__.items():
+                sc_items.append(f"{k} = {v.value}")
+            sys_enums += f"\n  - **SystemConcurrency**:\n    - " + "\n    - ".join(sc_items)
+
+    except Exception as e:
+        sys_enums = f"Virhe Enumien luvussa: {e}"
+
+    # Hae ajon tilanne (frozen context)
+    frozen_context_info = "Ei saatavilla (frozen_context.json puuttuu)"
+    if loaded_paths:
+        frozen_path = os.path.join(os.path.dirname(loaded_paths[0]), 'frozen_context.json')
+        if os.path.exists(frozen_path):
+            try:
+                with open(frozen_path, 'r', encoding='utf-8') as f:
+                    frozen_data = json.load(f)
+                hints = frozen_data.get('ui_hints_snapshot', {})
+                if hints:
+                    # Laske atomien tilat per matriisi KAIKILLE ajoille
+                    block_stats_by_run = []
+                    for evals in evals_list:
+                        block_stats = {}
+                        for atom_id, e in evals.items():
+                            bid = atom_to_block.get(atom_id)
+                            if bid:
+                                if bid not in block_stats:
+                                    block_stats[bid] = {'PASS': 0, 'FAIL': 0, 'DLQ': 0, 'OTHER': 0}
+                                s = get_state(e).lower()
+                                if s in ['true', 'pass']:
+                                    block_stats[bid]['PASS'] += 1
+                                elif s in ['false', 'fail']:
+                                    block_stats[bid]['FAIL'] += 1
+                                elif s == 'dlq':
+                                    block_stats[bid]['DLQ'] += 1
+                                else:
+                                    block_stats[bid]['OTHER'] += 1
+                        block_stats_by_run.append(block_stats)
+                                    
+                    frozen_lines = []
+                    for block_id, conf in hints.items():
+                        opts = conf.get('options', [])
+                        label_fi = "Tuntematon"
+                        if opts and 'label' in opts[0] and 'translations' in opts[0]['label']:
+                            label_fi = opts[0]['label']['translations'].get('fi', opts[0]['label']['translations'].get('en', 'Tuntematon'))
+                        
+                        run_strs = []
+                        total_evaluated = 0
+                        for r_idx, stats in enumerate(block_stats_by_run):
+                            b_stat = stats.get(block_id, {})
+                            pass_c = b_stat.get('PASS', 0)
+                            fail_c = b_stat.get('FAIL', 0)
+                            dlq_c = b_stat.get('DLQ', 0)
+                            
+                            if pass_c > 0 or fail_c > 0 or dlq_c > 0:
+                                total_evaluated += 1
+                                
+                            dlq_str = f"|DLQ:{dlq_c}" if dlq_c > 0 else ""
+                            run_strs.append(f"[R{r_idx+1}: {pass_c}P/{fail_c}F{dlq_str}]")
+                            
+                        if total_evaluated == 0:
+                            continue
+                            
+                        stats_str = " ".join(run_strs)
+                        frozen_lines.append(f"  - **{label_fi}** (`{block_id}`) - {stats_str}")
+                    if frozen_lines:
+                        frozen_context_info = "\n" + "\n".join(frozen_lines)
+            except Exception as e:
+                frozen_context_info = f"Virhe frozen_context.json lukemisessa: {e}"
+
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write('# Mittauksen Luotettavuus ja Vakausraportti (Reliability & Consistency)\n\n')
 
-        f.write('## Ajo-tiedot (Runs)\n')
+        f.write('## Ympäristö ja Konteksti (Execution State)\n')
+        f.write(f'- **Git / Epic -tila:** {git_info}\n')
+        f.write(f'- **Kriittiset järjestelmäarvot (Enums):**\n{sys_enums}\n')
+        
+        f.write('- **Vertailtavat ajot (R1, R2...):**\n')
+        for idx, run_name in enumerate(loaded_runs):
+            f.write(f'  - **R{idx + 1}:** `{run_name}`\n')
+            
+        f.write(f'- **Aktiiviset Säännöt ja Asetukset (Frozen Context):**{frozen_context_info}\n\n')
+
+        f.write('## Ajojen Lähdetiedostot ja Syötteet\n')
         for idx, (run_name, exe_path) in enumerate(zip(loaded_runs, loaded_paths)):
             abs_path = os.path.abspath(exe_path).replace('\\', '/')
             f.write(f'- **Run {idx + 1}:** `{run_name}` (Lähde: [{exe_path}](file:///{abs_path}))\n')
+            
+            run_dir = os.path.dirname(exe_path)
+            inputs_dir = os.path.join(run_dir, 'inputs')
+            if os.path.isdir(inputs_dir):
+                inputs_files = os.listdir(inputs_dir)
+                if inputs_files:
+                    f.write('  - **Käytetyt syötetiedostot:**\n')
+                    for in_file in inputs_files:
+                        in_path = os.path.join(inputs_dir, in_file).replace('\\', '/')
+                        abs_in = os.path.abspath(in_path).replace('\\', '/')
+                        f.write(f'    - [{in_file}](file:///{abs_in})\n')
         f.write('\n')
 
         f.write('## Globaalit Metriikat\n')

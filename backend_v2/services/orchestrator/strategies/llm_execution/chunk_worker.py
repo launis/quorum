@@ -86,6 +86,168 @@ def evaluate_extraction(extraction: Any, source_text: str, is_negative_rule: boo
     return status
 
 
+def _calculate_confidence(statuses: list[str], final_status: str) -> float:
+    """Calculate confidence score from consensus unanimity."""
+    agreeing = statuses.count(final_status)
+    total = len(statuses)
+    if total == 0:
+        return 0.33
+    if agreeing == total:
+        return 1.0
+    if agreeing >= 2:
+        return 0.67
+    return 0.33
+
+
+def _apply_minority_veto(
+    votes: list[dict[str, Any]],
+    source_text: str,
+    is_inverse_evidence: bool,
+    strictness_level: int,
+) -> tuple[str, list[str]]:
+    """Apply Minority Veto consensus logic.
+
+    If ANY runner returns FAIL for an inverse_evidence atom,
+    FAIL wins unconditionally to prevent Confirmation Bias.
+    """
+    statuses = []
+    for v in votes:
+        payload = ExtractionPayload(
+            exact_quote=v.get("exact_quote"),
+            contextual_override=v.get("contextual_override", False),
+            premise_1_quote=v.get("premise_1_quote"),
+            premise_2_quote=v.get("premise_2_quote"),
+            semantic_reasoning=v.get("semantic_reasoning", ""),
+        )
+        status = evaluate_extraction(payload, source_text, is_inverse_evidence, strictness_level)
+        statuses.append(status)
+
+    # Minority Veto: One FAIL on an inverse_evidence atom overrules all
+    if is_inverse_evidence and "FAIL" in statuses:
+        return "FAIL", statuses
+
+    # Standard 2/3 majority
+    pass_count = statuses.count("PASS")
+    fail_count = statuses.count("FAIL")
+    if pass_count >= 2:
+        return "PASS", statuses
+    if fail_count >= 2:
+        return "FAIL", statuses
+    return "DLQ", statuses
+
+
+def resolve_majority_vote(
+    res_list: list[dict[str, Any]],
+    is_shuffled: bool,
+    criteria_blocks: list[PromptBlock],
+    user_payload: str,
+    strictness_level: int,
+) -> dict[str, Any]:
+    if not res_list:
+        return {}
+    if len(res_list) == 1:
+        return res_list[0]
+
+    # Build atom -> inverse_evidence map for veto evaluation
+    atom_inverse_map = {}
+    for block in criteria_blocks:
+        if block.scales:
+            for scale in block.scales:
+                for claim in scale.claims:
+                    for tda in claim.tda_assertions:
+                        atom_inverse_map[tda.tda_id] = tda.inverse_evidence
+
+    merged = copy.deepcopy(res_list[0])
+
+    if is_shuffled and "evaluations" in merged:
+        num_evals = len(merged["evaluations"])
+        for idx in range(num_evals):
+            atom_id = merged["evaluations"][idx].get("atom_id")
+            votes = []
+            for res in res_list:
+                if "evaluations" in res and idx < len(res["evaluations"]):
+                    item = res["evaluations"][idx]
+                    if item.get("atom_id") == atom_id:
+                        votes.append(item)
+            if votes:
+                is_inverse = atom_inverse_map.get(atom_id, False)
+                final_status, statuses = _apply_minority_veto(votes, user_payload, is_inverse, strictness_level)
+                confidence = _calculate_confidence(statuses, final_status)
+
+                # Keep quotes and overrides from PASS votes if available, else from all votes
+                valid_votes = [v for i, v in enumerate(votes) if statuses[i] in ("PASS", "DLQ")]
+                if not valid_votes:  # fallback if all are FAIL
+                    valid_votes = votes
+
+                overrides = [v.get("contextual_override", False) for v in valid_votes]
+                quotes = [v.get("exact_quote") for v in valid_votes]
+                p1_quotes = [v.get("premise_1_quote") for v in valid_votes]
+                p2_quotes = [v.get("premise_2_quote") for v in valid_votes]
+                reasonings = [v.get("semantic_reasoning", "") for v in valid_votes]
+
+                final_override = sum(1 for o in overrides if o) >= 2
+                valid_quotes = [q for q in quotes if q and q != "[CONTEXTUAL_OVERRIDE_APPLIED]"]
+                if valid_quotes and not final_override:
+                    final_quote = max(set(valid_quotes), key=valid_quotes.count)
+                else:
+                    final_quote = None
+
+                valid_p1_quotes = [q for q in p1_quotes if q]
+                final_p1 = max(set(valid_p1_quotes), key=valid_p1_quotes.count) if valid_p1_quotes else None
+                valid_p2_quotes = [q for q in p2_quotes if q]
+                final_p2 = max(set(valid_p2_quotes), key=valid_p2_quotes.count) if valid_p2_quotes else None
+                final_reasoning = max(set(reasonings), key=reasonings.count)
+
+                merged["evaluations"][idx]["contextual_override"] = final_override
+                merged["evaluations"][idx]["exact_quote"] = final_quote
+                merged["evaluations"][idx]["premise_1_quote"] = final_p1
+                merged["evaluations"][idx]["premise_2_quote"] = final_p2
+                merged["evaluations"][idx]["semantic_reasoning"] = final_reasoning
+                merged["evaluations"][idx]["status"] = final_status
+                merged["evaluations"][idx]["confidence"] = confidence
+    else:
+        for block in criteria_blocks:
+            if block.id in merged and block.category_id != "matrix" and block.type != "instruction":
+                votes = [res[block.id] for res in res_list if block.id in res]
+                if votes:
+                    is_inverse = False  # Block level is_inverse doesn't map cleanly to TDA level here, assumed false for standard blocks
+                    final_status, statuses = _apply_minority_veto(votes, user_payload, is_inverse, strictness_level)
+                    confidence = _calculate_confidence(statuses, final_status)
+
+                    valid_votes = [v for i, v in enumerate(votes) if statuses[i] in ("PASS", "DLQ")]
+                    if not valid_votes:
+                        valid_votes = votes
+
+                    overrides = [v.get("contextual_override", False) for v in valid_votes]
+                    quotes = [v.get("exact_quote") for v in valid_votes]
+                    p1_quotes = [v.get("premise_1_quote") for v in valid_votes]
+                    p2_quotes = [v.get("premise_2_quote") for v in valid_votes]
+                    reasonings = [v.get("semantic_reasoning", "") for v in valid_votes]
+
+                    final_override = sum(1 for o in overrides if o) >= 2
+                    valid_quotes = [q for q in quotes if q and q != "[CONTEXTUAL_OVERRIDE_APPLIED]"]
+                    if valid_quotes and not final_override:
+                        final_quote = max(set(valid_quotes), key=valid_quotes.count)
+                    else:
+                        final_quote = None
+
+                    valid_p1_quotes = [q for q in p1_quotes if q]
+                    final_p1 = max(set(valid_p1_quotes), key=valid_p1_quotes.count) if valid_p1_quotes else None
+                    valid_p2_quotes = [q for q in p2_quotes if q]
+                    final_p2 = max(set(valid_p2_quotes), key=valid_p2_quotes.count) if valid_p2_quotes else None
+                    final_reasoning = max(set(reasonings), key=reasonings.count)
+
+                    merged[block.id]["contextual_override"] = final_override
+                    merged[block.id]["exact_quote"] = final_quote
+                    merged[block.id]["premise_1_quote"] = final_p1
+                    merged[block.id]["premise_2_quote"] = final_p2
+                    merged[block.id]["semantic_reasoning"] = final_reasoning
+                    merged[block.id]["status"] = final_status
+                    merged[block.id]["confidence"] = confidence
+
+    return merged
+
+
 class SduiResponseList(BaseModel):
     """Strict schema to validate lists of SDUI blocks from LLM responses."""
 
@@ -216,34 +378,8 @@ class ChunkWorker:
                 else:
                     executor = LLMTaskExecutor(prompt_compiler=compiler)
 
-                    # Milestone 4 Setup: Identify high entropy and negative rule triggers dynamically
-                    HIGH_ENTROPY_ATOMS = set()
-                    for crit in chunk_criteria:
-                        if crit.scales:
-                            for scale in crit.scales:
-                                for claim in scale.claims:
-                                    for tda in claim.tda_assertions:
-                                        if getattr(tda, "high_entropy", False):
-                                            HIGH_ENTROPY_ATOMS.add(tda.tda_id)
-
-                    is_ensemble_step = False
-                    if chunk is not None:
-                        for item in chunk.items:
-                            aid = item.get("atom_id") if isinstance(item, dict) else getattr(item, "atom_id", None)
-                            if aid in HIGH_ENTROPY_ATOMS:
-                                is_ensemble_step = True
-                    for crit in chunk_criteria:
-                        if crit.id in HIGH_ENTROPY_ATOMS:
-                            is_ensemble_step = True
-                        if crit.scales:
-                            for scale in crit.scales:
-                                for claim in scale.claims:
-                                    for tda in claim.tda_assertions:
-                                        if tda.tda_id in HIGH_ENTROPY_ATOMS:
-                                            is_ensemble_step = True
-
                     llm_count = (
-                        EvaluationRunCount.ENSEMBLE.value if is_ensemble_step else EvaluationRunCount.STANDARD.value
+                        EvaluationRunCount.ENSEMBLE.value if is_lightweight else EvaluationRunCount.STANDARD.value
                     )
 
                     async def run_llm_calls(
@@ -309,154 +445,15 @@ class ChunkWorker:
 
                         return results_list, total_usage
 
-                    def resolve_majority_vote(
-                        res_list: list[dict[str, Any]], is_shuffled: bool, criteria_blocks: list[Any]
-                    ) -> dict[str, Any]:
-                        if not res_list:
-                            return {}
-                        if len(res_list) == 1:
-                            return res_list[0]
-                        merged = copy.deepcopy(res_list[0])
-
-                        def is_vote_valid(v: dict[str, Any]) -> bool:
-                            payload = ExtractionPayload(
-                                exact_quote=v.get("exact_quote"),
-                                contextual_override=v.get("contextual_override", False),
-                                premise_1_quote=v.get("premise_1_quote"),
-                                premise_2_quote=v.get("premise_2_quote"),
-                                semantic_reasoning=v.get("semantic_reasoning", ""),
-                            )
-                            return evaluate_extraction(payload, user_payload, False, strictness_level) in (
-                                "PASS",
-                                "DLQ",
-                            )
-
-                        if is_shuffled and "evaluations" in merged:
-                            num_evals = len(merged["evaluations"])
-                            for idx in range(num_evals):
-                                atom_id = merged["evaluations"][idx]["atom_id"]
-                                votes = []
-                                for res in res_list:
-                                    if "evaluations" in res and idx < len(res["evaluations"]):
-                                        item = res["evaluations"][idx]
-                                        if item["atom_id"] == atom_id:
-                                            votes.append(item)
-                                if votes:
-                                    valid_votes = [v for v in votes if is_vote_valid(v)]
-                                    if len(valid_votes) >= 2:
-                                        overrides = [v.get("contextual_override", False) for v in valid_votes]
-                                        quotes = [v.get("exact_quote") for v in valid_votes]
-                                        p1_quotes = [v.get("premise_1_quote") for v in valid_votes]
-                                        p2_quotes = [v.get("premise_2_quote") for v in valid_votes]
-                                        reasonings = [v.get("semantic_reasoning", "") for v in valid_votes]
-
-                                        final_override = sum(1 for o in overrides if o) >= 2
-                                        valid_quotes = [q for q in quotes if q and q != "[CONTEXTUAL_OVERRIDE_APPLIED]"]
-                                        if valid_quotes and not final_override:
-                                            final_quote = max(set(valid_quotes), key=valid_quotes.count)
-                                        else:
-                                            final_quote = None
-
-                                        valid_p1_quotes = [q for q in p1_quotes if q]
-                                        final_p1 = (
-                                            max(set(valid_p1_quotes), key=valid_p1_quotes.count)
-                                            if valid_p1_quotes
-                                            else None
-                                        )
-                                        valid_p2_quotes = [q for q in p2_quotes if q]
-                                        final_p2 = (
-                                            max(set(valid_p2_quotes), key=valid_p2_quotes.count)
-                                            if valid_p2_quotes
-                                            else None
-                                        )
-
-                                        final_reasoning = max(set(reasonings), key=reasonings.count)
-
-                                        is_high_entropy = (
-                                            len(valid_votes) < len(res_list)
-                                            or len(set(overrides)) > 1
-                                            or len(set(valid_quotes)) > 1
-                                        )
-
-                                        merged["evaluations"][idx]["contextual_override"] = final_override
-                                        merged["evaluations"][idx]["exact_quote"] = final_quote
-                                        merged["evaluations"][idx]["premise_1_quote"] = final_p1
-                                        merged["evaluations"][idx]["premise_2_quote"] = final_p2
-                                        merged["evaluations"][idx]["semantic_reasoning"] = final_reasoning
-                                        if is_high_entropy:
-                                            merged["evaluations"][idx]["high_entropy_flag"] = True
-                                    else:
-                                        merged["evaluations"][idx]["contextual_override"] = False
-                                        merged["evaluations"][idx]["exact_quote"] = None
-                                        merged["evaluations"][idx]["semantic_reasoning"] = (
-                                            "Failed majority vote: Not enough lexically valid quotes."
-                                        )
-                        else:
-                            for block in criteria_blocks:
-                                if block.id in merged and block.category_id != "matrix" and block.type != "instruction":
-                                    votes = [res[block.id] for res in res_list if block.id in res]
-                                    if votes:
-                                        valid_votes = [v for v in votes if is_vote_valid(v)]
-                                        if len(valid_votes) >= 2:
-                                            overrides = [v.get("contextual_override", False) for v in valid_votes]
-                                            quotes = [v.get("exact_quote") for v in valid_votes]
-                                            p1_quotes = [v.get("premise_1_quote") for v in valid_votes]
-                                            p2_quotes = [v.get("premise_2_quote") for v in valid_votes]
-                                            reasonings = [v.get("semantic_reasoning", "") for v in valid_votes]
-
-                                            final_override = sum(1 for o in overrides if o) >= 2
-                                            valid_quotes = [
-                                                q for q in quotes if q and q != "[CONTEXTUAL_OVERRIDE_APPLIED]"
-                                            ]
-                                            if valid_quotes and not final_override:
-                                                final_quote = max(set(valid_quotes), key=valid_quotes.count)
-                                            else:
-                                                final_quote = None
-
-                                            valid_p1_quotes = [q for q in p1_quotes if q]
-                                            final_p1 = (
-                                                max(set(valid_p1_quotes), key=valid_p1_quotes.count)
-                                                if valid_p1_quotes
-                                                else None
-                                            )
-                                            valid_p2_quotes = [q for q in p2_quotes if q]
-                                            final_p2 = (
-                                                max(set(valid_p2_quotes), key=valid_p2_quotes.count)
-                                                if valid_p2_quotes
-                                                else None
-                                            )
-
-                                            final_reasoning = max(set(reasonings), key=reasonings.count)
-
-                                            is_high_entropy = (
-                                                len(valid_votes) < len(res_list)
-                                                or len(set(overrides)) > 1
-                                                or len(set(valid_quotes)) > 1
-                                            )
-
-                                            merged[block.id]["contextual_override"] = final_override
-                                            merged[block.id]["exact_quote"] = final_quote
-                                            merged[block.id]["premise_1_quote"] = final_p1
-                                            merged[block.id]["premise_2_quote"] = final_p2
-                                            merged[block.id]["semantic_reasoning"] = final_reasoning
-                                            if is_high_entropy:
-                                                merged[block.id]["high_entropy_flag"] = True
-                                        else:
-                                            merged[block.id]["contextual_override"] = False
-                                            merged[block.id]["exact_quote"] = None
-                                            merged[block.id]["semantic_reasoning"] = (
-                                                "Failed majority vote: Not enough lexically valid quotes."
-                                            )
-
-                        return merged
-
                     target_schema = (
                         SduiResponseList
                         if (output_profile is not None and not criteria_blocks)
                         else local_dynamic_schema
                     )
                     res_list, chunk_usage = await run_llm_calls(compiled_prompt, target_schema, llm_count)
-                    chunk_final = resolve_majority_vote(res_list, has_shuffled_atoms, chunk_criteria)
+                    chunk_final = resolve_majority_vote(
+                        res_list, has_shuffled_atoms, chunk_criteria, user_payload, strictness_level
+                    )
 
                     # Step 4: Map-Merge Orchestration & Trace Continuity Injection
                     if has_shuffled_atoms and "evaluations" in chunk_final:
