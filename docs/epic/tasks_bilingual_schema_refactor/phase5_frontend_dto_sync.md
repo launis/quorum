@@ -20,11 +20,13 @@ Synchronize the Flutter application's Freezed models to match the backend's new 
 
 ## Implementation Steps
 1. **Freezed DTO Update**: Remove `aiRuleDescription` from the `TDAAssertion` Dart class.
-2. Add structured `I18nText` properties (`conceptDescription`, `acceptanceCriteria`, `antiPatterns`, `contrastiveExample`), `syntacticAnchors`, and `enforcePreFlight`.
+2. Add structured `I18nText` properties (`conceptDescription`, `acceptanceCriteria`, `antiPatterns`), `syntacticAnchors`, and `enforcePreFlight`.
 3. Add `isLightweightProtocol` boolean to the `PromptBlock` Dart class to match the backend's new schema.
-4. Ensure `TDAAssertion.evaluationTrack` default value is set to `COGNITIVE_JUDGEMENT` to mirror the backend.
-4. Run `dart run build_runner build -d` to regenerate the JSON parsers.
-5. **UI Refactor**: Replace the old singular text area with separate `LocalizedTextInputWidget` fields for the four new text properties. Add a list editor for `syntacticAnchors`.
+4. Add `confidence` (double?) to the extraction result models (or relevant Freezed models) to match the backend's `LightweightExtractionAtom`.
+5. Ensure `TDAAssertion.evaluationTrack` default value is set to `@Default(EvaluationTrack.cognitiveJudgement)` to mirror the backend.
+6. Update `TDAAssertion.create()` factory method in `prompt_block.dart` to accept new structured fields instead of `aiRuleDescription`.
+7. Run `dart run build_runner build -d` to regenerate the JSON parsers.
+8. **UI Refactor**: Replace the old singular text area with separate `LocalizedTextInputWidget` fields for the four new text properties. Add a list editor for `syntacticAnchors`.
 
 ## Testing & Quality Gate Plan
 - **Unit Tests**: Ensure the UI components render successfully.
@@ -32,4 +34,4 @@ Synchronize the Flutter application's Freezed models to match the backend's new 
 
 ## Session Handover
 To execute this Epic iteratively, start a NEW chat session and run:
-`/tier2-execute docs/epic/tasks_bilingual_schema_refactor/phase5_frontend_schema_ui.md`
+`/tier2-execute docs/epic/tasks_bilingual_schema_refactor/phase5_frontend_dto_sync.md`

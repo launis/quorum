@@ -125,19 +125,18 @@ class ContextBuilder:
             return obj  # str/int/float/bool/None — immutable, share reference
 
     @staticmethod
-    def apply_spatial_slicing(text: str, criteria_blocks: list[Any] | None) -> str:
-        """Applies physical spatial slicing to document text if chronological rules are detected.
+    def _collect_rule_descriptions(criteria_blocks: list[Any]) -> list[str]:
+        """Collect all rule descriptions from criteria blocks for spatial analysis.
+
+        Traverses the PromptBlock hierarchy (block → scales → claims → tda_assertions)
+        to extract ai_description and ai_rule_description strings.
 
         Args:
-            text: The raw input string payload to evaluate.
-            criteria_blocks: The validation prompt criteria blocks list.
+            criteria_blocks: List of PromptBlock definitions to inspect.
 
         Returns:
-            Slicing trimmed string based on spatial metadata parsing.
+            List of non-empty rule description strings.
         """
-        if not criteria_blocks or not isinstance(text, str):
-            return text
-
         rule_descriptions: list[str] = []
         for block in criteria_blocks:
             desc: str | None = getattr(block, "ai_description", None)
@@ -152,6 +151,23 @@ class ContextBuilder:
                         rule_desc: str | None = getattr(tda, "ai_rule_description", None)
                         if rule_desc:
                             rule_descriptions.append(rule_desc)
+        return rule_descriptions
+
+    @staticmethod
+    def apply_spatial_slicing(text: str, criteria_blocks: list[Any] | None) -> str:
+        """Applies physical spatial slicing to document text if chronological rules are detected.
+
+        Args:
+            text: The raw input string payload to evaluate.
+            criteria_blocks: The validation prompt criteria blocks list.
+
+        Returns:
+            Slicing trimmed string based on spatial metadata parsing.
+        """
+        if not criteria_blocks or not isinstance(text, str):
+            return text
+
+        rule_descriptions = ContextBuilder._collect_rule_descriptions(criteria_blocks)
 
         for desc in rule_descriptions:
             desc_lower = desc.lower()
