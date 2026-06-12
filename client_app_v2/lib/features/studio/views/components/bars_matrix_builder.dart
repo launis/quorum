@@ -210,13 +210,13 @@ class BarsMatrixBuilder extends StatelessWidget {
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Tooltip(
-                                        message: atom.aiRuleDescription,
+                                        message: atom.conceptDescription,
                                         child: ConstrainedBox(
                                           constraints: const BoxConstraints(
                                             maxWidth: 150,
                                           ),
                                           child: Text(
-                                            atom.aiRuleDescription,
+                                            atom.conceptDescription,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(

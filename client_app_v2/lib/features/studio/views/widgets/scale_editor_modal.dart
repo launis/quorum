@@ -218,11 +218,11 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                   );
                                   newTdas.add(
                                     TDAAssertion.create(
-                                      aiRuleDescription: '',
+                                      conceptDescription: '',
                                       inverseEvidence: false,
                                       aggregationMode: AggregationMode.exists,
                                       evaluationTrack:
-                                          EvaluationTrack.extractiveSensor,
+                                          EvaluationTrack.cognitiveJudgement,
                                     ),
                                   );
                                   final newClaims = List<MatrixClaim>.from(
@@ -349,24 +349,24 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                   ),
                                   const SizedBox(height: 8),
                                   TextFormField(
-                                    initialValue: tda.aiRuleDescription,
+                                    initialValue: tda.conceptDescription,
                                     decoration: const InputDecoration(
                                       labelText:
-                                          'Rule Description / Semantic Signature',
+                                          'Concept Description (Monolingual English)',
                                       border: OutlineInputBorder(),
                                       contentPadding: EdgeInsets.symmetric(
                                         horizontal: 10,
                                         vertical: 8,
                                       ),
                                     ),
-                                    maxLines: 2,
+                                    maxLines: 3,
                                     onChanged: (newDesc) {
                                       setState(() {
                                         final newTdas = List<TDAAssertion>.from(
                                           claim.tdaAssertions,
                                         );
                                         newTdas[tdaIdx] = tda.copyWith(
-                                          aiRuleDescription: newDesc.trim(),
+                                          conceptDescription: newDesc,
                                         );
                                         final newClaims =
                                             List<MatrixClaim>.from(
@@ -379,6 +379,101 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                             .copyWith(claims: newClaims);
                                       });
                                     },
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
+                                    initialValue: tda.syntacticAnchors.join(
+                                      ', ',
+                                    ),
+                                    decoration: const InputDecoration(
+                                      labelText:
+                                          'Syntactic Anchors (Comma-separated list)',
+                                      helperText:
+                                          'Required terminology (e.g. CSR, ESG)',
+                                      border: OutlineInputBorder(),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 8,
+                                      ),
+                                    ),
+                                    onChanged: (newAnchorsStr) {
+                                      final parsed = newAnchorsStr
+                                          .split(',')
+                                          .map((e) => e.trim())
+                                          .where((e) => e.isNotEmpty)
+                                          .toList();
+                                      setState(() {
+                                        final newTdas = List<TDAAssertion>.from(
+                                          claim.tdaAssertions,
+                                        );
+                                        newTdas[tdaIdx] = tda.copyWith(
+                                          syntacticAnchors: parsed,
+                                        );
+                                        final newClaims =
+                                            List<MatrixClaim>.from(
+                                              _editableScale.claims,
+                                            );
+                                        newClaims[index] = claim.copyWith(
+                                          tdaAssertions: newTdas,
+                                        );
+                                        _editableScale = _editableScale
+                                            .copyWith(claims: newClaims);
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Enforce Pre-Flight Checklist',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Must pass explicit criteria checks before assertion evaluation.',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Switch(
+                                        value: tda.enforcePreFlight,
+                                        onChanged: (newVal) {
+                                          setState(() {
+                                            final newTdas =
+                                                List<TDAAssertion>.from(
+                                                  claim.tdaAssertions,
+                                                );
+                                            newTdas[tdaIdx] = tda.copyWith(
+                                              enforcePreFlight: newVal,
+                                            );
+                                            final newClaims =
+                                                List<MatrixClaim>.from(
+                                                  _editableScale.claims,
+                                                );
+                                            newClaims[index] = claim.copyWith(
+                                              tdaAssertions: newTdas,
+                                            );
+                                            _editableScale = _editableScale
+                                                .copyWith(claims: newClaims);
+                                          });
+                                        },
+                                      ),
+                                    ],
                                   ),
                                   const SizedBox(height: 8),
                                   Row(

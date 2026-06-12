@@ -18,7 +18,6 @@ from backend_v2.models.dtos.lightweight_matrix import (
 )
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.enums import (
-    EvaluationMandate,
     LaxXaiExtensionType,
     ScoringCalibrationThresholds,
 )
@@ -590,13 +589,12 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 for claim in claims:
                     tda_assertions = claim.tda_assertions
                     if tda_assertions:
-                        mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
                         for tda in tda_assertions:
                             aid = str(tda.tda_id)
                             atom_mapping[aid] = (
                                 pb_id,
                                 s_val,
-                                tda.concept_description.resolve("en") if hasattr(tda, "concept_description") else "",
+                                tda.concept_description if getattr(tda, "concept_description", None) else "",
                                 str(tda.aggregation_mode),
                                 tda.inverse_evidence,
                                 tda.allow_contextual_override,
@@ -666,7 +664,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                     if tda_assertions:
                         for tda in tda_assertions:
                             aid = tda.tda_id
-                            text = tda.concept_description.resolve("en") if hasattr(tda, "concept_description") else ""
+                            text = tda.concept_description if getattr(tda, "concept_description", None) else ""
 
                             # Determine evaluation track
                             if tda.evaluation_track == "EXTRACTIVE_SENSOR" and tda.logical_expression:

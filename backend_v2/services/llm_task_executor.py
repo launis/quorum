@@ -24,7 +24,7 @@ from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 logger = logging.getLogger(__name__)
 
 
-def _build_null_fallback(model_cls: type[BaseModel], existing: Any | None = None) -> Any:
+def _build_null_fallback(model_cls: type[BaseModel], existing: Any | None = None, source_text: str | None = None) -> Any:
     """Phase 1: Extract Pydantic reflection fallback generation to remove DRY violation."""
     fallback_data: dict[str, Any] = {}
 
@@ -47,11 +47,28 @@ def _build_null_fallback(model_cls: type[BaseModel], existing: Any | None = None
 
         if is_list and inner_cls:
             if existing_val and isinstance(existing_val, list):
-                fallback_data[name] = [_build_null_fallback(inner_cls, item) for item in existing_val]
+                new_list = []
+                for item in existing_val:
+                    if source_text and item:
+                        try:
+                            _perform_semantic_validation(item, source_text)
+                            new_list.append(item)
+                        except LogicalValidationError:
+                            new_list.append(_build_null_fallback(inner_cls, item, source_text))
+                    else:
+                        new_list.append(_build_null_fallback(inner_cls, item, source_text))
+                fallback_data[name] = new_list
             else:
                 fallback_data[name] = []
         elif inner_cls:
-            fallback_data[name] = _build_null_fallback(inner_cls, existing_val)
+            if source_text and existing_val:
+                try:
+                    _perform_semantic_validation(existing_val, source_text)
+                    fallback_data[name] = existing_val
+                except LogicalValidationError:
+                    fallback_data[name] = _build_null_fallback(inner_cls, existing_val, source_text)
+            else:
+                fallback_data[name] = _build_null_fallback(inner_cls, existing_val, source_text)
         else:
             if name in ["exact_quote", "step_2_quote", "step_1_evidence_quote"]:
                 fallback_data[name] = None
@@ -276,7 +293,8 @@ class LLMTaskExecutor:
                             response_model.__name__,
                             extra={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name},
                         )
-                        fallback = _build_null_fallback(response_model, validated_model)
+                        source_txt = validation_context.get("source_text") if validation_context else None
+                        fallback = _build_null_fallback(response_model, validated_model, source_txt)
                         return fallback, cumulative_usage
 
                     # Stuck Loop Detection
@@ -286,7 +304,8 @@ class LLMTaskExecutor:
                             response_model.__name__,
                             extra={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.name},
                         )
-                        fallback = _build_null_fallback(response_model, validated_model)
+                        source_txt = validation_context.get("source_text") if validation_context else None
+                        fallback = _build_null_fallback(response_model, validated_model, source_txt)
                         return fallback, cumulative_usage
 
                     previous_error_msg = error_msg

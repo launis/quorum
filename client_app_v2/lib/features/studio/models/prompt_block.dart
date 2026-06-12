@@ -56,17 +56,58 @@ abstract class TheoryGrounding with _$TheoryGrounding {
 }
 
 @Freezed(equal: false)
+abstract class AcceptanceCriterion with _$AcceptanceCriterion {
+  const AcceptanceCriterion._();
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory AcceptanceCriterion({
+    required String instruction,
+    @JsonKey(name: 'requires_contextual_override')
+    @Default(false)
+    bool requiresContextualOverride,
+  }) = _AcceptanceCriterion;
+
+  factory AcceptanceCriterion.fromJson(Map<String, dynamic> json) =>
+      _$AcceptanceCriterionFromJson(json);
+}
+
+@Freezed(equal: false)
+abstract class AntiPattern with _$AntiPattern {
+  const AntiPattern._();
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory AntiPattern({
+    required String pattern,
+    @JsonKey(name: 'allows_contextual_excuse')
+    @Default(false)
+    bool allowsContextualExcuse,
+  }) = _AntiPattern;
+
+  factory AntiPattern.fromJson(Map<String, dynamic> json) =>
+      _$AntiPatternFromJson(json);
+}
+
+@Freezed(equal: false)
 abstract class TDAAssertion with _$TDAAssertion {
   const TDAAssertion._();
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory TDAAssertion({
     @JsonKey(name: 'tda_id') required String tdaId,
-    @JsonKey(name: 'ai_rule_description') required String aiRuleDescription,
+    @JsonKey(name: 'concept_description') required String conceptDescription,
+    @JsonKey(name: 'acceptance_criteria')
+    @Default([])
+    List<AcceptanceCriterion> acceptanceCriteria,
+    @JsonKey(name: 'anti_patterns') @Default([]) List<AntiPattern> antiPatterns,
+    @JsonKey(name: 'contrastive_example') String? contrastiveExample,
+    @JsonKey(name: 'syntactic_anchors')
+    @Default([])
+    List<String> syntacticAnchors,
+    @JsonKey(name: 'enforce_pre_flight') @Default(false) bool enforcePreFlight,
     @JsonKey(name: 'inverse_evidence') required bool inverseEvidence,
     @JsonKey(name: 'aggregation_mode') required AggregationMode aggregationMode,
     @JsonKey(name: 'evaluation_track')
-    @Default(EvaluationTrack.extractiveSensor)
+    @Default(EvaluationTrack.cognitiveJudgement)
     EvaluationTrack evaluationTrack,
     @JsonKey(name: 'facts_to_find') @Default([]) List<String> factsToFind,
     @JsonKey(name: 'logical_expression') String? logicalExpression,
@@ -81,10 +122,10 @@ abstract class TDAAssertion with _$TDAAssertion {
 
   /// Phase 2: Generates an Opaque Stripe ID automatically
   factory TDAAssertion.create({
-    required String aiRuleDescription,
+    required String conceptDescription,
     required bool inverseEvidence,
     required AggregationMode aggregationMode,
-    EvaluationTrack evaluationTrack = EvaluationTrack.extractiveSensor,
+    EvaluationTrack evaluationTrack = EvaluationTrack.cognitiveJudgement,
     List<String> factsToFind = const [],
     String? logicalExpression,
     bool allowContextualOverride = false,
@@ -92,7 +133,7 @@ abstract class TDAAssertion with _$TDAAssertion {
     final uuidHex = const Uuid().v4().replaceAll('-', '');
     return TDAAssertion(
       tdaId: 'tda_${uuidHex.substring(0, 16)}',
-      aiRuleDescription: aiRuleDescription,
+      conceptDescription: conceptDescription,
       inverseEvidence: inverseEvidence,
       aggregationMode: aggregationMode,
       evaluationTrack: evaluationTrack,
@@ -170,6 +211,9 @@ abstract class PromptBlock with _$PromptBlock {
     @Default(false) bool allowDecimals,
     @Default([]) List<String> outputExtensions,
     TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'is_lightweight_protocol')
+    @Default(false)
+    bool isLightweightProtocol,
     int? scaleMin,
     int? scaleMax,
     @JsonKey(includeToJson: false) int? computedMin,

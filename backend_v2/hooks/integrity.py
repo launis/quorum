@@ -14,6 +14,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.integrity import CitationAudit, StepContext
+from backend_v2.models.enums import QuorumLexicalConfig
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 from backend_v2.utils.paths import get_forensic_input_path
@@ -107,9 +108,9 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
         if not quote or len(quote) < 4:
             return False
         norm_q = quote.lower().strip()
-        # O(1) best case, early return on first partial fuzzy match >= 85%
+        # O(1) best case, early return on first partial fuzzy match >= FUZZ_THRESHOLD_BILINGUAL
         for chunk in corpus_chunks:
-            if fuzz.partial_ratio(norm_q, chunk) >= 85:
+            if fuzz.partial_ratio(norm_q, chunk) >= QuorumLexicalConfig.FUZZ_THRESHOLD_BILINGUAL.value:
                 return False
         return True
 

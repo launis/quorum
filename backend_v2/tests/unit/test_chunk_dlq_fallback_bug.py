@@ -11,6 +11,10 @@ class MockChunk:
     def __init__(self, items: list[dict[str, str]]) -> None:
         self.items = items
 
+    def model_copy(self, update: dict[str, Any] | None = None) -> MockChunk:
+        new_items = update.get("items", self.items) if update else self.items
+        return MockChunk(items=new_items)
+
 
 class MockCompiler:
     def build_dynamic_schema(self, *args: Any, **kwargs: Any) -> type:

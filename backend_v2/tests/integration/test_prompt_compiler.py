@@ -29,13 +29,19 @@ def test_inverse_logic_injected() -> None:
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
-                                "concept_description": {"default_locale": "en", "translations": {"en": "Standard rule", "fi": "Standard rule"}},
+                                "concept_description": {
+                                    "default_locale": "en",
+                                    "translations": {"en": "Standard rule", "fi": "Standard rule"},
+                                },
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             },
                             {
                                 "tda_id": "tda_22222222222222222222222222222222",
-                                "concept_description": {"default_locale": "en", "translations": {"en": "Inverse rule", "fi": "Inverse rule"}},
+                                "concept_description": {
+                                    "default_locale": "en",
+                                    "translations": {"en": "Inverse rule", "fi": "Inverse rule"},
+                                },
                                 "inverse_evidence": True,
                                 "aggregation_mode": "EXISTS",
                             },

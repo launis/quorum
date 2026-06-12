@@ -18,11 +18,17 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
         "allow_decimals": True,
         "scale_min": 1,
         "scale_max": 5,
-        "label": {"default_locale": "en", "translations": {"en": "Critical Distance Score", "fi": "Critical Distance Score"}},
+        "label": {
+            "default_locale": "en",
+            "translations": {"en": "Critical Distance Score", "fi": "Critical Distance Score"},
+        },
         "ai_description": "ROLE: ADVERSARIAL AUDITOR... Evaluate the user's intellectual effort...",
         "rows": [
             {
-                "label": {"default_locale": "en", "translations": {"en": "Critical Distance Score", "fi": "Critical Distance Score"}},
+                "label": {
+                    "default_locale": "en",
+                    "translations": {"en": "Critical Distance Score", "fi": "Critical Distance Score"},
+                },
                 "ai_description": (
                     "EVALUATE SPECIFICALLY: How well the user detached themselves from the AI "
                     "to judge its logic objectively."
@@ -38,7 +44,8 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                         "label": {
                             "default_locale": "en",
                             "translations": {
-                                "en": "The user is a 'Yes-man'. Blindly accepted the AI's first response.", "fi": "Mock"
+                                "en": "The user is a 'Yes-man'. Blindly accepted the AI's first response.",
+                                "fi": "Mock",
                             },
                         },
                         "ai_description": (
@@ -48,7 +55,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
-                                "concept_description": {"default_locale": "en", "translations": {"en": "Total failure of critical faculty...", "fi": "Total failure of critical faculty..."}},
+                                "concept_description": "Total failure of critical faculty...",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             }
@@ -65,7 +72,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_22222222222222222222222222222222",
-                                "concept_description": {"default_locale": "en", "translations": {"en": "Falsify immediately if any objection exists.", "fi": "Falsify immediately if any objection exists."}},
+                                "concept_description": "Falsify immediately if any objection exists.",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             }
@@ -80,13 +87,16 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                     {
                         "label": {
                             "default_locale": "en",
-                            "translations": {"en": "The user requested changes, but they were only superficial.", "fi": "Mock"},
+                            "translations": {
+                                "en": "The user requested changes, but they were only superficial.",
+                                "fi": "Mock",
+                            },
                         },
                         "ai_description": "CRITICAL EVALUATION DIRECTIVE: Engagement is purely cosmetic...",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_33333333333333333333333333333333",
-                                "concept_description": {"default_locale": "en", "translations": {"en": "Engagement is purely cosmetic...", "fi": "Engagement is purely cosmetic..."}},
+                                "concept_description": "Engagement is purely cosmetic...",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             }
@@ -151,7 +161,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_44444444444444444444444444444444",
-                                "concept_description": {"default_locale": "en", "translations": {"en": "Directive 1", "fi": "Directive 1"}},
+                                "concept_description": "Directive 1",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             }
@@ -495,12 +505,15 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
                 "ai_label": "ONE",
                 "claims": [
                     {
-                        "label": {"default_locale": "en", "translations": {"en": "Minimal Claim", "fi": "Minimal Claim"}},
+                        "label": {
+                            "default_locale": "en",
+                            "translations": {"en": "Minimal Claim", "fi": "Minimal Claim"},
+                        },
                         "ai_description": "Minimal claim AI description",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
-                                "concept_description": {"default_locale": "en", "translations": {"en": "Assertion rule", "fi": "Assertion rule"}},
+                                "concept_description": "Assertion rule",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             }
@@ -534,7 +547,10 @@ def test_build_dynamic_schema_instruction_with_custom_category() -> None:
         "category_id": "system_rule",
         "type": "instruction",
         "label": {"default_locale": "en", "translations": {"en": "Instruction Label", "fi": "Instruction Label"}},
-        "description": {"default_locale": "en", "translations": {"en": "Instruction Description", "fi": "Instruction Description"}},
+        "description": {
+            "default_locale": "en",
+            "translations": {"en": "Instruction Description", "fi": "Instruction Description"},
+        },
         "ai_description": "Custom instruction details.",
     }
 

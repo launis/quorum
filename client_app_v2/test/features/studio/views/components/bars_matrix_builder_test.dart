@@ -27,13 +27,13 @@ void main() {
               tdaAssertions: [
                 TDAAssertion(
                   tdaId: 'tda_1',
-                  aiRuleDescription: 'Atom 1 Rule',
+                  conceptDescription: 'Atom 1 Rule',
                   inverseEvidence: false,
                   aggregationMode: AggregationMode.exists,
                 ),
                 TDAAssertion(
                   tdaId: 'tda_2',
-                  aiRuleDescription: 'Atom 2 Rule',
+                  conceptDescription: 'Atom 2 Rule',
                   inverseEvidence: true,
                   aggregationMode: AggregationMode.exists,
                 ),

@@ -198,13 +198,19 @@ def mock_repo_microcot() -> Any:
             "steps": [],
             "output_profiles": {
                 "prf_1234567890abcdef": {
-                    "name": {"default_locale": "en", "translations": {"en": "Default Profile", "fi": "Default Profile"}},
+                    "name": {
+                        "default_locale": "en",
+                        "translations": {"en": "Default Profile", "fi": "Default Profile"},
+                    },
                     "synthesis": None,
                     "layouts": [
                         {
                             "preset_view": "2d_compare",
                             "text_delivery_mode": "full",
-                            "title": {"default_locale": "en", "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"}},
+                            "title": {
+                                "default_locale": "en",
+                                "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"},
+                            },
                             "target_blocks": ["*"],
                             "description": None,
                         }
@@ -225,7 +231,10 @@ def mock_repo_microcot() -> Any:
                     {
                         "preset_view": "2d_compare",
                         "text_delivery_mode": "full",
-                        "title": {"default_locale": "en", "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"}},
+                        "title": {
+                            "default_locale": "en",
+                            "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"},
+                        },
                         "target_blocks": ["*"],
                         "description": None,
                     }

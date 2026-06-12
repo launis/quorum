@@ -172,14 +172,14 @@ class TheoryGrounding(V2CoreBase):
 class AcceptanceCriterion(V2CoreBase):
     """Structured acceptance criterion with bilingual instruction."""
 
-    instruction: I18nText = Field(description="Structured bilingual instruction.")
+    instruction: str = Field(description="Structured monolingual instruction.")
     requires_contextual_override: bool = Field(default=False)
 
 
 class AntiPattern(V2CoreBase):
     """Known anti-pattern with bilingual description."""
 
-    pattern: I18nText = Field(description="Known anti-pattern with I18n description.")
+    pattern: str = Field(description="Known anti-pattern with monolingual description.")
     allows_contextual_excuse: bool = Field(default=False)
 
 
@@ -188,7 +188,6 @@ class TDAAssertion(V2CoreBase):
 
     Attributes:
         tda_id: Opaque Stripe ID for this assertion.
-        ai_rule_description: Strict enforcement rule.
         inverse_evidence: If True, acts as a poison/penalty detector.
         aggregation_mode: Aggregation constraint.
         evaluation_track: Decoupled evaluation track.
@@ -228,19 +227,19 @@ class TDAAssertion(V2CoreBase):
         description="If True, enables multi-agent ensemble majority voting for this assertion.",
     )
 
-    # Phase 4: Bilingual structured fields (migrated from flat ai_rule_description)
-    concept_description: I18nText = Field(description="Structured bilingual concept description.")
+    # Phase 4: Monolingual concept description for LLM (migrated from flat ai_rule_description)
+    concept_description: str = Field(description="Monolingual English concept description for the LLM.")
     acceptance_criteria: list[AcceptanceCriterion] = Field(
         default_factory=list,
-        description="Structured acceptance criteria with I18n instructions.",
+        description="Structured acceptance criteria with monolingual instructions.",
     )
     anti_patterns: list[AntiPattern] = Field(
         default_factory=list,
-        description="Known anti-patterns with I18n descriptions.",
+        description="Known anti-patterns with monolingual descriptions.",
     )
-    contrastive_example: I18nText | None = Field(
+    contrastive_example: str | None = Field(
         default=None,
-        description="Bilingual contrastive example showing correct vs incorrect.",
+        description="Monolingual contrastive example showing correct vs incorrect.",
     )
     syntactic_anchors: list[str] = Field(
         default_factory=list,

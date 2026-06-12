@@ -228,7 +228,7 @@ class SystemConcurrency(int, Enum):
     """Global concurrency limits for DAG Execution. Optimized for Context Caching (V3)."""
 
     MAX_CONCURRENT_WORKFLOWS = 10
-    MAX_CONCURRENT_LLM_STEPS = 15
+    MAX_CONCURRENT_LLM_STEPS = 1
     LLM_MAX_RETRIES = 4
     LLM_RETRY_MULTIPLIER = 2
     LLM_RETRY_MIN_SECONDS = 1
@@ -253,13 +253,19 @@ class SystemConcurrency(int, Enum):
     CONTEXT_CACHE_LOCK_POLL_INTERVAL_MS = 500
     CONTEXT_CACHE_LOCK_WAIT_LIMIT_SECONDS = 20
     CONTEXT_CACHE_MINIMUM_TOKEN_LIMIT = 2048
-    PACING_DELAY_VERTEX_SECONDS = 0
+    PACING_DELAY_VERTEX_SECONDS = 12
     PACING_DELAY_OPENAI_SECONDS = 0
     PACING_DELAY_MOCK_SECONDS = 0
     REDIS_CONNECTION_TIMEOUT_SECONDS = 10
 
 
 # --- Restored V1 Enums ---
+
+
+class QuorumLexicalConfig(float, Enum):
+    """Global configuration constants for lexical processing."""
+
+    FUZZ_THRESHOLD_BILINGUAL = 85.0
 
 
 class StrictnessAnchor(IntEnum):

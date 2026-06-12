@@ -29,7 +29,7 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
         # Fallback to checking label translations for 'Causal Analyst'
         if isinstance(item, dict) and "label" in item:
             label_trans = item["label"].get("translations", {})
-            if label_trans.get("en") == "Causal Analyst":
+            if label_trans == "Causal Analyst":
                 causal_block_data = item
                 break
 
@@ -39,7 +39,10 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
             "id": "blk_1234567890abcdef",
             "slug": "causal_analyst",
             "category_id": "matrix",
-            "description": {"default_locale": "en", "translations": {"en": "Causal Analyst Evaluation", "fi": "Causal Analyst Evaluation"}},
+            "description": {
+                "default_locale": "en",
+                "translations": {"en": "Causal Analyst Evaluation", "fi": "Causal Analyst Evaluation"},
+            },
             "type": "float",
             "allow_decimals": True,
             "scale_min": 1,
@@ -64,7 +67,7 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
                             "tda_assertions": [
                                 {
                                     "tda_id": "tda_11112222333344441111222233334444",
-                                    "concept_description": {"default_locale": "en", "translations": {"en": "Assertion rule causal details...", "fi": "Assertion rule causal details..."}},
+                                    "concept_description": "Assertion rule causal details...",
                                     "inverse_evidence": False,
                                     "aggregation_mode": "ALL_MUST_COMPLY",
                                 }

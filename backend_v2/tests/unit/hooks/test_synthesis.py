@@ -445,7 +445,10 @@ async def test_synthesis_hook_success(
                 "synthesis": {
                     "system_prompt": "Test sys prompt",
                     "length_constraint": 500,
-                    "preamble_text": {"default_locale": "en", "translations": {"en": "Always be concise.", "fi": "Always be concise."}},
+                    "preamble_text": {
+                        "default_locale": "en",
+                        "translations": {"en": "Always be concise.", "fi": "Always be concise."},
+                    },
                     "omit_empty_sections": True,
                     "enable_pii_masking": True,
                 },

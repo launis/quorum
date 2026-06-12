@@ -163,9 +163,7 @@ class PromptBlockCategoryGroups {
   static final List<String> roleCategories = ['agent_role'];
 
   /// Categories allowed for Execution Persona Blocks.
-  static final List<String> personaCategories = [
-    'execution_persona',
-  ];
+  static final List<String> personaCategories = ['execution_persona'];
 
   /// Categories allowed for Protocol Blocks.
   static final List<String> protocolCategories = ['protocol'];

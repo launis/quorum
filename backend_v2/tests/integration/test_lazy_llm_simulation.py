@@ -14,7 +14,6 @@ from backend_v2.models.dtos.lightweight_matrix import AtomEvaluationItemDTO
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, PromptBlock, TDAAssertion
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
-from backend_v2.models.v2_core import I18nText
 
 
 def test_lazy_llm_unauthorized_override_failed() -> None:
@@ -86,7 +85,7 @@ def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
     rule_desc = "Scan document. Ensure no major product failure occurs before phase 2."
     assertion = TDAAssertion(
         tda_id="tda_e6f8a9b0c2d3e4f5e6f8a9b0c2d3e4f5",
-        ai_rule_description=rule_desc,
+        concept_description=rule_desc,
         inverse_evidence=True,  # Negative state / poison claim
         aggregation_mode="EXISTS",
     )

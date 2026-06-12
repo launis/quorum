@@ -1,13 +1,14 @@
 import os
 import re
 
+
 def fix_mocks(path):
     # Match any dictionary containing 'en' inside 'translations' dict or kwargs
     # Just look for {"en": <ANYTHING>} or 'en': <ANYTHING> and add 'fi': <ANYTHING> if it's missing.
     # This is slightly risky but since it's just test files, it's fine.
-    
+
     pattern_dict = re.compile(r'([\'"]en[\'"]\s*:\s*([^,}]+))')
-    
+
     if os.path.isfile(path):
         files = [path]
     else:
@@ -16,13 +17,13 @@ def fix_mocks(path):
             for f in fs:
                 if f.endswith('.py'):
                     files.append(os.path.join(root, f))
-                    
+
     for file in files:
-        with open(file, 'r', encoding='utf-8') as f:
+        with open(file, encoding='utf-8') as f:
             content = f.read()
-            
+
         original_content = content
-        
+
         # We need a smarter way: only replace 'en' if we see it in a context like "translations" or I18nText
         # Let's find `translations={...}` or `"translations": {...}`
         def process_translations(match):
@@ -37,11 +38,11 @@ def fix_mocks(path):
                     new_inner = inner_block.replace(full_en, f'{full_en}, "fi": {val}')
                     return match.group(1) + new_inner + match.group(3)
             return match.group(0)
-            
+
         # Match `"translations": { ... }` or `translations={ ... }`
         p = re.compile(r'(translations["\']?\s*[:=]\s*\{)(.*?)(})', flags=re.DOTALL)
         content = p.sub(process_translations, content)
-        
+
         if content != original_content:
             with open(file, 'w', encoding='utf-8') as f:
                 f.write(content)

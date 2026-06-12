@@ -2,7 +2,7 @@ import json
 
 seed_path = r'c:\src\quorum\backend_v2\seed\seed_data.json'
 
-with open(seed_path, 'r', encoding='utf-8') as f:
+with open(seed_path, encoding='utf-8') as f:
     data = json.load(f)
 
 for profile in data.get('output_profiles', []):

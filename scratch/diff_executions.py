@@ -303,7 +303,7 @@ if __name__ == '__main__':
         if '.' not in sys.path:
             sys.path.insert(0, '.')
         import backend_v2.models.enums as enums
-        
+
         EvalRunCount = getattr(enums, 'EvaluationRunCount', None)
         ensemble_val = getattr(EvalRunCount, 'ENSEMBLE', None)
         standard_val = getattr(EvalRunCount, 'STANDARD', None)
@@ -320,14 +320,14 @@ if __name__ == '__main__':
             f"  - **EvaluationRunCount**: ENSEMBLE = {ensemble_v}, STANDARD = {standard_v}\n"
             f"  - **VerificationResult**: VERIFIED = {pass_v}, DEBUNKED = {fail_v}"
         )
-        
+
         SysConcurrency = getattr(enums, 'SystemConcurrency', None)
         if SysConcurrency:
             # Otetaan koko SystemConcurrency-enum dynaamisesti (jotta L227-259 asiat tulostuvat)
             sc_items = []
             for k, v in SysConcurrency.__members__.items():
                 sc_items.append(f"{k} = {v.value}")
-            sys_enums += f"\n  - **SystemConcurrency**:\n    - " + "\n    - ".join(sc_items)
+            sys_enums += "\n  - **SystemConcurrency**:\n    - " + "\n    - ".join(sc_items)
 
     except Exception as e:
         sys_enums = f"Virhe Enumien luvussa: {e}"
@@ -338,7 +338,7 @@ if __name__ == '__main__':
         frozen_path = os.path.join(os.path.dirname(loaded_paths[0]), 'frozen_context.json')
         if os.path.exists(frozen_path):
             try:
-                with open(frozen_path, 'r', encoding='utf-8') as f:
+                with open(frozen_path, encoding='utf-8') as f:
                     frozen_data = json.load(f)
                 hints = frozen_data.get('ui_hints_snapshot', {})
                 if hints:
@@ -361,14 +361,14 @@ if __name__ == '__main__':
                                 else:
                                     block_stats[bid]['OTHER'] += 1
                         block_stats_by_run.append(block_stats)
-                                    
+
                     frozen_lines = []
                     for block_id, conf in hints.items():
                         opts = conf.get('options', [])
                         label_fi = "Tuntematon"
                         if opts and 'label' in opts[0] and 'translations' in opts[0]['label']:
                             label_fi = opts[0]['label']['translations'].get('fi', opts[0]['label']['translations'].get('en', 'Tuntematon'))
-                        
+
                         run_strs = []
                         total_evaluated = 0
                         for r_idx, stats in enumerate(block_stats_by_run):
@@ -376,16 +376,16 @@ if __name__ == '__main__':
                             pass_c = b_stat.get('PASS', 0)
                             fail_c = b_stat.get('FAIL', 0)
                             dlq_c = b_stat.get('DLQ', 0)
-                            
+
                             if pass_c > 0 or fail_c > 0 or dlq_c > 0:
                                 total_evaluated += 1
-                                
+
                             dlq_str = f"|DLQ:{dlq_c}" if dlq_c > 0 else ""
                             run_strs.append(f"[R{r_idx+1}: {pass_c}P/{fail_c}F{dlq_str}]")
-                            
+
                         if total_evaluated == 0:
                             continue
-                            
+
                         stats_str = " ".join(run_strs)
                         frozen_lines.append(f"  - **{label_fi}** (`{block_id}`) - {stats_str}")
                     if frozen_lines:
@@ -399,18 +399,18 @@ if __name__ == '__main__':
         f.write('## Ympäristö ja Konteksti (Execution State)\n')
         f.write(f'- **Git / Epic -tila:** {git_info}\n')
         f.write(f'- **Kriittiset järjestelmäarvot (Enums):**\n{sys_enums}\n')
-        
+
         f.write('- **Vertailtavat ajot (R1, R2...):**\n')
         for idx, run_name in enumerate(loaded_runs):
             f.write(f'  - **R{idx + 1}:** `{run_name}`\n')
-            
+
         f.write(f'- **Aktiiviset Säännöt ja Asetukset (Frozen Context):**{frozen_context_info}\n\n')
 
         f.write('## Ajojen Lähdetiedostot ja Syötteet\n')
         for idx, (run_name, exe_path) in enumerate(zip(loaded_runs, loaded_paths)):
             abs_path = os.path.abspath(exe_path).replace('\\', '/')
             f.write(f'- **Run {idx + 1}:** `{run_name}` (Lähde: [{exe_path}](file:///{abs_path}))\n')
-            
+
             run_dir = os.path.dirname(exe_path)
             inputs_dir = os.path.join(run_dir, 'inputs')
             if os.path.isdir(inputs_dir):

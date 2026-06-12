@@ -24,7 +24,7 @@ def _build_valid_scale(score: Any, micro_atoms: list[str] | None = None) -> dict
                 "tda_assertions": [
                     {
                         "tda_id": f"tda_{hashlib.md5(atom.encode()).hexdigest()[:32]}",
-                        "concept_description": {"default_locale": "en", "translations": {"en": atom, "fi": atom}},
+                        "concept_description": atom,
                         "inverse_evidence": False,
                         "aggregation_mode": "EXISTS",
                     }

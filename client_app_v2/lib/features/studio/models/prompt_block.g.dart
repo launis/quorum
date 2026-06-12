@@ -36,6 +36,62 @@ Map<String, dynamic> _$TheoryGroundingToJson(_TheoryGrounding instance) =>
       'citation_reference': instance.citationReference,
     };
 
+_AcceptanceCriterion _$AcceptanceCriterionFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      '_AcceptanceCriterion',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const ['instruction', 'requires_contextual_override'],
+        );
+        final val = _AcceptanceCriterion(
+          instruction: $checkedConvert('instruction', (v) => v as String),
+          requiresContextualOverride: $checkedConvert(
+            'requires_contextual_override',
+            (v) => v as bool? ?? false,
+          ),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'requiresContextualOverride': 'requires_contextual_override',
+      },
+    );
+
+Map<String, dynamic> _$AcceptanceCriterionToJson(
+  _AcceptanceCriterion instance,
+) => <String, dynamic>{
+  'instruction': instance.instruction,
+  'requires_contextual_override': instance.requiresContextualOverride,
+};
+
+_AntiPattern _$AntiPatternFromJson(Map<String, dynamic> json) => $checkedCreate(
+  '_AntiPattern',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const ['pattern', 'allows_contextual_excuse'],
+    );
+    final val = _AntiPattern(
+      pattern: $checkedConvert('pattern', (v) => v as String),
+      allowsContextualExcuse: $checkedConvert(
+        'allows_contextual_excuse',
+        (v) => v as bool? ?? false,
+      ),
+    );
+    return val;
+  },
+  fieldKeyMap: const {'allowsContextualExcuse': 'allows_contextual_excuse'},
+);
+
+Map<String, dynamic> _$AntiPatternToJson(_AntiPattern instance) =>
+    <String, dynamic>{
+      'pattern': instance.pattern,
+      'allows_contextual_excuse': instance.allowsContextualExcuse,
+    };
+
 _TDAAssertion _$TDAAssertionFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate(
@@ -46,7 +102,12 @@ _TDAAssertion _$TDAAssertionFromJson(
       json,
       allowedKeys: const [
         'tda_id',
-        'ai_rule_description',
+        'concept_description',
+        'acceptance_criteria',
+        'anti_patterns',
+        'contrastive_example',
+        'syntactic_anchors',
+        'enforce_pre_flight',
         'inverse_evidence',
         'aggregation_mode',
         'evaluation_track',
@@ -58,9 +119,41 @@ _TDAAssertion _$TDAAssertionFromJson(
     );
     final val = _TDAAssertion(
       tdaId: $checkedConvert('tda_id', (v) => v as String),
-      aiRuleDescription: $checkedConvert(
-        'ai_rule_description',
+      conceptDescription: $checkedConvert(
+        'concept_description',
         (v) => v as String,
+      ),
+      acceptanceCriteria: $checkedConvert(
+        'acceptance_criteria',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) =>
+                      AcceptanceCriterion.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
+      ),
+      antiPatterns: $checkedConvert(
+        'anti_patterns',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => AntiPattern.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      ),
+      contrastiveExample: $checkedConvert(
+        'contrastive_example',
+        (v) => v as String?,
+      ),
+      syntacticAnchors: $checkedConvert(
+        'syntactic_anchors',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      enforcePreFlight: $checkedConvert(
+        'enforce_pre_flight',
+        (v) => v as bool? ?? false,
       ),
       inverseEvidence: $checkedConvert('inverse_evidence', (v) => v as bool),
       aggregationMode: $checkedConvert(
@@ -71,7 +164,7 @@ _TDAAssertion _$TDAAssertionFromJson(
         'evaluation_track',
         (v) =>
             $enumDecodeNullable(_$EvaluationTrackEnumMap, v) ??
-            EvaluationTrack.extractiveSensor,
+            EvaluationTrack.cognitiveJudgement,
       ),
       factsToFind: $checkedConvert(
         'facts_to_find',
@@ -92,7 +185,12 @@ _TDAAssertion _$TDAAssertionFromJson(
   },
   fieldKeyMap: const {
     'tdaId': 'tda_id',
-    'aiRuleDescription': 'ai_rule_description',
+    'conceptDescription': 'concept_description',
+    'acceptanceCriteria': 'acceptance_criteria',
+    'antiPatterns': 'anti_patterns',
+    'contrastiveExample': 'contrastive_example',
+    'syntacticAnchors': 'syntactic_anchors',
+    'enforcePreFlight': 'enforce_pre_flight',
     'inverseEvidence': 'inverse_evidence',
     'aggregationMode': 'aggregation_mode',
     'evaluationTrack': 'evaluation_track',
@@ -106,7 +204,14 @@ _TDAAssertion _$TDAAssertionFromJson(
 Map<String, dynamic> _$TDAAssertionToJson(_TDAAssertion instance) =>
     <String, dynamic>{
       'tda_id': instance.tdaId,
-      'ai_rule_description': instance.aiRuleDescription,
+      'concept_description': instance.conceptDescription,
+      'acceptance_criteria': instance.acceptanceCriteria
+          .map((e) => e.toJson())
+          .toList(),
+      'anti_patterns': instance.antiPatterns.map((e) => e.toJson()).toList(),
+      'contrastive_example': instance.contrastiveExample,
+      'syntactic_anchors': instance.syntacticAnchors,
+      'enforce_pre_flight': instance.enforcePreFlight,
       'inverse_evidence': instance.inverseEvidence,
       'aggregation_mode': _$AggregationModeEnumMap[instance.aggregationMode]!,
       'evaluation_track': _$EvaluationTrackEnumMap[instance.evaluationTrack]!,
@@ -234,6 +339,7 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
         'allow_decimals',
         'output_extensions',
         'theory_grounding',
+        'is_lightweight_protocol',
         'scale_min',
         'scale_max',
         'computed_min',
@@ -285,6 +391,10 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
             ? null
             : TheoryGrounding.fromJson(v as Map<String, dynamic>),
       ),
+      isLightweightProtocol: $checkedConvert(
+        'is_lightweight_protocol',
+        (v) => v as bool? ?? false,
+      ),
       scaleMin: $checkedConvert('scale_min', (v) => (v as num?)?.toInt()),
       scaleMax: $checkedConvert('scale_max', (v) => (v as num?)?.toInt()),
       computedMin: $checkedConvert('computed_min', (v) => (v as num?)?.toInt()),
@@ -318,6 +428,7 @@ _PromptBlock _$PromptBlockFromJson(Map<String, dynamic> json) => $checkedCreate(
     'allowDecimals': 'allow_decimals',
     'outputExtensions': 'output_extensions',
     'theoryGrounding': 'theory_grounding',
+    'isLightweightProtocol': 'is_lightweight_protocol',
     'scaleMin': 'scale_min',
     'scaleMax': 'scale_max',
     'computedMin': 'computed_min',
@@ -339,6 +450,7 @@ Map<String, dynamic> _$PromptBlockToJson(_PromptBlock instance) =>
       'allow_decimals': instance.allowDecimals,
       'output_extensions': instance.outputExtensions,
       'theory_grounding': instance.theoryGrounding?.toJson(),
+      'is_lightweight_protocol': instance.isLightweightProtocol,
       'scale_min': instance.scaleMin,
       'scale_max': instance.scaleMax,
       'scales': instance.scales?.map((e) => e.toJson()).toList(),

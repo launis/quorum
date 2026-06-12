@@ -24,7 +24,10 @@ def test_atom_id_is_first_field_in_shuffled_atoms_schema() -> None:
         "allow_decimals": True,
         "scale_min": 1,
         "scale_max": 5,
-        "label": {"default_locale": "en", "translations": {"en": "Critical Distance Score", "fi": "Critical Distance Score"}},
+        "label": {
+            "default_locale": "en",
+            "translations": {"en": "Critical Distance Score", "fi": "Critical Distance Score"},
+        },
         "ai_description": "ROLE: ADVERSARIAL AUDITOR... Evaluate the user's intellectual effort...",
         "scales": [
             {
@@ -35,14 +38,15 @@ def test_atom_id_is_first_field_in_shuffled_atoms_schema() -> None:
                         "label": {
                             "default_locale": "en",
                             "translations": {
-                                "en": "The user is a 'Yes-man'. Blindly accepted the AI's first response.", "fi": "Mock"
+                                "en": "The user is a 'Yes-man'. Blindly accepted the AI's first response.",
+                                "fi": "Mock",
                             },
                         },
                         "ai_description": "CRITICAL EVALUATION DIRECTIVE: Total failure of critical faculty.",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
-                                "concept_description": {"default_locale": "en", "translations": {"en": "Total failure of critical faculty...", "fi": "Total failure of critical faculty..."}},
+                                "concept_description": "Total failure of critical faculty...",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             }

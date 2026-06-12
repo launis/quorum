@@ -18,7 +18,6 @@ def mock_executor_class() -> Generator[Any]:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> None:
     """Test successful execution of a chunk through structured LLM task."""
     mock_compiler = MagicMock()
@@ -71,13 +70,13 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
                                 "tda_assertions": [
                                     {
                                         "tda_id": "tda_11111111111111111111111111111111",
-                                        "concept_description": {"default_locale": "en", "translations": {"en": "Atom 1", "fi": "Atom 1"}},
+                                        "concept_description": "Atom 1",
                                         "inverse_evidence": False,
                                         "aggregation_mode": "EXISTS",
                                     },
                                     {
                                         "tda_id": "tda_22222222222222222222222222222222",
-                                        "concept_description": {"default_locale": "en", "translations": {"en": "Atom 2", "fi": "Atom 2"}},
+                                        "concept_description": "Atom 2",
                                         "inverse_evidence": False,
                                         "aggregation_mode": "EXISTS",
                                     },
@@ -129,7 +128,6 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_chunk_worker_process_chunk_failure(mock_executor_class: Any) -> None:
     """Test that execution failure correctly routes to DLQ."""
     mock_compiler = MagicMock()
@@ -176,7 +174,6 @@ async def test_chunk_worker_process_chunk_failure(mock_executor_class: Any) -> N
     assert traces == []
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_deterministic_extraction_scoring() -> None:
     """Test the evaluate_extraction pure function."""
     from unittest.mock import patch
@@ -190,14 +187,20 @@ def test_deterministic_extraction_scoring() -> None:
         exact_quote: str | None = None
         contextual_override: bool = False
         semantic_reasoning: str | None = ""
+        premise_1_quote: str | None = None
 
     # Track B (Semantic Override = False, No quote) -> FAIL
     ext1 = MockExtraction(exact_quote=None, contextual_override=False)
     assert evaluate_extraction(ext1, "test text", False) == "FAIL"
 
-    # Track B (Semantic Override = True, No quote) -> PASS
-    ext2 = MockExtraction(exact_quote=None, contextual_override=True, semantic_reasoning="Model reasoning")
-    assert evaluate_extraction(ext2, "test text", False) == "PASS"
+    # Track B (Semantic Override = True, No exact_quote, but has premise) -> PASS
+    ext2 = MockExtraction(
+        exact_quote=None, contextual_override=True, semantic_reasoning="Model reasoning", premise_1_quote="test text"
+    )
+    with patch(
+        "backend_v2.services.orchestrator.anchor_validation_service.AnchorValidationService.validate_evidence"
+    ) as mock_val:
+        assert evaluate_extraction(ext2, "test text", False) == "PASS"
 
     # Track B (Semantic Override = True) with strictness >= 100 -> FAIL
     assert evaluate_extraction(ext2, "test text", False, strictness_level=100) == "FAIL"
@@ -232,7 +235,6 @@ def test_deterministic_extraction_scoring() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_class: Any) -> None:
     """Test standard block evaluation skips instruction blocks which are raw strings."""
     mock_compiler = MagicMock()
@@ -310,7 +312,6 @@ async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_c
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_chunk_worker_exception_group_dlq_masking(mock_executor_class: Any) -> None:
     """Test that ExceptionGroup correctly unwraps AppException for DLQ reason."""
     mock_compiler = MagicMock()

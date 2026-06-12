@@ -1,7 +1,6 @@
-import os
 
 def replace_in_file(file_path, old_str, new_str):
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, encoding='utf-8') as f:
         content = f.read()
     if old_str in content:
         content = content.replace(old_str, new_str)
@@ -16,16 +15,16 @@ files = [
 ]
 
 for file in files:
-    replace_in_file(file, 
+    replace_in_file(file,
         '"en": "The user is a \'Yes-man\'. Blindly accepted the AI\'s first response."',
         '"en": "The user is a \'Yes-man\'. Blindly accepted the AI\'s first response.", "fi": "Mock"')
-    replace_in_file(file, 
+    replace_in_file(file,
         '"en": "No corrective move or objection presented."',
         '"en": "No corrective move or objection presented.", "fi": "Mock"')
-    replace_in_file(file, 
+    replace_in_file(file,
         '"en": "The user requested changes, but they were only superficial."',
         '"en": "The user requested changes, but they were only superficial.", "fi": "Mock"')
-    replace_in_file(file, 
+    replace_in_file(file,
         'translations": {"en": atom}',
         'translations": {"en": atom, "fi": atom}')
 

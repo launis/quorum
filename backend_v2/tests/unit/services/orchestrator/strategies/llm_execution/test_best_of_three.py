@@ -105,13 +105,13 @@ def test_resolve_majority_vote_with_veto() -> None:
                                 "tda_assertions": [
                                     {
                                         "tda_id": "tda_11111111111111111111111111111111",
-                                        "concept_description": {"default_locale": "en", "translations": {"en": "Atom 1", "fi": "Atom 1"}},
+                                        "concept_description": "Atom 1",
                                         "inverse_evidence": True,  # This atom will trigger VETO
                                         "aggregation_mode": "EXISTS",
                                     },
                                     {
                                         "tda_id": "tda_22222222222222222222222222222222",
-                                        "concept_description": {"default_locale": "en", "translations": {"en": "Atom 2", "fi": "Atom 2"}},
+                                        "concept_description": "Atom 2",
                                         "inverse_evidence": False,
                                         "aggregation_mode": "EXISTS",
                                     },

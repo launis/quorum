@@ -46,7 +46,7 @@ def test_prompt_compiler_adapter_compile_chunk_prompt() -> None:
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
-                                "concept_description": {"default_locale": "en", "translations": {"en": "Directive 1", "fi": "Directive 1"}},
+                                "concept_description": "Directive 1",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             }
@@ -157,7 +157,7 @@ def test_prompt_caching_cryptographic_determinism_proof() -> None:
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_22222222222222222222222222222222",
-                                "concept_description": {"default_locale": "en", "translations": {"en": "Directive 1", "fi": "Directive 1"}},
+                                "concept_description": "Directive 1",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             }

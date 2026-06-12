@@ -16,8 +16,11 @@ from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+from backend_v2.services.orchestrator.extractive_sensor_service import ExtractiveSensorService
 
 logger = logging.getLogger(__name__)
+
+FEATURE_FLAG_EXTRACTIVE_SENSOR = True
 
 
 class AtomIdentifier(BaseModel):
@@ -280,75 +283,99 @@ class ChunkWorker:
         step_metadata: dict[str, Any] | None = None,
     ) -> tuple[dict[str, Any], TokenUsage | None, list[Any]]:
         """Processes a single execution chunk, mapping dynamic schemas and orchestrating tool loops."""
-        async with sem:
-            if running_event is not None and not running_event.is_set():
-                running_event.set()
-            chunk_criteria = list(criteria_blocks)
+        if running_event is not None and not running_event.is_set():
+            running_event.set()
+        chunk_criteria = list(criteria_blocks)
 
-            # V3 Cache Fix: Separate atoms from base payload
-            chunk_atoms_xml: str | None = None
-            if chunk is not None:
-                atoms_json = json.dumps(chunk.items, ensure_ascii=False, indent=2)
-                chunk_atoms_xml = f"<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>"
+        # V3 Cache Fix: Separate atoms from base payload
+        chunk_atoms_xml: str | None = None
+        pre_flight_results: dict[str, Any] = {}
 
-                # Apply Chunk context subsetting
-                if has_shuffled_atoms:
-                    chunk_matrix_ids = set()
-                    for item in chunk.items:
-                        try:
-                            aid_model = AtomIdentifier.model_validate(item)
-                            if aid_model.atom_id in atom_to_block_ids:
-                                chunk_matrix_ids.update(atom_to_block_ids[aid_model.atom_id])
-                        except ValidationError as e:
-                            logger.error(
-                                "[ChunkWorker] Strict Fail-Fast Enforced: Malformed atom item payload.",
-                                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
-                            )
-                            raise AppException(
-                                message="Atom item validation failed",
-                                status_code=500,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                            ) from e
+        if chunk is not None:
+            # Apply Chunk context subsetting
+            if has_shuffled_atoms:
+                chunk_matrix_ids = set()
+                filtered_items = []
+                for item in chunk.items:
+                    try:
+                        aid_model = AtomIdentifier.model_validate(item)
+                        if aid_model.atom_id in atom_to_block_ids:
+                            chunk_matrix_ids.update(atom_to_block_ids[aid_model.atom_id])
 
-                    chunk_criteria = []
-                    for bm in criteria_blocks:
-                        if bm.category_id != "matrix" or bm.id in chunk_matrix_ids:
-                            chunk_criteria.append(bm)
+                        # Phase 1: Pre-flight extraction via deterministic sensor
+                        if FEATURE_FLAG_EXTRACTIVE_SENSOR:
+                            tda_for_atom = None
+                            for bm in criteria_blocks:
+                                if bm.category_id == "matrix" and bm.scales:
+                                    for scale in bm.scales:
+                                        for claim in scale.claims:
+                                            for tda in claim.tda_assertions:
+                                                if tda.tda_id == aid_model.atom_id:
+                                                    tda_for_atom = tda
+                                                    break
 
-            # V3: Build dynamic schema for this chunk's criteria subset
-            local_dynamic_schema = compiler.build_dynamic_schema(
-                schema_name=f"Step_{step_id}_Response",
-                criteria=chunk_criteria,
-                has_search_result=has_search,
-                has_shuffled_atoms=has_shuffled_atoms,
-                target_locale=target_locale,
-            )
+                            if tda_for_atom:
+                                pf_res = ExtractiveSensorService.pre_evaluate(tda_for_atom, user_payload)
+                                if pf_res.decided:
+                                    pre_flight_results[aid_model.atom_id] = pf_res
+                                    continue  # Skip adding to filtered_items to avoid LLM cost
 
-            is_lightweight = False
-            if step_metadata and step_metadata.get("is_lightweight_extraction"):
-                is_lightweight = True
+                        filtered_items.append(item)
+                    except ValidationError as e:
+                        logger.error(
+                            "[ChunkWorker] Strict Fail-Fast Enforced: Malformed atom item payload.",
+                            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                        )
+                        raise AppException(
+                            message="Atom item validation failed",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        ) from e
 
-            # Phase 5: Fast-Model Compensator - Enforce Contextual Override Ban
-            if is_lightweight or has_shuffled_atoms:
-                strictness_level = max(strictness_level, 100)
+                chunk = chunk.model_copy(update={"items": filtered_items})
+                chunk_criteria = []
+                for bm in criteria_blocks:
+                    if bm.category_id != "matrix" or bm.id in chunk_matrix_ids:
+                        chunk_criteria.append(bm)
 
-            # V3 Cache Fix: Use CompiledPrompt with separated static/dynamic tiers
-            compiled_prompt = compiler.compile_chunk_prompt(
-                base_system_prompt=base_system_prompt,
-                chunk_criteria=chunk_criteria,
-                base_payload=user_payload,
-                chunk_atoms_xml=chunk_atoms_xml,
-                strictness_level=strictness_level,
-                target_locale=target_locale,
-            )
+            atoms_json = json.dumps(chunk.items, ensure_ascii=False, indent=2)
+            chunk_atoms_xml = f"<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>"
 
-            chunk_final: dict[str, Any] = {}
-            chunk_usage: TokenUsage | None = None
-            chunk_traces: list[Any] = []
+        # V3: Build dynamic schema for this chunk's criteria subset
+        local_dynamic_schema = compiler.build_dynamic_schema(
+            schema_name=f"Step_{step_id}_Response",
+            criteria=chunk_criteria,
+            has_search_result=has_search,
+            has_shuffled_atoms=has_shuffled_atoms,
+            target_locale=target_locale,
+        )
 
-            try:
-                if effective_mcp_tools:
-                    executor = LLMTaskExecutor(prompt_compiler=compiler)
+        is_lightweight = False
+        if step_metadata and step_metadata.get("is_lightweight_extraction"):
+            is_lightweight = True
+
+        # Phase 5: Fast-Model Compensator - Enforce Contextual Override Ban
+        if is_lightweight or has_shuffled_atoms:
+            strictness_level = max(strictness_level, 100)
+
+        # V3 Cache Fix: Use CompiledPrompt with separated static/dynamic tiers
+        compiled_prompt = compiler.compile_chunk_prompt(
+            base_system_prompt=base_system_prompt,
+            chunk_criteria=chunk_criteria,
+            base_payload=user_payload,
+            chunk_atoms_xml=chunk_atoms_xml,
+            strictness_level=strictness_level,
+            target_locale=target_locale,
+        )
+
+        chunk_final: dict[str, Any] = {}
+        chunk_usage: TokenUsage | None = None
+        chunk_traces: list[Any] = []
+
+        try:
+            if effective_mcp_tools:
+                executor = LLMTaskExecutor(prompt_compiler=compiler)
+                async with sem:
                     loop_res = await execute_tool_loop(
                         llm_client=bound_client,
                         executor=executor,
@@ -368,28 +395,27 @@ class ChunkWorker:
                             else 0,
                         },
                     )
-                    if isinstance(loop_res.result_data, BaseModel):
-                        chunk_final = loop_res.result_data.model_dump(mode="json")
-                    else:
-                        chunk_final = dict(loop_res.result_data)
-                    chunk_usage = loop_res.usage if loop_res.usage else None
-                    if loop_res.audit_traces:
-                        chunk_traces.extend(loop_res.audit_traces)
+                if isinstance(loop_res.result_data, BaseModel):
+                    chunk_final = loop_res.result_data.model_dump(mode="json")
                 else:
-                    executor = LLMTaskExecutor(prompt_compiler=compiler)
+                    chunk_final = dict(loop_res.result_data)
+                chunk_usage = loop_res.usage if loop_res.usage else None
+                if loop_res.audit_traces:
+                    chunk_traces.extend(loop_res.audit_traces)
+            else:
+                executor = LLMTaskExecutor(prompt_compiler=compiler)
 
-                    llm_count = (
-                        EvaluationRunCount.ENSEMBLE.value if is_lightweight else EvaluationRunCount.STANDARD.value
-                    )
+                llm_count = EvaluationRunCount.ENSEMBLE.value if is_lightweight else EvaluationRunCount.STANDARD.value
 
-                    async def run_llm_calls(
-                        prompt: CompiledPrompt, model_schema: type[BaseModel], count: int
-                    ) -> tuple[list[dict[str, Any]], TokenUsage]:
-                        """Execute LLM calls using native CompiledPrompt architecture."""
-                        results_list = []
-                        total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+                async def run_llm_calls(
+                    prompt: CompiledPrompt, model_schema: type[BaseModel], count: int
+                ) -> tuple[list[dict[str, Any]], TokenUsage]:
+                    """Execute LLM calls using native CompiledPrompt architecture."""
+                    results_list = []
+                    total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
-                        async def _safe_execute() -> tuple[Any, Any]:
+                    async def _safe_execute() -> tuple[Any, Any]:
+                        async with sem:
                             try:
                                 return await executor.execute_structured_task(
                                     client=bound_client,
@@ -411,157 +437,169 @@ class ChunkWorker:
                                 logger.warning(f"Single LLM call failed in ensemble: {e}")
                                 return e, None
 
-                        last_error = None
-                        if count > 1:
-                            tasks_list = []
-                            async with asyncio.TaskGroup() as tg:
-                                for _ in range(count):
-                                    tasks_list.append(tg.create_task(_safe_execute()))
-                            for t in tasks_list:
-                                res, usg = t.result()
-                                if isinstance(res, Exception):
-                                    last_error = res
-                                elif res:
-                                    results_list.append(res.model_dump(mode="json"))
-                                if usg:
-                                    total_usage = total_usage + usg
-                        else:
-                            res, usg = await _safe_execute()
+                    last_error = None
+                    if count > 1:
+                        tasks_list = []
+                        async with asyncio.TaskGroup() as tg:
+                            for _ in range(count):
+                                tasks_list.append(tg.create_task(_safe_execute()))
+                        for t in tasks_list:
+                            res, usg = t.result()
                             if isinstance(res, Exception):
                                 last_error = res
                             elif res:
                                 results_list.append(res.model_dump(mode="json"))
                             if usg:
                                 total_usage = total_usage + usg
-
-                        if not results_list:
-                            if last_error:
-                                raise last_error
-                            raise AppException(
-                                message="All LLM calls failed in the ensemble/standard run.",
-                                status_code=500,
-                                details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.value},
-                            )
-
-                        return results_list, total_usage
-
-                    target_schema = (
-                        SduiResponseList
-                        if (output_profile is not None and not criteria_blocks)
-                        else local_dynamic_schema
-                    )
-                    res_list, chunk_usage = await run_llm_calls(compiled_prompt, target_schema, llm_count)
-                    chunk_final = resolve_majority_vote(
-                        res_list, has_shuffled_atoms, chunk_criteria, user_payload, strictness_level
-                    )
-
-                    # Step 4: Map-Merge Orchestration & Trace Continuity Injection
-                    if has_shuffled_atoms and "evaluations" in chunk_final:
-                        # Evaluate each flattened atom
-                        for i, atom_data in enumerate(chunk_final["evaluations"]):
-                            atom_id = atom_data["atom_id"]
-
-                            temp_atom1 = ExtractionPayload(
-                                exact_quote=atom_data.get("exact_quote"),
-                                contextual_override=atom_data.get("contextual_override", False),
-                                premise_1_quote=atom_data.get("premise_1_quote"),
-                                premise_2_quote=atom_data.get("premise_2_quote"),
-                                semantic_reasoning=atom_data.get("semantic_reasoning", ""),
-                            )
-                            is_negative_rule = False
-                            for crit in chunk_criteria:
-                                if crit.scales:
-                                    for scale in crit.scales:
-                                        for claim in scale.claims:
-                                            for tda in claim.tda_assertions:
-                                                if tda.tda_id == atom_id and tda.inverse_evidence:
-                                                    is_negative_rule = True
-                                                    break
-
-                            status = evaluate_extraction(temp_atom1, user_payload, is_negative_rule, strictness_level)
-                            atom_data["status"] = status
-                            if temp_atom1.contextual_override and temp_atom1.semantic_reasoning:
-                                atom_data["exact_quote"] = f"[INFERRED] {temp_atom1.semantic_reasoning}"
-                            sr = atom_data.get("semantic_reasoning", "")
-                            atom_data["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
-                            chunk_final["evaluations"][i] = atom_data
-
                     else:
-                        # Evaluate each standard block (TDA extractions)
-                        for crit in chunk_criteria:
-                            if crit.id in chunk_final and crit.category_id != "matrix" and crit.type != "instruction":
-                                block_data = chunk_final[crit.id]
+                        res, usg = await _safe_execute()
+                        if isinstance(res, Exception):
+                            last_error = res
+                        elif res:
+                            results_list.append(res.model_dump(mode="json"))
+                        if usg:
+                            total_usage = total_usage + usg
 
-                                is_negative_rule = False
-                                if crit.scales:
-                                    for scale in crit.scales:
-                                        for claim in scale.claims:
-                                            for tda in claim.tda_assertions:
-                                                if tda.inverse_evidence:
-                                                    is_negative_rule = True
-                                                    break
+                    if not results_list:
+                        if last_error:
+                            raise last_error
+                        raise AppException(
+                            message="All LLM calls failed in the ensemble/standard run.",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.value},
+                        )
 
-                                temp_block1 = ExtractionPayload(
-                                    exact_quote=block_data.get("exact_quote"),
-                                    contextual_override=block_data.get("contextual_override", False),
-                                    premise_1_quote=block_data.get("premise_1_quote"),
-                                    premise_2_quote=block_data.get("premise_2_quote"),
-                                    semantic_reasoning=block_data.get("semantic_reasoning", ""),
-                                )
-                                status = evaluate_extraction(
-                                    temp_block1, user_payload, is_negative_rule, strictness_level
-                                )
-                                block_data["status"] = status
-                                if temp_block1.contextual_override and temp_block1.semantic_reasoning:
-                                    block_data["exact_quote"] = f"[INFERRED] {temp_block1.semantic_reasoning}"
+                    return results_list, total_usage
 
-                                sr = block_data.get("semantic_reasoning", "")
-                                block_data["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
-                                chunk_final[crit.id] = block_data
-
-                return chunk_final, chunk_usage, chunk_traces
-
-            except (LLMSchemaValidationError, AppException, ExceptionGroup) as e:
-
-                def _unwrap_error(exc: BaseException) -> str:
-                    if isinstance(exc, ExceptionGroup):
-                        return " | ".join(_unwrap_error(inner) for inner in exc.exceptions)
-                    return str(exc)
-
-                reason_str = _unwrap_error(e)
-
-                logger.error(
-                    f"[ChunkWorker] Caught error: {reason_str}. Routing to DLQ.",
-                    extra={"error_code": "DLQ_ROUTING"},
-                    exc_info=True,
+                target_schema = (
+                    SduiResponseList if (output_profile is not None and not criteria_blocks) else local_dynamic_schema
                 )
-                fallback_reason = f"Chunk Processing Failed: {reason_str}"
-                chunk_final = {
-                    "_dlq_status": "FAILED/DLQ",
-                    "reason": fallback_reason,
-                }
-                # Graceful DLQ Fallback: Map the failure to individual elements
-                if has_shuffled_atoms and chunk is not None:
-                    chunk_final["evaluations"] = []
-                    for item in getattr(chunk, "items", []):
-                        aid = item.get("atom_id") if isinstance(item, dict) else None
-                        if aid:
-                            chunk_final["evaluations"].append(
-                                {
-                                    "atom_id": aid,
-                                    "status": "DLQ",
-                                    "exact_quote": None,
-                                    "contextual_override": False,
-                                    "semantic_reasoning": fallback_reason,
-                                }
-                            )
-                else:
-                    for crit in chunk_criteria:
-                        chunk_final[crit.id] = {
-                            "status": "DLQ",
-                            "exact_quote": None,
-                            "contextual_override": False,
-                            "semantic_reasoning": fallback_reason,
-                        }
+                res_list, chunk_usage = await run_llm_calls(compiled_prompt, target_schema, llm_count)
+                chunk_final = resolve_majority_vote(
+                    res_list, has_shuffled_atoms, chunk_criteria, user_payload, strictness_level
+                )
 
-                return chunk_final, None, []
+                if has_shuffled_atoms and "evaluations" not in chunk_final:
+                    chunk_final["evaluations"] = []
+
+                # Step 4: Map-Merge Orchestration & Trace Continuity Injection
+                if has_shuffled_atoms and "evaluations" in chunk_final:
+                    # Append pre_flight_results back to evaluations so they act as if LLM generated them
+                    for pf_atom_id, pf_res in pre_flight_results.items():
+                        chunk_final["evaluations"].append(
+                            {
+                                "atom_id": pf_atom_id,
+                                "exact_quote": pf_res.exact_quote,
+                                "contextual_override": False,
+                                "premise_1_quote": None,
+                                "premise_2_quote": None,
+                                "semantic_reasoning": "[EXTRACTIVE_SENSOR_PRE_FLIGHT] Deterministic syntax match.",
+                            }
+                        )
+
+                    # Evaluate each flattened atom
+                    for i, atom_data in enumerate(chunk_final["evaluations"]):
+                        atom_id = atom_data["atom_id"]
+
+                        temp_atom1 = ExtractionPayload(
+                            exact_quote=atom_data.get("exact_quote"),
+                            contextual_override=atom_data.get("contextual_override", False),
+                            premise_1_quote=atom_data.get("premise_1_quote"),
+                            premise_2_quote=atom_data.get("premise_2_quote"),
+                            semantic_reasoning=atom_data.get("semantic_reasoning", ""),
+                        )
+                        is_negative_rule = False
+                        for crit in chunk_criteria:
+                            if crit.scales:
+                                for scale in crit.scales:
+                                    for claim in scale.claims:
+                                        for tda in claim.tda_assertions:
+                                            if tda.tda_id == atom_id and tda.inverse_evidence:
+                                                is_negative_rule = True
+                                                break
+
+                        status = evaluate_extraction(temp_atom1, user_payload, is_negative_rule, strictness_level)
+                        atom_data["status"] = status
+                        if temp_atom1.contextual_override and temp_atom1.semantic_reasoning:
+                            atom_data["exact_quote"] = f"[INFERRED] {temp_atom1.semantic_reasoning}"
+                        sr = atom_data.get("semantic_reasoning", "")
+                        atom_data["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
+                        chunk_final["evaluations"][i] = atom_data
+
+                else:
+                    # Evaluate each standard block (TDA extractions)
+                    for crit in chunk_criteria:
+                        if crit.id in chunk_final and crit.category_id != "matrix" and crit.type != "instruction":
+                            block_data = chunk_final[crit.id]
+
+                            is_negative_rule = False
+                            if crit.scales:
+                                for scale in crit.scales:
+                                    for claim in scale.claims:
+                                        for tda in claim.tda_assertions:
+                                            if tda.inverse_evidence:
+                                                is_negative_rule = True
+                                                break
+
+                            temp_block1 = ExtractionPayload(
+                                exact_quote=block_data.get("exact_quote"),
+                                contextual_override=block_data.get("contextual_override", False),
+                                premise_1_quote=block_data.get("premise_1_quote"),
+                                premise_2_quote=block_data.get("premise_2_quote"),
+                                semantic_reasoning=block_data.get("semantic_reasoning", ""),
+                            )
+                            status = evaluate_extraction(temp_block1, user_payload, is_negative_rule, strictness_level)
+                            block_data["status"] = status
+                            if temp_block1.contextual_override and temp_block1.semantic_reasoning:
+                                block_data["exact_quote"] = f"[INFERRED] {temp_block1.semantic_reasoning}"
+
+                            sr = block_data.get("semantic_reasoning", "")
+                            block_data["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
+                            chunk_final[crit.id] = block_data
+
+            return chunk_final, chunk_usage, chunk_traces
+
+        except (LLMSchemaValidationError, AppException, ExceptionGroup) as e:
+
+            def _unwrap_error(exc: BaseException) -> str:
+                if isinstance(exc, ExceptionGroup):
+                    return " | ".join(_unwrap_error(inner) for inner in exc.exceptions)
+                return str(exc)
+
+            reason_str = _unwrap_error(e)
+
+            logger.error(
+                f"[ChunkWorker] Caught error: {reason_str}. Routing to DLQ.",
+                extra={"error_code": "DLQ_ROUTING"},
+                exc_info=True,
+            )
+            fallback_reason = f"Chunk Processing Failed: {reason_str}"
+            chunk_final = {
+                "_dlq_status": "FAILED/DLQ",
+                "reason": fallback_reason,
+            }
+            # Graceful DLQ Fallback: Map the failure to individual elements
+            if has_shuffled_atoms and chunk is not None:
+                chunk_final["evaluations"] = []
+                for item in getattr(chunk, "items", []):
+                    aid = item.get("atom_id") if isinstance(item, dict) else None
+                    if aid:
+                        chunk_final["evaluations"].append(
+                            {
+                                "atom_id": aid,
+                                "status": "DLQ",
+                                "exact_quote": None,
+                                "contextual_override": False,
+                                "semantic_reasoning": fallback_reason,
+                            }
+                        )
+            else:
+                for crit in chunk_criteria:
+                    chunk_final[crit.id] = {
+                        "status": "DLQ",
+                        "exact_quote": None,
+                        "contextual_override": False,
+                        "semantic_reasoning": fallback_reason,
+                    }
+
+            return chunk_final, None, []

@@ -44,9 +44,7 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> PromptB
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=f"tda_{score:016x}{i:016x}",
-                        concept_description=I18nText(
-                            default_locale="en", translations={"en": f"Atom {score}-{i}", "fi": f"Atom {score}-{i}"}
-                        ),
+                        concept_description=f"Atom {score}-{i}",
                         inverse_evidence=False,
                         aggregation_mode="EXISTS",
                     )

@@ -111,14 +111,34 @@ class LocalizationCompiler:
                     for c in s.claims:
                         for assertion in c.tda_assertions:
                             substance = (
-                                assertion.concept_description.resolve("en").strip()
-                                if hasattr(assertion, "concept_description")
+                                assertion.concept_description.strip()
+                                if getattr(assertion, "concept_description", "")
                                 else ""
                             )
                             if substance:
-                                rule_text = substance
-                                if assertion.inverse_evidence:
-                                    rule_text += (
+                                assertion_xml = [f"  <CONCEPT_DEFINITION>\n    {substance}\n  </CONCEPT_DEFINITION>"]
+
+                                acs = getattr(assertion, "acceptance_criteria", [])
+                                if acs:
+                                    ac_lines = [f"    - {ac.instruction}" for ac in acs if ac.instruction]
+                                    if ac_lines:
+                                        assertion_xml.append(
+                                            "  <ACCEPTANCE_CRITERIA>\n"
+                                            + "\n".join(ac_lines)
+                                            + "\n  </ACCEPTANCE_CRITERIA>"
+                                        )
+
+                                aps = getattr(assertion, "anti_patterns", [])
+                                if aps:
+                                    ap_lines = [f"    - {ap.pattern}" for ap in aps if ap.pattern]
+                                    if ap_lines:
+                                        assertion_xml.append(
+                                            "  <ANTI_PATTERNS>\n" + "\n".join(ap_lines) + "\n  </ANTI_PATTERNS>"
+                                        )
+
+                                mandate_text = mandate_str
+                                if getattr(assertion, "inverse_evidence", False):
+                                    mandate_text += (
                                         " This is an inverse rule (Vice). If rule_satisfied = True "
                                         "(no issues found), evidence_found MUST be False and you must "
                                         'return an empty string "" for exact_quote. If rule_satisfied = False '
@@ -126,7 +146,7 @@ class LocalizationCompiler:
                                         "the exact violation."
                                     )
                                 if getattr(assertion, "allow_contextual_override", False):
-                                    rule_text += (
+                                    mandate_text += (
                                         " [CONTEXTUAL OVERRIDE ALLOWED] If the assertion's criteria are satisfied "
                                         "semantically or contextually across the text but no single exact verbatim "
                                         "quote can be isolated, you MUST: 1) Set contextual_override = true. 2) "
@@ -135,11 +155,15 @@ class LocalizationCompiler:
                                         "'[CONTEXTUAL_OVERRIDE_APPLIED]'. Do NOT hallucinate a quote. Only use "
                                         "this override if a direct literal quote is physically absent."
                                     )
-                                claims_texts.append(f"{rule_text} {mandate_str}")
+                                assertion_xml.append(
+                                    f"  <FAIL_FAST_MANDATE>\n    {mandate_text}\n  </FAIL_FAST_MANDATE>"
+                                )
+
+                                claims_texts.append("\n".join(assertion_xml))
 
                 if claims_texts:
-                    claims = " ".join(claims_texts)
-                    xml_blocks.append(f"    <CRITICAL_DIRECTIVES>{claims}</CRITICAL_DIRECTIVES>")
+                    claims = "\n\n".join(claims_texts)
+                    xml_blocks.append(f"    <CRITICAL_DIRECTIVES>\n{claims}\n    </CRITICAL_DIRECTIVES>")
 
             xml_blocks.append("  </MATRIX>")
         xml_blocks.append("</EVALUATION_RUBRICS>")

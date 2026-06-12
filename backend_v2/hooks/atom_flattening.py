@@ -13,7 +13,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.enums import EvaluationMandate
 from backend_v2.models.v2_core import PromptBlock, Step
 
 logger = logging.getLogger(__name__)
@@ -113,7 +112,6 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                 )
 
                 matrix_collected_atoms: list[tuple[str, str]] = []
-                mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
 
                 # Stratification happens strictly per-scale
                 for scale in block.scales:
@@ -124,7 +122,14 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                         if tda_assertions and len(tda_assertions) > 0:
                             for tda in tda_assertions:
                                 aid = str(tda.tda_id)
-                                scale_atoms.append((aid, tda.concept_description.resolve("en").strip() if hasattr(tda, "concept_description") else ""))
+                                scale_atoms.append(
+                                    (
+                                        aid,
+                                        tda.concept_description.strip()
+                                        if getattr(tda, "concept_description", None)
+                                        else "",
+                                    )
+                                )
                         else:
                             msg = (
                                 f"PromptBlock '{block.id}' claim is missing mandatory 'tda_assertions' during runtime."

@@ -55,7 +55,7 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
-                                "concept_description": {"default_locale": "en", "translations": {"en": "bad", "fi": "bad"}},
+                                "concept_description": "bad",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "EXISTS",
                             }
@@ -73,7 +73,7 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_22222222222222222222222222222222",
-                                "concept_description": {"default_locale": "en", "translations": {"en": "good", "fi": "good"}},
+                                "concept_description": "good",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "EXISTS",
                             }

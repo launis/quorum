@@ -5,7 +5,6 @@ from pydantic import ValidationError
 
 from backend_v2.models.v2_core import I18nText, PromptBlock, Step
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
-from backend_v2.models.v2_core import I18nText
 
 
 def test_step_validation_fails_without_criteria_or_protocol() -> None:
@@ -93,7 +92,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
                                 "tda_assertions": [
                                     {
                                         "tda_id": "tda_11111111111111111111111111111111",
-                                        "concept_description": {"default_locale": "en", "translations": {"en": "Atom 1", "fi": "Atom 1"}},
+                                        "concept_description": "Atom 1",
                                         "inverse_evidence": False,
                                         "aggregation_mode": "EXISTS",
                                     }

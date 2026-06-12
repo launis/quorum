@@ -1,8 +1,8 @@
 """Mock Data Store for AI Layer Testing (Zero-Token Cost)."""
 
+import uuid
 from datetime import datetime
 from typing import Any
-import uuid
 
 from backend_v2.models.domain import (
     AnalystOutput,

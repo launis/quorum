@@ -16,9 +16,7 @@ def test_seed_data_assertions_contain_hardened_rules() -> None:
     def scan_for_tda_ids(node: Any) -> None:
         if isinstance(node, dict):
             if "tda_id" in node:
-                concept_desc = node.get("concept_description", {})
-                translations = concept_desc.get("translations", {})
-                desc = translations.get("en", "")
+                desc = node.get("concept_description", "")
                 desc_lower = desc.lower()
                 if "ambiguity_protocol" in desc_lower:
                     assert "json null" in desc_lower or "return null" in desc_lower

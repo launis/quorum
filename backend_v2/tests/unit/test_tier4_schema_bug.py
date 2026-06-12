@@ -32,7 +32,14 @@ def test_reproduce_tier4_schema_bug() -> None:
                             "label": {"translations": {"en": "Claim"}, "default_locale": "en"},
                             "ai_description": "rule",
                             "tda_assertions": [
-                                {"concept_description": {"default_locale": "en", "translations": {"en": "rule", "fi": "rule"}}, "inverse_evidence": False, "aggregation_mode": "EXISTS"}
+                                {
+                                    "concept_description": {
+                                        "default_locale": "en",
+                                        "translations": {"en": "rule", "fi": "rule"},
+                                    },
+                                    "inverse_evidence": False,
+                                    "aggregation_mode": "EXISTS",
+                                }
                             ],
                         }
                     ],

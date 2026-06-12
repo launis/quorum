@@ -41,7 +41,10 @@ def test_embedded_output_profile_description_parsing() -> None:
     # 1. Success case with valid I18nText
     valid_data: dict[str, Any] = {
         "name": {"default_locale": "en", "translations": {"en": "My Profile", "fi": "My Profile"}},
-        "description": {"default_locale": "en", "translations": {"en": "A valid description", "fi": "A valid description"}},
+        "description": {
+            "default_locale": "en",
+            "translations": {"en": "A valid description", "fi": "A valid description"},
+        },
         "display_scale": "original",
         "synthesis": None,
         "layouts": [],
