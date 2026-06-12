@@ -1,47 +1,32 @@
 import json
 
-with open(r'c:\src\quorum\data\files\executions\exe_b28992472f37463cb21d3dcf336289ba\execution_trace.json', encoding='utf-8') as f:
-    events = json.load(f)
+try:
+    with open(r'c:\src\quorum\data\files\executions\exe_85c6f320c91a406fb704539b68a4644e\execution_trace.json', encoding='utf-8') as f:
+        trace = json.load(f)
 
-print(f"Total events: {len(events)}")
+    for item in trace:
+        step = item.get('step_name', 'N/A')
+        ev_type = item.get('event_type', 'N/A')
+        content = item.get('content')
+        reasoning = item.get('reasoning')
+        meta = item.get('metadata', {})
+        score = meta.get('score', 'N/A')
+        normalized_score = meta.get('normalized_score', 'N/A')
 
-# Collect all flattened atoms
-all_atoms = []
-for e in events:
-    if e.get("event_type") == "AtomFlatteningEvent":
-        all_atoms.extend(e.get("content", {}).get("flattened_atoms", []))
+        print(f"Step: {step} | Type: {ev_type}")
+        if score != 'N/A' or normalized_score != 'N/A':
+            print(f"  Score: {score} | Normalized: {normalized_score}")
 
-print(f"Total flattened atoms: {len(all_atoms)}")
+        if isinstance(content, dict):
+            if 'exact_quote' in content:
+                print(f"  Quote: {content['exact_quote'][:50]}...")
+            if 'score' in content:
+                print(f"  Content Score: {content['score']}")
+            if 'anti_patterns' in content:
+                 print(f"  Anti-Patterns: {content['anti_patterns']}")
 
-failed = 0
-passed = 0
-high_entropy_failed = 0
-high_entropy_total = 0
-
-for a in all_atoms:
-    res = a.get("boolean_result")
-    if res:
-        passed += 1
-    else:
-        failed += 1
-
-    tda = a.get("tda_assertion", {})
-    if tda.get("high_entropy"):
-        high_entropy_total += 1
-        if not res:
-            high_entropy_failed += 1
-
-print(f"Passed atoms: {passed}, Failed atoms: {failed}")
-print(f"High Entropy atoms: {high_entropy_total}, Failed HE atoms: {high_entropy_failed}")
-
-# Let's also print some reasons for failure of high entropy atoms
-print("\nSample reasoning for failed High Entropy atoms:")
-samples_printed = 0
-for a in all_atoms:
-    tda = a.get("tda_assertion", {})
-    if tda.get("high_entropy") and not a.get("boolean_result"):
-        print(f"--- Rule: {tda.get('ai_rule_description')[:100]}...")
-        print(f"--- Justification: {a.get('justification')}")
-        samples_printed += 1
-        if samples_printed >= 3:
-            break
+        if reasoning:
+            print(f"  Reasoning: {reasoning[:100]}...")
+        print("-" * 40)
+except Exception as e:
+    print(f"Error: {e}")

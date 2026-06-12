@@ -7,10 +7,10 @@ state_path = os.path.join(folder, 'frozen_context.json')
 if os.path.exists(state_path):
     with open(state_path, encoding='utf-8') as f:
         state = json.load(f)
-        
+
     print(f"Final Score: {state.get('final_score')}")
     print(f"Penalties: {state.get('penalties')}")
-    
+
     # Try to find matrices
     def find_matrices(obj):
         if isinstance(obj, dict):

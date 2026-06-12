@@ -11,9 +11,9 @@ import logging
 from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
-from backend_v2.core.security import sanitize_text
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.security import SanitizationResultDTO, SecurityPayloadDTO
+from backend_v2.services.pii_analyzer import get_pii_service
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +50,9 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
     sanitized_inputs: dict[str, str] = {}
     threats_summary: list[str] = []
 
+    lang = state.global_context_vars.get("language", "fi") if state.global_context_vars else "fi"
+    pii_service = get_pii_service()
+
     try:
         payload = SecurityPayloadDTO.model_validate(state.inputs)
     except ValidationError as e:
@@ -68,10 +71,10 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
         original = str(val)
         if original.strip():
             try:
-                sanitized, threats = sanitize_text(original)
+                sanitized = pii_service.mask_pii(text=original, language=lang)
                 sanitized_inputs[field] = sanitized
-                if threats:
-                    threats_summary.extend(threats)
+                if sanitized != original:
+                    threats_summary.append(f"PII redacted in {field}")
             except Exception as e:
                 msg = f"Sanitization failed for field '{field}': {e}"
                 logger.error("[SecurityHook] %s: %s", ErrorCodes.SECURITY_SCAN_FAILED.name, msg, exc_info=True)

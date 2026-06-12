@@ -149,7 +149,7 @@ class ContextBuilder:
                     tda_assertions: list[Any] = getattr(claim, "tda_assertions", None) or []
                     for tda in tda_assertions:
                         rule_desc: str | None = (
-                            tda.concept_description.resolve("en") if hasattr(tda, "concept_description") else None
+                            tda.concept_description.resolve("en") if tda.concept_description else None
                         )
                         if rule_desc:
                             rule_descriptions.append(rule_desc)

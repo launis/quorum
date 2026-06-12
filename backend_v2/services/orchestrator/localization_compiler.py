@@ -110,15 +110,11 @@ class LocalizationCompiler:
                 for s in scales:
                     for c in s.claims:
                         for assertion in c.tda_assertions:
-                            substance = (
-                                assertion.concept_description.strip()
-                                if getattr(assertion, "concept_description", "")
-                                else ""
-                            )
+                            substance = assertion.concept_description.strip()
                             if substance:
                                 assertion_xml = [f"  <CONCEPT_DEFINITION>\n    {substance}\n  </CONCEPT_DEFINITION>"]
 
-                                acs = getattr(assertion, "acceptance_criteria", [])
+                                acs = assertion.acceptance_criteria
                                 if acs:
                                     ac_lines = [f"    - {ac.instruction}" for ac in acs if ac.instruction]
                                     if ac_lines:
@@ -128,7 +124,7 @@ class LocalizationCompiler:
                                             + "\n  </ACCEPTANCE_CRITERIA>"
                                         )
 
-                                aps = getattr(assertion, "anti_patterns", [])
+                                aps = assertion.anti_patterns
                                 if aps:
                                     ap_lines = [f"    - {ap.pattern}" for ap in aps if ap.pattern]
                                     if ap_lines:
@@ -137,7 +133,7 @@ class LocalizationCompiler:
                                         )
 
                                 mandate_text = mandate_str
-                                if getattr(assertion, "inverse_evidence", False):
+                                if assertion.inverse_evidence:
                                     mandate_text += (
                                         " This is an inverse rule (Vice). If rule_satisfied = True "
                                         "(no issues found), evidence_found MUST be False and you must "
@@ -145,7 +141,7 @@ class LocalizationCompiler:
                                         "(violation found), evidence_found MUST be True and you MUST quote "
                                         "the exact violation."
                                     )
-                                if getattr(assertion, "allow_contextual_override", False):
+                                if assertion.allow_contextual_override:
                                     mandate_text += (
                                         " [CONTEXTUAL OVERRIDE ALLOWED] If the assertion's criteria are satisfied "
                                         "semantically or contextually across the text but no single exact verbatim "

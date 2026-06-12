@@ -14,7 +14,6 @@ from fastapi import status
 from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
-from backend_v2.core.security import sanitize_text
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.context_mapper import ContextMapper
 from backend_v2.llm.client import LLMClient
@@ -27,6 +26,7 @@ from backend_v2.models.v2_core import ExecutionRecord, PromptBlock, Step, Workfl
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+from backend_v2.services.pii_analyzer import get_pii_service
 
 logger = logging.getLogger(__name__)
 
@@ -590,9 +590,11 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
     )
 
     if enable_masking:
-        raw_input_text, threats = sanitize_text(raw_input_text)
-        if threats:
-            logger.warning("[SynthesisHook] PII redacted during synthesis. Threat count: %d", len(threats))
+        pii_service = get_pii_service()
+        sanitized_text = pii_service.mask_pii(text=raw_input_text, language=language)
+        if sanitized_text != raw_input_text:
+            logger.warning("[SynthesisHook] PII redacted during synthesis.")
+        raw_input_text = sanitized_text
 
     section_instructions = _build_section_instructions(active_profile_dto.layouts, language, all_blocks)
 

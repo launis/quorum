@@ -13,10 +13,12 @@ class AtomResponse(BaseModel):
     contextual_override: bool = False
     semantic_reasoning: str = ""
 
+
 class ChunkResponseSchema(BaseModel):
     reasoning_trace: str
     evaluation_notes: str
     evaluations: list[AtomResponse]
+
 
 @pytest.mark.asyncio
 async def test_collateral_damage_prevention():
@@ -32,8 +34,8 @@ async def test_collateral_damage_prevention():
         evaluation_notes="notes",
         evaluations=[
             AtomResponse(atom_id="valid_atom", exact_quote="real text", semantic_reasoning="good reasoning"),
-            AtomResponse(atom_id="hallucinated_atom", exact_quote="fake text", semantic_reasoning="bad reasoning")
-        ]
+            AtomResponse(atom_id="hallucinated_atom", exact_quote="fake text", semantic_reasoning="bad reasoning"),
+        ],
     )
 
     # We mock LLM returning this same invalid chunk twice (it fails to heal)
@@ -48,13 +50,15 @@ async def test_collateral_damage_prevention():
             raise SemanticEvidenceError(message="fail")
         return exact_quote
 
-    with patch("backend_v2.services.llm_task_executor.AnchorValidationService.validate_evidence", side_effect=mock_validate):
+    with patch(
+        "backend_v2.services.llm_task_executor.AnchorValidationService.validate_evidence", side_effect=mock_validate
+    ):
         res_model, _ = await executor.execute_structured_task(
             client=mock_client,
             messages=[{"role": "user", "content": "hello world this is a test payload"}],
             response_model=ChunkResponseSchema,
             max_logical_retries=1,
-            validation_context={"source_text": "this has real text"}
+            validation_context={"source_text": "this has real text"},
         )
 
         assert len(res_model.evaluations) == 2

@@ -358,10 +358,7 @@ def get_fallback_data(key: str) -> dict[str, Any]:
         assertions = [
             {
                 "tda_id": f"tda_{uuid.uuid4().hex}",
-                "concept_description": {
-                    "default_locale": "en",
-                    "translations": {"en": f"Atom {i}", "fi": f"Atomi {i}"},
-                },
+                "concept_description": f"Atom {i} concept description for testing",
                 "inverse_evidence": False,
                 "aggregation_mode": "EXISTS",
             }

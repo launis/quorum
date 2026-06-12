@@ -1,5 +1,5 @@
 from typing import cast
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import status
@@ -64,8 +64,13 @@ def test_sanitize_text_hook_fails_fast_on_list_inputs(mock_repository: AsyncMock
     assert "Strict Fail-Fast Enforced" in exc_info.value.message
 
 
-def test_sanitize_text_hook_success(mock_repository: AsyncMock) -> None:
+@patch("backend_v2.hooks.security.get_pii_service")
+def test_sanitize_text_hook_success(mock_get_pii_service: MagicMock, mock_repository: AsyncMock) -> None:
     """Test that valid string inputs are sanitized correctly."""
+    mock_service = MagicMock()
+    mock_service.mask_pii.return_value = "This is a safe string."
+    mock_get_pii_service.return_value = mock_service
+
     state = HookState(
         execution_id="exe_123",
         workflow_id="wf_123",

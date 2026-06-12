@@ -382,6 +382,99 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                   ),
                                   const SizedBox(height: 8),
                                   TextFormField(
+                                    initialValue: tda.antiPatterns
+                                        .map((a) => a.pattern)
+                                        .join('\n'),
+                                    decoration: const InputDecoration(
+                                      labelText: 'Anti-Patterns (One per line)',
+                                      helperText:
+                                          'Exclusion conditions / NEGATIVE BOUNDARIES',
+                                      border: OutlineInputBorder(),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 8,
+                                      ),
+                                    ),
+                                    maxLines: 2,
+                                    onChanged: (newAntiStr) {
+                                      final parsedAnti = newAntiStr
+                                          .split('\n')
+                                          .map((e) => e.trim())
+                                          .where((e) => e.isNotEmpty)
+                                          .map(
+                                            (e) => AntiPattern(
+                                              pattern: e,
+                                              allowsContextualExcuse: false,
+                                            ),
+                                          )
+                                          .toList();
+                                      setState(() {
+                                        final newTdas = List<TDAAssertion>.from(
+                                          claim.tdaAssertions,
+                                        );
+                                        newTdas[tdaIdx] = tda.copyWith(
+                                          antiPatterns: parsedAnti,
+                                        );
+                                        final newClaims =
+                                            List<MatrixClaim>.from(
+                                              _editableScale.claims,
+                                            );
+                                        newClaims[index] = claim.copyWith(
+                                          tdaAssertions: newTdas,
+                                        );
+                                        _editableScale = _editableScale
+                                            .copyWith(claims: newClaims);
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
+                                    initialValue: tda.acceptanceCriteria
+                                        .map((a) => a.instruction)
+                                        .join('\n'),
+                                    decoration: const InputDecoration(
+                                      labelText:
+                                          'Acceptance Criteria (One per line)',
+                                      border: OutlineInputBorder(),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 8,
+                                      ),
+                                    ),
+                                    maxLines: 2,
+                                    onChanged: (newAccStr) {
+                                      final parsedAcc = newAccStr
+                                          .split('\n')
+                                          .map((e) => e.trim())
+                                          .where((e) => e.isNotEmpty)
+                                          .map(
+                                            (e) => AcceptanceCriterion(
+                                              instruction: e,
+                                              requiresContextualOverride: false,
+                                            ),
+                                          )
+                                          .toList();
+                                      setState(() {
+                                        final newTdas = List<TDAAssertion>.from(
+                                          claim.tdaAssertions,
+                                        );
+                                        newTdas[tdaIdx] = tda.copyWith(
+                                          acceptanceCriteria: parsedAcc,
+                                        );
+                                        final newClaims =
+                                            List<MatrixClaim>.from(
+                                              _editableScale.claims,
+                                            );
+                                        newClaims[index] = claim.copyWith(
+                                          tdaAssertions: newTdas,
+                                        );
+                                        _editableScale = _editableScale
+                                            .copyWith(claims: newClaims);
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
                                     initialValue: tda.syntacticAnchors.join(
                                       ', ',
                                     ),

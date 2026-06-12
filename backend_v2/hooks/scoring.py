@@ -594,7 +594,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                             atom_mapping[aid] = (
                                 pb_id,
                                 s_val,
-                                tda.concept_description if getattr(tda, "concept_description", None) else "",
+                                tda.concept_description,
                                 str(tda.aggregation_mode),
                                 tda.inverse_evidence,
                                 tda.allow_contextual_override,
@@ -664,7 +664,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                     if tda_assertions:
                         for tda in tda_assertions:
                             aid = tda.tda_id
-                            text = tda.concept_description if getattr(tda, "concept_description", None) else ""
+                            text = tda.concept_description
 
                             # Determine evaluation track
                             if tda.evaluation_track == "EXTRACTIVE_SENSOR" and tda.logical_expression:

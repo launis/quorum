@@ -413,11 +413,25 @@ def base_state() -> HookState:
 
 
 @pytest.mark.asyncio
+@patch("backend_v2.hooks.synthesis.get_pii_service")
 @patch("backend_v2.hooks.synthesis.execute_tool_loop")
 @patch("backend_v2.hooks.synthesis.LLMClient")
 async def test_synthesis_hook_success(
-    mock_llm_client_class: AsyncMock, mock_execute_tool_loop: AsyncMock, mock_repo: AsyncMock, base_state: HookState
+    mock_llm_client_class: AsyncMock,
+    mock_execute_tool_loop: AsyncMock,
+    mock_get_pii_service: AsyncMock,
+    mock_repo: AsyncMock,
+    base_state: HookState,
 ) -> None:
+    from unittest.mock import MagicMock
+
+    mock_pii_service = MagicMock()
+
+    def mock_mask_pii(text: str, language: str) -> str:
+        return text.replace("abc@example.com", "[REDACTED_EMAIL]")
+
+    mock_pii_service.mask_pii.side_effect = mock_mask_pii
+    mock_get_pii_service.return_value = mock_pii_service
     """Test that synthesis hook injects config constraints correctly and calls LLM."""
     mock_repo.get_workflow_by_id = AsyncMock()
     mock_repo.get_execution = AsyncMock(

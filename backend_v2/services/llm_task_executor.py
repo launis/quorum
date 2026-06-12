@@ -24,7 +24,9 @@ from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 logger = logging.getLogger(__name__)
 
 
-def _build_null_fallback(model_cls: type[BaseModel], existing: Any | None = None, source_text: str | None = None) -> Any:
+def _build_null_fallback(
+    model_cls: type[BaseModel], existing: Any | None = None, source_text: str | None = None
+) -> Any:
     """Phase 1: Extract Pydantic reflection fallback generation to remove DRY violation."""
     fallback_data: dict[str, Any] = {}
 

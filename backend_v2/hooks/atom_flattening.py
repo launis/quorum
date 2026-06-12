@@ -125,9 +125,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                                 scale_atoms.append(
                                     (
                                         aid,
-                                        tda.concept_description.strip()
-                                        if getattr(tda, "concept_description", None)
-                                        else "",
+                                        tda.concept_description.strip(),
                                     )
                                 )
                         else:
