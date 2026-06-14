@@ -1,6 +1,6 @@
 """Classify each mismatch by root cause category."""
 import json
-import re
+
 
 # Load both execution traces
 def get_all_evals(path):
@@ -52,13 +52,13 @@ for atom in common:
     s2 = get_state(evals_2[atom])
     if s1 == s2:
         continue
-    
+
     t1 = get_trace(evals_1[atom])
     t2 = get_trace(evals_2[atom])
-    
+
     co1 = evals_1[atom].get('contextual_override', False)
     co2 = evals_2[atom].get('contextual_override', False)
-    
+
     # Check for schema validation failure
     if 'AGENT_SCHEMA_VALIDATION_FAILED' in t1 or 'AGENT_SCHEMA_VALIDATION_FAILED' in t2:
         cat_schema_fail.append(atom)
@@ -71,9 +71,9 @@ for atom in common:
 
 total_mismatch = len(cat_schema_fail) + len(cat_contextual_override) + len(cat_pure_semantic) + len(cat_system_error)
 
-print(f"=== MISMATCH ROOT CAUSE CLASSIFICATION ===")
+print("=== MISMATCH ROOT CAUSE CLASSIFICATION ===")
 print(f"Total mismatches: {total_mismatch}")
-print(f"")
+print("")
 print(f"1. Schema Validation Failed (condition_met hallucination): {len(cat_schema_fail)} ({len(cat_schema_fail)/total_mismatch*100:.1f}%)")
 print(f"2. Contextual Override Disagreement:                      {len(cat_contextual_override)} ({len(cat_contextual_override)/total_mismatch*100:.1f}%)")
 print(f"3. Pure Semantic Drift (both ran, opposite result):       {len(cat_pure_semantic)} ({len(cat_pure_semantic)/total_mismatch*100:.1f}%)")

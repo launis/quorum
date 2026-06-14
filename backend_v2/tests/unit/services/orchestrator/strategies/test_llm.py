@@ -307,6 +307,12 @@ async def test_execute_success_path_structured_output(
         mock_compiler.build_xml_context.return_value = "<xml></xml>"
         mock_schema = MagicMock()
         mock_schema.model_json_schema.return_value = {}
+
+        mock_validated = MagicMock()
+        mock_validated.model_dump.return_value = {"blocks": []}
+        mock_validated.model_copy.return_value = mock_validated
+        mock_schema.model_validate.return_value = mock_validated
+
         mock_compiler.build_dynamic_schema.return_value = mock_schema
         mock_compiler.compile_xml_rubrics.return_value = "rubrics"
 

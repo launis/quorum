@@ -23,6 +23,29 @@ async def test_chunk_worker_process_chunk_success(mock_executor_class: Any) -> N
     mock_compiler = MagicMock()
     mock_compiler.compile_xml_rubrics.return_value = "<xml>rubrics</xml>"
     mock_schema = MagicMock()
+    mock_validated = MagicMock()
+    mock_validated.model_dump.return_value = {
+        "evaluations": [
+            {
+                "atom_id": "a1",
+                "exact_quote": "yes",
+                "contextual_override": False,
+                "semantic_reasoning": "Because...\n\n[5. VALIDATION DECISION: PASS]",
+                "status": "PASS",
+            }
+        ]
+    }
+
+    mock_atom = MagicMock()
+    mock_atom.atom_id = "a1"
+    mock_atom.exact_quote = "yes"
+    mock_atom.contextual_override = False
+    mock_atom.semantic_reasoning = "Because..."
+    mock_atom.model_copy.return_value = mock_atom
+    mock_validated.evaluations = [mock_atom]
+
+    mock_validated.model_copy.return_value = mock_validated
+    mock_schema.model_validate.return_value = mock_validated
     mock_compiler.build_dynamic_schema.return_value = mock_schema
 
     mock_client = AsyncMock()
@@ -240,6 +263,27 @@ async def test_chunk_worker_process_chunk_with_instruction_block(mock_executor_c
     mock_compiler = MagicMock()
     mock_compiler.compile_xml_rubrics.return_value = "<xml>rubrics</xml>"
     mock_schema = MagicMock()
+
+    mock_validated = MagicMock()
+    mock_validated.model_dump.return_value = {
+        "inst_12345678901234567890123456789012": "This is raw instruction text",
+        "crit_12345678901234567890123456789012": {
+            "exact_quote": "yes",
+            "contextual_override": False,
+            "semantic_reasoning": "Standard justification",
+            "status": "PASS",
+        },
+    }
+    mock_crit = MagicMock()
+    mock_crit.exact_quote = "yes"
+    mock_crit.contextual_override = False
+    mock_crit.semantic_reasoning = "Standard justification"
+    mock_crit.model_copy.return_value = mock_crit
+    mock_validated.crit_12345678901234567890123456789012 = mock_crit
+    mock_validated.inst_12345678901234567890123456789012 = "This is raw instruction text"
+
+    mock_validated.model_copy.return_value = mock_validated
+    mock_schema.model_validate.return_value = mock_validated
     mock_compiler.build_dynamic_schema.return_value = mock_schema
 
     mock_client = AsyncMock()

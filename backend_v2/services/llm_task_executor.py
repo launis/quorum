@@ -131,7 +131,9 @@ def _validate_non_empty_payload(messages: list[dict[str, Any]] | CompiledPrompt)
     """
     user_texts = []
     if isinstance(messages, CompiledPrompt):
-        user_texts = [str(m.get("content", "")) for m in messages.dynamic_messages if m.get("role") == "user"]
+        static = [str(m.get("content", "")) for m in messages.static_messages if m.get("role") == "user"]
+        dynamic = [str(m.get("content", "")) for m in messages.dynamic_messages if m.get("role") == "user"]
+        user_texts = static + dynamic
     elif isinstance(messages, list):
         user_texts = [str(m.get("content", "")) for m in messages if m.get("role") == "user"]
 
@@ -253,8 +255,10 @@ class LLMTaskExecutor:
             if validation_context:
                 compiled_prompt = compiled_prompt.model_copy(update={"metadata": validation_context})
 
+        base_compiled_prompt = compiled_prompt.model_copy(deep=True)
+
         # --- EMPTY PAYLOAD FAIL-FAST ---
-        _validate_non_empty_payload(messages)
+        _validate_non_empty_payload(base_compiled_prompt)
 
         schema_attempts = 0
         logical_attempts = 0
@@ -337,7 +341,7 @@ class LLMTaskExecutor:
 
                     healing_content = f"\n\n<PREVIOUS_SCHEMA_ERROR>\n{correction_prompt}\n</PREVIOUS_SCHEMA_ERROR>"
 
-                    new_dynamic = [dict(m) for m in compiled_prompt.dynamic_messages]
+                    new_dynamic = [dict(m) for m in base_compiled_prompt.dynamic_messages]
                     if new_dynamic:
                         new_dynamic[-1] = {
                             **new_dynamic[-1],
@@ -345,7 +349,7 @@ class LLMTaskExecutor:
                         }
                     else:
                         new_dynamic.append({"role": "user", "content": healing_content.strip()})
-                    compiled_prompt = compiled_prompt.model_copy(update={"dynamic_messages": new_dynamic})
+                    compiled_prompt = base_compiled_prompt.model_copy(update={"dynamic_messages": new_dynamic})
 
                 except LogicalValidationError as e:
                     error_msg = e.validation_error_msg
@@ -406,7 +410,7 @@ class LLMTaskExecutor:
                         f"</PREVIOUS_SCHEMA_ERROR>"
                     )
 
-                    new_dynamic = [dict(m) for m in compiled_prompt.dynamic_messages]
+                    new_dynamic = [dict(m) for m in base_compiled_prompt.dynamic_messages]
                     if new_dynamic:
                         new_dynamic[-1] = {
                             **new_dynamic[-1],
@@ -414,7 +418,7 @@ class LLMTaskExecutor:
                         }
                     else:
                         new_dynamic.append({"role": "user", "content": healing_content.strip()})
-                    compiled_prompt = compiled_prompt.model_copy(update={"dynamic_messages": new_dynamic})
+                    compiled_prompt = base_compiled_prompt.model_copy(update={"dynamic_messages": new_dynamic})
         finally:
             if client._config and client._config.caching_strategy:
                 workflow_run_id = "default_run"

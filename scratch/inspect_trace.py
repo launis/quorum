@@ -1,13 +1,18 @@
 import json
+import os
 
-with open("data/files/executions/exe_0adc01fd7c9a40c99b7537e2d32b443c/execution_trace.json", 'r', encoding='utf-8') as f:
-    data = json.load(f)
+trace_path = r'c:\src\quorum\data\files\executions\exe_add8965fdc7342c5950678fd9745dfb6\execution_trace.json'
+with open(trace_path, 'r', encoding='utf-8') as f:
+    trace = json.load(f)
 
-for step in data:
-    if 'content' in step:
-        print("Keys in step:", list(step.keys()))
-        if 'content' in step and isinstance(step['content'], dict):
-            print("Keys in content:", list(step['content'].keys()))
-            if 'evaluations' in step['content']:
-                print("First evaluation:", step['content']['evaluations'][0])
-                break
+for step in trace:
+    print(f"Step ID: {step.get('step_id')}")
+    out = step.get('outputs', {})
+    if isinstance(out, dict):
+        print(f"  Outputs keys: {list(out.keys())}")
+        if 'atoms' in out:
+            print(f"  atoms list size: {len(out['atoms'])}")
+            if len(out['atoms']) > 0:
+                print(f"  first atom keys: {list(out['atoms'][0].keys())}")
+        elif 'evaluations' in out:
+            print(f"  evaluations list size: {len(out['evaluations'])}")

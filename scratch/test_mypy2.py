@@ -1,6 +1,8 @@
 import typing
 from typing import Any
+
 from pydantic import Field
+
 
 def test():
     ChunkRecordModel = object()

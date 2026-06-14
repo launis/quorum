@@ -1,6 +1,7 @@
 """Deep-dive into pure semantic drift: what exactly causes the disagreement?"""
 import json
 
+
 def get_all_evals(path):
     with open(path, encoding='utf-8') as f:
         data = json.load(f)
@@ -85,16 +86,16 @@ for atom in drift_atoms:
     concept = atom_concept.get(atom, '')
     t1 = get_trace(evals_1[atom])
     t2 = get_trace(evals_2[atom])
-    
+
     # Check if the rule/extraction text is empty or near-empty
     if not rule or rule.strip() == '' or rule.strip() == 'None':
         sub_empty_rule += 1
         continue
-    
+
     # Check if traces suggest the atom was evaluated against different rules
     # (one trace talks about a completely different concept)
     inv = atom_inverse.get(atom, False)
-    
+
     # Check for inverse_evidence confusion: one run treats as positive, other as inverse
     if inv:
         # If it's an inverse rule, check if one run found evidence (PASS) and other didn't (FAIL)
@@ -104,13 +105,13 @@ for atom in drift_atoms:
         sub_genuine += 1
 
 print(f"=== PURE SEMANTIC DRIFT SUB-CLASSIFICATION ({len(drift_atoms)} atoms) ===")
-print(f"")
+print("")
 print(f"A. Empty/missing extraction_rule:     {sub_empty_rule} ({sub_empty_rule/len(drift_atoms)*100:.1f}%)")
 print(f"B. Inverse evidence confusion:         {sub_inverse_confusion} ({sub_inverse_confusion/len(drift_atoms)*100:.1f}%)")
 print(f"C. Genuine semantic disagreement:      {sub_genuine} ({sub_genuine/len(drift_atoms)*100:.1f}%)")
 
 # Show details of a few inverse confusion cases
-print(f"\n--- Inverse Evidence Confusion Cases (first 5) ---")
+print("\n--- Inverse Evidence Confusion Cases (first 5) ---")
 count = 0
 for atom in drift_atoms:
     inv = atom_inverse.get(atom, False)
@@ -128,7 +129,7 @@ for atom in drift_atoms:
         break
 
 # Show details of genuine drift cases
-print(f"\n--- Genuine Semantic Disagreement (first 5) ---")
+print("\n--- Genuine Semantic Disagreement (first 5) ---")
 count = 0
 for atom in drift_atoms:
     inv = atom_inverse.get(atom, False)
@@ -148,10 +149,10 @@ for atom in drift_atoms:
         break
 
 # Overall stats
-print(f"\n=== GRAND TOTAL ===")
-print(f"Schema fail:       6 / 69 = 8.7%   -> Fixable by schema patch")
-print(f"CO Disagreement:  21 / 69 = 30.4%  -> Fixable by deterministic CO protocol")
+print("\n=== GRAND TOTAL ===")
+print("Schema fail:       6 / 69 = 8.7%   -> Fixable by schema patch")
+print("CO Disagreement:  21 / 69 = 30.4%  -> Fixable by deterministic CO protocol")
 print(f"Inverse confusion: {sub_inverse_confusion} / 69 = {sub_inverse_confusion/69*100:.1f}%  -> Fixable by clearer inverse_evidence handling")
 print(f"Genuine drift:     {sub_genuine} / 69 = {sub_genuine/69*100:.1f}%  -> Inherent LLM stochasticity (temperature/sampling)")
-print(f"System error:      2 / 69 = 2.9%   -> Fixable by retry logic")
+print("System error:      2 / 69 = 2.9%   -> Fixable by retry logic")
 print(f"Empty rules:       {sub_empty_rule} / 69 = {sub_empty_rule/69*100:.1f}%  -> Fixable by seed cleanup")

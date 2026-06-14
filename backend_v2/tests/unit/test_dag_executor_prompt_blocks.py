@@ -66,9 +66,28 @@ def mock_repo() -> Any:
 def mock_compiler() -> Any:
     compiler = MagicMock()
     compiler.build_xml_context.return_value = "<test>context</test>"
-    # Mocking a dynamic schema
     schema_mock = MagicMock()
     schema_mock.model_json_schema.return_value = {"type": "object"}
+
+    mock_validated = MagicMock()
+    mock_validated.model_dump.return_value = {
+        "blk_0123456789abcdef0123456789ab": {
+            "exact_quote": "",
+            "contextual_override": True,
+            "semantic_reasoning": "Because",
+            "localized_anchors_found": ["mock anchor"],
+            "status": "PASS",
+        }
+    }
+    mock_block = MagicMock()
+    mock_block.exact_quote = ""
+    mock_block.contextual_override = True
+    mock_block.semantic_reasoning = "Because"
+    mock_block.model_copy.return_value = mock_block
+    mock_validated.blk_0123456789abcdef0123456789ab = mock_block
+    mock_validated.model_copy.return_value = mock_validated
+
+    schema_mock.model_validate.return_value = mock_validated
     compiler.build_dynamic_schema.return_value = schema_mock
     return compiler
 

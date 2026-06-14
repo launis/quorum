@@ -202,7 +202,6 @@ class SchemaFactory:
                 str,
                 Field(
                     ...,
-                    alias="step_1_reasoning_trace",
                     description="Detailed step-by-step reasoning trace of the audit process.",
                 ),
             ),

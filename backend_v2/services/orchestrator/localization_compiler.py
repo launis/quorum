@@ -74,7 +74,11 @@ class LocalizationCompiler:
         raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
     def compile_xml_rubrics(
-        self, criteria: list[PromptBlock], target_locale: str, execution_persona_block: PromptBlock | None = None
+        self,
+        criteria: list[PromptBlock],
+        target_locale: str,
+        execution_persona_block: PromptBlock | None = None,
+        allowed_atom_ids: set[str] | None = None,
     ) -> str:
         """Epic 12/55: Generates Thick XML/Markdown rubrics for the System Prompt with Persona SSOT.
 
@@ -110,41 +114,39 @@ class LocalizationCompiler:
                 for s in scales:
                     for c in s.claims:
                         for assertion in c.tda_assertions:
+                            if allowed_atom_ids is not None and assertion.tda_id not in allowed_atom_ids:
+                                continue
+
                             assertion_xml = []
+                            assertion_xml.append(f'  <rule id="{assertion.tda_id}">')
                             tda_block = (
-                                "  <tda_validation>\n"
-                                f"    <anchor_target>{assertion.anchor_target}</anchor_target>\n"
-                                f"    <search_scope>{assertion.bounding_box_scope}</search_scope>\n"
-                                f"    <validation_rule>{assertion.extraction_rule}</validation_rule>\n"
-                                "  </tda_validation>"
+                                "    <tda_validation>\n"
+                                f"      <anchor_target>{assertion.anchor_target}</anchor_target>\n"
+                                f"      <search_scope>{assertion.bounding_box_scope}</search_scope>\n"
+                                f"      <validation_rule>{assertion.extraction_rule}</validation_rule>\n"
+                                "    </tda_validation>"
                             )
                             assertion_xml.append(tda_block)
 
                             acs = assertion.acceptance_criteria
                             if acs:
-                                ac_lines = [f"    - {ac.instruction}" for ac in acs if ac.instruction]
+                                ac_lines = [f"      - {ac.instruction}" for ac in acs if ac.instruction]
                                 if ac_lines:
                                     assertion_xml.append(
-                                        "  <ACCEPTANCE_CRITERIA>\n" + "\n".join(ac_lines) + "\n  </ACCEPTANCE_CRITERIA>"
+                                        "    <ACCEPTANCE_CRITERIA>\n"
+                                        + "\n".join(ac_lines)
+                                        + "\n    </ACCEPTANCE_CRITERIA>"
                                     )
 
                             aps = assertion.anti_patterns
                             if aps:
-                                ap_lines = [f"    - {ap.pattern}" for ap in aps if ap.pattern]
+                                ap_lines = [f"      - {ap.pattern}" for ap in aps if ap.pattern]
                                 if ap_lines:
                                     assertion_xml.append(
-                                        "  <ANTI_PATTERNS>\n" + "\n".join(ap_lines) + "\n  </ANTI_PATTERNS>"
+                                        "    <ANTI_PATTERNS>\n" + "\n".join(ap_lines) + "\n    </ANTI_PATTERNS>"
                                     )
 
                             mandate_text = mandate_str
-                            if assertion.inverse_evidence:
-                                mandate_text += (
-                                    " This is an inverse rule (Vice). If rule_satisfied = True "
-                                    "(no issues found), evidence_found MUST be False and you must "
-                                    'return an empty string "" for exact_quote. If rule_satisfied = False '
-                                    "(violation found), evidence_found MUST be True and you MUST quote "
-                                    "the exact violation."
-                                )
                             if assertion.allow_contextual_override:
                                 mandate_text += (
                                     " [CONTEXTUAL OVERRIDE ALLOWED] If the assertion's criteria are satisfied "
@@ -155,7 +157,10 @@ class LocalizationCompiler:
                                     "'[CONTEXTUAL_OVERRIDE_APPLIED]'. Do NOT hallucinate a quote. Only use "
                                     "this override if a direct literal quote is physically absent."
                                 )
-                            assertion_xml.append(f"  <FAIL_FAST_MANDATE>\n    {mandate_text}\n  </FAIL_FAST_MANDATE>")
+                            assertion_xml.append(
+                                f"    <FAIL_FAST_MANDATE>\n      {mandate_text}\n    </FAIL_FAST_MANDATE>"
+                            )
+                            assertion_xml.append("  </rule>")
 
                             claims_texts.append("\n".join(assertion_xml))
 
@@ -214,6 +219,17 @@ class LocalizationCompiler:
             "</ANTI_SCORE_MANDATE>"
         )
         xml_blocks.append(anti_score_mandate)
+
+        # Schema Purity Mandate to prevent JSON schema hallucinations
+        schema_purity_mandate = (
+            "<SCHEMA_PURITY_MANDATE>\n"
+            "CRITICAL SCHEMA RULE: You MUST strictly adhere to the provided JSON schema. "
+            "You are FORBIDDEN from creating, hallucinating, or injecting any extra fields or keys "
+            "that are not explicitly defined in the schema. Your output will be parsed with 'extra=forbid' strictness, "
+            "and any unauthorized fields will cause an immediate systemic crash.\n"
+            "</SCHEMA_PURITY_MANDATE>"
+        )
+        xml_blocks.append(schema_purity_mandate)
 
         return "\n".join(xml_blocks)
 

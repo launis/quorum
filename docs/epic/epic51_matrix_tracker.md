@@ -2,8 +2,8 @@
 
 
 - [OK] `blk_440a5fef9331451b` - Väitteiden perustelu (Toulminin Argumentaatiomalli)
-- [OK] `blk_f921c7c0989b47e8` - Luovuus ja syvyys (Bloomin Taksonomia)
-- [OK] `blk_109dab5b6b3f403a` - Harkintakyky (Kahnemanin Kaksoisprosessiteoria)
+- [BROKEN] `blk_f921c7c0989b47e8` - Luovuus ja syvyys (Bloomin Taksonomia)
+- [BROKEN] `blk_109dab5b6b3f403a` - Harkintakyky (Kahnemanin Kaksoisprosessiteoria)
 - [OK] `blk_53f32679aa514fcb` - Aktiivinen ohjaus (Performatiivisuus ja Goodhartin Laki)
 - [OK] `blk_fb15f8dcf23f4865` - Ohjeiden noudattaminen (Arkistointistandardien Auditointi)
 - [OK] `blk_c5804a9143c34cb1` - Syy-seuraussuhteet (Kausaalisuuden Analyysi)

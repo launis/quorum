@@ -1,8 +1,8 @@
 import json
-import sys
+
 
 def get_atom_prompt(path, target_id):
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, encoding='utf-8') as f:
         data = json.load(f)
     for step in data:
         if 'input_prompt' in step:

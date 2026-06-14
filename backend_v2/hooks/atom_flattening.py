@@ -24,12 +24,18 @@ class FlattenedAtom(BaseModel):
     Attributes:
         atom_id: Opaque hashed ID for the extracted atom.
         question: The text content evaluated blindly.
+        extraction_rule: The specific validation rule.
+        anchor_target: Semantic bounding box target.
+        is_inverse: True if this is an inverse assertion.
     """
 
     atom_id: str = Field(description="Opaque hashed ID for the extracted atom.")
     question: str = Field(description="The text content evaluated blindly.")
+    extraction_rule: str = Field(default="", description="The specific validation rule.")
+    anchor_target: str = Field(default="", description="Semantic bounding box target.")
+    is_inverse: bool = Field(default=False, description="True if this is an inverse assertion.")
 
-    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+    model_config = ConfigDict(strict=True, frozen=True, extra="ignore")
 
 
 class FlatteningHookOutput(BaseModel):
@@ -108,7 +114,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
     # 3. Retrieve and filter blocks
     all_blocks = await deps.comp_repo.get_all_prompt_blocks()
 
-    unique_atoms: dict[str, str] = {}
+    unique_atoms: dict[str, tuple[str, str, str, bool]] = {}
 
     for raw_block in all_blocks:
         try:
@@ -130,11 +136,10 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                     sampling_limit_val,
                 )
 
-                matrix_collected_atoms: list[tuple[str, str]] = []
+                matrix_collected_atoms: list[tuple[str, str, str, str, bool]] = []
 
-                # Stratification happens strictly per-scale
                 for scale in block.scales:
-                    scale_atoms: list[tuple[str, str]] = []
+                    scale_atoms: list[tuple[str, str, str, str, bool]] = []
 
                     for claim in scale.claims:
                         tda_assertions = claim.tda_assertions
@@ -145,6 +150,9 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                                     (
                                         aid,
                                         tda.concept_description.strip(),
+                                        tda.extraction_rule.strip() if tda.extraction_rule else "",
+                                        tda.anchor_target.strip() if tda.anchor_target else "",
+                                        bool(tda.inverse_evidence),
                                     )
                                 )
                         else:
@@ -175,13 +183,16 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
 
                     matrix_collected_atoms.extend(selected_atoms)
 
-                for atom_id, text in matrix_collected_atoms:
+                for atom_id, text, rule, anchor, is_inv in matrix_collected_atoms:
                     if atom_id not in unique_atoms:
-                        unique_atoms[atom_id] = text
+                        unique_atoms[atom_id] = (text, rule, anchor, is_inv)
 
     # 4. Global Deterministic Sort (Semantic Micro-Batching Requirement)
     if unique_atoms:
-        model_list = [FlattenedAtom(atom_id=key, question=val) for key, val in unique_atoms.items()]
+        model_list = [
+            FlattenedAtom(atom_id=key, question=val[0], extraction_rule=val[1], anchor_target=val[2], is_inverse=val[3])
+            for key, val in unique_atoms.items()
+        ]
 
         # Deterministic sort based on atom_id hash to prevent LLM Context Fatigue and ensure reproducibility
         model_list.sort(key=lambda x: x.atom_id)

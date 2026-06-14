@@ -178,7 +178,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
 
     # Simulate LLM Response parsing
     llm_payload = {
-        "step_1_reasoning_trace": "Let's think...",
+        "reasoning_trace": "Let's think...",
         "evaluation_notes": "User was bad",
         "blk_2234567890abcdef": {
             "semantic_reasoning": "None",
@@ -405,7 +405,7 @@ def test_build_dynamic_schema_instruction_with_custom_category() -> None:
 
     # The schema must parse valid string payloads perfectly
     llm_payload = {
-        "step_1_reasoning_trace": "Some reasoning trace.",
+        "reasoning_trace": "Some reasoning trace.",
         "evaluation_notes": "Qualitative evaluation notes.",
         "blk_599645bd5baf44e2": "Verification completed successfully.",
     }

@@ -9,5 +9,5 @@ def test_system_concurrency_mandatory_limits() -> None:
     # Architectural law: LLM_MAX_RETRIES is fixed at 2
     assert SystemConcurrency.LLM_MAX_RETRIES.value == 2
 
-    # SystemConcurrency.FAIL_FAST_MAX_RETRIES should default to 1
-    assert SystemConcurrency.FAIL_FAST_MAX_RETRIES.value == 1
+    # SystemConcurrency.FAIL_FAST_MAX_RETRIES should default to 3
+    assert SystemConcurrency.FAIL_FAST_MAX_RETRIES.value == 3

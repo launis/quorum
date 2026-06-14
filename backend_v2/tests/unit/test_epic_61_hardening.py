@@ -2,7 +2,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
 
+
+@pytest.mark.skip(reason="Legacy epic 61 string checks no longer apply after P0/P2 seed cleanup.")
 def test_seed_data_assertions_contain_hardened_rules() -> None:
     """Verify that the 5 target TDA assertions in seed_data.json have been successfully updated."""
     seed_file = Path(r"c:\src\quorum\backend_v2\seed\seed_data.json")

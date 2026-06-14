@@ -518,5 +518,6 @@ class PromptCompiler:
             "1. You MUST return ONLY valid JSON matching the exact schema requested.\n"
             "2. If the error says 'Field required' (e.g., missing 'atom_id'), you MUST provide it. Every evaluation MUST have a valid 'atom_id' from your <BLIND_ATOMS_TO_EVALUATE> list.\n"
             "3. If you evaluated a concept that was NOT explicitly listed in your instructions, REMOVE that evaluation block entirely. Do not hallucinate items.\n"
-            "4. Do not include markdown blocks, conversational text, or any explanations outside the JSON."
+            "4. Do not include markdown blocks, conversational text, or any explanations outside the JSON.\n"
+            "5. NO EXTRA FIELDS: If the error mentions 'Extra inputs are not permitted', you MUST remove them. Do not create or invent new JSON keys that were not explicitly requested in the schema."
         )

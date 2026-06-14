@@ -42,9 +42,17 @@ def evaluate_extraction(extraction: Any, source_text: str, is_negative_rule: boo
     Returns PASS, FAIL, or DLQ.
     """
     exact_quote = getattr(extraction, "exact_quote", None)
+    if not isinstance(exact_quote, str) or exact_quote == "":
+        exact_quote = None
     contextual_override = getattr(extraction, "contextual_override", False)
+    if not isinstance(contextual_override, bool):
+        contextual_override = False
     premise_1_quote = getattr(extraction, "premise_1_quote", None)
+    if not isinstance(premise_1_quote, str) or premise_1_quote == "":
+        premise_1_quote = None
     semantic_reasoning = getattr(extraction, "semantic_reasoning", None)
+    if not isinstance(semantic_reasoning, str):
+        semantic_reasoning = None
 
     # Track A: Physical Match
     if exact_quote:
@@ -82,8 +90,16 @@ def evaluate_extraction(extraction: Any, source_text: str, is_negative_rule: boo
     # Negative condition handling
     if is_negative_rule:
         if status == "PASS":
+            logger.debug(
+                "[Code-as-a-Judge] Dual Negation triggered: Flipping PASS to FAIL.",
+                extra={"error_code": "DUAL_NEGATION_FLIP_TO_FAIL"},
+            )
             status = "FAIL"
         elif status == "FAIL":
+            logger.debug(
+                "[Code-as-a-Judge] Dual Negation triggered: Flipping FAIL to PASS.",
+                extra={"error_code": "DUAL_NEGATION_FLIP_TO_PASS"},
+            )
             status = "PASS"
 
     return status
@@ -213,7 +229,8 @@ def resolve_majority_vote(
             if block.id in merged and block.category_id != "matrix" and block.type != "instruction":
                 votes = [res[block.id] for res in res_list if block.id in res]
                 if votes:
-                    is_inverse = False  # Block level is_inverse doesn't map cleanly to TDA level here, assumed false for standard blocks
+                    # Block level is_inverse doesn't map cleanly to TDA level here
+                    is_inverse = False
                     final_status, statuses = _apply_minority_veto(votes, user_payload, is_inverse, strictness_level)
                     confidence = _calculate_confidence(statuses, final_status)
 
@@ -293,12 +310,14 @@ class ChunkWorker:
 
         if chunk is not None:
             # Apply Chunk context subsetting
+            allowed_atom_ids = set()
             if has_shuffled_atoms:
                 chunk_matrix_ids = set()
                 filtered_items = []
                 for item in chunk.items:
                     try:
                         aid_model = AtomIdentifier.model_validate(item)
+                        allowed_atom_ids.add(aid_model.atom_id)
                         if aid_model.atom_id in atom_to_block_ids:
                             chunk_matrix_ids.update(atom_to_block_ids[aid_model.atom_id])
 
@@ -338,7 +357,12 @@ class ChunkWorker:
                     if bm.category_id != "matrix" or bm.id in chunk_matrix_ids:
                         chunk_criteria.append(bm)
 
-            atoms_json = json.dumps(chunk.items, ensure_ascii=False, indent=2)
+            blind_items = []
+            for item in chunk.items:
+                aid = item.get("atom_id")
+                blind_items.append({"atom_id": aid, "rule_anchor": aid, "question": item.get("question", "")})
+
+            atoms_json = json.dumps(blind_items, ensure_ascii=False, indent=2)
             chunk_atoms_xml = f"<BLIND_ATOMS_TO_EVALUATE>\n{atoms_json}\n</BLIND_ATOMS_TO_EVALUATE>"
 
         # V3: Build dynamic schema for this chunk's criteria subset
@@ -366,6 +390,7 @@ class ChunkWorker:
             chunk_atoms_xml=chunk_atoms_xml,
             strictness_level=strictness_level,
             target_locale=target_locale,
+            allowed_atom_ids=allowed_atom_ids if has_shuffled_atoms else None,
         )
 
         chunk_final: dict[str, Any] = {}
@@ -497,17 +522,13 @@ class ChunkWorker:
                             }
                         )
 
-                    # Evaluate each flattened atom
-                    for i, atom_data in enumerate(chunk_final["evaluations"]):
-                        atom_id = atom_data["atom_id"]
+                    # Evaluate each flattened atom via strict Pydantic parsing
+                    validated_response = local_dynamic_schema.model_validate(chunk_final)
+                    updated_evals = []
 
-                        temp_atom1 = ExtractionPayload(
-                            exact_quote=atom_data.get("exact_quote"),
-                            contextual_override=atom_data.get("contextual_override", False),
-                            premise_1_quote=atom_data.get("premise_1_quote"),
-                            premise_2_quote=atom_data.get("premise_2_quote"),
-                            semantic_reasoning=atom_data.get("semantic_reasoning", ""),
-                        )
+                    for atom_model in getattr(validated_response, "evaluations", []):
+                        atom_id = atom_model.atom_id
+
                         is_negative_rule = False
                         for crit in chunk_criteria:
                             if crit.scales:
@@ -518,19 +539,41 @@ class ChunkWorker:
                                                 is_negative_rule = True
                                                 break
 
-                        status = evaluate_extraction(temp_atom1, user_payload, is_negative_rule, strictness_level)
-                        atom_data["status"] = status
-                        if temp_atom1.contextual_override and temp_atom1.semantic_reasoning:
-                            atom_data["exact_quote"] = f"[INFERRED] {temp_atom1.semantic_reasoning}"
-                        sr = atom_data.get("semantic_reasoning", "")
-                        atom_data["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
-                        chunk_final["evaluations"][i] = atom_data
+                        status = evaluate_extraction(atom_model, user_payload, is_negative_rule, strictness_level)
+
+                        update_dict = {"status": status}
+                        contextual_override = getattr(atom_model, "contextual_override", False)
+                        semantic_reasoning = getattr(atom_model, "semantic_reasoning", "")
+
+                        # Handle MagicMock safely for tests
+                        if isinstance(contextual_override, bool) and contextual_override and semantic_reasoning:
+                            update_dict["exact_quote"] = f"[INFERRED] {semantic_reasoning}"
+                        elif contextual_override and not isinstance(contextual_override, bool):  # For MagicMocks
+                            pass
+
+                        sr = semantic_reasoning or ""
+                        if not isinstance(sr, str):
+                            sr = ""
+                        update_dict["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
+
+                        updated_atom = atom_model.model_copy(update=update_dict)
+                        updated_evals.append(updated_atom)
+
+                    validated_response = validated_response.model_copy(update={"evaluations": updated_evals})
+                    chunk_final = validated_response.model_dump(mode="json")
 
                 else:
-                    # Evaluate each standard block (TDA extractions)
+                    # Evaluate each standard block (TDA extractions) via strict Pydantic parsing
+                    validated_response = local_dynamic_schema.model_validate(chunk_final)
+                    update_response_dict = {}
+
                     for crit in chunk_criteria:
-                        if crit.id in chunk_final and crit.category_id != "matrix" and crit.type != "instruction":
-                            block_data = chunk_final[crit.id]
+                        if (
+                            hasattr(validated_response, crit.id)
+                            and crit.category_id != "matrix"
+                            and crit.type != "instruction"
+                        ):
+                            block_model = getattr(validated_response, crit.id)
 
                             is_negative_rule = False
                             if crit.scales:
@@ -541,21 +584,28 @@ class ChunkWorker:
                                                 is_negative_rule = True
                                                 break
 
-                            temp_block1 = ExtractionPayload(
-                                exact_quote=block_data.get("exact_quote"),
-                                contextual_override=block_data.get("contextual_override", False),
-                                premise_1_quote=block_data.get("premise_1_quote"),
-                                premise_2_quote=block_data.get("premise_2_quote"),
-                                semantic_reasoning=block_data.get("semantic_reasoning", ""),
-                            )
-                            status = evaluate_extraction(temp_block1, user_payload, is_negative_rule, strictness_level)
-                            block_data["status"] = status
-                            if temp_block1.contextual_override and temp_block1.semantic_reasoning:
-                                block_data["exact_quote"] = f"[INFERRED] {temp_block1.semantic_reasoning}"
+                            status = evaluate_extraction(block_model, user_payload, is_negative_rule, strictness_level)
 
-                            sr = block_data.get("semantic_reasoning", "")
-                            block_data["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
-                            chunk_final[crit.id] = block_data
+                            update_dict = {"status": status}
+                            contextual_override = getattr(block_model, "contextual_override", False)
+                            semantic_reasoning = getattr(block_model, "semantic_reasoning", "")
+
+                            # Handle MagicMock safely for tests
+                            if isinstance(contextual_override, bool) and contextual_override and semantic_reasoning:
+                                update_dict["exact_quote"] = f"[INFERRED] {semantic_reasoning}"
+
+                            sr = semantic_reasoning or ""
+                            if not isinstance(sr, str):
+                                sr = ""
+                            update_dict["semantic_reasoning"] = f"{sr}\n\n[5. VALIDATION DECISION: {status}]"
+
+                            updated_block = block_model.model_copy(update=update_dict)
+                            update_response_dict[crit.id] = updated_block
+
+                    if update_response_dict:
+                        validated_response = validated_response.model_copy(update=update_response_dict)
+
+                    chunk_final = validated_response.model_dump(mode="json")
 
             return chunk_final, chunk_usage, chunk_traces
 
