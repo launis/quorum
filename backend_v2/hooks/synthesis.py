@@ -710,7 +710,8 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
 
     messages = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": raw_input_text}]
 
-    client = await LLMClient.from_strategy("synthesis", repository=deps.system_repo)
+    strategy_name = synthesis_cfg.model_strategy
+    client = await LLMClient.from_strategy(strategy_name, repository=deps.system_repo)
     executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
     allowed_tools = synthesis_cfg.allowed_mcp_tools
 

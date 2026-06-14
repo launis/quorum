@@ -859,6 +859,14 @@ class SynthesisConfigDTO(V2CoreBase):
     """Configuration for LLM output synthesis length, masking, and formatting."""
 
     system_prompt: str | None = Field(default=None, description="Optional system prompt overriding default synthesis.")
+    model_strategy: str = Field(
+        default="synthesis",
+        description=(
+            "Pointer to Model Registry strategy key. "
+            "Determines which model/temperature is used for the main synthesis LLM call. "
+            "MUST exist as a key in system_config.model_registry.models."
+        ),
+    )
     length_constraint: int | None = Field(default=None, description="Length constraint for the synthesized text.")
     preamble_text: I18nText | None = Field(
         default=None, description="Multilingual preamble text added before synthesis."

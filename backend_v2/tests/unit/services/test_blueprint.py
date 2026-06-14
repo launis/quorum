@@ -798,9 +798,70 @@ async def test_blueprint_xai_extensions_type_coercion(mock_repo_transformer: Any
 
     assert len(dto.layouts) == 1
     axis = dto.layouts[0].axes[0]
+    assert axis.score == 90.0
     assert axis.confidence is None
     assert axis.risk_flag is True
     assert axis.remediation_steps == "Step 1\nStep 2"
+
+
+@pytest.mark.asyncio
+async def test_blueprint_2d_compare_graceful_degradation(mock_repo_sdui: AsyncMock) -> None:
+    """Tier 4 Bug Hunting: 2d_compare must gracefully degrade to 'bar' if only 1 axis is found, instead of crashing."""
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_sdui, workflow_repo=mock_repo_sdui, comp_repo=mock_repo_sdui, identity_repo=mock_repo_sdui
+    )
+    mock_repo_sdui.get_all_output_profiles_models.return_value = dict_to_obj([
+        {
+            "id": "prf_1234abcd1234abcd",
+            "slug": "default",
+            "workflow_id": "wf_1234abcd1234abcd",
+            "name": {"default_locale": "en", "translations": {"fi": "Oletus", "en": "Default"}},
+            "synthesis": None,
+            "layouts": [
+                {
+                    "preset_view": "2d_compare",
+                    "text_delivery_mode": "full",
+                    "title": {"default_locale": "en", "translations": {"en": "Metrics", "fi": "Metrics"}},
+                    "steps": [],
+                    "target_blocks": ["*"],
+                    "synthesis": None,
+                    "description": None,
+                }
+            ],
+            "display_scale": "original",
+            "visible_block_extensions": [],
+            "visible_workflow_extensions": [],
+            "max_extension_items": 2,
+            "strictness_level": 50,
+            "scoring_strategy": None,
+            "visible_metadata": [],
+            "custom_preface": None,
+        }
+    ])
+    mock_execution = ExecutionRecord(
+        id="exe_5555555555555555",
+        workflow_id="wf_1234abcd1234abcd",
+        status=ExecutionStatus.COMPLETED,
+        active_profile_id="prf_1234abcd1234abcd",
+        execution_trace=[
+            TraceEvent(
+                event_type="output",
+                step_name="step_1",
+                content={
+                    "blk_1234abcd1234abcd": {
+                        "raw_score": 3.0,
+                        "justification": "Valid matrix 1",
+                    }
+                    # Missing second matrix, so axes count will be 1
+                },
+            )
+        ],
+    )
+    mock_repo_sdui.get_execution.return_value = mock_execution
+
+    dto = await transformer.build_report_dto("exe_5555555555555555")
+    assert len(dto.layouts) > 0
+    assert dto.layouts[0].preset_view == "1d_metrics", "Should have gracefully degraded to '1d_metrics'"
 
 
 @pytest.mark.asyncio

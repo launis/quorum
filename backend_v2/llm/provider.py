@@ -1,7 +1,6 @@
 """LLM Provider implementations (LiteLLM, Mock, Unconfigured)."""
 
 import asyncio
-import copy
 import json
 import logging
 import os
@@ -444,8 +443,6 @@ class LiteLLMProvider(LLMProvider):
 
             max_rate_limit_retries = SystemConcurrency.LLM_MAX_RETRIES.value
             response = None
-            fallback_occurred = False
-            actual_model = self.model_name
 
             # Phase 3, Step 4: Enforce Exponential Backoff with Random Jitter
             async for attempt in AsyncRetrying(
@@ -471,40 +468,6 @@ class LiteLLMProvider(LLMProvider):
                     # Grab the stored dynamic Semaphore to throttle HTTP-level requests under low RPM
                     semaphore = self.__class__._semaphores[self.cache_key]
 
-                    # Downgrade to Flash on the final retry attempt if we are not already using it
-                    # to protect high-cognitive steps from failing completely.
-                    if attempt.retry_state.attempt_number == (max_rate_limit_retries + 1):
-                        if self.model_name != "vertex_ai/gemini-2.5-flash":
-                            logger.warning(
-                                "[Fail-Soft Fallback] Heavy model strategy '%s' exhausted on attempt %s. "
-                                "Downgrading model to 'vertex_ai/gemini-2.5-flash' to guarantee execution safety.",
-                                self.model_name,
-                                attempt.retry_state.attempt_number,
-                            )
-                            call_kwargs["model"] = "vertex_ai/gemini-2.5-flash"
-                            actual_model = "vertex_ai/gemini-2.5-flash"
-                            fallback_occurred = True
-
-                            # Clean up any cache_control keys from the messages payload
-                            # to prevent model/cache mismatch on Vertex AI
-                            if "messages" in call_kwargs:
-                                clean_messages = []
-                                for msg in call_kwargs["messages"]:
-                                    clean_msg = copy.deepcopy(msg)
-                                    content = clean_msg.get("content")
-                                    if isinstance(content, list):
-                                        new_content = []
-                                        for part in content:
-                                            if isinstance(part, dict):
-                                                part_copy = copy.deepcopy(part)
-                                                part_copy.pop("cache_control", None)
-                                                new_content.append(part_copy)
-                                            else:
-                                                new_content.append(part)
-                                        clean_msg["content"] = new_content
-                                    clean_messages.append(clean_msg)
-                                call_kwargs["messages"] = clean_messages
-
                     async with semaphore:
                         start_time = time.perf_counter()
 
@@ -514,20 +477,13 @@ class LiteLLMProvider(LLMProvider):
                         provider_key = (
                             self._config.provider
                             if self._config
-                            else (actual_model.split("/")[0] if "/" in actual_model else actual_model)
+                            else (self.model_name.split("/")[0] if "/" in self.model_name else self.model_name)
                         )
                         await apply_provider_pacing(provider_key)
 
-                        if fallback_occurred:
-                            # Bypass the internal Router list constraint since gemini-2.5-flash
-                            # is not in the Router's single-model list.
-                            response = await asyncio.wait_for(
-                                litellm.acompletion(**call_kwargs), timeout=float(_timeout)
-                            )
-                        else:
-                            response = await asyncio.wait_for(
-                                self.router.acompletion(**call_kwargs), timeout=float(_timeout)
-                            )
+                        response = await asyncio.wait_for(
+                            self.router.acompletion(**call_kwargs), timeout=float(_timeout)
+                        )
 
             if response is None:
                 raise ServiceUnavailableError("Failed to get a response from the model provider.")
@@ -647,7 +603,7 @@ class LiteLLMProvider(LLMProvider):
             cost = 0.0
             try:
                 # Calculate cost using LiteLLM, explicitly passing the actual model name to ensure FinOps accuracy.
-                base_model_name = actual_model.split("/")[-1] if "/" in actual_model else actual_model
+                base_model_name = self.model_name.split("/")[-1] if "/" in self.model_name else self.model_name
                 cost = litellm.completion_cost(completion_response=response, model=base_model_name)
             except Exception as e:
                 logger.error("[LiteLLMProvider] Cost Calculation Failed: %s", e)
@@ -707,11 +663,7 @@ class LiteLLMProvider(LLMProvider):
                 system_fingerprint=system_fingerprint,
                 tool_calls=extracted_tool_calls if extracted_tool_calls else [],
                 messages=final_messages,
-                override_reason=(
-                    "Downgraded to vertex_ai/gemini-2.5-flash due to rate limit or timeout on heavy model"
-                    if fallback_occurred
-                    else None
-                ),
+                override_reason=None,
             )
 
         except Exception as e:

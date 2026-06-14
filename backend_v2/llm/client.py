@@ -22,7 +22,6 @@ from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import SystemConfigModelRegistry
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
-from backend_v2.settings import get_settings
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
@@ -101,21 +100,6 @@ class LLMClient:
 
         if not target_strategy:
             raise ConfigurationError(f"Strategy '{strategy_name}' not found in registry.")
-
-        # DEV MODE DYNAMIC REDIRECT: Redirect expensive gemini-2.5-pro to the "fast" strategy config in dev mode
-        settings = get_settings()
-        if settings.environment == "development" and not settings.use_mock_llm:
-            if target_strategy.model_name and "gemini-2.5-pro" in target_strategy.model_name:
-                fast_strategy = registry.models.get("fast")
-                if fast_strategy:
-                    logger.warning(
-                        "[LLMClient] Dev Mode: Redirecting strategy '%s' (%s) -> "
-                        "'fast' strategy (%s) dynamically to save costs.",
-                        strategy_name,
-                        target_strategy.model_name,
-                        fast_strategy.model_name,
-                    )
-                    target_strategy = fast_strategy
 
         target_provider = target_strategy.provider
 

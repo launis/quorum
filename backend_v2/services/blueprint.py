@@ -213,12 +213,19 @@ class BlueprintTransformer:
             b_id = dto.block_id
             block_data = dto.payload
 
-            if not isinstance(block_data, dict):
-                continue
-
             pb_meta = blocks_by_id.get(b_id)
             if not pb_meta or pb_meta.category_id != "matrix":
                 continue
+
+            if not isinstance(block_data, dict):
+                msg = (
+                    f"Strict Fail-Fast: Invalid matrix payload format for '{b_id}': "
+                    f"expected dict, got {type(block_data)}"
+                )
+                logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
 
             try:
                 mapped_block_data = LightweightMatrixOutput.map_llm_extensions_to_domain(block_data)
@@ -337,7 +344,11 @@ class BlueprintTransformer:
                 display_scale_min = float(scale_min_val)
                 display_scale_max = float(scale_max_val)
 
-            target_val = getattr(matrix_payload, active_score_key, None)
+            if active_score_key == "normalized_score":
+                target_val = matrix_payload.normalized_score
+            else:
+                target_val = matrix_payload.raw_score
+
             if target_val is None:
                 target_val = raw_score
 
@@ -379,7 +390,8 @@ class BlueprintTransformer:
                             clean_level_dict[c_key] = f"{hits}/{total}"
                         except ValueError as v_err:
                             logger.error(
-                                "[BlueprintTransformer] %s: Fail-Fast: Invalid level key '%s' in matrix breakdown for '%s'.",
+                                "[BlueprintTransformer] %s: Fail-Fast: Invalid level key '%s' "
+                                "in matrix breakdown for '%s'.",
                                 ErrorCodes.VALIDATION_FAILED.name,
                                 lvl_key,
                                 b_id,
@@ -542,21 +554,20 @@ class BlueprintTransformer:
                 axes = list(all_parsed_matrices.values())
 
             if preset_view == "3d_complex" and len(axes) < 3:
-                msg = (
-                    f"Layout '{layout_title}' requires at least 3 axes for 3d_complex view, but only found {len(axes)}."
+                logger.warning(
+                    "[BlueprintTransformer] Downgrading layout '%s' from 3d_complex to "
+                    "2d_compare because only %s axes found.",
+                    layout_title, len(axes)
                 )
-                logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                preset_view = "2d_compare"
+
+            if preset_view == "2d_compare" and len(axes) < 2:
+                logger.warning(
+                    "[BlueprintTransformer] Downgrading layout '%s' from 2d_compare to "
+                    "1d_metrics because only %s axes found.",
+                    layout_title, len(axes)
                 )
-            elif preset_view == "2d_compare" and len(axes) < 2:
-                msg = (
-                    f"Layout '{layout_title}' requires at least 2 axes for 2d_compare view, but only found {len(axes)}."
-                )
-                logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                )
+                preset_view = "1d_metrics"
 
             if axes or preset_view == "text_only":
                 synthesis_config = layout_def.synthesis
@@ -915,7 +926,7 @@ class BlueprintTransformer:
                 )
 
             mcp_audit_data: list[MCPAuditTrace] = []
-            if getattr(execution.frozen_context, "mcp_tool_audit", None):
+            if execution.frozen_context and execution.frozen_context.mcp_tool_audit:
                 raw_audits: list[MCPAuditTrace] = execution.frozen_context.mcp_tool_audit
                 seen_audits: set[str] = set()
                 for audit in raw_audits:
