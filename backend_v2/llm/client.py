@@ -88,7 +88,7 @@ class LLMClient:
         # 3. Locate Strategy
         target_strategy = registry.models.get(strategy_name)
 
-        # Resolve aliases (e.g. "search" -> "fast" if structured as string)
+        # Resolve aliases if structured as string
         visited = {strategy_name}
         while isinstance(target_strategy, str):
             if target_strategy in visited:

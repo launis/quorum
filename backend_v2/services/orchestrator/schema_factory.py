@@ -11,9 +11,9 @@ import logging
 from collections.abc import Callable
 from enum import Enum
 from functools import lru_cache
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, create_model, model_validator
+from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.enums import SystemConcurrency
@@ -366,98 +366,6 @@ class SchemaFactory:
                 details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             ) from e
 
-    def build_blind_evaluation_schema(self, schema_name: str) -> type[BaseModel]:
-        """Build a dedicated schema for blind TDA extraction evaluation.
-
-        Args:
-            schema_name: Name for the generated Pydantic model class.
-
-        Returns:
-            A dynamically generated Pydantic model class for blind evaluation.
-        """
-
-        class AtomResponse(BaseModel):
-            """Micro-CoT structured atom response for blind evaluation pipeline."""
-
-            model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
-            atom_id: str = Field(..., description="Unique system identifier of the target evaluation atom.")
-            step_1_evidence_type: EvidenceType = Field(
-                ...,
-                description="Type of evidence discovered (EXPLICIT_QUOTE, IMPLIED_INTENT, or NO_EVIDENCE).",
-            )
-            step_2_quote: str | None = Field(
-                default=None,
-                description=(
-                    "A physically contiguous, character-for-character verbatim substring extracted "
-                    "directly from the source document. NEVER translate, fix grammar, paraphrase, or "
-                    "alter the language. The quote MUST remain in the ORIGINAL language of the source "
-                    "document. REQUIRED if evidence type is EXPLICIT_QUOTE."
-                ),
-            )
-            step_3_implicit_justification: str | None = Field(
-                default=None,
-                description=(
-                    "Conclusive justification if intent is implied. Must be at least 20 words. "
-                    "Allowed ONLY if strictness < 70."
-                ),
-            )
-            step_4_reasoning: str = Field(
-                ...,
-                description="Strict analytical reasoning trace explaining the presence or absence of evidence.",
-            )
-            step_5_boolean: bool = Field(
-                ...,
-                description="Final Boolean determination: True if rule is satisfied, False if violated or unsupported.",
-            )
-
-            @model_validator(mode="after")
-            def validate_evidence(self, info: ValidationInfo) -> Any:
-                """Validates cross-field evidence consistency based on evidence type and strictness.
-
-                Args:
-                    info: Validation context provided by Pydantic.
-
-                Raises:
-                    ValueError: If evidence constraints are violated.
-
-                Returns:
-                    The validated atom response.
-                """
-                if self.step_1_evidence_type == EvidenceType.EXPLICIT_QUOTE:
-                    if not self.step_2_quote or not self.step_2_quote.strip():
-                        raise ValueError("ANTI-LAZINESS MANDATE: Quote required for EXPLICIT_QUOTE")
-                elif self.step_1_evidence_type == EvidenceType.IMPLIED_INTENT:
-                    just_str = self.step_3_implicit_justification
-                    if not just_str or len(just_str.split()) < 20:
-                        raise ValueError(
-                            "ANTI-LAZINESS MANDATE: Justification too short for IMPLIED_INTENT (min 20 words)"
-                        )
-                    if info.context is None or "strictness_level" not in info.context:
-                        raise ValueError(
-                            "SYSTEM ARCHITECTURE MANDATE: Missing 'strictness_level' in validation context"
-                        )
-                    if info.context["strictness_level"] >= 70:
-                        raise ValueError("Strictness >= 70 ei salli implisiittistä logiikkaa")
-                elif self.step_1_evidence_type == EvidenceType.NO_EVIDENCE:
-                    if self.step_5_boolean is True:
-                        raise ValueError("ANTI-LAZINESS MANDATE: Cannot be True with NO_EVIDENCE")
-                return self
-
-        DynamicModel = create_model(
-            schema_name,
-            __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
-            evaluations=(
-                list[AtomResponse],
-                Field(
-                    ...,
-                    max_length=SystemConcurrency.SCHEMA_MAX_EVALUATIONS,
-                    description="List of blind atomic evaluations.",
-                ),
-            ),
-        )
-
-        return DynamicModel
-
     def build_chunk_response_schema(self, schema_name: str, item_schema: type[BaseModel]) -> type[BaseModel]:
         """Build dynamic Pydantic V2 schema for chunked Map-Reduce execution.
 
@@ -483,6 +391,17 @@ class SchemaFactory:
             ),
         )
 
+        records_tuple: Any = (
+            list[Any],
+            Field(
+                ...,
+                max_length=SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS,
+                description="List of records contained in this execution chunk.",
+            ),
+        )
+        if not TYPE_CHECKING:
+            records_tuple = (list[ChunkRecordModel], records_tuple[1])
+
         DynamicModel = create_model(
             schema_name,
             __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
@@ -491,14 +410,7 @@ class SchemaFactory:
                 Field(..., description="The unique system identifier of the current execution chunk."),
             ),
             # dynamically generated type aliases aren't parsed statically by mypy
-            records=(
-                list[ChunkRecordModel],  # type: ignore[valid-type]
-                Field(
-                    ...,
-                    max_length=SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS,
-                    description="List of records contained in this execution chunk.",
-                ),
-            ),
+            records=records_tuple,
         )
 
         return DynamicModel

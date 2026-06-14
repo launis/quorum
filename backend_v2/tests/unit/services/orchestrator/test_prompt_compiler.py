@@ -210,123 +210,6 @@ def test_generate_mcp_instruction() -> None:
     assert "Stop data collection as soon as you have sufficient context." in instruction
 
 
-def test_build_blind_evaluation_schema() -> None:
-    from backend_v2.services.orchestrator.prompt_compiler import EvidenceType, PromptCompiler
-
-    compiler = PromptCompiler()
-    DynamicSchema = compiler.build_blind_evaluation_schema("BlindTest")
-    assert issubclass(DynamicSchema, BaseModel)
-
-    llm_payload = {
-        "evaluations": [
-            {
-                "atom_id": "test_hash_123",
-                "step_1_evidence_type": EvidenceType.EXPLICIT_QUOTE,
-                "step_2_quote": "This is a test.",
-                "step_4_reasoning": "Simple logic.",
-                "step_5_boolean": True,
-            }
-        ]
-    }
-    parsed = DynamicSchema.model_validate(llm_payload, context={"strictness_level": 50})
-    assert len(parsed.evaluations) == 1  # type: ignore[attr-defined]
-    assert parsed.evaluations[0].atom_id == "test_hash_123"  # type: ignore[attr-defined]
-    assert parsed.evaluations[0].step_5_boolean is True  # type: ignore[attr-defined]
-
-
-def test_atom_response_fail_fast_anti_laziness() -> None:
-    import pytest
-    from pydantic import ValidationError
-
-    from backend_v2.services.orchestrator.prompt_compiler import EvidenceType, PromptCompiler
-
-    compiler = PromptCompiler()
-    DynamicSchema = compiler.build_blind_evaluation_schema("BlindTest")
-
-    # EXPLICIT_QUOTE missing quote
-    with pytest.raises(ValidationError) as exc:
-        DynamicSchema.model_validate(
-            {
-                "evaluations": [
-                    {
-                        "atom_id": "1",
-                        "step_1_evidence_type": EvidenceType.EXPLICIT_QUOTE,
-                        "step_4_reasoning": "Reason",
-                        "step_5_boolean": True,
-                    }
-                ]
-            },
-            context={"strictness_level": 50},
-        )
-    assert "Quote required for EXPLICIT_QUOTE" in str(exc.value)
-
-    # IMPLIED_INTENT short justification
-    with pytest.raises(ValidationError) as exc:
-        DynamicSchema.model_validate(
-            {
-                "evaluations": [
-                    {
-                        "atom_id": "1",
-                        "step_1_evidence_type": EvidenceType.IMPLIED_INTENT,
-                        "step_3_implicit_justification": "Too short.",
-                        "step_4_reasoning": "Reason",
-                        "step_5_boolean": True,
-                    }
-                ]
-            },
-            context={"strictness_level": 50},
-        )
-    assert "Justification too short for IMPLIED_INTENT" in str(exc.value)
-
-    # NO_EVIDENCE with True boolean
-    with pytest.raises(ValidationError) as exc:
-        DynamicSchema.model_validate(
-            {
-                "evaluations": [
-                    {
-                        "atom_id": "1",
-                        "step_1_evidence_type": EvidenceType.NO_EVIDENCE,
-                        "step_4_reasoning": "Reason",
-                        "step_5_boolean": True,
-                    }
-                ]
-            },
-            context={"strictness_level": 50},
-        )
-    assert "Cannot be True with NO_EVIDENCE" in str(exc.value)
-
-    # Valid IMPLIED_INTENT validation context > 70 strictness
-    with pytest.raises(ValidationError) as exc:
-        DynamicSchema.model_validate(
-            {
-                "evaluations": [
-                    {
-                        "atom_id": "1",
-                        "step_1_evidence_type": EvidenceType.IMPLIED_INTENT,
-                        "step_3_implicit_justification": (
-                            "This is a sufficiently long justification that has more than twenty "
-                            "words in it to satisfy the strict length requirement of the validator."
-                        ),
-                        "step_4_reasoning": "Reason",
-                        "step_5_boolean": True,
-                    }
-                ]
-            },
-            context={"strictness_level": 85},
-        )
-    assert "Strictness >= 70 ei salli implisiittistä logiikkaa" in str(exc.value)
-
-
-def test_compile_blind_system_instruction() -> None:
-    compiler = PromptCompiler()
-    instruction_en = compiler.compile_blind_system_instruction("en")
-    assert "Blind Extraction Engine" in instruction_en
-    assert "exclusively in the 'en' language" in instruction_en
-
-    instruction_fi = compiler.compile_blind_system_instruction("fi")
-    assert "exclusively in the 'fi' language" in instruction_fi
-
-
 def test_prompt_compiler_architectural_integrity() -> None:
     """Suojelee arkkitehtuuria vahinkopoistoilta ja "salaa poistamisilta".
     Varmistaa, että molemmat evaluointistrategiat pysyvät olemassa.
@@ -335,12 +218,6 @@ def test_prompt_compiler_architectural_integrity() -> None:
 
     msg1 = "CRITICAL: build_dynamic_schema on SALAA POISTETTU! Tämä rikkoo XAI-laajennukset ja 3D-matriisit."
     assert hasattr(PromptCompiler, "build_dynamic_schema"), msg1
-
-    msg2 = (
-        "CRITICAL: build_blind_evaluation_schema on SALAA POISTETTU! "
-        "Tämä rikkoo Epic 20 Phase 7 sokeiden kokeilujen arkkitehtuurin."
-    )
-    assert hasattr(PromptCompiler, "build_blind_evaluation_schema"), msg2
 
 
 def test_compile_xml_rubrics_anti_sycophancy() -> None:
@@ -379,40 +256,6 @@ def test_dynamic_schema_descriptions_are_present() -> None:
 
     compiler = PromptCompiler()
 
-    # 1. Test build_blind_evaluation_schema
-    BlindSchema = compiler.build_blind_evaluation_schema("BlindTest")
-    assert BlindSchema.model_fields["evaluations"].description == "List of blind atomic evaluations."
-
-    evaluations_field = BlindSchema.model_fields["evaluations"]
-    assert evaluations_field.annotation is not None
-    annotation_args = getattr(evaluations_field.annotation, "__args__", None)
-    assert annotation_args is not None
-    atom_response_model = annotation_args[0]
-    assert (
-        atom_response_model.model_fields["atom_id"].description
-        == "Unique system identifier of the target evaluation atom."
-    )  # noqa: E501
-    assert (
-        atom_response_model.model_fields["step_1_evidence_type"].description
-        == "Type of evidence discovered (EXPLICIT_QUOTE, IMPLIED_INTENT, or NO_EVIDENCE)."
-    )  # noqa: E501
-    assert (
-        atom_response_model.model_fields["step_2_quote"].description
-        == "Literal verbatim quote containing the exact physical evidence from the source document. REQUIRED if evidence type is EXPLICIT_QUOTE."  # noqa: E501
-    )  # noqa: E501
-    assert (
-        atom_response_model.model_fields["step_3_implicit_justification"].description
-        == "Conclusive justification if intent is implied. Must be at least 20 words. Allowed ONLY if strictness < 70."  # noqa: E501
-    )  # noqa: E501
-    assert (
-        atom_response_model.model_fields["step_4_reasoning"].description
-        == "Strict analytical reasoning trace explaining the presence or absence of evidence."
-    )  # noqa: E501
-    assert (
-        atom_response_model.model_fields["step_5_boolean"].description
-        == "Final Boolean determination: True if rule is satisfied, False if violated or unsupported."
-    )  # noqa: E501
-
     # 2. Test build_chunk_response_schema
     from pydantic import BaseModel
 
@@ -450,9 +293,6 @@ def test_dynamic_schema_descriptions_are_present() -> None:
         == SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS
     )  # noqa: E501
 
-    blind_json_schema = BlindSchema.model_json_schema()
-    assert blind_json_schema["properties"]["evaluations"]["maxItems"] == SystemConcurrency.SCHEMA_MAX_EVALUATIONS
-
     chunk_json_schema = ChunkSchema.model_json_schema()
     assert chunk_json_schema["properties"]["records"]["maxItems"] == SystemConcurrency.SCHEMA_MAX_CHUNK_RECORDS
 
@@ -476,7 +316,7 @@ def test_tda_extraction_schema_has_semantic_descriptions() -> None:
     quote_desc = StrippedBaseTDAExtraction.model_fields["exact_quote"].description or ""
 
     assert "exact_quote MUST be empty if True" in override_desc
-    assert "MUST be empty if contextual_override is True" in quote_desc
+    assert "MUST be empty/null if contextual_override is True" in quote_desc
 
 
 def test_prompt_compiler_extreme_description_truncation() -> None:

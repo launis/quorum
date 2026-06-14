@@ -16,13 +16,6 @@ def schema_factory() -> SchemaFactory:
     return SchemaFactory(resolve_i18n_fn=dummy_resolve_i18n)
 
 
-def test_build_blind_evaluation_schema(schema_factory: SchemaFactory) -> None:
-    """Verify blind evaluation schema contains required evaluations field."""
-    model = schema_factory.build_blind_evaluation_schema("BlindSchema")
-    assert issubclass(model, BaseModel)
-    assert "evaluations" in model.model_fields
-
-
 def test_build_chunk_response_schema(schema_factory: SchemaFactory) -> None:
     """Verify chunk response schema nests records and chunk_id fields."""
 
@@ -52,30 +45,21 @@ def test_schema_strictness_triggers_dlq_fallback(schema_factory: SchemaFactory) 
 
     import pydantic
 
-    model = schema_factory.build_blind_evaluation_schema("BlindSchema")
+    class DummyPayload(BaseModel):
+        test_field: str
 
-    # Create 12 items to simulate LLM array hallucination (Chunk size 10 + 2 hallucinations)
-    evaluations = []
-    for i in range(12):
-        evaluations.append(
-            {
-                "atom_id": f"tda_fake_{i}",
-                "step_1_evidence_type": "NO_EVIDENCE",
-                "step_2_quote": None,
-                "step_3_implicit_justification": None,
-                "step_4_reasoning": "Hallucinated reasoning trace",
-                "step_5_boolean": False,
-            }
-        )
+    model = schema_factory.build_chunk_response_schema("ChunkSchema", DummyPayload)
 
-    json_str = '{"evaluations": ' + json.dumps(evaluations) + "}"
+    records = []
+    for i in range(16):
+        records.append({"original_id": f"id_{i}", "payload": {"test_field": "val"}})
 
-    # This MUST fail with ValidationError because max_length is 10.
-    # The ChunkWorker's try-except catches this and initiates DLQ.
+    json_str = '{"chunk_id": "chunk_1", "records": ' + json.dumps(records) + "}"
+
     with pytest.raises(pydantic.ValidationError) as exc:
         model.model_validate_json(json_str)
 
-    assert "List should have at most 10 items after validation, not 12" in str(exc.value)
+    assert "List should have at most 15 items after validation, not 16" in str(exc.value)
 
 
 def test_dunder_hallucination_stripped_by_before_validator() -> None:

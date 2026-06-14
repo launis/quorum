@@ -44,10 +44,7 @@ async def test_client_empty_content_raises_schema_error_for_healing(mock_create_
     client = LLMClient(config=cast(Any, DummyConfig()))
 
     with pytest.raises(LLMSchemaValidationError) as exc:
-        await client.run_structured_task(
-            messages=[{"role": "user", "content": "hello"}],
-            response_model=DummyModel
-        )
+        await client.run_structured_task(messages=[{"role": "user", "content": "hello"}], response_model=DummyModel)
 
     assert exc.value.is_eof is True
     assert "Safety Filter Triggered" in exc.value.validation_error_msg

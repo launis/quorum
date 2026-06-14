@@ -6733,6 +6733,12 @@
             "title": "System Prompt",
             "description": "Optional system prompt overriding default synthesis."
           },
+          "model_strategy": {
+            "type": "string",
+            "title": "Model Strategy",
+            "description": "Pointer to Model Registry strategy key. Determines which model/temperature is used for the main synthesis LLM call. MUST exist as a key in system_config.model_registry.models.",
+            "default": "synthesis"
+          },
           "length_constraint": {
             "anyOf": [
               {

@@ -57,8 +57,8 @@ class ChatParserService:
         """Parse raw pasted chat logs into strict JSON using LLM.
 
         Args:
-            raw_paste (str): Raw unstructured text pasted from a chat UI.
-            system_repo (ISystemRepository): ISystemRepository instance.
+            raw_paste: Raw unstructured text pasted from a chat UI.
+            system_repo: ISystemRepository instance.
 
         Returns:
             ChatHistoryDTO: Strictly typed chat history object.
@@ -82,7 +82,7 @@ class ChatParserService:
 
         # Initialize LLM Client via Strategy Pattern
         try:
-            # Note: The system model_registry must have a 'precise' (or alias) strategy defined.
+            # Strategy must exist in the system model_registry
             llm_client = await LLMClient.from_strategy("fast", repository=system_repo)
             executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
         except ConfigurationError as e:

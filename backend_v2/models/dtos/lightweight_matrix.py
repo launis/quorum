@@ -128,13 +128,13 @@ class LightweightMatrixOutput(V2CoreBase):
 
 
 class MergedFactsDTO(V2CoreBase):
-    """Holds global aggregation results safely with ConfigDict(extra='ignore').
+    """Holds global aggregation results safely with ConfigDict(extra='allow').
 
     Attributes:
-        model_config: Pydantic configuration allowing extra attributes to be ignored.
+        model_config: Pydantic configuration allowing extra attributes.
     """
 
-    model_config = ConfigDict(extra="ignore", frozen=True)
+    model_config = ConfigDict(extra="allow", frozen=True)
 
 
 class LightweightExtractionAtom(V2CoreBase):

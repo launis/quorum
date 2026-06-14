@@ -13,10 +13,10 @@ def test_prompt_compiler_adapter_delegation() -> None:
     """Verifies that PromptCompilerAdapter correctly delegates unknown methods to PromptCompiler."""
     adapter = PromptCompilerAdapter()
 
-    # Verify delegation of build_blind_evaluation_schema
-    BlindSchema = adapter.build_blind_evaluation_schema("BlindTest")
-    assert BlindSchema is not None
-    assert hasattr(BlindSchema, "model_fields")
+    # Verify delegation of build_dynamic_schema
+    DynamicSchema = adapter.build_dynamic_schema("DynamicTest", [], False, False, "en")
+    assert DynamicSchema is not None
+    assert hasattr(DynamicSchema, "model_fields")
 
     # Verify delegation of calibrate_strictness
     assert "Absolute Leniency" in adapter.calibrate_strictness(0)

@@ -14,7 +14,7 @@
 
     <rule_block id="direct_database_mutation">
         <banned_pattern>Modifying the live `data\db_v2.json` database directly on the fly.</banned_pattern>
-        <mandatory_pattern>If data must be altered, mutate `backend_v2\seed\seed_data.json` instead, verify locally, ask for USER CONFIRMATION, and use `run_seed.py`.</mandatory_pattern>
+        <mandatory_pattern>If data must be altered, mutate `backend_v2\seed\seed_data.json` instead, verify locally, ask for USER CONFIRMATION, and use `backend_v2\seed\run_seed.py local`.</mandatory_pattern>
         <catastrophic_reason>Editing the runtime database bypasses the Pydantic fail-fast pipeline and corrupts Opaque Stripe ID relations permanently.</catastrophic_reason>
     </rule_block>
 

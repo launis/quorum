@@ -810,34 +810,36 @@ async def test_blueprint_2d_compare_graceful_degradation(mock_repo_sdui: AsyncMo
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_sdui, workflow_repo=mock_repo_sdui, comp_repo=mock_repo_sdui, identity_repo=mock_repo_sdui
     )
-    mock_repo_sdui.get_all_output_profiles_models.return_value = dict_to_obj([
-        {
-            "id": "prf_1234abcd1234abcd",
-            "slug": "default",
-            "workflow_id": "wf_1234abcd1234abcd",
-            "name": {"default_locale": "en", "translations": {"fi": "Oletus", "en": "Default"}},
-            "synthesis": None,
-            "layouts": [
-                {
-                    "preset_view": "2d_compare",
-                    "text_delivery_mode": "full",
-                    "title": {"default_locale": "en", "translations": {"en": "Metrics", "fi": "Metrics"}},
-                    "steps": [],
-                    "target_blocks": ["*"],
-                    "synthesis": None,
-                    "description": None,
-                }
-            ],
-            "display_scale": "original",
-            "visible_block_extensions": [],
-            "visible_workflow_extensions": [],
-            "max_extension_items": 2,
-            "strictness_level": 50,
-            "scoring_strategy": None,
-            "visible_metadata": [],
-            "custom_preface": None,
-        }
-    ])
+    mock_repo_sdui.get_all_output_profiles_models.return_value = dict_to_obj(
+        [
+            {
+                "id": "prf_1234abcd1234abcd",
+                "slug": "default",
+                "workflow_id": "wf_1234abcd1234abcd",
+                "name": {"default_locale": "en", "translations": {"fi": "Oletus", "en": "Default"}},
+                "synthesis": None,
+                "layouts": [
+                    {
+                        "preset_view": "2d_compare",
+                        "text_delivery_mode": "full",
+                        "title": {"default_locale": "en", "translations": {"en": "Metrics", "fi": "Metrics"}},
+                        "steps": [],
+                        "target_blocks": ["*"],
+                        "synthesis": None,
+                        "description": None,
+                    }
+                ],
+                "display_scale": "original",
+                "visible_block_extensions": [],
+                "visible_workflow_extensions": [],
+                "max_extension_items": 2,
+                "strictness_level": 50,
+                "scoring_strategy": None,
+                "visible_metadata": [],
+                "custom_preface": None,
+            }
+        ]
+    )
     mock_execution = ExecutionRecord(
         id="exe_5555555555555555",
         workflow_id="wf_1234abcd1234abcd",

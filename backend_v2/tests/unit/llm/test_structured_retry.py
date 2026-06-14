@@ -75,8 +75,10 @@ async def test_run_structured_task_self_healing_success(mock_repository: MagicMo
     mock_provider.generate = AsyncMock()
     mock_provider.generate.side_effect = [bad_response, good_response]
 
-    with patch("backend_v2.llm.provider.LLMFactory.create_provider", return_value=mock_provider), \
-         patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter") as mock_adapter:
+    with (
+        patch("backend_v2.llm.provider.LLMFactory.create_provider", return_value=mock_provider),
+        patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter") as mock_adapter,
+    ):
         mock_adapter.return_value.prepare_provider_kwargs.return_value = {}
         messages = [{"role": "user", "content": "Hello world this is a properly sized payload for testing"}]
 
@@ -122,8 +124,10 @@ async def test_run_structured_task_self_healing_exhaustion(mock_repository: Magi
     mock_provider.generate = AsyncMock()
     mock_provider.generate.side_effect = bad_responses  # Exactly 2 fail responses
 
-    with patch("backend_v2.llm.provider.LLMFactory.create_provider", return_value=mock_provider), \
-         patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter") as mock_adapter:
+    with (
+        patch("backend_v2.llm.provider.LLMFactory.create_provider", return_value=mock_provider),
+        patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter") as mock_adapter,
+    ):
         mock_adapter.return_value.prepare_provider_kwargs.return_value = {}
         with pytest.raises(AgentExecutionError) as exc_info:
             # Limit retries to 2 for exhaust test

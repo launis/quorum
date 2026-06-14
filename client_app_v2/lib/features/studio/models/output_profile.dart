@@ -50,6 +50,7 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
     @Default(['label', 'score', 'distribution', 'row_explanation'])
     @JsonKey(name: 'matrix_visible_columns')
     List<String> matrixVisibleColumns,
+    @JsonKey(name: 'model_strategy') String? modelStrategy,
   }) = _SynthesisConfigDTO;
 
   factory SynthesisConfigDTO.fromJson(Map<String, dynamic> json) =>

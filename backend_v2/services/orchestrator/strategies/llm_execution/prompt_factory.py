@@ -131,10 +131,6 @@ class PromptFactory:
             criteria_blocks, target_locale, execution_time=execution_time
         )
 
-        blind_instruction = None
-        if has_shuffled_atoms:
-            blind_instruction = compiler.compile_blind_system_instruction(target_locale)
-
         mcp_instruction = compiler.generate_mcp_instruction(effective_mcp_tools)
 
         def find_value_by_key(obj: Any, key: str) -> Any:
@@ -236,8 +232,7 @@ class PromptFactory:
             base_system_prompt += f"\n\n<EXTRACTION_PROTOCOL>\n{protocol_block.ai_description}\n</EXTRACTION_PROTOCOL>"
         if static_instructions:
             base_system_prompt += f"\n\n<CRITERIA_GUIDELINES>\n{static_instructions}\n</CRITERIA_GUIDELINES>"
-        if blind_instruction:
-            base_system_prompt += f"\n\n{blind_instruction}"
+
         if mcp_instruction:
             base_system_prompt += f"\n\n{mcp_instruction}"
 

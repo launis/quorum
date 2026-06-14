@@ -140,17 +140,6 @@ class PromptCompiler:
             schema_name, criteria, has_search_result, has_shuffled_atoms, target_locale
         )
 
-    def build_blind_evaluation_schema(self, schema_name: str) -> type[BaseModel]:
-        """Build a dedicated schema for blind TDA extraction evaluation.
-
-        Args:
-            schema_name: Name for the generated Pydantic model class.
-
-        Returns:
-            A dynamically generated Pydantic model class for blind evaluation.
-        """
-        return self._schema_factory.build_blind_evaluation_schema(schema_name)
-
     def build_chunk_response_schema(self, schema_name: str, item_schema: type[BaseModel]) -> type[BaseModel]:
         """Build dynamic Pydantic V2 schema for chunked Map-Reduce execution.
 
@@ -473,44 +462,6 @@ class PromptCompiler:
             "Stop data collection as soon as you have sufficient context. "
             "Embed your discovered sources into the corresponding extension fields."
         )
-
-    def compile_blind_system_instruction(self, target_locale: str = "en") -> str:
-        """Create a Micro-CoT Prompt-block for the system role forcing full blindness.
-
-        Args:
-            target_locale: The target language code for output generation.
-
-        Returns:
-            A formatted system instruction string for blind extraction.
-        """
-        instruction = (
-            "<system_directive>\n"
-            "<objective>You are a Blind Extraction Engine. Your task is to scan the text "
-            "for the markers defined in the rule.</objective>\n"
-            "<language_mandate>The physical markers in the rules are in English, but the "
-            "source text is in Finnish. You MUST strictly map the English markers to their EXACT "
-            "semantic physical equivalents in Finnish before scanning. Do not extract if the "
-            "localized marker is missing.</language_mandate>\n"
-            "<rules>\n"
-            "  <rule>If the exact marker is not physically present, return null for "
-            "exact_quote.</rule>\n"
-            "  <rule>Keep your semantic_reasoning strictly under 2 sentences.</rule>\n"
-            "  <rule>Use contextual_override=true ONLY as a last resort if the target "
-            "concept is clearly present but physically impossible to extract as an "
-            "exact continuous quote.</rule>\n"
-            "  <rule>When evaluating negative conditions or presence of flaws (vice rules), "
-            "you must look ONLY for physical semantic matches. If the text does not contain the "
-            "exact physical anchors defined in the rule, you MUST return JSON null. "
-            "Speculation, extrapolation, or rationalizing away missing evidence is strictly banned."
-            "</rule>\n"
-            "</rules>\n"
-            "</system_directive>"
-        )
-        instruction += (
-            f"\n\nCRITICAL MANDATE: You must generate all your output text and reasoning "
-            f"exclusively in the '{target_locale}' language."
-        )
-        return instruction
 
     def compile_chunk_payload_instruction(self, chunk_id: str, payload_text: str) -> str:
         """Generates an isolated context block fenced explicitly into `<user_payload>`.

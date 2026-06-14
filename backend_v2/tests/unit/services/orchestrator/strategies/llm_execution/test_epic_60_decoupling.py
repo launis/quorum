@@ -41,7 +41,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
     compiler = MagicMock()
     compiler.compile_static_instructions.return_value = "Compiled Criteria Instructions"
     compiler.compile_dynamic_instructions.return_value = "Dynamic Instructions"
-    compiler.compile_blind_system_instruction.return_value = "Blind Instruction"
+
     compiler.generate_mcp_instruction.return_value = "MCP Instruction"
     compiler.build_xml_context.return_value = "<context></context>"
 

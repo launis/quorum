@@ -303,7 +303,6 @@ async def test_execute_success_path_structured_output(
         # Mock Compiler returns
         mock_compiler.compile_static_instructions.return_value = "static"
         mock_compiler.compile_dynamic_instructions.return_value = "dynamic"
-        mock_compiler.compile_blind_system_instruction.return_value = "blind"
         mock_compiler.generate_mcp_instruction.return_value = ""
         mock_compiler.build_xml_context.return_value = "<xml></xml>"
         mock_schema = MagicMock()
@@ -449,7 +448,7 @@ def test_configure_llm_context_hook_error() -> None:
 
 
 @pytest.mark.asyncio
-async def test_execute_raises_app_exception_if_chunk_routes_to_dlq(
+async def test_execute_accumulates_dlq_status_instead_of_raising(
     llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
 ) -> None:
     """Test that LLMNodeStrategy raises an AppException if process_chunk returns a DLQ failure status."""
@@ -511,8 +510,17 @@ async def test_execute_raises_app_exception_if_chunk_routes_to_dlq(
     }
 
     # Bypass pre-hooks
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {}
+    from backend_v2.core.hook_registry import HookState
+
+    mock_hook_state = HookState(
+        execution_id="exec_1",
+        workflow_id="wf_1",
+        step_id="step_dlq",
+        task_blueprint="bp_dlq",
+        metadata={"target_locale": "en", "profile_id": "prof_123"},
+        inputs={},
+        global_context_vars={},
+    )
 
     from unittest.mock import patch
 
@@ -522,7 +530,6 @@ async def test_execute_raises_app_exception_if_chunk_routes_to_dlq(
         # Mock Compiler
         mock_compiler.compile_static_instructions.return_value = "static"
         mock_compiler.compile_dynamic_instructions.return_value = "dynamic"
-        mock_compiler.compile_blind_system_instruction.return_value = "blind"
         mock_compiler.generate_mcp_instruction.return_value = ""
         mock_compiler.build_xml_context.return_value = "<xml></xml>"
         mock_compiler.build_dynamic_schema.return_value = MagicMock()
@@ -542,20 +549,25 @@ async def test_execute_raises_app_exception_if_chunk_routes_to_dlq(
                 new_callable=AsyncMock,
             ) as mock_process_chunk:
                 mock_process_chunk.return_value = (
-                    {"_dlq_status": "FAILED/DLQ", "reason": "Test Aggregator DLQ Exception"},
+                    {
+                        "_dlq_status": "FAILED/DLQ",
+                        "reason": "Test Aggregator DLQ Exception",
+                        "blk_test": {"status": "DLQ"},
+                    },
                     None,
                     [],
                 )
 
-                with pytest.raises(AppException) as exc_info:
-                    await llm_strategy.execute(
-                        step=step,
-                        projector=projector,
-                        context=context,
-                        frozen_ctx=None,
-                        trace=[],
-                        semaphore=asyncio.Semaphore(2),
-                    )
+                trace_events = await llm_strategy.execute(
+                    step=step,
+                    projector=projector,
+                    context=context,
+                    frozen_ctx=None,
+                    trace=[],
+                    semaphore=asyncio.Semaphore(2),
+                )
 
-                assert exc_info.value.status_code == 500
-                assert "Chunk execution failed and routed to DLQ" in exc_info.value.message
+                # Phase 4, Step 2: Ensure it doesn't raise, but accumulates DLQ in blocks
+                assert len(trace_events) == 1
+                assert trace_events[0].event_type == "output"
+                assert trace_events[0].content["blk_test"]["status"] == "DLQ"

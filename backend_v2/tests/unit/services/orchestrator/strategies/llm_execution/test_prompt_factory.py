@@ -12,7 +12,7 @@ def mock_compiler() -> MagicMock:
     compiler = MagicMock()
     compiler.compile_static_instructions.return_value = "Static Instructions"
     compiler.compile_dynamic_instructions.return_value = "Dynamic Instructions"
-    compiler.compile_blind_system_instruction.return_value = "Blind Instruction"
+
     compiler.generate_mcp_instruction.return_value = "MCP Instruction"
     compiler.build_xml_context.return_value = "<context></context>"
     return compiler
@@ -79,7 +79,7 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
 
     assert "You are a highly accurate, structured evaluation assistant." in payload.base_system_prompt
     assert "Static Instructions" in payload.base_system_prompt
-    assert "Blind Instruction" in payload.base_system_prompt
+
     assert "MCP Instruction" in payload.base_system_prompt
 
     assert "context" in payload.user_payload
@@ -88,43 +88,6 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
 
     # Check atom hashing
     assert len(payload.atom_to_block_ids) == 2
-
-
-def test_prompt_factory_flat_instruction_no_blind_contamination(mock_compiler: MagicMock) -> None:
-    """Test that when has_shuffled_atoms=False, blind_instruction is not compiled/injected."""
-    from backend_v2.models.v2_core import PromptBlock
-
-    criteria_blocks = [
-        PromptBlock.model_validate(
-            {
-                "id": "blk_12345678901234567890123456789012",
-                "slug": "test_slug",
-                "label": {"default_locale": "en", "translations": {"en": "Test Label", "fi": "Testi"}},
-                "description": {"default_locale": "en", "translations": {"en": "Test Desc", "fi": "Testi"}},
-                "type": "string",
-                "category_id": "system_rule",
-            }
-        )
-    ]
-
-    payload = PromptFactory.build(
-        compiler=mock_compiler,
-        role_block=None,
-        protocol_block=None,
-        execution_persona_block=None,
-        criteria_blocks=criteria_blocks,
-        target_locale="en",
-        effective_mcp_tools=None,
-        input_mappings={},
-        llm_context_data={},
-        expected_inputs=None,
-        has_shuffled_atoms=False,
-    )
-
-    assert "You are a highly accurate, structured evaluation assistant." in payload.base_system_prompt
-    assert "Static Instructions" in payload.base_system_prompt
-    assert "Blind Instruction" not in payload.base_system_prompt
-    assert "MCP Instruction" in payload.base_system_prompt
 
 
 def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock) -> None:

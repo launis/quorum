@@ -49,3 +49,47 @@ def test_output_profiles_do_not_contain_execution_logic() -> None:
             if wf.output_profiles:
                 for p_id, embedded_profile in wf.output_profiles.items():
                     assert_no_execution_logic(embedded_profile.synthesis, f"Workflow {wf.id} Profile {p_id}")
+
+
+def test_model_strategies_are_bound_to_registry() -> None:
+    """Architectural Guardrail: All model_strategy references must exist in the SystemConfigModelRegistry."""
+    with open(SEED_FILE, encoding="utf-8") as f:
+        data = json.load(f)
+
+    # 1. Collect valid strategies from registry
+    valid_strategies = set()
+    for sys_cfg in data.get("system_config", []):
+        if sys_cfg.get("type") == "model_registry" and "models" in sys_cfg:
+            valid_strategies.update(sys_cfg["models"].keys())
+
+    assert valid_strategies, "Model registry must contain at least one strategy"
+
+    # 2. Check steps
+    for raw_step in data.get("steps", []):
+        strategy = raw_step.get("model_strategy")
+        if strategy:
+            assert strategy in valid_strategies, (
+                f"Step '{raw_step.get('slug')}' references unknown model_strategy '{strategy}'"
+            )
+
+    # 3. Check output profiles
+    if "output_profiles" in data:
+        for raw_profile in data["output_profiles"]:
+            synthesis = raw_profile.get("synthesis", {})
+            strategy = synthesis.get("model_strategy")
+            if strategy:
+                assert strategy in valid_strategies, (
+                    f"Profile '{raw_profile.get('id')}' references unknown model_strategy '{strategy}'"
+                )
+
+    # 4. Check embedded profiles in workflows
+    if "workflows" in data:
+        for raw_wf in data["workflows"]:
+            profiles = raw_wf.get("output_profiles", {})
+            for p_id, profile in profiles.items():
+                synthesis = profile.get("synthesis", {})
+                strategy = synthesis.get("model_strategy")
+                if strategy:
+                    assert strategy in valid_strategies, (
+                        f"Workflow '{raw_wf.get('slug')}' profile '{p_id}' references unknown model_strategy '{strategy}'"
+                    )

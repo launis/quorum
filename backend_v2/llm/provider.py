@@ -621,7 +621,7 @@ class LiteLLMProvider(LLMProvider):
                     await self.usage_service.track_usage(
                         org_id=target_org,
                         user_id=target_user,
-                        model=actual_model,
+                        model=self.model_name,
                         input_tokens=int(usage["prompt_tokens"] if "prompt_tokens" in usage else 0),
                         output_tokens=int(usage["completion_tokens"] if "completion_tokens" in usage else 0),
                         cached_tokens=int(usage["cached_tokens"] if "cached_tokens" in usage else 0),

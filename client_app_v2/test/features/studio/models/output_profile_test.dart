@@ -69,5 +69,33 @@ void main() {
         );
       },
     );
+
+    test(
+      'TDD REPRO: SynthesisConfigDTO should parse model_strategy without crashing',
+      () {
+        final jsonPayload = {
+          "system_prompt": null,
+          "length_constraint": null,
+          "preamble_text": null,
+          "historical_context_mode": "DISABLED",
+          "enable_pii_masking": false,
+          "allowed_exports": ["pdf", "raw_json"],
+          "omit_empty_sections": true,
+          "allowed_mcp_tools": [],
+          "matrix_visible_columns": [
+            "label",
+            "score",
+            "distribution",
+            "row_explanation",
+          ],
+          "model_strategy": "fast",
+        };
+
+        // This will currently crash with CheckedFromJsonException
+        final result = SynthesisConfigDTO.fromJson(jsonPayload);
+
+        expect(result, isNotNull);
+      },
+    );
   });
 }

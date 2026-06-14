@@ -557,7 +557,8 @@ class BlueprintTransformer:
                 logger.warning(
                     "[BlueprintTransformer] Downgrading layout '%s' from 3d_complex to "
                     "2d_compare because only %s axes found.",
-                    layout_title, len(axes)
+                    layout_title,
+                    len(axes),
                 )
                 preset_view = "2d_compare"
 
@@ -565,7 +566,8 @@ class BlueprintTransformer:
                 logger.warning(
                     "[BlueprintTransformer] Downgrading layout '%s' from 2d_compare to "
                     "1d_metrics because only %s axes found.",
-                    layout_title, len(axes)
+                    layout_title,
+                    len(axes),
                 )
                 preset_view = "1d_metrics"
 
