@@ -1,6 +1,8 @@
 """Domain models for Metadata hook."""
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from backend_v2.exceptions import AppException, ErrorCodes
 
 
 class MetadataHookPayloadDTO(BaseModel):
@@ -21,8 +23,18 @@ class StepMetadataDTO(BaseModel):
     step_id: str = Field(min_length=1)
     initiator_id: str = Field(min_length=1)
     timestamp_isot: str = Field(min_length=1)
-    unix_time: int = Field(ge=0)
+    unix_time: int = Field(description="Unix timestamp")
     v2_engine: bool = Field(default=True)
+
+    @field_validator("unix_time")
+    @classmethod
+    def validate_unix_time(cls, v: int) -> int:
+        """Validate unix_time >= 0."""
+        if v < 0:
+            raise AppException(
+                message=f"unix_time must be >= 0, got {v}", details={"error_code": ErrorCodes.VALIDATION_FAILED}
+            )
+        return v
 
 
 class MetadataHookResultDTO(BaseModel):

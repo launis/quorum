@@ -25,6 +25,11 @@ class PerformativityInput(V2CoreBase):
     """Strict input schema for PerformativityDetectorAgent.
 
     V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+
+    Attributes:
+        chat_log: The mandatory conversation history.
+        step_analyst: Analyst or Logician outputs.
+        last_reasoning_trace: Previous reasoning trace.
     """
 
     chat_log: str = Field(
@@ -38,7 +43,13 @@ class PerformativityInput(V2CoreBase):
 
 
 class PerformativityHeuristic(V2CoreBase):
-    """Heuristic check for performativity."""
+    """Heuristic check for performativity.
+
+    Attributes:
+        heuristic_name: Heuristic name.
+        flag_raised: Flag raised.
+        description: Description.
+    """
 
     heuristic_name: str = Field(
         ...,
@@ -60,7 +71,12 @@ class PerformativityHeuristic(V2CoreBase):
 
 
 class PreMortemAnalysis(V2CoreBase):
-    """Pre-Mortem Analysis results."""
+    """Pre-Mortem Analysis results.
+
+    Attributes:
+        performed: Was Pre-Mortem performed?
+        weak_signals: Detected weak signals.
+    """
 
     performed: bool = Field(
         ...,
@@ -79,6 +95,14 @@ class PerformativityAnalysis(V2CoreBase):
     """Output from Performativity component.
 
     (Renamed for schema clarity vs Detector).
+
+    Attributes:
+        performativity_heuristics: Heuristics check.
+        pre_mortem_analysis: Pre-Mortem analysis.
+        authenticity_assessment: Authenticity assessment.
+        authenticity_score: Numeric authenticity score.
+        description_key: Localization key.
+        description: Localized description.
     """
 
     performativity_heuristics: list[PerformativityHeuristic] = Field(
@@ -143,7 +167,11 @@ class PerformativityAnalysis(V2CoreBase):
 
 
 class PerformativityDTO(ReasoningTraceDTO):
-    """Performativity DTO (Content Only)."""
+    """Performativity DTO (Content Only).
+
+    Attributes:
+        performativity_analysis: Performativity audit result.
+    """
 
     performativity_analysis: PerformativityAnalysis = Field(
         ...,
@@ -153,11 +181,21 @@ class PerformativityDTO(ReasoningTraceDTO):
 
 
 class PerformativityOutput(PerformativityDTO, ReasoningTrace):
-    """Output schema for the Performativity/Detector Agent."""
+    """Output schema for the Performativity/Detector Agent.
+
+    Attributes:
+        No additional attributes.
+    """
 
 
 class PerformativePattern(V2CoreBase):
-    """A single detected performative pattern."""
+    """A single detected performative pattern.
+
+    Attributes:
+        pattern_id: ID of the pattern.
+        detected_phrase: The exact phrase detected.
+        category: Category of the pattern.
+    """
 
     pattern_id: str = Field(
         ..., min_length=1, description="ID of the pattern.", json_schema_extra={"x-ui-label": "Pattern ID"}
@@ -171,7 +209,11 @@ class PerformativePattern(V2CoreBase):
 
 
 class LinguisticsResult(V2CoreBase):
-    """Result of the linguistics analysis (Hook)."""
+    """Result of the linguistics analysis (Hook).
+
+    Attributes:
+        performative_patterns: Detected patterns.
+    """
 
     performative_patterns: list[PerformativePattern] = Field(
         default_factory=list,

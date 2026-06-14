@@ -148,7 +148,7 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
     else:
         logger.debug("[ValidationHook] Checks passed.")
 
-    return HookResult(success=True, state_delta={"validation_result": result_dto.model_dump()})
+    return HookResult(success=True, state_delta={"validation_result": result_dto.model_dump(mode="json")})
 
 
 @hook_registry.register(name="verify_output_language")
@@ -242,7 +242,7 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
             meta={},
         )
         existing_warnings.append(new_warning)
-        delta["_system_warnings"] = [w.model_dump() for w in existing_warnings]
+        delta["_system_warnings"] = [w.model_dump(mode="json") for w in existing_warnings]
 
     return HookResult(success=True, state_delta=delta)
 

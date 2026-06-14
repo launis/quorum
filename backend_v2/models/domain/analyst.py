@@ -20,6 +20,11 @@ class AnalystInput(V2CoreBase):
     """Strict input schema for AnalystAgent.
 
     V2 Dynamic: 'chatlog' is mandatory, but other inputs are encapsulated dynamically.
+
+    Attributes:
+        chat_log: Mandatory chatlog to analyze.
+        last_reasoning_trace: Previous reasoning trace.
+        dynamic_inputs: Structured dictionary for dynamic inputs.
     """
 
     chat_log: str = Field(..., description="Mandatory chatlog to analyze.")
@@ -31,7 +36,15 @@ class AnalystInput(V2CoreBase):
 
 
 class Hypothesis(V2CoreBase):
-    """A single hypothesis formed by the Analyst."""
+    """A single hypothesis formed by the Analyst.
+
+    Attributes:
+        id: Hypothesis ID.
+        claim_text: The claim text.
+        evidence_found: Was evidence found?
+        search_query: Search query used.
+        quotes: Direct quotes found.
+    """
 
     id: str = Field(..., pattern=r"^hyp_[a-zA-Z0-9]+$", min_length=1, description="Hypothesis ID.")
     claim_text: str = Field(
@@ -59,6 +72,14 @@ class Hypothesis(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_consistency(self) -> Hypothesis:
+        """Validate consistency of evidence and quotes.
+
+        Raises:
+            ValueError: If evidence_found is True but quotes are missing.
+
+        Returns:
+            The validated Hypothesis instance.
+        """
         if self.evidence_found and not self.quotes:
             # Strict: If evidence is found, quotes MUST be provided.
             # This prevents "hallucinated" evidence flags without backing data.
@@ -69,7 +90,14 @@ class Hypothesis(V2CoreBase):
 
 
 class AnalystDTO(ReasoningTraceDTO):
-    """Analyst DTO (Content Only)."""
+    """Analyst DTO (Content Only).
+
+    Attributes:
+        hypotheses: List of hypotheses.
+        rag_evidence: RAG evidence snippets.
+        critical_violation: Critical violation of Knowledge Base?
+        integrity_audit: Integrity audit results for citations.
+    """
 
     hypotheses: list[Hypothesis] = Field(
         ...,
@@ -99,7 +127,13 @@ class AnalystOutput(AnalystDTO, ReasoningTrace):
 
 
 class SearchResultItem(V2CoreBase):
-    """Single search result."""
+    """Single search result.
+
+    Attributes:
+        title: Title of the result.
+        link: Link to the result.
+        snippet: Snippet of the result.
+    """
 
     title: str = Field(
         ...,
@@ -122,7 +156,11 @@ class SearchResultItem(V2CoreBase):
 
 
 class SearchResult(V2CoreBase):
-    """Result of the Google Search (Hook)."""
+    """Result of the Google Search (Hook).
+
+    Attributes:
+        results: Search results.
+    """
 
     results: list[SearchResultItem] = Field(
         ..., min_length=1, description="Search results.", json_schema_extra={"x-ui-label": "Search Results"}

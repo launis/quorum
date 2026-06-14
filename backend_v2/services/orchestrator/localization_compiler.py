@@ -110,52 +110,54 @@ class LocalizationCompiler:
                 for s in scales:
                     for c in s.claims:
                         for assertion in c.tda_assertions:
-                            substance = assertion.concept_description.strip()
-                            if substance:
-                                assertion_xml = [f"  <CONCEPT_DEFINITION>\n    {substance}\n  </CONCEPT_DEFINITION>"]
+                            assertion_xml = []
+                            tda_block = (
+                                "  <tda_validation>\n"
+                                f"    <anchor_target>{assertion.anchor_target}</anchor_target>\n"
+                                f"    <search_scope>{assertion.bounding_box_scope}</search_scope>\n"
+                                f"    <validation_rule>{assertion.extraction_rule}</validation_rule>\n"
+                                "  </tda_validation>"
+                            )
+                            assertion_xml.append(tda_block)
 
-                                acs = assertion.acceptance_criteria
-                                if acs:
-                                    ac_lines = [f"    - {ac.instruction}" for ac in acs if ac.instruction]
-                                    if ac_lines:
-                                        assertion_xml.append(
-                                            "  <ACCEPTANCE_CRITERIA>\n"
-                                            + "\n".join(ac_lines)
-                                            + "\n  </ACCEPTANCE_CRITERIA>"
-                                        )
-
-                                aps = assertion.anti_patterns
-                                if aps:
-                                    ap_lines = [f"    - {ap.pattern}" for ap in aps if ap.pattern]
-                                    if ap_lines:
-                                        assertion_xml.append(
-                                            "  <ANTI_PATTERNS>\n" + "\n".join(ap_lines) + "\n  </ANTI_PATTERNS>"
-                                        )
-
-                                mandate_text = mandate_str
-                                if assertion.inverse_evidence:
-                                    mandate_text += (
-                                        " This is an inverse rule (Vice). If rule_satisfied = True "
-                                        "(no issues found), evidence_found MUST be False and you must "
-                                        'return an empty string "" for exact_quote. If rule_satisfied = False '
-                                        "(violation found), evidence_found MUST be True and you MUST quote "
-                                        "the exact violation."
+                            acs = assertion.acceptance_criteria
+                            if acs:
+                                ac_lines = [f"    - {ac.instruction}" for ac in acs if ac.instruction]
+                                if ac_lines:
+                                    assertion_xml.append(
+                                        "  <ACCEPTANCE_CRITERIA>\n" + "\n".join(ac_lines) + "\n  </ACCEPTANCE_CRITERIA>"
                                     )
-                                if assertion.allow_contextual_override:
-                                    mandate_text += (
-                                        " [CONTEXTUAL OVERRIDE ALLOWED] If the assertion's criteria are satisfied "
-                                        "semantically or contextually across the text but no single exact verbatim "
-                                        "quote can be isolated, you MUST: 1) Set contextual_override = true. 2) "
-                                        "Provide a detailed explanation in semantic_reasoning with structural "
-                                        "references. 3) Set exact_quote to exactly "
-                                        "'[CONTEXTUAL_OVERRIDE_APPLIED]'. Do NOT hallucinate a quote. Only use "
-                                        "this override if a direct literal quote is physically absent."
+
+                            aps = assertion.anti_patterns
+                            if aps:
+                                ap_lines = [f"    - {ap.pattern}" for ap in aps if ap.pattern]
+                                if ap_lines:
+                                    assertion_xml.append(
+                                        "  <ANTI_PATTERNS>\n" + "\n".join(ap_lines) + "\n  </ANTI_PATTERNS>"
                                     )
-                                assertion_xml.append(
-                                    f"  <FAIL_FAST_MANDATE>\n    {mandate_text}\n  </FAIL_FAST_MANDATE>"
+
+                            mandate_text = mandate_str
+                            if assertion.inverse_evidence:
+                                mandate_text += (
+                                    " This is an inverse rule (Vice). If rule_satisfied = True "
+                                    "(no issues found), evidence_found MUST be False and you must "
+                                    'return an empty string "" for exact_quote. If rule_satisfied = False '
+                                    "(violation found), evidence_found MUST be True and you MUST quote "
+                                    "the exact violation."
                                 )
+                            if assertion.allow_contextual_override:
+                                mandate_text += (
+                                    " [CONTEXTUAL OVERRIDE ALLOWED] If the assertion's criteria are satisfied "
+                                    "semantically or contextually across the text but no single exact verbatim "
+                                    "quote can be isolated, you MUST: 1) Set contextual_override = true. 2) "
+                                    "Provide a detailed explanation in semantic_reasoning with structural "
+                                    "references. 3) Set exact_quote to exactly "
+                                    "'[CONTEXTUAL_OVERRIDE_APPLIED]'. Do NOT hallucinate a quote. Only use "
+                                    "this override if a direct literal quote is physically absent."
+                                )
+                            assertion_xml.append(f"  <FAIL_FAST_MANDATE>\n    {mandate_text}\n  </FAIL_FAST_MANDATE>")
 
-                                claims_texts.append("\n".join(assertion_xml))
+                            claims_texts.append("\n".join(assertion_xml))
 
                 if claims_texts:
                     claims = "\n\n".join(claims_texts)

@@ -115,6 +115,9 @@ _TDAAssertion _$TDAAssertionFromJson(
         'logical_expression',
         'allow_contextual_override',
         'high_entropy',
+        'anchor_target',
+        'bounding_box_scope',
+        'extraction_rule',
       ],
     );
     final val = _TDAAssertion(
@@ -180,6 +183,12 @@ _TDAAssertion _$TDAAssertionFromJson(
         (v) => v as bool? ?? false,
       ),
       highEntropy: $checkedConvert('high_entropy', (v) => v as bool? ?? false),
+      anchorTarget: $checkedConvert('anchor_target', (v) => v as String?),
+      boundingBoxScope: $checkedConvert(
+        'bounding_box_scope',
+        (v) => v as String? ?? 'paragraph',
+      ),
+      extractionRule: $checkedConvert('extraction_rule', (v) => v as String?),
     );
     return val;
   },
@@ -198,6 +207,9 @@ _TDAAssertion _$TDAAssertionFromJson(
     'logicalExpression': 'logical_expression',
     'allowContextualOverride': 'allow_contextual_override',
     'highEntropy': 'high_entropy',
+    'anchorTarget': 'anchor_target',
+    'boundingBoxScope': 'bounding_box_scope',
+    'extractionRule': 'extraction_rule',
   },
 );
 
@@ -219,6 +231,9 @@ Map<String, dynamic> _$TDAAssertionToJson(_TDAAssertion instance) =>
       'logical_expression': instance.logicalExpression,
       'allow_contextual_override': instance.allowContextualOverride,
       'high_entropy': instance.highEntropy,
+      'anchor_target': instance.anchorTarget,
+      'bounding_box_scope': instance.boundingBoxScope,
+      'extraction_rule': instance.extractionRule,
     };
 
 const _$AggregationModeEnumMap = {

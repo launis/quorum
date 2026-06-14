@@ -1,3 +1,9 @@
+"""LLM Node Strategy for DAG-based workflow execution.
+
+Orchestrates AI/LLM step execution including dynamic schema compilation,
+chunked map-reduce evaluation, DLQ graceful degradation, and anomaly retry logic.
+"""
+
 import asyncio
 import json
 import logging
@@ -121,7 +127,7 @@ class LLMNodeStrategy(NodeStrategy):
             step_id=step.id,
             task_blueprint=blueprint_id,
             metadata=context.metadata,
-            global_context_vars={},
+            global_context_vars=context.global_context_vars,
             inputs=state_data,
         )
 
@@ -154,7 +160,7 @@ class LLMNodeStrategy(NodeStrategy):
 
         role_block = None
         if step_obj.role_block_id:
-            role_block = block_map.get(step_obj.role_block_id)
+            role_block = block_map[step_obj.role_block_id] if step_obj.role_block_id in block_map else None
             if not role_block:
                 raise ConfigurationError(
                     f"Role Block '{step_obj.role_block_id}' not found.",
@@ -163,7 +169,11 @@ class LLMNodeStrategy(NodeStrategy):
 
         protocol_block = None
         if step_obj.extraction_protocol_block_id:
-            protocol_block = block_map.get(step_obj.extraction_protocol_block_id)
+            protocol_block = (
+                block_map[step_obj.extraction_protocol_block_id]
+                if step_obj.extraction_protocol_block_id in block_map
+                else None
+            )
             if not protocol_block:
                 raise ConfigurationError(
                     f"Extraction Protocol Block '{step_obj.extraction_protocol_block_id}' not found.",
@@ -172,7 +182,11 @@ class LLMNodeStrategy(NodeStrategy):
 
         execution_persona_block = None
         if step_obj.execution_persona_block_id:
-            execution_persona_block = block_map.get(step_obj.execution_persona_block_id)
+            execution_persona_block = (
+                block_map[step_obj.execution_persona_block_id]
+                if step_obj.execution_persona_block_id in block_map
+                else None
+            )
             if not execution_persona_block:
                 raise ConfigurationError(
                     f"Execution Persona Block '{step_obj.execution_persona_block_id}' not found.",
@@ -181,7 +195,7 @@ class LLMNodeStrategy(NodeStrategy):
 
         criteria_blocks_models: list[PromptBlock] = []
         for m_id in step_obj.criteria_block_ids:
-            b = block_map.get(m_id)
+            b = block_map[m_id] if m_id in block_map else None
             if b:
                 criteria_blocks_models.append(b)
             else:
@@ -196,7 +210,7 @@ class LLMNodeStrategy(NodeStrategy):
                 )
 
         # Phase 4 Step 3: Wire Best-of-Three ensemble flag
-        is_lightweight = any(getattr(block, "is_lightweight_protocol", False) for block in criteria_blocks_models)
+        is_lightweight = any(block.is_lightweight_protocol for block in criteria_blocks_models)
         if is_lightweight:
             if hook_state.metadata is None:
                 hook_state.metadata = {}
@@ -235,7 +249,7 @@ class LLMNodeStrategy(NodeStrategy):
                     all_bp_blocks.extend(blueprint_obj.criteria_block_ids)
 
                     for m_id in all_bp_blocks:
-                        b = block_map.get(m_id)
+                        b = block_map[m_id] if m_id in block_map else None
                         if b:
                             if b.category_id == "matrix":
                                 is_matrix = True
@@ -314,7 +328,7 @@ class LLMNodeStrategy(NodeStrategy):
         else:
             chunks_list = [None]
 
-        has_search = any("search_result" in v for v in state_data.values() if isinstance(v, dict))
+        has_search = any("search_result" in v for v in state_data.values() if type(v) is dict)
 
         if frozen_ctx:
             global_schema = self.compiler.build_dynamic_schema(
@@ -341,7 +355,7 @@ class LLMNodeStrategy(NodeStrategy):
 
         sem = semaphore
 
-        MAX_RETRIES = 2
+        MAX_RETRIES = SystemConcurrency.LLM_MAX_RETRIES
         retry_count = 0
         final_dict: dict[str, Any] = {}
         usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
@@ -437,26 +451,26 @@ class LLMNodeStrategy(NodeStrategy):
             if redis:
                 all_chunks = await redis.hgetall(hkey)
                 for i in range(len(chunks_list)):
-                    chunk_data_str = all_chunks.get(f"chunk_{i}".encode(), b"{}")
+                    chunk_key = f"chunk_{i}".encode()
+                    chunk_data_str = all_chunks[chunk_key] if chunk_key in all_chunks else b"{}"
                     chunk_data = json.loads(chunk_data_str)
 
-                    c_final = chunk_data.get("final", {})
-                    c_usage_dict = chunk_data.get("usage")
-                    c_traces_dict = chunk_data.get("traces", [])
+                    c_final = chunk_data["final"] if "final" in chunk_data else {}
+                    c_usage_dict = chunk_data["usage"] if "usage" in chunk_data else None
+                    c_traces_dict = chunk_data["traces"] if "traces" in chunk_data else []
 
-                    if isinstance(c_final, dict) and c_final.get("_dlq_status") == "FAILED/DLQ":
-                        reason = c_final.get("reason", "Unknown DLQ Failure")
-                        logger.error(
+                    if (
+                        isinstance(c_final, dict)
+                        and "_dlq_status" in c_final
+                        and c_final["_dlq_status"] == "FAILED/DLQ"
+                    ):
+                        reason = c_final["reason"] if "reason" in c_final else "Unknown DLQ Failure"
+                        logger.warning(
                             f"[Orchestrator] Step execution failed in chunk {i} and routed to DLQ. "
-                            f"Aborting orchestrator run. Reason: {reason}",
+                            f"Continuing orchestrator run with degraded data. Reason: {reason}",
                             extra={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.name},
                         )
-                        raise AppException(
-                            message=f"Chunk execution failed and routed to DLQ. Reason: {reason}",
-                            status_code=500,
-                            details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.value},
-                        )
-
+                        # Phase 4, Step 2: Allow accumulator to proceed instead of raising AppException
                     accumulator.add(c_final)
 
                     if c_usage_dict:
@@ -472,19 +486,18 @@ class LLMNodeStrategy(NodeStrategy):
                                 existing_hashes.add(thash)
             else:
                 for c_final, c_usage, c_traces in task_results:
-                    if isinstance(c_final, dict) and c_final.get("_dlq_status") == "FAILED/DLQ":
-                        reason = c_final.get("reason", "Unknown DLQ Failure")
-                        logger.error(
+                    if (
+                        isinstance(c_final, dict)
+                        and "_dlq_status" in c_final
+                        and c_final["_dlq_status"] == "FAILED/DLQ"
+                    ):
+                        reason = c_final["reason"] if "reason" in c_final else "Unknown DLQ Failure"
+                        logger.warning(
                             "[Orchestrator] Step execution failed in task chunk and routed to DLQ. "
-                            f"Aborting orchestrator run. Reason: {reason}",
+                            f"Continuing orchestrator run with degraded data. Reason: {reason}",
                             extra={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.name},
                         )
-                        raise AppException(
-                            message=f"Chunk execution failed and routed to DLQ. Reason: {reason}",
-                            status_code=500,
-                            details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.value},
-                        )
-
+                        # Phase 4, Step 2: Allow accumulator to proceed instead of raising AppException
                     accumulator.add(c_final)
 
                     if c_usage is not None:
@@ -499,7 +512,7 @@ class LLMNodeStrategy(NodeStrategy):
                                 existing_hashes.add(thash)
 
             final_dict = accumulator.get_final_result()
-            safe_context: dict[str, Any] = {"steps": projector.snapshot}
+            safe_context: dict[str, Any] = {**hook_state.global_context_vars, "steps": projector.snapshot}
 
             post_hook_state = hook_state.model_copy(
                 update={
@@ -516,7 +529,7 @@ class LLMNodeStrategy(NodeStrategy):
             )
             final_dict = post_hook_state.inputs.copy()
 
-            if final_dict.get("llm_anomaly_retry_requested"):
+            if "llm_anomaly_retry_requested" in final_dict and final_dict["llm_anomaly_retry_requested"]:
                 retry_count += 1
                 if retry_count > MAX_RETRIES:
                     logger.warning(

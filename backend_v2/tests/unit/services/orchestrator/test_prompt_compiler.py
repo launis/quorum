@@ -571,3 +571,42 @@ def test_build_dynamic_schema_instruction_with_custom_category() -> None:
     }
     parsed = DynamicSchema.model_validate(llm_payload)
     assert parsed.blk_599645bd5baf44e2 == "Verification completed successfully."  # type: ignore[attr-defined]
+
+
+def test_build_xml_context() -> None:
+    compiler = PromptCompiler()
+    state = {"a": "value_a", "b": {"c": "value_c"}}
+    xml = compiler.build_xml_context({"src_1": "a", "src_2": "b.c"}, state, "en")
+    assert '<matrix_input source_id="src_1">' in xml
+    assert "value_a" in xml
+    assert '<matrix_input source_id="src_2">' in xml
+    assert "value_c" in xml
+
+
+def test_extract_value_from_state() -> None:
+    compiler = PromptCompiler()
+    state = {"a": "123", "b": {"c": "456"}, "steps": {"a": "789"}}
+    assert compiler._extract_value_from_state("a", state) == "123"
+    assert compiler._extract_value_from_state("b.c", state) == "456"
+    assert compiler._extract_value_from_state("steps.a", state) == "123"
+
+
+def test_inject_theory_grounding() -> None:
+    compiler = PromptCompiler()
+    assert compiler.inject_theory_grounding("prompt", None) == "prompt"
+
+
+def test_calibrate_strictness() -> None:
+    compiler = PromptCompiler()
+    assert "Absolute Leniency" in compiler.calibrate_strictness(0)
+    assert "Lenient" in compiler.calibrate_strictness(20)
+    assert "Balanced" in compiler.calibrate_strictness(50)
+    assert "Strict" in compiler.calibrate_strictness(80)
+    assert "Absolute Strictness" in compiler.calibrate_strictness(100)
+
+
+def test_get_schema_healing_prompt() -> None:
+    compiler = PromptCompiler()
+    assert "EOF DETECTED" in compiler.get_schema_healing_prompt("err", False, True)
+    assert "STRICT LOGICAL COMPLIANCE" in compiler.get_schema_healing_prompt("err", True, False)
+    assert "STRICT JSON SCHEMA VALIDATION FAILED" in compiler.get_schema_healing_prompt("err", False, False)

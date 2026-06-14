@@ -23,6 +23,12 @@ class FirestoreDriver(StorageDriver):
     def _serialize(self, data: dict[str, Any] | list | Any) -> Any:  # type: ignore
         """Recursively converts datetime, UUID, and Pydantic objects to JSON-safe types.
 
+        Args:
+            data: The data structure or value to serialize.
+
+        Returns:
+            The serialized data ready for Firestore.
+
         Note: Firestore supports native Datetime, but to maintain strict parity
         with TinyDB (JSON), we often serialize efficiently. However, Firestore querying
         invokes backend index which works best with Native types.
@@ -57,6 +63,18 @@ class FirestoreDriver(StorageDriver):
         return data
 
     async def get(self, collection: str, doc_id: str) -> dict[str, Any] | None:
+        """Retrieve a document by ID.
+
+        Args:
+            collection: The Firestore collection name.
+            doc_id: The document identifier.
+
+        Returns:
+            The document data as a dictionary, or None if not found.
+
+        Raises:
+            AppException: If fetching fails.
+        """
         doc_ref = self.db.collection(collection).document(doc_id)
         doc = await doc_ref.get()
         if doc.exists:
@@ -64,6 +82,19 @@ class FirestoreDriver(StorageDriver):
         return None
 
     async def upsert(self, collection: str, data: dict[str, Any], doc_id: str) -> str:
+        """Create or Update a document. Returns the doc_id.
+
+        Args:
+            collection: The Firestore collection name.
+            data: The data to store.
+            doc_id: The document identifier.
+
+        Returns:
+            The document ID.
+
+        Raises:
+            AppException: If the upsert fails.
+        """
         safe_data = self._serialize(data)
         # Ensure ID is in data for parity
         if "id" not in safe_data:
@@ -73,6 +104,19 @@ class FirestoreDriver(StorageDriver):
         return doc_id
 
     async def update(self, collection: str, doc_id: str, updates: dict[str, Any]) -> bool:
+        """Partial update of a document. Returns True if successful.
+
+        Args:
+            collection: The Firestore collection name.
+            doc_id: The document identifier to update.
+            updates: The dictionary of updates to apply.
+
+        Returns:
+            True if successful, False otherwise.
+
+        Raises:
+            AppException: If the update fails.
+        """
         safe_updates = self._serialize(updates)
         doc_ref = self.db.collection(collection).document(doc_id)
         try:
@@ -83,6 +127,18 @@ class FirestoreDriver(StorageDriver):
             return False
 
     async def delete(self, collection: str, doc_id: str) -> bool:
+        """Delete a document.
+
+        Args:
+            collection: The Firestore collection name.
+            doc_id: The document identifier to delete.
+
+        Returns:
+            True if the deletion is successful, False otherwise.
+
+        Raises:
+            AppException: If the deletion fails.
+        """
         try:
             await self.db.collection(collection).document(doc_id).delete()
             return True
@@ -98,6 +154,21 @@ class FirestoreDriver(StorageDriver):
         order_by: str | None = None,
         descending: bool = False,
     ) -> list[dict[str, Any]]:
+        """Query a collection with filters, sorting, and limits.
+
+        Args:
+            collection: The Firestore collection name.
+            filters: The filters to apply to the query.
+            limit: The maximum number of documents to return.
+            order_by: The field to sort the results by.
+            descending: Whether to sort descending.
+
+        Returns:
+            A list of matching documents.
+
+        Raises:
+            AppException: If the query fails.
+        """
         query = self.db.collection(collection)
 
         if filters:
@@ -116,6 +187,18 @@ class FirestoreDriver(StorageDriver):
         return [doc.to_dict() async for doc in docs]
 
     async def count(self, collection: str, filters: list[Filter] | None = None) -> int:
+        """Count documents matching the filters.
+
+        Args:
+            collection: The Firestore collection name.
+            filters: The filters to apply.
+
+        Returns:
+            The number of matching documents.
+
+        Raises:
+            AppException: If the count fails.
+        """
         query = self.db.collection(collection)
 
         if filters:
@@ -136,7 +219,14 @@ class FirestoreDriver(StorageDriver):
             return count
 
     async def clear(self, collection: str) -> None:
-        """Removes all documents from a collection."""
+        """Removes all documents from a collection.
+
+        Args:
+            collection: The Firestore collection name.
+
+        Raises:
+            AppException: If clearing the collection fails.
+        """
         collection_ref = self.db.collection(collection)
         # Iterate and delete (No native truncate in Firestore)
         docs = await collection_ref.stream()

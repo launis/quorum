@@ -94,13 +94,14 @@ def detect_performative_patterns(state: HookState, deps: HookDependencies) -> Ho
     Supports localization via 'language' context variable (default: 'en').
 
     Args:
-        data (dict): Current workflow data containing 'inputs'.
+        state: The current execution state of the hook.
+        deps: Dependencies required for execution (e.g., repositories).
 
     Returns:
-        dict: Updated data with detected pattern metadata.
+        A HookResult containing the detected pattern metadata in the state_delta.
 
     Raises:
-        AppException: If validation or configuration fails.
+        AppException: Raised with ErrorCodes.INVALID_OUTPUT_SCHEMA if payload validation fails.
     """
     logger.debug("[LinguisticsHook] Running detect_performative_patterns...")
 
@@ -160,4 +161,4 @@ def detect_performative_patterns(state: HookState, deps: HookDependencies) -> Ho
     if detected:
         logger.debug("   [LinguisticsHook] Detected patterns (%s): %s", lang_simple, detected)
 
-    return HookResult(success=True, state_delta={"linguistics_result": result_dto.model_dump()})
+    return HookResult(success=True, state_delta={"linguistics_result": result_dto.model_dump(mode="json")})

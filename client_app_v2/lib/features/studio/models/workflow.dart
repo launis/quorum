@@ -143,6 +143,12 @@ abstract class Workflow with _$Workflow {
     @JsonKey(name: 'enable_contextual_overrides')
     @Default(false)
     bool enableContextualOverrides,
+    @JsonKey(name: 'enable_semantic_smoothing')
+    @Default(false)
+    bool enableSemanticSmoothing,
+    @JsonKey(name: 'enable_eager_anonymization')
+    @Default(false)
+    bool enableEagerAnonymization,
     @Default([]) List<ExpectedInput> expectedInputs,
     @Default([]) List<StepRule> steps,
   }) = _Workflow;

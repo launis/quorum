@@ -19,7 +19,21 @@ class ContextMapper:
 
     @staticmethod
     def build_ordinal_mapping(target_blocks: list[str], all_blocks: list[Any] | None = None) -> str:
-        """Builds a section-level ordinal dictionary for evaluating specific targets."""
+        """Builds a section-level ordinal dictionary for evaluating specific targets.
+
+        Translates raw non-semantic unique IDs to numbered ordinals with explicit
+        extrema scales to avoid LLM sycophancy.
+
+        Args:
+            target_blocks: List of string identifiers for the target data blocks.
+            all_blocks: Optional full list of PromptBlock objects to cross-reference bounds.
+
+        Returns:
+            str: The compiled string instructions for the LLM.
+
+        Raises:
+            AppException: If blocks provided are not strict PromptBlock Pydantic models.
+        """
         if not target_blocks or "*" in target_blocks:
             return ""
 
@@ -65,7 +79,15 @@ class ContextMapper:
         workflow_data: Workflow | None = None, selected_layouts: list[OutputLayoutBlock] | None = None
     ) -> str:
         """Builds a global mapping cheatsheet across the entire workflow if needed.
+
         Scans all step IDs to ensure the LLM knows how step variable contexts map.
+
+        Args:
+            workflow_data: The full workflow graph definition.
+            selected_layouts: Target output formats selected for the report.
+
+        Returns:
+            str: The compiled global mapping instructions string.
         """
         # MVP: currently step-level IDs are injected at JSON assembly in synthesis.py
         # This will be extended when global cross-matrix blocks are added.

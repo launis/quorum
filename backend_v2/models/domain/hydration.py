@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """Hydration Domain Models.
 
 Provides strict Pydantic V2 validation schemas for the hydration hooks
 to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protocols.
 """
+
+from __future__ import annotations
 
 from pydantic import Field
 

@@ -2291,7 +2291,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get blueprintDefaultVariant => 'oletus (default)';
 
   @override
-  String get blueprintCopyVariant => 'Copy Blueprint';
+  String get blueprintCopyVariant => 'Kopioi raporttipohja';
 
   @override
   String get blueprintGridRowLabel => 'Rinnakkainen (Grid Row)';
@@ -2905,6 +2905,14 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get isEvaluativeMatrix => 'Lasketaan keskiarvoon (Evaluative)';
+
+  @override
+  String get promptBlockEnsembleToggle =>
+      'Käytä Fast-Model Ensemble -tekniikkaa (Paras 3:sta)';
+
+  @override
+  String get promptBlockEnsembleToggleDesc =>
+      'Ajaa koko matriisin 3 kertaa rinnakkain ja hakee vastauksista enemmistöäänestyksen.';
 
   @override
   String get xaiOutputExtensionsTitle =>
@@ -3525,4 +3533,13 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get xaiVerdictMisaligned => 'Poikkeama (MISALIGNED)';
+
+  @override
+  String get tdaAnchorTarget => 'Ankkurikohde';
+
+  @override
+  String get tdaBoundingBox => 'Hakuikkunan Laajuus';
+
+  @override
+  String get tdaExtractionRule => 'Poiminnan Sääntö';
 }

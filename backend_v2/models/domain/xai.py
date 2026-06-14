@@ -31,6 +31,21 @@ class XAIReporterInput(V2CoreBase):
     """Strict input schema for XAIReporterAgent.
 
     V2 Dynamic: 'chat_log' is mandatory, but other inputs are allowed dynamically.
+
+    Attributes:
+        chat_log: The mandatory conversation history to be analyzed.
+        last_reasoning_trace: Previous reasoning trace output.
+        step_judge: Standard evaluate output.
+        step_judge_cognitive: Cognitive Judge output.
+        step_analyst: Analyst hypotheses and RAG data.
+        step_profiler: Profiler cognitive bias data.
+        step_falsifier: Falsifier critical distance data.
+        step_logician: Logician Toulmin analysis data.
+        step_causal_analyst: Causal Analyst post-hoc and counterfactual data.
+        step_performativity: Cognitive performativity output.
+        step_metrics: Mechanical text and behavioral metrics.
+        step_linguistics: Mechanical linguistic patterns.
+        dynamic_inputs: Dynamically passed variables.
     """
 
     chat_log: str = Field(
@@ -57,7 +72,14 @@ class XAIReporterInput(V2CoreBase):
 
 
 class XAIScoreItem(V2CoreBase):
-    """A single score item for the scorecard."""
+    """A single score item for the scorecard.
+
+    Attributes:
+        label: Label identifier for the score item.
+        score: Computed numeric score value.
+        reasoning: Textual reasoning explaining the score.
+        weight: Importance multiplier weight of this item.
+    """
 
     label: str = Field(..., min_length=1, description="Label for the score item.")
     score: float = Field(..., description="Score value.")
@@ -166,7 +188,13 @@ class VarianceValidationExtension(V2CoreBase):
 
 
 class ComparisonDataDTO(V2CoreBase):
-    """Baseline comparison and progress analysis data."""
+    """Baseline comparison and progress analysis data.
+
+    Attributes:
+        baseline_score: Optional baseline rating reference context.
+        delta: Difference factor between current run and baseline.
+        trend: Evaluated qualitative vector indicator.
+    """
 
     baseline_score: float | None = Field(default=None, description="Baseline rating reference context.")
     delta: float | None = Field(default=None, description="Difference factor between current run and baseline.")
@@ -191,7 +219,23 @@ XAIExtension = Annotated[
 
 
 class XAIOutputDTO(ReasoningTraceDTO):
-    """Data Transfer Object for XAI Reporter Agent (Content Only)."""
+    """Data Transfer Object for XAI Reporter Agent (Content Only).
+
+    Attributes:
+        output_extensions: Polymorphic list of XAI extensions.
+        comparison_data: Structured progress and comparison data.
+        executive_summary: High-level summary string.
+        verified_facts: Synthesis of verified facts string.
+        cognitive_behavior: Synthesis of Profiler and Falsifier findings string.
+        causal_chain: Synthesis of Causal and Logician findings string.
+        analysis_strengths: Identified strengths string.
+        analysis_weaknesses: Identified weaknesses string.
+        analysis_opportunities: Identified opportunities string.
+        analysis_recommendations: Recommendations string.
+        final_verdict: Final conclusion string.
+        confidence_score: Float value representing confidence factor (0.0-1.0).
+        xai_report_formatted: Optional markdown formatted report string.
+    """
 
     output_extensions: list[XAIExtension] = Field(
         default_factory=list,
@@ -292,6 +336,10 @@ class XAIOutput(XAIOutputDTO, ReasoningTrace):
 
     WARNING (Rule 84): flat_report acts as a polymorphic boundary with extra='allow' configured
     implicitly at parent classes. Keep structure dynamic for raw client processing.
+
+    Attributes:
+        score_cards: Aggregated scorecard items from all judges.
+        flat_report: Flattened machine-readable dict report summary.
     """
 
     score_cards: list[JudgeScoreCard] = Field(
@@ -307,7 +355,13 @@ class XAIOutput(XAIOutputDTO, ReasoningTrace):
 
 
 class ReportResult(V2CoreBase):
-    """Result of the report generation (Hook)."""
+    """Result of the report generation (Hook).
+
+    Attributes:
+        report_content: The generated Markdown report string.
+        format: The report format string.
+        data: The structured data dictionary used to generate the report.
+    """
 
     report_content: str = Field(
         ...,

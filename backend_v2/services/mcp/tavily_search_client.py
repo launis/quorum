@@ -29,7 +29,14 @@ CONTENT_CHAR_LIMIT = 8000
 
 
 def _sanitize_text(text: str) -> str:
-    """Strip HTML tags and collapse whitespace from raw content."""
+    """Strip HTML tags and collapse whitespace from raw content.
+
+    Args:
+        text: The raw HTML text to sanitize.
+
+    Returns:
+        str: The sanitized plain text.
+    """
     cleaned = re.sub(r"<[^>]+>", " ", text)
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned

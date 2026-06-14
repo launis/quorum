@@ -45,8 +45,8 @@ class MatrixRowItemWidget extends StatelessWidget {
               children: [
                 Text(
                   (Localizations.localeOf(context).languageCode == 'fi'
-                          ? matrix.labelFi
-                          : matrix.labelEn) +
+                          ? (matrix.labelI18n.get('fi'))
+                          : (matrix.labelI18n.get('en'))) +
                       (isEval ? ' *' : ''),
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: isEval ? FontWeight.bold : FontWeight.w600,

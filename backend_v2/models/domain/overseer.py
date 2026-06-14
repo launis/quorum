@@ -23,6 +23,11 @@ class OverseerInput(V2CoreBase):
     """Strict input schema for FactualOverseerAgent.
 
     V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+
+    Attributes:
+        chat_log: The mandatory conversation history to analyze.
+        step_analyst: Analyst or Logician outputs.
+        last_reasoning_trace: Previous reasoning trace.
     """
 
     chat_log: str = Field(
@@ -36,7 +41,13 @@ class OverseerInput(V2CoreBase):
 
 
 class FactCheckRFI(V2CoreBase):
-    """Request for Information (Fact Check)."""
+    """Request for Information (Fact Check).
+
+    Attributes:
+        claim: Claim to check.
+        verification_result: Result.
+        source_or_reasoning: Source or reasoning.
+    """
 
     claim: str = Field(
         ...,
@@ -57,6 +68,17 @@ class FactCheckRFI(V2CoreBase):
     @field_validator("claim", "source_or_reasoning")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
+        """Validate that the string is not empty or whitespace only.
+
+        Args:
+            v: The string value to validate.
+
+        Returns:
+            The stripped string.
+
+        Raises:
+            ValueError: If the string is empty or whitespace only.
+        """
         if not v or not v.strip():
             raise ValueError("Field cannot be empty")
         return v.strip()
@@ -69,7 +91,13 @@ class FactCheckRFI(V2CoreBase):
 
 
 class EthicalObservation(V2CoreBase):
-    """Ethical Observation."""
+    """Ethical Observation.
+
+    Attributes:
+        issue_type: Type of ethical issue.
+        severity: Severity level.
+        description: Description.
+    """
 
     issue_type: str = Field(
         ...,
@@ -90,6 +118,17 @@ class EthicalObservation(V2CoreBase):
     @field_validator("issue_type", "description")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
+        """Validate that the string is not empty or whitespace only.
+
+        Args:
+            v: The string value to validate.
+
+        Returns:
+            The stripped string.
+
+        Raises:
+            ValueError: If the string is empty or whitespace only.
+        """
         if not v or not v.strip():
             raise ValueError("Field cannot be empty")
         return v.strip()
@@ -102,7 +141,12 @@ class EthicalObservation(V2CoreBase):
 
 
 class OverseerData(V2CoreBase):
-    """Output from the Overseer component."""
+    """Output from the Overseer component.
+
+    Attributes:
+        fact_checks: Fact check report.
+        ethical_issues: Ethical audit report.
+    """
 
     fact_checks: list[FactCheckRFI] = Field(
         default_factory=list,
@@ -118,13 +162,28 @@ class OverseerData(V2CoreBase):
     @field_validator("ethical_issues")
     @classmethod
     def validate_ethical_issues(cls, v: list[EthicalObservation]) -> list[EthicalObservation]:
+        """Validate that the ethical issues list is not empty.
+
+        Args:
+            v: The list of ethical issues.
+
+        Returns:
+            The validated list.
+
+        Raises:
+            ValueError: If the list is empty.
+        """
         if not v:
             raise ValueError("Ethical issues list cannot be empty")
         return v
 
 
 class OverseerDTO(ReasoningTraceDTO):
-    """Overseer DTO (Content Only)."""
+    """Overseer DTO (Content Only).
+
+    Attributes:
+        overseer_data: Ethics audit result.
+    """
 
     overseer_data: OverseerData = Field(
         ...,
@@ -134,4 +193,8 @@ class OverseerDTO(ReasoningTraceDTO):
 
 
 class OverseerOutput(OverseerDTO, ReasoningTrace):
-    """Output schema for the Overseer Agent."""
+    """Output schema for the Overseer Agent.
+
+    Attributes:
+        No additional attributes.
+    """

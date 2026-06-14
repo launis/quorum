@@ -9,15 +9,9 @@ import io
 import logging
 from math import pi
 
-import matplotlib
-import matplotlib.pyplot as plt
-
 from backend_v2.models.v2_core import MatrixScorecardRowDTO
 
 logger = logging.getLogger(__name__)
-
-# Enforce Non-Interactive Backend for Headless Thread-Safety
-matplotlib.use("Agg")
 
 
 def generate_scatter_chart(axes: list[MatrixScorecardRowDTO]) -> str:
@@ -30,66 +24,85 @@ def generate_scatter_chart(axes: list[MatrixScorecardRowDTO]) -> str:
 
     Returns:
         A Base64 string literal of the generated PNG file.
+
+    Raises:
+        AppException: If chart generation fails.
     """
     if len(axes) < 2:
         return ""
 
-    x_axis = axes[0]
-    y_axis = axes[1]
-    z_axis = axes[2] if len(axes) > 2 else None
+    import matplotlib
 
-    x_val = x_axis.score if x_axis.score is not None else 0.0
-    y_val = y_axis.score if y_axis.score is not None else 0.0
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from fastapi import status
 
-    x_min = x_axis.scale_min if x_axis.scale_min is not None else 0.0
-    x_max = x_axis.scale_max if x_axis.scale_max is not None else 6.0
-    if x_max <= x_min:
-        x_max = x_min + 6.0
+    from backend_v2.exceptions import AppException, ErrorCodes
 
-    y_min = y_axis.scale_min if y_axis.scale_min is not None else 0.0
-    y_max = y_axis.scale_max if y_axis.scale_max is not None else 6.0
-    if y_max <= y_min:
-        y_max = y_min + 6.0
+    try:
+        x_axis = axes[0]
+        y_axis = axes[1]
+        z_axis = axes[2] if len(axes) > 2 else None
 
-    area = 300
-    if z_axis and z_axis.score is not None:
-        # Use SDUI pre-calculated plot ratio if available, otherwise fallback
-        pct = z_axis.ui_plot_ratio if z_axis.ui_plot_ratio is not None else 0.5
-        # Mapped to 6x visual diameter contrast (sqrt(1800/50) = 6) to match Flutter UI
-        area = int(50 + (pct * 1750))
+        x_val = x_axis.score if x_axis.score is not None else 0.0
+        y_val = y_axis.score if y_axis.score is not None else 0.0
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+        x_min = x_axis.scale_min if x_axis.scale_min is not None else 0.0
+        x_max = x_axis.scale_max if x_axis.scale_max is not None else 6.0
+        if x_max <= x_min:
+            x_max = x_min + 6.0
 
-    ax.scatter([x_val], [y_val], s=area, c="#2196F3", alpha=0.7, edgecolors="#0D47A1", linewidths=2)
+        y_min = y_axis.scale_min if y_axis.scale_min is not None else 0.0
+        y_max = y_axis.scale_max if y_axis.scale_max is not None else 6.0
+        if y_max <= y_min:
+            y_max = y_min + 6.0
 
-    import math
+        area = 300
+        if z_axis and z_axis.score is not None:
+            # Use SDUI pre-calculated plot ratio if available, otherwise fallback
+            pct = z_axis.ui_plot_ratio if z_axis.ui_plot_ratio is not None else 0.5
+            # Mapped to 6x visual diameter contrast (sqrt(1800/50) = 6) to match Flutter UI
+            area = int(50 + (pct * 1750))
 
-    x_range = x_max - x_min
-    x_margin = math.pow(10, math.floor(math.log10(max(1.0, x_range - 0.001))))
+        fig, ax = plt.subplots(figsize=(6, 4))
 
-    y_range = y_max - y_min
-    y_margin = math.pow(10, math.floor(math.log10(max(1.0, y_range - 0.001))))
+        ax.scatter([x_val], [y_val], s=area, c="#2196F3", alpha=0.7, edgecolors="#0D47A1", linewidths=2)
 
-    ax.set_xlim(x_min - x_margin, x_max + x_margin)
-    ax.set_ylim(y_min - y_margin, y_max + y_margin)
+        x_range = x_max - x_min
+        import math
 
-    x_mid = (x_min + x_max) / 2
-    y_mid = (y_min + y_max) / 2
+        x_margin = math.pow(10, math.floor(math.log10(max(1.0, x_range - 0.001))))
 
-    ax.axhline(y=y_mid, color="gray", linestyle="--", alpha=0.5)
-    ax.axvline(x=x_mid, color="gray", linestyle="--", alpha=0.5)
+        y_range = y_max - y_min
+        y_margin = math.pow(10, math.floor(math.log10(max(1.0, y_range - 0.001))))
 
-    ax.set_xlabel(f"{x_axis.name} ({x_val} / {x_max})", fontsize=10)
-    ax.set_ylabel(f"{y_axis.name} ({y_val} / {y_max})", fontsize=10)
-    ax.grid(True, linestyle=":", alpha=0.6)
+        ax.set_xlim(x_min - x_margin, x_max + x_margin)
+        ax.set_ylim(y_min - y_margin, y_max + y_margin)
 
-    plt.tight_layout()
+        x_mid = (x_min + x_max) / 2
+        y_mid = (y_min + y_max) / 2
 
-    buf = io.BytesIO()
-    plt.savefig(buf, format="png", bbox_inches="tight", transparent=True)
-    plt.close(fig)
+        ax.axhline(y=y_mid, color="gray", linestyle="--", alpha=0.5)
+        ax.axvline(x=x_mid, color="gray", linestyle="--", alpha=0.5)
 
-    return base64.b64encode(buf.getvalue()).decode("utf-8")
+        ax.set_xlabel(f"{x_axis.name} ({x_val} / {x_max})", fontsize=10)
+        ax.set_ylabel(f"{y_axis.name} ({y_val} / {y_max})", fontsize=10)
+        ax.grid(True, linestyle=":", alpha=0.6)
+
+        plt.tight_layout()
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", bbox_inches="tight", transparent=True)
+        plt.close(fig)
+
+        return base64.b64encode(buf.getvalue()).decode("utf-8")
+    except Exception as e:
+        logger.error("Scatter chart generation failed", exc_info=True)
+        raise AppException(
+            message=f"Scatter chart generation failed: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.CHART_GENERATION_FAILED.value},
+        ) from e
 
 
 def generate_radar_chart(axes: list[MatrixScorecardRowDTO]) -> str:
@@ -102,45 +115,64 @@ def generate_radar_chart(axes: list[MatrixScorecardRowDTO]) -> str:
 
     Returns:
         A Base64 string literal of the generated PNG radar polygon.
+
+    Raises:
+        AppException: If chart generation fails.
     """
     if len(axes) < 3:
         return ""
 
-    num_vars = len(axes)
-    angles = [n / float(num_vars) * 2 * pi for n in range(num_vars)]
-    angles += angles[:1]
+    import matplotlib
 
-    values = []
-    names = []
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from fastapi import status
 
-    for axis in axes:
-        score = axis.score if axis.score is not None else 0.0
-        values.append(score)
-        names.append(axis.name)
+    from backend_v2.exceptions import AppException, ErrorCodes
 
-    values += values[:1]
+    try:
+        num_vars = len(axes)
+        angles = [n / float(num_vars) * 2 * pi for n in range(num_vars)]
+        angles += angles[:1]
 
-    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={"polar": True})
+        values = []
+        names = []
 
-    max_scale = max((a.scale_max for a in axes if a.scale_max is not None), default=6.0)
-    min_scale = min((a.scale_min for a in axes if a.scale_min is not None), default=0.0)
+        for axis in axes:
+            score = axis.score if axis.score is not None else 0.0
+            values.append(score)
+            names.append(axis.name)
 
-    ax.set_theta_offset(pi / 2)  # type: ignore[attr-defined]
-    ax.set_theta_direction(-1)  # type: ignore[attr-defined]
+        values += values[:1]
 
-    ax.set_xticks(angles[:-1])
-    wrapped_names = [n.replace(" ", "\n") for n in names]
-    ax.set_xticklabels(wrapped_names, size=8)
+        fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={"polar": True})
 
-    ax.set_ylim(min_scale, max_scale)
+        max_scale = max((a.scale_max for a in axes if a.scale_max is not None), default=6.0)
+        min_scale = min((a.scale_min for a in axes if a.scale_min is not None), default=0.0)
 
-    ax.plot(angles, values, linewidth=2, linestyle="solid", label="Score")
-    ax.fill(angles, values, "b", alpha=0.25)
+        ax.set_theta_offset(pi / 2)  # type: ignore[attr-defined]
+        ax.set_theta_direction(-1)  # type: ignore[attr-defined]
 
-    plt.tight_layout()
+        ax.set_xticks(angles[:-1])
+        wrapped_names = [n.replace(" ", "\n") for n in names]
+        ax.set_xticklabels(wrapped_names, size=8)
 
-    buf = io.BytesIO()
-    plt.savefig(buf, format="png", bbox_inches="tight", transparent=True)
-    plt.close(fig)
+        ax.set_ylim(min_scale, max_scale)
 
-    return base64.b64encode(buf.getvalue()).decode("utf-8")
+        ax.plot(angles, values, linewidth=2, linestyle="solid", label="Score")
+        ax.fill(angles, values, "b", alpha=0.25)
+
+        plt.tight_layout()
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", bbox_inches="tight", transparent=True)
+        plt.close(fig)
+
+        return base64.b64encode(buf.getvalue()).decode("utf-8")
+    except Exception as e:
+        logger.error("Radar chart generation failed", exc_info=True)
+        raise AppException(
+            message=f"Radar chart generation failed: {str(e)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.CHART_GENERATION_FAILED.value},
+        ) from e

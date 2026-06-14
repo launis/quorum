@@ -21,7 +21,7 @@ def test_sanitize_text_hook_fails_fast_on_invalid_inputs(mock_repository: AsyncM
         workflow_id="wf_123",
         inputs=None,  # type: ignore[arg-type]
         metadata={},
-        global_context_vars={},
+        global_context_vars={"language": "fi"},
     )
     deps = HookDependencies(
         exec_repo=MagicMock(),
@@ -46,7 +46,7 @@ def test_sanitize_text_hook_fails_fast_on_list_inputs(mock_repository: AsyncMock
         workflow_id="wf_123",
         inputs=["invalid", "list"],  # type: ignore[arg-type]
         metadata={},
-        global_context_vars={},
+        global_context_vars={"language": "fi"},
     )
     deps = HookDependencies(
         exec_repo=MagicMock(),
@@ -76,7 +76,7 @@ def test_sanitize_text_hook_success(mock_get_pii_service: MagicMock, mock_reposi
         workflow_id="wf_123",
         inputs={"test_field": "This is a safe string."},
         metadata={},
-        global_context_vars={},
+        global_context_vars={"language": "fi"},
     )
     deps = HookDependencies(
         exec_repo=MagicMock(),

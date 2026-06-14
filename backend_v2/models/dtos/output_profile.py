@@ -18,7 +18,27 @@ from backend_v2.models.v2_core import (
 
 
 class OutputProfileCreateDTO(V2CoreBase):
-    """DTO for creating a new Output Profile."""
+    """DTO for creating a new Output Profile.
+
+    Attributes:
+        id: Unique string ID for the profile. Must follow Stripe Pattern.
+        slug: Human-readable routing identifier.
+        workflow_id: References the execution DAG to scope Target Matrices.
+        organization_id: Tenant organization scope.
+        name: Localized name of the profile.
+        description: Localized description of the profile.
+        custom_preface: Rich text preface shown on outputs.
+        visible_metadata: List of metadata fields visible on the UI and PDF cover header.
+        visible_block_extensions: Block-level XAI extensions (per-matrix, LLM-produced).
+        visible_workflow_extensions: Workflow-level global extensions (mathematical engines).
+        max_extension_items: Max number of items to show per grouped XAI extension. Sorted by severity.
+        display_scale: UI rendering scale instruction (e.g., 'normalized_100').
+        synthesis: Nested definition for synthesis configurations.
+        include_diagnostic_scorecard: Epic 24 feature indicating whether to append independent scorecards.
+        strictness_level: Profile-level strictness override setting.
+        scoring_strategy: Profile-level strategy calculation override.
+        layouts: Sequence of layout rendering blocks.
+    """
 
     id: str = Field(
         ...,
@@ -63,7 +83,26 @@ class OutputProfileCreateDTO(V2CoreBase):
 
 
 class OutputProfileUpdateDTO(V2CoreBase):
-    """DTO for updating an existing Output Profile."""
+    """DTO for updating an existing Output Profile.
+
+    Attributes:
+        slug: Optional human-readable routing identifier.
+        workflow_id: Optional workflow reassignment string.
+        name: Optional localized name of the profile.
+        description: Optional localized description string.
+        custom_preface: Optional rich text preface block.
+        organization_id: Optional tenant organization scope override.
+        visible_metadata: Optional list of metadata fields to render.
+        visible_block_extensions: Optional block-level XAI extensions array.
+        visible_workflow_extensions: Optional workflow-level global extensions array.
+        max_extension_items: Optional max limits per grouped extension payload.
+        display_scale: Optional UI rendering instructions flag.
+        synthesis: Optional nested definition mapping synthesis configuration rules.
+        include_diagnostic_scorecard: Optional flag to render diagnostics data.
+        strictness_level: Optional override strictness bounds.
+        scoring_strategy: Optional strategy engine overriding defaults.
+        layouts: Optional mapped layout instructions.
+    """
 
     slug: str | None = Field(default=None, description="Human-readable routing identifier.")
     workflow_id: str | None = Field(default=None, description="Optional workflow reassignment.")
@@ -103,7 +142,26 @@ class OutputProfileUpdateDTO(V2CoreBase):
 
 
 class OutputProfileResponseDTO(BaseResponseDTO):
-    """DTO for returning an Output Profile."""
+    """DTO for returning an Output Profile.
+
+    Attributes:
+        id: Unique Stripe-pattern string ID of the output profile.
+        slug: Safe HTTP routing identifier.
+        workflow_id: Connected DAG workflow boundary UUID.
+        name: Complex localizable dictionary string name mapping.
+        description: Complex localizable mapping for structural profile descriptions.
+        custom_preface: Presentation front-matter mapping instructions.
+        visible_metadata: Output keys exposed cleanly to presentation layer UI.
+        visible_block_extensions: Block-bound extra payload outputs mappings.
+        visible_workflow_extensions: Workflow-bound logic output payload arrays.
+        max_extension_items: Top limit cap applying constraints to presentation loops.
+        display_scale: Exact enumeration of UI rendering modes ('normalized_100').
+        synthesis: Specific payload mapped configuring report output logic.
+        include_diagnostic_scorecard: Status flag defining scorecard rendering operations.
+        strictness_level: Validated override value configuring verification rigor.
+        scoring_strategy: Mapped logic algorithm enum mapping engine implementation.
+        layouts: Ordered array of discrete layout definitions governing presentation.
+    """
 
     id: str
     slug: str

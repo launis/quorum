@@ -2,11 +2,20 @@ import logging
 from typing import Any
 
 from fastapi import status
+from pydantic import BaseModel, ConfigDict
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
+
+
+class DLQAtomSchema(BaseModel):
+    """Strict schema for DLQ validation."""
+
+    status: str | None = None
+
+    model_config = ConfigDict(strict=False, extra="ignore")
 
 
 @hook_registry.register(name="dlq_strict_mode_guard")
@@ -21,16 +30,15 @@ def dlq_strict_mode_guard_hook(state: HookState, deps: HookDependencies) -> Hook
         deps: Injected system service dependencies.
 
     Returns:
-        Successful execution wrapper with immutable state delta.
+        HookResult: Successful execution wrapper with immutable state delta.
 
     Raises:
-        AppException: If DLQ threshold is breached.
+        AppException: If DLQ threshold is breached or data is malformed.
     """
     logger.info("[DLQGuard] Inspecting DLQ ratios...")
 
-    # Strict type checks to prevent dict mapping bleed
-    if not state or not hasattr(state, "inputs") or not isinstance(state.inputs, dict):
-        logger.info("[DLQGuard] State inputs missing or not a dictionary. Bypassing guard.")
+    if not state.inputs:
+        logger.info("[DLQGuard] State inputs missing. Bypassing guard.")
         return HookResult(success=True, state_delta={})
 
     content_payload: dict[str, Any] = state.inputs
@@ -40,20 +48,30 @@ def dlq_strict_mode_guard_hook(state: HookState, deps: HookDependencies) -> Hook
 
     evaluations = content_payload["evaluations"]
     if not isinstance(evaluations, list):
-        logger.info("[DLQGuard] Evaluations not format-compliant. Bypassing guard.")
-        return HookResult(success=True, state_delta={})
+        msg = "Strict Fail-Fast: 'evaluations' must be a list."
+        logger.error("[DLQGuard] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     dlq_count: int = 0
     total_atoms: int = len(evaluations)
 
-    for ev in evaluations:
-        status_val: Any | None = None
-        if isinstance(ev, dict):
-            status_val = ev.get("status")
-        else:
-            status_val = getattr(ev, "status", None)
-        if status_val == "DLQ":
-            dlq_count += 1
+    for ev_raw in evaluations:
+        try:
+            ev = DLQAtomSchema.model_validate(ev_raw)
+            if ev.status == "DLQ":
+                dlq_count += 1
+        except Exception as e:
+            msg = f"Strict Fail-Fast: Evaluation atom malformed: {e}"
+            logger.error("[DLQGuard] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
 
     if total_atoms > 0:
         ratio: float = dlq_count / total_atoms

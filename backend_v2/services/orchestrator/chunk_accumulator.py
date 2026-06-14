@@ -22,10 +22,19 @@ class ChunkAccumulator:
         self.chunks: list[dict[str, Any]] = []
 
     def add(self, chunk: dict[str, Any]) -> None:
-        """Appends a raw chunk or validated response to the list."""
+        """Appends a raw chunk or validated response to the list.
+
+        Args:
+            chunk: The chunk data to append.
+
+        Raises:
+            AppException: If chunk is not a dictionary or validation fails.
+        """
         if not isinstance(chunk, dict):
+            msg = "Strict Fail-Fast: Chunk must be a dictionary."
+            logger.error(msg)
             raise AppException(
-                message="Strict Fail-Fast: Chunk must be a dictionary.",
+                message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
@@ -45,7 +54,14 @@ class ChunkAccumulator:
         self.chunks.append(chunk)
 
     def reduce(self) -> dict[str, Any]:
-        """Executes a single synchronous, deterministic Reducer operation."""
+        """Executes a single synchronous, deterministic Reducer operation.
+
+        Returns:
+            dict[str, Any]: The merged final output state.
+
+        Raises:
+            AppException: If unmergable primitive mismatches occur.
+        """
         # Sort chunks chronologically by chunk_index to ensure deterministic merging
         sorted_chunks = sorted(self.chunks, key=lambda c: c.get("chunk_index", 0))
 
@@ -129,11 +145,13 @@ class ChunkAccumulator:
                         elif final_result[k] is None:
                             final_result[k] = v
                         else:
+                            msg = (
+                                f"Strict Fail-Fast: Cannot merge mismatched XAI extensions for key '{k}'. "
+                                f"Target type: {type(final_result[k])}, Source type: {type(v)}."
+                            )
+                            logger.error(msg)
                             raise AppException(
-                                message=(
-                                    f"Strict Fail-Fast: Cannot merge mismatched XAI extensions for key '{k}'. "
-                                    f"Target type: {type(final_result[k])}, Source type: {type(v)}."
-                                ),
+                                message=msg,
                                 status_code=500,
                                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                             )
@@ -150,10 +168,21 @@ class ChunkAccumulator:
         return final_result
 
     def _merge_nested_dict(self, target: Any, source: Any, parent_key: str) -> None:
-        """Merges two nested dictionaries, concatenating strings if there are collisions."""
+        """Merges two nested dictionaries, concatenating strings if there are collisions.
+
+        Args:
+            target: The target dictionary to update in-place.
+            source: The source dictionary to merge from.
+            parent_key: The parent configuration context key for error reporting.
+
+        Raises:
+            AppException: If types conflict unresolvably.
+        """
         if not isinstance(target, dict) or not isinstance(source, dict):
+            msg = f"Strict Fail-Fast: Cannot merge non-dict XAI extensions for key '{parent_key}'."
+            logger.error(msg)
             raise AppException(
-                message=f"Strict Fail-Fast: Cannot merge non-dict XAI extensions for key '{parent_key}'.",
+                message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
@@ -178,15 +207,21 @@ class ChunkAccumulator:
                 elif s_val == t_val:
                     continue
                 else:
+                    msg = (
+                        f"Strict Fail-Fast: Unresolvable key collision on '{parent_key}.{s_key}'. "
+                        f"Target: {t_val}, Source: {s_val}."
+                    )
+                    logger.error(msg)
                     raise AppException(
-                        message=(
-                            f"Strict Fail-Fast: Unresolvable key collision on '{parent_key}.{s_key}'. "
-                            f"Target: {t_val}, Source: {s_val}."
-                        ),
+                        message=msg,
                         status_code=500,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
 
     def get_final_result(self) -> dict[str, Any]:
-        """Returns the accumulated dictionary by executing reduction synchronously."""
+        """Returns the accumulated dictionary by executing reduction synchronously.
+
+        Returns:
+            dict[str, Any]: The final accumulated result map.
+        """
         return self.reduce()

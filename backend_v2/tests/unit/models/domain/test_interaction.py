@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.domain.interaction import (
     InteractionAnalysis,
     InteractionAnalysisDTO,
@@ -36,7 +37,7 @@ def test_interaction_analysis_dto_validation() -> None:
     assert dto.strategy == InteractionStrategy.CHAIN_OF_THOUGHT
 
     # Test bound ge=0
-    with pytest.raises(ValidationError):
+    with pytest.raises(AppException):
         InteractionAnalysisDTO(
             role_classification=RoleClassification.ARCHITECT,
             high_dependency=False,

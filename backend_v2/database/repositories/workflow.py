@@ -1,3 +1,5 @@
+"""Database repository implementation module."""
+
 import json
 import logging
 import os
@@ -18,6 +20,18 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
     """Repository implementation for Workflows and Steps."""
 
     async def get_workflow_definition(self, workflow_id: str) -> Workflow | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         data = await self.driver.get("workflows", workflow_id)
 
         if not data:
@@ -26,6 +40,18 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
                 try:
 
                     def _read_file() -> dict[str, Any]:
+                        """Repository method implementation.
+
+                        Args:
+                            *args: Positional arguments.
+                            **kwargs: Keyword arguments.
+
+                        Returns:
+                            The expected result of the operation.
+
+                        Raises:
+                            AppException: If a critical operation fails.
+                        """
                         with open(file_path, encoding="utf-8") as f:
                             return cast(dict[str, Any], json.load(f))
 
@@ -41,11 +67,35 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
         return Workflow(**data)
 
     async def get_workflow(self, workflow_id: str) -> Workflow | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.get_workflow_definition(workflow_id)
 
     async def get_all_workflows(
         self, organization_id: str | None = None, role: str | None = None
     ) -> list[dict[str, Any]]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         filters = []
         if role != "ROOT":
             if organization_id:
@@ -54,17 +104,65 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
         return await self.driver.query("workflows", filters)
 
     async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.get("workflows", workflow_id)
 
     async def get_workflow_by_slug(self, slug: str) -> dict[str, Any] | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         res = await self.driver.query("workflows", [Filter("slug", "==", slug)], limit=1)
         return res[0] if res else None
 
     async def create_workflow(self, workflow_data: dict[str, Any]) -> str:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         doc_id = workflow_data["id"]
         return await self.driver.upsert("workflows", workflow_data, doc_id)
 
     async def update_workflow(self, workflow_id: str, updates: dict[str, Any]) -> str:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         old_doc = await self.get_workflow_by_id(workflow_id)
         if not old_doc:
             from backend_v2.exceptions import WorkflowNotFoundError
@@ -86,20 +184,80 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
         return new_id
 
     async def update_workflow_definition(self, workflow_id: str, definition_data: dict[str, Any]) -> str:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.update_workflow(workflow_id, definition_data)
 
     async def delete_workflow(self, workflow_id: str) -> bool:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.delete("workflows", workflow_id)
 
     async def count_workflows(self) -> int:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.count("workflows")
 
     # --- Steps ---
 
     async def get_all_steps(self) -> list[dict[str, Any]]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.query("steps")
 
     async def get_step_by_id(self, step_id: str) -> dict[str, Any] | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         step = await self.driver.get("steps", step_id)
         if step:
             return step
@@ -115,17 +273,65 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
         return None
 
     async def get_step(self, step_id: str) -> dict[str, Any] | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.get_step_by_id(step_id)
 
     async def create_step(self, step_data: dict[str, Any]) -> str:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         doc_id = step_data["id"]
         return await self.driver.upsert("steps", step_data, doc_id)
 
     async def update_step(self, step_id: str, updates: dict[str, Any]) -> str:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         await self.driver.update("steps", step_id, updates)
         return step_id
 
     async def delete_step(self, step_id: str, force_delete: bool = False) -> bool:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         step = await self.get_step_by_id(step_id)
         if not step:
             return False

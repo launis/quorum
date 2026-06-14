@@ -228,15 +228,15 @@ class SystemConcurrency(int, Enum):
     """Global concurrency limits for DAG Execution. Optimized for Context Caching (V3)."""
 
     MAX_CONCURRENT_WORKFLOWS = 10
-    MAX_CONCURRENT_LLM_STEPS = 1
-    LLM_MAX_RETRIES = 4
+    MAX_CONCURRENT_LLM_STEPS = 2
+    LLM_MAX_RETRIES = 2
     LLM_RETRY_MULTIPLIER = 2
     LLM_RETRY_MIN_SECONDS = 1
     LLM_RETRY_MAX_SECONDS = 30
     LLM_RETRY_JITTER_INITIAL_SECONDS = 1
     LLM_RETRY_JITTER_EXP_BASE = 2
     FAIL_FAST_MAX_RETRIES = 1
-    LLM_MAX_CHUNK_SIZE = 15
+    LLM_MAX_CHUNK_SIZE = 10
     MATRIX_SAMPLING_LIMIT = 0
     LLM_DEFAULT_TIMEOUT_SECONDS = 600
     RATE_LIMIT_COOLDOWN_SECONDS = 10
@@ -245,13 +245,15 @@ class SystemConcurrency(int, Enum):
     SEMAPHORE_MAX_CONCURRENCY = 50
     SEMAPHORE_RPM_DIVISOR = 10
     MAX_SAFE_TOKENS = 1000000
-    SCHEMA_MAX_LOCALIZED_ANCHORS = 15
-    SCHEMA_MAX_EVALUATIONS = 15
-    SCHEMA_MAX_CHUNK_RECORDS = 15
+    SCHEMA_MAX_LOCALIZED_ANCHORS = 10
+    SCHEMA_MAX_EVALUATIONS = 10
+    SCHEMA_MAX_CHUNK_RECORDS = 10
     CONTEXT_CACHE_LOCK_TTL_SECONDS = 300
     CONTEXT_CACHE_PASSIVE_TTL_SECONDS = 3600
     CONTEXT_CACHE_LOCK_POLL_INTERVAL_MS = 500
     CONTEXT_CACHE_LOCK_WAIT_LIMIT_SECONDS = 20
+    # Note: 2048 is the absolute minimum for Gemini 2.0/2.5.
+    # IMPORTANT: Must be raised to 4096 when migrating to Gemini 3.0/3.1+.
     CONTEXT_CACHE_MINIMUM_TOKEN_LIMIT = 2048
     PACING_DELAY_VERTEX_SECONDS = 12
     PACING_DELAY_OPENAI_SECONDS = 0
@@ -276,18 +278,24 @@ class StrictnessAnchor(IntEnum):
 
 
 class RiskLevel(str, Enum):
+    """Tri-level risk classification for security and compliance evaluations."""
+
     LOW = "RISK_LOW"
     MEDIUM = "RISK_MEDIUM"
     HIGH = "RISK_HIGH"
 
 
 class SimulationType(str, Enum):
+    """Classifies the type of adversarial simulation applied during security analysis."""
+
     PASSIVE = "SIM_PASSIVE"
     ACTIVE = "SIM_ACTIVE"
     MALICIOUS = "SIM_MALICIOUS"
 
 
 class BloomLevel(str, Enum):
+    """Bloom's Taxonomy cognitive complexity levels for learning objective classification."""
+
     REMEMBERING = "BLOOM_REMEMBERING"
     UNDERSTANDING = "BLOOM_UNDERSTANDING"
     APPLYING = "BLOOM_APPLYING"
@@ -297,6 +305,8 @@ class BloomLevel(str, Enum):
 
 
 class StrategicDepth(str, Enum):
+    """Graduated scale for evaluating strategic thinking depth in user responses."""
+
     LOW = "STRAT_LOW"
     MEDIUM = "STRAT_MEDIUM"
     HIGH = "STRAT_HIGH"
@@ -304,30 +314,40 @@ class StrategicDepth(str, Enum):
 
 
 class FidelityLevel(str, Enum):
+    """Source fidelity classification for evidence quality assessment."""
+
     WEAK = "FIDELITY_WEAK"
     UNCERTAIN = "FIDELITY_UNCERTAIN"
     HIGH = "FIDELITY_HIGH"
 
 
 class PlausibilityLevel(str, Enum):
+    """Plausibility classification for abductive reasoning conclusions."""
+
     IMPOSSIBLE = "IMPOSSIBLE"
     PLAUSIBLE = "PLAUSIBLE"
     HIGH = "HIGH"
 
 
 class AbductiveConclusion(str, Enum):
+    """Abductive inference outcome classification for causal reasoning evaluations."""
+
     POST_HOC = "POST_HOC"
     UNCERTAIN = "UNCERTAIN"
     GENUINE = "GENUINE"
 
 
 class AuthenticityLevel(str, Enum):
+    """Authenticity classification for performativity detection in user discourse."""
+
     ORGANIC = "AUTH_ORGANIC"
     PERFORMATIVE = "AUTH_PERFORMATIVE"
     UNKNOWN = "AUTH_UNKNOWN"
 
 
 class RoleClassification(str, Enum):
+    """User agency classification from passive observer to active architect."""
+
     PASSENGER = "ROLE_PASSENGER"
     NAVIGATOR = "ROLE_NAVIGATOR"
     DRIVER = "ROLE_DRIVER"
@@ -335,23 +355,31 @@ class RoleClassification(str, Enum):
 
 
 class InteractionStrategy(str, Enum):
+    """Prompt engineering strategy classification for interaction quality assessment."""
+
     ZERO_SHOT = "STRATEGY_ZERO_SHOT"
     FEW_SHOT = "STRATEGY_FEW_SHOT"
     CHAIN_OF_THOUGHT = "STRATEGY_CHAIN_OF_THOUGHT"
 
 
 class ScoringPenalty(str, Enum):
+    """Penalty types applied during deterministic score calibration."""
+
     SECURITY_THREAT = "PENALTY_SECURITY_THREAT"
     POST_HOC = "PENALTY_POST_HOC"
 
 
 class VerificationResult(str, Enum):
+    """Fact-check verification outcome for falsification agent evaluations."""
+
     VERIFIED = "RESULT_VERIFIED"
     DEBUNKED = "RESULT_DEBUNKED"
     UNVERIFIED = "RESULT_UNVERIFIED"
 
 
 class EthicalSeverity(str, Enum):
+    """Ethical concern severity levels for overseer agent flagging."""
+
     NONE = "SEVERITY_NONE"
     WARNING = "SEVERITY_WARNING"
     CRITICAL = "SEVERITY_CRITICAL"
@@ -391,6 +419,8 @@ class TitleKey(str, Enum):
 
 
 class LabelKey(str, Enum):
+    """Strict L10N label keys for No-String Mandate compliance across UI boundaries."""
+
     # Agents
     AGENT_GUARD = "AGENT_GUARD"
     AGENT_ANALYST = "AGENT_ANALYST"
@@ -476,3 +506,6 @@ LaxScoringStrategy = Annotated[ScoringStrategy, Field(strict=False)]
 LaxVirtualSystemStepID = Annotated[VirtualSystemStepID, Field(strict=False)]
 LaxPromptBlockCategory = Annotated[PromptBlockCategory, Field(strict=False)]
 LaxEvaluationRunCount = Annotated[EvaluationRunCount, Field(strict=False)]
+LaxPlausibilityLevel = Annotated[PlausibilityLevel, Field(strict=False)]
+LaxAbductiveConclusion = Annotated[AbductiveConclusion, Field(strict=False)]
+LaxFidelityLevel = Annotated[FidelityLevel, Field(strict=False)]

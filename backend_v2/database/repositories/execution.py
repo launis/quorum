@@ -1,3 +1,5 @@
+"""Database repository implementation module."""
+
 import json
 import logging
 import uuid
@@ -16,6 +18,18 @@ class ExecutionRepositoryImpl(BaseRepository):
     """Repository implementation for Execution traces and statuses."""
 
     async def _offload_payloads(self, doc_id: str, data: dict[str, Any]) -> None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         driver = get_storage_driver()
 
         # 1. Decouple MCP Audit Trails into native DB subcollection
@@ -58,6 +72,18 @@ class ExecutionRepositoryImpl(BaseRepository):
                     ) from e
 
     async def _hydrate_payloads(self, data: dict[str, Any] | None) -> None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         if not data:
             return
 
@@ -102,6 +128,18 @@ class ExecutionRepositoryImpl(BaseRepository):
                 ) from e
 
     async def get_execution(self, execution_id: str, hydrate: bool = True) -> ExecutionRecord | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         data = await self.driver.get("executions", execution_id)
         if data:
             try:
@@ -121,25 +159,85 @@ class ExecutionRepositoryImpl(BaseRepository):
         return None
 
     async def get_execution_status(self, execution_id: str) -> str | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         data = await self.driver.get("executions", execution_id)
         return data.get("status") if data else None
 
     async def create_execution(self, execution_data: dict[str, Any]) -> str:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         doc_id = execution_data.get("id") or str(uuid.uuid4())
         execution_data["id"] = doc_id
         await self._offload_payloads(doc_id, execution_data)
         return await self.driver.upsert("executions", execution_data, doc_id)
 
     async def update_execution(self, execution_id: str, updates: dict[str, Any]) -> bool:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         await self._offload_payloads(execution_id, updates)
         return await self.driver.update("executions", execution_id, updates)
 
     async def delete_execution(self, execution_id: str) -> bool:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.delete("executions", execution_id)
 
     async def get_all_executions(
         self, organization_id: str | None = None, user_id: str | None = None
     ) -> list[ExecutionRecord]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         filters = []
         if organization_id:
             filters.append(Filter("organization_id", "==", organization_id))
@@ -163,6 +261,18 @@ class ExecutionRepositoryImpl(BaseRepository):
         return parsed_results
 
     async def get_recent_completed_executions(self, limit: int = 5) -> list[ExecutionRecord]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         filters = [Filter("status", "==", "completed")]
         results = await self.driver.query(
             "executions", filters=filters, limit=limit, order_by="completed_at", descending=True
@@ -183,4 +293,16 @@ class ExecutionRepositoryImpl(BaseRepository):
         return parsed_results
 
     async def count_executions_by_matrix(self, matrix_id: str) -> int:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.count("executions", [Filter("settings.matrix_id", "==", matrix_id)])

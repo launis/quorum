@@ -101,3 +101,22 @@ def test_validate_evidence_lexical_reality_ban_success() -> None:
 
     final_quote = AnchorValidationService.validate_evidence(pdf_text, quote, reasoning_trace=trace)
     assert final_quote == quote
+
+
+def test_html_tag_stripping_retains_mapping() -> None:
+    """Test that HTML tags are ignored during normalization but retained in extraction."""
+    chunk = "|**Sääntelypaine:** CSRD-direktiivin ja<br>EU-taksonomian kaltaiset säädökset|"
+    quote = "CSRD-direktiivin ja EU-taksonomian kaltaiset säädökset"
+    extracted = AnchorValidationService.validate_evidence(chunk, quote)
+    assert extracted == "CSRD-direktiivin ja<br>EU-taksonomian kaltaiset säädökset"
+
+
+def test_fuzzy_fallback_success() -> None:
+    """Test that fuzzy fallback catches minor typos when exact match fails."""
+    pdf_text = "Tämä on erittäin tärkeä strateginen muutos."
+    # OCR error or LLM typo (extra space, missing letter)
+    quote = "Tämä on erittäin  tärkeä strateginen mutos"
+
+    # Fuzzy match should save this and return the LLM's quote as a fallback
+    final_quote = AnchorValidationService.validate_evidence(pdf_text, quote)
+    assert final_quote == quote

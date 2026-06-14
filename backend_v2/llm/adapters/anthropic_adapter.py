@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
@@ -21,8 +21,44 @@ class AnthropicTokenUsage(TokenUsage):
         estimated_savings_usd: FinOps ROI estimated savings in USD.
     """
 
-    cache_creation_input_tokens: int = Field(default=0, ge=0, description="Tokens spent creating the ephemeral cache.")
-    estimated_savings_usd: float = Field(default=0.0, ge=0.0, description="FinOps ROI estimated savings in USD.")
+    cache_creation_input_tokens: int = Field(default=0, description="Tokens spent creating the ephemeral cache.")
+    estimated_savings_usd: float = Field(default=0.0, description="FinOps ROI estimated savings in USD.")
+
+    @field_validator("cache_creation_input_tokens")
+    @classmethod
+    def validate_cache_tokens_ge_zero(cls, v: int) -> int:
+        """Validate that cache creation tokens are non-negative.
+
+        Args:
+            v: Token count.
+
+        Returns:
+            Validated token count.
+
+        Raises:
+            ValueError: If negative.
+        """
+        if v < 0:
+            raise ValueError("cache_creation_input_tokens must be >= 0")
+        return v
+
+    @field_validator("estimated_savings_usd")
+    @classmethod
+    def validate_savings_ge_zero(cls, v: float) -> float:
+        """Validate that savings are non-negative.
+
+        Args:
+            v: Savings amount.
+
+        Returns:
+            Validated savings amount.
+
+        Raises:
+            ValueError: If negative.
+        """
+        if v < 0.0:
+            raise ValueError("estimated_savings_usd must be >= 0.0")
+        return v
 
 
 class AnthropicCacheAdapter(BaseLLMAdapter):
@@ -89,7 +125,7 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         flat_static: list[dict[str, Any]] = []
         for msg in other_static_msgs:
             role = msg.get("role")
-            content = msg.get("content", "")
+            content = msg["content"] if "content" in msg else ""
             content_str = content if isinstance(content, str) else str(content)
 
             if flat_static and flat_static[-1]["role"] == role:
@@ -106,7 +142,7 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         flat_dynamic: list[dict[str, Any]] = []
         for msg in other_dynamic_msgs:
             role = msg.get("role")
-            content = msg.get("content", "")
+            content = msg["content"] if "content" in msg else ""
             content_str = content if isinstance(content, str) else str(content)
 
             if flat_dynamic and flat_dynamic[-1]["role"] == role:
@@ -169,7 +205,7 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         completion_tokens = usage.completion_tokens
         cached_tokens = usage.cached_tokens
 
-        cache_creation_input_tokens = getattr(usage, "cache_creation_input_tokens", 0)
+        cache_creation_input_tokens = usage.cache_creation_input_tokens if isinstance(usage, AnthropicTokenUsage) else 0
         regular_input = max(0, prompt_tokens - cached_tokens - cache_creation_input_tokens)
 
         cost_regular = regular_input * p_in
@@ -193,3 +229,14 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
             cache_creation_input_tokens=cache_creation_input_tokens,
             estimated_savings_usd=estimated_savings_usd,
         )
+
+    def prepare_provider_kwargs(self, model_name: str) -> dict[str, Any]:
+        """Prepare provider specific arguments for LiteLLM.
+
+        Args:
+            model_name: The target model name.
+
+        Returns:
+            An empty dictionary as no special static arguments are needed.
+        """
+        return {}

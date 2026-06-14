@@ -22,4 +22,9 @@ class UnifiedWorkflowRepository(
     """Facade combining all granular repository implementations."""
 
     def __init__(self, driver: StorageDriver):
+        """Initialize the unified repository facade.
+
+        Args:
+            driver: The storage driver instance to use for operations.
+        """
         super().__init__(driver)

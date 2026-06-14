@@ -2890,6 +2890,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get isEvaluativeMatrix => 'Evaluative (Calculated)';
 
   @override
+  String get promptBlockEnsembleToggle => 'Use Fast-Model Ensemble (Best of 3)';
+
+  @override
+  String get promptBlockEnsembleToggleDesc =>
+      'Runs the entire matrix 3 times in parallel and applies majority voting.';
+
+  @override
   String get xaiOutputExtensionsTitle =>
       'XAI Output Extensions (Proaktiivinen Valmentaja & Report Fields)';
 
@@ -3499,4 +3506,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get xaiVerdictMisaligned => 'Misaligned (MISALIGNED)';
+
+  @override
+  String get tdaAnchorTarget => 'Anchor Target';
+
+  @override
+  String get tdaBoundingBox => 'Bounding Box Scope';
+
+  @override
+  String get tdaExtractionRule => 'Extraction Rule';
 }

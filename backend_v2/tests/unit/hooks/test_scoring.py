@@ -757,3 +757,44 @@ async def test_matrix_scoring_hook_missing_status_key() -> None:
     assert result.state_delta is not None
     # Verify it processed atom_1 and not the DLQ chunk
     assert "pb_1234567890123456" in result.state_delta
+
+
+def test_apply_scoring_logic_fails_fast_on_global_context_bug() -> None:
+    """Test to reproduce the bug where global_context_vars shadows state.inputs."""
+    from backend_v2.hooks.scoring import apply_scoring_logic_hook
+
+    # This state has steps in state.inputs but ALSO has something in global_context_vars.
+    # The bug causes lookup_ctx to become global_context_vars, which then fails Validation.
+    state = HookState(
+        execution_id="exe_1111111111111111",
+        workflow_id="wf1",
+        step_id="step1",
+        task_blueprint="step1",
+        metadata={},
+        global_context_vars={"organization_id": "org_123"},
+        inputs={
+            "steps": [
+                {
+                    "step_id": "step_judge",
+                    "block_id": "_evaluative_matrices",
+                    "data_type": "matrix",
+                    "payload": {"pb_1234": 0.8},
+                }
+            ]
+        },
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepoWaterfall()),
+        workflow_repo=cast(Any, MockRepoWaterfall()),
+        comp_repo=cast(Any, MockRepoWaterfall()),
+        identity_repo=cast(Any, MockRepoWaterfall()),
+        audit_repo=cast(Any, MockRepoWaterfall()),
+        system_repo=cast(Any, MockRepoWaterfall()),
+    )
+
+    # This will fail fast with "Execution snapshot 'steps' missing" if the bug is present!
+    # Because we don't fix the bug yet, we expect it to fail.
+    # Wait, the tier4 workflow says I MUST ask the user to run the test and PAUSE here.
+    # So I just write the test without pytest.raises so the user can see it crash.
+    result = cast(HookResult, apply_scoring_logic_hook(state, deps))
+    assert result.success is True

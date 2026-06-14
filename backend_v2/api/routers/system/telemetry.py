@@ -18,6 +18,15 @@ async def report_client_error(payload: ClientErrorPayload) -> None:
 
     This fulfills the Dual-Reporting Telemetry Mandate. Errors logged here will be
     forwarded to Logfire/Sentry automatically via the backend's logging configuration.
+
+    Args:
+        payload: The telemetry payload from the client containing the error details.
+
+    Returns:
+        None.
+
+    Raises:
+        AppException: If logging the client error fails internally.
     """
     try:
         log_fmt = "[%s] Platform: %s | Version: %s | Session: %s\nMessage: %s\nStack trace:\n%s"

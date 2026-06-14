@@ -115,6 +115,11 @@ abstract class TDAAssertion with _$TDAAssertion {
     @Default(false)
     bool allowContextualOverride,
     @JsonKey(name: 'high_entropy') @Default(false) bool highEntropy,
+    @JsonKey(name: 'anchor_target') String? anchorTarget,
+    @JsonKey(name: 'bounding_box_scope')
+    @Default('paragraph')
+    String boundingBoxScope,
+    @JsonKey(name: 'extraction_rule') String? extractionRule,
   }) = _TDAAssertion;
 
   factory TDAAssertion.fromJson(Map<String, dynamic> json) =>
@@ -140,6 +145,9 @@ abstract class TDAAssertion with _$TDAAssertion {
       factsToFind: factsToFind,
       logicalExpression: logicalExpression,
       allowContextualOverride: allowContextualOverride,
+      anchorTarget: null,
+      boundingBoxScope: 'paragraph',
+      extractionRule: null,
     );
   }
 }

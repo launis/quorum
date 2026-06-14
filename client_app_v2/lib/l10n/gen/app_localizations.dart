@@ -5312,6 +5312,18 @@ abstract class AppLocalizations {
   /// **'Evaluative (Calculated)'**
   String get isEvaluativeMatrix;
 
+  /// No description provided for @promptBlockEnsembleToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Fast-Model Ensemble (Best of 3)'**
+  String get promptBlockEnsembleToggle;
+
+  /// No description provided for @promptBlockEnsembleToggleDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs the entire matrix 3 times in parallel and applies majority voting.'**
+  String get promptBlockEnsembleToggleDesc;
+
   /// No description provided for @xaiOutputExtensionsTitle.
   ///
   /// In en, this message translates to:
@@ -6395,6 +6407,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Misaligned (MISALIGNED)'**
   String get xaiVerdictMisaligned;
+
+  /// No description provided for @tdaAnchorTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Anchor Target'**
+  String get tdaAnchorTarget;
+
+  /// No description provided for @tdaBoundingBox.
+  ///
+  /// In en, this message translates to:
+  /// **'Bounding Box Scope'**
+  String get tdaBoundingBox;
+
+  /// No description provided for @tdaExtractionRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Extraction Rule'**
+  String get tdaExtractionRule;
 }
 
 class _AppLocalizationsDelegate

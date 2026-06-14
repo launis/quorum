@@ -42,6 +42,9 @@ class CompiledPrompt(BaseModel):
 
         System instructions belong exclusively in static_messages for caching integrity.
         Violating this would silently contaminate the cache with per-chunk system content.
+
+        Raises:
+            ValueError: If 'system' role is found in dynamic_messages.
         """
         for msg in self.dynamic_messages:
             if msg.get("role") == "system":
@@ -56,6 +59,12 @@ class CompiledPrompt(BaseModel):
         """Merge consecutive same-role messages into a single message per role boundary.
 
         Maintains pure alternating role structure required by LLM providers.
+
+        Args:
+            messages: List of message dictionaries containing 'role' and 'content'.
+
+        Returns:
+            Merged list of message dictionaries.
         """
         flat: list[dict[str, Any]] = []
         for msg in messages:

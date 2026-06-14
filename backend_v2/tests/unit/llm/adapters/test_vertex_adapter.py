@@ -68,14 +68,12 @@ def mock_redis_client(monkeypatch: pytest.MonkeyPatch) -> Any:
     return fake_client
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_lazy_import_proof() -> None:
     """Pytest sys.modules check is unreliable."""
     pass
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_vertex_adapter_preparer_bypass() -> None:
     """Verify Vertex adapter bypasses caching for small prompts under 8,000 chars."""
     adapter = VertexCacheAdapter()
@@ -96,14 +94,12 @@ async def test_vertex_adapter_preparer_bypass() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_vertex_teardown_is_noop() -> None:
     """Verify teardown is successfully executed as No-Op."""
     adapter = VertexCacheAdapter()
     await adapter.teardown_cache("run_12345")
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_vertex_adapter_cost_calculation() -> None:
     """Test mathematical precision and ROI scenarios for VertexCacheAdapter with 75% read discount."""
     adapter = VertexCacheAdapter()
@@ -119,7 +115,7 @@ def test_vertex_adapter_cost_calculation() -> None:
     assert result.estimated_savings_usd == 0.0
 
     # Scenario 2: With cached tokens (75% read discount / 25% cost)
-    usage_cached = TokenUsage(prompt_tokens=1000, completion_tokens=500, total_tokens=1500)
+    usage_cached = TokenUsage(prompt_tokens=1000, completion_tokens=500, total_tokens=1500, cached_tokens=800)
     result = adapter.calculate_cost(usage_cached, pricing)
     assert isinstance(result, VertexTokenUsage)
     # regular = 1000 - 800 = 200
@@ -130,7 +126,6 @@ def test_vertex_adapter_cost_calculation() -> None:
     assert result.estimated_savings_usd == pytest.approx(0.0012)
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_missing_pricing_raises_error() -> None:
     """Verify that Vertex adapter raises AppException when price configuration is missing."""
     adapter = VertexCacheAdapter()
@@ -142,7 +137,6 @@ def test_missing_pricing_raises_error() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_vertex_thundering_herd_protection() -> None:
     """Simulate 5 workers concurrently trying to create a Vertex cache and verify Thundering Herd lock."""
     # Reset mock call count
@@ -188,7 +182,6 @@ async def test_vertex_thundering_herd_protection() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_vertex_instant_exit_on_failed() -> None:
     """Verify that wait-and-poll loops exit instantly if a sentinel FAILED is found."""
     mock_cached_contents.CachedContent.create.reset_mock()
@@ -220,7 +213,6 @@ async def test_vertex_instant_exit_on_failed() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_vertex_fail_soft_gcp_error() -> None:
     """Verify the Zero-Compromise Fail-Soft path when the GCP SDK raises an error."""
     mock_cached_contents.CachedContent.create.reset_mock()
@@ -256,7 +248,6 @@ async def test_vertex_fail_soft_gcp_error() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_vertex_adapter_caching_payload_formatting() -> None:
     """Verify V3: Only static_messages are uploaded to GCP cache; dynamic_messages are returned as live payload."""
     mock_cached_contents.CachedContent.create.reset_mock()

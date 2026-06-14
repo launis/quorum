@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+# Ignore untyped markdown library as it lacks official stubs in Python 3.14
+import markdown  # type: ignore[import-untyped, unused-ignore]
 from jinja2 import Environment, FileSystemLoader
 
 from backend_v2.database.interfaces import IExecutionRepository, IWorkflowRepository
@@ -25,7 +27,12 @@ logger = logging.getLogger(__name__)
 
 
 class CompliantAppException(AppException):
-    """Bridge class to enforce Rule 18 compliance with the base AppException signature."""
+    """Bridge class to enforce Rule 18 compliance with the base AppException signature.
+
+    Attributes:
+        status_code: HTTP response status code to return.
+        details: Dictionary containing error context and the error_code.
+    """
 
     def __init__(
         self, error_code: ErrorCodes, message: str, status_code: int = 500, details: dict[str, Any] | None = None
@@ -64,13 +71,19 @@ class PdfReportService:
         template_dir = Path(__file__).parent.parent / "templates"
         self.env = Environment(loader=FileSystemLoader(str(template_dir)))
 
-        # Lightweight Custom Markdown Filter for Bold (**) and Italic (*)
         def md_filter(text: Any) -> str:
+            """Lightweight Custom Markdown Filter for Bold (**) and Italic (*).
+
+            Args:
+                text: Raw text to be parsed as markdown.
+
+            Returns:
+                HTML rendered string.
+            """
             if not text:
                 return ""
             if not isinstance(text, str):
                 text = str(text)
-            import markdown  # type: ignore[import-untyped, unused-ignore]
 
             return str(markdown.markdown(text, extensions=["extra", "nl2br"]))
 
@@ -255,6 +268,11 @@ class PdfReportService:
             loop = asyncio.get_running_loop()
 
             def _render_pdf() -> bytes:
+                """Generates the PDF bytes synchronously using WeasyPrint.
+
+                Returns:
+                    Raw binary content of the generated PDF document.
+                """
                 import weasyprint
 
                 # Type safe cast since write_pdf returns bytes

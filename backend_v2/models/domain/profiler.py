@@ -176,4 +176,8 @@ class ProfilerDTO(ReasoningTraceDTO):
 
 
 class ProfilerOutput(ProfilerDTO, ReasoningTrace):
-    """Output schema for the Profiler Agent."""
+    """Output schema for the Profiler Agent.
+
+    Attributes:
+        No additional attributes.
+    """

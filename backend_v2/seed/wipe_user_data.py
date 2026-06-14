@@ -1,3 +1,8 @@
+"""Script for wiping dynamic user data from the local V2 database.
+
+Provides a clean slate for the Event Sourced Engine while preserving seeded system_config.
+"""
+
 import json
 import os
 import shutil
@@ -8,8 +13,8 @@ BACKUP_DIR = os.path.join(os.path.dirname(__file__), "backups")
 
 
 def wipe_dynamic_data() -> None:
-    """Wipes all user-generated dynamic data (Workflows and Executions) from the V3 database.
-    This creates a clean slate for the V3 Event Sourced Engine while preserving seeded system_config.
+    """Wipes all user-generated dynamic data (Workflows and Executions) from the V2 database.
+    This creates a clean slate for the V2 Event Sourced Engine while preserving seeded system_config.
     """
     print("WARNING: This will permanently wipe all Workflows and Executions from db_v2.json!")
     confirmation = input("Are you sure you want to proceed? (y/N): ")
@@ -48,7 +53,7 @@ def wipe_dynamic_data() -> None:
     print("[Scrubber] Clean slate achieved!")
     print(f" - Wiped {workflows_count} Workflows.")
     print(f" - Wiped {executions_count} Executions.")
-    print("Please restart any running V3 Backend processes to ensure fresh state propagation.")
+    print("Please restart any running V2 Backend processes to ensure fresh state propagation.")
 
 
 if __name__ == "__main__":

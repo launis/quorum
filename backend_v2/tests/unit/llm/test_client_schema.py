@@ -16,12 +16,15 @@ async def test_native_schema_strips_unsupported_constraints() -> None:
     client = LLMClient()
 
     # Mock the internal provider generate method
-    with patch("backend_v2.llm.provider.LLMFactory.create_provider") as mock_factory:
+    with patch("backend_v2.llm.provider.LLMFactory.create_provider") as mock_factory, \
+         patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter") as mock_adapter_factory:
         mock_provider = AsyncMock()
         mock_factory.return_value = mock_provider
+        mock_adapter_factory.return_value.prepare_provider_kwargs.return_value = {}
 
         # We need to bypass the _config validation, so we override _config
         client._config = AsyncMock()
+        client._config.provider = "mock"
         client._config.model_name = "test_model"
         client._config.temperature = 0.0
         client._config.default_max_tokens = 100
@@ -63,11 +66,14 @@ async def test_native_schema_strips_unsupported_constraints() -> None:
 async def test_structured_task_strictness_based_on_parsing_mode() -> None:
     # 1. Test that STRUCTURED_JSON routes to free json_object format without a schema
     client = LLMClient()
-    with patch("backend_v2.llm.provider.LLMFactory.create_provider") as mock_factory:
+    with patch("backend_v2.llm.provider.LLMFactory.create_provider") as mock_factory, \
+         patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter") as mock_adapter_factory:
         mock_provider = AsyncMock()
         mock_factory.return_value = mock_provider
+        mock_adapter_factory.return_value.prepare_provider_kwargs.return_value = {}
 
         client._config = AsyncMock()
+        client._config.provider = "mock"
         client._config.model_name = "test_model"
         client._config.temperature = 0.0
         client._config.default_max_tokens = 100
@@ -88,11 +94,14 @@ async def test_structured_task_strictness_based_on_parsing_mode() -> None:
 
     # 2. Test that normal JSON routes to native json_schema with strict=True
     client = LLMClient()
-    with patch("backend_v2.llm.provider.LLMFactory.create_provider") as mock_factory:
+    with patch("backend_v2.llm.provider.LLMFactory.create_provider") as mock_factory, \
+         patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter") as mock_adapter_factory:
         mock_provider = AsyncMock()
         mock_factory.return_value = mock_provider
+        mock_adapter_factory.return_value.prepare_provider_kwargs.return_value = {}
 
         client._config = AsyncMock()
+        client._config.provider = "mock"
         client._config.model_name = "test_model"
         client._config.temperature = 0.0
         client._config.default_max_tokens = 100
@@ -116,11 +125,14 @@ async def test_structured_task_strictness_based_on_parsing_mode() -> None:
 @pytest.mark.asyncio
 async def test_structured_json_injects_schema_instructions() -> None:
     client = LLMClient()
-    with patch("backend_v2.llm.provider.LLMFactory.create_provider") as mock_factory:
+    with patch("backend_v2.llm.provider.LLMFactory.create_provider") as mock_factory, \
+         patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter") as mock_adapter_factory:
         mock_provider = AsyncMock()
         mock_factory.return_value = mock_provider
+        mock_adapter_factory.return_value.prepare_provider_kwargs.return_value = {}
 
         client._config = AsyncMock()
+        client._config.provider = "mock"
         client._config.model_name = "test_model"
         client._config.temperature = 0.0
         client._config.default_max_tokens = 100

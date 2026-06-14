@@ -359,6 +359,9 @@ def get_fallback_data(key: str) -> dict[str, Any]:
             {
                 "tda_id": f"tda_{uuid.uuid4().hex}",
                 "concept_description": f"Atom {i} concept description for testing",
+                "anchor_target": "Test anchor",
+                "bounding_box_scope": "paragraph",
+                "extraction_rule": "Test extraction rule",
                 "inverse_evidence": False,
                 "aggregation_mode": "EXISTS",
             }

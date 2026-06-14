@@ -1,3 +1,8 @@
+"""Admin Studio MCP Gateways API Router.
+
+Provides endpoints to manage MCP gateway configurations.
+"""
+
 import logging
 
 from fastapi import APIRouter
@@ -15,7 +20,18 @@ router = APIRouter(prefix="/mcp-gateways", tags=["Admin Studio V2 - MCP Gateways
 async def get_all_mcp_gateways(
     current_user: CurrentUserDep, studio_service: StudioServiceDep
 ) -> list[SystemConfigMCPGateways]:
-    """Retrieve all MCP Gateways configurations securely via SSOT Service Layer."""
+    """Retrieve all MCP Gateways configurations securely via SSOT Service Layer.
+
+    Args:
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        A list of MCP gateways configurations.
+
+    Raises:
+        AppException: If fetching MCP gateways fails.
+    """
     return await studio_service.list_mcp_gateways(current_user)
 
 
@@ -23,7 +39,18 @@ async def get_all_mcp_gateways(
 async def create_mcp_gateways(
     current_user: CurrentUserDep, studio_service: StudioServiceDep
 ) -> SystemConfigMCPGateways:
-    """Create a new MCP Gateway Config draft securely via SSOT."""
+    """Create a new MCP Gateway Config draft securely via SSOT.
+
+    Args:
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        The newly created MCP gateway draft configuration.
+
+    Raises:
+        AppException: If creating the draft fails.
+    """
     return await studio_service.create_mcp_gateway_draft(current_user)
 
 
@@ -33,7 +60,20 @@ async def get_mcp_gateway(
     current_user: CurrentUserDep,
     studio_service: StudioServiceDep,
 ) -> SystemConfigMCPGateways:
-    """Retrieve a single MCP Gateway configuration securely via SSOT Service Layer."""
+    """Retrieve a single MCP Gateway configuration securely via SSOT Service Layer.
+
+    Args:
+        gateway_id: The unique identifier of the MCP gateway.
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        The requested MCP gateway configuration.
+
+    Raises:
+        ResourceNotFoundError: If the MCP gateway is not found.
+        AppException: If fetching the MCP gateway fails.
+    """
     return await studio_service.get_mcp_gateways(current_user, gateway_id)
 
 
@@ -44,7 +84,21 @@ async def save_mcp_gateway(
     current_user: CurrentUserDep,
     studio_service: StudioServiceDep,
 ) -> SystemConfigMCPGateways:
-    """Update an MCP Gateway configuration securely via SSOT Service Layer."""
+    """Update an MCP Gateway configuration securely via SSOT Service Layer.
+
+    Args:
+        gateway_id: The unique identifier of the MCP gateway.
+        data: The new configuration data.
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        The updated MCP gateway configuration.
+
+    Raises:
+        ResourceNotFoundError: If the MCP gateway is not found.
+        AppException: If updating the MCP gateway fails.
+    """
     return await studio_service.save_mcp_gateways(current_user, gateway_id, data)
 
 
@@ -52,7 +106,20 @@ async def save_mcp_gateway(
 async def delete_mcp_gateway(
     gateway_id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep
 ) -> MCPGatewayDeleteResponse:
-    """Delete an MCP Gateway configuration securely via SSOT Service Layer."""
+    """Delete an MCP Gateway configuration securely via SSOT Service Layer.
+
+    Args:
+        gateway_id: The unique identifier of the MCP gateway to delete.
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        An MCPGatewayDeleteResponse confirming the deletion.
+
+    Raises:
+        ResourceNotFoundError: If the MCP gateway is not found.
+        AppException: If deleting the MCP gateway fails.
+    """
     await studio_service.delete_system_config(current_user, gateway_id)
     return MCPGatewayDeleteResponse(status="success", deleted_id=gateway_id)
 
@@ -63,5 +130,18 @@ async def clone_mcp_gateway(
     current_user: CurrentUserDep,
     studio_service: StudioServiceDep,
 ) -> SystemConfigMCPGateways:
-    """Deep clone an MCP Gateway configuration securely via SSOT Service Layer."""
+    """Deep clone an MCP Gateway configuration securely via SSOT Service Layer.
+
+    Args:
+        gateway_id: The unique identifier of the MCP gateway to clone.
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        The newly cloned MCP gateway configuration.
+
+    Raises:
+        ResourceNotFoundError: If the source MCP gateway is not found.
+        AppException: If cloning the MCP gateway fails.
+    """
     return await studio_service.clone_mcp_gateways(current_user, gateway_id)

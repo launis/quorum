@@ -1,3 +1,9 @@
+"""Execution API Routers.
+
+Provides the endpoints for managing asynchronous workflow executions,
+including starting, resuming, tracking, and rendering results.
+"""
+
 import logging
 
 from fastapi import APIRouter, Query, Request, status
@@ -16,7 +22,18 @@ async def list_executions(
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
 ) -> list[ExecutionRecord]:
-    """Retrieve all executions securely via SSOT."""
+    """Retrieve all executions securely via SSOT.
+
+    Args:
+        current_user: The authenticated user making the request.
+        execution_service: The execution domain service.
+
+    Returns:
+        A list of execution records accessible by the user.
+
+    Raises:
+        AppException: If fetching executions fails or permission is denied.
+    """
     return await execution_service.list_executions(initiator=current_user)
 
 
@@ -28,7 +45,21 @@ async def start_execution(
     execution_service: ExecutionServiceDep,
     doc_service: DocumentExtractionServiceDep,
 ) -> ExecutionRecord:
-    """Start an asynchronous workflow execution securely via SSOT."""
+    """Start an asynchronous workflow execution securely via SSOT.
+
+    Args:
+        payload: The execution creation payload containing workflow ID and inputs.
+        arq_pool: The Arq Redis connection pool for background tasks.
+        current_user: The authenticated user making the request.
+        execution_service: The execution domain service.
+        doc_service: Document extraction service for eager extraction.
+
+    Returns:
+        The newly created execution record in a pending/running state.
+
+    Raises:
+        AppException: If validation fails, quota exceeded, or permission denied.
+    """
     return await execution_service.start_execution(
         initiator=current_user, payload=payload, arq_pool=arq_pool, doc_service=doc_service
     )
@@ -40,7 +71,19 @@ async def get_execution_status(
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
 ) -> ExecutionRecord:
-    """Retrieve the current status and results of an execution securely via SSOT."""
+    """Retrieve the current status and results of an execution securely via SSOT.
+
+    Args:
+        execution_id: The unique identifier of the execution.
+        current_user: The authenticated user making the request.
+        execution_service: The execution domain service.
+
+    Returns:
+        The requested execution record.
+
+    Raises:
+        AppException: If the execution is not found or permission denied.
+    """
     return await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
 
 
@@ -51,7 +94,20 @@ async def resume_execution(
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
 ) -> ExecutionRecord:
-    """Resume a failed execution securely via SSOT."""
+    """Resume a failed execution securely via SSOT.
+
+    Args:
+        execution_id: The unique identifier of the failed execution.
+        arq_pool: The Arq Redis connection pool.
+        current_user: The authenticated user making the request.
+        execution_service: The execution domain service.
+
+    Returns:
+        The resumed execution record in a running state.
+
+    Raises:
+        AppException: If unresumable state, quota exceeded, or not found.
+    """
     return await execution_service.resume_execution(
         initiator=current_user, execution_id=execution_id, arq_pool=arq_pool
     )
@@ -63,7 +119,19 @@ async def stream_execution_status(
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
 ) -> StreamingResponse:
-    """Stream execution status and results securely via Sever-Sent Events (SSE)."""
+    """Stream execution status and results securely via Sever-Sent Events (SSE).
+
+    Args:
+        execution_id: The unique identifier of the execution.
+        current_user: The authenticated user making the request.
+        execution_service: The execution domain service.
+
+    Returns:
+        A StreamingResponse emitting SSE events.
+
+    Raises:
+        AppException: If the execution is not found or permission denied.
+    """
     return StreamingResponse(
         execution_service.stream_status(initiator=current_user, execution_id=execution_id),
         media_type="text/event-stream",
@@ -81,7 +149,16 @@ async def delete_execution(
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
 ) -> None:
-    """Delete an execution securely via SSOT."""
+    """Delete an execution securely via SSOT.
+
+    Args:
+        execution_id: The unique identifier of the execution to delete.
+        current_user: The authenticated user making the request.
+        execution_service: The execution domain service.
+
+    Raises:
+        AppException: If deletion fails or permission is denied.
+    """
     await execution_service.delete_execution(initiator=current_user, execution_id=execution_id)
 
 
@@ -91,7 +168,19 @@ async def download_frozen_context(
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
 ) -> Response:
-    """Download the forensic frozen context JSON for an execution."""
+    """Download the forensic frozen context JSON for an execution.
+
+    Args:
+        execution_id: The unique identifier of the execution.
+        current_user: The authenticated user making the request.
+        execution_service: The execution domain service.
+
+    Returns:
+        A Response containing the frozen context file.
+
+    Raises:
+        AppException: If the file is not found or permission is denied.
+    """
     content, filename = await execution_service.get_frozen_context_bytes(
         initiator=current_user, execution_id=execution_id
     )
@@ -114,7 +203,25 @@ async def render_execution(
     custom_preface_md: str | None = Query(None, description="Custom preface markdown"),
     local_time_str: str | None = Query(None, description="Localized time string"),
 ) -> Response:
-    """Omni-channel render endpoint for an execution."""
+    """Omni-channel render endpoint for an execution.
+
+    Args:
+        request: The FastAPI request object.
+        execution_id: The unique identifier of the execution.
+        current_user: The authenticated user making the request.
+        execution_service: The execution domain service.
+        arq_pool: The Arq Redis connection pool.
+        format: The desired output format (e.g., json, pdf, flat).
+        profile_id: The identifier of the output profile to use.
+        custom_preface_md: Optional custom preface content in Markdown.
+        local_time_str: Optional localized time string for rendering.
+
+    Returns:
+        A Response object appropriately typed based on the format requested.
+
+    Raises:
+        AppException: If rendering fails, format is unsupported, or permission denied.
+    """
     accept_language = request.headers.get("accept-language")
 
     content, media_type, filename = await execution_service.render_execution(
@@ -132,9 +239,10 @@ async def render_execution(
     if filename:
         headers["Content-Disposition"] = f'attachment; filename="{filename}"'
 
+    if isinstance(content, JobAcceptedDTO):
+        return JSONResponse(content=content.model_dump(mode="json"), status_code=status.HTTP_202_ACCEPTED)
+
     if isinstance(content, (dict, list)):
-        if isinstance(content, dict) and "status" in content and content["status"] == "pending":
-            return JSONResponse(content=content, status_code=status.HTTP_202_ACCEPTED)
         return JSONResponse(content=content)
 
     return Response(content=content, media_type=media_type, headers=headers)
@@ -151,7 +259,24 @@ async def generate_pdf_async(
     custom_preface_md: str | None = Query(None, description="Custom preface markdown"),
     local_time_str: str | None = Query(None, description="Localized time string"),
 ) -> JobAcceptedDTO:
-    """Omni-channel render endpoint for asynchronous PDF Generation via BackgroundWorker."""
+    """Omni-channel render endpoint for asynchronous PDF Generation via BackgroundWorker.
+
+    Args:
+        request: The FastAPI request object.
+        execution_id: The unique identifier of the execution.
+        current_user: The authenticated user making the request.
+        execution_service: The execution domain service.
+        arq_pool: The Arq Redis connection pool.
+        profile_id: The identifier of the output profile.
+        custom_preface_md: Optional custom preface content in Markdown.
+        local_time_str: Optional localized time string.
+
+    Returns:
+        A JobAcceptedDTO indicating the PDF generation has been queued.
+
+    Raises:
+        AppException: If queuing fails or permission is denied.
+    """
     accept_language = request.headers.get("accept-language", None)
     prof_id = profile_id or "default"
 
@@ -165,7 +290,6 @@ async def generate_pdf_async(
         local_time_str=local_time_str,
     )
 
-    # 4. Return 202 Accepted Fast
     return JobAcceptedDTO(status="Accepted", message="PDF Generation queued", execution_id=execution_id)
 
 
@@ -177,7 +301,17 @@ async def delete_profile_synthesis(
     execution_service: ExecutionServiceDep,
 ) -> None:
     """Clears the cached synthesis state for a specific profile.
+
     This forces the next render request to dispatch On-Demand Rendering.
+
+    Args:
+        execution_id: The unique identifier of the execution.
+        profile_id: The specific profile identifier to clear.
+        current_user: The authenticated user making the request.
+        execution_service: The execution domain service.
+
+    Raises:
+        AppException: If the execution is not found or permission is denied.
     """
     await execution_service.clear_profile_synthesis(
         initiator=current_user, execution_id=execution_id, profile_id=profile_id

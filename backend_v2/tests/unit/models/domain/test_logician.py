@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.domain.logician import (
     CognitiveLevel,
     LogicianData,
@@ -38,7 +39,7 @@ def test_cognitive_level_validation() -> None:
     assert cl.bloom_score == 4.0
 
     # Test bounds
-    with pytest.raises(ValidationError):
+    with pytest.raises(AppException):
         CognitiveLevel(
             bloom_level=BloomLevel.ANALYZING,
             strategic_depth=StrategicDepth.HIGH,
@@ -85,7 +86,7 @@ def test_logician_data_validation() -> None:
     data = LogicianData(toulmin_analysis=[toulmin], cognitive_level=cl, walton_scheme=walton, toulmin_score=5.5)
     assert len(data.toulmin_analysis) == 1
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(AppException):
         LogicianData(
             toulmin_analysis=[toulmin],
             cognitive_level=cl,

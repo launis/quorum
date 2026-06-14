@@ -103,7 +103,18 @@ class LocalFileDriver(FileDriver):
             ) from e
 
     async def save(self, path: str, data: bytes | str) -> str:
-        """Saves data to local file system."""
+        """Saves data to local file system.
+
+        Args:
+            path: Target file path.
+            data: File content (bytes or string).
+
+        Returns:
+            str: The full saved path.
+
+        Raises:
+            AppException: If saving fails or path is invalid.
+        """
         full_path = self._validate_path(path)
 
         try:
@@ -155,7 +166,17 @@ class LocalFileDriver(FileDriver):
             ) from e
 
     async def read(self, path: str) -> bytes:
-        """Reads data from local file system."""
+        """Reads data from local file system.
+
+        Args:
+            path: Target file path.
+
+        Returns:
+            bytes: The file content.
+
+        Raises:
+            AppException: If reading fails, file is not found, or path is invalid.
+        """
         full_path = self._validate_path(path)
 
         # FAIL FAST: Check existence before opening
@@ -180,7 +201,17 @@ class LocalFileDriver(FileDriver):
             ) from e
 
     async def delete(self, path: str) -> bool:
-        """Deletes file from local file system."""
+        """Deletes file from local file system.
+
+        Args:
+            path: Target file path.
+
+        Returns:
+            bool: True if deleted successfully.
+
+        Raises:
+            AppException: If deletion fails, file is not found, or path is invalid.
+        """
         full_path = self._validate_path(path)
         if not full_path.exists():
             msg = f"Cannot delete non-existent local file: {path}"
@@ -210,7 +241,17 @@ class LocalFileDriver(FileDriver):
             ) from e
 
     async def delete_directory(self, prefix: str) -> bool:
-        """Deletes a directory and all its contents locally."""
+        """Deletes a directory and all its contents locally.
+
+        Args:
+            prefix: Target directory path.
+
+        Returns:
+            bool: True if deleted successfully.
+
+        Raises:
+            AppException: If deletion fails, directory is not found, or path is invalid.
+        """
         full_path = self._validate_path(prefix)
         if not full_path.exists():
             msg = f"Cannot delete non-existent local directory: {prefix}"
@@ -248,12 +289,29 @@ class LocalFileDriver(FileDriver):
             ) from e
 
     async def exists(self, path: str) -> bool:
-        """Checks if file exists."""
+        """Checks if file exists.
+
+        Args:
+            path: Target file path.
+
+        Returns:
+            bool: True if the file exists, False otherwise.
+        """
         full_path = self._validate_path(path)
         return full_path.exists()
 
     async def get_url(self, path: str) -> str | None:
-        """Returns public URL if configured."""
+        """Returns public URL if configured.
+
+        Args:
+            path: Target file path.
+
+        Returns:
+            str | None: The public URL.
+
+        Raises:
+            AppException: If base_url is not configured.
+        """
         if not self.base_url:
             msg = "Local base_url is missing. Zero-Compromise Fail-Fast enforced."
             logger.error("[LocalFileDriver] %s: %s", ErrorCodes.STORAGE_CONFIG_ERROR.name, msg)

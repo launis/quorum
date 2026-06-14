@@ -28,10 +28,11 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     3. Inject 'llm_config' into context for downstream usage (e.g. by BaseAgent).
 
     Args:
-        data (dict): Current workflow data.
+        state: The current execution state of the hook.
+        deps: Dependencies required for execution.
 
     Returns:
-        dict: Updated data with 'llm_config'.
+        A HookResult containing the 'llm_config' in the state_delta.
 
     Raises:
         AppException: If configuration is invalid or missing.
@@ -123,7 +124,7 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
         if not target_strategy:
             raise ConfigurationError(
                 message=f"Strategy '{model_strategy}' not found in registry.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
         if target_strategy.tpm_limit is None or target_strategy.rpm_limit is None:
@@ -159,7 +160,7 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
             llm_config.model_name,
         )
 
-        return HookResult(success=True, state_delta={"llm_config": llm_config})
+        return HookResult(success=True, state_delta={"llm_config": llm_config.model_dump(mode="json")})
 
     except Exception as e:
         error_code = ErrorCodes.CONFIGURATION_ERROR
@@ -169,7 +170,6 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
             raise
 
         logger.error("[LLMHook] Failed to resolve LLM config: %s", e, exc_info=True)
-        # Fail Fast
         raise AppException(
-            message=f"LLM Hook failed: {e}", status_code=500, details={"error_code": error_code, "cause": str(e)}
+            message=f"LLM Hook failed: {e}", status_code=500, details={"error_code": error_code.value, "cause": str(e)}
         ) from e

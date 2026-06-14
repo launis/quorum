@@ -1,3 +1,5 @@
+"""Database repository implementation module."""
+
 import copy
 import logging
 import uuid
@@ -14,6 +16,18 @@ class AuditRepositoryImpl(BaseRepository):
     """Repository implementation for Audit Logs and Usage Data."""
 
     async def log_audit_event(self, event_data: dict[str, Any]) -> None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         doc_id = event_data.get("id") or str(uuid.uuid4())
         event_data["id"] = doc_id
         await self.driver.upsert("audit_logs", event_data, doc_id)
@@ -25,6 +39,18 @@ class AuditRepositoryImpl(BaseRepository):
         action: str | None = None,
         limit: int = 100,
     ) -> list[dict[str, Any]]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         filters = []
         if organization_id:
             filters.append(Filter("organization_id", "==", organization_id))
@@ -38,6 +64,18 @@ class AuditRepositoryImpl(BaseRepository):
         )
 
     async def log_usage(self, record: Any) -> None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         if hasattr(record, "model_dump"):
             data = record.model_dump()
         else:
@@ -50,6 +88,18 @@ class AuditRepositoryImpl(BaseRepository):
     async def get_usage_records(
         self, scope: str, entity_id: str | None = None, since: str | None = None
     ) -> list[dict[str, Any]]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         filters = []
         if scope == "organization" and entity_id:
             filters.append(Filter("org_id", "==", entity_id))
@@ -62,12 +112,36 @@ class AuditRepositoryImpl(BaseRepository):
         return await self.driver.query("usage", filters)
 
     async def get_usage_aggregate(self, scope: str, entity_id: str | None, period: str) -> dict[str, Any] | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         agg_id = f"{scope}_{entity_id or 'system'}_{period}"
         return await self.driver.get("usage_aggregates", agg_id)
 
     async def upsert_usage_aggregate(
         self, scope: str, entity_id: str | None, period: str, update_data: dict[str, Any]
     ) -> None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         agg_id = f"{scope}_{entity_id or 'system'}_{period}"
         update_data["id"] = agg_id
         update_data["scope"] = scope
@@ -105,6 +179,18 @@ class AuditRepositoryImpl(BaseRepository):
     async def get_detailed_usage(
         self, scope: str, target_id: str | None = None, since: str | None = None
     ) -> dict[str, Any]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         filters = []
         if since:
             filters.append(Filter("completed_at", ">=", since))

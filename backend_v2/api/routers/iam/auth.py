@@ -54,8 +54,8 @@ async def verify_user_token(request: Request, payload: TokenPayload, auth_servic
         LoginResponse: The authenticated user profile and status.
 
     Raises:
-        HTTPException: If the user is found in Firebase but not in the DB (404),
-                       or if the token is invalid (401).
+        AuthenticationError: If the token is invalid or profile not initialized.
+        AppException: If an unexpected login failure occurs.
     """
     try:
         token_data = await auth_service.verify_token(payload.token)
@@ -119,7 +119,8 @@ async def impersonate_user(
         ImpersonationResponse: The access token.
 
     Raises:
-        HTTPException: If permission denied (403) or target not found (404).
+        PermissionDeniedError: If the requesting user is not ROOT.
+        ResourceNotFoundError: If the target user is not found.
     """
     requester = await auth_service.repo.get_by_id(current_user.id)
     if not requester or requester.role != UserRole.ROOT:
@@ -152,6 +153,9 @@ async def list_available_roles() -> list[str]:
     """List all valid User Roles.
 
     Used by frontend for dynamic dropdowns (Zero Hardcoding).
+
+    Returns:
+        A list of role strings.
     """
     return [r.value for r in UserRole]
 
@@ -173,7 +177,8 @@ async def create_user(
         User: The created user profile.
 
     Raises:
-        HTTPException: If permission denied (403) or validation fails (400).
+        PermissionDeniedError: If permission denied.
+        AppException: If validation fails or user creation fails.
     """
     try:
         return await auth_service.create_user(current_user.id, user_data)
@@ -214,7 +219,18 @@ async def create_user(
 
 @router.get("/users", response_model=list[User])
 async def list_users(current_user: CurrentUserDep, auth_service: AuthServiceDep) -> list[User]:
-    """List users visible to the current user (scoped by Organization)."""
+    """List users visible to the current user (scoped by Organization).
+
+    Args:
+        current_user: The authenticated user making the request.
+        auth_service: Authentication service dependency.
+
+    Returns:
+        A list of users.
+
+    Raises:
+        AppException: If fetching users fails.
+    """
     return await auth_service.list_users(current_user)
 
 
@@ -233,7 +249,9 @@ async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthS
         UserDeleteResponse: Status confirmation.
 
     Raises:
-        HTTPException: Permission denied (403) or business logic error (400).
+        PermissionDeniedError: If permission denied.
+        ConflictError: If Last Admin Protection is triggered.
+        AppException: If business logic validation fails or deletion fails.
     """
     try:
         await auth_service.delete_user(current_user.id, id)
@@ -299,6 +317,12 @@ async def update_user(
 
     Returns:
         User: The updated user profile.
+
+    Raises:
+        PermissionDeniedError: If permission denied.
+        ResourceNotFoundError: If the user is not found.
+        ConflictError: If Last Admin Protection is triggered.
+        AppException: If update fails.
     """
     try:
         return await auth_service.update_user(current_user.id, id, user_update)
@@ -357,6 +381,9 @@ async def get_my_profile(current_user: CurrentUserDep, auth_service: AuthService
 
     Returns:
         User: The full user profile.
+
+    Raises:
+        AuthenticationError: If the user profile is not found.
     """
     user = await auth_service.repo.get_by_id(current_user.id)
     if not user:

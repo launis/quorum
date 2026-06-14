@@ -16,6 +16,16 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
 
     This fulfills the V2 requirement for providing 'kello' (timestamp) and 'user'
     information dynamically to the output dictionary without requiring LLM generation.
+
+    Args:
+        state: The current execution state of the hook.
+        deps: Dependencies required for execution.
+
+    Returns:
+        A HookResult containing the computed step metadata in the state_delta.
+
+    Raises:
+        AppException: If required state fields or global context variables are missing or invalid.
     """
     if not state:
         return HookResult(success=True, state_delta={})
@@ -80,7 +90,7 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
     return HookResult(
         success=True,
         state_delta={
-            "step_metadata": result_dto.step_metadata.model_dump(),
+            "step_metadata": result_dto.step_metadata.model_dump(mode="json"),
             # Ensure we always provide a deterministic audit signature
             "_audit_signature": f"{step_id}:{execution_id}:{unix_time}",
         },

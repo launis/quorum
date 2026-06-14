@@ -749,6 +749,7 @@
   "blueprintSelectWorkflow": "Valitse Työnkulku",
   "blueprintVariantName": "Variantin Nimi",
   "blueprintDefaultVariant": "oletus (default)",
+  "blueprintCopyVariant": "Kopioi raporttipohja",
   "blueprintNoDataHint": "Pysäköity. Odottava analyysi...",
   "executionPersonaTitle": "Execution Persona Block",
   "executionPersonaDescription": "Valitse tekoälyn globaali käyttäytymisprofiili (esim. XAI Reporter, Coach).",
@@ -954,6 +955,8 @@
   "typeInteger": "Kokonaisluku (Int)",
   "allowDecimals": "Salli desimaalit",
   "isEvaluativeMatrix": "Lasketaan keskiarvoon (Evaluative)",
+  "promptBlockEnsembleToggle": "Käytä Fast-Model Ensemble -tekniikkaa (Paras 3:sta)",
+  "promptBlockEnsembleToggleDesc": "Ajaa koko matriisin 3 kertaa rinnakkain ja hakee vastauksista enemmistöäänestyksen.",
   "xaiOutputExtensionsTitle": "XAI Ulostulolaajennukset (Proaktiivinen Valmentaja ja Raporttikentät)",
   "xaiJustification": "Perustelut",
   "xaiGlobalExtensionsHeader": "Tekoälyn havainnot",
@@ -1152,5 +1155,8 @@
   "xaiVarianceValidationTitle": "Mekaaninen vs Kognitiivinen Tasapaino",
   "xaiVerdictAligned": "Tasapainossa (ALIGNED)",
   "xaiVerdictSycophancy": "Kognitiivinen Mielistely (MISALIGNED_SYCOPHANCY)",
-  "xaiVerdictMisaligned": "Poikkeama (MISALIGNED)"
+  "xaiVerdictMisaligned": "Poikkeama (MISALIGNED)",
+  "tdaAnchorTarget": "Ankkurikohde",
+  "tdaBoundingBox": "Hakuikkunan Laajuus",
+  "tdaExtractionRule": "Poiminnan Sääntö"
 }

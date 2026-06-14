@@ -7,9 +7,9 @@ The Epic has been structured so that the easier, independent refactorings are ex
 - [OK] `phase1_god_object_refactor.md` - God Object Refactor
 - [OK] `phase2_best_of_three_routing.md` - Best-of-3 Routing & Execution
 - [OK] `phase3_offline_migration.md` - Offline DB ETL Migration Script
-- [NOK] `phase4_backend_schema_update.md` - Backend Pydantic Schema & Atomic Commit
-- [NOK] `phase5_frontend_dto_sync.md` - Frontend DTO Sync & Admin UI
-- [NOK] `phase6_schema_contract.md` - Final Schema Contracts
+- [OK] `phase4_backend_schema_update.md` - Backend Pydantic Schema & Atomic Commit
+- [OK] `phase5_frontend_dto_sync.md` - Frontend DTO Sync & Admin UI
+- [OK] `phase6_schema_contract.md` - Final Schema Contracts
 
 ## Execution Command
 To begin execution, start a new chat session and run:

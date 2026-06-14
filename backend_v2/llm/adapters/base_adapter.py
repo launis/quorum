@@ -10,10 +10,13 @@ import os
 from abc import ABC, abstractmethod
 from typing import Any
 
+from arq.connections import RedisSettings, create_pool
+
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import LLMProviderName, SystemConcurrency
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -49,11 +52,6 @@ async def get_redis_client_for_pacing() -> Any:
             _redis_pool = get_patched_fakeredis_pool()
             _redis_loop = current_loop
         else:
-            from arq.connections import RedisSettings, create_pool
-
-            from backend_v2.models.enums import SystemConcurrency
-            from backend_v2.settings import get_settings
-
             settings = get_settings()
             _redis_pool = await create_pool(
                 RedisSettings(
@@ -159,5 +157,20 @@ class BaseLLMAdapter(ABC):
 
         Returns:
             TokenUsage structure updated with monetary and evaluation values.
+        """
+        pass
+
+    @abstractmethod
+    def prepare_provider_kwargs(self, model_name: str) -> dict[str, Any]:
+        """Prepare LLM provider specific static configuration arguments.
+
+        Called unconditionally for every LLM request to inject required provider-specific
+        flags (e.g. safety_settings, custom formats) that bypass the LiteLLM translation layer.
+
+        Args:
+            model_name: The actual deployment model identifier.
+
+        Returns:
+            A dictionary containing provider-specific keyword arguments.
         """
         pass

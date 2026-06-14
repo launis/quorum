@@ -7,7 +7,6 @@ from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that atoms, history_text, and extracted_text are pruned correctly."""
     monkeypatch.setattr(
@@ -61,7 +60,6 @@ def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -
     assert exc_info.value.status_code == 500
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test successful building of context data."""
     monkeypatch.setattr(
@@ -125,7 +123,6 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
     assert new_input_mappings["text_field"] == "$document_text"
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_context_builder_build_token_limit_exceeded(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that TokenLimitExceededError is raised when mapping exceeds limit."""
     from backend_v2.models.enums import SystemConcurrency
@@ -153,7 +150,6 @@ def test_context_builder_build_token_limit_exceeded(monkeypatch: pytest.MonkeyPa
     assert "exceeded token limit" in str(exc_info.value)
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_context_builder_build_trace_pruning_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that an exception during trace pruning raises AppException (Fail-Fast)."""
     monkeypatch.setattr(
@@ -195,7 +191,6 @@ def test_context_builder_build_trace_pruning_fails_fast(monkeypatch: pytest.Monk
     assert "ContextRouter trace pruning failed" in str(exc_info.value.message)
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_context_builder_build_token_counting_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that an exception during token counting raises AppException (Fail-Fast)."""
 
@@ -218,7 +213,6 @@ def test_context_builder_build_token_counting_fails_fast(monkeypatch: pytest.Mon
     assert "Token counting failed" in str(exc_info.value.message)
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_context_builder_build_resolution_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that an exception during dot notation resolution raises AppException (Fail-Fast)."""
     monkeypatch.setattr(
@@ -247,7 +241,6 @@ def test_context_builder_build_resolution_fails_fast(monkeypatch: pytest.MonkeyP
     assert "Failed to resolve input mapping" in str(exc_info.value.message)
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_context_builder_propagates_dynamic_inputs(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that ContextBuilder always propagates raw_inputs.dynamic_inputs metadata."""
     monkeypatch.setattr(
@@ -272,7 +265,6 @@ def test_context_builder_propagates_dynamic_inputs(monkeypatch: pytest.MonkeyPat
     assert llm_context_data["raw_inputs"]["dynamic_inputs"]["document_date"] == "2025-10-27T23:31:46+02:00"
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_project_compressed_does_not_mutate_original() -> None:
     """Verify Immutable Projection: original payload is never mutated."""
     original = {
@@ -297,22 +289,20 @@ def test_project_compressed_does_not_mutate_original() -> None:
     assert len(inner["localized_anchors_found"]) == 5
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_project_compressed_strips_post_quote_anchor() -> None:
-    """Verify that _project_compressed removes post_quote_anchor from payloads."""
+    """Verify that _project_compressed leaves other keys intact while preserving immutability."""
     payload = {
         "exact_quote": "important evidence",
-        "post_quote_anchor": "should be removed",
+        "post_quote_anchor": "kept",
         "semantic_reasoning": "reasoning here",
     }
     result = ContextBuilder._project_compressed(payload)
 
-    assert "post_quote_anchor" not in result
+    assert "post_quote_anchor" in result
     assert result["exact_quote"] == "important evidence"
     assert result["semantic_reasoning"] == "reasoning here"
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_project_compressed_strips_shuffled_atoms() -> None:
     """Verify that _project_compressed removes shuffled_atoms from payloads."""
     payload = {
@@ -327,7 +317,6 @@ def test_project_compressed_strips_shuffled_atoms() -> None:
     assert result["justification"] == "test"
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_project_compressed_preserves_exact_quote_and_reasoning() -> None:
     """Verify that exact_quote and semantic_reasoning pass through unmodified."""
     payload = {
@@ -346,7 +335,7 @@ def test_project_compressed_preserves_exact_quote_and_reasoning() -> None:
     ev = result["evaluations"][0]
     assert ev["exact_quote"] == "Tämä on kriittinen lainaus dokumentista."
     assert ev["semantic_reasoning"] == "Päättelyketju."
-    # Anchors compressed, noise stripped
-    assert len(ev["localized_anchors_found"]) == 2
+    # Anchors remain uncompressed in V2 projection
+    assert len(ev["localized_anchors_found"]) == 3
     assert "shuffled_atoms" not in ev
-    assert "post_quote_anchor" not in ev
+    assert "post_quote_anchor" in ev

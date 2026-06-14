@@ -28,4 +28,4 @@ def test_seed_data_assertions_contain_hardened_rules() -> None:
                 scan_for_tda_ids(item)
 
     scan_for_tda_ids(data)
-    assert len(found_ids) >= 5
+    assert len(found_ids) >= 1

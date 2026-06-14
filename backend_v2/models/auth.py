@@ -107,6 +107,17 @@ class Organization(V2CoreBase):
     @field_validator("id", "name")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
+        """Validates string is not empty.
+
+        Args:
+            v: Input string.
+
+        Returns:
+            str: Validated string.
+
+        Raises:
+            ValueError: If string is empty or whitespace only.
+        """
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -116,6 +127,17 @@ class Organization(V2CoreBase):
     @field_validator("contact_email", "billing_id")
     @classmethod
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
+        """Validates optional string is not empty if provided.
+
+        Args:
+            v: Input string.
+
+        Returns:
+            str | None: Validated string or None.
+
+        Raises:
+            ValueError: If string is empty or whitespace only.
+        """
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -145,6 +167,17 @@ class UserBase(V2CoreBase):
     @field_validator("name", "organization_id")
     @classmethod
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
+        """Validates optional string is not empty if provided.
+
+        Args:
+            v: Input string.
+
+        Returns:
+            str | None: Validated string or None.
+
+        Raises:
+            ValueError: If string is empty or whitespace only.
+        """
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -196,6 +229,17 @@ class User(UserBase):
     @field_validator("created_by")
     @classmethod
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
+        """Validates optional string is not empty if provided.
+
+        Args:
+            v: Input string.
+
+        Returns:
+            str | None: Validated string or None.
+
+        Raises:
+            ValueError: If string is empty or whitespace only.
+        """
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -262,6 +306,17 @@ class OrganizationCreate(BaseDTO):
     @field_validator("name", "admin_password", "admin_name")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
+        """Validates string is not empty.
+
+        Args:
+            v: Input string.
+
+        Returns:
+            str: Validated string.
+
+        Raises:
+            ValueError: If string is empty or whitespace only.
+        """
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -320,6 +375,17 @@ class TokenData(V2CoreBase):
     @field_validator("organization_id", "email")
     @classmethod
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
+        """Validates optional string is not empty if provided.
+
+        Args:
+            v: Input string.
+
+        Returns:
+            str | None: Validated string or None.
+
+        Raises:
+            ValueError: If string is empty or whitespace only.
+        """
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
             logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)

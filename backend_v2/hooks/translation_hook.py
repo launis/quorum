@@ -69,7 +69,7 @@ async def translation_hook(state: HookState, deps: HookDependencies) -> HookResu
         meta = HookStateMetadata.model_validate(i18n_meta)
 
         # Explicit routing for inputs
-        i18n_inputs = {"language": state.inputs.get("language")} if "language" in state.inputs else {}
+        i18n_inputs = {"language": state.inputs["language"]} if "language" in state.inputs else {}
         payload = I18nStatePayload.model_validate(i18n_inputs)
     except Exception as e:
         msg = "Execution state is missing mandatory 'target_locale' metadata or 'language' inputs."

@@ -5,6 +5,7 @@ import copy
 import functools
 import logging
 from pathlib import Path
+from typing import Any
 
 import rapidfuzz.fuzz as fuzz
 from pydantic import TypeAdapter, ValidationError
@@ -24,7 +25,14 @@ logger = logging.getLogger(__name__)
 
 @functools.lru_cache(maxsize=1)
 def _read_docs() -> str:
-    """Read all static markdown context documents into memory once."""
+    """Read all static markdown context documents into memory once.
+
+    Returns:
+        A concatenated string of all markdown document contents.
+
+    Raises:
+        OSError: If there is a failure reading the filesystem directories or files.
+    """
     docs_dir = Path(get_settings().docs_dir)
     local_rag = ""
     if docs_dir.exists():
@@ -34,30 +42,35 @@ def _read_docs() -> str:
     return local_rag
 
 
-@hook_registry.register(name="verify_citation_integrity")
-async def verify_citation_integrity_hook(state: HookState, deps: HookDependencies) -> HookResult:
-    """Workflow Data wrapper for verify_citation_integrity.
+async def _gather_source_texts(execution_id: str, deps: HookDependencies) -> list[str]:
+    """Gather source texts from the filesystem based on the execution record.
 
-    Verified dynamic citations against structured texts to enforce the Fail-Fast Protocol
-    with Option B (Graceful Degradation): hallucinated quotes are gracefully stripped.
-    Option C: Bypass verification entirely if SKIP_CITATION_VERIFICATION is enabled.
+    Args:
+        execution_id: The ID of the current execution.
+        deps: Dependencies including the execution repository.
+
+    Returns:
+        A list of decoded string contents from forensic input files.
+
+    Raises:
+        AppException: If the execution record cannot be found.
     """
     source_texts: list[str] = []
+    exec_record = await deps.exec_repo.get_execution(execution_id)
 
-    exec_record = await deps.exec_repo.get_execution(state.execution_id)
     if not exec_record or not exec_record.raw_inputs:
-        msg = f"Data Integrity Violation: Missing execution record for {state.execution_id}"
+        msg = f"Data Integrity Violation: Missing execution record for {execution_id}"
         logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name})
 
     inputs_dict = exec_record.raw_inputs.model_dump()
-    dynamic_inputs = inputs_dict["dynamic_inputs"]
+    dynamic_inputs = inputs_dict.get("dynamic_inputs", {})
     storage = get_storage_driver()
 
     keys_to_check = set(list(inputs_dict.keys()) + list(dynamic_inputs.keys()))
 
     for key in keys_to_check:
-        forensic_path = get_forensic_input_path(state.execution_id, key)
+        forensic_path = get_forensic_input_path(execution_id, key)
 
         if await storage.exists(forensic_path):
             data = await storage.read(forensic_path)
@@ -65,14 +78,21 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
                 source_texts.append(data.decode("utf-8"))
                 logger.info("[IntegrityHook] Successfully loaded forensic input from disk: %s", forensic_path)
 
-    global_vars = state.global_context_vars
+    return source_texts
 
-    if not source_texts:
-        msg = "Data Integrity Violation: Missing input text in disk."
-        logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name})
 
-    # 1b. Gather Context (RAG)
+def _gather_rag_context(global_vars: dict[str, Any]) -> str:
+    """Extract context precedents and knowledge items from global variables.
+
+    Args:
+        global_vars: The global context dictionary from the HookState.
+
+    Returns:
+        A formatted string of RAG context.
+
+    Raises:
+        AppException: If the step_context structure is invalid.
+    """
     rag_text = ""
     if "step_context" in global_vars:
         try:
@@ -88,6 +108,106 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
                 status_code=500,
                 details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name},
             ) from e
+    return rag_text
+
+
+def _is_hallucinated(quote: str, corpus_chunks: list[str]) -> bool:
+    """Determine if a quote is hallucinated using fuzzy matching against a corpus.
+
+    Args:
+        quote: The text quote to verify.
+        corpus_chunks: A list of text chunks representing the source material.
+
+    Returns:
+        True if the quote is hallucinated, False if a match is found.
+    """
+    if not quote or len(quote) < 4:
+        return False
+    norm_q = quote.lower().strip()
+    # O(1) best case, early return on first partial fuzzy match >= FUZZ_THRESHOLD_BILINGUAL
+    for chunk in corpus_chunks:
+        if fuzz.partial_ratio(norm_q, chunk) >= QuorumLexicalConfig.FUZZ_THRESHOLD_BILINGUAL.value:
+            return False
+    return True
+
+
+def _verify_payload_citations(
+    parsed_payload: AnalystOutput | EvaluationResult, corpus_chunks: list[str]
+) -> tuple[AnalystOutput | EvaluationResult, int, int, list[str]]:
+    """Verify citations in the parsed payload and drop hallucinated ones.
+
+    Args:
+        parsed_payload: The structured payload (AnalystOutput or EvaluationResult).
+        corpus_chunks: The source corpus split into lines.
+
+    Returns:
+        A tuple containing the updated payload, the total citation count,
+        the valid citation count, and a list of invalid citations.
+    """
+    invalid_citations: list[str] = []
+    valid_count = 0
+    total_count = 0
+
+    if isinstance(parsed_payload, AnalystOutput):
+        if parsed_payload.hypotheses:
+            new_hypotheses = []
+            for hyp in parsed_payload.hypotheses:
+                valid_quotes = []
+                for quote in hyp.quotes:
+                    total_count += 1
+                    if _is_hallucinated(quote, corpus_chunks):
+                        invalid_citations.append(quote)
+                        logger.warning("[IntegrityHook] Analyst hallucination detected.")
+                    else:
+                        valid_quotes.append(quote)
+                        valid_count += 1
+                new_hypotheses.append(hyp.model_copy(update={"quotes": valid_quotes}))
+            parsed_payload = parsed_payload.model_copy(update={"hypotheses": new_hypotheses})
+
+    elif isinstance(parsed_payload, EvaluationResult):
+        if parsed_payload.citation_snippets:
+            valid_quotes = []
+            for quote in parsed_payload.citation_snippets:
+                total_count += 1
+                if _is_hallucinated(quote, corpus_chunks):
+                    invalid_citations.append(quote)
+                    logger.warning("[IntegrityHook] Evaluator hallucination detected.")
+                else:
+                    valid_quotes.append(quote)
+                    valid_count += 1
+            parsed_payload = parsed_payload.model_copy(update={"citation_snippets": valid_quotes})
+
+    return parsed_payload, total_count, valid_count, invalid_citations
+
+
+@hook_registry.register(name="verify_citation_integrity")
+async def verify_citation_integrity_hook(state: HookState, deps: HookDependencies) -> HookResult:
+    """Workflow Data wrapper for verify_citation_integrity.
+
+    Verifies dynamic citations against structured texts to enforce the Fail-Fast Protocol
+    with Option B (Graceful Degradation): hallucinated quotes are gracefully stripped.
+    Option C: Bypass verification entirely if SKIP_CITATION_VERIFICATION is enabled.
+
+    Args:
+        state: The current execution state of the hook.
+        deps: Dependencies required for execution (e.g., repositories).
+
+    Returns:
+        A HookResult containing the mutated state delta.
+
+    Raises:
+        AppException: If execution records or necessary input texts are missing,
+            or if local context documents fail to load.
+    """
+    source_texts = await _gather_source_texts(state.execution_id, deps)
+
+    if not source_texts:
+        msg = "Data Integrity Violation: Missing input text in disk."
+        logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name})
+
+    # 1b. Gather Context (RAG)
+    rag_text = _gather_rag_context(state.global_context_vars)
 
     try:
         rag_text += await asyncio.to_thread(_read_docs)
@@ -104,20 +224,6 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     raw_lines = ("\n".join(source_texts) + "\n" + rag_text).split("\n")
     corpus_chunks = [line.lower().strip() for line in raw_lines if len(line.strip()) > 5]
 
-    def is_hallucinated(quote: str) -> bool:
-        if not quote or len(quote) < 4:
-            return False
-        norm_q = quote.lower().strip()
-        # O(1) best case, early return on first partial fuzzy match >= FUZZ_THRESHOLD_BILINGUAL
-        for chunk in corpus_chunks:
-            if fuzz.partial_ratio(norm_q, chunk) >= QuorumLexicalConfig.FUZZ_THRESHOLD_BILINGUAL.value:
-                return False
-        return True
-
-    invalid_citations: list[str] = []
-    valid_count = 0
-    total_count = 0
-
     # 2. V2 Schema Citation Verification (Zero-Compromise Pydantic Definitions)
     CitationPayloadAdapter: TypeAdapter[AnalystOutput | EvaluationResult] = TypeAdapter(
         AnalystOutput | EvaluationResult
@@ -131,34 +237,9 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
         delta = copy.deepcopy(state.inputs)
         return HookResult(success=True, state_delta=delta)
 
-    if isinstance(parsed_payload, AnalystOutput):
-        if parsed_payload.hypotheses:
-            new_hypotheses = []
-            for hyp in parsed_payload.hypotheses:
-                valid_quotes = []
-                for quote in hyp.quotes:
-                    total_count += 1
-                    if is_hallucinated(quote):
-                        invalid_citations.append(quote)
-                        logger.warning("[IntegrityHook] Analyst hallucination detected.")
-                    else:
-                        valid_quotes.append(quote)
-                        valid_count += 1
-                new_hypotheses.append(hyp.model_copy(update={"quotes": valid_quotes}))
-            parsed_payload = parsed_payload.model_copy(update={"hypotheses": new_hypotheses})
-
-    elif isinstance(parsed_payload, EvaluationResult):
-        if parsed_payload.citation_snippets:
-            valid_quotes = []
-            for quote in parsed_payload.citation_snippets:
-                total_count += 1
-                if is_hallucinated(quote):
-                    invalid_citations.append(quote)
-                    logger.warning("[IntegrityHook] Evaluator hallucination detected.")
-                else:
-                    valid_quotes.append(quote)
-                    valid_count += 1
-            parsed_payload = parsed_payload.model_copy(update={"citation_snippets": valid_quotes})
+    parsed_payload, total_count, valid_count, invalid_citations = _verify_payload_citations(
+        parsed_payload, corpus_chunks
+    )
 
     if total_count == 0:
         logger.warning("[IntegrityHook] No structured citations found to verify.")
@@ -194,7 +275,17 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
 def enforce_hypothesis_linking_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Workflow Data wrapper for enforce_hypothesis_linking.
 
-    Ensure that Analyst Hypotheses have sequential, valid IDs (HYP-1, HYP-2...).
+    Ensures that Analyst Hypotheses have sequential, valid IDs (HYP-1, HYP-2...).
+
+    Args:
+        state: The current execution state of the hook.
+        deps: Dependencies required for execution (not strictly needed here).
+
+    Returns:
+        A HookResult signifying completion.
+
+    Raises:
+        AppException: If a hypothesis is missing an ID or contains a duplicate ID.
     """
     payload = state.inputs
 

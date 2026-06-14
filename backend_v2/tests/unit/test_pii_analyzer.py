@@ -26,8 +26,8 @@ def test_lazy_loading_singleton(pii_service: PIIAnalyzerService) -> None:
     assert pii_service._analyzer is None
 
 
-@patch("backend_v2.services.pii_analyzer.AnalyzerEngine")
-@patch("backend_v2.services.pii_analyzer.AnonymizerEngine")
+@patch("presidio_analyzer.AnalyzerEngine")
+@patch("presidio_anonymizer.AnonymizerEngine")
 def test_mask_pii_initialization(
     mock_anonymizer_class: MagicMock,
     mock_analyzer_class: MagicMock,
@@ -58,10 +58,18 @@ def test_mask_pii_initialization(
     assert res == "Hello <PERSON>"
 
 
-@patch("backend_v2.services.pii_analyzer.AnalyzerEngine", side_effect=OSError("Model missing"))
+@patch("presidio_analyzer.AnalyzerEngine", side_effect=OSError("Model missing"))
 def test_mask_pii_spacy_model_missing(mock_analyzer_class: MagicMock, pii_service: PIIAnalyzerService) -> None:
     """Test Fail-Fast doctrine if Spacy en_core_web_lg model is missing."""
     with pytest.raises(AppException) as exc_info:
         pii_service.mask_pii("Some text", language="en")
 
-    assert "Presidio model 'en_core_web_lg' not found" in str(exc_info.value)
+    assert "Presidio model 'en_core_web_lg' or 'fi_core_news_lg' not found" in str(exc_info.value)
+
+
+def test_mask_pii_succeeds_on_supported_language_fi(pii_service: PIIAnalyzerService) -> None:
+    """Verify that mask_pii successfully initializes and parses Finnish without throwing ValueError."""
+    # This should return a string (either masked or untouched depending on Presidio models),
+    # but the key is that it NO LONGER raises a ValueError for missing language registry.
+    result = pii_service.mask_pii("Matti Meikäläinen", language="fi")
+    assert isinstance(result, str)

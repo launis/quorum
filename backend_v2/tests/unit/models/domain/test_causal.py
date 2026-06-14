@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.domain.causal import (
     CausalAnalysis,
     CausalAnalysisData,
@@ -39,7 +40,7 @@ def test_counterfactual_test_validation() -> None:
     assert ct.plausibility_numeric == 2.5
 
     # Test min length / bounds
-    with pytest.raises(ValidationError):
+    with pytest.raises(AppException):
         CounterfactualTest(
             plausibility_score=PlausibilityLevel.PLAUSIBLE,
             plausibility_numeric=0.5,  # Less than 1.0
@@ -65,7 +66,7 @@ def test_causal_analysis_validation() -> None:
     )
     assert analysis.abductive_score == 2.0
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(AppException):
         CausalAnalysis(
             abductive_conclusion=AbductiveConclusion.GENUINE,
             abductive_score=4.0,  # Greater than 3.0

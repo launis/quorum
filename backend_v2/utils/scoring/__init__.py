@@ -8,14 +8,34 @@ from backend_v2.utils.scoring.waterfall_engine import WaterfallScoringEngine
 
 
 def get_scoring_engine(strategy: ScoringStrategy | str) -> ScoringEngineBase:
-    """Strategy Pattern Factory. Returns the correct mathematical engine based on the execution strategy."""
+    """Strategy Pattern Factory. Returns the correct mathematical engine based on the execution strategy.
+
+    Args:
+        strategy: The scoring strategy to use, either as an enum or string.
+
+    Returns:
+        ScoringEngineBase: The instantiated scoring engine.
+
+    Raises:
+        AppException: If the provided strategy is invalid (VALIDATION_FAILED).
+    """
     # Normalize to enum
     if isinstance(strategy, str):
         try:
             strategy = ScoringStrategy(strategy)
-        except ValueError:
-            # Fallback to standard if corrupted, though Fail-Fast at API level should prevent this
-            strategy = ScoringStrategy.WATERFALL
+        except ValueError as e:
+            import logging
+
+            from backend_v2.exceptions import AppException, ErrorCodes
+
+            logger = logging.getLogger(__name__)
+            msg = f"Invalid scoring strategy string: {strategy}"
+            logger.error("[ScoringEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
 
     if strategy == ScoringStrategy.WATERFALL:
         return WaterfallScoringEngine()

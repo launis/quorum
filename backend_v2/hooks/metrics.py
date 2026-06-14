@@ -18,22 +18,9 @@ from backend_v2.models.domain.metrics import (
     ProfilerMetricsDTO,
     TextMetricsDTO,
 )
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
-
-
-class FallbackSettings:
-    """Fallback settings for metrics calculation if dependencies lack settings.
-
-    Attributes:
-        metrics_short_response_word_count: Int threshold for short response calculation.
-        metrics_automation_bias_ratio: Float threshold for automation bias calculation.
-        metrics_mechanical_ratio: Float threshold for mechanical style calculations.
-    """
-
-    metrics_short_response_word_count: int = 5
-    metrics_automation_bias_ratio: float = 0.5
-    metrics_mechanical_ratio: float = 0.1
 
 
 def analyze_text(text: str) -> TextMetricsDTO:
@@ -252,7 +239,7 @@ def calculate_control_ratio_hook(state: HookState, deps: HookDependencies) -> Ho
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code},
+            details={"error_code": error_code.value},
         ) from e
 
     inputs = payload.root
@@ -286,7 +273,7 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code},
+            details={"error_code": error_code.value},
         ) from e
 
     inputs = payload.root
@@ -299,14 +286,14 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code},
+            details={"error_code": error_code.value},
         )
 
     try:
         base_metrics = analyze_text(all_text)
         control_ratio = calculate_control_ratio(all_text)
 
-        settings = getattr(deps, "settings", FallbackSettings())
+        settings = get_settings()
         behavioral_metrics = calculate_behavioral_metrics(all_text, settings)
 
         audit_metrics = ProfilerMetricsDTO(
@@ -327,7 +314,7 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
         return HookResult(
             success=True,
             state_delta={
-                "profiler_metrics": audit_metrics,
+                "profiler_metrics": audit_metrics.model_dump(mode="json"),
             },
         )
 
@@ -337,5 +324,5 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
         raise AppException(
             message=f"Failed to calculate metrics: {e}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code},
+            details={"error_code": error_code.value},
         ) from e

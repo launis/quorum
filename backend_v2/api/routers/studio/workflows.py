@@ -1,3 +1,8 @@
+"""Admin Studio Workflows API Router.
+
+Provides endpoints to manage workflow configurations.
+"""
+
 import logging
 
 from fastapi import APIRouter
@@ -18,19 +23,54 @@ router = APIRouter(prefix="/workflows", tags=["Admin Studio V2 - Workflows"])
 
 @router.get("/", response_model=list[WorkflowResponseDTO])
 async def get_workflows(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> list[Workflow]:
-    """Retrieve all V2 dynamic workflow definition blocks securely via SSOT Service Layer."""
+    """Retrieve all V2 dynamic workflow definition blocks securely via SSOT Service Layer.
+
+    Args:
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        A list of all workflow definitions.
+
+    Raises:
+        AppException: If fetching workflows fails.
+    """
     return await studio_service.list_workflows(current_user)
 
 
 @router.post("/", response_model=WorkflowResponseDTO)
 async def create_workflow(current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Workflow:
-    """Create a new Workflow draft securely via SSOT Service Layer."""
+    """Create a new Workflow draft securely via SSOT Service Layer.
+
+    Args:
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        The newly created workflow draft.
+
+    Raises:
+        AppException: If creating the draft fails.
+    """
     return await studio_service.create_workflow_draft(current_user)
 
 
 @router.get("/{id}", response_model=WorkflowResponseDTO)
 async def get_workflow(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Workflow:
-    """Retrieve a specific workflow definition by id securely via SSOT Service Layer."""
+    """Retrieve a specific workflow definition by id securely via SSOT Service Layer.
+
+    Args:
+        id: The unique identifier of the workflow.
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        The requested workflow definition.
+
+    Raises:
+        ResourceNotFoundError: If the workflow is not found.
+        AppException: If fetching the workflow fails.
+    """
     return await studio_service.get_workflow(current_user, id)
 
 
@@ -38,7 +78,19 @@ async def get_workflow(id: str, current_user: CurrentUserDep, studio_service: St
 async def simulate_workflow(
     data: Workflow, current_user: CurrentUserDep, studio_service: StudioServiceDep
 ) -> WorkflowSimulationResponse:
-    """Dry-run and validate a workflow DAG topology before saving."""
+    """Dry-run and validate a workflow DAG topology before saving.
+
+    Args:
+        data: The workflow definition to simulate.
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        The results of the simulation.
+
+    Raises:
+        AppException: If the simulation fails.
+    """
     result = await studio_service.simulate_workflow(current_user, data)
     return WorkflowSimulationResponse(**result)
 
@@ -47,14 +99,40 @@ async def simulate_workflow(
 async def get_workflow_available_extensions(
     id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep
 ) -> WorkflowAvailableExtensionsResponse:
-    """Calculate the union of all output_extensions defined across all Target Matrices within a specific DAG."""
+    """Calculate the union of all output_extensions defined across all Target Matrices within a specific DAG.
+
+    Args:
+        id: The unique identifier of the workflow.
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        A WorkflowAvailableExtensionsResponse with a list of available extensions.
+
+    Raises:
+        ResourceNotFoundError: If the workflow is not found.
+        AppException: If fetching the extensions fails.
+    """
     extensions = await studio_service.get_workflow_available_extensions(current_user, id)
     return WorkflowAvailableExtensionsResponse(available_extensions=extensions)
 
 
 @router.post("/{id}/clone", response_model=WorkflowResponseDTO)
 async def clone_workflow(id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep) -> Workflow:
-    """Deep clone a workflow block securely via SSOT Service Layer."""
+    """Deep clone a workflow block securely via SSOT Service Layer.
+
+    Args:
+        id: The unique identifier of the workflow to clone.
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        The newly cloned workflow definition.
+
+    Raises:
+        ResourceNotFoundError: If the source workflow is not found.
+        AppException: If cloning the workflow fails.
+    """
     return await studio_service.clone_workflow(current_user, id)
 
 
@@ -62,7 +140,21 @@ async def clone_workflow(id: str, current_user: CurrentUserDep, studio_service: 
 async def save_workflow(
     id: str, data: Workflow, current_user: CurrentUserDep, studio_service: StudioServiceDep
 ) -> Workflow:
-    """Append or update a workflow definition block securely via SSOT Service Layer."""
+    """Append or update a workflow definition block securely via SSOT Service Layer.
+
+    Args:
+        id: The unique identifier of the workflow.
+        data: The new configuration data for the workflow.
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        The updated workflow definition.
+
+    Raises:
+        ResourceNotFoundError: If the workflow is not found.
+        AppException: If updating the workflow fails.
+    """
     return await studio_service.save_workflow(current_user, id, data)
 
 
@@ -70,6 +162,19 @@ async def save_workflow(
 async def delete_workflow(
     id: str, current_user: CurrentUserDep, studio_service: StudioServiceDep
 ) -> WorkflowDeleteResponse:
-    """Delete a workflow definition block securely via SSOT Service Layer."""
+    """Delete a workflow definition block securely via SSOT Service Layer.
+
+    Args:
+        id: The unique identifier of the workflow to delete.
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        A WorkflowDeleteResponse confirming the deletion.
+
+    Raises:
+        ResourceNotFoundError: If the workflow is not found.
+        AppException: If deleting the workflow fails.
+    """
     await studio_service.delete_workflow(current_user, id)
     return WorkflowDeleteResponse(status="success", deleted_id=id)

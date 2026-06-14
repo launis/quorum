@@ -16,7 +16,12 @@ from backend_v2.models.domain.performativity import PerformativityAnalysis
 
 
 class StepGuardDTO(ReasoningTrace):
-    """Strict schema for step_guard output within scoring hook."""
+    """Strict schema for step_guard output within scoring hook.
+
+    Attributes:
+        security_check: Evaluated SecurityCheck results mapping safe execution states.
+        tainted_data: Optional details identifying any tainted data elements encountered.
+    """
 
     security_check: SecurityCheck = Field(...)
     tainted_data: TaintedDataContent | None = Field(default=None)
@@ -25,7 +30,11 @@ class StepGuardDTO(ReasoningTrace):
 
 
 class StepFalsifierDTO(ReasoningTrace):
-    """Strict schema for step_falsifier output within scoring hook."""
+    """Strict schema for step_falsifier output within scoring hook.
+
+    Attributes:
+        falsifier_data: Optional FalsifierData structure containing counter-arguments.
+    """
 
     falsifier_data: FalsifierData | None = Field(default=None)
 
@@ -33,7 +42,15 @@ class StepFalsifierDTO(ReasoningTrace):
 
 
 class StepPanelDTO(BaseModel):
-    """Strict schema for step_panel output within scoring hook."""
+    """Strict schema for step_panel output within scoring hook.
+
+    Attributes:
+        falsifier_data: Optional FalsifierData structure containing counter-arguments.
+        overseer_data: Optional OverseerData execution governance details.
+        logician_data: Optional LogicianData tracking logical deduction chains.
+        performativity_analysis: Optional PerformativityAnalysis tracking execution fidelity.
+        causal_analysis: Optional CausalAnalysis mapping causality relationships.
+    """
 
     falsifier_data: FalsifierData | None = Field(default=None)
     overseer_data: OverseerData | None = Field(default=None)

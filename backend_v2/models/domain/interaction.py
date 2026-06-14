@@ -9,8 +9,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.enums import InteractionStrategy, RoleClassification
@@ -67,10 +68,30 @@ class InteractionAnalysisDTO(ReasoningTraceDTO):
     )
     imperative_command_count: int = Field(
         ...,
-        ge=0,
         description="Number of direct commands given by user.",
         json_schema_extra={"x-ui-label": "Commands"},
     )
+
+    @field_validator("imperative_command_count")
+    @classmethod
+    def validate_command_count(cls, v: int) -> int:
+        """Enforces that imperative command count is non-negative.
+
+        Args:
+            v: The command count to validate.
+
+        Returns:
+            The validated non-negative integer.
+
+        Raises:
+            AppException: If count is negative (VALIDATION_FAILED).
+        """
+        if v < 0:
+            msg = "imperative_command_count must be greater than or equal to 0"
+            logger.error("[InteractionModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        return v
+
     strategy: InteractionStrategy = Field(
         ...,
         description="Identified prompting strategy.",
@@ -80,3 +101,5 @@ class InteractionAnalysisDTO(ReasoningTraceDTO):
 
 class InteractionAnalysis(InteractionAnalysisDTO, ReasoningTrace):
     """Output schema for the Interaction Agent (Domain Model with Metadata)."""
+
+    pass

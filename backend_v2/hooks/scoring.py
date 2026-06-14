@@ -35,6 +35,8 @@ logger = logging.getLogger(__name__)
 
 
 class ScoringPayloadWrapper(V2CoreBase):
+    """Wrapper for intermediate payload extraction during scoring logic execution."""
+
     model_config = ConfigDict(extra="ignore", frozen=True)
     sanitization_result: SanitizationResultDTO | None = None
     step_falsifier: StepFalsifierDTO | None = None
@@ -43,6 +45,8 @@ class ScoringPayloadWrapper(V2CoreBase):
 
 
 class StateInputWrapper(V2CoreBase):
+    """Wrapper for structured state inputs passed into the scoring context."""
+
     model_config = ConfigDict(extra="ignore", frozen=True)
     steps: list[StepOutputDTO] | None = None
     inputs: dict[str, Any] | None = None
@@ -50,7 +54,14 @@ class StateInputWrapper(V2CoreBase):
 
 
 def _extract_payloads(data: dict[str, Any]) -> list[ScoringPayloadWrapper]:
-    """Strict Phase 9 Extractor. No V1 Fallbacks. No Naked Dict guessing."""
+    """Strict Phase 9 Extractor. No V1 Fallbacks. No Naked Dict guessing.
+
+    Args:
+        data: The dictionary representation of the hook inputs or global context.
+
+    Returns:
+        A list of strictly parsed ScoringPayloadWrapper objects.
+    """
     payloads = []
 
     try:
@@ -143,7 +154,15 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     Aggregates scores from Judge/Evaluation steps, applies penalties based on
     Security (Guard) and Falsifier findings, and returns the strictly updated dict.
 
-    Fail Fast: Raises AppException if scoring data is invalid or missing.
+    Args:
+        state: The execution state of the workflow step.
+        deps: Dependency container with repositories.
+
+    Returns:
+        The hook execution result with state_delta containing updated scoring results.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if state data is invalid or missing.
     """
     logger.debug("[ScoringHook] Calculating final scores...")
 
@@ -151,10 +170,9 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
         msg = "Strict Fail-Fast Enforced: Missing HookState in apply_scoring_logic_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-    # V2 Architecture Isolation: Use the explicit execution context wrapper provided by DAGExecutor.
-    global_vars = state.global_context_vars
-    # Use global vars for lookup if available, otherwise fallback to the isolated node data
-    lookup_ctx = global_vars if global_vars else state.inputs
+    # V2 Architecture Isolation: Evaluate the exact output of the current execution node.
+    # Legacy context lookups and hardcoded DB IDs are explicitly banned.
+    lookup_ctx = state.inputs
 
     # 1. Security Penalty Check (Guard)
     security_threat = _extract_guard_flag(lookup_ctx)
@@ -289,8 +307,18 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
     Checks if any dimension in the Judge Output has the minimum possible score.
     If found, applies a strict penalty. Supports Dual Judges (Standard & Cognitive).
 
-    Fail Fast:
-    - Raises SCORING_MISSING_FIELD if required fields are missing in dict mode.
+    Args:
+        state: The execution state of the workflow step.
+        deps: Dependency container with repositories.
+
+    Returns:
+        The hook execution result with state_delta containing applied penalties.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if fields are missing or invalid.
+        AppException: With ErrorCodes.HOOK_EXECUTION_FAILED if repositories are missing.
+        AppException: With ErrorCodes.RESOURCE_NOT_FOUND if the step blueprint is not found.
+        AppException: With ErrorCodes.CONFIGURATION_ERROR if prompt block has no scales.
     """
     settings = get_settings()
     # User requested "Set it to max" -> 1.0 (No reduction) for testing.
@@ -449,7 +477,24 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
 
 @hook_registry.register(name="matrix_scoring_hook")
 async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookResult:
-    """Post-Hook to calculate Matrix scores from blind atom evaluations using the selected Mathematical Engine."""
+    """Post-Hook to calculate Matrix scores from blind atom evaluations.
+
+    Calculates final matrix scores based on the mathematical engine mapped to the
+    workflow's execution output profile.
+
+    Args:
+        state: The execution state of the workflow step.
+        deps: Dependency container with repositories.
+
+    Returns:
+        The hook execution result with state_delta containing computed matrix scores.
+
+    Raises:
+        AppException: With ErrorCodes.HOOK_EXECUTION_FAILED if dependencies fail.
+        AppException: With ErrorCodes.VALIDATION_FAILED if inputs are not dictionaries.
+        AppException: With ErrorCodes.RESOURCE_NOT_FOUND if step, execution, or workflow is missing.
+        AppException: With ErrorCodes.CONFIGURATION_ERROR if prompt blocks lack valid scales.
+    """
     logger.info("[ScoringHook] Running matrix_scoring_hook...")
 
     repository = deps.workflow_repo
@@ -641,7 +686,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         # Get merged facts dictionary from dynamic MergedFactsDTO context
         merged_facts = content_payload["extracted_facts"]
         if hasattr(merged_facts, "model_dump"):
-            merged_facts = merged_facts.model_dump()
+            merged_facts = merged_facts.model_dump(mode="json")
         if not isinstance(merged_facts, dict):
             msg = "Strict Fail-Fast Enforced: extracted_facts must be a dictionary or model."
             logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -696,7 +741,9 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                         ev_dict = (
                                             ev
                                             if isinstance(ev, dict)
-                                            else (ev.model_dump() if hasattr(ev, "model_dump") else ev.__dict__)
+                                            else (
+                                                ev.model_dump(mode="json") if hasattr(ev, "model_dump") else ev.__dict__
+                                            )
                                         )
 
                                         try:
@@ -885,7 +932,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 allowed_extensions=allowed_exts,
             )
 
-            new_payload[pb_id] = parsed_payload.model_dump(exclude_none=True)
+            new_payload[pb_id] = parsed_payload.model_dump(mode="json", exclude_none=True)
 
             if missing_atoms_by_block[pb_id]:
                 new_payload[f"{pb_id}_missing_context"] = "\n".join(missing_atoms_by_block[pb_id])
@@ -920,8 +967,17 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
     it calculates the scaled score.
 
     Args:
-        state: WorkflowState
-        context: The strictly typed HookExecutionContext containing dependencies.
+        state: The execution state of the workflow step.
+        deps: Dependency container with repositories.
+
+    Returns:
+        The hook execution result with state_delta containing normalized scores.
+
+    Raises:
+        AppException: With ErrorCodes.HOOK_EXECUTION_FAILED if repositories are missing or failure occurs.
+        AppException: With ErrorCodes.VALIDATION_FAILED if state data is invalid.
+        AppException: With ErrorCodes.RESOURCE_NOT_FOUND if the blueprint or blocks are missing.
+        AppException: With ErrorCodes.CONFIGURATION_ERROR if prompt blocks lack scales or boundaries.
     """
     logger.info("[ScoringHook] Running normalize_matrix_scores_hook...")
 

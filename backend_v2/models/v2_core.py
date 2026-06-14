@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Annotated, Any, Literal, cast  # noqa: F401
 
 if TYPE_CHECKING:
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
@@ -228,7 +228,12 @@ class TDAAssertion(V2CoreBase):
     )
 
     # Phase 4: Monolingual concept description for LLM (migrated from flat ai_rule_description)
-    concept_description: str = Field(description="Monolingual English concept description for the LLM.")
+    concept_description: str = Field(description="Vain tiivis kuvaus itse konseptista, ei ajo-ohjeita")
+    anchor_target: str | None = Field(default=None, description="Mitä ankkuria etsitään (ent. STEP 1)")
+    bounding_box_scope: Literal["sentence", "paragraph", "document", "adjacent_paragraphs"] = Field(default="paragraph")
+    extraction_rule: str | None = Field(
+        default=None, description="Varsinainen sääntö, joka datan on täytettävä (ent. EXTRACTION CONDITION)"
+    )
     acceptance_criteria: list[AcceptanceCriterion] = Field(
         default_factory=list,
         description="Structured acceptance criteria with monolingual instructions.",
@@ -789,8 +794,7 @@ class MatrixScorecardRowDTO(V2CoreBase):
 
     block_id: str = Field(..., description="The opaque Stripe ID of the prompt block.")
     name: str = Field(..., description="Pre-localized name for PDF layouts and static charts.")
-    label_fi: str = Field(..., description="Finnish human-readable label.")
-    label_en: str = Field(..., description="English human-readable label.")
+    label_i18n: I18nText = Field(..., description="Full I18n translations dictionary for the UI.")
     description: str | None = Field(
         default=None, description="Detailed instructions or prompt context behind this axis."
     )
@@ -1084,6 +1088,14 @@ class Workflow(V2CoreBase):
     enable_contextual_overrides: bool = Field(
         default=False,
         description="Global flag to enable contextual overrides across assertions.",
+    )
+    enable_semantic_smoothing: bool = Field(
+        default=False,
+        description="If True, uses SpaCy to fix hyphenations and merge broken PDF lines into cohesive semantic sentences.",
+    )
+    enable_eager_anonymization: bool = Field(
+        default=False,
+        description="If True, Microsoft Presidio will mask all PII data from raw inputs before they enter the system state.",
     )
     expected_inputs: list[ExpectedInput] = Field(
         default_factory=list,

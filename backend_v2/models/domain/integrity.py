@@ -10,6 +10,7 @@ from typing import Any
 
 from pydantic import Field, ValidationInfo, field_validator
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 
 
@@ -67,10 +68,11 @@ class CitationAudit(V2CoreBase):
             The validated integrity score.
 
         Raises:
-            ValueError: Raised if the score falls outside the safe mathematical range [0.0, 1.0].
+            AppException: Raised if the score falls outside the safe mathematical range [0.0, 1.0].
         """
         if not (0.0 <= v <= 1.0):
-            raise ValueError("integrity_score must be between 0.0 and 1.0 inclusive")
+            msg = "integrity_score must be between 0.0 and 1.0 inclusive"
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 

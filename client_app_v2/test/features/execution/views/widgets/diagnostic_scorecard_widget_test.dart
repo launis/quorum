@@ -4,6 +4,7 @@ import 'package:client_app/features/execution/views/widgets/diagnostic_scorecard
 import 'package:client_app/features/execution/views/widgets/atom_matrix_table_widget.dart';
 import 'package:client_app/features/execution/models/scorecard_dto.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 
 void main() {
   testWidgets(
@@ -19,8 +20,9 @@ void main() {
               evaluativeMatrices: [
                 MatrixScorecardRowDto(
                   blockId: 'm1',
-                  labelFi: 'Testimatriisi',
-                  labelEn: 'Test Matrix',
+                  labelI18n: const I18nText(
+                    translations: {'fi': 'Testimatriisi', 'en': 'Test Matrix'},
+                  ),
                   name: 'Test Matrix',
                   score: 4.5,
                   isEvaluative: true,

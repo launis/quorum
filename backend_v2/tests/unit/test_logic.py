@@ -95,6 +95,7 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
     context = MagicMock()
     context.execution_id = "exe_1"
     context.workflow_id = "wf_1"
+    context.global_context_vars = {}
     context.metadata = {}
 
     # Mock the hook registry so it doesn't actually try to execute "some_hook"
@@ -151,6 +152,7 @@ async def test_logic_strategy_signature_parity() -> None:
     context = MagicMock()
     context.execution_id = "exe_1"
     context.workflow_id = "wf_1"
+    context.global_context_vars = {}
     context.metadata = {}
 
     # Call execute with the exact keyword argument signature from dag_executor.py

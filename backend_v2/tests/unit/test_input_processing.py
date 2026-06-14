@@ -117,7 +117,7 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
             },
             "DOCUMENT_TEXT": "Plain text input.",
         },
-        global_context_vars={},
+        global_context_vars={"language": "en"},
     )
     from typing import cast
 
@@ -175,7 +175,7 @@ async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPa
         task_blueprint="test_blueprint",
         metadata={},
         inputs={"QUESTIONNAIRE": {"not_a_questionnaire": "This should fail because no Q/A pairs exist."}},
-        global_context_vars={},
+        global_context_vars={"language": "en"},
     )
     from collections.abc import Awaitable
     from typing import cast
@@ -194,3 +194,85 @@ async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPa
 
     assert exc.value.status_code == 400
     assert "Invalid questionnaire format for 'QUESTIONNAIRE'" in exc.value.message
+
+
+@pytest.mark.asyncio
+async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that SpaCy smoothing and Presidio masking are invoked via background threads when enabled."""
+
+    class FeatureFlagMockRepository:
+        async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
+            return {
+                "id": "wor_1234567890abcdef12",
+                "slug": "test-wf-features",
+                "name": {"translations": {"en": "WF", "fi": "WF"}, "default_locale": "en"},
+                "description": {"translations": {"en": "Desc", "fi": "Desc"}, "default_locale": "en"},
+                "status": "draft",
+                "version": 1,
+                "default_profile_id": "prof_123",
+                "enable_semantic_smoothing": True,
+                "enable_eager_anonymization": True,
+                "expected_inputs": [
+                    {
+                        "input_key": "DOCUMENT_TEXT",
+                        "label": {"translations": {"en": "Doc", "fi": "Doc"}, "default_locale": "en"},
+                        "description": {"translations": {"en": "Doc", "fi": "Doc"}, "default_locale": "en"},
+                        "input_modes": ["text"],
+                        "required": True,
+                        "is_chat_history": False,
+                        "ai_description": "Analyze this text.",
+                    }
+                ],
+            }
+
+    state = HookState(
+        execution_id="test_exec",
+        workflow_id="wf_features",
+        step_id="test_step",
+        task_blueprint="test_blueprint",
+        metadata={},
+        inputs={"DOCUMENT_TEXT": "Raw <br> text with PII like Matti Meikäläinen."},
+        global_context_vars={"language": "fi"},
+    )
+    from collections.abc import Awaitable
+    from typing import cast
+
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=cast(Any, FeatureFlagMockRepository()),
+        comp_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+
+    class MockStorage:
+        async def save(self, path: str, content: str) -> None:
+            pass
+
+    import backend_v2.services.storage
+
+    monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockStorage())
+
+    # Mock asyncio.to_thread
+    async def mock_to_thread(func: Any, *args: Any, **kwargs: Any) -> Any:
+        if func.__name__ == "smooth_text":
+            return "Smoothed text."
+        if func.__name__ == "mask_pii":
+            return "Masked text."
+        return func(*args, **kwargs)
+
+    import asyncio
+
+    monkeypatch.setattr(asyncio, "to_thread", mock_to_thread)
+
+    result = await cast(Awaitable[HookResult], process_inputs(state, deps))
+
+    assert result.success is True
+    assert result.state_delta is not None
+    processed = result.state_delta["inputs"]
+    assert "DOCUMENT_TEXT" in processed
+    # Due to ordering in the hook, Presidio masks the output of SpaCy.
+    # The output of mask_pii is "Masked text.", which is then injected with ai_description
+    assert "Masked text." in processed["DOCUMENT_TEXT"]
+    assert "Analyze this text." in processed["DOCUMENT_TEXT"]

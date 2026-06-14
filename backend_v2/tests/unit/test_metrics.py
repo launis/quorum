@@ -42,11 +42,11 @@ def test_text_metrics_hook_valid_payload(mock_deps: HookDependencies) -> None:
     assert "profiler_metrics" in result.state_delta
 
     metrics = result.state_delta["profiler_metrics"]
-    assert hasattr(metrics, "word_count")
-    assert hasattr(metrics, "sentence_count")
-    assert metrics.word_count > 0
-    assert metrics.sentence_count > 0
-    assert metrics.control_ratio > 0.0
+    assert "word_count" in metrics
+    assert "sentence_count" in metrics
+    assert metrics["word_count"] > 0
+    assert metrics["sentence_count"] > 0
+    assert metrics["control_ratio"] > 0.0
 
 
 def test_text_metrics_hook_invalid_payload_fails_fast(mock_deps: HookDependencies) -> None:

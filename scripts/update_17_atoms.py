@@ -154,7 +154,7 @@ def process_node(node):
         if 'tda_id' in node and node['tda_id'] in updates:
             node['ai_rule_description'] = global_mandate + updates[node['tda_id']]
             count += 1
-        for k, v in node.items():
+        for _k, v in node.items():
             process_node(v)
     elif isinstance(node, list):
         for item in node:

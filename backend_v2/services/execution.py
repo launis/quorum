@@ -236,9 +236,8 @@ class ExecutionService:
         """Initialize and trigger workflow securely."""
         # EAGER EXTRACTION MUST HAPPEN HERE BEFORE DB COMMIT
         if doc_service and payload.raw_inputs:
-            raw_dict = payload.raw_inputs.model_dump(exclude_unset=True)
-            await doc_service.process_raw_inputs(raw_dict)
-            payload = payload.model_copy(update={"raw_inputs": payload.raw_inputs.__class__.model_validate(raw_dict)})
+            processed_ingress = await doc_service.process_ingress_payload(payload.raw_inputs)
+            payload = payload.model_copy(update={"raw_inputs": processed_ingress})
 
         workflow_dict = await self.workflow_repo.get_workflow_by_id(payload.workflow_id)
         if not workflow_dict:
@@ -606,7 +605,7 @@ class ExecutionService:
         arq_pool: ArqRedis,
         custom_preface_md: str | None = None,
         local_time_str: str | None = None,
-    ) -> tuple[bytes | list[Any] | dict[str, Any], str, str | None]:
+    ) -> tuple[bytes | list[Any] | dict[str, Any] | Any, str, str | None]:
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
 
         if execution.status != ExecutionStatus.COMPLETED:
@@ -663,7 +662,13 @@ class ExecutionService:
             else:
                 active_message = "Valmistellaan tulostusta..."
 
-            return {"status": "pending", "message": active_message}, "application/json", None
+            from backend_v2.models.v2_core import JobAcceptedDTO
+
+            return (
+                JobAcceptedDTO(status="pending", message=active_message, execution_id=execution_id),
+                "application/json",
+                None,
+            )
 
         if fmt == "json":
             transformer = BlueprintTransformer(self.exec_repo, self.workflow_repo, self.comp_repo, self.identity_repo)

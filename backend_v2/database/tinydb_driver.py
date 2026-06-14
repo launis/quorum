@@ -26,7 +26,14 @@ class TinyDBDriver(StorageDriver):
         return self.db.table(name)
 
     def _serialize(self, data: dict[str, Any] | list | Any) -> Any:  # type: ignore
-        """Recursively converts datetime, UUID, and Pydantic objects to JSON-safe types."""
+        """Recursively converts datetime, UUID, and Pydantic objects to JSON-safe types.
+
+        Args:
+            data: The data structure or value to serialize.
+
+        Returns:
+            The serialized, JSON-safe data.
+        """
         from datetime import datetime
 
         if hasattr(data, "model_dump"):
@@ -47,7 +54,15 @@ class TinyDBDriver(StorageDriver):
         return data
 
     def _apply_filter(self, data: dict[str, Any], f: Filter) -> bool:
-        """Apply a single filter in memory (for operators not supported by TinyDB Query)."""
+        """Apply a single filter in memory (for operators not supported by TinyDB Query).
+
+        Args:
+            data: The document data to check.
+            f: The filter condition to apply.
+
+        Returns:
+            True if the document matches the filter, False otherwise.
+        """
         val = data.get(f.field)
 
         # Determine strict or loose equality? TinyDB is pythonic.
@@ -76,11 +91,36 @@ class TinyDBDriver(StorageDriver):
         return False
 
     async def get(self, collection: str, doc_id: str) -> dict[str, Any] | None:
+        """Retrieve a document by ID.
+
+        Args:
+            collection: The name of the collection.
+            doc_id: The unique document identifier.
+
+        Returns:
+            The document data, or None if not found.
+
+        Raises:
+            AppException: If retrieval fails.
+        """
         table = self._get_table(collection)
         # Using TinyDB Query
         return table.get(Query().id == doc_id)
 
     async def upsert(self, collection: str, data: dict[str, Any], doc_id: str) -> str:
+        """Create or Update a document.
+
+        Args:
+            collection: The name of the collection.
+            data: The data to store.
+            doc_id: The document identifier.
+
+        Returns:
+            The document ID.
+
+        Raises:
+            AppException: If upsert fails.
+        """
         table = self._get_table(collection)
         safe_data = self._serialize(data)
 
@@ -92,6 +132,19 @@ class TinyDBDriver(StorageDriver):
         return doc_id
 
     async def update(self, collection: str, doc_id: str, updates: dict[str, Any]) -> bool:
+        """Partial update of a document.
+
+        Args:
+            collection: The collection name.
+            doc_id: The document identifier.
+            updates: The updates to apply.
+
+        Returns:
+            True if successful, False otherwise.
+
+        Raises:
+            AppException: If update fails.
+        """
         table = self._get_table(collection)
         safe_updates = self._serialize(updates)
 
@@ -100,6 +153,18 @@ class TinyDBDriver(StorageDriver):
         return len(res) > 0
 
     async def delete(self, collection: str, doc_id: str) -> bool:
+        """Delete a document.
+
+        Args:
+            collection: The collection name.
+            doc_id: The document identifier to delete.
+
+        Returns:
+            True if successfully deleted, False otherwise.
+
+        Raises:
+            AppException: If deletion fails.
+        """
         table = self._get_table(collection)
         res = table.remove(Query().id == doc_id)
         return bool(res)
@@ -112,6 +177,21 @@ class TinyDBDriver(StorageDriver):
         order_by: str | None = None,
         descending: bool = False,
     ) -> list[dict[str, Any]]:
+        """Query a collection with filters, sorting, and limits.
+
+        Args:
+            collection: The collection name.
+            filters: The filters to apply.
+            limit: Maximum documents to return.
+            order_by: Field to sort by.
+            descending: Sort in descending order.
+
+        Returns:
+            A list of matching documents.
+
+        Raises:
+            AppException: If the query operation fails.
+        """
         table = self._get_table(collection)
         docs = table.all()
 
@@ -143,6 +223,18 @@ class TinyDBDriver(StorageDriver):
         return filtered_docs
 
     async def count(self, collection: str, filters: list[Filter] | None = None) -> int:
+        """Count documents matching the filters.
+
+        Args:
+            collection: The collection name.
+            filters: The filters to apply.
+
+        Returns:
+            The total count of matching documents.
+
+        Raises:
+            AppException: If count operation fails.
+        """
         # Re-use query logic for simplicity since TinyDB loads all in memory anyway
         # Optimization: AbstractTable.count() exists but only takes simple query
         if not filters:
@@ -152,4 +244,12 @@ class TinyDBDriver(StorageDriver):
         return len(results)
 
     async def clear(self, collection: str) -> None:
+        """Remove all documents from a collection.
+
+        Args:
+            collection: The collection name.
+
+        Raises:
+            AppException: If clearing fails.
+        """
         self._get_table(collection).truncate()

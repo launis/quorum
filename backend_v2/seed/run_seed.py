@@ -47,6 +47,12 @@ logger = logging.getLogger(__name__)
 
 
 def _fail_fast(msg: str, error: Exception) -> None:
+    """Logs a critical error and terminates the script immediately.
+
+    Args:
+        msg: The failure message.
+        error: The caught exception.
+    """
     logger.critical(
         "[Seeder] %s: [CRITICAL FAIL FAST] %s - %s",
         ErrorCodes.INTERNAL_SERVER_ERROR.name,
@@ -59,6 +65,13 @@ def _fail_fast(msg: str, error: Exception) -> None:
 
 
 async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str) -> None:
+    """Seeds the local TinyDB instance with parsed V2 registry data.
+
+    Args:
+        db_path: Absolute path to the local JSON database.
+        seed_data: Raw JSON payload loaded from the seed file.
+        target_env: Execution target environment string.
+    """
     try:
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
@@ -158,6 +171,12 @@ async def _seed_tinydb(db_path: str, seed_data: dict[str, Any], target_env: str)
 
 
 async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
+    """Seeds the Cloud Firestore database with parsed V2 registry data.
+
+    Args:
+        seed_data: Raw JSON payload loaded from the seed file.
+        target_env: Execution target environment string.
+    """
     if not FIREBASE_AVAILABLE:
         print("Firebase Admin not installed.")
         return
@@ -217,6 +236,12 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
 
 
 def _delete_collection(coll_ref: Any, batch_size: int = 50) -> None:
+    """Recursively deletes all documents in a Firestore collection.
+
+    Args:
+        coll_ref: Firestore collection reference object.
+        batch_size: Number of documents to delete per batch.
+    """
     docs = list(coll_ref.limit(batch_size).stream())
     deleted = 0
     for doc in docs:
@@ -227,6 +252,11 @@ def _delete_collection(coll_ref: Any, batch_size: int = 50) -> None:
 
 
 async def seed_database(target: str) -> None:
+    """Orchestrates the seeding process based on the target environment.
+
+    Args:
+        target: Target database environment ('local', 'firestore', or 'all').
+    """
     print(f"--- V2 SEEDING TARGET: {target.upper()} ---")
 
     if not os.path.exists(SEED_PATH):
@@ -248,6 +278,7 @@ async def seed_database(target: str) -> None:
 
 
 def main() -> None:
+    """Parses command line arguments and initializes the async seeding loop."""
     parser = argparse.ArgumentParser(description="Unified V2 Database Seeder")
     parser.add_argument(
         "targets",

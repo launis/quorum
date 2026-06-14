@@ -45,6 +45,7 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
     )
 
     mock_repo.get_execution.return_value = None
+    mock_repo.get_user = AsyncMock(return_value={"language": "fi"})
 
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
         mock_hooks.execute = AsyncMock(
@@ -53,8 +54,14 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
         record = await executor.execute_workflow(
             execution_id="exe_1231231231231231",
             workflow=workflow,
-            raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": "test"}),
+            raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": "test"}, language="en", user_id="usr_test123"),
         )
+
+    # Assert language is passed in global_context_vars
+    mock_hooks.execute.assert_called_once()
+    args, _ = mock_hooks.execute.call_args
+    assert args[0] == "input_processing"
+    assert args[1].global_context_vars.get("language") == "fi"
 
     # Epic 47 Phase 2: Workflow remains RUNNING for async render worker
     assert record.status == ExecutionStatus.RUNNING

@@ -29,19 +29,19 @@ def test_inverse_logic_injected() -> None:
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
-                                "concept_description": {
-                                    "default_locale": "en",
-                                    "translations": {"en": "Standard rule", "fi": "Standard rule"},
-                                },
+                                "concept_description": "Standard rule",
+                                "anchor_target": "The summary",
+                                "bounding_box_scope": "paragraph",
+                                "extraction_rule": "Must be nice",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             },
                             {
                                 "tda_id": "tda_22222222222222222222222222222222",
-                                "concept_description": {
-                                    "default_locale": "en",
-                                    "translations": {"en": "Inverse rule", "fi": "Inverse rule"},
-                                },
+                                "concept_description": "Inverse rule",
+                                "anchor_target": "The conclusion",
+                                "bounding_box_scope": "document",
+                                "extraction_rule": "Must not be mean",
                                 "inverse_evidence": True,
                                 "aggregation_mode": "EXISTS",
                             },
@@ -55,13 +55,13 @@ def test_inverse_logic_injected() -> None:
     block = PromptBlock.model_validate(mock_matrix_block)
     rubrics = compiler.compile_xml_rubrics([block], target_locale="en")
 
-    # Assert standard rule is present without inverse text
-    assert "Standard rule" in rubrics
-    assert "Standard rule This is an inverse rule" not in rubrics
+    # Assert standard rule fields are present in the new XML format
+    assert "<anchor_target>The summary</anchor_target>" in rubrics
+    assert "<validation_rule>Must be nice</validation_rule>" in rubrics
 
     # Assert inverse logic string is properly injected
     expected_inverse_text = (
-        "Inverse rule This is an inverse rule (Vice). "
+        "This is an inverse rule (Vice). "
         "If rule_satisfied = True (no issues found), evidence_found MUST be False "
         'and you must return an empty string "" for exact_quote. '
         "If rule_satisfied = False (violation found), evidence_found MUST be True "

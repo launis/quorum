@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.domain.judge import (
     DimensionResultItem,
     JudgeDTO,
@@ -31,7 +32,7 @@ def test_dimension_result_strictness() -> None:
     assert valid_dim.score == 3
 
     # Fails negative score
-    with pytest.raises(ValidationError):
+    with pytest.raises(AppException):
         DimensionResultItem(dimension_id="dim_1", dimension_label="L", score=-1, reasoning="R")
 
     # Fails empty strings
@@ -87,7 +88,7 @@ def test_judge_score_card_strictness() -> None:
         )
 
     # Fails invalid scores
-    with pytest.raises(ValidationError) as exc:
+    with pytest.raises(AppException) as exc:
         JudgeScoreCard(
             agent_name="A",
             total_score=6.0,  # Out of range
@@ -99,7 +100,7 @@ def test_judge_score_card_strictness() -> None:
         )
     assert "is out of range" in str(exc.value)
 
-    with pytest.raises(ValidationError) as exc:
+    with pytest.raises(AppException) as exc:
         JudgeScoreCard(
             agent_name="A",
             total_score=5.0,

@@ -1,10 +1,12 @@
 """LLM Handler module for managing model discovery and configuration."""
 
+import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import openai
+import requests
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes, ServiceUnavailableError
 from backend_v2.llm.provider import LLMFactory
@@ -201,7 +203,6 @@ class LLMHandler:
                         # Kolmansien osapuolien Model Garden -mallit
                         try:
                             import google.auth.transport.requests
-                            import requests
 
                             # Refresh token for REST API usage
                             auth_request = google.auth.transport.requests.Request()  # type: ignore[no-untyped-call] # google-auth has no type stubs
@@ -414,8 +415,6 @@ class LLMHandler:
         # Ensure the configured model name actually exists in the target region.
         # This prevents "blind" 404s from the provider.
         if provider == "google" and mode != "mock":
-            import asyncio
-
             available_models_map = await asyncio.to_thread(self.fetch_all_available_models, providers=[provider])
             valid_models = available_models_map[provider] if provider in available_models_map else []
 

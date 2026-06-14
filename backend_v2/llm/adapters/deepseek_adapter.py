@@ -57,7 +57,7 @@ class DeepSeekCacheAdapter(OpenAICacheAdapter):
 
         prompt_tokens = usage.prompt_tokens
         completion_tokens = usage.completion_tokens
-        cached_tokens = getattr(usage, "cached_tokens", 0)
+        cached_tokens = usage.cached_tokens
 
         regular_input = max(0, prompt_tokens - cached_tokens)
 
@@ -71,7 +71,7 @@ class DeepSeekCacheAdapter(OpenAICacheAdapter):
 
         # Retrieve other usage fields
         total_tokens = usage.total_tokens
-        reasoning_tokens = getattr(usage, "reasoning_tokens", 0)
+        reasoning_tokens = usage.reasoning_tokens
         cost_usd = total_cost
         estimated_savings_usd = total_savings
 

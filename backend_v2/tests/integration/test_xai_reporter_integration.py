@@ -82,15 +82,15 @@ def test_generate_report_hook_variance_aligned() -> None:
     ctx = result.state_delta["report_context"]
 
     # Assert output_extensions has our VarianceValidationExtension
-    extensions = getattr(ctx, "output_extensions", []) or []
+    extensions = ctx.get("output_extensions", [])
     assert len(extensions) == 1
     ext = extensions[0]
-    assert ext.extension_type == "variance_validation"
-    assert ext.mechanical_metric_ref == "performative_phrases_count"
-    assert ext.cognitive_metric_ref == "llm_authenticity_score"
+    assert ext["extension_type"] == "variance_validation"
+    assert ext["mechanical_metric_ref"] == "performative_phrases_count"
+    assert ext["cognitive_metric_ref"] == "llm_authenticity_score"
     # Target dampener for 10 filler phrases is 3.0 - 2.0 = 1.0. Variance: abs(1.0 - 1.0) = 0.0
-    assert ext.variance_score == 0.0
-    assert ext.alignment_verdict == "ALIGNED"
+    assert ext["variance_score"] == 0.0
+    assert ext["alignment_verdict"] == "ALIGNED"
 
 
 def test_generate_report_hook_variance_misaligned_sycophancy() -> None:
@@ -148,10 +148,10 @@ def test_generate_report_hook_variance_misaligned_sycophancy() -> None:
     assert result.state_delta is not None
     ctx = result.state_delta["report_context"]
 
-    extensions = getattr(ctx, "output_extensions", []) or []
+    extensions = ctx.get("output_extensions", [])
     assert len(extensions) == 1
     ext = extensions[0]
-    assert ext.extension_type == "variance_validation"
+    assert ext["extension_type"] == "variance_validation"
     # Target dampener is 1.0. Variance: abs(3.0 - 1.0) = 2.0
-    assert ext.variance_score == 2.0
-    assert ext.alignment_verdict == "MISALIGNED_SYCOPHANCY"
+    assert ext["variance_score"] == 2.0
+    assert ext["alignment_verdict"] == "MISALIGNED_SYCOPHANCY"

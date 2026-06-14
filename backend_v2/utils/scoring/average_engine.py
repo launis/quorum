@@ -192,7 +192,7 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
             "engine": "weighted_average",
             "stats": stats,
             "strictness_level": strictness_level,
-            "config": getattr(config, "model_dump", lambda: getattr(config, "dict", lambda: {})())(),
+            "config": config.model_dump(),
             "log_trace": log_lines,
         }
 

@@ -1,7 +1,6 @@
 import copy
 import json
 import logging
-import re
 import uuid
 from typing import Any, cast
 
@@ -15,47 +14,18 @@ from backend_v2.exceptions import (
     ErrorCodes,
     LLMSchemaValidationError,
 )
+from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import SystemConcurrency
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import SystemConfigModelRegistry
+from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
+from backend_v2.settings import get_settings
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
-
-
-def _clean_json_payload(raw_content: str) -> str:
-    """Repair common JSON formatting defects from LLM outputs.
-
-    Handles:
-    - Trailing unescaped double quotes inside values (e.g. ryhmätyötiloiksi."",)
-    - Raw control characters (newlines, tabs) inside string literals
-    - Trailing commas in objects or arrays without losing formatting
-    """
-    raw_content = raw_content.strip()
-
-    # 1. Repair trailing unescaped double quotes in properties (e.g. ryhmätyötiloiksi."",)
-    raw_content = re.sub(
-        r':\s*"((?:[^"\\]|\\.)+?)""(?=\s*[,}\]])',
-        r': "\1\""',
-        raw_content,
-    )
-
-    # 2. Repair raw newlines/tabs inside JSON string values
-    def escape_control_chars(match: re.Match[str]) -> str:
-        content = match.group(1)
-        content = content.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
-        return f'"{content}"'
-
-    string_pattern = r'"((?:[^"\\]|\\.)*?)"'
-    raw_content = re.sub(string_pattern, escape_control_chars, raw_content)
-
-    # 3. Repair trailing commas in objects or arrays (e.g., {"a": 1,} -> {"a": 1}) without losing formatting
-    raw_content = re.sub(r",(?=\s*[}\]])", "", raw_content)
-
-    return raw_content
 
 
 class LLMClient:
@@ -83,13 +53,13 @@ class LLMClient:
 
         Args:
             strategy_name: The name of the strategy (e.g. 'fast', 'SearchHook', 'cognitive-audit').
-            repository: Optional DB repository (e.g. ISystemRepository or IWorkflowRepository).
+            repository: Optional DB repository instance.
 
         Returns:
-            A configured LLMClient instance ready for execution.
+            A configured client instance ready for execution.
 
         Raises:
-            ConfigurationError: If the Strategy does not exist.
+            ConfigurationError (ErrorCodes.CONFIGURATION_ERROR): If the Strategy does not exist or is misconfigured.
         """
         if not repository:
             # Fail Fast: Enforce strict dependency injection (Zero-Fallback)
@@ -133,8 +103,6 @@ class LLMClient:
             raise ConfigurationError(f"Strategy '{strategy_name}' not found in registry.")
 
         # DEV MODE DYNAMIC REDIRECT: Redirect expensive gemini-2.5-pro to the "fast" strategy config in dev mode
-        from backend_v2.settings import get_settings
-
         settings = get_settings()
         if settings.environment == "development" and not settings.use_mock_llm:
             if target_strategy.model_name and "gemini-2.5-pro" in target_strategy.model_name:
@@ -201,16 +169,21 @@ class LLMClient:
         """Execute a structured LLM task enforcing a Pydantic schema using LLMProvider.
 
         Args:
-            messages: List of chat messages (system, user, etc.) or CompiledPrompt.
-            response_model: The Pydantic model class to valid output against.
-            model: Optional direct model override. If omitted, uses Strategy-bound config.
+            messages: List of chat messages or compiled prompt.
+            response_model: The Pydantic model class to validate output against.
+            model: Optional direct model override.
             temperature: Sampling temperature override.
             max_tokens: Max tokens override.
             mock_identity: Identity key for mock provider routing.
-            validation_context: Optional context dictionary for strict Pydantic V2 parsing (e.g. strictness_level).
+            validation_context: Optional context dictionary for strict Pydantic V2 parsing.
 
         Returns:
-            A tuple of (Validated Pydantic Model, TokenUsage).
+            A tuple of the validated model and usage metrics.
+
+        Raises:
+            AppException (ErrorCodes.CONFIGURATION_ERROR): If configuration is missing.
+            AgentExecutionError (ErrorCodes.AGENT_EXECUTION_CRITICAL): On API or execution failure.
+            LLMSchemaValidationError: On schema validation failure.
         """
         # ZERO-FALLBACK ENFORCEMENT
         # Resolve Configuration (SSOT Priority)
@@ -262,19 +235,32 @@ class LLMClient:
             has_ephemeral_caching = True
 
         extra_kwargs: dict[str, Any] = {}
-        if has_ephemeral_caching and self._config:
-            from backend_v2.llm.caching_service import LLMCachingService
-            from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 
+        if self._config and self._config.provider:
+            try:
+                from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
+
+                adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider)
+                extra_kwargs.update(adapter.prepare_provider_kwargs(str(target_model_name)))
+            except Exception as e:
+                logger.error("Could not fetch adapter for kwargs injection.", exc_info=True)
+                raise ConfigurationError(
+                    f"LLM Adapter loading failed for provider {self._config.provider}: {e}",
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                ) from e
+
+        if has_ephemeral_caching and self._config:
             if not compiled_prompt:
                 prompt_adapter = PromptCompilerAdapter()
                 compiled_prompt = prompt_adapter.compile_prompt(final_messages)
 
-            final_messages, extra_kwargs = await LLMCachingService.prepare_caching_payload(
+            caching_messages, caching_kwargs = await LLMCachingService.prepare_caching_payload(
                 provider_name=self._config.provider,
                 compiled_prompt=compiled_prompt,
                 model_name=str(target_model_name),
             )
+            final_messages = caching_messages
+            extra_kwargs.update(caching_kwargs)
 
             # V3 Cache Fix: Observability telemetry for caching diagnostics
             if "cached_content" in extra_kwargs:
@@ -392,40 +378,29 @@ class LLMClient:
                     ) from e
 
                 # 4. Parse Result
-                raw_content = response.content.strip()
+                raw_content = response.content
 
-                # Defensively extract JSON if the LLM hallucinates markdown blocks or conversational text
-                json_match = re.search(r"```(?:json)?\s*(.*?)\s*```", raw_content, re.DOTALL | re.IGNORECASE)
-                if json_match:
-                    raw_content = json_match.group(1)
+                finish_reason = ""
+                if hasattr(response, "choices") and response.choices:
+                    finish_reason = getattr(response.choices[0], "finish_reason", "")
 
-                # Strip conversational prefix/suffix by finding the outermost JSON structure
-                start_obj, start_arr = raw_content.find("{"), raw_content.find("[")
-                valid_starts = [i for i in (start_obj, start_arr) if i != -1]
-                start_idx = min(valid_starts) if valid_starts else -1
+                if finish_reason and str(finish_reason).lower() in ("safety", "content_filtered", "recitation"):
+                    raise AgentExecutionError(
+                        detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                        original_error=Exception(
+                            f"Safety Filter Triggered - LLM output blocked (finish_reason: {finish_reason})"
+                        ),
+                    )
 
-                if start_idx != -1:
-                    end_obj, end_arr = raw_content.rfind("}"), raw_content.rfind("]")
-                    end_idx = max(end_obj, end_arr)
-                    if end_idx > start_idx:
-                        raw_content = raw_content[start_idx : end_idx + 1]
+                if not raw_content or not str(raw_content).strip():
+                    raise LLMSchemaValidationError(
+                        validation_error_msg="Safety Filter Triggered - LLM output was empty or blocked without explicit reason.",
+                        raw_llm_payload="",
+                        is_eof=True,
+                        token_usage=token_usage,
+                    )
 
-                raw_content = raw_content.strip()
-
-                # Run best practice JSON repairs
-                raw_content = _clean_json_payload(raw_content)
-
-                # Epic 56 Phase 3: Defensive wrap for single-key array hallucinations
-                if raw_content.startswith("[") and raw_content.endswith("]"):
-                    if isinstance(response_model, type) and issubclass(response_model, BaseModel):
-                        fields = response_model.model_fields
-                        if len(fields) == 1:
-                            root_key = list(fields.keys())[0]
-                            logger.warning(
-                                "[LLMClient] LLM returned a raw array. Auto-wrapping into single root key '%s'.",
-                                root_key,
-                            )
-                            raw_content = f'{{"{root_key}": {raw_content}}}'
+                raw_content = str(raw_content).strip()
 
                 parsed_json = response_model.model_validate_json(raw_content, context=validation_context)
                 validated_model = cast(T, parsed_json)  # type: ignore[redundant-cast]
@@ -482,15 +457,19 @@ class LLMClient:
         """Execute a free-form chat task returning a string or tool_calls dict.
 
         Args:
-            messages: List of chat messages or CompiledPrompt.
-            model: Model identifier. MUST be provided (Zero-Fallback).
-            tools: Optional OpenAI-format tool declarations for function calling.
-            tool_choice: Optional tool_choice mode ('auto', 'none', 'required').
+            messages: List of chat messages or compiled prompt.
+            model: Model identifier. MUST be provided.
+            tools: Optional tool declarations for function calling.
+            tool_choice: Optional tool_choice mode.
             temperature: Sampling temperature override.
             max_tokens: Max tokens override.
 
         Returns:
-            str if LLM returns text, or dict with 'tool_calls' key if LLM invokes tools.
+            A string response or a dictionary containing tool calls.
+
+        Raises:
+            AppException (ErrorCodes.CONFIGURATION_ERROR): If configuration is missing.
+            AgentExecutionError (ErrorCodes.AGENT_EXECUTION_CRITICAL): On API or execution failure.
         """
         # ZERO-FALLBACK ENFORCEMENT
         # Resolve Configuration (SSOT Priority)
@@ -540,9 +519,6 @@ class LLMClient:
 
         extra_kwargs: dict[str, Any] = {}
         if has_ephemeral_caching and self._config:
-            from backend_v2.llm.caching_service import LLMCachingService
-            from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
-
             if not compiled_prompt:
                 prompt_adapter = PromptCompilerAdapter()
                 compiled_prompt = prompt_adapter.compile_prompt(final_messages)

@@ -1,3 +1,5 @@
+"""Logic node strategy module."""
+
 import asyncio
 import logging
 from typing import Any
@@ -26,22 +28,31 @@ class LogicNodeStrategy(NodeStrategy):
         semaphore: asyncio.Semaphore,
         running_event: asyncio.Event | None = None,
     ) -> list[TraceEvent]:
+        """Executes a Native/Logic Step, delegating CPU-bound work to the Hook Registry.
+
+        Args:
+            step: The workflow StepRule containing execution instructions.
+            projector: The V3 state projection representing the folded execution history.
+            context: The immutable Pydantic wrapper for execution context limits.
+            frozen_ctx: Read-only context containing parsed external inputs.
+            trace: Optional current execution trace lineage.
+            semaphore: Asyncio semaphore for concurrency limits.
+            running_event: Optional event to track if the execution is still running.
+
+        Returns:
+            An array of new TraceEvents representing the node's outputs or errors.
+
+        Raises:
+            AppException: If configuration is invalid or logic hook execution fails.
+        """
         if running_event is not None:
             running_event.set()
         # 1. State Extraction
         # Epic 43 Phase 2 Fail-Fast Parity: Re-inject 'inputs' and 'raw_inputs' DTO payloads into the root state
         # so legacy dot-notation mappings resolve properly without Naked Dict violations.
-        inputs_payload = {
-            getattr(d, "block_id", ""): getattr(d, "payload", None)
-            for d in projector.snapshot
-            if getattr(d, "step_id", None) == "inputs"
-        }
+        inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "inputs"}
 
-        raw_inputs_payload = {
-            getattr(d, "block_id", ""): getattr(d, "payload", None)
-            for d in projector.snapshot
-            if getattr(d, "step_id", None) == "raw_inputs"
-        }
+        raw_inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "raw_inputs"}
 
         current_state: dict[str, Any] = {
             "steps": projector.snapshot,
@@ -105,7 +116,7 @@ class LogicNodeStrategy(NodeStrategy):
             step_id=step.id,
             task_blueprint=blueprint_id,
             metadata=context.metadata,
-            global_context_vars={},
+            global_context_vars=context.global_context_vars,
             inputs=state_data,
         )
 
@@ -130,7 +141,7 @@ class LogicNodeStrategy(NodeStrategy):
                 details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
             )
         # 4. Post-Hooks
-        safe_context: dict[str, Any] = {"steps": projector.snapshot}
+        safe_context: dict[str, Any] = {**hook_state.global_context_vars, "steps": projector.snapshot}
 
         post_hook_state = hook_state.model_copy(
             update={

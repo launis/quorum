@@ -17,14 +17,14 @@ class ScoringEngineBase(ABC):
         """Calculates the final score and generates XAI justification log.
 
         Args:
-            stats: Dictionary mapping scale_level -> {"hits": X, "total": Y}
+            stats: Dictionary mapping scale_level to hits and total.
             math_min: The minimum possible score in the calculation matrix.
             math_max: The maximum possible score in the calculation matrix.
+            strictness_level: The user strictness input mapped on 0-100 range.
 
         Returns:
-            tuple[float, str, dict]:
-                - The calculated raw mathematical score
-                - The formatted XAI justification log string
-                - The level breakdown dictionary for the frontend
+            Tuple containing the calculated raw mathematical score,
+            the formatted XAI justification log DTO, and
+            the level breakdown dictionary for the frontend.
         """
         pass

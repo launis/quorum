@@ -1,18 +1,26 @@
 """Domain model for workflow inputs (Payloads)."""
 
+from __future__ import annotations
+
 import logging
 from typing import Any
 
 from pydantic import Field, model_validator
 
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 
 logger = logging.getLogger(__name__)
 
 
 class Base64Attachment(V2CoreBase):
-    """Strict DTO for handling binary base64 file uploads."""
+    """Strict DTO for handling binary base64 file uploads.
+
+    Attributes:
+        filename: The name of the uploaded file.
+        content_base64: The base64 encoded binary content.
+        content_type: Optional MIME type.
+    """
 
     filename: str = Field(..., description="The name of the uploaded file")
     content_base64: str = Field(..., description="The base64 encoded binary content")
@@ -23,6 +31,13 @@ class WorkflowInputsIngress(V2CoreBase):
     """API Ingress payload for the workflow (Content).
 
     Allows Base64 attachments during initial API routing, before Eager Extraction happens.
+
+    Attributes:
+        organization_id: Tenant ID for multi-tenancy.
+        user_id: User ID for audit trails.
+        simulation_mode: If True, indicates a test/simulation run.
+        language: Target language code.
+        dynamic_inputs: Structured dictionary for dynamic workflow inputs.
     """
 
     organization_id: str | None = Field(default=None, description="Tenant ID for multi-tenancy.", min_length=1)
@@ -45,7 +60,17 @@ class WorkflowInputs(WorkflowInputsIngress):
     @model_validator(mode="before")
     @classmethod
     def prevent_base64_pollution(cls, data: Any) -> Any:
-        """Fail-Fast filter: BANS content_base64 to protect against massive DB memory blobs."""
+        """Fail-Fast filter: BANS content_base64 to protect against massive DB memory blobs.
+
+        Args:
+            data: The unvalidated data dictionary.
+
+        Returns:
+            The safe data dictionary if no base64 payloads are found.
+
+        Raises:
+            AppException: If base64 content is detected (VALIDATION_FAILED).
+        """
         if not isinstance(data, dict):
             return data
 
@@ -57,7 +82,7 @@ class WorkflowInputs(WorkflowInputsIngress):
                     "before reaching the Domain models. Do not serialize PDFs into the DB!"
                 )
                 logger.error("[WorkflowInputs] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise ValueError(msg)
+                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
             # Recursively check dynamic_inputs if present
             if k == "dynamic_inputs" and isinstance(v, dict):
@@ -69,5 +94,5 @@ class WorkflowInputs(WorkflowInputsIngress):
                             "before reaching the Domain models. Do not serialize PDFs into the DB!"
                         )
                         logger.error("[WorkflowInputs] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                        raise ValueError(msg)
+                        raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return data

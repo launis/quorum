@@ -7,9 +7,9 @@ including scorecards and dimension results.
 import logging
 from typing import Any
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.archivist import ArchivistOutput
@@ -73,10 +73,20 @@ class DimensionResultItem(V2CoreBase):
     )
     score: int | float = Field(
         ...,
-        ge=0,
         description="Numerical score.",
         json_schema_extra={"x-ui-label": "Score"},
     )
+
+    @field_validator("score")
+    @classmethod
+    def validate_score(cls, v: int | float) -> int | float:
+        """Validate score >= 0."""
+        if v < 0:
+            msg = f"score must be >= 0, got {v}"
+            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        return v
+
     reasoning: str = Field(
         ...,
         min_length=1,
@@ -132,12 +142,12 @@ class JudgeScoreCard(V2CoreBase):
         if self.scale_min >= self.scale_max:
             msg = "scale_min must be less than scale_max."
             logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise ValueError(msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         if not (self.scale_min <= self.total_score <= self.scale_max):
             msg = f"total_score {self.total_score} is out of range [{self.scale_min}, {self.scale_max}]."
             logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise ValueError(msg)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return self
 
 

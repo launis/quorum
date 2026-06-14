@@ -1,7 +1,14 @@
+import logging
+
+from fastapi import status
+
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.lightweight_matrix import XAILogDto
 from backend_v2.models.enums import CognitiveFlowStatus, CognitiveFlowThreshold
 from backend_v2.utils.math_utils import calculate_progressive_dampening_score, clamp_score, get_strictness_config
 from backend_v2.utils.scoring.base_engine import ScoringEngineBase
+
+logger = logging.getLogger(__name__)
 
 
 class DampeningScoringEngine(ScoringEngineBase):
@@ -39,10 +46,12 @@ class DampeningScoringEngine(ScoringEngineBase):
             try:
                 modifier_factor = effective_hit_rate**safe_exponent
             except (ValueError, OverflowError, ZeroDivisionError) as e:
-                import logging
-
-                logging.getLogger(__name__).error("Math error in DampeningScoringEngine: %s", e)
-                modifier_factor = 0.0
+                logger.error("Math error in DampeningScoringEngine", exc_info=True)
+                raise AppException(
+                    message=f"Math error in DampeningScoringEngine: {str(e)}",
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    details={"error_code": ErrorCodes.CALCULATION_FAILED.value},
+                ) from e
 
             if s_level == math_min:
                 modifier = modifier_factor

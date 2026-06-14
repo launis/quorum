@@ -6,11 +6,11 @@ aligning with the V2 Fail-Fast architecture.
 
 import json
 import logging
-from typing import Any
 
 from fastapi import status
 from pydantic import ValidationError
 
+from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.v2_core import ChatHistoryDTO
@@ -53,18 +53,21 @@ _SYSTEM_INSTRUCTION = (
 
 class ChatParserService:
     @staticmethod
-    async def parse_pasted_chat(raw_paste: str, system_repo: Any) -> ChatHistoryDTO:
+    async def parse_pasted_chat(raw_paste: str, system_repo: ISystemRepository) -> ChatHistoryDTO:
         """Parse raw pasted chat logs into strict JSON using LLM.
 
         Args:
             raw_paste (str): Raw unstructured text pasted from a chat UI.
-            system_repo (Any): ISystemRepository instance.
+            system_repo (ISystemRepository): ISystemRepository instance.
 
         Returns:
             ChatHistoryDTO: Strictly typed chat history object.
 
         Raises:
-            AppException: If input is empty, LLM fails, or validation fails.
+            AppException (EMPTY_INPUT): If input is empty.
+            AppException (CONFIGURATION_ERROR): If LLM client fails to initialize.
+            AppException (VALIDATION_FAILED): If the LLM output violates the Pydantic schema or does not contain a valid dialogue.
+            AppException (INTERNAL_SERVER_ERROR): If generation fails completely.
         """
         logger.debug("[ChatParser] parse_pasted_chat CALLED")
 

@@ -1,3 +1,8 @@
+"""Organizations API Router.
+
+Provides endpoints for managing organizations securely.
+"""
+
 import logging
 
 from fastapi import APIRouter
@@ -13,7 +18,18 @@ router = APIRouter(prefix="/organizations", tags=["Admin IAM V2 - Organizations"
 
 @router.get("/", response_model=list[Organization])
 async def get_all_organizations(current_user: CurrentUserDep, auth_service: AuthServiceDep) -> list[Organization]:
-    """Retrieve all organizations securely evaluated by SSOT Service Layer."""
+    """Retrieve all organizations securely evaluated by SSOT Service Layer.
+
+    Args:
+        current_user: The authenticated user making the request.
+        auth_service: The authentication service dependency.
+
+    Returns:
+        A list of organizations accessible by the user.
+
+    Raises:
+        AppException: If fetching organizations fails.
+    """
     try:
         # Subject to Root-only visibility in practice, or own-org
         if current_user.role != UserRole.ROOT:
@@ -38,7 +54,21 @@ async def get_all_organizations(current_user: CurrentUserDep, auth_service: Auth
 
 @router.get("/{id}", response_model=Organization)
 async def get_organization(id: str, current_user: CurrentUserDep, auth_service: AuthServiceDep) -> Organization:
-    """Retrieve a specific organization securely via SSOT Service Layer."""
+    """Retrieve a specific organization securely via SSOT Service Layer.
+
+    Args:
+        id: The unique identifier of the organization.
+        current_user: The authenticated user making the request.
+        auth_service: The authentication service dependency.
+
+    Returns:
+        The requested organization.
+
+    Raises:
+        ResourceNotFoundError: If the organization is not found.
+        PermissionDeniedError: If the user lacks permission to view it.
+        AppException: If fetching the organization fails.
+    """
     return await auth_service.get_organization(current_user, id)
 
 
@@ -46,7 +76,21 @@ async def get_organization(id: str, current_user: CurrentUserDep, auth_service: 
 async def save_organization(
     id: str, data: OrganizationCreate, current_user: CurrentUserDep, auth_service: AuthServiceDep
 ) -> Organization:
-    """Create or update an organization securely via SSOT Service Layer."""
+    """Create or update an organization securely via SSOT Service Layer.
+
+    Args:
+        id: The unique identifier of the organization.
+        data: The organization data to update or create.
+        current_user: The authenticated user making the request.
+        auth_service: The authentication service dependency.
+
+    Returns:
+        The updated or created organization.
+
+    Raises:
+        PermissionDeniedError: If the user lacks permission.
+        AppException: If saving the organization fails.
+    """
     return await auth_service.update_organization(current_user, id, data)
 
 
@@ -54,7 +98,21 @@ async def save_organization(
 async def delete_organization(
     id: str, current_user: CurrentUserDep, auth_service: AuthServiceDep
 ) -> OrganizationDeleteResponse:
-    """Delete an organization from the system securely via SSOT Service Layer."""
+    """Delete an organization from the system securely via SSOT Service Layer.
+
+    Args:
+        id: The unique identifier of the organization to delete.
+        current_user: The authenticated user making the request.
+        auth_service: The authentication service dependency.
+
+    Returns:
+        An OrganizationDeleteResponse confirming deletion.
+
+    Raises:
+        ResourceNotFoundError: If the organization is not found.
+        PermissionDeniedError: If the user lacks permission.
+        AppException: If deleting the organization fails.
+    """
     try:
         await auth_service.delete_organization(current_user, id)
         return OrganizationDeleteResponse(status="success", deleted_id=id)

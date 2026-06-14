@@ -1,3 +1,8 @@
+"""System Health API Router.
+
+Provides endpoints to monitor system health and registry state.
+"""
+
 import logging
 
 from fastapi import APIRouter, Depends

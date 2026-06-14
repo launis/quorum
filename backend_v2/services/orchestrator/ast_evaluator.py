@@ -106,7 +106,7 @@ class ASTEvaluator:
             State computed from current branch.
 
         Raises:
-            ValueError: Security violation if non-whitelisted node structure is supplied.
+            AppException: Security violation if non-whitelisted node structure is supplied.
         """
         allowed_types = (
             ast.Expression,
@@ -120,7 +120,11 @@ class ASTEvaluator:
         if not isinstance(node, allowed_types):
             msg = f"AST Security Violation: Disallowed AST node type '{type(node).__name__}'"
             logger.error(msg)
-            raise ValueError(msg)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
 
         match node:
             case ast.Name(id=var_name):
@@ -139,7 +143,11 @@ class ASTEvaluator:
             case ast.UnaryOp(op=non_not_op):
                 msg = f"AST Security Violation: Disallowed UnaryOp operator '{type(non_not_op).__name__}'"
                 logger.error(msg)
-                raise ValueError(msg)
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
 
             case ast.BoolOp(op=ast.And(), values=values):
                 has_dlq = False
@@ -164,9 +172,17 @@ class ASTEvaluator:
             case ast.BoolOp(op=disallowed_op):
                 msg = f"AST Security Violation: Disallowed BoolOp operator '{type(disallowed_op).__name__}'"
                 logger.error(msg)
-                raise ValueError(msg)
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
 
             case _:
                 msg = f"AST Security Violation: Disallowed node '{type(node).__name__}'"
                 logger.error(msg)
-                raise ValueError(msg)
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )

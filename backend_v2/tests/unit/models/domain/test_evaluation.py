@@ -3,6 +3,7 @@ from datetime import datetime
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.domain.evaluation import (
     EvaluationCriterion,
     EvaluationResult,
@@ -25,7 +26,7 @@ def test_evaluation_criterion_native_bounds() -> None:
 
 def test_evaluation_result_scale_validation() -> None:
     """Test that scale_min must be strictly less than scale_max."""
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(AppException) as exc:
         EvaluationResult(
             thought_process="Valid",
             conclusion="Valid",
@@ -66,6 +67,6 @@ def test_validation_result_logic() -> None:
     ValidationResult(is_valid=False, errors=["Error 1"])
 
     # Invalid
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(AppException) as exc:
         ValidationResult(is_valid=False)
     assert "Invalid result must have errors" in str(exc.value)

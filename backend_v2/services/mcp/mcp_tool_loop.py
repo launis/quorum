@@ -62,7 +62,14 @@ TAVILY_TOOL_DECLARATION: dict[str, Any] = {
 
 
 def _build_tool_declarations(allowed_tools: list[str]) -> list[dict[str, Any]]:
-    """Build OpenAI-format tool declarations from allowed tool IDs."""
+    """Build OpenAI-format tool declarations from allowed tool IDs.
+
+    Args:
+        allowed_tools: List of allowed tool IDs (e.g., ["mcp_tavily_search"]).
+
+    Returns:
+        list[dict[str, Any]]: List of valid OpenAI function declarations.
+    """
     declarations: list[dict[str, Any]] = []
     for tool_id in allowed_tools:
         if tool_id == TAVILY_TOOL_ID:
@@ -79,6 +86,18 @@ async def _execute_tavily_search(
 
     Graceful Degradation (§6.3): Tavily failures return an audit trace with empty results,
     allowing the LLM to proceed without external evidence. Translates evidence on-the-fly.
+
+    Args:
+        query: The search query string.
+        step_name: Current step name for auditing.
+        target_language: Target translation language.
+        llm_client: Bound LLM client (optional).
+
+    Returns:
+        MCPAuditTrace: Audit record containing the search results.
+
+    Raises:
+        AppException: If the search fails critically.
     """
     start_ms = int(time.monotonic() * 1000)
     try:
@@ -126,6 +145,9 @@ def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dic
         audit: The audit trace from the tool execution.
         tool_call_id: The ORIGINAL call ID from the LLM's tool_call response.
                       Must match exactly for LiteLLM/Gemini transformation.
+
+    Returns:
+        dict[str, str]: Tool message formatted for OpenAI/LiteLLM.
     """
     if not audit.response_summary and not audit.source_urls:
         return {

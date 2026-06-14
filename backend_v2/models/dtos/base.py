@@ -26,6 +26,9 @@ class BaseResponseDTO(V2CoreBase):
 
     Ensures strict Data Sovereignty and prevents cross-tenant data leaks
     by globally excluding tenant scoping variables such as organization_id from client responses.
+
+    Attributes:
+        organization_id: Organization reference identifier excluded from client serialization.
     """
 
     organization_id: str | None = Field(default=None, exclude=True)

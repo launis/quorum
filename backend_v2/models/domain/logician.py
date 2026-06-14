@@ -9,6 +9,7 @@ from typing import Any
 
 from pydantic import Field, field_validator
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
@@ -154,10 +155,12 @@ class CognitiveLevel(V2CoreBase):
             The validated float score if within bounds.
 
         Raises:
-            ValueError: If bloom_score is not between 0.0 and 6.0.
+            AppException: If bloom_score is not between 0.0 and 6.0.
         """
         if not (0.0 <= v <= 6.0):
-            raise ValueError("bloom_score must be between 0.0 and 6.0")
+            raise AppException(
+                message="bloom_score must be between 0.0 and 6.0", details={"error_code": ErrorCodes.VALIDATION_FAILED}
+            )
         return v
 
     @field_validator("strategic_score")
@@ -172,10 +175,13 @@ class CognitiveLevel(V2CoreBase):
             The validated float score if within bounds.
 
         Raises:
-            ValueError: If strategic_score is not between 1.0 and 4.0.
+            AppException: If strategic_score is not between 1.0 and 4.0.
         """
         if not (1.0 <= v <= 4.0):
-            raise ValueError("strategic_score must be between 1.0 and 4.0")
+            raise AppException(
+                message="strategic_score must be between 1.0 and 4.0",
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            )
         return v
 
 
@@ -257,10 +263,13 @@ class LogicianData(V2CoreBase):
             The validated float score if within bounds.
 
         Raises:
-            ValueError: If toulmin_score is not between 0.0 and 6.0.
+            AppException: If toulmin_score is not between 0.0 and 6.0.
         """
         if not (0.0 <= v <= 6.0):
-            raise ValueError("toulmin_score must be between 0.0 and 6.0")
+            raise AppException(
+                message="toulmin_score must be between 0.0 and 6.0",
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            )
         return v
 
 

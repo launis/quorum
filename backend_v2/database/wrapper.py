@@ -185,7 +185,18 @@ class AbstractDatabase(ABC):
 
     @abstractmethod
     def close(self):  # type: ignore
-        """Close the database connection."""
+        """Close the database connection.
+
+        Args:
+            *args: Arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected return value.
+
+        Raises:
+            Exception: If operation fails.
+        """
         pass
 
 
@@ -196,7 +207,18 @@ class TinyDBTable(AbstractTable):
     """TinyDB implementation of AbstractTable."""
 
     def __init__(self, db_path: str, table_name: str):
-        """Initialize TinyDB table."""
+        """Initialize TinyDB table.
+
+        Args:
+            *args: Arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected return value.
+
+        Raises:
+            Exception: If operation fails.
+        """
         self._path = db_path
         self._name = table_name
 
@@ -270,7 +292,18 @@ class TinyDBClient(AbstractDatabase):
     """TinyDB implementation of AbstractDatabase."""
 
     def __init__(self, path: str):
-        """Initialize TinyDB Client."""
+        """Initialize TinyDB Client.
+
+        Args:
+            *args: Arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected return value.
+
+        Raises:
+            Exception: If operation fails.
+        """
         import os
 
         dir_name = os.path.dirname(path)
@@ -286,7 +319,18 @@ class TinyDBClient(AbstractDatabase):
         return TinyDBTable(self.path, name)
 
     def close(self):  # type: ignore
-        """Close client."""
+        """Close client.
+
+        Args:
+            *args: Arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected return value.
+
+        Raises:
+            Exception: If operation fails.
+        """
         pass
 
 
@@ -297,7 +341,18 @@ class FirestoreTable(AbstractTable):
     """Firestore implementation of AbstractTable."""
 
     def __init__(self, collection_ref):  # type: ignore
-        """Initialize Firestore Table."""
+        """Initialize Firestore Table.
+
+        Args:
+            *args: Arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected return value.
+
+        Raises:
+            Exception: If operation fails.
+        """
         self._collection = collection_ref
 
     def insert(self, document: dict[str, Any]) -> Any:
@@ -434,7 +489,18 @@ class FirestoreTable(AbstractTable):
         return self.get(query) is not None
 
     def close(self):  # type: ignore
-        """Close the table connection (no-op for Firestore)."""
+        """Close the table connection (no-op for Firestore).
+
+        Args:
+            *args: Arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected return value.
+
+        Raises:
+            Exception: If operation fails.
+        """
         pass
 
 
@@ -442,7 +508,18 @@ class FirestoreClient(AbstractDatabase):
     """Firestore implementation of AbstractDatabase."""
 
     def __init__(self):  # type: ignore
-        """Initialize Firestore Client and verify connection."""
+        """Initialize Firestore Client and verify connection.
+
+        Args:
+            *args: Arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected return value.
+
+        Raises:
+            Exception: If operation fails.
+        """
         # Lazy import settings to avoid circular deps if any
         settings = get_settings()
 
@@ -482,7 +559,18 @@ class FirestoreClient(AbstractDatabase):
         return FirestoreTable(self.db.collection(name))  # type: ignore
 
     def close(self):  # type: ignore
-        """Close client."""
+        """Close client.
+
+        Args:
+            *args: Arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected return value.
+
+        Raises:
+            Exception: If operation fails.
+        """
         pass
 
 

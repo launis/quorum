@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import logging
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
+from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.domain.logician import LogicianOutput
-from backend_v2.models.enums import FidelityLevel
+from backend_v2.models.enums import LaxFidelityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -74,15 +75,13 @@ class ReasoningFidelity(V2CoreBase):
         post_hoc_rationalization: True if reasoning was constructed after the fact.
     """
 
-    fidelity_score: FidelityLevel = Field(
+    fidelity_score: LaxFidelityLevel = Field(
         ...,
         description="Fidelity level.",
         json_schema_extra={"x-ui-label": "Fidelity Score"},
     )
     fidelity_numeric: float = Field(
         ...,
-        ge=1.0,
-        le=3.0,
         description=(
             "Numeric fidelity score (1.0 to 3.0), required 1-decimal precision. "
             "USE DECIMALS (e.g., 2.5) to reflect nuance."
@@ -91,8 +90,6 @@ class ReasoningFidelity(V2CoreBase):
     )
     abductive_score: float = Field(
         ...,
-        ge=1.0,
-        le=3.0,
         description=(
             "Numeric abductive score (1.0 to 3.0), required 1-decimal precision. "
             "USE DECIMALS (e.g., 2.5) to reflect nuance."
@@ -101,14 +98,33 @@ class ReasoningFidelity(V2CoreBase):
     )
     plausibility_score: float = Field(
         ...,
-        ge=1.0,
-        le=3.0,
         description=(
             "Numeric plausibility score (1.0 to 3.0), required 1-decimal precision. "
             "USE DECIMALS (e.g., 2.5) to reflect nuance."
         ),
         json_schema_extra={"x-ui-label": "Plausibility Score"},
     )
+
+    @field_validator("fidelity_numeric", "abductive_score", "plausibility_score")
+    @classmethod
+    def validate_scores_range(cls, v: float) -> float:
+        """Enforce strict score boundaries between 1.0 and 3.0.
+
+        Args:
+            v: The score to validate.
+
+        Returns:
+            Validated float amount.
+
+        Raises:
+            AppException: If score is out of bounds (VALIDATION_FAILED).
+        """
+        if not (1.0 <= v <= 3.0):
+            msg = "Score must be between 1.0 and 3.0 inclusive."
+            logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise ValueError(msg)
+        return v
+
     justification: str = Field(
         ..., min_length=1, description="Justification.", json_schema_extra={"x-ui-label": "Justification"}
     )

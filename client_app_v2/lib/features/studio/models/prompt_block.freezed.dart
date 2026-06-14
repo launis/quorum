@@ -771,7 +771,7 @@ as bool,
 /// @nodoc
 mixin _$TDAAssertion {
 
-@JsonKey(name: 'tda_id') String get tdaId;@JsonKey(name: 'concept_description') String get conceptDescription;@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> get acceptanceCriteria;@JsonKey(name: 'anti_patterns') List<AntiPattern> get antiPatterns;@JsonKey(name: 'contrastive_example') String? get contrastiveExample;@JsonKey(name: 'syntactic_anchors') List<String> get syntacticAnchors;@JsonKey(name: 'enforce_pre_flight') bool get enforcePreFlight;@JsonKey(name: 'inverse_evidence') bool get inverseEvidence;@JsonKey(name: 'aggregation_mode') AggregationMode get aggregationMode;@JsonKey(name: 'evaluation_track') EvaluationTrack get evaluationTrack;@JsonKey(name: 'facts_to_find') List<String> get factsToFind;@JsonKey(name: 'logical_expression') String? get logicalExpression;@JsonKey(name: 'allow_contextual_override') bool get allowContextualOverride;@JsonKey(name: 'high_entropy') bool get highEntropy;
+@JsonKey(name: 'tda_id') String get tdaId;@JsonKey(name: 'concept_description') String get conceptDescription;@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> get acceptanceCriteria;@JsonKey(name: 'anti_patterns') List<AntiPattern> get antiPatterns;@JsonKey(name: 'contrastive_example') String? get contrastiveExample;@JsonKey(name: 'syntactic_anchors') List<String> get syntacticAnchors;@JsonKey(name: 'enforce_pre_flight') bool get enforcePreFlight;@JsonKey(name: 'inverse_evidence') bool get inverseEvidence;@JsonKey(name: 'aggregation_mode') AggregationMode get aggregationMode;@JsonKey(name: 'evaluation_track') EvaluationTrack get evaluationTrack;@JsonKey(name: 'facts_to_find') List<String> get factsToFind;@JsonKey(name: 'logical_expression') String? get logicalExpression;@JsonKey(name: 'allow_contextual_override') bool get allowContextualOverride;@JsonKey(name: 'high_entropy') bool get highEntropy;@JsonKey(name: 'anchor_target') String? get anchorTarget;@JsonKey(name: 'bounding_box_scope') String get boundingBoxScope;@JsonKey(name: 'extraction_rule') String? get extractionRule;
 /// Create a copy of TDAAssertion
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -786,7 +786,7 @@ $TDAAssertionCopyWith<TDAAssertion> get copyWith => _$TDAAssertionCopyWithImpl<T
 
 @override
 String toString() {
-  return 'TDAAssertion(tdaId: $tdaId, conceptDescription: $conceptDescription, acceptanceCriteria: $acceptanceCriteria, antiPatterns: $antiPatterns, contrastiveExample: $contrastiveExample, syntacticAnchors: $syntacticAnchors, enforcePreFlight: $enforcePreFlight, inverseEvidence: $inverseEvidence, aggregationMode: $aggregationMode, evaluationTrack: $evaluationTrack, factsToFind: $factsToFind, logicalExpression: $logicalExpression, allowContextualOverride: $allowContextualOverride, highEntropy: $highEntropy)';
+  return 'TDAAssertion(tdaId: $tdaId, conceptDescription: $conceptDescription, acceptanceCriteria: $acceptanceCriteria, antiPatterns: $antiPatterns, contrastiveExample: $contrastiveExample, syntacticAnchors: $syntacticAnchors, enforcePreFlight: $enforcePreFlight, inverseEvidence: $inverseEvidence, aggregationMode: $aggregationMode, evaluationTrack: $evaluationTrack, factsToFind: $factsToFind, logicalExpression: $logicalExpression, allowContextualOverride: $allowContextualOverride, highEntropy: $highEntropy, anchorTarget: $anchorTarget, boundingBoxScope: $boundingBoxScope, extractionRule: $extractionRule)';
 }
 
 
@@ -797,7 +797,7 @@ abstract mixin class $TDAAssertionCopyWith<$Res>  {
   factory $TDAAssertionCopyWith(TDAAssertion value, $Res Function(TDAAssertion) _then) = _$TDAAssertionCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'concept_description') String conceptDescription,@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> acceptanceCriteria,@JsonKey(name: 'anti_patterns') List<AntiPattern> antiPatterns,@JsonKey(name: 'contrastive_example') String? contrastiveExample,@JsonKey(name: 'syntactic_anchors') List<String> syntacticAnchors,@JsonKey(name: 'enforce_pre_flight') bool enforcePreFlight,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression,@JsonKey(name: 'allow_contextual_override') bool allowContextualOverride,@JsonKey(name: 'high_entropy') bool highEntropy
+@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'concept_description') String conceptDescription,@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> acceptanceCriteria,@JsonKey(name: 'anti_patterns') List<AntiPattern> antiPatterns,@JsonKey(name: 'contrastive_example') String? contrastiveExample,@JsonKey(name: 'syntactic_anchors') List<String> syntacticAnchors,@JsonKey(name: 'enforce_pre_flight') bool enforcePreFlight,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression,@JsonKey(name: 'allow_contextual_override') bool allowContextualOverride,@JsonKey(name: 'high_entropy') bool highEntropy,@JsonKey(name: 'anchor_target') String? anchorTarget,@JsonKey(name: 'bounding_box_scope') String boundingBoxScope,@JsonKey(name: 'extraction_rule') String? extractionRule
 });
 
 
@@ -814,7 +814,7 @@ class _$TDAAssertionCopyWithImpl<$Res>
 
 /// Create a copy of TDAAssertion
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? tdaId = null,Object? conceptDescription = null,Object? acceptanceCriteria = null,Object? antiPatterns = null,Object? contrastiveExample = freezed,Object? syntacticAnchors = null,Object? enforcePreFlight = null,Object? inverseEvidence = null,Object? aggregationMode = null,Object? evaluationTrack = null,Object? factsToFind = null,Object? logicalExpression = freezed,Object? allowContextualOverride = null,Object? highEntropy = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? tdaId = null,Object? conceptDescription = null,Object? acceptanceCriteria = null,Object? antiPatterns = null,Object? contrastiveExample = freezed,Object? syntacticAnchors = null,Object? enforcePreFlight = null,Object? inverseEvidence = null,Object? aggregationMode = null,Object? evaluationTrack = null,Object? factsToFind = null,Object? logicalExpression = freezed,Object? allowContextualOverride = null,Object? highEntropy = null,Object? anchorTarget = freezed,Object? boundingBoxScope = null,Object? extractionRule = freezed,}) {
   return _then(_self.copyWith(
 tdaId: null == tdaId ? _self.tdaId : tdaId // ignore: cast_nullable_to_non_nullable
 as String,conceptDescription: null == conceptDescription ? _self.conceptDescription : conceptDescription // ignore: cast_nullable_to_non_nullable
@@ -830,7 +830,10 @@ as EvaluationTrack,factsToFind: null == factsToFind ? _self.factsToFind : factsT
 as List<String>,logicalExpression: freezed == logicalExpression ? _self.logicalExpression : logicalExpression // ignore: cast_nullable_to_non_nullable
 as String?,allowContextualOverride: null == allowContextualOverride ? _self.allowContextualOverride : allowContextualOverride // ignore: cast_nullable_to_non_nullable
 as bool,highEntropy: null == highEntropy ? _self.highEntropy : highEntropy // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,anchorTarget: freezed == anchorTarget ? _self.anchorTarget : anchorTarget // ignore: cast_nullable_to_non_nullable
+as String?,boundingBoxScope: null == boundingBoxScope ? _self.boundingBoxScope : boundingBoxScope // ignore: cast_nullable_to_non_nullable
+as String,extractionRule: freezed == extractionRule ? _self.extractionRule : extractionRule // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -915,10 +918,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'high_entropy')  bool highEntropy)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TDAAssertion() when $default != null:
-return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.allowContextualOverride,_that.highEntropy);case _:
+return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.allowContextualOverride,_that.highEntropy,_that.anchorTarget,_that.boundingBoxScope,_that.extractionRule);case _:
   return orElse();
 
 }
@@ -936,10 +939,10 @@ return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'high_entropy')  bool highEntropy)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)  $default,) {final _that = this;
 switch (_that) {
 case _TDAAssertion():
-return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.allowContextualOverride,_that.highEntropy);case _:
+return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.allowContextualOverride,_that.highEntropy,_that.anchorTarget,_that.boundingBoxScope,_that.extractionRule);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -956,10 +959,10 @@ return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'high_entropy')  bool highEntropy)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)?  $default,) {final _that = this;
 switch (_that) {
 case _TDAAssertion() when $default != null:
-return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.allowContextualOverride,_that.highEntropy);case _:
+return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.allowContextualOverride,_that.highEntropy,_that.anchorTarget,_that.boundingBoxScope,_that.extractionRule);case _:
   return null;
 
 }
@@ -971,7 +974,7 @@ return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_t
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _TDAAssertion extends TDAAssertion {
-  const _TDAAssertion({@JsonKey(name: 'tda_id') required this.tdaId, @JsonKey(name: 'concept_description') required this.conceptDescription, @JsonKey(name: 'acceptance_criteria') final  List<AcceptanceCriterion> acceptanceCriteria = const [], @JsonKey(name: 'anti_patterns') final  List<AntiPattern> antiPatterns = const [], @JsonKey(name: 'contrastive_example') this.contrastiveExample, @JsonKey(name: 'syntactic_anchors') final  List<String> syntacticAnchors = const [], @JsonKey(name: 'enforce_pre_flight') this.enforcePreFlight = false, @JsonKey(name: 'inverse_evidence') required this.inverseEvidence, @JsonKey(name: 'aggregation_mode') required this.aggregationMode, @JsonKey(name: 'evaluation_track') this.evaluationTrack = EvaluationTrack.cognitiveJudgement, @JsonKey(name: 'facts_to_find') final  List<String> factsToFind = const [], @JsonKey(name: 'logical_expression') this.logicalExpression, @JsonKey(name: 'allow_contextual_override') this.allowContextualOverride = false, @JsonKey(name: 'high_entropy') this.highEntropy = false}): _acceptanceCriteria = acceptanceCriteria,_antiPatterns = antiPatterns,_syntacticAnchors = syntacticAnchors,_factsToFind = factsToFind,super._();
+  const _TDAAssertion({@JsonKey(name: 'tda_id') required this.tdaId, @JsonKey(name: 'concept_description') required this.conceptDescription, @JsonKey(name: 'acceptance_criteria') final  List<AcceptanceCriterion> acceptanceCriteria = const [], @JsonKey(name: 'anti_patterns') final  List<AntiPattern> antiPatterns = const [], @JsonKey(name: 'contrastive_example') this.contrastiveExample, @JsonKey(name: 'syntactic_anchors') final  List<String> syntacticAnchors = const [], @JsonKey(name: 'enforce_pre_flight') this.enforcePreFlight = false, @JsonKey(name: 'inverse_evidence') required this.inverseEvidence, @JsonKey(name: 'aggregation_mode') required this.aggregationMode, @JsonKey(name: 'evaluation_track') this.evaluationTrack = EvaluationTrack.cognitiveJudgement, @JsonKey(name: 'facts_to_find') final  List<String> factsToFind = const [], @JsonKey(name: 'logical_expression') this.logicalExpression, @JsonKey(name: 'allow_contextual_override') this.allowContextualOverride = false, @JsonKey(name: 'high_entropy') this.highEntropy = false, @JsonKey(name: 'anchor_target') this.anchorTarget, @JsonKey(name: 'bounding_box_scope') this.boundingBoxScope = 'paragraph', @JsonKey(name: 'extraction_rule') this.extractionRule}): _acceptanceCriteria = acceptanceCriteria,_antiPatterns = antiPatterns,_syntacticAnchors = syntacticAnchors,_factsToFind = factsToFind,super._();
   factory _TDAAssertion.fromJson(Map<String, dynamic> json) => _$TDAAssertionFromJson(json);
 
 @override@JsonKey(name: 'tda_id') final  String tdaId;
@@ -1012,6 +1015,9 @@ class _TDAAssertion extends TDAAssertion {
 @override@JsonKey(name: 'logical_expression') final  String? logicalExpression;
 @override@JsonKey(name: 'allow_contextual_override') final  bool allowContextualOverride;
 @override@JsonKey(name: 'high_entropy') final  bool highEntropy;
+@override@JsonKey(name: 'anchor_target') final  String? anchorTarget;
+@override@JsonKey(name: 'bounding_box_scope') final  String boundingBoxScope;
+@override@JsonKey(name: 'extraction_rule') final  String? extractionRule;
 
 /// Create a copy of TDAAssertion
 /// with the given fields replaced by the non-null parameter values.
@@ -1028,7 +1034,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'TDAAssertion(tdaId: $tdaId, conceptDescription: $conceptDescription, acceptanceCriteria: $acceptanceCriteria, antiPatterns: $antiPatterns, contrastiveExample: $contrastiveExample, syntacticAnchors: $syntacticAnchors, enforcePreFlight: $enforcePreFlight, inverseEvidence: $inverseEvidence, aggregationMode: $aggregationMode, evaluationTrack: $evaluationTrack, factsToFind: $factsToFind, logicalExpression: $logicalExpression, allowContextualOverride: $allowContextualOverride, highEntropy: $highEntropy)';
+  return 'TDAAssertion(tdaId: $tdaId, conceptDescription: $conceptDescription, acceptanceCriteria: $acceptanceCriteria, antiPatterns: $antiPatterns, contrastiveExample: $contrastiveExample, syntacticAnchors: $syntacticAnchors, enforcePreFlight: $enforcePreFlight, inverseEvidence: $inverseEvidence, aggregationMode: $aggregationMode, evaluationTrack: $evaluationTrack, factsToFind: $factsToFind, logicalExpression: $logicalExpression, allowContextualOverride: $allowContextualOverride, highEntropy: $highEntropy, anchorTarget: $anchorTarget, boundingBoxScope: $boundingBoxScope, extractionRule: $extractionRule)';
 }
 
 
@@ -1039,7 +1045,7 @@ abstract mixin class _$TDAAssertionCopyWith<$Res> implements $TDAAssertionCopyWi
   factory _$TDAAssertionCopyWith(_TDAAssertion value, $Res Function(_TDAAssertion) _then) = __$TDAAssertionCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'concept_description') String conceptDescription,@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> acceptanceCriteria,@JsonKey(name: 'anti_patterns') List<AntiPattern> antiPatterns,@JsonKey(name: 'contrastive_example') String? contrastiveExample,@JsonKey(name: 'syntactic_anchors') List<String> syntacticAnchors,@JsonKey(name: 'enforce_pre_flight') bool enforcePreFlight,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression,@JsonKey(name: 'allow_contextual_override') bool allowContextualOverride,@JsonKey(name: 'high_entropy') bool highEntropy
+@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'concept_description') String conceptDescription,@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> acceptanceCriteria,@JsonKey(name: 'anti_patterns') List<AntiPattern> antiPatterns,@JsonKey(name: 'contrastive_example') String? contrastiveExample,@JsonKey(name: 'syntactic_anchors') List<String> syntacticAnchors,@JsonKey(name: 'enforce_pre_flight') bool enforcePreFlight,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression,@JsonKey(name: 'allow_contextual_override') bool allowContextualOverride,@JsonKey(name: 'high_entropy') bool highEntropy,@JsonKey(name: 'anchor_target') String? anchorTarget,@JsonKey(name: 'bounding_box_scope') String boundingBoxScope,@JsonKey(name: 'extraction_rule') String? extractionRule
 });
 
 
@@ -1056,7 +1062,7 @@ class __$TDAAssertionCopyWithImpl<$Res>
 
 /// Create a copy of TDAAssertion
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? tdaId = null,Object? conceptDescription = null,Object? acceptanceCriteria = null,Object? antiPatterns = null,Object? contrastiveExample = freezed,Object? syntacticAnchors = null,Object? enforcePreFlight = null,Object? inverseEvidence = null,Object? aggregationMode = null,Object? evaluationTrack = null,Object? factsToFind = null,Object? logicalExpression = freezed,Object? allowContextualOverride = null,Object? highEntropy = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? tdaId = null,Object? conceptDescription = null,Object? acceptanceCriteria = null,Object? antiPatterns = null,Object? contrastiveExample = freezed,Object? syntacticAnchors = null,Object? enforcePreFlight = null,Object? inverseEvidence = null,Object? aggregationMode = null,Object? evaluationTrack = null,Object? factsToFind = null,Object? logicalExpression = freezed,Object? allowContextualOverride = null,Object? highEntropy = null,Object? anchorTarget = freezed,Object? boundingBoxScope = null,Object? extractionRule = freezed,}) {
   return _then(_TDAAssertion(
 tdaId: null == tdaId ? _self.tdaId : tdaId // ignore: cast_nullable_to_non_nullable
 as String,conceptDescription: null == conceptDescription ? _self.conceptDescription : conceptDescription // ignore: cast_nullable_to_non_nullable
@@ -1072,7 +1078,10 @@ as EvaluationTrack,factsToFind: null == factsToFind ? _self._factsToFind : facts
 as List<String>,logicalExpression: freezed == logicalExpression ? _self.logicalExpression : logicalExpression // ignore: cast_nullable_to_non_nullable
 as String?,allowContextualOverride: null == allowContextualOverride ? _self.allowContextualOverride : allowContextualOverride // ignore: cast_nullable_to_non_nullable
 as bool,highEntropy: null == highEntropy ? _self.highEntropy : highEntropy // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,anchorTarget: freezed == anchorTarget ? _self.anchorTarget : anchorTarget // ignore: cast_nullable_to_non_nullable
+as String?,boundingBoxScope: null == boundingBoxScope ? _self.boundingBoxScope : boundingBoxScope // ignore: cast_nullable_to_non_nullable
+as String,extractionRule: freezed == extractionRule ? _self.extractionRule : extractionRule // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

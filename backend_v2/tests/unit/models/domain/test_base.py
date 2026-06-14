@@ -3,6 +3,7 @@ from datetime import datetime
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.domain.base import (
     Metadata,
     ReasoningTraceDTO,
@@ -46,12 +47,12 @@ def test_reasoning_trace_native_confidence_bounds() -> None:
     assert trace.confidence_score == 0.9
 
     # Invalid high
-    with pytest.raises(ValidationError) as exc:
+    with pytest.raises(AppException) as exc:
         ReasoningTraceDTO(thought_process="Valid reasoning.", conclusion="Valid conclusion.", confidence_score=1.5)
     assert "Confidence score must be between 0.0 and 1.0" in str(exc.value)
 
     # Invalid low
-    with pytest.raises(ValidationError) as exc:
+    with pytest.raises(AppException) as exc:
         ReasoningTraceDTO(thought_process="Valid reasoning.", conclusion="Valid conclusion.", confidence_score=-0.1)
     assert "Confidence score must be between 0.0 and 1.0" in str(exc.value)
 
@@ -61,7 +62,7 @@ def test_reasoning_trace_hallucination_guard() -> None:
     invalid_inputs = ["null", "none", "n/a", "ei saatavilla"]
 
     for invalid_val in invalid_inputs:
-        with pytest.raises(ValueError) as exc:
+        with pytest.raises(AppException) as exc:
             ReasoningTraceDTO(thought_process=invalid_val, conclusion="A valid conclusion.", confidence_score=0.5)
         assert "LLM returned an invalid empty-equivalent string" in str(exc.value)
 

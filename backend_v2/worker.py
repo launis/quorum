@@ -75,7 +75,30 @@ async def evaluate_chunk_job(
     strictness_level: int,
     step_metadata: dict[str, Any] | None = None,
 ) -> None:
-    """Asynchronous Arq worker job to evaluate a single text chunk."""
+    """Asynchronous Arq worker job to evaluate a single text chunk.
+
+    Args:
+        ctx: Context provided by the Arq worker containing services.
+        execution_id: ID of the execution.
+        step_id: ID of the current execution step.
+        chunk_index: Index of the chunk being processed.
+        total_chunks: Total number of chunks in this step.
+        file_path: Optional path to the raw file.
+        chunk_items: List of items in this chunk.
+        criteria_blocks_dump: Serialized prompt blocks.
+        base_system_prompt: System prompt for generation.
+        has_search: Boolean indicating if search is enabled.
+        has_shuffled_atoms: Boolean indicating shuffled parsing.
+        atom_to_block_ids: Mapping from atoms to blocks.
+        effective_mcp_tools: List of enabled MCP tools.
+        target_locale: Locale for output formatting.
+        synthesis_instructions: Instructions for synthesis.
+        strictness_level: Level of strictness applied.
+        step_metadata: Additional metadata for the step.
+
+    Raises:
+        AppException: If chunk execution fails and is routed to DLQ.
+    """
     logger.info(f"[Job] evaluate_chunk_job started for {execution_id}:{step_id} chunk {chunk_index}")
 
     # 1. Fetch raw PDF if file_path is provided to leverage OS Page Cache
@@ -385,7 +408,17 @@ async def execute_workflow_job(
 async def generate_pdf_job(
     ctx: Any, execution_id: str, accept_language: str | None = None, profile_id: str | None = None
 ) -> str:
-    """Invoked by Arq Worker to ensure background PDF compilation resilience."""
+    """Invoked by Arq Worker to ensure background PDF compilation resilience.
+
+    Args:
+        ctx: Arq worker context.
+        execution_id: Target execution identifier.
+        accept_language: Optional locale override.
+        profile_id: Target output profile identifier.
+
+    Returns:
+        Status message string upon completion.
+    """
     await generate_pdf_task(execution_id, accept_language, profile_id)
     return f"PDF Generated for {execution_id}"
 
@@ -395,6 +428,14 @@ async def generate_pdf_task(
 ) -> None:  # noqa: E501
     """Background Task. Assembles the SDUI JSON via Transformer and passes to PDF generator.
     Called by Arq worker for resilient PDF background compilation.
+
+    Args:
+        execution_id: Target execution identifier.
+        accept_language: Optional locale override.
+        profile_id: Target output profile identifier.
+
+    Raises:
+        AppException: Inherited from inner logic if generation or update fails.
     """
     logger.info(f"[Task] Starting Async PDF Koonti for execution {execution_id}")
     try:
@@ -494,7 +535,17 @@ async def generate_pdf_task(
 async def render_profile_job(
     ctx: Any, execution_id: str, accept_language: str | None = None, profile_id: str | None = None
 ) -> str:
-    """Invoked by Arq Worker to ensure background synthesis & PDF compilation resilience."""
+    """Invoked by Arq Worker to ensure background synthesis & PDF compilation resilience.
+
+    Args:
+        ctx: Arq worker context.
+        execution_id: Target execution identifier.
+        accept_language: Optional locale override.
+        profile_id: Target output profile identifier.
+
+    Returns:
+        Status message string upon completion.
+    """
     await generate_profile_synthesis_and_pdf_task(execution_id, accept_language, profile_id, ctx.get("redis"))  # noqa: E501
     return f"Render Job Completed for {execution_id}"
 
@@ -505,7 +556,17 @@ async def generate_profile_synthesis_and_pdf_task(
     profile_id: str | None = None,
     redis: Any | None = None,  # noqa: E501
 ) -> None:
-    """Background Task. Synthesizes Markdown and enqueues PDF generation. Epic 14 M4."""
+    """Background Task. Synthesizes Markdown and enqueues PDF generation. Epic 14 M4.
+
+    Args:
+        execution_id: Target execution identifier.
+        accept_language: Optional locale override.
+        profile_id: Target output profile identifier.
+        redis: Optional Redis context.
+
+    Raises:
+        Exception: If synthesis or execution update fails.
+    """
     logger.info(f"[Task] Starting Async Text Synthesis for execution {execution_id} (Profile: {profile_id})")  # noqa: E501
     try:
         driver = await get_driver(get_settings())
@@ -607,7 +668,8 @@ async def generate_profile_synthesis_and_pdf_task(
             data = step_dto.payload
             if pb_id in blocks_meta:
                 try:
-                    lw_matrix = LightweightMatrixOutput.model_validate(data, strict=False)
+                    mapped_data = LightweightMatrixOutput.map_llm_extensions_to_domain(data)
+                    lw_matrix = LightweightMatrixOutput.model_validate(mapped_data, strict=False)
                     if lw_matrix.level_breakdown:
                         stats = {float(k): v for k, v in lw_matrix.level_breakdown.items()}
                         b_meta = blocks_meta.get(pb_id)
@@ -784,6 +846,9 @@ async def startup(ctx: Any) -> None:
     """Called when the worker starts.
 
     Initializes dependencies and registers tasks.
+
+    Args:
+        ctx: Arq worker context to store initialized services.
     """
     setup_logging()
     configure_logfire()
@@ -834,12 +899,23 @@ async def startup(ctx: Any) -> None:
 
 
 async def shutdown(ctx: Any) -> None:
-    """Called when the worker shuts down."""
+    """Called when the worker shuts down.
+
+    Args:
+        ctx: Arq worker context.
+    """
     logger.info("Arq Worker shutting down.")
 
 
 async def health_check(ctx: Any) -> str:
-    """Simple health check task."""
+    """Simple health check task.
+
+    Args:
+        ctx: Arq worker context.
+
+    Returns:
+        String 'OK' on success.
+    """
     return "OK"
 
 

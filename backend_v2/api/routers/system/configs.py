@@ -23,7 +23,14 @@ class StrictnessConfigListResponse(BaseResponseDTO):
 
 @router.get("/strictness", response_model=StrictnessConfigListResponse)
 async def get_strictness_configurations() -> StrictnessConfigListResponse:
-    """Get the available strictness configurations and their localization keys."""
+    """Get the available strictness configurations and their localization keys.
+
+    Returns:
+        A list of strictness configurations wrapped in a StrictnessConfigListResponse.
+
+    Raises:
+        AppException: If fetching strictness configurations fails.
+    """
     configs = [
         StrictnessConfigDTO(level=StrictnessAnchor.STRICT.value, localization_key="strictnessStrict"),
         StrictnessConfigDTO(level=StrictnessAnchor.ABSOLUTE.value, localization_key="strictnessAbsolute"),

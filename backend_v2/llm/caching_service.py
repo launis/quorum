@@ -60,8 +60,8 @@ class LLMCachingService:
         timestamp_pattern = re.compile(r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 
         for msg in messages:
-            if msg.get("role") == "system":
-                content = str(msg.get("content", ""))
+            if "role" in msg and msg["role"] == "system" and "content" in msg:
+                content = str(msg["content"])
                 if uuid_pattern.search(content) or timestamp_pattern.search(content):
                     logger.warning(
                         "PROMPT_CACHING_PURITY_VIOLATION: Dynamic trace/timestamp pattern "

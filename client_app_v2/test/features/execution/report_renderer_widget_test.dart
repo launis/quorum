@@ -34,8 +34,9 @@ void main() {
             axes: [
               MatrixScorecardRowDto(
                 blockId: 'mock',
-                labelFi: 'Mock Axis',
-                labelEn: 'Mock Axis',
+                labelI18n: const I18nText(
+                  translations: {'fi': 'Mock Axis', 'en': 'Mock Axis'},
+                ),
                 name: 'Mock Axis',
                 score: 100.0,
                 rowExplanation: 'Perfect',
@@ -105,8 +106,9 @@ void main() {
             axes: [
               MatrixScorecardRowDto(
                 blockId: 'text_mock',
-                labelFi: 'Text Axis',
-                labelEn: 'Text Axis',
+                labelI18n: const I18nText(
+                  translations: {'fi': 'Text Axis', 'en': 'Text Axis'},
+                ),
                 name: 'Text Axis',
                 score: 0.0,
                 rowExplanation: 'This is a text only rowExplanation',

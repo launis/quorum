@@ -14,7 +14,6 @@ def mock_repository() -> AsyncMock:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_translation_hook_skips_when_target_en(mock_repository: AsyncMock) -> None:
     """Ensure it skips translation cleanly when language is 'en'."""
     state = HookState(
@@ -42,7 +41,6 @@ async def test_translation_hook_skips_when_target_en(mock_repository: AsyncMock)
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_translation_hook_crashes_when_missing_language_or_locale(mock_repository: AsyncMock) -> None:  # noqa: E501
     """Ensure it drops into AppException when language or target_locale is missing."""
     # Missing target_locale
@@ -85,9 +83,9 @@ async def test_translation_hook_crashes_when_missing_language_or_locale(mock_rep
 
 @pytest.mark.asyncio
 @patch("backend_v2.hooks.translation_hook.LLMClient.from_strategy", new_callable=AsyncMock)
-@pytest.mark.skip("Legacy architecture obsolete")
+@patch("backend_v2.hooks.translation_hook.LLMTaskExecutor.execute_structured_task", new_callable=AsyncMock)
 async def test_translation_hook_role_segregation_and_success(
-    mock_from_strategy: AsyncMock, mock_repository: AsyncMock
+    mock_execute_task: AsyncMock, mock_from_strategy: AsyncMock, mock_repository: AsyncMock
 ) -> None:
     """Ensures that the TranslationHook STRICTLY separates System and User roles."""
     state = HookState(
@@ -113,7 +111,7 @@ async def test_translation_hook_role_segregation_and_success(
     from backend_v2.models.dtos.state import TranslationResponseDTO
 
     mock_llm_response = TranslationResponseDTO(translated_data={"title": "Esimerkki Otsikko"})
-    mock_client.run_structured_task.return_value = (mock_llm_response, {})
+    mock_execute_task.return_value = (mock_llm_response, {})
     mock_from_strategy.return_value = mock_client
 
     res = await cast(Awaitable[HookResult], translation_hook(state, deps))
@@ -125,19 +123,19 @@ async def test_translation_hook_role_segregation_and_success(
 
     # Assert Role Segregation
     mock_from_strategy.assert_called_once_with("fast", repository=mock_repository)
-    mock_client.run_structured_task.assert_called_once()
+    mock_execute_task.assert_called_once()
 
-    call_kwargs = mock_client.run_structured_task.call_args.kwargs
+    call_kwargs = mock_execute_task.call_args.kwargs
     messages = call_kwargs["messages"]
 
-    assert len(messages.static_messages) == 2
-    assert messages.static_messages[0]["role"] == "system"
-    assert "ROLE: You are an automatic JSON translator." in messages.static_messages[0]["content"]
-    assert "suomeksi (Finnish)" in messages.static_messages[0]["content"]  # Embedded target language
+    assert len(messages) == 2
+    assert messages[0]["role"] == "system"
+    assert "ROLE: You are an automatic JSON translator." in messages[0]["content"]
+    assert "suomeksi (Finnish)" in messages[0]["content"]  # Embedded target language
 
-    assert messages.static_messages[1]["role"] == "user"
-    assert "source_data" in messages.static_messages[1]["content"]
-    assert "Example Title" in messages.static_messages[1]["content"]
+    assert messages[1]["role"] == "user"
+    assert "source_data" in messages[1]["content"]
+    assert "Example Title" in messages[1]["content"]
 
 
 from pydantic import BaseModel
@@ -151,7 +149,6 @@ class DummySduiModel(BaseModel):
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_translate_sdui_payload_success(mock_repository: AsyncMock) -> None:
     """Ensure it strictly passes through the payload per the No-String Mandate."""
     obj = DummySduiModel(
@@ -170,7 +167,6 @@ async def test_translate_sdui_payload_success(mock_repository: AsyncMock) -> Non
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_translate_sdui_payload_skips_en(mock_repository: AsyncMock) -> None:
     """Ensure it skips translation for English."""
     obj = DummySduiModel(title="Falsification", items=[])

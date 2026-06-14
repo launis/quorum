@@ -13,12 +13,20 @@ _language_var: ContextVar[str] = ContextVar("language", default="en")
 
 
 def set_language(lang: str) -> None:
-    """Sets the language for the current context (request)."""
+    """Sets the language for the current context (request).
+
+    Args:
+        lang (str): The language code to set (e.g., 'en' or 'fi').
+    """
     _language_var.set(lang)
 
 
 def get_language() -> str:
-    """Gets the language from the current context."""
+    """Gets the language from the current context.
+
+    Returns:
+        str: The current language code.
+    """
     return _language_var.get()
 
 
@@ -33,7 +41,11 @@ class LocalizationService:
 
     @classmethod
     def load_if_needed(cls) -> None:
-        """Loads translation files into memory on first access."""
+        """Loads translation files into memory on first access.
+
+        Raises:
+            AppException: If the L10N_DIR is missing, contains no files, or contains corrupt JSON.
+        """
         if cls._loaded:
             return
 
@@ -95,11 +107,14 @@ class LocalizationService:
 
         Args:
             key (str): The translation key.
-            lang (str): The target language code (e.g., 'fi'). If None, uses Context.
-            **kwargs: Arguments for string interpolation (e.g., name="User").
+            lang (str | None): The target language code (e.g., 'fi'). If None, uses Context.
+            **kwargs (Any): Arguments for string interpolation (e.g., name="User").
 
         Returns:
             str: The translated and formatted string.
+
+        Raises:
+            AppException: If the translation key is completely missing or interpolation arguments are invalid.
         """
         cls.load_if_needed()
 
@@ -157,5 +172,14 @@ class LocalizationService:
 
     @classmethod
     def get(cls, key: str, lang: str | None = None, **kwargs: Any) -> str:
-        """Class method alias for translate. (Hardcoded defaults purged)."""
+        """Class method alias for translate. (Hardcoded defaults purged).
+
+        Args:
+            key (str): The translation key.
+            lang (str | None): The target language code (e.g., 'fi'). If None, uses Context.
+            **kwargs (Any): Arguments for string interpolation.
+
+        Returns:
+            str: The translated string.
+        """
         return cls.translate(key, lang, **kwargs)

@@ -499,6 +499,8 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'default_strictness_level',
         'default_scoring_strategy',
         'enable_contextual_overrides',
+        'enable_semantic_smoothing',
+        'enable_eager_anonymization',
         'expected_inputs',
         'steps',
       ],
@@ -554,6 +556,14 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'enable_contextual_overrides',
         (v) => v as bool? ?? false,
       ),
+      enableSemanticSmoothing: $checkedConvert(
+        'enable_semantic_smoothing',
+        (v) => v as bool? ?? false,
+      ),
+      enableEagerAnonymization: $checkedConvert(
+        'enable_eager_anonymization',
+        (v) => v as bool? ?? false,
+      ),
       expectedInputs: $checkedConvert(
         'expected_inputs',
         (v) =>
@@ -582,6 +592,8 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
     'defaultStrictnessLevel': 'default_strictness_level',
     'defaultScoringStrategy': 'default_scoring_strategy',
     'enableContextualOverrides': 'enable_contextual_overrides',
+    'enableSemanticSmoothing': 'enable_semantic_smoothing',
+    'enableEagerAnonymization': 'enable_eager_anonymization',
     'expectedInputs': 'expected_inputs',
   },
 );
@@ -604,6 +616,8 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
   'default_scoring_strategy':
       _$ScoringStrategyEnumMap[instance.defaultScoringStrategy]!,
   'enable_contextual_overrides': instance.enableContextualOverrides,
+  'enable_semantic_smoothing': instance.enableSemanticSmoothing,
+  'enable_eager_anonymization': instance.enableEagerAnonymization,
   'expected_inputs': instance.expectedInputs.map((e) => e.toJson()).toList(),
   'steps': instance.steps.map((e) => e.toJson()).toList(),
 };

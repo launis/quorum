@@ -1,8 +1,8 @@
 """Phase 3 Offline Migration ETL Script.
 
 This script migrates the existing `seed_data.json` TDA assertions into a bilingual
-structured format. It uses Vaihtoehto B (Option B) for initializing the LLMClient 
-directly from the seed_data.json configuration to run in standalone mode without 
+structured format. It uses Vaihtoehto B (Option B) for initializing the LLMClient
+directly from the seed_data.json configuration to run in standalone mode without
 the entire TinyDB/FastAPI application context.
 """
 import asyncio

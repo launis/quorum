@@ -1,3 +1,5 @@
+"""Pydantic utility functions for data inflation and validation."""
+
 import logging
 from typing import Any, TypeVar
 
@@ -20,7 +22,9 @@ def inflate[T: BaseModel](data: Any, model_class: type[T]) -> T | None:
     Returns:
         The inflated Pydantic model instance.
         Returns None ONLY if the input data itself is fundamentally empty (early return).
-        Raises AppException if data is present but invalid.
+
+    Raises:
+        AppException: If data is present but invalid (INVALID_OUTPUT_SCHEMA).
     """
     if not data:
         return None

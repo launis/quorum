@@ -97,8 +97,7 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             )
             raise AppException(
                 message="Invalid pricing configuration: missing input_token_price or output_token_price",
-                status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
         p_in = float(pricing_config["input_token_price"])
@@ -110,12 +109,7 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         reasoning_tokens = usage.reasoning_tokens
 
         # Strict fetch for model identifier adhering to zero service layer fallback design rules
-        if "model_name" in pricing_config:
-            model_name = pricing_config["model_name"]
-        elif "model" in pricing_config:
-            model_name = pricing_config["model"]
-        else:
-            model_name = ""
+        model_name = pricing_config.get("model_name") or pricing_config.get("model", "")
 
         is_deepseek = "deepseek" in str(model_name).lower()
 
@@ -143,3 +137,14 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             cost_usd=cost_usd,
             estimated_savings_usd=estimated_savings_usd,
         )
+
+    def prepare_provider_kwargs(self, model_name: str) -> dict[str, Any]:
+        """Prepare provider specific arguments for LiteLLM.
+
+        Args:
+            model_name: The target model name.
+
+        Returns:
+            An empty dictionary as no special static arguments are needed.
+        """
+        return {}

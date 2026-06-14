@@ -17,7 +17,17 @@ SEED_DATA_PATH = os.path.join(DATA_DIR, "seed_data.json")
 
 
 def export_db_to_files(source_db_path: str | None = None) -> dict[str, str]:
-    """Exports the current state of the database back to `seed_data.json`."""
+    """Exports the current state of the database back to `seed_data.json`.
+
+    Args:
+        source_db_path: Optional path to the source TinyDB JSON file.
+
+    Returns:
+        A dictionary containing the status and message of the export operation.
+
+    Raises:
+        Exception: If the export process fails.
+    """
     settings = get_settings()
 
     db_path_to_use = source_db_path if source_db_path else settings.prod_db_path

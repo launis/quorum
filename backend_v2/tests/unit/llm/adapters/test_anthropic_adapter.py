@@ -10,14 +10,12 @@ from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_lazy_import_proof() -> None:
     """Pytest sys.modules check is unreliable."""
     pass
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_anthropic_adapter_threshold_under() -> None:
     """Verify AnthropicCacheAdapter falls back to simple flattening if static chars < 4000."""
     adapter = AnthropicCacheAdapter()
@@ -41,7 +39,6 @@ async def test_anthropic_adapter_threshold_under() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_anthropic_adapter_tagging_flow() -> None:
     """Verify AnthropicCacheAdapter merges system blocks and tags last static blocks when >= 4000 chars."""
     adapter = AnthropicCacheAdapter()
@@ -92,7 +89,6 @@ async def test_anthropic_adapter_tagging_flow() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_anthropic_adapter_boundary_merging() -> None:
     """Verify that same role at boundary is merged into content blocks, keeping cache control only on static."""
     adapter = AnthropicCacheAdapter()
@@ -142,14 +138,12 @@ async def test_anthropic_adapter_boundary_merging() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_anthropic_teardown_is_noop() -> None:
     """Verify teardown is successfully executed as No-Op."""
     adapter = AnthropicCacheAdapter()
     await adapter.teardown_cache("run_12345")
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_anthropic_precision_calculation_scenarios() -> None:
     """Test multiple distinct mathematical precision and ROI scenarios for AnthropicCacheAdapter."""
     adapter = AnthropicCacheAdapter()
@@ -166,7 +160,9 @@ def test_anthropic_precision_calculation_scenarios() -> None:
     assert result.estimated_savings_usd == 0.0
 
     # Scenario 2: Cache creation only
-    usage_with_creation = AnthropicTokenUsage(prompt_tokens=1000, completion_tokens=500, total_tokens=1500)
+    usage_with_creation = AnthropicTokenUsage(
+        prompt_tokens=1000, completion_tokens=500, total_tokens=1500, cache_creation_input_tokens=800
+    )
     result = cast(AnthropicTokenUsage, adapter.calculate_cost(usage_with_creation, pricing))
     # regular = 1000 - 800 = 200
     # Cost = 200 * 0.000003 + 800 * 0.000003 * 1.25 + 500 * 0.000015
@@ -176,7 +172,7 @@ def test_anthropic_precision_calculation_scenarios() -> None:
     assert result.estimated_savings_usd == 0.0
 
     # Scenario 3: Cache read (hits) only
-    usage_with_reads = TokenUsage(prompt_tokens=1000, completion_tokens=500, total_tokens=1500)
+    usage_with_reads = TokenUsage(prompt_tokens=1000, completion_tokens=500, total_tokens=1500, cached_tokens=600)
     result = cast(AnthropicTokenUsage, adapter.calculate_cost(usage_with_reads, pricing))
     # regular = 1000 - 600 = 400
     # Cost = 400 * 0.000003 + 600 * 0.000003 * 0.10 + 500 * 0.000015
@@ -186,7 +182,13 @@ def test_anthropic_precision_calculation_scenarios() -> None:
     assert result.estimated_savings_usd == pytest.approx(0.00162)
 
     # Scenario 4: Mixed Cache Creation and Cache Reads
-    usage_mixed = AnthropicTokenUsage(prompt_tokens=2000, completion_tokens=1000, total_tokens=3000)
+    usage_mixed = AnthropicTokenUsage(
+        prompt_tokens=2000,
+        completion_tokens=1000,
+        total_tokens=3000,
+        cached_tokens=1200,
+        cache_creation_input_tokens=500,
+    )
     result = cast(AnthropicTokenUsage, adapter.calculate_cost(usage_mixed, pricing))
     # regular = 2000 - 1200 - 500 = 300
     # Cost = 300 * 0.000003 + 500 * 0.000003 * 1.25 + 1200 * 0.000003 * 0.10 + 1000 * 0.000015
@@ -198,13 +200,14 @@ def test_anthropic_precision_calculation_scenarios() -> None:
 
     # Scenario 5: High priced input scenario
     pricing_expensive = {"input_token_price": 0.01, "output_token_price": 0.03}
-    usage_mixed_exp = AnthropicTokenUsage(prompt_tokens=200, completion_tokens=100, total_tokens=300)
+    usage_mixed_exp = AnthropicTokenUsage(
+        prompt_tokens=200, completion_tokens=100, total_tokens=300, cached_tokens=150, cache_creation_input_tokens=40
+    )
     result = cast(AnthropicTokenUsage, adapter.calculate_cost(usage_mixed_exp, pricing_expensive))
     assert result.cost_usd == pytest.approx(3.75)
     assert result.estimated_savings_usd == pytest.approx(1.25)
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_missing_pricing_raises_error() -> None:
     """Verify that Anthropic adapter raises AppException when price configuration is missing."""
     adapter = AnthropicCacheAdapter()

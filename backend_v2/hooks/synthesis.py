@@ -755,7 +755,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 section_dict[s.layout_id] = s.synthesized_markdown
 
         global_md = result.synthesized_markdown
-        raw_highlights = [h.model_dump() for h in result.xai_highlights] if result.xai_highlights else []
+        raw_highlights = [h.model_dump(mode="json") for h in result.xai_highlights] if result.xai_highlights else []
 
         row_explanations_dict = {}
         row_exp_rule = "MAXIMUM LENGTH IS 30 WORDS. KEEP IT CONCISE BUT INFORMATIVE."
@@ -841,7 +841,7 @@ async def text_consolidation_hook(state: HookState, deps: HookDependencies) -> H
                 "cited_sources": result.cited_sources,
                 "xai_highlights": raw_highlights,
                 "row_explanations": row_explanations_dict,
-                "step_metadata_updates": {"token_usage": updated_usage.model_dump()},
+                "step_metadata_updates": {"token_usage": updated_usage.model_dump(mode="json")},
                 "mcp_tool_audit": raw_audits,
             },
         )

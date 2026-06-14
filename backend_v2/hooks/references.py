@@ -28,11 +28,14 @@ def generate_bibliography(text_dump: str, knowledge_base: dict[str, object] | No
     and implicit conceptual links.
 
     Args:
-        text_dump (str): The full text content to scan (e.g. serialized state).
-        knowledge_base (Dict[str, Any]): The knowledge base structure containing references and concepts.
+        text_dump: The full text content to scan (e.g. serialized state).
+        knowledge_base: The knowledge base structure containing references and concepts.
 
     Returns:
-        List[BibliographyItem]: A list of unique reference domain objects found in the text.
+        A list of unique reference domain objects found in the text.
+
+    Raises:
+        AppException: If bibliography generation fails.
     """
     try:
         # Stubbed implementation of ReferenceManager (Not ported to V2)
@@ -58,13 +61,24 @@ def generate_bibliography(text_dump: str, knowledge_base: dict[str, object] | No
         error_code = ErrorCodes.CITATION_PARSING_FAILED
         logger.error("[ReferenceHook] %s: Bibliography generation failed: %s", error_code.name, e, exc_info=True)
         raise AppException(
-            message=f"Bibliography generation failed: {e}", status_code=500, details={"error_code": error_code}
+            message=f"Bibliography generation failed: {e}", status_code=500, details={"error_code": error_code.value}
         ) from e
 
 
 @hook_registry.register(name="generate_bibliography")
 async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -> HookResult:
-    """Wrap generate_bibliography and inject its results."""
+    """Wrap generate_bibliography and inject its results.
+
+    Args:
+        state: The current execution state containing inputs and context.
+        deps: Dependencies required for execution.
+
+    Returns:
+        A HookResult containing the generated bibliography in the state_delta.
+
+    Raises:
+        AppException: If input validation fails or the hook execution encounters an error.
+    """
     logger.debug("[ReferenceHook] Running generate_bibliography_hook...")
 
     if not state:
@@ -118,7 +132,7 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
         result_dto = BibliographyResultDTO(references=generated_references)
 
         logger.debug("[ReferenceHook] Generated %s references.", len(generated_references))
-        delta: dict[str, Any] = {"bibliography_result": result_dto.model_dump()}
+        delta: dict[str, Any] = {"bibliography_result": result_dto.model_dump(mode="json")}
 
         if "knowledge_base" not in state.global_context_vars:
             delta["knowledge_base"] = knowledge_base
@@ -133,5 +147,5 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
         error_code = ErrorCodes.HOOK_EXECUTION_FAILED
         logger.error("[ReferenceHook] %s: Hook execution failed: %s", error_code.name, e, exc_info=True)
         raise AppException(
-            message=f"Bibliography hook failed: {e}", status_code=500, details={"error_code": error_code}
+            message=f"Bibliography hook failed: {e}", status_code=500, details={"error_code": error_code.value}
         ) from e

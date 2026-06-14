@@ -10,7 +10,7 @@ from backend_v2.llm.client import LLMClient
 
 class DummyConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    provider: str = "lite_llm"
+    provider: str = "openai"
     model_name: str = "pytest-model-1"
     temperature: float = 0.0
     default_max_tokens: int = 1000

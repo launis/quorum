@@ -17,7 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 class ArchiveCase(V2CoreBase):
-    """A past case retrieved by the Archivist."""
+    """A past case retrieved by the Archivist.
+
+    Attributes:
+        case_id: ID of the past case.
+        similarity_score: Similarity to current case.
+        verdict: Verdict of the past case.
+        summary: Summary of the past case.
+    """
 
     case_id: str = Field(..., min_length=1, description="ID of the past case.")
     similarity_score: float = Field(..., description="Similarity to current case.")
@@ -29,6 +36,12 @@ class ArchivistInput(V2CoreBase):
     """Strict input schema for ArchivistAgent.
 
     V2 Dynamic: 'chatlog' is mandatory, but other inputs are encapsulated dynamically.
+
+    Attributes:
+        chat_log: Mandatory chatlog to analyze.
+        archivist_precedents: Retrieved precedents.
+        last_reasoning_trace: Previous reasoning trace.
+        dynamic_inputs: Structured dictionary for dynamic inputs.
     """
 
     chat_log: str = Field(..., description="Mandatory chatlog to analyze.")
@@ -41,7 +54,17 @@ class ArchivistInput(V2CoreBase):
 
 
 class ArchivistOutputDTO(ReasoningTraceDTO):
-    """DTO for Archivist Agent (Content Only)."""
+    """DTO for Archivist Agent (Content Only).
+
+    Attributes:
+        relevant_cases: Relevant past cases.
+        consistency_analysis: Analysis of consistency with precedents.
+        stare_decisis_adherence: Whether the decision follows precedent.
+        compliance_analysis: Analysis of consistency with goals (Compliance).
+        compliance_score: Numeric Compliance score (1-5).
+        description_key: Localization key.
+        description: Localized description.
+    """
 
     relevant_cases: list[ArchiveCase] = Field(
         ...,
@@ -84,6 +107,17 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
     @model_validator(mode="before")
     @classmethod
     def calc_compliance(cls, data: Any) -> Any:
+        """Calculate numerical compliance score from literal.
+
+        Args:
+            data: Raw input dictionary.
+
+        Returns:
+            Mutated dictionary with compliance_score.
+
+        Raises:
+            ValueError: If compliance_analysis is invalid.
+        """
         if isinstance(data, dict):
             # Map Literal to Score
             mapping = {

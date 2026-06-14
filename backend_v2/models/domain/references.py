@@ -13,20 +13,45 @@ class ReferencesInputsDTO:
     By utilizing a TypeAdapter wrapper (RootModel is broken in Python 3.14),
     we strictly enforce that the incoming state payload is explicitly a dictionary
     before any iterative logic executes, satisfying the Phase 9 Zero-Compromise mandate.
+
+    Attributes:
+        root: The underlying dictionary containing the raw reference payload data.
     """
 
     def __init__(self, root: dict[str, Any]) -> None:
+        """Initialize the DTO with the underlying dictionary.
+
+        Args:
+            root: The underlying dictionary containing the raw reference payload data.
+        """
         self.root = root
 
     @classmethod
     def model_validate(cls, data: Any) -> ReferencesInputsDTO:
-        """Validate using strict Pydantic TypeAdapter."""
+        """Validate using strict Pydantic TypeAdapter.
+
+        Args:
+            data: Arbitrary input data to validate as a dictionary.
+
+        Returns:
+            A validated ReferencesInputsDTO wrapping the dictionary.
+
+        Raises:
+            ValidationError: If the input data is not a valid dictionary.
+        """
         validated = _dict_adapter.validate_python(data)
         return cls(root=validated)
 
 
 class ReferenceDTO(BaseModel):
-    """Domain model for a single reference citation."""
+    """Domain model for a single reference citation.
+
+    Attributes:
+        source_id: Unique identifier string pointing to the original source.
+        title: Title of the reference.
+        snippet: Selected excerpt supporting the citation.
+        url: Optional URL pointing to the external source location.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -37,7 +62,12 @@ class ReferenceDTO(BaseModel):
 
 
 class ReferencesContextDTO(BaseModel):
-    """Schema for safely parsing global_context_vars in Reference hook."""
+    """Schema for safely parsing global_context_vars in Reference hook.
+
+    Attributes:
+        step_coach: Optional generic dictionary configuration for step coaching logic.
+        knowledge_base: Optional generic dictionary configuration for KB interactions.
+    """
 
     model_config = ConfigDict(frozen=True, extra="ignore")
 
@@ -46,7 +76,11 @@ class ReferencesContextDTO(BaseModel):
 
 
 class BibliographyResultDTO(BaseModel):
-    """Strict payload for injecting bibliography into state."""
+    """Strict payload for injecting bibliography into state.
+
+    Attributes:
+        references: List of explicit ReferenceDTO objects forming the bibliography.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

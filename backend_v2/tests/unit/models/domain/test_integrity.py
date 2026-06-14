@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.domain.integrity import (
     CitationAudit,
     IntegrityGlobalInputsDTO,
@@ -44,6 +45,17 @@ def test_citation_audit_defaults() -> None:
     assert audit.valid_citations == 0
     assert audit.invalid_citations == []
     assert audit.integrity_score == 1.0
+
+
+def test_citation_audit_bounds() -> None:
+    """Test that CitationAudit integrity_score bounds are enforced."""
+    with pytest.raises(AppException) as exc_info:
+        CitationAudit(integrity_score=1.5)
+    assert "integrity_score must be between 0.0 and 1.0 inclusive" in str(exc_info.value)
+
+    with pytest.raises(AppException) as exc_info:
+        CitationAudit(integrity_score=-0.5)
+    assert "integrity_score must be between 0.0 and 1.0 inclusive" in str(exc_info.value)
 
 
 def test_integrity_global_inputs_extract_source_texts() -> None:

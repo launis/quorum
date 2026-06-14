@@ -114,4 +114,9 @@ class CoachingPlan(CoachingPlanDTO, ReasoningTrace):
     """Output schema for the Coach Agent (Domain Model).
 
     Integrates DTO data alongside standard AI Reasoning trace telemetry.
+
+    Attributes:
+        actionable_steps: Inherited from CoachingPlanDTO.
+        bibliography: Inherited from CoachingPlanDTO.
+        focus_areas: Inherited from CoachingPlanDTO.
     """

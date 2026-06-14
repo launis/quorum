@@ -1,3 +1,5 @@
+"""Database repository implementation module."""
+
 from backend_v2.database.driver import StorageDriver
 
 
@@ -5,6 +7,18 @@ class BaseRepository:
     """Base repository providing access to the injected StorageDriver."""
 
     def __init__(self, driver: StorageDriver):
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         self.driver = driver
 
 

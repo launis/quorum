@@ -11,7 +11,7 @@
           "Authentication & Users"
         ],
         "summary": "Verify User Token",
-        "description": "Exchanges a Firebase ID Token (or mock token) for the Backend User Profile.\n\nArgs:\n    request (Request): The HTTP Request object.\n    payload (TokenPayload): The token payload.\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    LoginResponse: The authenticated user profile and status.\n\nRaises:\n    HTTPException: If the user is found in Firebase but not in the DB (404),\n                   or if the token is invalid (401).",
+        "description": "Exchanges a Firebase ID Token (or mock token) for the Backend User Profile.\n\nArgs:\n    request (Request): The HTTP Request object.\n    payload (TokenPayload): The token payload.\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    LoginResponse: The authenticated user profile and status.\n\nRaises:\n    AuthenticationError: If the token is invalid or profile not initialized.\n    AppException: If an unexpected login failure occurs.",
         "operationId": "verify_user_token_api_v2_iam_auth_verify_post",
         "requestBody": {
           "content": {
@@ -53,7 +53,7 @@
           "Authentication & Users"
         ],
         "summary": "Impersonate User",
-        "description": "Generates an impersonation token for the target user. Requires ROOT.\n\nArgs:\n    request (ImpersonationRequest): Payload containing target_id.\n    current_user (CurrentUserDep): The requesting user (must be ROOT).\n    auth_service (AuthServiceDep): Auth service.\n\nReturns:\n    ImpersonationResponse: The access token.\n\nRaises:\n    HTTPException: If permission denied (403) or target not found (404).",
+        "description": "Generates an impersonation token for the target user. Requires ROOT.\n\nArgs:\n    request (ImpersonationRequest): Payload containing target_id.\n    current_user (CurrentUserDep): The requesting user (must be ROOT).\n    auth_service (AuthServiceDep): Auth service.\n\nReturns:\n    ImpersonationResponse: The access token.\n\nRaises:\n    PermissionDeniedError: If the requesting user is not ROOT.\n    ResourceNotFoundError: If the target user is not found.",
         "operationId": "impersonate_user_api_v2_iam_auth_impersonate_post",
         "requestBody": {
           "content": {
@@ -100,7 +100,7 @@
           "Authentication & Users"
         ],
         "summary": "List Available Roles",
-        "description": "List all valid User Roles.\n\nUsed by frontend for dynamic dropdowns (Zero Hardcoding).",
+        "description": "List all valid User Roles.\n\nUsed by frontend for dynamic dropdowns (Zero Hardcoding).\n\nReturns:\n    A list of role strings.",
         "operationId": "list_available_roles_api_v2_iam_auth_roles_get",
         "responses": {
           "200": {
@@ -126,7 +126,7 @@
           "Authentication & Users"
         ],
         "summary": "List Users",
-        "description": "List users visible to the current user (scoped by Organization).",
+        "description": "List users visible to the current user (scoped by Organization).\n\nArgs:\n    current_user: The authenticated user making the request.\n    auth_service: Authentication service dependency.\n\nReturns:\n    A list of users.\n\nRaises:\n    AppException: If fetching users fails.",
         "operationId": "list_users_api_v2_iam_auth_users_get",
         "responses": {
           "200": {
@@ -155,7 +155,7 @@
           "Authentication & Users"
         ],
         "summary": "Create User",
-        "description": "Create a new user.\n\nArgs:\n    request (Request): The HTTP Request object.\n    user_data (UserCreate): Payload for the new user.\n    current_user (CurrentUserDep): The requesting user (must be ROOT, ADMIN, or MANAGER).\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    User: The created user profile.\n\nRaises:\n    HTTPException: If permission denied (403) or validation fails (400).",
+        "description": "Create a new user.\n\nArgs:\n    request (Request): The HTTP Request object.\n    user_data (UserCreate): Payload for the new user.\n    current_user (CurrentUserDep): The requesting user (must be ROOT, ADMIN, or MANAGER).\n    auth_service (AuthServiceDep): Authentication service dependency.\n\nReturns:\n    User: The created user profile.\n\nRaises:\n    PermissionDeniedError: If permission denied.\n    AppException: If validation fails or user creation fails.",
         "operationId": "create_user_api_v2_iam_auth_users_post",
         "requestBody": {
           "content": {
@@ -202,7 +202,7 @@
           "Authentication & Users"
         ],
         "summary": "Delete User",
-        "description": "Delete a user.\n\nEnforces Last Admin Protection.\n\nArgs:\n    id (str): The UID of the user to delete.\n    current_user (CurrentUserDep): The requesting user (ROOT or ADMIN).\n    auth_service (AuthServiceDep): Authorization service.\n\nReturns:\n    UserDeleteResponse: Status confirmation.\n\nRaises:\n    HTTPException: Permission denied (403) or business logic error (400).",
+        "description": "Delete a user.\n\nEnforces Last Admin Protection.\n\nArgs:\n    id (str): The UID of the user to delete.\n    current_user (CurrentUserDep): The requesting user (ROOT or ADMIN).\n    auth_service (AuthServiceDep): Authorization service.\n\nReturns:\n    UserDeleteResponse: Status confirmation.\n\nRaises:\n    PermissionDeniedError: If permission denied.\n    ConflictError: If Last Admin Protection is triggered.\n    AppException: If business logic validation fails or deletion fails.",
         "operationId": "delete_user_api_v2_iam_auth_users__id__delete",
         "security": [
           {
@@ -248,7 +248,7 @@
           "Authentication & Users"
         ],
         "summary": "Update User",
-        "description": "Update a user (Role, Display Name, etc).\n\nArgs:\n    id (str): The UID of the user to update.\n    user_update (UserUpdate): Fields to update.\n    current_user (CurrentUserDep): Requesting user.\n    auth_service (AuthServiceDep): Authorization service.\n\nReturns:\n    User: The updated user profile.",
+        "description": "Update a user (Role, Display Name, etc).\n\nArgs:\n    id (str): The UID of the user to update.\n    user_update (UserUpdate): Fields to update.\n    current_user (CurrentUserDep): Requesting user.\n    auth_service (AuthServiceDep): Authorization service.\n\nReturns:\n    User: The updated user profile.\n\nRaises:\n    PermissionDeniedError: If permission denied.\n    ResourceNotFoundError: If the user is not found.\n    ConflictError: If Last Admin Protection is triggered.\n    AppException: If update fails.",
         "operationId": "update_user_api_v2_iam_auth_users__id__patch",
         "security": [
           {
@@ -306,7 +306,7 @@
           "Authentication & Users"
         ],
         "summary": "Get My Profile",
-        "description": "Get the currently authenticated user's profile.\n\nArgs:\n    current_user (CurrentUserDep): The authenticated user.\n    auth_service (AuthServiceDep): Auth service.\n\nReturns:\n    User: The full user profile.",
+        "description": "Get the currently authenticated user's profile.\n\nArgs:\n    current_user (CurrentUserDep): The authenticated user.\n    auth_service (AuthServiceDep): Auth service.\n\nReturns:\n    User: The full user profile.\n\nRaises:\n    AuthenticationError: If the user profile is not found.",
         "operationId": "get_my_profile_api_v2_iam_auth_me_get",
         "responses": {
           "200": {
@@ -333,7 +333,7 @@
           "Admin IAM V2 - Users"
         ],
         "summary": "Get All Users",
-        "description": "Retrieve all users securely evaluated by SSOT Service Layer.",
+        "description": "Retrieve all users securely evaluated by SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    A list of users accessible by the current user.\n\nRaises:\n    AppException: If retrieving users fails.",
         "operationId": "get_all_users_api_v2_iam_users__get",
         "responses": {
           "200": {
@@ -364,7 +364,7 @@
           "Admin IAM V2 - Users"
         ],
         "summary": "Get User",
-        "description": "Retrieve a specific user profile securely via SSOT Service Layer.",
+        "description": "Retrieve a specific user profile securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the user to retrieve.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    The requested user profile.\n\nRaises:\n    ResourceNotFoundError: If the user is not found.\n    PermissionDeniedError: If the requesting user lacks permissions.\n    AppException: If fetching the user fails.",
         "operationId": "get_user_api_v2_iam_users__id__get",
         "security": [
           {
@@ -410,7 +410,7 @@
           "Admin IAM V2 - Users"
         ],
         "summary": "Save User",
-        "description": "Update a user's role or organization securely via SSOT Service Layer.",
+        "description": "Update a user's role or organization securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the user to update.\n    data: The user data to update.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    The updated user profile.\n\nRaises:\n    PermissionDeniedError: If the requesting user lacks permissions.\n    ResourceNotFoundError: If the user is not found.\n    AppException: If updating the user fails.",
         "operationId": "save_user_api_v2_iam_users__id__put",
         "security": [
           {
@@ -466,7 +466,7 @@
           "Admin IAM V2 - Users"
         ],
         "summary": "Delete User",
-        "description": "Delete a user from the system securely via SSOT Service Layer.",
+        "description": "Delete a user from the system securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the user to delete.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    A UserDeleteResponse indicating success.\n\nRaises:\n    PermissionDeniedError: If the requesting user lacks permissions.\n    ConflictError: If deleting the last admin.\n    AppException: If deleting the user fails.",
         "operationId": "delete_user_api_v2_iam_users__id__delete",
         "security": [
           {
@@ -514,7 +514,7 @@
           "Admin IAM V2 - Organizations"
         ],
         "summary": "Get All Organizations",
-        "description": "Retrieve all organizations securely evaluated by SSOT Service Layer.",
+        "description": "Retrieve all organizations securely evaluated by SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    A list of organizations accessible by the user.\n\nRaises:\n    AppException: If fetching organizations fails.",
         "operationId": "get_all_organizations_api_v2_iam_organizations__get",
         "responses": {
           "200": {
@@ -545,7 +545,7 @@
           "Admin IAM V2 - Organizations"
         ],
         "summary": "Get Organization",
-        "description": "Retrieve a specific organization securely via SSOT Service Layer.",
+        "description": "Retrieve a specific organization securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the organization.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    The requested organization.\n\nRaises:\n    ResourceNotFoundError: If the organization is not found.\n    PermissionDeniedError: If the user lacks permission to view it.\n    AppException: If fetching the organization fails.",
         "operationId": "get_organization_api_v2_iam_organizations__id__get",
         "security": [
           {
@@ -591,7 +591,7 @@
           "Admin IAM V2 - Organizations"
         ],
         "summary": "Save Organization",
-        "description": "Create or update an organization securely via SSOT Service Layer.",
+        "description": "Create or update an organization securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the organization.\n    data: The organization data to update or create.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    The updated or created organization.\n\nRaises:\n    PermissionDeniedError: If the user lacks permission.\n    AppException: If saving the organization fails.",
         "operationId": "save_organization_api_v2_iam_organizations__id__put",
         "security": [
           {
@@ -647,7 +647,7 @@
           "Admin IAM V2 - Organizations"
         ],
         "summary": "Delete Organization",
-        "description": "Delete an organization from the system securely via SSOT Service Layer.",
+        "description": "Delete an organization from the system securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the organization to delete.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    An OrganizationDeleteResponse confirming deletion.\n\nRaises:\n    ResourceNotFoundError: If the organization is not found.\n    PermissionDeniedError: If the user lacks permission.\n    AppException: If deleting the organization fails.",
         "operationId": "delete_organization_api_v2_iam_organizations__id__delete",
         "security": [
           {
@@ -717,7 +717,7 @@
           "Telemetry"
         ],
         "summary": "Report Client Error",
-        "description": "Ingest an error report from the client and log it into the backend's logging system.\n\nThis fulfills the Dual-Reporting Telemetry Mandate. Errors logged here will be\nforwarded to Logfire/Sentry automatically via the backend's logging configuration.",
+        "description": "Ingest an error report from the client and log it into the backend's logging system.\n\nThis fulfills the Dual-Reporting Telemetry Mandate. Errors logged here will be\nforwarded to Logfire/Sentry automatically via the backend's logging configuration.\n\nArgs:\n    payload: The telemetry payload from the client containing the error details.\n\nReturns:\n    None.\n\nRaises:\n    AppException: If logging the client error fails internally.",
         "operationId": "report_client_error_api_v2_system_telemetry_client_error_post",
         "requestBody": {
           "content": {
@@ -752,7 +752,7 @@
           "System Configs"
         ],
         "summary": "Get Strictness Configurations",
-        "description": "Get the available strictness configurations and their localization keys.",
+        "description": "Get the available strictness configurations and their localization keys.\n\nReturns:\n    A list of strictness configurations wrapped in a StrictnessConfigListResponse.\n\nRaises:\n    AppException: If fetching strictness configurations fails.",
         "operationId": "get_strictness_configurations_api_v2_system_configs_strictness_get",
         "responses": {
           "200": {
@@ -774,7 +774,7 @@
           "Executions"
         ],
         "summary": "List Executions",
-        "description": "Retrieve all executions securely via SSOT.",
+        "description": "Retrieve all executions securely via SSOT.\n\nArgs:\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nReturns:\n    A list of execution records accessible by the user.\n\nRaises:\n    AppException: If fetching executions fails or permission is denied.",
         "operationId": "list_executions_api_v2_execution_executions__get",
         "responses": {
           "200": {
@@ -803,7 +803,7 @@
           "Executions"
         ],
         "summary": "Start Execution",
-        "description": "Start an asynchronous workflow execution securely via SSOT.",
+        "description": "Start an asynchronous workflow execution securely via SSOT.\n\nArgs:\n    payload: The execution creation payload containing workflow ID and inputs.\n    arq_pool: The Arq Redis connection pool for background tasks.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n    doc_service: Document extraction service for eager extraction.\n\nReturns:\n    The newly created execution record in a pending/running state.\n\nRaises:\n    AppException: If validation fails, quota exceeded, or permission denied.",
         "operationId": "start_execution_api_v2_execution_executions__post",
         "requestBody": {
           "content": {
@@ -850,7 +850,7 @@
           "Executions"
         ],
         "summary": "Get Execution Status",
-        "description": "Retrieve the current status and results of an execution securely via SSOT.",
+        "description": "Retrieve the current status and results of an execution securely via SSOT.\n\nArgs:\n    execution_id: The unique identifier of the execution.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nReturns:\n    The requested execution record.\n\nRaises:\n    AppException: If the execution is not found or permission denied.",
         "operationId": "get_execution_status_api_v2_execution_executions__execution_id__get",
         "security": [
           {
@@ -896,7 +896,7 @@
           "Executions"
         ],
         "summary": "Delete Execution",
-        "description": "Delete an execution securely via SSOT.",
+        "description": "Delete an execution securely via SSOT.\n\nArgs:\n    execution_id: The unique identifier of the execution to delete.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nRaises:\n    AppException: If deletion fails or permission is denied.",
         "operationId": "delete_execution_api_v2_execution_executions__execution_id__delete",
         "security": [
           {
@@ -937,7 +937,7 @@
           "Executions"
         ],
         "summary": "Resume Execution",
-        "description": "Resume a failed execution securely via SSOT.",
+        "description": "Resume a failed execution securely via SSOT.\n\nArgs:\n    execution_id: The unique identifier of the failed execution.\n    arq_pool: The Arq Redis connection pool.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nReturns:\n    The resumed execution record in a running state.\n\nRaises:\n    AppException: If unresumable state, quota exceeded, or not found.",
         "operationId": "resume_execution_api_v2_execution_executions__execution_id__resume_post",
         "security": [
           {
@@ -985,7 +985,7 @@
           "Executions"
         ],
         "summary": "Stream Execution Status",
-        "description": "Stream execution status and results securely via Sever-Sent Events (SSE).",
+        "description": "Stream execution status and results securely via Sever-Sent Events (SSE).\n\nArgs:\n    execution_id: The unique identifier of the execution.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nReturns:\n    A StreamingResponse emitting SSE events.\n\nRaises:\n    AppException: If the execution is not found or permission denied.",
         "operationId": "stream_execution_status_api_v2_execution_executions__execution_id__stream_get",
         "security": [
           {
@@ -1031,7 +1031,7 @@
           "Executions"
         ],
         "summary": "Download Frozen Context",
-        "description": "Download the forensic frozen context JSON for an execution.",
+        "description": "Download the forensic frozen context JSON for an execution.\n\nArgs:\n    execution_id: The unique identifier of the execution.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nReturns:\n    A Response containing the frozen context file.\n\nRaises:\n    AppException: If the file is not found or permission is denied.",
         "operationId": "download_frozen_context_api_v2_execution_executions__execution_id__frozen_context_get",
         "security": [
           {
@@ -1077,7 +1077,7 @@
           "Executions"
         ],
         "summary": "Render Execution",
-        "description": "Omni-channel render endpoint for an execution.",
+        "description": "Omni-channel render endpoint for an execution.\n\nArgs:\n    request: The FastAPI request object.\n    execution_id: The unique identifier of the execution.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n    arq_pool: The Arq Redis connection pool.\n    format: The desired output format (e.g., json, pdf, flat).\n    profile_id: The identifier of the output profile to use.\n    custom_preface_md: Optional custom preface content in Markdown.\n    local_time_str: Optional localized time string for rendering.\n\nReturns:\n    A Response object appropriately typed based on the format requested.\n\nRaises:\n    AppException: If rendering fails, format is unsupported, or permission denied.",
         "operationId": "render_execution_api_v2_execution_executions__execution_id__render_get",
         "security": [
           {
@@ -1189,7 +1189,7 @@
           "Executions"
         ],
         "summary": "Generate Pdf Async",
-        "description": "Omni-channel render endpoint for asynchronous PDF Generation via BackgroundWorker.",
+        "description": "Omni-channel render endpoint for asynchronous PDF Generation via BackgroundWorker.\n\nArgs:\n    request: The FastAPI request object.\n    execution_id: The unique identifier of the execution.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n    arq_pool: The Arq Redis connection pool.\n    profile_id: The identifier of the output profile.\n    custom_preface_md: Optional custom preface content in Markdown.\n    local_time_str: Optional localized time string.\n\nReturns:\n    A JobAcceptedDTO indicating the PDF generation has been queued.\n\nRaises:\n    AppException: If queuing fails or permission is denied.",
         "operationId": "generate_pdf_async_api_v2_execution_executions__execution_id__render_pdf_post",
         "security": [
           {
@@ -1289,7 +1289,7 @@
           "Executions"
         ],
         "summary": "Delete Profile Synthesis",
-        "description": "Clears the cached synthesis state for a specific profile.\nThis forces the next render request to dispatch On-Demand Rendering.",
+        "description": "Clears the cached synthesis state for a specific profile.\n\nThis forces the next render request to dispatch On-Demand Rendering.\n\nArgs:\n    execution_id: The unique identifier of the execution.\n    profile_id: The specific profile identifier to clear.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nRaises:\n    AppException: If the execution is not found or permission is denied.",
         "operationId": "delete_profile_synthesis_api_v2_execution_executions__execution_id__profiles__profile_id__delete",
         "security": [
           {
@@ -1339,7 +1339,7 @@
           "Workflows"
         ],
         "summary": "Get Workflow Ui Schema",
-        "description": "Retrieve the expected inputs schema for frontend dynamic rendering.",
+        "description": "Retrieve the expected inputs schema for frontend dynamic rendering.\n\nArgs:\n    workflow_id: The unique identifier of the workflow blueprint.\n    current_user: The authenticated user making the request.\n    execution_service: The execution domain service.\n\nReturns:\n    A WorkflowSchemaResponse containing the UI structure.\n\nRaises:\n    AppException: If the workflow is not found or user lacks permission.",
         "operationId": "get_workflow_ui_schema_api_v2_execution_workflows__workflow_id__ui_schema_get",
         "security": [
           {
@@ -1389,7 +1389,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Get Workflows",
-        "description": "Retrieve all V2 dynamic workflow definition blocks securely via SSOT Service Layer.",
+        "description": "Retrieve all V2 dynamic workflow definition blocks securely via SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A list of all workflow definitions.\n\nRaises:\n    AppException: If fetching workflows fails.",
         "operationId": "get_workflows_api_v2_studio_workflows__get",
         "responses": {
           "200": {
@@ -1418,7 +1418,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Create Workflow",
-        "description": "Create a new Workflow draft securely via SSOT Service Layer.",
+        "description": "Create a new Workflow draft securely via SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly created workflow draft.\n\nRaises:\n    AppException: If creating the draft fails.",
         "operationId": "create_workflow_api_v2_studio_workflows__post",
         "responses": {
           "200": {
@@ -1445,7 +1445,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Get Workflow",
-        "description": "Retrieve a specific workflow definition by id securely via SSOT Service Layer.",
+        "description": "Retrieve a specific workflow definition by id securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the workflow.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The requested workflow definition.\n\nRaises:\n    ResourceNotFoundError: If the workflow is not found.\n    AppException: If fetching the workflow fails.",
         "operationId": "get_workflow_api_v2_studio_workflows__id__get",
         "security": [
           {
@@ -1491,7 +1491,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Save Workflow",
-        "description": "Append or update a workflow definition block securely via SSOT Service Layer.",
+        "description": "Append or update a workflow definition block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the workflow.\n    data: The new configuration data for the workflow.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The updated workflow definition.\n\nRaises:\n    ResourceNotFoundError: If the workflow is not found.\n    AppException: If updating the workflow fails.",
         "operationId": "save_workflow_api_v2_studio_workflows__id__put",
         "security": [
           {
@@ -1547,7 +1547,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Delete Workflow",
-        "description": "Delete a workflow definition block securely via SSOT Service Layer.",
+        "description": "Delete a workflow definition block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the workflow to delete.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A WorkflowDeleteResponse confirming the deletion.\n\nRaises:\n    ResourceNotFoundError: If the workflow is not found.\n    AppException: If deleting the workflow fails.",
         "operationId": "delete_workflow_api_v2_studio_workflows__id__delete",
         "security": [
           {
@@ -1595,7 +1595,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Simulate Workflow",
-        "description": "Dry-run and validate a workflow DAG topology before saving.",
+        "description": "Dry-run and validate a workflow DAG topology before saving.\n\nArgs:\n    data: The workflow definition to simulate.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The results of the simulation.\n\nRaises:\n    AppException: If the simulation fails.",
         "operationId": "simulate_workflow_api_v2_studio_workflows_simulate_post",
         "requestBody": {
           "content": {
@@ -1642,7 +1642,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Get Workflow Available Extensions",
-        "description": "Calculate the union of all output_extensions defined across all Target Matrices within a specific DAG.",
+        "description": "Calculate the union of all output_extensions defined across all Target Matrices within a specific DAG.\n\nArgs:\n    id: The unique identifier of the workflow.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A WorkflowAvailableExtensionsResponse with a list of available extensions.\n\nRaises:\n    ResourceNotFoundError: If the workflow is not found.\n    AppException: If fetching the extensions fails.",
         "operationId": "get_workflow_available_extensions_api_v2_studio_workflows__id__available_extensions_get",
         "security": [
           {
@@ -1690,7 +1690,7 @@
           "Admin Studio V2 - Workflows"
         ],
         "summary": "Clone Workflow",
-        "description": "Deep clone a workflow block securely via SSOT Service Layer.",
+        "description": "Deep clone a workflow block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the workflow to clone.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly cloned workflow definition.\n\nRaises:\n    ResourceNotFoundError: If the source workflow is not found.\n    AppException: If cloning the workflow fails.",
         "operationId": "clone_workflow_api_v2_studio_workflows__id__clone_post",
         "security": [
           {
@@ -1738,7 +1738,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Simulate Prompt Block",
-        "description": "Dry-run and validate a PromptBlock template rendering.",
+        "description": "Dry-run and validate a PromptBlock template rendering.\n\nArgs:\n    data: The simulation request containing the prompt block and mock inputs.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The results of the simulation.\n\nRaises:\n    AppException: If the simulation fails.",
         "operationId": "simulate_prompt_block_api_v2_studio_prompt_blocks_simulate_post",
         "requestBody": {
           "content": {
@@ -1785,7 +1785,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Get Prompt Blocks",
-        "description": "Retrieve all PromptBlocks securely.",
+        "description": "Retrieve all PromptBlocks securely.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A list of all prompt blocks.\n\nRaises:\n    AppException: If fetching prompt blocks fails.",
         "operationId": "get_prompt_blocks_api_v2_studio_prompt_blocks__get",
         "responses": {
           "200": {
@@ -1814,7 +1814,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Create Prompt Block",
-        "description": "Create a new PromptBlock draft securely via SSOT.",
+        "description": "Create a new PromptBlock draft securely via SSOT.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly created prompt block draft.\n\nRaises:\n    AppException: If creating the draft fails.",
         "operationId": "create_prompt_block_api_v2_studio_prompt_blocks__post",
         "responses": {
           "200": {
@@ -1841,7 +1841,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Get Prompt Block",
-        "description": "Retrieve a specific prompt block by id securely via SSOT Service Layer.",
+        "description": "Retrieve a specific prompt block by id securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the prompt block.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The requested prompt block.\n\nRaises:\n    ResourceNotFoundError: If the prompt block is not found.\n    AppException: If fetching the prompt block fails.",
         "operationId": "get_prompt_block_api_v2_studio_prompt_blocks__id__get",
         "security": [
           {
@@ -1887,7 +1887,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Save Prompt Block",
-        "description": "Append or update a prompt block securely via SSOT Service Layer.",
+        "description": "Append or update a prompt block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the prompt block.\n    data: The new configuration data for the prompt block.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The updated prompt block.\n\nRaises:\n    ResourceNotFoundError: If the prompt block is not found.\n    AppException: If updating the prompt block fails.",
         "operationId": "save_prompt_block_api_v2_studio_prompt_blocks__id__put",
         "security": [
           {
@@ -1943,7 +1943,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Delete Prompt Block",
-        "description": "Delete a prompt block securely via SSOT Service Layer.",
+        "description": "Delete a prompt block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the prompt block to delete.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n    force_delete: Whether to force delete the prompt block.\n\nReturns:\n    A PromptBlockDeleteResponse confirming the deletion.\n\nRaises:\n    ResourceNotFoundError: If the prompt block is not found.\n    AppException: If deleting the prompt block fails.",
         "operationId": "delete_prompt_block_api_v2_studio_prompt_blocks__id__delete",
         "security": [
           {
@@ -2001,7 +2001,7 @@
           "Admin Studio V2 - Prompt Blocks"
         ],
         "summary": "Clone Prompt Block",
-        "description": "Deep clone a prompt block securely via SSOT Service Layer.",
+        "description": "Deep clone a prompt block securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the prompt block to clone.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly cloned prompt block.\n\nRaises:\n    ResourceNotFoundError: If the source prompt block is not found.\n    AppException: If cloning the prompt block fails.",
         "operationId": "clone_prompt_block_api_v2_studio_prompt_blocks__id__clone_post",
         "security": [
           {
@@ -2049,7 +2049,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Simulate Step",
-        "description": "Dry-run and validate a Step (TaskBlueprint) by compiling its prompt blocks.",
+        "description": "Dry-run and validate a Step (TaskBlueprint) by compiling its prompt blocks.\n\nArgs:\n    data: The simulation request containing the step and mock inputs.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The results of the simulation.\n\nRaises:\n    AppException: If the simulation fails.",
         "operationId": "simulate_step_api_v2_studio_steps_simulate_post",
         "requestBody": {
           "content": {
@@ -2096,7 +2096,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Get Steps",
-        "description": "Retrieve all V2 dynamic step execution block schemas securely via SSOT.",
+        "description": "Retrieve all V2 dynamic step execution block schemas securely via SSOT.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A list of all steps.\n\nRaises:\n    AppException: If fetching steps fails.",
         "operationId": "get_steps_api_v2_studio_steps__get",
         "responses": {
           "200": {
@@ -2125,7 +2125,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Create Step",
-        "description": "Create a new Step draft securely via SSOT.",
+        "description": "Create a new Step draft securely via SSOT.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly created step draft.\n\nRaises:\n    AppException: If creating the draft fails.",
         "operationId": "create_step_api_v2_studio_steps__post",
         "responses": {
           "200": {
@@ -2152,7 +2152,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Get Step",
-        "description": "Retrieve a specific Step securely via SSOT Service Layer.",
+        "description": "Retrieve a specific Step securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the step.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The requested step.\n\nRaises:\n    ResourceNotFoundError: If the step is not found.\n    AppException: If fetching the step fails.",
         "operationId": "get_step_api_v2_studio_steps__id__get",
         "security": [
           {
@@ -2198,7 +2198,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Save Step",
-        "description": "Append or update a Step securely via SSOT Service Layer.",
+        "description": "Append or update a Step securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the step.\n    data: The new configuration data for the step.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The updated step.\n\nRaises:\n    ResourceNotFoundError: If the step is not found.\n    AppException: If updating the step fails.",
         "operationId": "save_step_api_v2_studio_steps__id__put",
         "security": [
           {
@@ -2254,7 +2254,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Delete Step",
-        "description": "Delete a Step securely via SSOT Service Layer.",
+        "description": "Delete a Step securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the step to delete.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n    force_delete: Whether to force delete the step.\n\nReturns:\n    A StepDeleteResponse confirming the deletion.\n\nRaises:\n    ResourceNotFoundError: If the step is not found.\n    AppException: If deleting the step fails.",
         "operationId": "delete_step_api_v2_studio_steps__id__delete",
         "security": [
           {
@@ -2312,7 +2312,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Clone Step",
-        "description": "Deep clone a step securely via SSOT Service Layer.",
+        "description": "Deep clone a step securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the step to clone.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly cloned step.\n\nRaises:\n    ResourceNotFoundError: If the source step is not found.\n    AppException: If cloning the step fails.",
         "operationId": "clone_step_api_v2_studio_steps__id__clone_post",
         "security": [
           {
@@ -2360,7 +2360,7 @@
           "Admin Studio V2 - Model Registry"
         ],
         "summary": "Get Available Models",
-        "description": "Retrieve all available LLM models discovered by the LLM Handler.",
+        "description": "Retrieve all available LLM models discovered by the LLM Handler.\n\nArgs:\n    current_user: The authenticated user making the request.\n    llm_handler: The LLM handler dependency.\n    studio_service: The studio service dependency.\n\nReturns:\n    A list of available model names.\n\nRaises:\n    AppException: If fetching available models fails.",
         "operationId": "get_available_models_api_v2_studio_model_registry_available_models_get",
         "responses": {
           "200": {
@@ -2391,7 +2391,7 @@
           "Admin Studio V2 - Model Registry"
         ],
         "summary": "Get All Model Registries",
-        "description": "Retrieve all global model registry configurations securely via SSOT Service Layer.",
+        "description": "Retrieve all global model registry configurations securely via SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A list of model registry configurations.\n\nRaises:\n    AppException: If fetching model registries fails.",
         "operationId": "get_all_model_registries_api_v2_studio_model_registry__get",
         "responses": {
           "200": {
@@ -2420,7 +2420,7 @@
           "Admin Studio V2 - Model Registry"
         ],
         "summary": "Create Model Registry",
-        "description": "Create a new Model Registry config draft securely via SSOT Service Layer.",
+        "description": "Create a new Model Registry config draft securely via SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly created model registry draft configuration.\n\nRaises:\n    AppException: If creating the draft fails.",
         "operationId": "create_model_registry_api_v2_studio_model_registry__post",
         "responses": {
           "200": {
@@ -2447,7 +2447,7 @@
           "Admin Studio V2 - Model Registry"
         ],
         "summary": "Get Model Registry",
-        "description": "Retrieve a single model registry configuration securely via SSOT Service Layer.",
+        "description": "Retrieve a single model registry configuration securely via SSOT Service Layer.\n\nArgs:\n    registry_id: The unique identifier of the model registry.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The requested model registry configuration.\n\nRaises:\n    ResourceNotFoundError: If the model registry is not found.\n    AppException: If fetching the model registry fails.",
         "operationId": "get_model_registry_api_v2_studio_model_registry__registry_id__get",
         "security": [
           {
@@ -2493,7 +2493,7 @@
           "Admin Studio V2 - Model Registry"
         ],
         "summary": "Save Model Registry",
-        "description": "Update a model registry configuration securely via SSOT Service Layer.",
+        "description": "Update a model registry configuration securely via SSOT Service Layer.\n\nArgs:\n    registry_id: The unique identifier of the model registry.\n    data: The new configuration data.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The updated model registry configuration.\n\nRaises:\n    ResourceNotFoundError: If the model registry is not found.\n    AppException: If updating the model registry fails.",
         "operationId": "save_model_registry_api_v2_studio_model_registry__registry_id__put",
         "security": [
           {
@@ -2549,7 +2549,7 @@
           "Admin Studio V2 - Model Registry"
         ],
         "summary": "Delete Model Registry",
-        "description": "Delete a model registry configuration securely via SSOT Service Layer.",
+        "description": "Delete a model registry configuration securely via SSOT Service Layer.\n\nArgs:\n    registry_id: The unique identifier of the model registry to delete.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A ModelRegistryDeleteResponse confirming the deletion.\n\nRaises:\n    ResourceNotFoundError: If the model registry is not found.\n    AppException: If deleting the model registry fails.",
         "operationId": "delete_model_registry_api_v2_studio_model_registry__registry_id__delete",
         "security": [
           {
@@ -2597,7 +2597,7 @@
           "Admin Studio V2 - Model Registry"
         ],
         "summary": "Clone Model Registry",
-        "description": "Deep clone a model registry configuration securely via SSOT Service Layer.",
+        "description": "Deep clone a model registry configuration securely via SSOT Service Layer.\n\nArgs:\n    registry_id: The unique identifier of the model registry to clone.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly cloned model registry configuration.\n\nRaises:\n    ResourceNotFoundError: If the source model registry is not found.\n    AppException: If cloning the model registry fails.",
         "operationId": "clone_model_registry_api_v2_studio_model_registry__registry_id__clone_post",
         "security": [
           {
@@ -2645,7 +2645,7 @@
           "Admin Studio V2 - MCP Gateways"
         ],
         "summary": "Get All Mcp Gateways",
-        "description": "Retrieve all MCP Gateways configurations securely via SSOT Service Layer.",
+        "description": "Retrieve all MCP Gateways configurations securely via SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    A list of MCP gateways configurations.\n\nRaises:\n    AppException: If fetching MCP gateways fails.",
         "operationId": "get_all_mcp_gateways_api_v2_studio_mcp_gateways__get",
         "responses": {
           "200": {
@@ -2674,7 +2674,7 @@
           "Admin Studio V2 - MCP Gateways"
         ],
         "summary": "Create Mcp Gateways",
-        "description": "Create a new MCP Gateway Config draft securely via SSOT.",
+        "description": "Create a new MCP Gateway Config draft securely via SSOT.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly created MCP gateway draft configuration.\n\nRaises:\n    AppException: If creating the draft fails.",
         "operationId": "create_mcp_gateways_api_v2_studio_mcp_gateways__post",
         "responses": {
           "200": {
@@ -2701,7 +2701,7 @@
           "Admin Studio V2 - MCP Gateways"
         ],
         "summary": "Get Mcp Gateway",
-        "description": "Retrieve a single MCP Gateway configuration securely via SSOT Service Layer.",
+        "description": "Retrieve a single MCP Gateway configuration securely via SSOT Service Layer.\n\nArgs:\n    gateway_id: The unique identifier of the MCP gateway.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The requested MCP gateway configuration.\n\nRaises:\n    ResourceNotFoundError: If the MCP gateway is not found.\n    AppException: If fetching the MCP gateway fails.",
         "operationId": "get_mcp_gateway_api_v2_studio_mcp_gateways__gateway_id__get",
         "security": [
           {
@@ -2747,7 +2747,7 @@
           "Admin Studio V2 - MCP Gateways"
         ],
         "summary": "Save Mcp Gateway",
-        "description": "Update an MCP Gateway configuration securely via SSOT Service Layer.",
+        "description": "Update an MCP Gateway configuration securely via SSOT Service Layer.\n\nArgs:\n    gateway_id: The unique identifier of the MCP gateway.\n    data: The new configuration data.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The updated MCP gateway configuration.\n\nRaises:\n    ResourceNotFoundError: If the MCP gateway is not found.\n    AppException: If updating the MCP gateway fails.",
         "operationId": "save_mcp_gateway_api_v2_studio_mcp_gateways__gateway_id__put",
         "security": [
           {
@@ -2803,7 +2803,7 @@
           "Admin Studio V2 - MCP Gateways"
         ],
         "summary": "Delete Mcp Gateway",
-        "description": "Delete an MCP Gateway configuration securely via SSOT Service Layer.",
+        "description": "Delete an MCP Gateway configuration securely via SSOT Service Layer.\n\nArgs:\n    gateway_id: The unique identifier of the MCP gateway to delete.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    An MCPGatewayDeleteResponse confirming the deletion.\n\nRaises:\n    ResourceNotFoundError: If the MCP gateway is not found.\n    AppException: If deleting the MCP gateway fails.",
         "operationId": "delete_mcp_gateway_api_v2_studio_mcp_gateways__gateway_id__delete",
         "security": [
           {
@@ -2851,7 +2851,7 @@
           "Admin Studio V2 - MCP Gateways"
         ],
         "summary": "Clone Mcp Gateway",
-        "description": "Deep clone an MCP Gateway configuration securely via SSOT Service Layer.",
+        "description": "Deep clone an MCP Gateway configuration securely via SSOT Service Layer.\n\nArgs:\n    gateway_id: The unique identifier of the MCP gateway to clone.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The newly cloned MCP gateway configuration.\n\nRaises:\n    ResourceNotFoundError: If the source MCP gateway is not found.\n    AppException: If cloning the MCP gateway fails.",
         "operationId": "clone_mcp_gateway_api_v2_studio_mcp_gateways__gateway_id__clone_post",
         "security": [
           {
@@ -2899,7 +2899,7 @@
           "Output Profiles"
         ],
         "summary": "List Output Profiles",
-        "description": "List all available Output Profiles. Tenant isolation handled safely by StudioService.",
+        "description": "List all available Output Profiles.\n\nTenant isolation handled safely by StudioService.\n\nArgs:\n    initiator: The current verified user executing the request.\n    service: Injected StudioService for domain operations.\n\nReturns:\n    A list of OutputProfile domain models.",
         "operationId": "list_output_profiles_api_v2_output_profiles__get",
         "responses": {
           "200": {
@@ -2928,7 +2928,7 @@
           "Output Profiles"
         ],
         "summary": "Create Output Profile",
-        "description": "Create a new Output Profile draft securely via SSOT Service Layer.",
+        "description": "Create a new Output Profile draft securely via SSOT Service Layer.\n\nArgs:\n    initiator: The current verified user executing the request.\n    service: Injected StudioService for domain operations.\n\nReturns:\n    The newly created OutputProfile domain model.",
         "operationId": "create_output_profile_api_v2_output_profiles__post",
         "responses": {
           "200": {
@@ -2955,7 +2955,7 @@
           "Output Profiles"
         ],
         "summary": "Get Output Profile",
-        "description": "Get a specific Output Profile.",
+        "description": "Get a specific Output Profile by its unique identifier.\n\nArgs:\n    profile_id: Unique Opaque Stripe ID of the profile.\n    initiator: The current verified user executing the request.\n    service: Injected StudioService for domain operations.\n\nReturns:\n    The requested OutputProfile domain model.",
         "operationId": "get_output_profile_api_v2_output_profiles__profile_id__get",
         "security": [
           {
@@ -3001,7 +3001,7 @@
           "Output Profiles"
         ],
         "summary": "Upsert Output Profile",
-        "description": "Create or Update an Output Profile. Validation automatically enforced by Pydantic.",
+        "description": "Create or Update an Output Profile.\n\nValidation automatically enforced by Pydantic. Validates that the path ID\nmatches the payload ID before executing the save operation.\n\nArgs:\n    profile_id: Unique Opaque Stripe ID of the profile from the URL path.\n    dto: The data transfer object containing the profile data.\n    initiator: The current verified user executing the request.\n    service: Injected StudioService for domain operations.\n\nReturns:\n    The saved OutputProfile domain model.\n\nRaises:\n    AppException: With error code ID_MISMATCH if the URL path ID does not match the payload ID.",
         "operationId": "upsert_output_profile_api_v2_output_profiles__profile_id__put",
         "security": [
           {
@@ -3057,7 +3057,7 @@
           "Output Profiles"
         ],
         "summary": "Delete Output Profile",
-        "description": "Delete an Output Profile.",
+        "description": "Delete an Output Profile.\n\nArgs:\n    profile_id: Unique Opaque Stripe ID of the profile to delete.\n    initiator: The current verified user executing the request.\n    service: Injected StudioService for domain operations.",
         "operationId": "delete_output_profile_api_v2_output_profiles__profile_id__delete",
         "security": [
           {
@@ -3098,7 +3098,7 @@
           "Output Profiles"
         ],
         "summary": "Clone Output Profile",
-        "description": "Deep clone an Output Profile.",
+        "description": "Deep clone an Output Profile.\n\nArgs:\n    profile_id: Unique Opaque Stripe ID of the profile to clone.\n    initiator: The current verified user executing the request.\n    service: Injected StudioService for domain operations.\n\nReturns:\n    The newly cloned OutputProfile domain model.",
         "operationId": "clone_output_profile_api_v2_output_profiles__profile_id__clone_post",
         "security": [
           {
@@ -3146,8 +3146,9 @@
       "AcceptanceCriterion": {
         "properties": {
           "instruction": {
-            "$ref": "#/components/schemas/I18nText",
-            "description": "Structured bilingual instruction."
+            "type": "string",
+            "title": "Instruction",
+            "description": "Structured monolingual instruction."
           },
           "requires_contextual_override": {
             "type": "boolean",
@@ -3199,8 +3200,9 @@
       "AntiPattern": {
         "properties": {
           "pattern": {
-            "$ref": "#/components/schemas/I18nText",
-            "description": "Known anti-pattern with I18n description."
+            "type": "string",
+            "title": "Pattern",
+            "description": "Known anti-pattern with monolingual description."
           },
           "allows_contextual_excuse": {
             "type": "boolean",
@@ -4508,7 +4510,7 @@
           },
           "tda_assertions": {
             "items": {
-              "$ref": "#/components/schemas/TDAAssertion-Input"
+              "$ref": "#/components/schemas/TDAAssertion"
             },
             "type": "array",
             "minItems": 1,
@@ -4539,7 +4541,7 @@
           },
           "tda_assertions": {
             "items": {
-              "$ref": "#/components/schemas/TDAAssertion-Output"
+              "$ref": "#/components/schemas/TDAAssertion"
             },
             "type": "array",
             "minItems": 1,
@@ -5414,7 +5416,7 @@
           "name"
         ],
         "title": "OutputProfileCreateDTO",
-        "description": "DTO for creating a new Output Profile."
+        "description": "DTO for creating a new Output Profile.\n\nAttributes:\n    id: Unique string ID for the profile. Must follow Stripe Pattern.\n    slug: Human-readable routing identifier.\n    workflow_id: References the execution DAG to scope Target Matrices.\n    organization_id: Tenant organization scope.\n    name: Localized name of the profile.\n    description: Localized description of the profile.\n    custom_preface: Rich text preface shown on outputs.\n    visible_metadata: List of metadata fields visible on the UI and PDF cover header.\n    visible_block_extensions: Block-level XAI extensions (per-matrix, LLM-produced).\n    visible_workflow_extensions: Workflow-level global extensions (mathematical engines).\n    max_extension_items: Max number of items to show per grouped XAI extension. Sorted by severity.\n    display_scale: UI rendering scale instruction (e.g., 'normalized_100').\n    synthesis: Nested definition for synthesis configurations.\n    include_diagnostic_scorecard: Epic 24 feature indicating whether to append independent scorecards.\n    strictness_level: Profile-level strictness override setting.\n    scoring_strategy: Profile-level strategy calculation override.\n    layouts: Sequence of layout rendering blocks."
       },
       "OutputProfileResponseDTO": {
         "properties": {
@@ -5547,7 +5549,7 @@
           "layouts"
         ],
         "title": "OutputProfileResponseDTO",
-        "description": "DTO for returning an Output Profile."
+        "description": "DTO for returning an Output Profile.\n\nAttributes:\n    id: Unique Stripe-pattern string ID of the output profile.\n    slug: Safe HTTP routing identifier.\n    workflow_id: Connected DAG workflow boundary UUID.\n    name: Complex localizable dictionary string name mapping.\n    description: Complex localizable mapping for structural profile descriptions.\n    custom_preface: Presentation front-matter mapping instructions.\n    visible_metadata: Output keys exposed cleanly to presentation layer UI.\n    visible_block_extensions: Block-bound extra payload outputs mappings.\n    visible_workflow_extensions: Workflow-bound logic output payload arrays.\n    max_extension_items: Top limit cap applying constraints to presentation loops.\n    display_scale: Exact enumeration of UI rendering modes ('normalized_100').\n    synthesis: Specific payload mapped configuring report output logic.\n    include_diagnostic_scorecard: Status flag defining scorecard rendering operations.\n    strictness_level: Validated override value configuring verification rigor.\n    scoring_strategy: Mapped logic algorithm enum mapping engine implementation.\n    layouts: Ordered array of discrete layout definitions governing presentation."
       },
       "PromptBlock": {
         "properties": {
@@ -6918,7 +6920,7 @@
         "title": "SystemConfigModelRegistry",
         "description": "V2 Flattened Model Registry System Config."
       },
-      "TDAAssertion-Input": {
+      "TDAAssertion": {
         "properties": {
           "tda_id": {
             "type": "string",
@@ -6983,102 +6985,11 @@
             "default": false
           },
           "concept_description": {
-            "$ref": "#/components/schemas/I18nText",
-            "description": "Structured bilingual concept description."
-          },
-          "acceptance_criteria": {
-            "items": {
-              "$ref": "#/components/schemas/AcceptanceCriterion"
-            },
-            "type": "array",
-            "title": "Acceptance Criteria",
-            "description": "Structured acceptance criteria with I18n instructions."
-          },
-          "anti_patterns": {
-            "items": {
-              "$ref": "#/components/schemas/AntiPattern"
-            },
-            "type": "array",
-            "title": "Anti Patterns",
-            "description": "Known anti-patterns with I18n descriptions."
-          },
-          "contrastive_example": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Bilingual contrastive example showing correct vs incorrect."
-          },
-          "syntactic_anchors": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Syntactic Anchors",
-            "description": "Exact syntactic markers for extractive matching."
-          },
-          "enforce_pre_flight": {
-            "type": "boolean",
-            "title": "Enforce Pre Flight",
-            "description": "If True, enables pre-flight validation before LLM evaluation.",
-            "default": false
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "inverse_evidence",
-          "aggregation_mode",
-          "concept_description"
-        ],
-        "title": "TDAAssertion",
-        "description": "Deterministic rule evaluated by the backend.\n\nAttributes:\n    tda_id: Opaque Stripe ID for this assertion.\n    inverse_evidence: If True, acts as a poison/penalty detector.\n    aggregation_mode: Aggregation constraint.\n    evaluation_track: Decoupled evaluation track.\n    facts_to_find: The list of facts to extract for this assertion.\n    logical_expression: Whitelisted Boolean logical expression using extracted facts.\n    allow_contextual_override: If True, allows overriding this assertion with a contextual excuse.\n    high_entropy: If True, enables multi-agent ensemble majority voting for this assertion."
-      },
-      "TDAAssertion-Output": {
-        "properties": {
-          "tda_id": {
             "type": "string",
-            "pattern": "^tda_[a-f0-9]{32}$",
-            "title": "Tda Id",
-            "description": "Opaque Stripe ID for this assertion."
+            "title": "Concept Description",
+            "description": "Vain tiivis kuvaus itse konseptista, ei ajo-ohjeita"
           },
-          "inverse_evidence": {
-            "type": "boolean",
-            "title": "Inverse Evidence",
-            "description": "If True, acts as a poison/penalty detector."
-          },
-          "aggregation_mode": {
-            "type": "string",
-            "enum": [
-              "EXISTS",
-              "ALL_MUST_COMPLY"
-            ],
-            "title": "Aggregation Mode",
-            "description": "Aggregation constraint."
-          },
-          "evaluation_track": {
-            "type": "string",
-            "enum": [
-              "EXTRACTIVE_SENSOR",
-              "COGNITIVE_JUDGEMENT"
-            ],
-            "title": "Evaluation Track",
-            "description": "Decoupled evaluation track: extractive logic vs cognitive judgement.",
-            "default": "COGNITIVE_JUDGEMENT"
-          },
-          "facts_to_find": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Facts To Find",
-            "description": "The list of facts to extract for this assertion."
-          },
-          "logical_expression": {
+          "anchor_target": {
             "anyOf": [
               {
                 "type": "string"
@@ -7087,24 +6998,31 @@
                 "type": "null"
               }
             ],
-            "title": "Logical Expression",
-            "description": "Whitelisted Boolean logical expression using extracted facts."
+            "title": "Anchor Target",
+            "description": "Mitä ankkuria etsitään (ent. STEP 1)"
           },
-          "allow_contextual_override": {
-            "type": "boolean",
-            "title": "Allow Contextual Override",
-            "description": "If True, allows overriding this assertion with a contextual excuse.",
-            "default": false
+          "bounding_box_scope": {
+            "type": "string",
+            "enum": [
+              "sentence",
+              "paragraph",
+              "document",
+              "adjacent_paragraphs"
+            ],
+            "title": "Bounding Box Scope",
+            "default": "paragraph"
           },
-          "high_entropy": {
-            "type": "boolean",
-            "title": "High Entropy",
-            "description": "If True, enables multi-agent ensemble majority voting for this assertion.",
-            "default": false
-          },
-          "concept_description": {
-            "$ref": "#/components/schemas/I18nText",
-            "description": "Structured bilingual concept description."
+          "extraction_rule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extraction Rule",
+            "description": "Varsinainen sääntö, joka datan on täytettävä (ent. EXTRACTION CONDITION)"
           },
           "acceptance_criteria": {
             "items": {
@@ -7112,7 +7030,7 @@
             },
             "type": "array",
             "title": "Acceptance Criteria",
-            "description": "Structured acceptance criteria with I18n instructions."
+            "description": "Structured acceptance criteria with monolingual instructions."
           },
           "anti_patterns": {
             "items": {
@@ -7120,18 +7038,19 @@
             },
             "type": "array",
             "title": "Anti Patterns",
-            "description": "Known anti-patterns with I18n descriptions."
+            "description": "Known anti-patterns with monolingual descriptions."
           },
           "contrastive_example": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/I18nText"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Bilingual contrastive example showing correct vs incorrect."
+            "title": "Contrastive Example",
+            "description": "Monolingual contrastive example showing correct vs incorrect."
           },
           "syntactic_anchors": {
             "items": {
@@ -7263,7 +7182,7 @@
           "total_tokens"
         ],
         "title": "TokenUsage",
-        "description": "Strictly typed token usage statistics."
+        "description": "Strictly typed token usage statistics.\n\nAttributes:\n    prompt_tokens: Number of tokens consumed in the request prompt.\n    completion_tokens: Number of tokens generated in the model's response.\n    total_tokens: Total tokens used in the interaction.\n    cached_tokens: Number of tokens retrieved from the cache.\n    reasoning_tokens: Number of tokens generated internally for reasoning steps.\n    cache_creation_input_tokens: Number of tokens written to the cache context.\n    cost_usd: Estimated monetary cost of the execution in USD.\n    estimated_savings_usd: Estimated savings in USD derived from cached responses."
       },
       "TombstoneEvent": {
         "properties": {
@@ -7866,6 +7785,18 @@
             "description": "Global flag to enable contextual overrides across assertions.",
             "default": false
           },
+          "enable_semantic_smoothing": {
+            "type": "boolean",
+            "title": "Enable Semantic Smoothing",
+            "description": "If True, uses SpaCy to fix hyphenations and merge broken PDF lines into cohesive semantic sentences.",
+            "default": false
+          },
+          "enable_eager_anonymization": {
+            "type": "boolean",
+            "title": "Enable Eager Anonymization",
+            "description": "If True, Microsoft Presidio will mask all PII data from raw inputs before they enter the system state.",
+            "default": false
+          },
           "expected_inputs": {
             "items": {
               "$ref": "#/components/schemas/ExpectedInput-Input"
@@ -8035,7 +7966,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "WorkflowInputsIngress",
-        "description": "API Ingress payload for the workflow (Content).\n\nAllows Base64 attachments during initial API routing, before Eager Extraction happens."
+        "description": "API Ingress payload for the workflow (Content).\n\nAllows Base64 attachments during initial API routing, before Eager Extraction happens.\n\nAttributes:\n    organization_id: Tenant ID for multi-tenancy.\n    user_id: User ID for audit trails.\n    simulation_mode: If True, indicates a test/simulation run.\n    language: Target language code.\n    dynamic_inputs: Structured dictionary for dynamic workflow inputs."
       },
       "WorkflowResponseDTO": {
         "properties": {
@@ -8131,6 +8062,18 @@
             "type": "boolean",
             "title": "Enable Contextual Overrides",
             "description": "Global flag to enable contextual overrides across assertions.",
+            "default": false
+          },
+          "enable_semantic_smoothing": {
+            "type": "boolean",
+            "title": "Enable Semantic Smoothing",
+            "description": "If True, uses SpaCy to fix hyphenations and merge broken PDF lines into cohesive semantic sentences.",
+            "default": false
+          },
+          "enable_eager_anonymization": {
+            "type": "boolean",
+            "title": "Enable Eager Anonymization",
+            "description": "If True, Microsoft Presidio will mask all PII data from raw inputs before they enter the system state.",
             "default": false
           },
           "expected_inputs": {

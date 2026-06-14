@@ -102,10 +102,16 @@ classDiagram
     }
 
     class TDAAssertion{
-        +String id (Opaque Stripe ID 'tda_')
-        +String description
-        +String logic_expression
+        +String tda_id (Opaque Stripe ID 'tda_')
+        +String concept_description
+        +Literal evaluation_track
+        +List~String~ facts_to_find
+        +String logical_expression
+        +String anchor_target
+        +Literal bounding_box_scope
+        +String extraction_rule
         +bool allow_contextual_override
+        +bool inverse_evidence
     }
 
     class TheoryGrounding{

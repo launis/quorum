@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -21,7 +22,7 @@ class ChunkResponseSchema(BaseModel):
 
 
 @pytest.mark.asyncio
-async def test_collateral_damage_prevention():
+async def test_collateral_damage_prevention() -> None:
     """Test that a single hallucinated quote in a chunk doesn't nuke the valid ones during fallback."""
     mock_compiler = MagicMock()
     mock_compiler.get_schema_healing_prompt.return_value = "fix it"
@@ -45,7 +46,7 @@ async def test_collateral_damage_prevention():
     ]
 
     # We mock validate_evidence to pass for "real text" and fail for "fake text"
-    def mock_validate(pdf_text, exact_quote, **kwargs):
+    def mock_validate(pdf_text: str, exact_quote: str, **kwargs: Any) -> str:
         if exact_quote == "fake text":
             raise SemanticEvidenceError(message="fail")
         return exact_quote

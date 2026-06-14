@@ -2,6 +2,8 @@ import logging
 import re
 import unicodedata
 
+from rapidfuzz import fuzz
+
 from backend_v2.exceptions import SemanticEvidenceError
 
 logger = logging.getLogger(__name__)
@@ -16,13 +18,30 @@ class AnchorValidationService:
 
     @staticmethod
     def normalize_text_with_mapping(text: str) -> tuple[str, list[int]]:
-        """Normalizes text and returns a mapping from normalized index to original index."""
+        """Normalizes text and returns a mapping from normalized index to original index.
+
+        Args:
+            text: The text to normalize.
+
+        Returns:
+            A tuple containing the normalized string and a list mapping
+            each character's index in the normalized string to its index in the original string.
+        """
         if not text:
             return "", []
+
+        # FAST-PATH: Etsi HTML-tagien indeksit ja jätä ne huomioimatta normalisoinnissa
+        # Tämä estää esim. <br> -tagien 'b' ja 'r' kirjainten päätymisen normalisoituun tekstiin
+        html_tag_indices: set[int] = set()
+        for match in re.finditer(r"<[^>]+>", text):
+            html_tag_indices.update(range(match.start(), match.end()))
 
         norm_chars = []
         index_map = []
         for i, char in enumerate(text):
+            if i in html_tag_indices:
+                continue
+
             norm_char = unicodedata.normalize("NFKC", char).lower()
             norm_char = re.sub(r"[\W_]+", "", norm_char)
             if norm_char:
@@ -34,7 +53,15 @@ class AnchorValidationService:
 
     @staticmethod
     def strict_match(pdf_text: str, exact_quote: str) -> bool:
-        """Phase 2: O(N) Anchoring using strict substring matching."""
+        """Phase 2: O(N) Anchoring using strict substring matching.
+
+        Args:
+            pdf_text: The source text context.
+            exact_quote: The extracted quote to search for.
+
+        Returns:
+            True if the exact quote exists in the normalized source text, False otherwise.
+        """
         if not exact_quote or not pdf_text:
             return False
 
@@ -80,14 +107,14 @@ class AnchorValidationService:
 
             # 1. Trace Contradiction Ban
             if "[5. validation decision: fail]" in trace_lower or "condition not met" in trace_lower:
-                logger.warning("Lexical Verifier failed: Trace Contradiction.", extra={"exact_quote": exact_quote})
+                logger.error("Lexical Verifier failed: Trace Contradiction.", extra={"exact_quote": exact_quote})
                 raise SemanticEvidenceError(
                     message="Logical contradiction: Trace concluded Fail, but exact_quote was populated."
                 )
 
             # 2. Empty Anchor Ban
             if "[2. syntactic anchor: none]" in trace_lower or "[2. syntactic anchor: n/a]" in trace_lower:
-                logger.warning("Lexical Verifier failed: Empty Anchor.", extra={"exact_quote": exact_quote})
+                logger.error("Lexical Verifier failed: Empty Anchor.", extra={"exact_quote": exact_quote})
                 raise SemanticEvidenceError(
                     message="Anchorless Extraction: Cannot pass validation without a physical syntactic anchor."
                 )
@@ -99,7 +126,7 @@ class AnchorValidationService:
                 parsed_anchor = anchor_match.group(1)
                 if parsed_anchor.lower() not in ["none", "n/a"]:
                     if not AnchorValidationService.strict_match(pdf_text, parsed_anchor):
-                        logger.warning(
+                        logger.error(
                             "Lexical Verifier failed: Hallucinated Anchor.",
                             extra={"parsed_anchor": parsed_anchor},
                         )
@@ -123,9 +150,19 @@ class AnchorValidationService:
             extracted = pdf_text[start_idx : end_idx + 1]
             return extracted
 
-        logger.warning(
-            "Backend Lexical Verifier failed: exact_quote not found in source text.", extra={"exact_quote": exact_quote}
+        # SLOW-PATH (Fuzzy Fallback): Sallitaan pienen toleranssin OCR/typografia -virheet
+        similarity = fuzz.partial_ratio(norm_quote, norm_pdf)
+        if similarity >= 95.0:
+            logger.warning(
+                "Backend Lexical Verifier: Exact match failed, but fuzzy fallback triggered. Returning cleaned LLM quote.",
+                extra={"exact_quote": exact_quote, "similarity": similarity},
+            )
+            return exact_quote
+
+        logger.error(
+            "Backend Lexical Verifier failed: exact_quote not found in source text.",
+            extra={"exact_quote": exact_quote, "similarity": similarity},
         )
         raise SemanticEvidenceError(
-            message=f"Lexical validation failed: exact_quote '{exact_quote}' not found in source text."
+            message=f"Lexical validation failed: exact_quote '{exact_quote}' not found in source text (Similarity: {similarity}%)."
         )

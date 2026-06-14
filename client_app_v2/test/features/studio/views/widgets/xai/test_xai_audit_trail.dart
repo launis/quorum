@@ -4,6 +4,7 @@ import 'package:client_app/features/execution/views/widgets/xai_axis_telemetry_g
 import 'package:client_app/features/execution/models/scorecard_dto.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 
 void main() {
   testWidgets(
@@ -13,8 +14,9 @@ void main() {
       const axis = MatrixScorecardRowDto(
         blockId: 'blk_test_matrix',
         name: 'Test Dimension',
-        labelFi: 'Testi Matriisi',
-        labelEn: 'Test Matrix',
+        labelI18n: const I18nText(
+          translations: {'fi': 'Testi Matriisi', 'en': 'Test Matrix'},
+        ),
         rowExplanation: 'This is the explanation of the row.',
         contextualOverride: true,
         semanticReasoning:

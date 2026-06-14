@@ -5,8 +5,10 @@ It safely merges and transforms structured `guided_reflection` questionnaires
 and unstructured `reflection_text` strings into a unified text format for downstream AI nodes.
 """
 
+import asyncio
 import logging
 import re
+from typing import Any
 
 from fastapi import status
 from pydantic import TypeAdapter, ValidationError
@@ -14,8 +16,9 @@ from pydantic import TypeAdapter, ValidationError
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO
-from backend_v2.models.v2_core import Workflow
+from backend_v2.models.v2_core import ExpectedInput, Workflow
 from backend_v2.services.chat_parser import ChatParserService
+from backend_v2.services.pii_analyzer import get_pii_service
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.utils.paths import get_forensic_input_path
 
@@ -23,8 +26,160 @@ logger = logging.getLogger(__name__)
 
 
 async def resolve_input(val: str | int | float | list[object] | dict[str, object] | None) -> str:
-    """Helper to detect string outputs from API layer Extractor or resolve natively."""
+    """Helper to detect string outputs from API layer Extractor or resolve natively.
+
+    Args:
+        val: The raw value extracted from the state.
+
+    Returns:
+        The stringified version of the value or an empty string.
+    """
     return str(val) if val else ""
+
+
+def _extract_raw_value(key_lower: str, state: HookState) -> Any:
+    """Extracts the raw value for a given key from the state inputs and global context.
+
+    Args:
+        key_lower: The expected input key in lower case.
+        state: The current hook state.
+
+    Returns:
+        The extracted raw value, or None if not found.
+    """
+    # 1. Check state.inputs
+    for k, v in state.inputs.items():
+        if k.lower() == key_lower:
+            return v
+
+    dynamic_inputs = state.inputs.get("dynamic_inputs")
+    if isinstance(dynamic_inputs, dict):
+        for k, v in dynamic_inputs.items():
+            if k.lower() == key_lower:
+                return v
+
+    # 2. Check state.global_context_vars
+    for k, v in state.global_context_vars.items():
+        if k.lower() == key_lower:
+            return v
+
+    return None
+
+
+def _process_questionnaire(raw_val: dict[str, Any], key: str, expected_input: ExpectedInput) -> str:
+    """Validates and processes a questionnaire dictionary into Markdown text.
+
+    Args:
+        raw_val: The raw dictionary value representing the questionnaire.
+        key: The input key being processed.
+        expected_input: The expected input schema definition.
+
+    Returns:
+        The resolved Markdown text for the questionnaire.
+
+    Raises:
+        AppException: If the dictionary is invalid or missing a mandatory English label.
+    """
+    logger.info(
+        "Found questionnaire dict. Validating against GuidedReflectionInputDTO...",
+        extra={"input_key": key},
+    )
+    try:
+        dto = GuidedReflectionInputDTO.model_validate(raw_val)
+        title_text = expected_input.label.resolve("en")
+        if not title_text:
+            logger.error(
+                "Missing English label for expected input.",
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
+            )
+            raise AppException(
+                message=(f"System Configuration Error: Missing mandatory English label for '{key}' questionnaire."),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
+            )
+        return dto.to_markdown(title_text)
+    except ValidationError as e:
+        logger.error(
+            "Invalid questionnaire dict format.",
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key, "detail": str(e)},
+        )
+        raise AppException(
+            message=f"Workflow Input Validation Error: Invalid questionnaire format for '{key}'.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key, "errors": e.errors()},
+        ) from e
+
+
+async def _process_chat_history(resolved_text: str, key: str, system_repo: Any) -> str:
+    """Parses unstructured chat history into a Markdown formatted conversation.
+
+    Args:
+        resolved_text: The raw unstructured chat text.
+        key: The input key being processed.
+        system_repo: The system repository for prompt lookup.
+
+    Returns:
+        The structured Markdown chat text.
+
+    Raises:
+        AppException: If chat parsing using the LLM fails.
+    """
+    logger.info("[InputProcessingHook] Unstructured chat detected for %s. Invoking ChatParserLLM...", key)
+    try:
+        chat_dto = await ChatParserService.parse_pasted_chat(resolved_text, system_repo=system_repo)
+
+        # Format to Markdown instead of raw JSON to prevent \n escaping in LLM prompt
+        chat_lines = []
+        for turn in chat_dto.conversation:
+            # Deterministic Normalization: Crush all whitespace/newlines into single spaces
+            cleaned_content = re.sub(r"\s+", " ", turn.content).strip()
+            chat_lines.append(f"**{turn.role}**: {cleaned_content}")
+
+        logger.info("[InputProcessingHook] Successfully structured %s via ChatParser (Markdown).", key)
+        return "\n\n".join(chat_lines)
+    except Exception as e:
+        if isinstance(e, AppException):
+            raise e
+        logger.error(
+            "Chat parsing failed.",
+            extra={"error_code": "CHAT_PARSING_FAILED", "input_key": key, "detail": str(e)},
+            exc_info=True,
+        )
+        raise AppException(
+            message=f"Failed to parse unstructured chat for {key} using AI.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": "CHAT_PARSING_FAILED"},
+        ) from e
+
+
+async def _save_forensic_input(execution_id: str, key: str, resolved_text: str) -> None:
+    """Saves the processed input to the forensic storage directory.
+
+    Args:
+        execution_id: The unique execution ID.
+        key: The input key.
+        resolved_text: The text to save.
+
+    Raises:
+        AppException: If the storage operation fails.
+    """
+    try:
+        storage = get_storage_driver()
+        forensic_path = get_forensic_input_path(execution_id, key)
+
+        await storage.save(forensic_path, resolved_text)
+        logger.info("[InputProcessingHook] Forensic Input saved successfully: %s", forensic_path)
+    except Exception as e:
+        logger.error(
+            "Failed to save forensic input.",
+            extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.name, "detail": str(e)},
+            exc_info=True,
+        )
+        raise AppException(
+            message="Failed to save forensic input.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.name, "input_key": key},
+        ) from e
 
 
 @hook_registry.register(name="input_processing")
@@ -35,6 +190,17 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     extracts PDF text if base64 encoded, and handles transformations like expanding
     `questionnaire` inputs into Markdown documents. Uses is_chat_history flag to
     dynamically route unstructured text to ChatParserService.
+
+    Args:
+        state: Current hook execution state.
+        deps: Injected dependencies for the hook.
+
+    Returns:
+        Result containing the updated state delta with processed inputs and metadata.
+
+    Raises:
+        AppException: If execution context is missing, workflow is not found,
+            required inputs are missing, or system configuration is invalid.
     """
     logger.info("[InputProcessingHook] Running deterministic input normalizer...")
 
@@ -68,65 +234,25 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     expected_inputs = workflow.expected_inputs
     output_dict: dict[str, str] = {}
 
+    language_raw = state.global_context_vars.get("language")
+    if not language_raw:
+        logger.error("Missing language in global context.")
+        raise AppException(
+            message="System Configuration Error: Missing mandatory 'language' in global_context_vars.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+        )
+    language = str(language_raw)
+
     for expected_input in expected_inputs:
         key = expected_input.input_key
-        # Case-insensitive fetch to support Flutter client sending snake_case while DB expects UPPER_SNAKE
         key_lower = key.lower()
 
-        # 1. Check state.inputs
-        raw_val = None
-        dynamic_inputs = state.inputs.get("dynamic_inputs", {})
-
-        for k, v in state.inputs.items():
-            if k.lower() == key_lower:
-                raw_val = v
-                break
-
-        if raw_val is None:
-            for k, v in dynamic_inputs.items():
-                if k.lower() == key_lower:
-                    raw_val = v
-                    break
-
-        # 2. Check state.global_context_vars
-        if raw_val is None:
-            for k, v in state.global_context_vars.items():
-                if k.lower() == key_lower:
-                    raw_val = v
-                    break
+        raw_val = _extract_raw_value(key_lower, state)
 
         # 1. Handle Questionnaire mode specifically if it exists
         if isinstance(raw_val, dict):
-            logger.info(
-                "Found questionnaire dict. Validating against GuidedReflectionInputDTO...",
-                extra={"input_key": key},
-            )
-            try:
-                dto = GuidedReflectionInputDTO.model_validate(raw_val)
-                title_text = expected_input.label.resolve("en")
-                if not title_text:
-                    logger.error(
-                        "Missing English label for expected input.",
-                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
-                    )
-                    raise AppException(
-                        message=(
-                            f"System Configuration Error: Missing mandatory English label for '{key}' questionnaire."
-                        ),
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
-                    )
-                resolved_text = dto.to_markdown(title_text)
-            except ValidationError as e:
-                logger.error(
-                    "Invalid questionnaire dict format.",
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key, "detail": str(e)},
-                )
-                raise AppException(
-                    message=f"Workflow Input Validation Error: Invalid questionnaire format for '{key}'.",
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key, "errors": e.errors()},
-                ) from e
+            resolved_text = _process_questionnaire(raw_val, key, expected_input)
         else:
             # 2. Standard resolution (File, Paste)
             resolved_text = await resolve_input(raw_val)
@@ -148,40 +274,24 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
 
         # 3. V2 ChatParser LLM Hook (if designated as chat history)
         if expected_input.is_chat_history and resolved_text and not resolved_text.strip().startswith("{"):
-            logger.info("[InputProcessingHook] Unstructured chat detected for %s. Invoking ChatParserLLM...", key)
-            try:
-                chat_dto = await ChatParserService.parse_pasted_chat(resolved_text, system_repo=system_repo)
+            resolved_text = await _process_chat_history(resolved_text, key, system_repo)
 
-                # Format to Markdown instead of raw JSON to prevent \n escaping in LLM prompt
-                chat_lines = []
-                for turn in chat_dto.conversation:
-                    # Deterministic Normalization: Crush all whitespace/newlines into single spaces
-                    # This eliminates MoE tokenization variance caused by formatting differences.
-                    cleaned_content = re.sub(r"\s+", " ", turn.content).strip()
-                    chat_lines.append(f"**{turn.role}**: {cleaned_content}")
-                resolved_text = "\n\n".join(chat_lines)
+        # --- 1. SEMANTIC SMOOTHING (SpaCy - IN BACKGROUND THREAD) ---
+        if workflow.enable_semantic_smoothing and resolved_text:
+            pii_service = get_pii_service()
+            logger.info("[InputProcessingHook] Running Semantic Smoothing for %s", key)
+            resolved_text = await asyncio.to_thread(pii_service.smooth_text, resolved_text, language)
 
-                logger.info("[InputProcessingHook] Successfully structured %s via ChatParser (Markdown).", key)
-            except Exception as e:
-                if isinstance(e, AppException):
-                    raise e
-                logger.error(
-                    "Chat parsing failed.",
-                    extra={"error_code": "CHAT_PARSING_FAILED", "input_key": key, "detail": str(e)},
-                    exc_info=True,
-                )
-                raise AppException(
-                    message=f"Failed to parse unstructured chat for {key} using AI.",
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    details={"error_code": "CHAT_PARSING_FAILED"},
-                ) from e
+        # --- 2. EAGER ANONYMIZATION (Presidio - IN BACKGROUND THREAD) ---
+        if workflow.enable_eager_anonymization and resolved_text:
+            pii_service = get_pii_service()
+            logger.info("[InputProcessingHook] Running Eager Anonymization for %s", key)
+            resolved_text = await asyncio.to_thread(pii_service.mask_pii, resolved_text, language)
 
-        # 4. Injektoidaan `ai_description` suoraan raakatekstin yläpuolelle (The English-Only Mandate)
+        # 4. Inject `ai_description` (The English-Only Mandate)
         if expected_input.ai_description is not None:
-            # Enforce The English-Only Mandate
             desc_text = expected_input.ai_description.strip()
 
-            # V2 STRICT FAIL-FAST: Missing English instruction is fatal
             if not desc_text:
                 logger.error(
                     "Missing English translation for ai_description.",
@@ -205,25 +315,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         output_dict[key] = resolved_text.strip()
 
         # --- FORENSIC OBSERVABILITY INJECTION ---
-        # Save every processed input with injected prompts into the execution directory
-        try:
-            storage = get_storage_driver()
-            exe_id = execution_id
-            forensic_path = get_forensic_input_path(exe_id, key)
-
-            await storage.save(forensic_path, output_dict[key])
-            logger.info("[InputProcessingHook] Forensic Input saved successfully: %s", forensic_path)
-        except Exception as e:
-            logger.error(
-                "Failed to save forensic input.",
-                extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.name, "detail": str(e)},
-                exc_info=True,
-            )
-            raise AppException(
-                message="Failed to save forensic input.",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.name, "input_key": key},
-            ) from e
+        await _save_forensic_input(execution_id, key, output_dict[key])
 
     # Phase 7: Token Proxy Score calculation
     total_chars = sum(len(text) for text in output_dict.values())

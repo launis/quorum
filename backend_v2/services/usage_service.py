@@ -233,6 +233,19 @@ class UsageService:
             ) from e
 
     async def get_usage_report(self, scope: str, entity_id: str | None = None, since: str | None = None) -> UsageReport:
+        """Retrieves a consolidated usage report for a given scope.
+
+        Args:
+            scope (str): The reporting scope (e.g., "org", "user", "system").
+            entity_id (str | None): The target entity ID. Defaults to None.
+            since (str | None): The start date in ISO format. Defaults to None.
+
+        Returns:
+            UsageReport: The computed usage report with token and cost aggregations.
+
+        Raises:
+            AppException: If retrieval from the repository fails.
+        """
         # Determine period
         period = "all-time"
         if since:

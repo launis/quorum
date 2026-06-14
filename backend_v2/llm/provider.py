@@ -109,17 +109,27 @@ class LLMProvider(ABC):
         """Generates content from the LLM.
 
         Args:
-        prompt (str): The user prompt.
-        system_instruction (str | None): System prompt/context.
-        response_schema (type[BaseModel] | dict[str, Any] | None): Pydantic model or JSON Schema.
-        temperature (float): Sampling temperature.
-        max_tokens (int | None): Max tokens to generate.
-        pass_reasoning_token (str | None): Encrypted state blob from previous turn.
-        **kwargs: Additional provider-specific arguments.
+            prompt: The user prompt.
+            system_instruction: System prompt/context.
+            messages: Fallback context or chat history.
+            response_schema: Pydantic model or JSON Schema.
+            temperature: Sampling temperature.
+            max_tokens: Max tokens to generate.
+            top_p: Nucleus sampling mass.
+            top_k: Top-K sampling count.
+            pass_reasoning_token: Encrypted state blob from previous turn.
+            validation_context: Optional context for validation.
+            **kwargs: Additional provider-specific arguments.
 
         Returns:
             LLMResponse: The generated response object.
 
+        Raises:
+            AgentExecutionError: On context bounds exceeded.
+            AppException: On internal generation errors.
+            ConfigurationError: On malformed config.
+            SecurityViolationError: On blocked content.
+            ServiceUnavailableError: On provider network failure.
         """
         pass
 
@@ -148,14 +158,17 @@ class LiteLLMProvider(LLMProvider):
         """Initializes the LiteLLM provider.
 
         Args:
-            model_name (str): The model identifier.
-            api_key (Optional[str]): API Key.
-            settings (Any): System settings object.
-            usage_service (Optional[UsageService]): Service for cost tracking.
-            organization_id (Optional[str]): Context organization ID.
-            limits (Optional[dict]): Override TPM/RPM limits (e.g. from Organization).
-            supports_grounding (bool): Whether this model strategy requires Vertex Grounding.
-            config (Optional[LLMProviderConfig]): Strict configuration object.
+            model_name: The model identifier.
+            api_key: API Key.
+            settings: System settings object.
+            usage_service: Service for cost tracking.
+            organization_id: Context organization ID.
+            limits: Override TPM/RPM limits (e.g. from Organization).
+            supports_grounding: Whether this model strategy requires Vertex Grounding.
+            config: Strict configuration object.
+
+        Raises:
+            ConfigurationError: If strict tpm/rpm limits are not provided.
         """
         self.model_name = model_name
         self.api_key = api_key
@@ -186,7 +199,7 @@ class LiteLLMProvider(LLMProvider):
                 "to Provider. No hardcoded defaults allowed."
             )
             logger.error("[LiteLLMProvider] %s", msg)
-            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
+            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
         tpm = limits["tpm"] if "tpm" in limits else None
         rpm = limits["rpm"] if "rpm" in limits else None
@@ -194,7 +207,7 @@ class LiteLLMProvider(LLMProvider):
         if tpm is None or rpm is None:
             msg = "Strict Mode: Both TPM and RPM must be defined in limits config."
             logger.error("[LiteLLMProvider] %s", msg)
-            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
+            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
         # Use Class Cache for Router to avoid MAX_CALLBACKS leak
         cache_key = f"{model_name}_{tpm}_{rpm}"
@@ -364,10 +377,6 @@ class LiteLLMProvider(LLMProvider):
                 "vertex_location": active_location,
                 # STRICT NETWORK TIMEOUT: Fail fast instead of hanging forever.
                 "timeout": kwargs["timeout"] if "timeout" in kwargs else self.settings.llm_default_timeout,
-                # SAFETY FILTERS (Auditing Requirement):
-                # We must be able to process "unsafe" content (e.g. Hate Speech in logs) without blocking.
-                # Therefore, we disable safety filters for the Analyzer.
-                "safety_settings": self.settings.default_safety_settings,
             }
 
             # Inject dynamic extra params (top_p, top_k, etc.) provided via kwargs
@@ -376,35 +385,40 @@ class LiteLLMProvider(LLMProvider):
 
             # Milestone 5.2: Vertex AI Caching parameter mapping
             if "cached_content" in kwargs:
-                cache_id = kwargs["cached_content"]
-                if "extra_headers" not in call_kwargs or call_kwargs["extra_headers"] is None:
-                    call_kwargs["extra_headers"] = {}
-                call_kwargs["extra_headers"]["cached_content"] = cache_id
+                # --- DYNAMIC BYPASS FOR TOOLS (Tier 4 Fix) ---
+                # Vertex API rejects (400 Bad Request) dynamic tools when using static cached_content.
+                # If tools are detected, we gracefully bypass caching for this single request.
+                if call_kwargs.get("tools"):
+                    logger.warning(
+                        "[LiteLLM] Dynamic tool payload detected alongside Vertex Caching. "
+                        "Bypassing caching dynamically to prevent 400 Bad Request."
+                    )
+                    call_kwargs.pop("cached_content", None)
+                else:
+                    cache_id = kwargs["cached_content"]
+                    if "extra_headers" not in call_kwargs or call_kwargs["extra_headers"] is None:
+                        call_kwargs["extra_headers"] = {}
+                    call_kwargs["extra_headers"]["cached_content"] = cache_id
 
-                if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
-                    call_kwargs["extra_body"] = {}
-                call_kwargs["extra_body"]["cachedContent"] = cache_id
-                call_kwargs["extra_body"]["cached_content"] = cache_id
+                    if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
+                        call_kwargs["extra_body"] = {}
+                    call_kwargs["extra_body"]["cachedContent"] = cache_id
+                    call_kwargs["extra_body"]["cached_content"] = cache_id
 
-                # Direct keyword argument mapping for LiteLLM completion
-                call_kwargs["cached_content"] = cache_id
+                    # Direct keyword argument mapping for LiteLLM completion
+                    call_kwargs["cached_content"] = cache_id
 
-                # CRITICAL GCP CACHING RULE:
-                # If cached_content is provided, we MUST NOT send system instructions or tools.
-                call_kwargs.pop("tools", None)
-                call_kwargs.pop("tool_choice", None)
-
-                # V3 Cache Fix: Diagnostic guard replacing blind system scrubber
-                if "messages" in call_kwargs:
-                    system_msgs = [m for m in call_kwargs["messages"] if m.get("role") == "system"]
-                    if system_msgs:
-                        logger.critical(
-                            "ARCHITECTURE VIOLATION: %d system message(s) detected in cached payload. "
-                            "Scrubbing defensively to prevent Google 400. "
-                            "This indicates a CompiledPrompt construction defect.",
-                            len(system_msgs),
-                        )
-                        call_kwargs["messages"] = [m for m in call_kwargs["messages"] if m.get("role") != "system"]
+                    # V3 Cache Fix: Diagnostic guard replacing blind system scrubber
+                    if "messages" in call_kwargs:
+                        system_msgs = [m for m in call_kwargs["messages"] if m.get("role") == "system"]
+                        if system_msgs:
+                            logger.critical(
+                                "ARCHITECTURE VIOLATION: %d system message(s) detected in cached payload. "
+                                "Scrubbing defensively to prevent Google 400. "
+                                "This indicates a CompiledPrompt construction defect.",
+                                len(system_msgs),
+                            )
+                            call_kwargs["messages"] = [m for m in call_kwargs["messages"] if m.get("role") != "system"]
 
             # Inject dynamic extra params from config (additional_params) resolved via env vars
             if self._config and self._config.additional_params:
@@ -524,7 +538,28 @@ class LiteLLMProvider(LLMProvider):
             choice = response.choices[0]
             message = choice.message
             raw_content = message.content or ""
+
+            # Vertex AI / LiteLLM Structured Output Bug Fix:
+            # If the response was forced into a tool call instead of content (common with Vertex Caching/Gemini),
+            # extract the raw JSON string from the first tool call's arguments.
+            if not raw_content and hasattr(message, "tool_calls") and message.tool_calls:
+                tc = message.tool_calls[0]
+                if hasattr(tc, "function") and hasattr(tc.function, "arguments"):
+                    raw_content = tc.function.arguments or ""
+                elif (
+                    isinstance(tc, dict)
+                    and "function" in tc
+                    and isinstance(tc["function"], dict)
+                    and "arguments" in tc["function"]
+                ):
+                    raw_content = tc["function"]["arguments"] or ""
+
             finish_reason = choice.finish_reason if hasattr(choice, "finish_reason") else None
+
+            # --- EMERGENCY DIAGNOSTIC DUMP (TIER 4) ---
+            if not raw_content:
+                dump_str = response.model_dump_json() if hasattr(response, "model_dump_json") else str(response)
+                logger.critical("[DIAGNOSTIC] LLM Output was completely empty! Raw response object dump: %s", dump_str)
 
             # Extract Reasoning Token (Gemini 3 / GPT-5.1)
             reasoning_token = None
@@ -623,10 +658,8 @@ class LiteLLMProvider(LLMProvider):
             if self.usage_service:
                 try:
                     # Resolve IDs from kwargs (execution config) or provider instance
-                    t_org = kwargs["organization_id"] if "organization_id" in kwargs else None
-                    target_org = t_org or self.organization_id
-                    t_usr = kwargs["user_id"] if "user_id" in kwargs else None
-                    target_user = t_usr or "system_agent"
+                    target_org = kwargs.get("organization_id") or self.organization_id
+                    target_user = kwargs.get("user_id") or "system_agent"
 
                     # Track usage asynchronously using the actual model name to log fallback statistics correctly.
                     await self.usage_service.track_usage(
@@ -657,7 +690,12 @@ class LiteLLMProvider(LLMProvider):
             extracted_tool_calls: list[dict[str, Any]] = []
             if hasattr(message, "tool_calls") and message.tool_calls:
                 for tc in message.tool_calls:
-                    tc_dict = tc.model_dump() if hasattr(tc, "model_dump") else dict(tc)
+                    if hasattr(tc, "model_dump"):
+                        tc_dict = tc.model_dump()
+                    elif isinstance(tc, dict):
+                        tc_dict = tc
+                    else:
+                        tc_dict = vars(tc) if hasattr(tc, "__dict__") else {}
                     extracted_tool_calls.append(tc_dict)
 
             return LLMResponse(
@@ -707,7 +745,7 @@ class LiteLLMProvider(LLMProvider):
                 )
                 raise ServiceUnavailableError(
                     message="Model provider rate limit exceeded and all automatic retries failed.",
-                    details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED, "original_error": error_msg},
+                    details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value, "original_error": error_msg},
                 ) from e
 
             # 1.1 OUTPUT LIMIT (Model Looping/Max Tokens/Empty Response)
@@ -720,7 +758,7 @@ class LiteLLMProvider(LLMProvider):
                 raise AppException(
                     message="Model failed to generate structured output (empty response or looping).",
                     status_code=500,
-                    details={"error_code": ErrorCodes.AGENT_RESPONSE_PARSING_FAILED, "original_error": error_msg},
+                    details={"error_code": ErrorCodes.AGENT_RESPONSE_PARSING_FAILED.value, "original_error": error_msg},
                 ) from e
 
             # 2. AUTHENTICATION ALERTS (Security/Config)
@@ -735,7 +773,7 @@ class LiteLLMProvider(LLMProvider):
                 raise ConfigurationError(
                     message="LLM Provider authentication failed.",
                     details={
-                        "error_code": ErrorCodes.CONFIGURATION_ERROR,
+                        "error_code": ErrorCodes.CONFIGURATION_ERROR.value,
                         "original_error": "Invalid API Key or Credential",
                     },
                 ) from e
@@ -775,7 +813,7 @@ class LiteLLMProvider(LLMProvider):
                 raise AppException(
                     message="Upstream LLM service timed out or is unavailable.",
                     status_code=503,
-                    details={"error_code": ErrorCodes.UPSTREAM_TIMEOUT},
+                    details={"error_code": ErrorCodes.UPSTREAM_TIMEOUT.value},
                 ) from e
 
             # 5. CONTENT POLICY (Safety)
@@ -785,7 +823,7 @@ class LiteLLMProvider(LLMProvider):
                 )
                 raise SecurityViolationError(
                     message="Content blocked by safety filters.",
-                    details={"error_code": ErrorCodes.SECURITY_VIOLATION, "original_error": error_msg},
+                    details={"error_code": ErrorCodes.SECURITY_VIOLATION.value, "original_error": error_msg},
                 ) from e
 
             # 6. GENERIC FALLBACK (Fail Fast)
@@ -803,7 +841,7 @@ class LiteLLMProvider(LLMProvider):
                 # Default to ServiceUnavailable for unknown upstream errors
                 raise ServiceUnavailableError(
                     message=f"Unknown upstream LLM error: {error_type}",
-                    details={"error_code": ErrorCodes.UNKNOWN_ERROR, "original_error": error_msg},
+                    details={"error_code": ErrorCodes.UNKNOWN_ERROR.value, "original_error": error_msg},
                 ) from e
 
 
@@ -819,7 +857,16 @@ class MockProvider(LLMProvider):
         usage_service: UsageService | None = None,
         organization_id: str | None = None,
     ):
-        """Initialize the Mock Provider."""
+        """Initialize the Mock Provider.
+
+        Args:
+            model_name: Identifier.
+            usage_service: Optional usage tracking.
+            organization_id: Identity.
+
+        Raises:
+            ConfigurationError: If mock environment is completely misconfigured.
+        """
         self.model_name = model_name
         self.usage_service = usage_service
         self.organization_id = organization_id or "UNKNOWN_ORG"
@@ -838,19 +885,40 @@ class MockProvider(LLMProvider):
         validation_context: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> LLMResponse:
-        """Simulates generation by invoking the MockLLMService."""
+        """Simulates generation by invoking the MockLLMService.
+
+        Args:
+            prompt: Text to generate from.
+            system_instruction: System prompt.
+            messages: Fallback conversational state.
+            response_schema: Return type constraints.
+            temperature: (float) sampling value.
+            max_tokens: Limit.
+            top_p: P-sample.
+            top_k: K-sample.
+            pass_reasoning_token: Blob.
+            validation_context: Custom dict.
+            **kwargs: Extra parameters.
+
+        Returns:
+            LLMResponse: A mocked success response matching the requested schema.
+
+        Raises:
+            ConfigurationError: If parameters missing or seed not found.
+            AppException: If parsing fails.
+        """
         logger.info("[MockProvider] Calling Mock Service (Simulating Async)... %s", kwargs)
 
         # STRICT CONFIGURATION (Jan 2026): Reject defaults in Mock too.
         if temperature is None:
             msg = "Strict Mode: 'temperature' must be explicitly provided from configuration. No default allowed."
             logger.error("[MockProvider] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-            raise ConfigurationError(message=msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
+            raise ConfigurationError(message=msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
         if max_tokens is None:
             msg = "Strict Mode: 'max_tokens' must be explicitly provided from configuration. No default allowed."
             logger.error("[MockProvider] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-            raise ConfigurationError(message=msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR})
+            raise ConfigurationError(message=msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
         # --- DIAGNOSTIC DUMP ---
         dump_file = os.getenv("DUMP_PROMPTS_FILE")
@@ -866,7 +934,11 @@ class MockProvider(LLMProvider):
                 payload = "\n".join(payload_parts)
                 await asyncio.to_thread(_sync_diagnostic_dump, dump_file, f"[MockProvider] {self.model_name}", payload)
             except Exception as e:
-                logger.warning("Failed to schedule diagnostic dump: %s", e)
+                logger.error("Failed to schedule diagnostic dump: %s", e)
+                raise ConfigurationError(
+                    message=f"Diagnostic dump dispatch failed: {e}",
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                ) from e
 
         # Simulate network delay for verification of async behavior
         await asyncio.sleep(0.5)
@@ -898,7 +970,7 @@ class MockProvider(LLMProvider):
                 message=(
                     f"Fail-Fast: Mock data not found in Seed Vault. Prompt missing mock definition: {prompt[:100]}..."
                 ),
-                details={"error_code": "CONFIGURATION_ERROR"},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
         else:
             if isinstance(result, dict):
@@ -932,8 +1004,8 @@ class MockProvider(LLMProvider):
         # --- COST TRACKING (Mock) ---
         if self.usage_service:
             try:
-                target_org = kwargs["organization_id"] if "organization_id" in kwargs else None or self.organization_id
-                target_user = kwargs["user_id"] if "user_id" in kwargs else None or "system_agent"
+                target_org = kwargs.get("organization_id") or self.organization_id
+                target_user = kwargs.get("user_id") or "system_agent"
 
                 await self.usage_service.track_usage(
                     org_id=target_org,
@@ -988,18 +1060,22 @@ class LLMFactory:
         """Factory method to create an LLM Provider instance.
 
         Args:
-            provider_type (str): Type key (e.g. 'litellm', 'mock').
-            model_name (str): Model identifier.
-            context (Optional[dict]): Additional context or settings.
-            organization_id (Optional[str]): Organization ID for tracking.
-            usage_service (Optional[UsageService]): Usage service instance.
-            limits (Optional[dict]): Usage limits (tpm, rpm).
-            api_key (Optional[str]): Explicit API Key override (e.g. for ad-hoc testing).
-            config (Optional[LLMProviderConfig]): Strict configuration object (Database-Driven).
+            provider_type: Type key (e.g. 'litellm', 'mock').
+            model_name: Model identifier.
+            context: Additional context or settings.
+            organization_id: Organization ID for tracking.
+            usage_service: Usage service instance.
+            limits: Usage limits (tpm, rpm).
+            api_key: Explicit API Key override (e.g. for ad-hoc testing).
+            config: Strict configuration object (Database-Driven).
             **kwargs: Additional arguments.
 
         Returns:
-            LLMProvider: Configured provider instance.
+            Configured provider instance.
+
+        Raises:
+            ConfigurationError: If provider configuration is invalid or grounding is requested but not supported.
+            ServiceUnavailableError: If the provider is disabled.
         """
         settings = get_settings()
 
@@ -1018,7 +1094,7 @@ class LLMFactory:
                 )
                 raise ServiceUnavailableError(
                     message=f"Provider '{model_name}' is disabled in configuration.",
-                    details={"error_code": ErrorCodes.SERVICE_DISABLED},
+                    details={"error_code": ErrorCodes.SERVICE_DISABLED.value},
                 )
 
             # Resolve Limits from Config
@@ -1049,10 +1125,10 @@ class LLMFactory:
                         "but provider config 'supports_grounding' is False."
                     )
                     logger.error("[LLMFactory] %s: %s", ErrorCodes.CAPABILITY_NOT_SUPPORTED.name, msg)
-                    raise ConfigurationError(
-                        message=msg,
-                        details={"error_code": ErrorCodes.CAPABILITY_NOT_SUPPORTED},
-                    )
+                raise ConfigurationError(
+                    message=msg,
+                    details={"error_code": ErrorCodes.CAPABILITY_NOT_SUPPORTED.value},
+                )
 
             # Strict Limits: If limits are missing in config, we do NOT default to empty.
             # However, logic above extracts them from config if present.
@@ -1091,7 +1167,7 @@ class LLMFactory:
             )
             raise ConfigurationError(
                 message="Model name is required for LLMProvider creation.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
         if provider_type == "anthropic" and not model_name.startswith("anthropic/"):

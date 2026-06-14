@@ -40,6 +40,20 @@ Arviointiohjeistukset perustuvat nykyään asiantuntijoiden valmiiksi kirjoittam
 **Decoupled TDA Semantic Extractor (Epic 56):**
 Järjestelmä siirtyi V5-versioinnissa täydelliseen **Decoupled TDA** -arkkitehtuuriin. Tekoälyltä on **riistetty kognitiivinen tuomiovalta** kokonaan. LLM toimii sokeana semantteisena poimijana (N-Dimensional Semantic Extractor) palauttaen dynaamisen Pydantic-mallien tehtaan (`DynamicExtractionResponse` & `ExtractedFactsDTO`) luoman JSON-rakenteen säännön määlettelemien `facts_to_find`-kenttien perusteella. Lopullinen looginen Pass/Fail -arviointi suoritetaan 100 % deterministisesti Python-koodissa hyödyntäen whitelistattua **AST-arviointimoottoria** (`ast_evaluator.py`). Tämä eliminoi kognitiivisen päättelyvarianssin ja rationalisoinnin.
 
+### Pearl's Rung 3 (Abduktiivinen Päättely) ja XML-Kääntäjä (`localization_compiler.py`)
+
+Järjestelmä noudattaa Judea Pearlin kausaalisen päättelyn tikapuiden kolmatta tasoa (Rung 3: Counterfactuals / Abductive reasoning) arvioidessaan TDA-väitteitä. Jotta LLM ei eksy litteän tekstin rationalisointiin, `localization_compiler.py` kääntää `TDAAssertion`-säännöt tiukkaan XML-muotoon. Aiemman raa'an merkkijonon (`ai_rule_description`) sijaan väitteet injektoidaan LLM:lle tiukasti jäsenneltynä rakenteena:
+
+```xml
+<tda_validation>
+  <anchor_target>Mitä ankkuria etsitään</anchor_target>
+  <search_scope>paragraph</search_scope>
+  <validation_rule>Varsinainen sääntö, joka datan on täytettävä</validation_rule>
+</tda_validation>
+```
+
+Tämä rakenne pakottaa mallin suorittamaan arvioinnin kolmessa vaiheessa: 1) Etsi spatiaalinen ankkuri, 2) Rajaa konteksti, 3) Sovella sääntöä tähän rajattuun tilaan. Tämä on ehdoton vaatimus Pearl's Rung 3 -tason kausaalisen tarkkuuden saavuttamiseksi.
+
 **TDA-väitteiden kohdistus ja Agnostic Matrices (Käyttäjän arvioinnin periaate):**
 Cognitive Quorum -järjestelmän päätavoite on aina arvioida **käyttäjän suoritusta ja käyttäjän argumentointia** (eikä tekoälyä itseään). Aiemmin tämä ratkaistiin upottamalla kovat `BANNED SOURCES` -rajoitteet suoraan sääntöihin (TDA Assertions). Tämä kuitenkin sitoi matriisit tiukasti tiettyyn tietorakenteeseen. Nyt järjestelmässä on käytössä **Agnostic Matrices** -arkkitehtuuri:
 1. **Matriisien Agnostisuus:** Kaikki kovat `target 'ai:' block` tai `BANNED SOURCES` -viittaukset on poistettu itse säännöistä. Matriisit ovat puhtaita, objektiivisia mittatikkuja ("mitä etsitään"), täysin riippumattomia siitä, *mistä* data tulee.
@@ -95,6 +109,11 @@ Tämä saavutetaan seuraavilla suojamuureilla:
    * Jokaisen väittämän oletusarvo on aluksi `FALSE`.
    * LLM kääntää atomin arvoksi `TRUE` ainoastaan, jos se kykenee poimimaan aineistosta eksplisiittisen, kiistattoman todisteen.
    * LLM:ltä on täysin riistetty kyky palauttaa itse valmiita numeerisia lukuja kuten jatkuvia kokonaisarvosanoja. Tämä logiikka (Zero-Math Payload) pienentää Map-Reduce -töiden palauttamia JSON-rakenteita kriittisesti.
+
+4. **Lexical Verifier ja Lähdetekstin Integriteetti (Anchor Validation):**
+   * LLM:n poimiman `exact_quote` -lainauksen on löydyttävä *fyysisesti* lähdetekstistä. Jotta LLM-hallusinaatiot estetään matemaattisella varmuudella, järjestelmä soveltaa `AnchorValidationService`:ssä **Fail-Fast / Slow-Path** -arkkitehtuuria:
+   * **Fast-Path (Eksakti Haku - O(N)):** Koska lähdeteksti on usein rikkonaista Markdown-taulukkoa (esim. `|`-erottimia ja `<br>`-tageja), normalisointimoottori (`normalize_text_with_mapping`) strippaa kaikki HTML-tagit ja erikoismerkit pois ennen vertailua, säilyttäen alkuperäisen indeksikartan. Näin ollen "siivottu" LLM-lainaus osuu O(N) nopeudella rikkonaiseenkin taulukkoon, ja tietokantaan saadaan talteen alkuperäinen saksittu palanen kaikkine HTML-muotoiluineen XAI-raporttia varten.
+   * **Slow-Path (Fuzzy Fallback):** Jos eksakti haku epäonnistuu (esim. PDF OCR -skannerin hypytysvirheiden vuoksi, missä I-kirjain on vaihtunut L:ksi), järjestelmä siirtyy raskaampaan `rapidfuzz` -sumeaan hakuun. Jos osuman samankaltaisuus (`partial_ratio`) on yli 95 %, järjestelmä ei kaada koko ajoa, vaan hyväksyy LLM:n palauttaman tekstin fallback-skenaariona. Tämä varmistaa vikasietoisuuden ilman overfittausta yksittäisiin PDF-tiedostoihin.
 
 ---
 

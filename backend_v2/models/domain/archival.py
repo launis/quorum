@@ -1,3 +1,8 @@
+"""Archival Domain Models.
+
+This module defines the schemas for archival execution precedents.
+"""
+
 from __future__ import annotations
 
 from pydantic import Field

@@ -1,3 +1,8 @@
+"""Admin Studio System Configs API Router.
+
+Placeholder for generic system configuration endpoints.
+"""
+
 import logging
 
 from fastapi import APIRouter

@@ -359,7 +359,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                         vertical: 8,
                                       ),
                                     ),
-                                    maxLines: 3,
+                                    maxLines: 2,
                                     onChanged: (newDesc) {
                                       setState(() {
                                         final newTdas = List<TDAAssertion>.from(
@@ -367,6 +367,132 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                         );
                                         newTdas[tdaIdx] = tda.copyWith(
                                           conceptDescription: newDesc,
+                                        );
+                                        final newClaims =
+                                            List<MatrixClaim>.from(
+                                              _editableScale.claims,
+                                            );
+                                        newClaims[index] = claim.copyWith(
+                                          tdaAssertions: newTdas,
+                                        );
+                                        _editableScale = _editableScale
+                                            .copyWith(claims: newClaims);
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
+                                    initialValue: tda.anchorTarget,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.tdaAnchorTarget,
+                                      helperText:
+                                          'Specific entity, keyword, or sentence to anchor on',
+                                      border: const OutlineInputBorder(),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 8,
+                                          ),
+                                    ),
+                                    onChanged: (newVal) {
+                                      setState(() {
+                                        final newTdas = List<TDAAssertion>.from(
+                                          claim.tdaAssertions,
+                                        );
+                                        newTdas[tdaIdx] = tda.copyWith(
+                                          anchorTarget: newVal.trim().isEmpty
+                                              ? null
+                                              : newVal.trim(),
+                                        );
+                                        final newClaims =
+                                            List<MatrixClaim>.from(
+                                              _editableScale.claims,
+                                            );
+                                        newClaims[index] = claim.copyWith(
+                                          tdaAssertions: newTdas,
+                                        );
+                                        _editableScale = _editableScale
+                                            .copyWith(claims: newClaims);
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(height: 8),
+                                  DropdownButtonFormField<String>(
+                                    initialValue: tda.boundingBoxScope,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.tdaBoundingBox,
+                                      border: const OutlineInputBorder(),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 8,
+                                          ),
+                                    ),
+                                    items: const [
+                                      DropdownMenuItem(
+                                        value: 'sentence',
+                                        child: Text('Sentence'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'paragraph',
+                                        child: Text('Paragraph'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'adjacent_paragraphs',
+                                        child: Text('Adjacent Paragraphs'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'document',
+                                        child: Text('Document'),
+                                      ),
+                                    ],
+                                    onChanged: (newVal) {
+                                      if (newVal != null) {
+                                        setState(() {
+                                          final newTdas =
+                                              List<TDAAssertion>.from(
+                                                claim.tdaAssertions,
+                                              );
+                                          newTdas[tdaIdx] = tda.copyWith(
+                                            boundingBoxScope: newVal,
+                                          );
+                                          final newClaims =
+                                              List<MatrixClaim>.from(
+                                                _editableScale.claims,
+                                              );
+                                          newClaims[index] = claim.copyWith(
+                                            tdaAssertions: newTdas,
+                                          );
+                                          _editableScale = _editableScale
+                                              .copyWith(claims: newClaims);
+                                        });
+                                      }
+                                    },
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextFormField(
+                                    initialValue: tda.extractionRule,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.tdaExtractionRule,
+                                      helperText:
+                                          'Condition that must hold true within the bounding box',
+                                      border: const OutlineInputBorder(),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 8,
+                                          ),
+                                    ),
+                                    maxLines: 2,
+                                    onChanged: (newVal) {
+                                      setState(() {
+                                        final newTdas = List<TDAAssertion>.from(
+                                          claim.tdaAssertions,
+                                        );
+                                        newTdas[tdaIdx] = tda.copyWith(
+                                          extractionRule: newVal.trim().isEmpty
+                                              ? null
+                                              : newVal.trim(),
                                         );
                                         final newClaims =
                                             List<MatrixClaim>.from(
@@ -723,60 +849,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 10),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              'Vaatii enemmistöäänestyksen (High Entropy)',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              'Ajaa koko kriteeristön 3 kertaa rinnakkain tämän atomin varianssin poistamiseksi.',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurfaceVariant,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Switch(
-                                        value: tda.highEntropy,
-                                        onChanged: (newVal) {
-                                          setState(() {
-                                            final newTdas =
-                                                List<TDAAssertion>.from(
-                                                  claim.tdaAssertions,
-                                                );
-                                            newTdas[tdaIdx] = tda.copyWith(
-                                              highEntropy: newVal,
-                                            );
-                                            final newClaims =
-                                                List<MatrixClaim>.from(
-                                                  _editableScale.claims,
-                                                );
-                                            newClaims[index] = claim.copyWith(
-                                              tdaAssertions: newTdas,
-                                            );
-                                            _editableScale = _editableScale
-                                                .copyWith(claims: newClaims);
-                                          });
-                                        },
-                                      ),
-                                    ],
-                                  ),
+
                                   if (tda.evaluationTrack ==
                                       EvaluationTrack.extractiveSensor) ...[
                                     const SizedBox(height: 8),

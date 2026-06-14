@@ -1,3 +1,5 @@
+"""Database repository implementation module."""
+
 from typing import Any
 
 from backend_v2.database.driver import Filter
@@ -13,6 +15,18 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
     async def get_all_components(
         self, type: str | None = None, exclude_types: list[str] | None = None
     ) -> list[dict[str, Any]]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         filters = []
         if type:
             filters.append(Filter("type", "==", type))
@@ -25,30 +39,114 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         return components
 
     async def get_component_by_id(self, component_id: str) -> dict[str, Any] | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.get("components", component_id)
 
     async def get_component_by_name(self, name: str) -> dict[str, Any] | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         res = await self.driver.query("components", [Filter("name", "==", name)], limit=1)
         return res[0] if res else None
 
     async def get_component_by_slug(self, slug: str) -> dict[str, Any] | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         res = await self.driver.query("components", [Filter("slug", "==", slug)], limit=1)
         return res[0] if res else None
 
     async def update_component_metadata(self, component_id: str, module: str, component_class: str) -> bool:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         comp = await self.get_component_by_id(component_id)
         if not comp:
             return False
         return await self.driver.update("components", component_id, {"module": module, "class_name": component_class})
 
     async def register_component(self, component_data: dict[str, Any]) -> str:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         doc_id = component_data["id"]
         return await self.driver.upsert("components", component_data, doc_id)
 
     async def create_component(self, component_data: dict[str, Any]) -> str:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.register_component(component_data)
 
     async def update_component(self, component_id: str, updates: dict[str, Any]) -> str:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         comp = await self.get_component_by_id(component_id)
         if not comp:
             raise ResourceNotFoundError(resource_type="LegacyPromptBlock", resource_id=component_id)
@@ -56,12 +154,36 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         return component_id
 
     async def delete_component(self, component_id: str) -> bool:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         comp = await self.get_component_by_id(component_id)
         if not comp:
             return False
         return await self.driver.delete("components", component_id)
 
     async def get_components_using_dimension(self, dimension_id: str) -> list[str]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         matrices = await self.get_all_components(type="evaluation_matrix")
         matches = []
         for m in matrices:
@@ -80,19 +202,79 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
     # --- PromptBlocks ---
 
     async def get_prompt_block_by_id(self, block_id: str) -> dict[str, Any] | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.get("prompt_blocks", block_id)
 
     async def get_prompt_block(self, block_id: str) -> dict[str, Any] | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.get_prompt_block_by_id(block_id)
 
     async def get_prompt_block_by_slug(self, slug: str) -> dict[str, Any] | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         res = await self.driver.query("prompt_blocks", [Filter("slug", "==", slug)], limit=1)
         return res[0] if res else None
 
     async def get_all_prompt_blocks(self) -> list[dict[str, Any]]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.query("prompt_blocks")
 
     async def get_all_prompt_blocks_models(self) -> list[PromptBlock]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         data = await self.get_all_prompt_blocks()
         models = []
         for b in data:
@@ -113,10 +295,34 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         return models
 
     async def create_prompt_block(self, block_data: dict[str, Any]) -> str:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         doc_id = block_data["id"]
         return await self.driver.upsert("prompt_blocks", block_data, doc_id)
 
     async def update_prompt_block(self, block_id: str, updates: dict[str, Any]) -> bool:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         old_doc = await self.get_prompt_block_by_id(block_id)
         if not old_doc:
             return False
@@ -136,6 +342,18 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         return True
 
     async def delete_prompt_block(self, block_id: str, force_delete: bool = False) -> bool:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         block = await self.get_prompt_block_by_id(block_id)
         if not block:
             return False
@@ -160,16 +378,64 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
     # --- Agents ---
 
     async def get_agent_by_id(self, agent_id: str) -> dict[str, Any] | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.get("agents", agent_id)
 
     async def get_all_agents(self) -> list[dict[str, Any]]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.query("agents")
 
     async def create_agent(self, agent_data: dict[str, Any]) -> str:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         doc_id = agent_data["id"]
         return await self.driver.upsert("agents", agent_data, doc_id)
 
     async def update_agent(self, agent_id: str, updates: dict[str, Any]) -> bool:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         old_doc = await self.get_agent_by_id(agent_id)
         if not old_doc:
             return False
@@ -189,6 +455,18 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         return True
 
     async def delete_agent(self, agent_id: str) -> bool:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         agent = await self.get_agent_by_id(agent_id)
         if not agent:
             return False
@@ -197,16 +475,64 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
     # --- Task Blueprints ---
 
     async def get_task_blueprint_by_id(self, blueprint_id: str) -> dict[str, Any] | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.get("task_blueprints", blueprint_id)
 
     async def get_all_task_blueprints(self) -> list[dict[str, Any]]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.query("task_blueprints")
 
     async def create_task_blueprint(self, blueprint_data: dict[str, Any]) -> str:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         doc_id = blueprint_data["id"]
         return await self.driver.upsert("task_blueprints", blueprint_data, doc_id)
 
     async def update_task_blueprint(self, blueprint_id: str, updates: dict[str, Any]) -> bool:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         old_doc = await self.get_task_blueprint_by_id(blueprint_id)
         if not old_doc:
             return False
@@ -226,6 +552,18 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         return True
 
     async def delete_task_blueprint(self, blueprint_id: str) -> bool:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         blueprint = await self.get_task_blueprint_by_id(blueprint_id)
         if not blueprint:
             return False
@@ -234,9 +572,33 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
     # --- Output Profiles ---
 
     async def get_all_output_profiles(self) -> list[dict[str, Any]]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.query("output_profiles")
 
     async def get_all_output_profiles_models(self) -> list[OutputProfile]:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         data = await self.get_all_output_profiles()
         models = []
         for pd in data:
@@ -257,14 +619,62 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         return models
 
     async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any] | None:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.get("output_profiles", profile_id)
 
     async def create_output_profile(self, profile_data: dict[str, Any]) -> str:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         doc_id = profile_data["id"]
         return await self.driver.upsert("output_profiles", profile_data, doc_id)
 
     async def update_output_profile(self, profile_id: str, updates: dict[str, Any]) -> bool:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.update("output_profiles", profile_id, updates)
 
     async def delete_output_profile(self, profile_id: str) -> bool:
+        """Repository method implementation.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+
+        Returns:
+            The expected result of the operation.
+
+        Raises:
+            AppException: If a critical operation fails.
+        """
         return await self.driver.delete("output_profiles", profile_id)

@@ -6,8 +6,10 @@ void main() {
     test('fromJson parses all valid XAI extensions correctly (Happy Path)', () {
       final json = {
         'block_id': 'blk_123',
-        'label_en': 'Matrix Risk',
-        'label_fi': 'Matriisi Riski',
+        'label_i18n': {
+          'default_locale': 'en',
+          'translations': {'en': 'Matrix Risk', 'fi': 'Matriisi Riski'},
+        },
         'name': 'Matrix Risk',
         'row_explanation': 'Valid logic structure.',
         'is_evaluative': true,
@@ -27,7 +29,7 @@ void main() {
       final dto = MatrixScorecardRowDto.fromJson(json);
 
       expect(dto.blockId, 'blk_123');
-      expect(dto.labelEn, 'Matrix Risk');
+      expect(dto.labelI18n.get('en'), 'Matrix Risk');
       expect(dto.name, 'Matrix Risk');
       expect(dto.score, 4.5);
       expect(dto.rowExplanation, 'Valid logic structure.');
@@ -46,8 +48,10 @@ void main() {
       () {
         final json = {
           'block_id': 'blk_123',
-          'label_en': 'Matrix Logic',
-          'label_fi': 'Matriisi Logiikka',
+          'label_i18n': {
+            'default_locale': 'en',
+            'translations': {'en': 'Matrix Logic', 'fi': 'Matriisi Logiikka'},
+          },
           'name': 'Matrix Logic',
           'row_explanation': 'Basic',
           'is_evaluative': true,
@@ -73,6 +77,27 @@ void main() {
 
         expect(dto.riskFlag, false);
         expect(dto.remediationSteps, null);
+      },
+    );
+
+    test(
+      'TDD REPRO: fromJson parses label_i18n from backend without crashing',
+      () {
+        final json = {
+          'block_id': 'blk_123',
+          'name': 'Matrix Risk',
+          'label_i18n': {
+            'default_locale': 'en',
+            'translations': {'fi': 'Matriisi Riski', 'en': 'Matrix Risk'},
+          },
+          'row_explanation': 'Valid logic structure.',
+          'is_evaluative': true,
+        };
+
+        // This should now successfully parse without crashing!
+        final dto = MatrixScorecardRowDto.fromJson(json);
+
+        expect(dto.blockId, 'blk_123');
       },
     );
   });

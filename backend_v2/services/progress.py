@@ -102,7 +102,17 @@ class DatabaseProgressTracker(ProgressTracker):
         self.execution_id = execution_id
 
     async def start(self, details: dict[str, Any] | None = None) -> None:
-        """Sets status to 'started'."""
+        """Sets status to 'started'.
+
+        Args:
+            details (dict[str, Any] | None, optional): Initial metadata.
+
+        Returns:
+            None
+
+        Raises:
+            AppException: If updating the execution in the repository fails.
+        """
         try:
             payload = {"status": STATUS_STARTED, "start_time": datetime.now(timezone.utc).isoformat()}
             if details:
@@ -122,7 +132,19 @@ class DatabaseProgressTracker(ProgressTracker):
             ) from e
 
     async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None) -> None:
-        """Updates 'current_step' and 'progress' fields in DB."""
+        """Updates 'current_step' and 'progress' fields in DB.
+
+        Args:
+            stage (str): Description of current activity.
+            percent (int): Completion percentage (0-100).
+            details (dict[str, Any] | None, optional): Metadata updates.
+
+        Returns:
+            None
+
+        Raises:
+            AppException: If updating the execution in the repository fails.
+        """
         try:
             payload = {
                 "status": STATUS_RUNNING,
@@ -148,7 +170,17 @@ class DatabaseProgressTracker(ProgressTracker):
             ) from e
 
     async def complete(self, result: dict[str, Any] | None = None) -> None:
-        """Sets status to 'completed' and saves final result."""
+        """Sets status to 'completed' and saves final result.
+
+        Args:
+            result (dict[str, Any] | None, optional): Final result data.
+
+        Returns:
+            None
+
+        Raises:
+            AppException: If updating the execution in the repository fails.
+        """
         try:
             payload: dict[str, Any] = {"status": STATUS_COMPLETED, "end_time": datetime.now(timezone.utc).isoformat()}
             if result:
@@ -164,7 +196,18 @@ class DatabaseProgressTracker(ProgressTracker):
             ) from e
 
     async def fail(self, error: str, details: dict[str, Any] | None = None) -> None:
-        """Sets status to 'failed' and saves error message."""
+        """Sets status to 'failed' and saves error message.
+
+        Args:
+            error (str): Error message.
+            details (dict[str, Any] | None, optional): Error context.
+
+        Returns:
+            None
+
+        Raises:
+            AppException: If updating the execution in the repository fails.
+        """
         try:
             payload: dict[str, Any] = {
                 "status": STATUS_FAILED,
@@ -206,7 +249,10 @@ class InMemoryProgressTracker(ProgressTracker):
 
         Args:
             status (str): Current status code.
-            payload (dict): Data payload.
+            payload (dict[str, Any]): Data payload.
+
+        Returns:
+            None
         """
         base = {"status": status, "timestamp": datetime.now(timezone.utc).isoformat()}
         for k in base:
@@ -219,11 +265,27 @@ class InMemoryProgressTracker(ProgressTracker):
         self.callback(self.current_state.model_dump(exclude_none=True))
 
     async def start(self, details: dict[str, Any] | None = None) -> None:
-        """Signals start."""
+        """Signals start.
+
+        Args:
+            details (dict[str, Any] | None, optional): Initial metadata.
+
+        Returns:
+            None
+        """
         self._emit(STATUS_STARTED, details or {})
 
     async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None) -> None:
-        """Signals update."""
+        """Signals update.
+
+        Args:
+            stage (str): Description of current activity.
+            percent (int): Completion percentage (0-100).
+            details (dict[str, Any] | None, optional): Metadata updates.
+
+        Returns:
+            None
+        """
         data = {"stage": stage, "percent": percent}
         if details:
             for k in data:
@@ -233,14 +295,29 @@ class InMemoryProgressTracker(ProgressTracker):
         self._emit(STATUS_RUNNING, data)
 
     async def complete(self, result: dict[str, Any] | None = None) -> None:
-        """Signals completion."""
+        """Signals completion.
+
+        Args:
+            result (dict[str, Any] | None, optional): Final result data.
+
+        Returns:
+            None
+        """
         data: dict[str, Any] = {"percent": 100}
         if result:
             data["result"] = result
         self._emit(STATUS_COMPLETED, data)
 
     async def fail(self, error: str, details: dict[str, Any] | None = None) -> None:
-        """Signals failure."""
+        """Signals failure.
+
+        Args:
+            error (str): Error message.
+            details (dict[str, Any] | None, optional): Error context.
+
+        Returns:
+            None
+        """
         data = {"error": error}
         if details:
             for k in data:
@@ -254,7 +331,11 @@ class ProgressService:
     """Service for real-time progress reporting via Redis."""
 
     def __init__(self, redis_client: Any):
-        """Initialize with a Redis client (ArqRedis or compatible)."""
+        """Initialize with a Redis client (ArqRedis or compatible).
+
+        Args:
+            redis_client (Any): Redis client instance.
+        """
         self.redis = redis_client
 
     async def emit_progress(self, execution_id: str, task_key: str, message: str, progress: float) -> None:
@@ -265,6 +346,9 @@ class ProgressService:
             task_key: Identifier for the task (e.g., 'pdf_gen').
             message: Human-readable status message.
             progress: Float between 0.0 and 1.0.
+
+        Returns:
+            None
 
         Raises:
             AppException: If Redis connection fails.

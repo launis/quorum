@@ -57,22 +57,24 @@ class DAGCompilerService:
                         continue
 
                     if root_namespace not in available_keys:
-                        raise WorkflowCompilationError(
-                            step_id=step.id,
-                            message=f"Step '{step.id}' references unknown input '{root_namespace}'. "
-                            f"Available inputs dynamically defined: {available_keys}",
+                        msg = (
+                            f"Step '{step.id}' references unknown input '{root_namespace}'. "
+                            f"Available inputs dynamically defined: {available_keys}"
                         )
+                        logger.error("[DAGCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        raise WorkflowCompilationError(step_id=step.id, message=msg)
                 # Check $steps
                 elif root_namespace.startswith("$steps"):
                     if root_namespace == "$steps":
                         continue
 
                     if root_namespace not in available_keys:
-                        raise WorkflowCompilationError(
-                            step_id=step.id,
-                            message=f"Step '{step.id}' references unexecuted or missing step '{root_namespace}'. "
-                            f"Ensure forward topological dependencies are enforced in depends_on.",
+                        msg = (
+                            f"Step '{step.id}' references unexecuted or missing step '{root_namespace}'. "
+                            f"Ensure forward topological dependencies are enforced in depends_on."
                         )
+                        logger.error("[DAGCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        raise WorkflowCompilationError(step_id=step.id, message=msg)
 
             # After step simulates successfully, it becomes available to downstream nodes
             available_keys.add(f"$steps.{step.id}")
@@ -83,6 +85,12 @@ class DAGCompilerService:
 
         E.g. '$inputs.user_id' -> '$inputs.user_id'
         E.g. '$steps.my_step.output.result' -> '$steps.my_step'
+
+        Args:
+            ref_str: The full reference string (e.g., $steps.my_step.value).
+
+        Returns:
+            str: The root node dependency path.
         """
         parts = ref_str.split(".")
         if len(parts) >= 2 and parts[0] == "$steps":
@@ -95,7 +103,14 @@ class DAGCompilerService:
 
     @staticmethod
     def _ensure_acyclic(steps: list[StepRule]) -> None:
-        """Analyzes the graph for Infinite Loops / Cycles using DFS."""
+        """Analyzes the graph for Infinite Loops / Cycles using DFS.
+
+        Args:
+            steps: The list of workflow steps to analyze.
+
+        Raises:
+            WorkflowCompilationError: If a cyclic dependency is detected.
+        """
         adj_list = {step.id: step.depends_on for step in steps}
         visited = set()
         rec_stack = set()
@@ -118,16 +133,24 @@ class DAGCompilerService:
             if step.id not in visited:
                 if is_cyclic(step.id):
                     # We found a loop!
-                    raise WorkflowCompilationError(
-                        step_id=step.id,
-                        message=f"Cyclic dependency (Infinite Loop) detected involving step: '{step.id}'",
-                    )
+                    msg = f"Cyclic dependency (Infinite Loop) detected involving step: '{step.id}'"
+                    logger.error("[DAGCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise WorkflowCompilationError(step_id=step.id, message=msg)
 
     @staticmethod
     def _get_topological_order(steps: list[StepRule]) -> list[StepRule]:
         """Returns the DAG Steps sorted topologically.
 
         Since _ensure_acyclic guarantees no cycles, this Kahn's iteration will always cleanly drain.
+
+        Args:
+            steps: The list of workflow steps to sort.
+
+        Returns:
+            list[StepRule]: The topologically sorted list of steps.
+
+        Raises:
+            WorkflowCompilationError: If a declared dependency does not exist in the workflow.
         """
         step_map = {step.id: step for step in steps}
         in_degree = {step.id: 0 for step in steps}
@@ -141,12 +164,9 @@ class DAGCompilerService:
                     in_degree[step.id] += 1
                 else:
                     # Depends on a step that doesn't exist? That's a syntax error.
-                    raise WorkflowCompilationError(
-                        step_id=step.id,
-                        message=(
-                            f"Step '{step.id}' declares dependency on '{dep_id}' which does not exist in the workflow."
-                        ),
-                    )
+                    msg = f"Step '{step.id}' declares dependency on '{dep_id}' which does not exist in the workflow."
+                    logger.error("[DAGCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise WorkflowCompilationError(step_id=step.id, message=msg)
 
         # Start queue with nodes having no dependencies
         queue = [step_id for step_id, degree in in_degree.items() if degree == 0]

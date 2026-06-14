@@ -1,16 +1,13 @@
 import base64
 import datetime
 import logging
-from typing import Any
 
-import fitz
-import pymupdf4llm
 from fastapi import status
 from fastapi.concurrency import run_in_threadpool
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.domain.inputs import Base64Attachment
+from backend_v2.models.domain.inputs import Base64Attachment, WorkflowInputsIngress
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +68,9 @@ class DocumentExtractionService:
         Returns:
             A tuple of (extracted_markdown_text, parsed_pdf_date_iso_str)
         """
+        import fitz
+        import pymupdf4llm
+
         doc = fitz.open(stream=file_bytes, filetype="pdf")
         try:
             md_text = str(pymupdf4llm.to_markdown(doc))
@@ -86,77 +86,61 @@ class DocumentExtractionService:
         finally:
             doc.close()
 
-    async def _extract_attachment(self, target_dict: dict[str, Any], key: str, val: dict[str, Any]) -> str | None:
-        """Helper to extract a single base64 payload from a dictionary.
-
-        Returns:
-            The parsed PDF metadata date if available.
-        """
-        try:
-            # STRICT PHASE 9: Fail-fast hydration instead of Duck Typing
-            attachment = Base64Attachment.model_validate(val)
-        except ValidationError as e:
-            logger.error("[DocumentExtractionService] Strict hydration failed for attachment in key %s", key)
-            raise AppException(
-                message=f"Invalid file attachment payload in key '{key}'",
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                details={"error_code": "INVALID_ATTACHMENT_SCHEMA"},
-            ) from e
-
-        filename_lower = attachment.filename.lower()
-        try:
-            file_bytes = base64.b64decode(attachment.content_base64)
-            if filename_lower.endswith(".pdf"):
-                logger.info(
-                    "[DocumentExtractionService] Found binary PDF %s. Extracting synchronously.",
-                    attachment.filename,
-                )
-                extracted, parsed_date = await run_in_threadpool(self._extract_pdf_sync, file_bytes)
-                # Destroy base64 blob, replace with string
-                target_dict[key] = extracted
-                return parsed_date
-            else:
-                logger.info("[DocumentExtractionService] Found text file %s. Decoding.", attachment.filename)
-                target_dict[key] = file_bytes.decode("utf-8", errors="ignore")
-                return None
-        except Exception as e:
-            logger.error("[DocumentExtractionService] Failed to extract %s", attachment.filename, exc_info=True)
-            raise AppException(
-                message=f"Failed to extract text from {attachment.filename}",
-                status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": "FILE_EXTRACTION_FAILED"},
-            ) from e
-
-    async def process_raw_inputs(self, raw_inputs: dict[str, Any]) -> None:
-        """Eagerly extracts binary PDF/Text content from raw_inputs in place."""
-        if not isinstance(raw_inputs, dict):
-            return
-
+    async def process_ingress_payload(self, ingress: WorkflowInputsIngress) -> WorkflowInputsIngress:
+        """Eagerly extracts binary PDF/Text content from an ingress payload in a strictly typed manner."""
         extracted_dates = []
 
-        for key, val in list(raw_inputs.items()):
+        # Rebuild dynamic_inputs because V2CoreBase is frozen=True
+        new_dynamic_inputs = dict(ingress.dynamic_inputs)
+
+        for key, val in list(ingress.dynamic_inputs.items()):
             if isinstance(val, dict) and "content_base64" in val:
-                pdf_date = await self._extract_attachment(raw_inputs, key, val)
-                if pdf_date:
-                    extracted_dates.append(pdf_date)
-            elif key == "dynamic_inputs" and isinstance(val, dict):
-                for dyn_key, dyn_val in list(val.items()):
-                    if isinstance(dyn_val, dict) and "content_base64" in dyn_val:
-                        pdf_date = await self._extract_attachment(val, dyn_key, dyn_val)
-                        if pdf_date:
-                            extracted_dates.append(pdf_date)
+                try:
+                    # STRICT PHASE 9: Fail-fast hydration instead of Duck Typing
+                    attachment = Base64Attachment.model_validate(val)
+                except ValidationError as e:
+                    logger.error("[DocumentExtractionService] Strict hydration failed for attachment in key %s", key)
+                    raise AppException(
+                        message=f"Invalid file attachment payload in key '{key}'",
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        details={"error_code": "INVALID_ATTACHMENT_SCHEMA"},
+                    ) from e
+
+                filename_lower = attachment.filename.lower()
+                try:
+                    file_bytes = base64.b64decode(attachment.content_base64)
+                    if filename_lower.endswith(".pdf"):
+                        logger.info(
+                            "[DocumentExtractionService] Found binary PDF %s. Extracting synchronously.",
+                            attachment.filename,
+                        )
+                        extracted, parsed_date = await run_in_threadpool(self._extract_pdf_sync, file_bytes)
+                        # Destroy base64 blob, replace with string
+                        new_dynamic_inputs[key] = extracted
+                        if parsed_date:
+                            extracted_dates.append(parsed_date)
+                    else:
+                        logger.info("[DocumentExtractionService] Found text file %s. Decoding.", attachment.filename)
+                        new_dynamic_inputs[key] = file_bytes.decode("utf-8", errors="ignore")
+                except Exception as e:
+                    logger.error("[DocumentExtractionService] Failed to extract %s", attachment.filename, exc_info=True)
+                    raise AppException(
+                        message=f"Failed to extract text from {attachment.filename}",
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        details={"error_code": "FILE_EXTRACTION_FAILED"},
+                    ) from e
 
         if extracted_dates:
             # Sort chronologically to prefer the most recent date
             valid_dates = sorted(extracted_dates, reverse=True)
-            if "dynamic_inputs" not in raw_inputs or not isinstance(raw_inputs["dynamic_inputs"], dict):
-                raw_inputs["dynamic_inputs"] = {}
 
             # Phase 1, Step 4: Inject only if not already explicitly populated by the user
-            if not raw_inputs["dynamic_inputs"].get("document_date"):
-                raw_inputs["dynamic_inputs"]["document_date"] = valid_dates[0]
+            if not new_dynamic_inputs.get("document_date"):
+                new_dynamic_inputs["document_date"] = valid_dates[0]
                 logger.info(
                     "[DocumentExtractionService] Dynamically extracted original PDF date "
                     "and injected as document_date: %s",
                     valid_dates[0],
                 )
+
+        return ingress.model_copy(update={"dynamic_inputs": new_dynamic_inputs})

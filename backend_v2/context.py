@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 """Context management for Execution and Request IDs.
 
 This module manages thread-local execution context variables leveraging python's standard contextvars.
 """
+
+from __future__ import annotations
 
 import logging
 from contextvars import ContextVar

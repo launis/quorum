@@ -191,11 +191,19 @@ class HookRegistry:
             ) from e
 
     def get_all_hooks(self) -> list[str]:
-        """Returns a list of all registered hook names."""
+        """Returns a list of all registered hook names.
+
+        Returns:
+            A list of strings containing the names of all registered hooks.
+        """
         return list(self._hooks.keys())
 
     def clear(self) -> None:
-        """Clears all registered hooks. (Mainly for testing)."""
+        """Clears all registered hooks. (Mainly for testing).
+
+        Returns:
+            None.
+        """
         self._hooks.clear()
 
 

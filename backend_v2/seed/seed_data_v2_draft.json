@@ -8157,13 +8157,9 @@
                 }
             },
             "pre_hooks": [
-                "inject_step_metadata",
-                "atom_flattening_hook"
+                "inject_step_metadata"
             ],
-            "post_hooks": [
-                "matrix_scoring_hook",
-                "normalize_matrix_scores"
-            ],
+            "post_hooks": [],
             "allowed_mcp_tools": [],
             "safety": "safe",
             "type": "llm",
@@ -8206,13 +8202,9 @@
                 }
             },
             "pre_hooks": [
-                "inject_step_metadata",
-                "atom_flattening_hook"
+                "inject_step_metadata"
             ],
-            "post_hooks": [
-                "matrix_scoring_hook",
-                "normalize_matrix_scores"
-            ],
+            "post_hooks": [],
             "allowed_mcp_tools": [
                 "mcp_tavily_search"
             ],

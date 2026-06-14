@@ -15,11 +15,13 @@ from backend_v2.exceptions import (
     LogicalValidationError,
     SemanticEvidenceError,
 )
+from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +29,19 @@ logger = logging.getLogger(__name__)
 def _build_null_fallback(
     model_cls: type[BaseModel], existing: Any | None = None, source_text: str | None = None
 ) -> Any:
-    """Phase 1: Extract Pydantic reflection fallback generation to remove DRY violation."""
+    """Phase 1: Extract Pydantic reflection fallback generation to remove DRY violation.
+
+    Recursively builds a null-object shell of the target Pydantic model for self-healing
+    failovers when the LLM refuses to parse data correctly.
+
+    Args:
+        model_cls: The target Pydantic model class to build.
+        existing: An existing partially populated dictionary or object to scavenge fields from.
+        source_text: The source text required for contextual validation.
+
+    Returns:
+        An instantiated model_cls object constructed via model_construct (bypassing validation).
+    """
     fallback_data: dict[str, Any] = {}
 
     for name, field_info in model_cls.model_fields.items():
@@ -92,15 +106,29 @@ def _build_null_fallback(
                 elif field_info.default is not PydanticUndefined:
                     fallback_data[name] = field_info.default
                 elif field_info.default_factory is not None:
+                    # Ignore call-arg because default_factory technically has no arguments, but MyPy complains generically
                     fallback_data[name] = field_info.default_factory()  # type: ignore[call-arg]
                 else:
                     fallback_data[name] = None
 
+    # Warning: model_construct() intentionally bypasses Pydantic Fail-Fast validation.
+    # This is an architectural exception specifically designed to provide a Null Object
+    # Fallback when the LLM has catastrophically failed all healing attempts.
     return model_cls.model_construct(**fallback_data)
 
 
 def _validate_non_empty_payload(messages: list[dict[str, Any]] | CompiledPrompt) -> None:
-    """Phase 1: Extract payload validation to prevent hallucinations."""
+    """Phase 1: Extract payload validation to prevent hallucinations.
+
+    Scans the prompt payload to ensure the user message is not empty. If the payload
+    is too short, it aborts the generation process.
+
+    Args:
+        messages: The prompt payload to validate.
+
+    Raises:
+        AppException: If the user payload text is critically short.
+    """
     user_texts = []
     if isinstance(messages, CompiledPrompt):
         user_texts = [str(m.get("content", "")) for m in messages.dynamic_messages if m.get("role") == "user"]
@@ -126,7 +154,18 @@ def _validate_non_empty_payload(messages: list[dict[str, Any]] | CompiledPrompt)
 
 
 def _perform_semantic_validation(validated_model: BaseModel, source_text: str) -> None:
-    """Phase 1: Extract recursive semantic verification."""
+    """Phase 1: Extract recursive semantic verification.
+
+    Recursively traces through the validated Pydantic model, searching for quote
+    keys and asserting their presence in the original source text.
+
+    Args:
+        validated_model: The successfully parsed Pydantic model to verify.
+        source_text: The original source material the quotes must reside within.
+
+    Raises:
+        LogicalValidationError: If a semantic quote mismatch is found.
+    """
     if not hasattr(validated_model, "model_dump"):
         return
 
@@ -159,7 +198,11 @@ class LLMTaskExecutor:
     """
 
     def __init__(self, prompt_compiler: PromptCompiler) -> None:
-        """Initialize the executor."""
+        """Initialize the executor.
+
+        Args:
+            prompt_compiler: The centralized compiler used for self-healing prompts.
+        """
         self.prompt_compiler = prompt_compiler
 
     async def execute_structured_task[T: BaseModel](
@@ -173,10 +216,29 @@ class LLMTaskExecutor:
         mock_identity: str | None = None,
         validation_context: dict[str, Any] | None = None,
     ) -> tuple[T, TokenUsage]:
-        """Execute a structured LLM task with Self-Healing, FinOps, and Strict Fail-Fast."""
-        cumulative_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+        """Execute a structured LLM task with Self-Healing, FinOps, and Strict Fail-Fast.
 
-        from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
+        Executes the AI task against the given client, wrapping the execution in a robust
+        schema and logical self-healing loop. Integrates semantic validation if provided in context.
+
+        Args:
+            client: The target LLM client to use.
+            messages: The user messages or compiled prompt.
+            response_model: The target Pydantic class to validate against.
+            max_schema_retries: Maximum attempts to heal raw schema malformations.
+            max_logical_retries: Maximum attempts to heal logical discrepancies.
+            validator_hook: Asynchronous hook for additional domain validation.
+            mock_identity: The mock identity for Pytest deterministic paths.
+            validation_context: Additional parameters like `source_text`.
+
+        Returns:
+            A tuple containing the successfully validated model and accumulated token usage.
+
+        Raises:
+            AgentExecutionError: If maximum retries are exhausted or catastrophic failure occurs.
+            AppException: If the initial prompt payload validation fails.
+        """
+        cumulative_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
         prompt_adapter = PromptCompilerAdapter()
 
@@ -360,8 +422,6 @@ class LLMTaskExecutor:
                     workflow_run_id = validation_context["workflow_run_id"]
 
                 try:
-                    from backend_v2.llm.caching_service import LLMCachingService
-
                     await LLMCachingService.teardown_workflow_caches(
                         provider_name=client._config.provider, workflow_run_id=workflow_run_id
                     )
@@ -372,5 +432,13 @@ class LLMTaskExecutor:
         raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL)
 
     async def execute_chat_task(self, client: LLMClient, **kwargs: Any) -> str | dict[str, Any]:
-        """Execute a free-form chat task, delegating cleanly to the client."""
+        """Execute a free-form chat task, delegating cleanly to the client.
+
+        Args:
+            client: The client responsible for executing the task.
+            **kwargs: Additional arbitrary keyword arguments required by the client.
+
+        Returns:
+            The raw unstructured response from the LLM.
+        """
         return await client.run_chat(**kwargs)

@@ -168,16 +168,20 @@ class NodeExecutor:
         try:
             blueprint_id = getattr(step, "task_blueprint", None)
             if not blueprint_id:
+                msg = f"Step {step.id} has no task_blueprint configured."
+                logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                 raise AppException(
-                    message=f"Step {step.id} has no task_blueprint configured.",
+                    message=msg,
                     status_code=500,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
 
             step_def_data = await self.workflow_repo.get_step_by_id(blueprint_id)
             if not step_def_data:
+                msg = f"Configuration error: Step '{blueprint_id}' not found."
+                logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                 raise AppException(
-                    message=f"Configuration error: Step '{blueprint_id}' not found.",
+                    message=msg,
                     status_code=500,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                 )
@@ -198,6 +202,7 @@ class NodeExecutor:
                 expected_inputs=expected_inputs,
                 model_strategy=step_def.model_strategy,
                 strictness_level=strictness_level,
+                global_context_vars=metadata["global_context_vars"] if "global_context_vars" in metadata else {},
             )
 
             strategy_impl: NodeStrategy
@@ -224,7 +229,7 @@ class NodeExecutor:
                     arq_pool=arq_pool,
                 )
 
-            org_id = metadata.get("organization_id")
+            org_id = metadata["organization_id"] if "organization_id" in metadata else None
             await strategy_impl.assert_quota(org_id=org_id)
 
             emitted_events = await strategy_impl.execute(
@@ -381,11 +386,27 @@ class DAGExecutor:
                     audit_repo=self.audit_repo,
                     system_repo=self.system_repo,
                 )
+                global_vars: dict[str, Any] = {}
+                user_id = (
+                    exec_record.metadata["user_id"]
+                    if "user_id" in exec_record.metadata
+                    else exec_record.raw_inputs.user_id
+                )
+                if user_id:
+                    user_data = await self.identity_repo.get_user(user_id)
+                    if user_data and "language" in user_data:
+                        global_vars["language"] = user_data["language"]
+
+                if "language" not in global_vars and exec_record.raw_inputs.language:
+                    global_vars["language"] = exec_record.raw_inputs.language
+
+                exec_record.metadata["global_context_vars"] = global_vars
+
                 global_hook_state = HookState(
                     execution_id=execution_id,
                     workflow_id=workflow.id,
                     metadata=exec_record.metadata,
-                    global_context_vars={},
+                    global_context_vars=global_vars,
                     inputs=inputs_dict,
                 )
                 processed_result = await hook_registry.execute("input_processing", global_hook_state, global_hook_deps)
@@ -502,9 +523,11 @@ class DAGExecutor:
                         )
                         new_states = {**exec_record.step_states, step_id: new_state}
                         exec_record = exec_record.model_copy(update={"step_states": new_states})
-                    msg = [e.error_message for e in events if isinstance(e, ErrorTraceEvent)][0]
+                    err_msg = [e.error_message for e in events if isinstance(e, ErrorTraceEvent)][0]
+                    msg = f"Step {step_id} emitted ErrorTraceEvent: {err_msg}"
+                    logger.error("[DAGExecutor] %s: %s", ErrorCodes.WORKFLOW_EXECUTION_FAILED.name, msg)
                     raise AppException(
-                        message=f"Step {step_id} emitted ErrorTraceEvent: {msg}",
+                        message=msg,
                         status_code=500,
                         details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
                     )
@@ -560,8 +583,10 @@ class DAGExecutor:
             if isinstance(primary_err, AppException):
                 raise primary_err from eg
 
+            msg = f"Workflow failed: {primary_err}"
+            logger.error("[DAGExecutor] %s: %s", ErrorCodes.WORKFLOW_EXECUTION_FAILED.name, msg)
             raise AppException(
-                message=f"Workflow failed: {primary_err}",
+                message=msg,
                 details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
                 status_code=500,
             ) from primary_err
@@ -581,8 +606,10 @@ class DAGExecutor:
             if isinstance(unexpected_err, AppException):
                 raise
 
+            msg = f"Workflow failed: {unexpected_err}"
+            logger.error("[DAGExecutor] %s: %s", ErrorCodes.WORKFLOW_EXECUTION_FAILED.name, msg)
             raise AppException(
-                message=f"Workflow failed: {unexpected_err}",
+                message=msg,
                 details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
                 status_code=500,
             ) from unexpected_err

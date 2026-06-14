@@ -7,6 +7,8 @@ import string
 import uuid
 from typing import Any
 
+from pydantic import ValidationError
+
 from backend_v2.database.interfaces import (
     IComponentRepository,
     IKnowledgeRepository,
@@ -16,7 +18,14 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.v2_core import PromptBlock, Step, SystemConfigMCPGateways, SystemConfigModelRegistry, Workflow
+from backend_v2.models.v2_core import (
+    EmbeddedOutputProfile,
+    PromptBlock,
+    Step,
+    SystemConfigMCPGateways,
+    SystemConfigModelRegistry,
+    Workflow,
+)
 from backend_v2.services.orchestrator.atomizer import PromptAtomizer
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
@@ -33,6 +42,19 @@ class StudioService:
         knowledge_repo: IKnowledgeRepository,
         system_repo: ISystemRepository,
     ):
+        """Initialize the service.
+
+        Args:
+            workflow_repo: Parameter workflow_repo.
+            component_repo: Parameter component_repo.
+            knowledge_repo: Parameter knowledge_repo.
+            system_repo: Parameter system_repo.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         self.workflow_repo = workflow_repo
         self.component_repo = component_repo
         self.knowledge_repo = knowledge_repo
@@ -46,8 +68,21 @@ class StudioService:
         resource_id: str,
         allow_system: bool = True,
     ) -> None:
-        """Helper to enforce tenant boundaries for reads."""
-        org_id = getattr(initiator, "organization_id", None)
+        """Enforce tenant isolation.
+
+        Args:
+            initiator: Parameter initiator.
+            data_org_id: Parameter data_org_id.
+            resource_type: Parameter resource_type.
+            resource_id: Parameter resource_id.
+            allow_system: Parameter allow_system.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
+        org_id = initiator.organization_id
         allowed_orgs = [org_id]
         if allow_system:
             allowed_orgs.append(SystemOrganizations.ROOT_SYSTEM)
@@ -64,14 +99,25 @@ class StudioService:
     def _enforce_modification_rights(
         self, initiator: TokenData, data_org_id: str | None, allow_system: bool = False
     ) -> None:
-        """Helper to enforce modification boundaries (e.g. only ROOT can modify system)."""
+        """Enforce modification rights.
+
+        Args:
+            initiator: Parameter initiator.
+            data_org_id: Parameter data_org_id.
+            allow_system: Parameter allow_system.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         if initiator.role not in ["ROOT", "ADMIN", "MANAGER", UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER]:
             logger.error(
                 "[StudioService] %s: Only ADMIN or MANAGER can modify resources.", ErrorCodes.PERMISSION_DENIED.name
             )
             raise PermissionDeniedError("Only ADMIN or MANAGER can modify resources.")
 
-        org_id = getattr(initiator, "organization_id", None)
+        org_id = initiator.organization_id
         if initiator.role not in ["ROOT", UserRole.ROOT]:
             if data_org_id == SystemOrganizations.ROOT_SYSTEM and not allow_system:
                 logger.error(
@@ -84,11 +130,19 @@ class StudioService:
                 raise PermissionDeniedError(msg)
 
     async def _stitch_profiles_to_workflows(self, workflows: list[Workflow]) -> list[Workflow]:
-        """Dynamically attach standalone output profiles to the workflow dict for backward compatibility.
-        Supports the client App during the V2 transition.
-        """
-        from backend_v2.models.v2_core import EmbeddedOutputProfile
+        """Stitch profiles to workflows.
 
+        Args:
+            workflows: Parameter workflows.
+
+        Returns:
+            Return value of type list[Workflow].
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         all_profiles_data = await self.component_repo.get_all_output_profiles()
         all_profiles = [OutputProfile.model_validate(p) for p in all_profiles_data]
 
@@ -121,9 +175,20 @@ class StudioService:
     # --- Workflows ---
 
     async def list_workflows(self, initiator: TokenData) -> list[Workflow]:
-        all_data = await self.workflow_repo.get_all_workflows()
+        """List workflows.
 
-        from pydantic import ValidationError
+        Args:
+            initiator: Parameter initiator.
+
+        Returns:
+            Return value of type list[Workflow].
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
+        all_data = await self.workflow_repo.get_all_workflows()
 
         workflows = []
         for x in all_data:
@@ -145,11 +210,25 @@ class StudioService:
         if initiator.role in ["ROOT", UserRole.ROOT]:
             return await self._stitch_profiles_to_workflows(workflows)
 
-        org_id = getattr(initiator, "organization_id", None)
+        org_id = initiator.organization_id
         filtered = [x for x in workflows if x.organization_id in [org_id, SystemOrganizations.ROOT_SYSTEM]]
         return await self._stitch_profiles_to_workflows(filtered)
 
     async def get_workflow(self, initiator: TokenData, id: str) -> Workflow:
+        """Get workflow.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Returns:
+            Return value of type Workflow.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         data = await self.workflow_repo.get_workflow_by_id(id)
         if not data:
             logger.error("[StudioService] %s: Workflow %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
@@ -162,6 +241,20 @@ class StudioService:
         return stitched[0]
 
     async def get_workflow_available_extensions(self, initiator: TokenData, id: str) -> list[str]:
+        """Get workflow available extensions.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Returns:
+            Return value of type list[str].
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         workflow = await self.get_workflow(initiator, id)
         all_steps = await self.list_steps(initiator)
         step_map = {s.id: s for s in all_steps}
@@ -184,6 +277,21 @@ class StudioService:
         return sorted(list(extensions))
 
     async def save_workflow(self, initiator: TokenData, id: str, data: Workflow) -> Workflow:
+        """Save workflow.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+            data: Parameter data.
+
+        Returns:
+            Return value of type Workflow.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         self._enforce_modification_rights(initiator, data.organization_id)
 
         DAGCompilerService.validate_workflow(data)
@@ -200,6 +308,17 @@ class StudioService:
         return Workflow.model_validate(saved)
 
     async def delete_workflow(self, initiator: TokenData, id: str) -> None:
+        """Delete workflow.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         data = await self.workflow_repo.get_workflow_by_id(id)
         if not data:
             logger.error("[StudioService] %s: Workflow %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
@@ -210,7 +329,19 @@ class StudioService:
         await self.workflow_repo.delete_workflow(id)
 
     async def create_workflow_draft(self, initiator: TokenData) -> Workflow:
-        """System-level creation of an initial Workflow Draft."""
+        """Create workflow draft.
+
+        Args:
+            initiator: Parameter initiator.
+
+        Returns:
+            Return value of type Workflow.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         new_id = f"wf_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {
             "id": new_id,
@@ -222,17 +353,29 @@ class StudioService:
             "organization_id": (
                 SystemOrganizations.ROOT_SYSTEM
                 if initiator.role in ["ROOT", UserRole.ROOT]
-                else getattr(initiator, "organization_id", None)
+                else initiator.organization_id
             ),
             "expected_inputs": [],
             "steps": [],
+            "default_profile_id": "prof_0000000000000000",
         }
         draft = Workflow.model_validate(draft_dict)
         return await self.save_workflow(initiator, new_id, draft)
 
     async def clone_workflow(self, initiator: TokenData, id: str) -> Workflow:
-        """Deep Clones a Workflow into the initiator's tenant organization.
-        Implements Shallow-Deep Copy constraint: StepRules are copied, TaskBlueprints are referenced.
+        """Clone workflow.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Returns:
+            Return value of type Workflow.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
         """
         data = await self.workflow_repo.get_workflow_by_id(id)
         if not data:
@@ -247,7 +390,7 @@ class StudioService:
         cloned_data["id"] = new_id
 
         if initiator.role not in ["ROOT", UserRole.ROOT]:
-            cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
+            cloned_data["organization_id"] = initiator.organization_id
 
         if "name" in cloned_data and isinstance(cloned_data["name"], dict):
             for locale, text in cloned_data["name"].get("translations", {}).items():
@@ -292,7 +435,7 @@ class StudioService:
                 cloned_profile["id"] = new_profile_id
                 cloned_profile["workflow_id"] = new_id
                 if initiator.role not in ["ROOT", UserRole.ROOT]:
-                    cloned_profile["organization_id"] = getattr(initiator, "organization_id", None)
+                    cloned_profile["organization_id"] = initiator.organization_id
 
                 # Remap the step IDs inside layout
                 for layout in cloned_profile.get("layouts", []):
@@ -313,9 +456,20 @@ class StudioService:
         return await self.save_workflow(initiator, new_id, cloned_workflow)
 
     async def list_steps(self, initiator: TokenData) -> list[Step]:
-        all_data = await self.workflow_repo.get_all_steps()
+        """List steps.
 
-        from pydantic import ValidationError
+        Args:
+            initiator: Parameter initiator.
+
+        Returns:
+            Return value of type list[Step].
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
+        all_data = await self.workflow_repo.get_all_steps()
 
         steps = []
         for x in all_data:
@@ -337,10 +491,24 @@ class StudioService:
         if initiator.role in ["ROOT", UserRole.ROOT]:
             return steps
 
-        org_id = getattr(initiator, "organization_id", None)
+        org_id = initiator.organization_id
         return [x for x in steps if x.organization_id in [org_id, SystemOrganizations.ROOT_SYSTEM]]
 
     async def get_step(self, initiator: TokenData, id: str) -> Step:
+        """Get step.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Returns:
+            Return value of type Step.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         data = await self.workflow_repo.get_step_by_id(id)
         if not data:
             logger.error("[StudioService] %s: Step %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
@@ -351,6 +519,21 @@ class StudioService:
         return step
 
     async def save_step(self, initiator: TokenData, id: str, data: Step) -> Step:
+        """Save step.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+            data: Parameter data.
+
+        Returns:
+            Return value of type Step.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         org_id = getattr(data, "organization_id", None)
         self._enforce_modification_rights(initiator, org_id)
 
@@ -366,6 +549,18 @@ class StudioService:
         return Step.model_validate(saved)
 
     async def delete_step(self, initiator: TokenData, id: str, force_delete: bool = False) -> None:
+        """Delete step.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+            force_delete: Parameter force_delete.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         data = await self.workflow_repo.get_step_by_id(id)
         if not data:
             logger.error("[StudioService] %s: Step %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
@@ -376,7 +571,19 @@ class StudioService:
         await self.workflow_repo.delete_step(id, force_delete=force_delete)
 
     async def create_step_draft(self, initiator: TokenData) -> Step:
-        """System-level creation of an initial Step Draft."""
+        """Create step draft.
+
+        Args:
+            initiator: Parameter initiator.
+
+        Returns:
+            Return value of type Step.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         new_id = f"step_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {
             "id": new_id,
@@ -395,14 +602,27 @@ class StudioService:
             "organization_id": (
                 SystemOrganizations.ROOT_SYSTEM
                 if initiator.role in ["ROOT", UserRole.ROOT]
-                else getattr(initiator, "organization_id", None)
+                else initiator.organization_id
             ),
         }
         draft = Step.model_validate(draft_dict)
         return await self.save_step(initiator, new_id, draft)
 
     async def clone_step(self, initiator: TokenData, id: str) -> Step:
-        """Deep Clones a Step into the initiator's tenant organization."""
+        """Clone step.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Returns:
+            Return value of type Step.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         data = await self.workflow_repo.get_step_by_id(id)
         if not data:
             logger.error("[StudioService] %s: Step %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
@@ -417,7 +637,7 @@ class StudioService:
         cloned_data["id"] = new_id
 
         if initiator.role not in ["ROOT", UserRole.ROOT]:
-            cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
+            cloned_data["organization_id"] = initiator.organization_id
 
         if "name" in cloned_data and isinstance(cloned_data["name"], dict):
             for locale, text in cloned_data["name"].get("translations", {}).items():
@@ -431,9 +651,20 @@ class StudioService:
     # --- Prompt Blocks ---
 
     async def list_prompt_blocks(self, initiator: TokenData) -> list[PromptBlock]:
-        all_data = await self.component_repo.get_all_prompt_blocks()
+        """List prompt blocks.
 
-        from pydantic import ValidationError
+        Args:
+            initiator: Parameter initiator.
+
+        Returns:
+            Return value of type list[PromptBlock].
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
+        all_data = await self.component_repo.get_all_prompt_blocks()
 
         blocks = []
         for x in all_data:
@@ -455,10 +686,24 @@ class StudioService:
         if initiator.role in ["ROOT", UserRole.ROOT]:
             return blocks
 
-        org_id = getattr(initiator, "organization_id", None)
+        org_id = initiator.organization_id
         return [x for x in blocks if x.organization_id in [org_id, SystemOrganizations.ROOT_SYSTEM]]
 
     async def get_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:
+        """Get prompt block.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Returns:
+            Return value of type PromptBlock.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         data = await self.component_repo.get_prompt_block_by_id(id)
         if not data:
             logger.error("[StudioService] %s: PromptBlock %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
@@ -469,6 +714,21 @@ class StudioService:
         return block
 
     async def save_prompt_block(self, initiator: TokenData, id: str, data: PromptBlock) -> PromptBlock:
+        """Save prompt block.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+            data: Parameter data.
+
+        Returns:
+            Return value of type PromptBlock.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         org_id = getattr(data, "organization_id", None)
         self._enforce_modification_rights(initiator, org_id)
 
@@ -495,6 +755,18 @@ class StudioService:
         return PromptBlock.model_validate(saved)
 
     async def delete_prompt_block(self, initiator: TokenData, id: str, force_delete: bool = False) -> None:
+        """Delete prompt block.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+            force_delete: Parameter force_delete.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         data = await self.component_repo.get_prompt_block_by_id(id)
         if not data:
             logger.error("[StudioService] %s: PromptBlock %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
@@ -505,7 +777,19 @@ class StudioService:
         await self.component_repo.delete_prompt_block(id, force_delete=force_delete)
 
     async def create_prompt_block_draft(self, initiator: TokenData) -> PromptBlock:
-        """System-level creation of an initial PromptBlock Draft."""
+        """Create prompt block draft.
+
+        Args:
+            initiator: Parameter initiator.
+
+        Returns:
+            Return value of type PromptBlock.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         new_id = f"blk_{uuid.uuid4().hex[:16]}"
 
         draft_dict: dict[str, Any] = {
@@ -524,14 +808,27 @@ class StudioService:
             "organization_id": (
                 SystemOrganizations.ROOT_SYSTEM
                 if initiator.role in ["ROOT", UserRole.ROOT]
-                else getattr(initiator, "organization_id", None)
+                else initiator.organization_id
             ),
         }
         draft = PromptBlock.model_validate(draft_dict)
         return await self.save_prompt_block(initiator, new_id, draft)
 
     async def clone_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:
-        """Deep Clones a PromptBlock into the initiator's tenant organization."""
+        """Clone prompt block.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Returns:
+            Return value of type PromptBlock.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         data = await self.component_repo.get_prompt_block_by_id(id)
         if not data:
             logger.error("[StudioService] %s: PromptBlock %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
@@ -546,7 +843,7 @@ class StudioService:
         cloned_data["id"] = new_id
 
         if initiator.role not in ["ROOT", UserRole.ROOT]:
-            cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
+            cloned_data["organization_id"] = initiator.organization_id
 
         if "label" in cloned_data and isinstance(cloned_data["label"], dict):
             for locale, text in cloned_data["label"].get("translations", {}).items():
@@ -560,7 +857,20 @@ class StudioService:
     # --- System Configs (ROOT Only usually) ---
 
     def get_available_models(self, initiator: TokenData, llm_handler: Any) -> list[str]:
-        """Fetches and flattens available models using the LLM Handler. Enforces ADMIN/ROOT."""
+        """Get available models.
+
+        Args:
+            initiator: Parameter initiator.
+            llm_handler: Parameter llm_handler.
+
+        Returns:
+            Return value of type list[str].
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         if initiator.role not in [UserRole.ROOT, UserRole.ADMIN, "ROOT", "ADMIN"]:
             logger.error(
                 "[StudioService] %s: User %s (Role: %s) attempted to fetch available models without ROOT or ADMIN.",
@@ -587,6 +897,19 @@ class StudioService:
         return sorted(list(set(flat_list)))
 
     async def get_all_system_configs(self, initiator: TokenData) -> list[SystemConfigModelRegistry]:
+        """Get all system configs.
+
+        Args:
+            initiator: Parameter initiator.
+
+        Returns:
+            Return value of type list[SystemConfigModelRegistry].
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         if initiator.role == "ROOT":
             all_data = [await self.system_repo.get_model_registry()]
             if all_data[0]:
@@ -596,6 +919,20 @@ class StudioService:
         return []  # Non-root sees no configs
 
     async def get_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
+        """Get system config.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Returns:
+            Return value of type SystemConfigModelRegistry.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         if initiator.role != "ROOT":
             logger.error("[StudioService] %s: Only ROOT can view system configs.", ErrorCodes.PERMISSION_DENIED.name)
             raise PermissionDeniedError("Only ROOT can view system configs.")
@@ -608,6 +945,21 @@ class StudioService:
     async def save_system_config(
         self, initiator: TokenData, id: str, data: SystemConfigModelRegistry
     ) -> SystemConfigModelRegistry:
+        """Save system config.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+            data: Parameter data.
+
+        Returns:
+            Return value of type SystemConfigModelRegistry.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         if initiator.role != "ROOT":
             logger.error("[StudioService] %s: Only ROOT can modify system configs.", ErrorCodes.PERMISSION_DENIED.name)
             raise PermissionDeniedError("Only ROOT can modify system configs.")
@@ -624,6 +976,17 @@ class StudioService:
         return SystemConfigModelRegistry.model_validate(saved)
 
     async def delete_system_config(self, initiator: TokenData, id: str) -> None:
+        """Delete system config.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         if initiator.role != "ROOT":
             logger.error("[StudioService] %s: Only ROOT can delete system configs.", ErrorCodes.PERMISSION_DENIED.name)
             raise PermissionDeniedError("Only ROOT can delete system configs.")
@@ -636,7 +999,19 @@ class StudioService:
         # But for now, we leave it. Or maybe not implement since system repo doesn't have delete.
 
     async def create_model_registry_draft(self, initiator: TokenData) -> SystemConfigModelRegistry:
-        """System-level creation of an initial ModelConfig Draft."""
+        """Create model registry draft.
+
+        Args:
+            initiator: Parameter initiator.
+
+        Returns:
+            Return value of type SystemConfigModelRegistry.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         self._enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
 
         new_id = f"sys_{uuid.uuid4().hex[:16]}"
@@ -645,7 +1020,20 @@ class StudioService:
         return await self.save_system_config(initiator, new_id, draft)
 
     async def clone_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
-        """Deep Clones a System Config for the ROOT tenant."""
+        """Clone system config.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Returns:
+            Return value of type SystemConfigModelRegistry.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         if initiator.role not in ["ROOT", UserRole.ROOT]:
             logger.error("[StudioService] %s: Only ROOT can clone system configs.", ErrorCodes.PERMISSION_DENIED.name)
             raise PermissionDeniedError("Only ROOT can clone system configs.")
@@ -667,12 +1055,39 @@ class StudioService:
         return SystemConfigModelRegistry.model_validate(saved)
 
     async def list_mcp_gateways(self, initiator: TokenData) -> list[SystemConfigMCPGateways]:
+        """List mcp gateways.
+
+        Args:
+            initiator: Parameter initiator.
+
+        Returns:
+            Return value of type list[SystemConfigMCPGateways].
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         all_data = [await self.system_repo.get_mcp_gateways()]
         if all_data[0] and initiator.role == "ROOT":
             return [SystemConfigMCPGateways.model_validate(x) for x in all_data if x.get("type") == "mcp_gateways"]
         return []
 
     async def get_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
+        """Get mcp gateways.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Returns:
+            Return value of type SystemConfigMCPGateways.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         if initiator.role != "ROOT":
             logger.error("[StudioService] %s: Only ROOT can view system configs.", ErrorCodes.PERMISSION_DENIED.name)
             raise PermissionDeniedError("Only ROOT can view system configs.")
@@ -687,6 +1102,21 @@ class StudioService:
     async def save_mcp_gateways(
         self, initiator: TokenData, id: str, data: SystemConfigMCPGateways
     ) -> SystemConfigMCPGateways:
+        """Save mcp gateways.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+            data: Parameter data.
+
+        Returns:
+            Return value of type SystemConfigMCPGateways.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         if initiator.role != "ROOT":
             logger.error("[StudioService] %s: Only ROOT can modify system configs.", ErrorCodes.PERMISSION_DENIED.name)
             raise PermissionDeniedError("Only ROOT can modify system configs.")
@@ -705,7 +1135,19 @@ class StudioService:
         return SystemConfigMCPGateways.model_validate(saved)
 
     async def create_mcp_gateway_draft(self, initiator: TokenData) -> SystemConfigMCPGateways:
-        """System-level creation of an initial MCP Gateway Config Draft."""
+        """Create mcp gateway draft.
+
+        Args:
+            initiator: Parameter initiator.
+
+        Returns:
+            Return value of type SystemConfigMCPGateways.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         self._enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
 
         new_id = f"mcp_{uuid.uuid4().hex[:16]}"
@@ -714,7 +1156,20 @@ class StudioService:
         return await self.save_mcp_gateways(initiator, new_id, draft)
 
     async def clone_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
-        """Deep Clones an MCP Gateway Config for the ROOT tenant."""
+        """Clone mcp gateways.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Returns:
+            Return value of type SystemConfigMCPGateways.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         if initiator.role not in ["ROOT", UserRole.ROOT]:
             logger.error("[StudioService] %s: Only ROOT can clone system configs.", ErrorCodes.PERMISSION_DENIED.name)
             raise PermissionDeniedError("Only ROOT can clone system configs.")
@@ -738,6 +1193,19 @@ class StudioService:
         return SystemConfigMCPGateways.model_validate(saved)
 
     async def list_system_configs(self, initiator: TokenData) -> list[SystemConfigModelRegistry]:
+        """List system configs.
+
+        Args:
+            initiator: Parameter initiator.
+
+        Returns:
+            Return value of type list[SystemConfigModelRegistry].
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         data = await self.system_repo.get_model_registry()
         if data and initiator.role == "ROOT":
             return [SystemConfigModelRegistry.model_validate(data)]
@@ -746,15 +1214,42 @@ class StudioService:
     # --- Output Profiles ---
 
     async def list_output_profiles(self, initiator: TokenData) -> list[OutputProfile]:
+        """List output profiles.
+
+        Args:
+            initiator: Parameter initiator.
+
+        Returns:
+            Return value of type list[OutputProfile].
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         all_data = await self.component_repo.get_all_output_profiles()
         if initiator.role == "ROOT":
             return [OutputProfile.model_validate(x) for x in all_data]
 
-        org_id = getattr(initiator, "organization_id", None)
+        org_id = initiator.organization_id
         data = [x for x in all_data if x.get("organization_id") in [org_id, SystemOrganizations.ROOT_SYSTEM]]
         return [OutputProfile.model_validate(x) for x in data]
 
     async def get_output_profile(self, initiator: TokenData, id: str) -> OutputProfile:
+        """Get output profile.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Returns:
+            Return value of type OutputProfile.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         data = await self.component_repo.get_output_profile_by_id(id)
         if not data:
             logger.error("[StudioService] %s: Output Profile %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
@@ -768,12 +1263,27 @@ class StudioService:
         self, initiator: TokenData, id: str, data: dict[str, Any] | OutputProfile
     ) -> OutputProfile:
         # Pydantic hydration for validation
+        """Save output profile.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+            data: Parameter data.
+
+        Returns:
+            Return value of type OutputProfile.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         if isinstance(data, dict):
             profile = OutputProfile.model_validate(data)
         else:
             profile = data
 
-        self._enforce_modification_rights(initiator, getattr(profile, "organization_id", None))
+        self._enforce_modification_rights(initiator, profile.organization_id)
 
         # Workflow Constraint Validation:
         # Output Profile components MUST belong to the targeted Workflow DAG.
@@ -816,6 +1326,17 @@ class StudioService:
         return OutputProfile.model_validate(saved)
 
     async def delete_output_profile(self, initiator: TokenData, id: str) -> None:
+        """Delete output profile.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         data = await self.component_repo.get_output_profile_by_id(id)
         if not data:
             logger.error("[StudioService] %s: Output Profile %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
@@ -825,7 +1346,19 @@ class StudioService:
         await self.component_repo.delete_output_profile(id)
 
     async def create_output_profile_draft(self, initiator: TokenData) -> OutputProfile:
-        """System-level creation of an initial OutputProfile Draft."""
+        """Create output profile draft.
+
+        Args:
+            initiator: Parameter initiator.
+
+        Returns:
+            Return value of type OutputProfile.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         new_id = f"opt_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {
             "id": new_id,
@@ -838,14 +1371,27 @@ class StudioService:
             "organization_id": (
                 SystemOrganizations.ROOT_SYSTEM
                 if initiator.role in ["ROOT", UserRole.ROOT]
-                else getattr(initiator, "organization_id", None)
+                else initiator.organization_id
             ),
         }
         draft = OutputProfile.model_validate(draft_dict)
         return await self.save_output_profile(initiator, new_id, draft)
 
     async def clone_output_profile(self, initiator: TokenData, id: str) -> OutputProfile:
-        """Deep Clones an Output Profile into the initiator's tenant organization."""
+        """Clone output profile.
+
+        Args:
+            initiator: Parameter initiator.
+            id: Parameter id.
+
+        Returns:
+            Return value of type OutputProfile.
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         data = await self.component_repo.get_output_profile_by_id(id)
         if not data:
             logger.error("[StudioService] %s: OutputProfile %s not found.", ErrorCodes.RESOURCE_NOT_FOUND.name, id)
@@ -860,7 +1406,7 @@ class StudioService:
         cloned_data["id"] = new_id
 
         if initiator.role not in ["ROOT", UserRole.ROOT]:
-            cloned_data["organization_id"] = getattr(initiator, "organization_id", None)
+            cloned_data["organization_id"] = initiator.organization_id
 
         if "name" in cloned_data and isinstance(cloned_data["name"], dict):
             default_locale = cloned_data["name"].get("default_locale", "en")
@@ -886,7 +1432,20 @@ class StudioService:
 
     # --- Workflow Simulation (DAG Dry-Run) ---
     async def simulate_workflow(self, initiator: TokenData, data: Workflow) -> dict[str, Any]:
-        """Provides a static analysis of a Workflow DAG to validate dependencies and input wirings."""
+        """Simulate workflow.
+
+        Args:
+            initiator: Parameter initiator.
+            data: Parameter data.
+
+        Returns:
+            Return value of type dict[str, Any].
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         errors = []
         step_status = {}
 
@@ -904,6 +1463,16 @@ class StudioService:
         all_steps = {s.id: s for s in data.steps}
 
         def resolve_deps(step_id: str) -> None:
+            """Resolve deps.
+
+            Args:
+                step_id: Parameter step_id.
+
+            Raises:
+                PermissionDeniedError: If tenant access is violated.
+                ResourceNotFoundError: If the resource is missing.
+                AppException: On other core errors.
+            """
             if step_id in in_progress:
                 errors.append(f"Cycle detected involving step {step_id}")
                 return
@@ -963,7 +1532,21 @@ class StudioService:
     async def simulate_prompt_block(
         self, initiator: TokenData, data: PromptBlock, mock_inputs: dict[str, Any]
     ) -> dict[str, Any]:
-        """Provides a static analysis of a PromptBlock template rendering, including BARS matrix claims."""
+        """Simulate prompt block.
+
+        Args:
+            initiator: Parameter initiator.
+            data: Parameter data.
+            mock_inputs: Parameter mock_inputs.
+
+        Returns:
+            Return value of type dict[str, Any].
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         errors: list[str] = []
         rendered = data.ai_description or ""
 
@@ -993,7 +1576,21 @@ class StudioService:
         return {"valid": len(errors) == 0, "errors": errors, "rendered_prompt": rendered.strip()}
 
     async def simulate_step(self, initiator: TokenData, data: Step, mock_inputs: dict[str, Any]) -> dict[str, Any]:
-        """Provides a static analysis of a Step's generated context by resolving all its Prompt Blocks."""
+        """Simulate step.
+
+        Args:
+            initiator: Parameter initiator.
+            data: Parameter data.
+            mock_inputs: Parameter mock_inputs.
+
+        Returns:
+            Return value of type dict[str, Any].
+
+        Raises:
+            PermissionDeniedError: If tenant access is violated.
+            ResourceNotFoundError: If the resource is missing.
+            AppException: On other core errors.
+        """
         errors = []
         rendered_parts = []
 

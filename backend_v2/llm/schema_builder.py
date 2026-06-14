@@ -15,7 +15,14 @@ class SchemaCompilerService:
 
     @staticmethod
     def _generate_hash(blocks_config: list[dict[str, Any]]) -> str:
-        """Generates a stable SHA-256 hash for a given schema configuration."""
+        """Generates a stable SHA-256 hash for a given schema configuration.
+
+        Args:
+            blocks_config: List of block configuration dictionaries.
+
+        Returns:
+            str: SHA-256 hash string.
+        """
         # Ensure we sort the config so identical schemas get the same hash
         config_str = json.dumps(blocks_config, sort_keys=True)
         return hashlib.sha256(config_str.encode()).hexdigest()
@@ -25,6 +32,13 @@ class SchemaCompilerService:
     def _get_or_create_model(schema_hash: str, fields_tuple: tuple[tuple[str, Any, str], ...]) -> type[BaseModel]:
         """Retrieves or creates a Pydantic Model based on the fields tuple.
         LRU Cache strictly prevents Python `type` memory leaks (OOM) during dynamic creation.
+
+        Args:
+            schema_hash: The unique hash of the schema.
+            fields_tuple: Tuple of field definitions.
+
+        Returns:
+            type[BaseModel]: The dynamically generated Pydantic model class.
         """
         fields: dict[str, Any] = {
             name: (type_hint, Field(..., description=desc)) for name, type_hint, desc in fields_tuple
@@ -37,7 +51,14 @@ class SchemaCompilerService:
 
     @classmethod
     def compile(cls, prompt_blocks: list[PromptBlock]) -> type[BaseModel]:
-        """Compiles a list of PromptBlocks into a rigid Pydantic model."""
+        """Compiles a list of PromptBlocks into a rigid Pydantic model.
+
+        Args:
+            prompt_blocks: List of PromptBlock configuration blocks.
+
+        Returns:
+            type[BaseModel]: Compiled Pydantic Model.
+        """
         # 1. Create a hashable representation of the schema requirements
         blocks_config = []
         for block in prompt_blocks:

@@ -17,20 +17,47 @@ class MetricsPayloadDTO:
     By utilizing a TypeAdapter wrapper (RootModel is broken in Python 3.14),
     we strictly enforce that the incoming state payload is explicitly a dictionary
     before any iterative logic executes, satisfying the Phase 9 Zero-Compromise mandate.
+
+    Attributes:
+        root: The root dictionary payload.
     """
 
     def __init__(self, root: dict[str, Any]) -> None:
+        """Initialize the payload wrapper.
+
+        Args:
+            root: The root dictionary containing payload data.
+        """
         self.root = root
 
     @classmethod
     def model_validate(cls, data: Any) -> MetricsPayloadDTO:
-        """Validate using strict Pydantic TypeAdapter."""
+        """Validate using strict Pydantic TypeAdapter.
+
+        Args:
+            data: The incoming data to validate.
+
+        Returns:
+            A validated MetricsPayloadDTO instance.
+
+        Raises:
+            ValidationError: If validation fails.
+        """
         validated = _dict_adapter.validate_python(data)
         return cls(root=validated)
 
 
 class TextMetricsDTO(BaseModel):
-    """Core text metrics."""
+    """Core text metrics.
+
+    Attributes:
+        word_count: Number of words.
+        sentence_count: Number of sentences.
+        avg_sentence_length: Average length of a sentence.
+        lexical_diversity: Lexical diversity score.
+        capitalization_ratio: Ratio of capitalized letters.
+        control_ratio: Control ratio score.
+    """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
@@ -43,7 +70,14 @@ class TextMetricsDTO(BaseModel):
 
 
 class BehavioralMetricsDTO(BaseModel):
-    """Behavioral heuristics."""
+    """Behavioral heuristics.
+
+    Attributes:
+        say_do_gap: Gap between what is said and done.
+        automation_bias: Bias towards automation.
+        illusion_of_competence: Illusion of competence score.
+        imperative_command_count: Number of imperative commands.
+    """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
@@ -54,7 +88,20 @@ class BehavioralMetricsDTO(BaseModel):
 
 
 class ProfilerMetricsDTO(BaseModel):
-    """Combined metrics for profiler state injection."""
+    """Combined metrics for profiler state injection.
+
+    Attributes:
+        word_count: Total word count.
+        sentence_count: Total sentence count.
+        avg_sentence_length: Average words per sentence.
+        lexical_diversity: Unique words / total words.
+        capitalization_ratio: Uppercase characters / total characters.
+        control_ratio: User/AI token ratio.
+        say_do_gap: Discrepancy between intent and action.
+        automation_bias: Over-reliance on AI.
+        illusion_of_competence: False sense of mastery.
+        imperative_command_count: Number of imperative commands.
+    """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 

@@ -14,11 +14,15 @@ from backend_v2.models.v2_core import MCPAuditTrace
 
 
 class OpenAIFunctionCallDTO(V2CoreBase):
+    """Schema for a function call in an OpenAI tool call."""
+
     name: str
     arguments: str | dict[str, Any]
 
 
 class OpenAIToolCallDTO(V2CoreBase):
+    """Schema for an OpenAI tool call."""
+
     model_config = ConfigDict(frozen=True, strict=True, extra="ignore")
 
     index: int | None = None
@@ -35,6 +39,8 @@ class OpenAIProbeResponseDTO(V2CoreBase):
 
 
 class TavilyToolArgsDTO(V2CoreBase):
+    """Arguments for a Tavily tool call."""
+
     query: str
 
 
@@ -57,6 +63,8 @@ class MCPSynthesisInstructionsDTO(V2CoreBase):
 
 
 class TavilyApiResultItemDTO(V2CoreBase):
+    """A single search result item from Tavily API."""
+
     model_config = ConfigDict(extra="ignore")
 
     title: str = Field(default="")
@@ -68,6 +76,8 @@ class TavilyApiResultItemDTO(V2CoreBase):
 
 
 class TavilyApiResponseDTO(V2CoreBase):
+    """Complete response payload from Tavily API."""
+
     model_config = ConfigDict(extra="ignore")
 
     query: str = Field(default="")

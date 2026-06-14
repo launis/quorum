@@ -41,7 +41,14 @@ class ContextFilter(logging.Filter):
     """Injects execution_id from contextvars into log records."""
 
     def filter(self, record: logging.LogRecord) -> bool:
-        """Filter record to inject execution or request ID."""
+        """Filter record to inject execution or request ID.
+
+        Args:
+            record: The incoming log record.
+
+        Returns:
+            True to allow the record to be processed.
+        """
         from backend_v2.context import get_request_context
 
         exec_id = get_execution_context()
@@ -65,6 +72,14 @@ class UvicornPollingFilter(logging.Filter):
     """Filters out repetitive 202 Accepted /render polling logs to reduce noise."""
 
     def filter(self, record: logging.LogRecord) -> bool:
+        """Filter out repetitive Uvicorn polling logs.
+
+        Args:
+            record: The incoming log record.
+
+        Returns:
+            False if it's a polling log, True otherwise.
+        """
         msg = record.getMessage()
         if '"GET /api/v2/execution/executions/' in msg and "/render" in msg and '" 202' in msg:
             return False
@@ -124,6 +139,12 @@ def setup_logging(log_level: int = logging.INFO) -> None:
 
     Log File: backend_debug.log (in the project root)
     Format: timestamp | level | logger_name | message
+
+    Args:
+        log_level: The minimum logging level to output.
+
+    Raises:
+        AppException: If the log directory cannot be created (ErrorCodes.CONFIGURATION_ERROR).
     """
     # Configure Logfire (Observability) - Ensuring it's configured if not already
     # But ideally called explicitly early.
@@ -247,7 +268,14 @@ class JSONFormatter(logging.Formatter):
     """JSON Formatter for Production Logging."""
 
     def format(self, record: logging.LogRecord) -> str:
-        """Format the record as JSON."""
+        """Format the record as JSON.
+
+        Args:
+            record: The incoming log record to be serialized.
+
+        Returns:
+            A JSON-formatted string of the log data.
+        """
         log_record = {
             "timestamp": self.formatTime(record, self.datefmt),
             "level": record.levelname,
@@ -274,6 +302,11 @@ def log_error(logger: logging.Logger, exc: Exception, message: str = "An error o
 
     Extracts error_code and details from the exception if available,
     aligning the log output with the APIError schema.
+
+    Args:
+        logger: The target logger instance.
+        exc: The raised exception object.
+        message: Contextual message prefix for the log output.
     """
     error_code = "INTERNAL_ERROR"
     details = None

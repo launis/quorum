@@ -28,7 +28,8 @@ def get_storage_driver() -> FileDriver:
         FileDriver: The initialized driver.
 
     Raises:
-        ValueError: If FIRESTORE backend is selected but storage_bucket_name is missing.
+        AppException: If FIRESTORE backend is selected but storage_bucket_name is missing,
+            or if an unknown StorageBackend is configured.
     """
     settings = get_settings()
     backend = settings.active_backend

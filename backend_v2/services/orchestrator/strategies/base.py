@@ -3,7 +3,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
 from backend_v2.database.interfaces import (
@@ -28,6 +28,14 @@ class StrategyContext(BaseModel):
     """Immutable context wrapper enforcing strict typing and Single Responsibility for node execution.
 
     Follows the V2 Architecture Service Boundary Doctrine: Strict IN -> Strict OUT.
+
+    Attributes:
+        execution_id: ID of the parent execution.
+        workflow_id: ID of the parent workflow.
+        metadata: Execution metadata dictionary.
+        expected_inputs: Optional expected inputs definition.
+        model_strategy: Optional strategy profile.
+        strictness_level: Int representing strictness level.
     """
 
     execution_id: str
@@ -36,6 +44,7 @@ class StrategyContext(BaseModel):
     expected_inputs: list[ExpectedInput] | None = None
     model_strategy: str | None = None
     strictness_level: int = 50
+    global_context_vars: dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
 
@@ -57,7 +66,19 @@ class NodeStrategy(ABC):
         system_repo: ISystemRepository,
         prompt_compiler: Any,
         arq_pool: Any | None = None,
-    ):
+    ) -> None:
+        """Initialize the NodeStrategy with required repositories and compiler.
+
+        Args:
+            exec_repo: Execution repository.
+            workflow_repo: Workflow repository.
+            comp_repo: Component repository.
+            identity_repo: Identity repository.
+            audit_repo: Audit repository.
+            system_repo: System repository.
+            prompt_compiler: Injected compiler for prompts.
+            arq_pool: Optional Arq redis pool.
+        """
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
         self.comp_repo = comp_repo
@@ -86,6 +107,10 @@ class NodeStrategy(ABC):
             step: The workflow StepRule containing execution instructions.
             projector: The V3 state projection representing the folded execution history.
             context: The immutable Pydantic wrapper for execution context limits.
+            frozen_ctx: Read-only context containing parsed external inputs.
+            trace: Optional current execution trace lineage.
+            semaphore: Asyncio semaphore for concurrency limits.
+            running_event: Optional event to track if the execution is still running.
 
         Returns:
             An array of new TraceEvents representing the node's outputs or errors.
@@ -97,6 +122,12 @@ class NodeStrategy(ABC):
 
         If the organization's token expenditure limit is exceeded mid-air, this throws
         an AppException which bubble-cancels the TaskGroup gracefully.
+
+        Args:
+            org_id: Optional organization ID to check quota for.
+
+        Raises:
+            AppException: If the token limit is exceeded (ErrorCodes.RATE_LIMIT_EXCEEDED).
         """
         if not org_id:
             # Free tier or unbound system org
@@ -123,6 +154,15 @@ class NodeStrategy(ABC):
         """Executes all pre-hooks associated with the step safely and deterministically.
 
         Extracts common pre-hook loops previously bundled inside the God Method execution branches.
+
+        Args:
+            step_obj: The V2Step definition containing the hooks.
+            step: The node step rule from the DAG.
+            hook_state: The current state of the execution hook.
+            hook_deps: Dependencies injected into the hook.
+
+        Returns:
+            The mutated HookState after running all pre-hooks.
         """
         # SSOT Enforcement: Only the Blueprint (step_obj) owns pre_hooks
         if not step_obj.pre_hooks:
@@ -159,6 +199,15 @@ class NodeStrategy(ABC):
         """Executes all post-hooks deterministically across both AI and synchronous domains.
 
         Safely relies on the strictly typed HookState which must be populated before calling this.
+
+        Args:
+            step_obj: The V2Step definition containing the hooks.
+            step: The node step rule from the DAG.
+            hook_state: The current state of the execution hook.
+            hook_deps: Dependencies injected into the hook.
+
+        Returns:
+            The mutated HookState after running all post-hooks.
         """
         # SSOT Enforcement: Only the Blueprint (step_obj) owns post_hooks.
         if not step_obj.post_hooks:

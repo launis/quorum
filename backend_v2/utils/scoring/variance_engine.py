@@ -6,6 +6,10 @@ to detect sycophancy or automated automation bias, enforcing strict mathematical
 
 import logging
 
+from fastapi import status
+
+from backend_v2.exceptions import AppException, ErrorCodes
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,21 +31,29 @@ def calculate_mechanical_cognitive_variance(
             - alignment_verdict: "ALIGNED", "MISALIGNED_SYCOPHANCY", or "MISALIGNED".
 
     Raises:
-        ValueError: If parameters fail structural or validation constraints.
+        AppException: If parameters fail structural or validation constraints.
     """
     if not isinstance(performative_phrases_count, int) or performative_phrases_count < 0:
         logger.error(
             "Validation failed for performative_phrases_count: must be a non-negative integer",
             exc_info=True,
         )
-        raise ValueError("performative_phrases_count must be a non-negative integer.")
+        raise AppException(
+            message="performative_phrases_count must be a non-negative integer.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     if not isinstance(llm_authenticity_score, (int, float)):
         logger.error(
             "Validation failed for llm_authenticity_score: must be a float or int",
             exc_info=True,
         )
-        raise ValueError("llm_authenticity_score must be a float or int.")
+        raise AppException(
+            message="llm_authenticity_score must be a float or int.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     # Normalization mapping count from 0-10+ to 0.0-2.0 scale
     normalized_performative_count = min((performative_phrases_count / 10.0) * 2.0, 2.0)

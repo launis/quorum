@@ -22,8 +22,8 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
     Designed to allow agents to learn from past performance.
 
     Args:
-        state (HookState): Current executing state.
-        deps (HookDependencies): Strongly typed dependencies.
+        state: Current executing state.
+        deps: Strongly typed dependencies.
 
     Returns:
         HookResult: Updated data with injected precedents.
@@ -94,8 +94,12 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
                         logger.warning(f"Execution {res.id} has no trace events in DB or Disk. Skipping.")
                         continue
                 except Exception as e:
-                    logger.warning(f"Failed to load trace events from disk for {res.id}: {e}")
-                    continue
+                    error_code = ErrorCodes.STATE_INTEGRITY_ERROR
+                    msg = f"Failed to load trace events from disk for {res.id}: {e}"
+                    logger.error(f"[ArchivalHook] {error_code.name}: {msg}", exc_info=True)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": error_code.value, "execution_id": res.id}
+                    ) from e
 
             judge_outputs: dict[str, JudgeOutput] = {}
 

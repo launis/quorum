@@ -165,8 +165,8 @@ class AtomMatrixTableWidget extends StatelessWidget {
                             Text(
                               (Localizations.localeOf(context).languageCode ==
                                           'fi'
-                                      ? m.labelFi
-                                      : m.labelEn) +
+                                      ? (m.labelI18n.get('fi'))
+                                      : (m.labelI18n.get('en'))) +
                                   (m.isEvaluative ? ' *' : ''),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
@@ -298,8 +298,8 @@ class AtomMatrixTableWidget extends StatelessWidget {
             children: [
               Text(
                 (Localizations.localeOf(context).languageCode == 'fi'
-                        ? m.labelFi
-                        : m.labelEn) +
+                        ? (m.labelI18n.get('fi'))
+                        : (m.labelI18n.get('en'))) +
                     (m.isEvaluative ? ' *' : ''),
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),

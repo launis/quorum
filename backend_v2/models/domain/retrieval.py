@@ -12,6 +12,10 @@ class RetrievalInput(BaseModel):
     """Strict input schema for RetrievalAgent.
 
     V2 Dynamic: 'chatlog' is mandatory, but other inputs are allowed dynamically.
+
+    Attributes:
+        chat_log: The mandatory conversation history to be analyzed.
+        product_text: Optional reference text or documents to retrieve facts from.
     """
 
     chat_log: str = Field(
@@ -26,7 +30,14 @@ class RetrievalInput(BaseModel):
 
 
 class RetrievedFact(BaseModel):
-    """A single fact extracted from the material."""
+    """A single fact extracted from the material.
+
+    Attributes:
+        id: Unique fact identifier string.
+        fact_statement: The retrieved factual statement.
+        source_quote: Exact quote from the source material validating the fact.
+        relevance_score: Integer from 1-5 assessing relevance to the objective.
+    """
 
     id: str = Field(..., description="Fact ID.", min_length=1)
     fact_statement: str = Field(
@@ -49,7 +60,12 @@ class RetrievedFact(BaseModel):
 
 
 class RetrievalDTO(ReasoningTraceDTO):
-    """Retrieval DTO (Content Only)."""
+    """Retrieval DTO (Content Only).
+
+    Attributes:
+        retrieved_facts: List of facts retrieved and validated by the agent.
+        key_takeaways: High-level summary string capturing the retrieved information.
+    """
 
     retrieved_facts: list[RetrievedFact] = Field(
         ...,

@@ -661,6 +661,40 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         ),
 
                         const SizedBox(height: 16),
+                        // Ensemble Configuration
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          child: SwitchListTile(
+                            title: Text(
+                              l10n.promptBlockEnsembleToggle,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Text(l10n.promptBlockEnsembleToggleDesc),
+                            ),
+                            value: payload.isLightweightProtocol,
+                            onChanged: (val) {
+                              ref
+                                  .read(
+                                    promptBlockFormProvider(blockId).notifier,
+                                  )
+                                  .forceRebuild(
+                                    payload.copyWith(
+                                      isLightweightProtocol: val,
+                                    ),
+                                  );
+                            },
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
                         // Theory Grounding Wrapper
                         Container(
                           padding: const EdgeInsets.all(12),

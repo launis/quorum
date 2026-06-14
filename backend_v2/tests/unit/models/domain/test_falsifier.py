@@ -42,6 +42,8 @@ def test_reasoning_fidelity_validation() -> None:
     )
     assert rf.fidelity_numeric == 2.5
 
+    from pydantic import ValidationError
+
     # Test bounds (le=3.0)
     with pytest.raises(ValidationError):
         ReasoningFidelity(

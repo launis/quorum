@@ -8,7 +8,7 @@ import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Literal
+from typing import Annotated, Any, Literal  # noqa: F401
 
 from pydantic import BaseModel, Field
 
@@ -150,7 +150,14 @@ class WorkflowState(ExecutionCoreFields):
         return self.created_at
 
     def add_event(self, event: TraceEvent) -> WorkflowState:
-        """Returns a new WorkflowState with the added event (Functional style)."""
+        """Returns a new WorkflowState with the added event (Functional style).
+
+        Args:
+            event: The TraceEvent to add.
+
+        Returns:
+            A new WorkflowState instance.
+        """
         new_trace = self.execution_trace + [event]
         return self.model_copy(update={"execution_trace": new_trace, "trace_version": self.trace_version + 1})
 
@@ -287,6 +294,13 @@ class StateProjector:
         If max_tokens is provided, reads the trace backwards (newest first),
         accumulating events until the estimated token limit is reached,
         dropping older events to prevent LLM Token Explosion.
+
+        Args:
+            trace: List of TraceEvent objects.
+            max_tokens: Maximum estimated tokens to include.
+
+        Returns:
+            List of StepOutputDTOs.
         """
         self._snapshot = {}
         self._schema_version = 0
@@ -316,6 +330,14 @@ class StateProjector:
         return self._build_dto_list()
 
     def _build_dto_list(self) -> list[StepOutputDTO]:
+        """Builds a list of StepOutputDTOs from the snapshot.
+
+        Returns:
+            List of StepOutputDTOs.
+
+        Raises:
+            AppException: If a legacy unstructured trace is detected.
+        """
         output: list[StepOutputDTO] = []
         for step_id, step_output in self._snapshot.items():
             if not isinstance(step_output, dict):
@@ -335,7 +357,11 @@ class StateProjector:
         return output
 
     def apply_delta(self, event: TraceEvent) -> None:
-        """Applies a single event to the snapshot in O(1) time."""
+        """Applies a single event to the snapshot in O(1) time.
+
+        Args:
+            event: The TraceEvent to apply.
+        """
         if event.v > self._schema_version:
             self._schema_version = event.v
 
@@ -345,5 +371,5 @@ class StateProjector:
             self._snapshot[event.step_name] = event.content
         elif event.event_type == "tombstone":
             # For GDPR redactions, replace content with a tombstone marker
-            redacted_hash = getattr(event, "redacted_hash", "unknown")
+            redacted_hash = event.redacted_hash if isinstance(event, TombstoneEvent) else "unknown"
             self._snapshot[event.step_name] = {"_redacted": True, "hash": redacted_hash}

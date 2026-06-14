@@ -45,27 +45,27 @@ class TestExecutionCoreFieldsDefaults:
 
     def test_default_status_is_pending(self) -> None:
         """Status must default to ExecutionStatus.PENDING."""
-        instance = ExecutionCoreFields()
+        instance = ExecutionCoreFields.model_validate({})
         assert instance.status == ExecutionStatus.PENDING
 
     def test_default_execution_trace_is_empty_list(self) -> None:
         """Execution trace must default to an empty list."""
-        instance = ExecutionCoreFields()
+        instance = ExecutionCoreFields.model_validate({})
         assert instance.execution_trace == []
 
     def test_default_execution_trace_storage_path_is_none(self) -> None:
         """Execution trace storage path must default to None."""
-        instance = ExecutionCoreFields()
+        instance = ExecutionCoreFields.model_validate({})
         assert instance.execution_trace_storage_path is None
 
     def test_default_context_variables_is_empty_dict(self) -> None:
         """Context variables must default to an empty dict."""
-        instance = ExecutionCoreFields()
+        instance = ExecutionCoreFields.model_validate({})
         assert instance.context_variables == {}
 
     def test_default_context_variables_storage_path_is_none(self) -> None:
         """Context variables storage path must default to None."""
-        instance = ExecutionCoreFields()
+        instance = ExecutionCoreFields.model_validate({})
         assert instance.context_variables_storage_path is None
 
 
@@ -88,11 +88,11 @@ class TestExecutionCoreFieldsValidation:
         error_event = ErrorTraceEvent(step_name="test", error_code="ERR_TEST", error_message="fail")
         tombstone_event = TombstoneEvent(step_name="test", redacted_hash="abc123")
 
-        instance = ExecutionCoreFields(execution_trace=[trace_event, error_event, tombstone_event])
+        instance = ExecutionCoreFields.model_validate({"execution_trace": [trace_event, error_event, tombstone_event]})
         assert len(instance.execution_trace) == 3
 
     def test_frozen_immutability(self) -> None:
         """Frozen model must reject in-place mutation."""
-        instance = ExecutionCoreFields()
+        instance = ExecutionCoreFields.model_validate({})
         with pytest.raises(ValidationError):
             instance.status = ExecutionStatus.RUNNING  # type: ignore[misc]

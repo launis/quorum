@@ -1,5 +1,6 @@
 import pytest
 
+from backend_v2.exceptions import AppException
 from backend_v2.services.orchestrator.ast_evaluator import ASTEvaluator
 
 
@@ -89,26 +90,26 @@ def test_ast_evaluator_security_whitelist() -> None:
     facts = {"fact_a": "Evidence present"}
 
     # Disallowed binary operator (BinOp)
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(AppException) as exc:
         ASTEvaluator.evaluate("fact_a + 'test'", facts)
-    assert "AST Security Violation" in str(exc.value)
+    assert "AST Security Violation" in str(exc.value.message)
 
     # Disallowed function call (Call)
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(AppException) as exc:
         ASTEvaluator.evaluate("print(fact_a)", facts)
-    assert "AST Security Violation" in str(exc.value)
+    assert "AST Security Violation" in str(exc.value.message)
 
     # Disallowed attribute access (Attribute)
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(AppException) as exc:
         ASTEvaluator.evaluate("fact_a.lower()", facts)
-    assert "AST Security Violation" in str(exc.value)
+    assert "AST Security Violation" in str(exc.value.message)
 
     # Disallowed constant numbers (Constant)
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(AppException) as exc:
         ASTEvaluator.evaluate("1 and fact_a", facts)
-    assert "AST Security Violation" in str(exc.value)
+    assert "AST Security Violation" in str(exc.value.message)
 
     # Disallowed malicious input
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(AppException) as exc:
         ASTEvaluator.evaluate("__import__('os').system('clear')", facts)
-    assert "AST Security Violation" in str(exc.value)
+    assert "AST Security Violation" in str(exc.value.message)

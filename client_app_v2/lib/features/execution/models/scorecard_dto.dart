@@ -2,6 +2,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/tda_state.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 
 part 'scorecard_dto.freezed.dart';
 part 'scorecard_dto.g.dart';
@@ -27,12 +28,13 @@ abstract class ScorecardResponseDto with _$ScorecardResponseDto {
 
 @Freezed(equal: false)
 abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
+  const MatrixScorecardRowDto._();
+
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory MatrixScorecardRowDto({
     @JsonKey(name: 'block_id') required String blockId,
     required String name,
-    @JsonKey(name: 'label_fi') required String labelFi,
-    @JsonKey(name: 'label_en') required String labelEn,
+    @JsonKey(name: 'label_i18n') required I18nText labelI18n,
     String? description,
     double? score,
     @JsonKey(name: 'scale_min') double? scaleMin,

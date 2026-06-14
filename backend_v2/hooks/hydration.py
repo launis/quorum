@@ -18,10 +18,11 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
     and merges them seamlessly into the global `inputs` context variable.
 
     Args:
-        data (dict): Current data.
+        state: Current hook execution state.
+        deps: Injected dependencies for the hook.
 
     Returns:
-        dict: Updated data with hydrated `inputs`.
+        Result containing the updated state delta with hydrated inputs.
     """
     logger.debug("[HydrationHook] Running global inputs hydration...")
 

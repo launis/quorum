@@ -15,6 +15,14 @@ logger = logging.getLogger(__name__)
 
 
 class StrictnessConfig(BaseModel):
+    """Configuration for mathematical strictness penalities.
+
+    Attributes:
+        base_forgiveness: Base modifier for failure forgiveness.
+        sigmoid_midpoint: Midpoint for logistic scaling curves.
+        dynamic_exponent: Non-linear exponent for penalty scaling.
+    """
+
     model_config = ConfigDict(frozen=True)
     base_forgiveness: float = Field(ge=0.0, le=1.0)
     sigmoid_midpoint: float = Field(ge=0.0, le=1.0)
@@ -40,7 +48,7 @@ def get_strictness_config(strictness_level: int) -> StrictnessConfig:
         StrictnessConfig: Configuration containing math penalties.
 
     Raises:
-        AppException: If strictness_level is below the absolute minimum of 85.
+        AppException: If strictness_level is below the absolute minimum of 85 (VALIDATION_FAILED).
     """
     if strictness_level < 85:
         msg = f"Strictness level {strictness_level} is too low. Only STRICT (85) and ABSOLUTE (100) are allowed."
@@ -77,7 +85,19 @@ def get_strictness_config(strictness_level: int) -> StrictnessConfig:
 
 
 def clamp_score(score: float, math_min: float, math_max: float) -> float:
-    """Ensure the score is strictly within the mathematical bounds."""
+    """Ensure the score is strictly within the mathematical bounds.
+
+    Args:
+        score: The raw score to clamp.
+        math_min: The minimum allowed score.
+        math_max: The maximum allowed score.
+
+    Returns:
+        float: The clamped score.
+
+    Raises:
+        AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).
+    """
     if math_min >= math_max:
         msg = f"Invalid bounds for clamping: min ({math_min}) >= max ({math_max})."
         logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
@@ -100,6 +120,9 @@ def normalize_score_to_100(score: float, math_min: float, math_max: float) -> fl
 
     Returns:
         float: The normalized proportional score between 0.0 and 100.0.
+
+    Raises:
+        AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).
     """
     if math_min >= math_max:
         msg = f"Invalid bounds for normalization: min ({math_min}) >= max ({math_max})."
@@ -117,7 +140,20 @@ def normalize_score_to_100(score: float, math_min: float, math_max: float) -> fl
 
 
 def calculate_scaled_score(score: float, number_of_options: int, math_min: float, math_max: float) -> float:
-    """Calculate the absolute scaled position mathematically from raw output to configured scale."""
+    """Calculate the absolute scaled position mathematically from raw output to configured scale.
+
+    Args:
+        score: The score to scale.
+        number_of_options: The number of available options in the scale.
+        math_min: The minimum bound of the scale.
+        math_max: The maximum bound of the scale.
+
+    Returns:
+        float: The scaled score clamped within bounds.
+
+    Raises:
+        AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).
+    """
     if math_min >= math_max:
         msg = f"Invalid scale definition: math_min ({math_min}) >= math_max ({math_max})."
         logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
@@ -145,6 +181,9 @@ def scale_to_custom_range(score: float, raw_min: float, raw_max: float, target_m
 
     Returns:
         float: The proportionally scaled score.
+
+    Raises:
+        AppException: If raw_min >= raw_max (INVALID_OUTPUT_SCHEMA).
     """
     if raw_min >= raw_max:
         msg = f"Invalid raw scale definition: raw_min ({raw_min}) >= raw_max ({raw_max})."
@@ -200,6 +239,9 @@ def calculate_soft_waterfall_score(
 
     Returns:
         float: The calculated soft waterfall score.
+
+    Raises:
+        AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).
     """
     if math_min >= math_max:
         msg = f"Invalid scale definition: math_min ({math_min}) >= math_max ({math_max})."
@@ -238,8 +280,6 @@ def calculate_soft_waterfall_score(
 
         prev_level = level
 
-    from backend_v2.utils.math_utils import clamp_score
-
     return clamp_score(achieved_score, math_min, math_max)
 
 
@@ -260,6 +300,9 @@ def calculate_linear_ratio_score(
 
     Returns:
         float: The exact weighted score.
+
+    Raises:
+        AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).
     """
     if math_min >= math_max:
         msg = f"Invalid scale definition: math_min ({math_min}) >= math_max ({math_max})."
@@ -304,6 +347,9 @@ def calculate_sigmoid_weighted_score(
 
     Returns:
         float: The exact sigmoid weighted score.
+
+    Raises:
+        AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).
     """
     if math_min >= math_max:
         msg = f"Invalid scale definition: math_min ({math_min}) >= math_max ({math_max})."
@@ -348,8 +394,6 @@ def calculate_sigmoid_weighted_score(
 
     scaled_val = math_min + (normalized * (math_max - math_min))
 
-    from backend_v2.utils.math_utils import clamp_score
-
     return clamp_score(scaled_val, math_min, math_max)
 
 
@@ -370,6 +414,9 @@ def calculate_progressive_dampening_score(
 
     Returns:
         float: The progressive dampening score clamped to scale bounds.
+
+    Raises:
+        AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).
     """
     if math_min >= math_max:
         msg = f"Invalid scale definition: math_min ({math_min}) >= math_max ({math_max})."

@@ -66,8 +66,10 @@ class ContextRouter:
         try:
             if isinstance(trace_event, dict):
                 if "evaluated_atoms" not in trace_event:
+                    msg = "Missing required base field in trace_event: evaluated_atoms"
+                    logger.error(msg)
                     raise ConfigurationError(
-                        message="Missing required base field in trace_event: evaluated_atoms",
+                        message=msg,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
                 mapped_trace = LightweightMatrixOutput.map_llm_extensions_to_domain(trace_event)
@@ -98,6 +100,7 @@ class ContextRouter:
                 if ext in validated_trace.extensions:
                     extensions_extracted[ext] = str(validated_trace.extensions[ext])
                 else:
+                    logger.error("Missing XAI extension: %s", ext)
                     raise MissingXaiExtensionError(extension_name=str(ext))
         else:
             # Fallback to include all extensions if no profile is explicitly provided during execution
@@ -130,6 +133,7 @@ class ContextRouter:
             config = RoutingModeConfig.model_validate(mapping_config)
             return config.routing_mode
         except ValidationError as e:
+            logger.error("RoutingMode validation failed for path %s.", mapping_path, exc_info=True)
             raise MissingRoutingModeError(mapping_path=mapping_path) from e
 
     @staticmethod
@@ -170,12 +174,14 @@ class ContextRouter:
                     ) from e
 
                 if isinstance(snapshot, dict) and "steps" in snapshot and isinstance(snapshot["steps"], dict):
+                    msg = (
+                        "Fail-Fast: Legacy dictionary state detected in trace. "
+                        "Epic 43 Zero-Compromise Pledge forbids unstructured data; "
+                        "must be a list of StepOutputDTO."
+                    )
+                    logger.error(msg)
                     raise AppException(
-                        message=(
-                            "Fail-Fast: Legacy dictionary state detected in trace. "
-                            "Epic 43 Zero-Compromise Pledge forbids unstructured data; "
-                            "must be a list of StepOutputDTO."
-                        ),
+                        message=msg,
                         status_code=500,
                         details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
                     )
@@ -185,8 +191,10 @@ class ContextRouter:
                     found = any(getattr(dto, "step_id", None) == step_key for dto in state.steps)
 
                 if not found:
+                    msg = f"Fail-Fast: Required step '{step_key}' not found in state (Orphaned Step)."
+                    logger.error(msg)
                     raise AppException(
-                        message=f"Fail-Fast: Required step '{step_key}' not found in state (Orphaned Step).",
+                        message=msg,
                         status_code=500,
                         details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
                     )
@@ -194,9 +202,13 @@ class ContextRouter:
                 # STRICT V2 MANDATE: Explicitly reject legacy V1 `.output` notation.
                 # All inputs must use the exact V2 format (e.g. $steps.step_1) without wrappers.
                 if len(parts) >= 3 and parts[2] == "output":
+                    msg = (
+                        "Fail-Fast: Legacy V1 '.output' variable format is strictly forbidden. "
+                        f"Update the UI mapping to use strict V2 format (e.g. $steps.{step_key})."
+                    )
+                    logger.error(msg)
                     raise AppException(
-                        message=f"Fail-Fast: Legacy V1 '.output' variable format is strictly forbidden. "
-                        f"Update the UI mapping to use strict V2 format (e.g. $steps.{step_key}).",
+                        message=msg,
                         status_code=400,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )

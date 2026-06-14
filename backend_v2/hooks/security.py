@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.security import SanitizationResultDTO, SecurityPayloadDTO
+from backend_v2.models.dtos.state import I18nStatePayload
 from backend_v2.services.pii_analyzer import get_pii_service
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,22 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
     sanitized_inputs: dict[str, str] = {}
     threats_summary: list[str] = []
 
-    lang = state.global_context_vars.get("language", "fi") if state.global_context_vars else "fi"
+    i18n_inputs = {}
+    if state.global_context_vars and "language" in state.global_context_vars:
+        i18n_inputs["language"] = state.global_context_vars["language"]
+
+    try:
+        lang_payload = I18nStatePayload.model_validate(i18n_inputs)
+        lang = lang_payload.language
+    except Exception as e:
+        msg = f"Strict Fail-Fast Enforced: Invalid language payload: {e}"
+        logger.error("[SecurityHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        ) from e
+
     pii_service = get_pii_service()
 
     try:

@@ -46,9 +46,34 @@ class StrippedBaseTDAExtraction(BaseModel):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
+    @model_validator(mode="before")
+    @classmethod
+    def _strip_llm_dunder_leaks(cls, data: Any) -> Any:
+        """Strip double-underscore keys leaked by LLM internal Chain-of-Thought.
+
+        LLMs occasionally hallucinate internal scratchpad fields (e.g. ``__rule_satisfied__``)
+        that are not part of the schema contract. This before-validator removes them
+        before Pydantic's ``extra='forbid'`` check, preserving typo detection for
+        legitimate field names while tolerating known LLM behavioral patterns.
+
+        Args:
+            data: Raw input data from JSON parsing.
+
+        Returns:
+            Cleaned data dict with dunder keys removed.
+        """
+        if isinstance(data, dict):
+            return {k: v for k, v in data.items() if not (k.startswith("__") and k.endswith("__"))}
+        return data
+
     exact_quote: str | None = Field(
         default=None,
-        description="Verbatim quote from the original text. MUST be empty if contextual_override is True.",
+        description=(
+            "A physically contiguous, character-for-character verbatim substring extracted "
+            "directly from the source text. NEVER translate, fix grammar, paraphrase, or "
+            "alter the language. The quote MUST remain in the ORIGINAL language of the source "
+            "document. MUST be empty/null if contextual_override is True."
+        ),
     )
     structural_location: str = Field(
         description=(
@@ -59,7 +84,7 @@ class StrippedBaseTDAExtraction(BaseModel):
     )
     localized_anchors_found: list[str] = Field(
         default_factory=list,
-        max_length=15,
+        max_length=SystemConcurrency.SCHEMA_MAX_LOCALIZED_ANCHORS,
         description="Keywords in target language mapping English rule.",
     )
     contextual_override: bool = Field(
@@ -165,8 +190,8 @@ class SchemaFactory:
             A dynamically generated Pydantic model class.
 
         Raises:
-            ConfigurationError: If a PromptBlock is missing required fields.
-            AppException: If dynamic schema compilation fails critically.
+            ConfigurationError (ErrorCodes.VALIDATION_FAILED): If a PromptBlock is missing required fields.
+            AppException (ErrorCodes.INTERNAL_SERVER_ERROR): If dynamic schema compilation fails critically.
         """
         from backend_v2.models.v2_core import PromptBlock
 
@@ -193,6 +218,8 @@ class SchemaFactory:
         if has_shuffled_atoms:
 
             class AtomResponseBase(BaseModel):
+                """Base identity model providing the atom_id field for blind evaluations."""
+
                 model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
                 atom_id: str = Field(
                     ...,
@@ -203,7 +230,7 @@ class SchemaFactory:
             # By placing AtomResponseBase LAST in the inheritance chain, its fields (atom_id)
             # are collected FIRST by Pydantic's reverse-MRO iteration, ensuring the LLM emits it first.
             class AtomResponse(StrippedBaseTDAExtraction, AtomResponseBase):
-                pass
+                """Combined TDA extraction and atom identity for shuffled blind evaluation."""
 
             fields["evaluations"] = (
                 list[AtomResponse],
@@ -229,7 +256,7 @@ class SchemaFactory:
                 logger.warning("[SchemaFactory] Found criterion without a valid string 'id': %s. Skipping.", crit)
                 continue
 
-            if crit.category_id != "matrix" and getattr(crit, "type", None) == "instruction":
+            if crit.category_id != "matrix" and crit.type == "instruction":
                 fields[crit_id] = (
                     str,
                     Field(
@@ -252,7 +279,7 @@ class SchemaFactory:
 
             # Dynamic short and concise description for the LLM to understand this specific evaluation field
             label_str = self._resolve_i18n(crit.label, target_locale) if crit.label else ""
-            cat_val = crit.category_id.value if hasattr(crit.category_id, "value") else (crit.category_id or "criteria")
+            cat_val = crit.category_id.value if isinstance(crit.category_id, Enum) else (crit.category_id or "criteria")
             desc_val = f"Evaluation field for {cat_val} block '{crit_id}' ({label_str})."
             # plan: Restore full ai_description without truncation since FSM
             # serving limit is bypassed via strict=False.
@@ -350,6 +377,8 @@ class SchemaFactory:
         """
 
         class AtomResponse(BaseModel):
+            """Micro-CoT structured atom response for blind evaluation pipeline."""
+
             model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
             atom_id: str = Field(..., description="Unique system identifier of the target evaluation atom.")
             step_1_evidence_type: EvidenceType = Field(
@@ -359,8 +388,10 @@ class SchemaFactory:
             step_2_quote: str | None = Field(
                 default=None,
                 description=(
-                    "Literal verbatim quote containing the exact physical evidence from the "
-                    "source document. REQUIRED if evidence type is EXPLICIT_QUOTE."
+                    "A physically contiguous, character-for-character verbatim substring extracted "
+                    "directly from the source document. NEVER translate, fix grammar, paraphrase, or "
+                    "alter the language. The quote MUST remain in the ORIGINAL language of the source "
+                    "document. REQUIRED if evidence type is EXPLICIT_QUOTE."
                 ),
             )
             step_3_implicit_justification: str | None = Field(
@@ -382,6 +413,9 @@ class SchemaFactory:
             @model_validator(mode="after")
             def validate_evidence(self, info: ValidationInfo) -> Any:
                 """Validates cross-field evidence consistency based on evidence type and strictness.
+
+                Args:
+                    info: Validation context provided by Pydantic.
 
                 Raises:
                     ValueError: If evidence constraints are violated.

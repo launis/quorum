@@ -1489,6 +1489,8 @@
   "typeInteger": "Integer",
   "allowDecimals": "Allow Decimals",
   "isEvaluativeMatrix": "Evaluative (Calculated)",
+  "promptBlockEnsembleToggle": "Use Fast-Model Ensemble (Best of 3)",
+  "promptBlockEnsembleToggleDesc": "Runs the entire matrix 3 times in parallel and applies majority voting.",
   "xaiOutputExtensionsTitle": "XAI Output Extensions (Proaktiivinen Valmentaja & Report Fields)",
   "xaiJustification": "Justification",
   "xaiGlobalExtensionsHeader": "AI Observations",
@@ -1810,5 +1812,8 @@
   "xaiVarianceValidationTitle": "Mechanical vs Cognitive Balance",
   "xaiVerdictAligned": "Aligned (ALIGNED)",
   "xaiVerdictSycophancy": "Cognitive Sycophancy (MISALIGNED_SYCOPHANCY)",
-  "xaiVerdictMisaligned": "Misaligned (MISALIGNED)"
+  "xaiVerdictMisaligned": "Misaligned (MISALIGNED)",
+  "tdaAnchorTarget": "Anchor Target",
+  "tdaBoundingBox": "Bounding Box Scope",
+  "tdaExtractionRule": "Extraction Rule"
 }

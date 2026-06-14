@@ -1,4 +1,8 @@
-"""Execution API Routers."""
+"""Execution API Routers.
+
+This module aggregates the execution and workflows routing logic, providing
+a centralized APIRouter for all execution-related endpoints.
+"""
 
 from fastapi import APIRouter
 

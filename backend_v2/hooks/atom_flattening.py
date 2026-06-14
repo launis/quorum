@@ -19,7 +19,12 @@ logger = logging.getLogger(__name__)
 
 
 class FlattenedAtom(BaseModel):
-    """Strict Pydantic schema for individual shuffled items (No Naked Dicts rule)."""
+    """Strict Pydantic schema for individual shuffled items (No Naked Dicts rule).
+
+    Attributes:
+        atom_id: Opaque hashed ID for the extracted atom.
+        question: The text content evaluated blindly.
+    """
 
     atom_id: str = Field(description="Opaque hashed ID for the extracted atom.")
     question: str = Field(description="The text content evaluated blindly.")
@@ -28,7 +33,11 @@ class FlattenedAtom(BaseModel):
 
 
 class FlatteningHookOutput(BaseModel):
-    """Strict Pydantic schema for the entire hook state delta payload."""
+    """Strict Pydantic schema for the entire hook state delta payload.
+
+    Attributes:
+        shuffled_atoms: List of selected and randomized extraction items.
+    """
 
     shuffled_atoms: list[FlattenedAtom]
 
@@ -42,6 +51,16 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
     Executes before the LLM context generation to transform complex `MatrixScale` structures
     into a purely blind list `[{"atom_id": "...", "question": "..."}]` ensuring Zero-Trust
     evaluations. Includes Stratified Random Sampling capabilities.
+
+    Args:
+        state: The frozen execution HookState context.
+        deps: Injected system service dependencies.
+
+    Returns:
+        HookResult: Successful execution wrapper with shuffled atoms in state_delta.
+
+    Raises:
+        AppException: If configuration is invalid or dependencies are missing.
     """
     logger.info("[AtomFlatteningHook] Triggered for step '%s' (Execution: %s)", state.step_id, state.execution_id)
 

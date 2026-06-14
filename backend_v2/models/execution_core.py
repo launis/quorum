@@ -8,7 +8,7 @@ Pydantic resolves deferred annotations via model_rebuild() in state.py.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 from pydantic import Field
 
@@ -33,23 +33,23 @@ class ExecutionCoreFields(V2CoreBase):
         context_variables_storage_path: Cloud Storage offload path for large context.
     """
 
-    status: LaxExecutionStatus = Field(
-        default=ExecutionStatus.PENDING,
-        description="Current status of the workflow execution.",
-    )
-    execution_trace: list[ErrorTraceEvent | TombstoneEvent | TraceEvent] = Field(
-        default_factory=list,
-        description="Immutable log of all events.",
-    )
-    execution_trace_storage_path: str | None = Field(
-        default=None,
-        description="Path to offloaded trace JSON in Cloud Storage.",
-    )
-    context_variables: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Current snapshots of context variables (the dynamic blackboard).",
-    )
-    context_variables_storage_path: str | None = Field(
-        default=None,
-        description="Path to offloaded context variables JSON in Cloud Storage.",
-    )
+    status: Annotated[
+        LaxExecutionStatus,
+        Field(default=ExecutionStatus.PENDING, description="Current status of the workflow execution."),
+    ]
+    execution_trace: Annotated[
+        list[ErrorTraceEvent | TombstoneEvent | TraceEvent],
+        Field(default_factory=list, description="Immutable log of all events."),
+    ]
+    execution_trace_storage_path: Annotated[
+        str | None,
+        Field(default=None, description="Path to offloaded trace JSON in Cloud Storage."),
+    ]
+    context_variables: Annotated[
+        dict[str, Any],
+        Field(default_factory=dict, description="Current snapshots of context variables (the dynamic blackboard)."),
+    ]
+    context_variables_storage_path: Annotated[
+        str | None,
+        Field(default=None, description="Path to offloaded context variables JSON in Cloud Storage."),
+    ]

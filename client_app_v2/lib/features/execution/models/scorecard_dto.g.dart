@@ -88,8 +88,7 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
       allowedKeys: const [
         'block_id',
         'name',
-        'label_fi',
-        'label_en',
+        'label_i18n',
         'description',
         'score',
         'scale_min',
@@ -124,8 +123,10 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
     final val = _MatrixScorecardRowDto(
       blockId: $checkedConvert('block_id', (v) => v as String),
       name: $checkedConvert('name', (v) => v as String),
-      labelFi: $checkedConvert('label_fi', (v) => v as String),
-      labelEn: $checkedConvert('label_en', (v) => v as String),
+      labelI18n: $checkedConvert(
+        'label_i18n',
+        (v) => I18nText.fromJson(v as Map<String, dynamic>),
+      ),
       description: $checkedConvert('description', (v) => v as String?),
       score: $checkedConvert('score', (v) => (v as num?)?.toDouble()),
       scaleMin: $checkedConvert('scale_min', (v) => (v as num?)?.toDouble()),
@@ -209,8 +210,7 @@ _MatrixScorecardRowDto _$MatrixScorecardRowDtoFromJson(
   },
   fieldKeyMap: const {
     'blockId': 'block_id',
-    'labelFi': 'label_fi',
-    'labelEn': 'label_en',
+    'labelI18n': 'label_i18n',
     'scaleMin': 'scale_min',
     'scaleMax': 'scale_max',
     'normalizedScore': 'normalized_score',
@@ -243,8 +243,7 @@ Map<String, dynamic> _$MatrixScorecardRowDtoToJson(
 ) => <String, dynamic>{
   'block_id': instance.blockId,
   'name': instance.name,
-  'label_fi': instance.labelFi,
-  'label_en': instance.labelEn,
+  'label_i18n': instance.labelI18n.toJson(),
   'description': instance.description,
   'score': instance.score,
   'scale_min': instance.scaleMin,

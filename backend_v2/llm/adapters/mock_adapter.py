@@ -102,3 +102,14 @@ class MockCacheAdapter(BaseLLMAdapter):
             cost_usd=cost_usd,
             estimated_savings_usd=0.05,
         )
+
+    def prepare_provider_kwargs(self, model_name: str) -> dict[str, Any]:
+        """Prepare provider specific arguments for LiteLLM.
+
+        Args:
+            model_name: The target model name.
+
+        Returns:
+            An empty dictionary as no special static arguments are needed.
+        """
+        return {}

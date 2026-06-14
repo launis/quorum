@@ -30,6 +30,9 @@ def _standard_fields() -> dict[str, Any]:
 
     ``chunk_index`` is required for deterministic *First‑Wins* merging.
     The remaining 4 fields enforce the Zero-Variance Extract-and-Justify schema.
+
+    Returns:
+        Dictionary of Pydantic field definitions.
     """
     return {
         "chunk_index": (int, Field(..., description="Zero‑based index of the chunk")),
@@ -57,8 +60,13 @@ def create_extraction_model(facts_to_find: list[str]) -> type[BaseModel]:
     a nullable ``str`` field.  The resulting model enforces ``extra='forbid'`` and
     ``strict=True`` so that any stray keys cause a validation error.
 
-    Example::
+    Args:
+        facts_to_find: List of data points to extract (keys for the model).
 
+    Returns:
+        A dynamically generated subclass of ``BaseModel`` ready for ``model_validate``.
+
+    Example:
         Model = create_extraction_model(["vaatimus_A", "poikkeus_B"])
         payload = Model(
             chunk_index=0,
@@ -69,11 +77,6 @@ def create_extraction_model(facts_to_find: list[str]) -> type[BaseModel]:
             vaatimus_A="some text",
             poikkeus_B=None,
         )
-
-    Returns:
-    -------
-    Type[BaseModel]
-        A dynamically generated subclass of ``BaseModel`` ready for ``model_validate``.
     """
     # Deduplicate and sort for deterministic schema generation
     unique_facts = sorted(set(facts_to_find))
@@ -84,16 +87,6 @@ def create_extraction_model(facts_to_find: list[str]) -> type[BaseModel]:
         # Each fact is optional (nullable) – LLM may legitimately return null.
         fields[fact] = (str | None, Field(None, description=f"Extracted value for '{fact}'"))
 
-    # Dynamically build the model class
-    model_name = f"ExtractionSchema_{secrets.token_hex(4)}"
-    DynamicModel = create_model(
-        model_name,
-        __config__=ConfigDict(extra="forbid", strict=True),
-        **fields,
-    )
-
-    # Post‑validation normalisation: treat common placeholder strings as ``None``.
-    @model_validator(mode="before")
     def _canonicalise_nulls(cls: Any, data: Any) -> Any:
         if isinstance(data, dict):
             placeholder_set = {"none", "n/a", "", None}
@@ -102,8 +95,25 @@ def create_extraction_model(facts_to_find: list[str]) -> type[BaseModel]:
                     data[key] = None
         return data
 
-    # Attach the validator to the generated class
-    DynamicModel._canonicalise_nulls = _canonicalise_nulls
+    def _enforce_null_hypothesis(self: Any) -> Any:
+        if getattr(self, "contextual_override", False) is True:
+            self.exact_quote = None
+        return self
+
+    # Dynamically build the model class
+    model_name = f"ExtractionSchema_{secrets.token_hex(4)}"
+
+    validators_dict: dict[str, Any] = {
+        "canonicalise_nulls": model_validator(mode="before")(_canonicalise_nulls),
+        "enforce_null_hypothesis": model_validator(mode="after")(_enforce_null_hypothesis),
+    }
+
+    DynamicModel = create_model(
+        model_name,
+        __config__=ConfigDict(extra="forbid", strict=True),
+        __validators__=validators_dict,
+        **fields,
+    )
 
     return cast(type[BaseModel], DynamicModel)
 

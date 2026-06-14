@@ -46,6 +46,7 @@ def mock_repo_transformer() -> Any:
                             "text_delivery_mode": "full",
                             "title": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
                             "target_blocks": ["*"],
+                            "synthesis": None,
                         }
                     ],
                 }
@@ -66,12 +67,18 @@ def mock_repo_transformer() -> Any:
                         "text_delivery_mode": "full",
                         "title": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
                         "target_blocks": ["*"],
+                        "synthesis": None,
                         "description": None,
                     }
                 ],
                 "display_scale": "original",
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
+                "max_extension_items": 2,
+                "strictness_level": 50,
+                "scoring_strategy": None,
+                "visible_metadata": [],
+                "custom_preface": None,
             }
         ]
     )
@@ -212,6 +219,7 @@ def mock_repo_microcot() -> Any:
                                 "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"},
                             },
                             "target_blocks": ["*"],
+                            "synthesis": None,
                             "description": None,
                         }
                     ],
@@ -236,12 +244,18 @@ def mock_repo_microcot() -> Any:
                             "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"},
                         },
                         "target_blocks": ["*"],
+                        "synthesis": None,
                         "description": None,
                     }
                 ],
                 "display_scale": "original",
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
+                "max_extension_items": 2,
+                "strictness_level": 50,
+                "scoring_strategy": None,
+                "visible_metadata": [],
+                "custom_preface": None,
             }
         ]
     )
@@ -397,12 +411,18 @@ def mock_repo_sdui() -> AsyncMock:
                         "title": {"default_locale": "en", "translations": {"en": "Metrics", "fi": "Metrics"}},
                         "steps": [],
                         "target_blocks": ["*"],
+                        "synthesis": None,
                         "description": None,
                     }
                 ],
                 "display_scale": "original",
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
+                "max_extension_items": 2,
+                "strictness_level": 50,
+                "scoring_strategy": None,
+                "visible_metadata": [],
+                "custom_preface": None,
             }
         ]
     )

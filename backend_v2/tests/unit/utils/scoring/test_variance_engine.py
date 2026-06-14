@@ -2,20 +2,21 @@
 
 import pytest
 
+from backend_v2.exceptions import AppException
 from backend_v2.utils.scoring.variance_engine import calculate_mechanical_cognitive_variance
 
 
 def test_calculate_mechanical_cognitive_variance_validation() -> None:
-    """Verify that type and value validation raises appropriate ValueError."""
+    """Verify that type and value validation raises appropriate AppException."""
     # Test invalid performative_phrases_count type
-    with pytest.raises(ValueError, match="performative_phrases_count must be a non-negative integer."):
+    with pytest.raises(AppException, match="performative_phrases_count must be a non-negative integer."):
         calculate_mechanical_cognitive_variance(llm_authenticity_score=2.0, performative_phrases_count=-1)
 
-    with pytest.raises(ValueError, match="performative_phrases_count must be a non-negative integer."):
+    with pytest.raises(AppException, match="performative_phrases_count must be a non-negative integer."):
         calculate_mechanical_cognitive_variance(llm_authenticity_score=2.0, performative_phrases_count="5")  # type: ignore
 
     # Test invalid llm_authenticity_score type
-    with pytest.raises(ValueError, match="llm_authenticity_score must be a float or int."):
+    with pytest.raises(AppException, match="llm_authenticity_score must be a float or int."):
         calculate_mechanical_cognitive_variance(llm_authenticity_score="2.0", performative_phrases_count=5)  # type: ignore
 
 

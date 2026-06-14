@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 import hashlib
 import json
 import logging
 import os
 from typing import Any
 
+from arq.connections import RedisSettings, create_pool
 from pydantic import Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -16,8 +18,17 @@ from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import PromptCacheStatus, SystemConcurrency
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.settings import get_settings
+from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 
 logger = logging.getLogger(__name__)
+
+_VERTEX_SAFETY_SETTINGS = [
+    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
+    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
+    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
+    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
+]
 
 _redis_pool: Any = None
 _redis_loop: Any = None
@@ -44,16 +55,9 @@ async def get_redis_client() -> Any:
             return _redis_pool
 
     if "PYTEST_CURRENT_TEST" in os.environ:
-        from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
-
         _redis_pool = get_patched_fakeredis_pool()
         _redis_loop = current_loop
     else:
-        from arq.connections import RedisSettings, create_pool
-
-        from backend_v2.models.enums import SystemConcurrency
-        from backend_v2.settings import get_settings
-
         settings = get_settings()
         _redis_pool = await create_pool(
             RedisSettings(
@@ -84,7 +88,7 @@ class VertexTokenUsage(TokenUsage):
             v: The computed savings in USD.
 
         Returns:
-            The validated float value.
+            The validated savings value.
 
         Raises:
             ValueError: If the savings value is negative.
@@ -103,11 +107,11 @@ class VertexCacheAdapter(BaseLLMAdapter):
         """Prepare the Vertex AI specific prompt payload by setting up cached content.
 
         Args:
-            compiled_prompt: The structured CompiledPrompt instance.
+            compiled_prompt: The structured prompt payload.
             model_name: The target model name.
 
         Returns:
-            A tuple containing:
+            A pair containing:
                 - The list of flattened messages.
                 - A dictionary of extra keyword arguments containing the cache reference name.
         """
@@ -157,7 +161,9 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     "Vertex AI Cache Hit in shared ledger: %s",
                     cache_id,
                 )
-                return compiled_prompt.to_dynamic_flat(), {"cached_content": cache_id}
+                return compiled_prompt.to_dynamic_flat(), {
+                    "cached_content": cache_id,
+                }
 
         lock_ttl_ms = int(SystemConcurrency.CONTEXT_CACHE_LOCK_TTL_SECONDS.value * 1000)
         lock_acquired = await redis_client.set(lock_key, "worker_1", nx=True, px=lock_ttl_ms)
@@ -171,17 +177,15 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     if cache_id == PromptCacheStatus.FAILED.value:
                         return compiled_prompt.to_flat_messages(), {}
                     if cache_id != PromptCacheStatus.CREATING.value:
-                        return compiled_prompt.to_dynamic_flat(), {"cached_content": cache_id}
+                        return compiled_prompt.to_dynamic_flat(), {
+                            "cached_content": cache_id,
+                        }
 
                 await redis_client.set(
                     redis_key,
                     PromptCacheStatus.CREATING.value,
                     ex=SystemConcurrency.CONTEXT_CACHE_LOCK_TTL_SECONDS.value,
                 )
-
-                import datetime
-
-                from backend_v2.settings import get_settings
 
                 settings = get_settings()
                 project = os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
@@ -251,7 +255,9 @@ class VertexCacheAdapter(BaseLLMAdapter):
                         cache_resource_id,
                     )
                     # V3 Cache Fix: Return dynamic-only messages alongside cache reference
-                    return compiled_prompt.to_dynamic_flat(), {"cached_content": cache_resource_id}
+                    return compiled_prompt.to_dynamic_flat(), {
+                        "cached_content": cache_resource_id,
+                    }
 
                 except Exception:
                     logger.error(
@@ -287,7 +293,9 @@ class VertexCacheAdapter(BaseLLMAdapter):
                             "Wait-and-Poll: Cache creation completed by first worker: %s",
                             cache_id,
                         )
-                        return compiled_prompt.to_dynamic_flat(), {"cached_content": cache_id}
+                        return compiled_prompt.to_dynamic_flat(), {
+                            "cached_content": cache_id,
+                        }
 
             logger.warning(
                 "Wait-and-Poll timeout reached after %s seconds. Falling back to uncached completion.",
@@ -309,14 +317,14 @@ class VertexCacheAdapter(BaseLLMAdapter):
         Gemini Context Caching has a 75% read discount (meaning cached input tokens cost 25% of standard input).
 
         Args:
-            usage: The source TokenUsage object.
+            usage: The source token usage data.
             pricing_config: Provider pricing parameters.
 
         Returns:
-            An instance of VertexTokenUsage with calculated values.
+            The calculated usage metrics including savings.
 
         Raises:
-            AppException: If essential pricing parameters are missing from pricing_config.
+            AppException (ErrorCodes.CONFIGURATION_ERROR): If essential pricing parameters are missing from pricing_config.
         """
         if "input_token_price" not in pricing_config or "output_token_price" not in pricing_config:
             logger.error(
@@ -353,3 +361,14 @@ class VertexCacheAdapter(BaseLLMAdapter):
             cost_usd=total_cost,
             estimated_savings_usd=total_savings,
         )
+
+    def prepare_provider_kwargs(self, model_name: str) -> dict[str, Any]:
+        """Prepare Vertex AI specific arguments for LiteLLM.
+
+        Args:
+            model_name: The target model name.
+
+        Returns:
+            Dictionary containing safety settings.
+        """
+        return {"safety_settings": _VERTEX_SAFETY_SETTINGS}

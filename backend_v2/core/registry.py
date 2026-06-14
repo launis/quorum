@@ -1,3 +1,9 @@
+"""Task Registry for the Cognitive Quorum System.
+
+Provides safe, static, global execution tracking of agentic
+routines linked with formal Pydantic schemas.
+"""
+
 import logging
 from collections.abc import Callable
 from typing import Any

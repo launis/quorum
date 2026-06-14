@@ -7,8 +7,7 @@ def test_generate_scatter_chart() -> None:
         MatrixScorecardRowDTO(
             block_id="1",
             name="X Axis",
-            label_fi="X",
-            label_en="X",
+            label_i18n={"default_locale": "en", "translations": {"fi": "X", "en": "X"}},  # type: ignore[arg-type]
             score=2.5,
             scale_min=0.0,
             scale_max=5.0,
@@ -18,8 +17,7 @@ def test_generate_scatter_chart() -> None:
         MatrixScorecardRowDTO(
             block_id="2",
             name="Y Axis",
-            label_fi="Y",
-            label_en="Y",
+            label_i18n={"default_locale": "en", "translations": {"fi": "Y", "en": "Y"}},  # type: ignore[arg-type]
             score=4.0,
             scale_min=0.0,
             scale_max=5.0,
@@ -29,8 +27,7 @@ def test_generate_scatter_chart() -> None:
         MatrixScorecardRowDTO(
             block_id="3",
             name="Z Axis",
-            label_fi="Z",
-            label_en="Z",
+            label_i18n={"default_locale": "en", "translations": {"fi": "Z", "en": "Z"}},  # type: ignore[arg-type]
             score=3.0,
             scale_min=0.0,
             scale_max=5.0,
@@ -48,8 +45,7 @@ def test_generate_radar_chart() -> None:
         MatrixScorecardRowDTO(
             block_id="1",
             name="Dim 1",
-            label_fi="D1",
-            label_en="D1",
+            label_i18n={"default_locale": "en", "translations": {"fi": "D1", "en": "D1"}},  # type: ignore[arg-type]
             score=2.5,
             scale_min=0.0,
             scale_max=5.0,
@@ -59,8 +55,7 @@ def test_generate_radar_chart() -> None:
         MatrixScorecardRowDTO(
             block_id="2",
             name="Dim 2",
-            label_fi="D2",
-            label_en="D2",
+            label_i18n={"default_locale": "en", "translations": {"fi": "D2", "en": "D2"}},  # type: ignore[arg-type]
             score=4.0,
             scale_min=0.0,
             scale_max=5.0,
@@ -70,8 +65,7 @@ def test_generate_radar_chart() -> None:
         MatrixScorecardRowDTO(
             block_id="3",
             name="Dim 3",
-            label_fi="D3",
-            label_en="D3",
+            label_i18n={"default_locale": "en", "translations": {"fi": "D3", "en": "D3"}},  # type: ignore[arg-type]
             score=3.0,
             scale_min=0.0,
             scale_max=5.0,
@@ -89,8 +83,7 @@ def test_empty_scatter() -> None:
         MatrixScorecardRowDTO(
             block_id="1",
             name="Only One",
-            label_fi="O1",
-            label_en="O1",
+            label_i18n={"default_locale": "en", "translations": {"fi": "O1", "en": "O1"}},  # type: ignore[arg-type]
             score=2.0,
             row_explanation="ok",
             is_evaluative=True,
@@ -105,8 +98,7 @@ def test_empty_radar() -> None:
         MatrixScorecardRowDTO(
             block_id="1",
             name="Dim 1",
-            label_fi="D1",
-            label_en="D1",
+            label_i18n={"default_locale": "en", "translations": {"fi": "D1", "en": "D1"}},  # type: ignore[arg-type]
             score=2.0,
             row_explanation="ok",
             is_evaluative=True,
@@ -114,8 +106,7 @@ def test_empty_radar() -> None:
         MatrixScorecardRowDTO(
             block_id="2",
             name="Dim 2",
-            label_fi="D2",
-            label_en="D2",
+            label_i18n={"default_locale": "en", "translations": {"fi": "D2", "en": "D2"}},  # type: ignore[arg-type]
             score=2.0,
             row_explanation="ok",
             is_evaluative=True,

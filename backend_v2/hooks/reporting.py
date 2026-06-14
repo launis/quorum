@@ -6,7 +6,7 @@ a comprehensive, structured ReportContextDTO for the reporting phase.
 
 import logging
 from datetime import datetime
-from typing import Any, cast
+from typing import Any
 
 from fastapi import status
 from pydantic import ValidationError
@@ -300,5 +300,5 @@ def generate_report_hook(state: HookState, deps: HookDependencies) -> HookResult
     logger.info("[ReportingHook] Report context prepared and validated successfully.")
     return HookResult(
         success=True,
-        state_delta=cast(dict[str, Any], {"report_context": report_context}),
+        state_delta={"report_context": report_context.model_dump(mode="json")},
     )

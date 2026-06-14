@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/scorecard_dto.dart';
 import 'package:client_app/features/execution/views/widgets/atom_matrix_table_widget.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 
 void main() {
   testWidgets('AtomMatrixTableWidget renders table correctly with matrix data', (
@@ -12,8 +13,9 @@ void main() {
     final matrices = [
       const MatrixScorecardRowDto(
         blockId: 'block_1',
-        labelFi: 'Kognitio',
-        labelEn: 'Cognition',
+        labelI18n: const I18nText(
+          translations: {'fi': 'Kognitio', 'en': 'Cognition'},
+        ),
         name: 'Cognition',
         score: 3.5,
         scaleMax: 5.0,
@@ -62,8 +64,9 @@ void main() {
       final matrices = [
         const MatrixScorecardRowDto(
           blockId: 'block_1',
-          labelFi: 'Kognitio',
-          labelEn: 'Cognition',
+          labelI18n: const I18nText(
+            translations: {'fi': 'Kognitio', 'en': 'Cognition'},
+          ),
           name: 'Cognition',
           score: 3.5,
           scaleMax: 5.0,
@@ -118,8 +121,9 @@ void main() {
       final matrices = [
         const MatrixScorecardRowDto(
           blockId: 'block_1',
-          labelFi: 'Kognitio',
-          labelEn: 'Cognition',
+          labelI18n: const I18nText(
+            translations: {'fi': 'Kognitio', 'en': 'Cognition'},
+          ),
           name: 'Cognition',
           score: 3.5,
         ),
