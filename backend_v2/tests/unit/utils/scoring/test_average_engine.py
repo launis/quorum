@@ -38,7 +38,7 @@ def test_weighted_average_engine_calculate() -> None:
 
     assert score >= 1.0 and score <= 3.0
     log_str = "\n".join(log.engine_debug_trace["log_trace"])
-    assert "using steepness" in log_str
+    assert "Mapped to scale" in log_str
     assert "Weighted Points Achieved" in log_str
 
 
@@ -71,7 +71,7 @@ def test_pure_average_engine_outlier_rejection() -> None:
 
 
 @pytest.mark.skip("Legacy architecture obsolete")
-def test_weighted_average_engine_sigmoid_monotonicity() -> None:
+def test_weighted_average_engine_linear_monotonicity() -> None:
     engine = WeightedAverageScoringEngine()
 
     previous_score = -1.0

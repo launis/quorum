@@ -10,9 +10,7 @@ from typing import Any
 from backend_v2.models.dtos.lightweight_matrix import XAILogDto
 from backend_v2.utils.math_utils import (
     calculate_linear_ratio_score,
-    calculate_sigmoid_weighted_score,
     convert_strictness_to_forgiveness,
-    get_strictness_config,
 )
 from backend_v2.utils.scoring.base_engine import ScoringEngineBase
 
@@ -140,7 +138,7 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
         math_max: float,
         strictness_level: int = 50,
     ) -> tuple[float, XAILogDto, dict[str, dict[str, int]]]:
-        """Calculate weighted average scores based on configured strictness level sigmoid steepness.
+        """Calculate weighted average scores using linear ratio based on configured strictness level.
 
         Args:
             stats: Dictionary mapping scale levels to hits, total, and optional dlqs count.
@@ -154,8 +152,12 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
                 - An XAILogDto filled with diagnostic trace timelines.
                 - A dictionary breakdown of the scores per level stringified.
         """
-        config = get_strictness_config(strictness_level)
-        weighted_score = calculate_sigmoid_weighted_score(stats, math_min, math_max, config)
+        from typing import cast
+
+        base_forgiveness = convert_strictness_to_forgiveness(strictness_level)
+        exponent = 1.0 + (1.0 - base_forgiveness)
+        stats_casted = cast(dict[float, dict[str, float | int]], stats)
+        weighted_score = calculate_linear_ratio_score(stats_casted, math_min, math_max, exponent)
 
         log_lines: list[str] = ["Weighted Average Breakdown:"]
         sorted_levels = sorted(stats.keys())
@@ -178,9 +180,8 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
 
         log_lines.append(f"Weighted Points Achieved: {achieved_weights:.1f} / {max_weights:.1f} ({pct}%)")
         log_lines.append(
-            f"Final Weighted Score: {weighted_score:.2f} (Sigmoid mapped to scale "
-            f"{math_min}-{math_max} using steepness {config.dynamic_exponent * 10.0:.2f} "
-            f"and midpoint {config.sigmoid_midpoint:.2f})"
+            f"Final Weighted Score: {weighted_score:.2f} (Mapped to scale "
+            f"{math_min}-{math_max} with exponent {exponent:.2f} based on strictness {strictness_level})"
         )
 
         level_breakdown = {
@@ -192,7 +193,7 @@ class WeightedAverageScoringEngine(ScoringEngineBase):
             "engine": "weighted_average",
             "stats": stats,
             "strictness_level": strictness_level,
-            "config": config.model_dump(),
+            "exponent": exponent,
             "log_trace": log_lines,
         }
 
