@@ -1,7 +1,7 @@
 import json
 
 seed_file = r'c:\src\quorum\backend_v2\seed\seed_data.json'
-with open(seed_file, 'r', encoding='utf-8') as f:
+with open(seed_file, encoding='utf-8') as f:
     d = json.load(f)
 
 old_text = d['output_profiles'][0]['synthesis']['system_prompt']

@@ -153,7 +153,7 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
         logger.info("[InteractionRoleHook] Role classified: %s", response_dto.role_classification.name)
 
         dumped = response_dto.model_dump(mode="json")
-        
+
         # Epic 27: Inject localized role name to prevent Prompt Compiler leakage
         # Uses the backend LocalizationService to avoid hardcoding translations in Python.
         raw_role = dumped.get("role_classification", "")

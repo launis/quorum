@@ -159,7 +159,7 @@ return heroInsight(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String text,  List<String> citations)?  paragraph,TResult Function( List<String> items)?  bulletList,TResult Function( String title,  String message,  String severity)?  alertBox,TResult Function( String text)?  heroInsight,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String text,  List<String> citations)?  paragraph,TResult Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String title,  String message,  String severity)?  alertBox,TResult Function( String text)?  heroInsight,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.text,_that.citations);case SduiBulletListBlock() when bulletList != null:
@@ -183,7 +183,7 @@ return heroInsight(_that.text);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String text,  List<String> citations)  paragraph,required TResult Function( List<String> items)  bulletList,required TResult Function( String title,  String message,  String severity)  alertBox,required TResult Function( String text)  heroInsight,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String text,  List<String> citations)  paragraph,required TResult Function( List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String title,  String message,  String severity)  alertBox,required TResult Function( String text)  heroInsight,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock():
 return paragraph(_that.text,_that.citations);case SduiBulletListBlock():
@@ -203,7 +203,7 @@ return heroInsight(_that.text);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String text,  List<String> citations)?  paragraph,TResult? Function( List<String> items)?  bulletList,TResult? Function( String title,  String message,  String severity)?  alertBox,TResult? Function( String text)?  heroInsight,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String text,  List<String> citations)?  paragraph,TResult? Function( List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String title,  String message,  String severity)?  alertBox,TResult? Function( String text)?  heroInsight,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.text,_that.citations);case SduiBulletListBlock() when bulletList != null:
@@ -302,11 +302,11 @@ as List<String>,
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SduiBulletListBlock extends SduiBlockDTO {
-  const SduiBulletListBlock({required final  List<String> items, final  String? $type}): _items = items,$type = $type ?? 'bullet_list',super._();
+  const SduiBulletListBlock({required final  List<SduiBulletListItemDTO> items, final  String? $type}): _items = items,$type = $type ?? 'bullet_list',super._();
   factory SduiBulletListBlock.fromJson(Map<String, dynamic> json) => _$SduiBulletListBlockFromJson(json);
 
- final  List<String> _items;
- List<String> get items {
+ final  List<SduiBulletListItemDTO> _items;
+ List<SduiBulletListItemDTO> get items {
   if (_items is EqualUnmodifiableListView) return _items;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_items);
@@ -350,7 +350,7 @@ abstract mixin class $SduiBulletListBlockCopyWith<$Res> implements $SduiBlockDTO
   factory $SduiBulletListBlockCopyWith(SduiBulletListBlock value, $Res Function(SduiBulletListBlock) _then) = _$SduiBulletListBlockCopyWithImpl;
 @useResult
 $Res call({
- List<String> items
+ List<SduiBulletListItemDTO> items
 });
 
 
@@ -370,7 +370,7 @@ class _$SduiBulletListBlockCopyWithImpl<$Res>
 @pragma('vm:prefer-inline') $Res call({Object? items = null,}) {
   return _then(SduiBulletListBlock(
 items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<SduiBulletListItemDTO>,
   ));
 }
 
@@ -521,6 +521,264 @@ class _$SduiHeroInsightBlockCopyWithImpl<$Res>
   return _then(SduiHeroInsightBlock(
 text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
 as String,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$SduiBulletListItemDTO {
+
+ String get text; List<int> get citations;
+/// Create a copy of SduiBulletListItemDTO
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SduiBulletListItemDTOCopyWith<SduiBulletListItemDTO> get copyWith => _$SduiBulletListItemDTOCopyWithImpl<SduiBulletListItemDTO>(this as SduiBulletListItemDTO, _$identity);
+
+  /// Serializes this SduiBulletListItemDTO to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+
+
+@override
+String toString() {
+  return 'SduiBulletListItemDTO(text: $text, citations: $citations)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SduiBulletListItemDTOCopyWith<$Res>  {
+  factory $SduiBulletListItemDTOCopyWith(SduiBulletListItemDTO value, $Res Function(SduiBulletListItemDTO) _then) = _$SduiBulletListItemDTOCopyWithImpl;
+@useResult
+$Res call({
+ String text, List<int> citations
+});
+
+
+
+
+}
+/// @nodoc
+class _$SduiBulletListItemDTOCopyWithImpl<$Res>
+    implements $SduiBulletListItemDTOCopyWith<$Res> {
+  _$SduiBulletListItemDTOCopyWithImpl(this._self, this._then);
+
+  final SduiBulletListItemDTO _self;
+  final $Res Function(SduiBulletListItemDTO) _then;
+
+/// Create a copy of SduiBulletListItemDTO
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? text = null,Object? citations = null,}) {
+  return _then(_self.copyWith(
+text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
+as String,citations: null == citations ? _self.citations : citations // ignore: cast_nullable_to_non_nullable
+as List<int>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [SduiBulletListItemDTO].
+extension SduiBulletListItemDTOPatterns on SduiBulletListItemDTO {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _SduiBulletListItemDTO value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _SduiBulletListItemDTO() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _SduiBulletListItemDTO value)  $default,){
+final _that = this;
+switch (_that) {
+case _SduiBulletListItemDTO():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _SduiBulletListItemDTO value)?  $default,){
+final _that = this;
+switch (_that) {
+case _SduiBulletListItemDTO() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String text,  List<int> citations)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _SduiBulletListItemDTO() when $default != null:
+return $default(_that.text,_that.citations);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String text,  List<int> citations)  $default,) {final _that = this;
+switch (_that) {
+case _SduiBulletListItemDTO():
+return $default(_that.text,_that.citations);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String text,  List<int> citations)?  $default,) {final _that = this;
+switch (_that) {
+case _SduiBulletListItemDTO() when $default != null:
+return $default(_that.text,_that.citations);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class _SduiBulletListItemDTO implements SduiBulletListItemDTO {
+  const _SduiBulletListItemDTO({required this.text, final  List<int> citations = const []}): _citations = citations;
+  factory _SduiBulletListItemDTO.fromJson(Map<String, dynamic> json) => _$SduiBulletListItemDTOFromJson(json);
+
+@override final  String text;
+ final  List<int> _citations;
+@override@JsonKey() List<int> get citations {
+  if (_citations is EqualUnmodifiableListView) return _citations;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_citations);
+}
+
+
+/// Create a copy of SduiBulletListItemDTO
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SduiBulletListItemDTOCopyWith<_SduiBulletListItemDTO> get copyWith => __$SduiBulletListItemDTOCopyWithImpl<_SduiBulletListItemDTO>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SduiBulletListItemDTOToJson(this, );
+}
+
+
+
+@override
+String toString() {
+  return 'SduiBulletListItemDTO(text: $text, citations: $citations)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SduiBulletListItemDTOCopyWith<$Res> implements $SduiBulletListItemDTOCopyWith<$Res> {
+  factory _$SduiBulletListItemDTOCopyWith(_SduiBulletListItemDTO value, $Res Function(_SduiBulletListItemDTO) _then) = __$SduiBulletListItemDTOCopyWithImpl;
+@override @useResult
+$Res call({
+ String text, List<int> citations
+});
+
+
+
+
+}
+/// @nodoc
+class __$SduiBulletListItemDTOCopyWithImpl<$Res>
+    implements _$SduiBulletListItemDTOCopyWith<$Res> {
+  __$SduiBulletListItemDTOCopyWithImpl(this._self, this._then);
+
+  final _SduiBulletListItemDTO _self;
+  final $Res Function(_SduiBulletListItemDTO) _then;
+
+/// Create a copy of SduiBulletListItemDTO
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? text = null,Object? citations = null,}) {
+  return _then(_SduiBulletListItemDTO(
+text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
+as String,citations: null == citations ? _self._citations : citations // ignore: cast_nullable_to_non_nullable
+as List<int>,
   ));
 }
 

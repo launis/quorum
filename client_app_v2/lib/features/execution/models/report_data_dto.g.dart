@@ -35,7 +35,12 @@ SduiBulletListBlock _$SduiBulletListBlockFromJson(Map<String, dynamic> json) =>
       final val = SduiBulletListBlock(
         items: $checkedConvert(
           'items',
-          (v) => (v as List<dynamic>).map((e) => e as String).toList(),
+          (v) => (v as List<dynamic>)
+              .map(
+                (e) =>
+                    SduiBulletListItemDTO.fromJson(e as Map<String, dynamic>),
+              )
+              .toList(),
         ),
         $type: $checkedConvert('block_type', (v) => v as String?),
       );
@@ -44,7 +49,10 @@ SduiBulletListBlock _$SduiBulletListBlockFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$SduiBulletListBlockToJson(
   SduiBulletListBlock instance,
-) => <String, dynamic>{'items': instance.items, 'block_type': instance.$type};
+) => <String, dynamic>{
+  'items': instance.items.map((e) => e.toJson()).toList(),
+  'block_type': instance.$type,
+};
 
 SduiAlertBoxBlock _$SduiAlertBoxBlockFromJson(Map<String, dynamic> json) =>
     $checkedCreate('SduiAlertBoxBlock', json, ($checkedConvert) {
@@ -83,6 +91,26 @@ SduiHeroInsightBlock _$SduiHeroInsightBlockFromJson(
 Map<String, dynamic> _$SduiHeroInsightBlockToJson(
   SduiHeroInsightBlock instance,
 ) => <String, dynamic>{'text': instance.text, 'block_type': instance.$type};
+
+_SduiBulletListItemDTO _$SduiBulletListItemDTOFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate('_SduiBulletListItemDTO', json, ($checkedConvert) {
+  $checkKeys(json, allowedKeys: const ['text', 'citations']);
+  final val = _SduiBulletListItemDTO(
+    text: $checkedConvert('text', (v) => v as String),
+    citations: $checkedConvert(
+      'citations',
+      (v) =>
+          (v as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ??
+          const [],
+    ),
+  );
+  return val;
+});
+
+Map<String, dynamic> _$SduiBulletListItemDTOToJson(
+  _SduiBulletListItemDTO instance,
+) => <String, dynamic>{'text': instance.text, 'citations': instance.citations};
 
 _ReportLayoutDTO _$ReportLayoutDTOFromJson(
   Map<String, dynamic> json,

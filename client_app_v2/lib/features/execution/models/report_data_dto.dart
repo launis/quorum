@@ -24,8 +24,9 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('bullet_list')
-  const factory SduiBlockDTO.bulletList({required List<String> items}) =
-      SduiBulletListBlock;
+  const factory SduiBlockDTO.bulletList({
+    required List<SduiBulletListItemDTO> items,
+  }) = SduiBulletListBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   @FreezedUnionValue('alert_box')
@@ -42,6 +43,19 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
 
   factory SduiBlockDTO.fromJson(Map<String, dynamic> json) =>
       _$SduiBlockDTOFromJson(json);
+}
+
+/// Strictly typed DTO for individual bullet list items from the backend
+@Freezed(equal: false)
+abstract class SduiBulletListItemDTO with _$SduiBulletListItemDTO {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory SduiBulletListItemDTO({
+    required String text,
+    @Default([]) List<int> citations,
+  }) = _SduiBulletListItemDTO;
+
+  factory SduiBulletListItemDTO.fromJson(Map<String, dynamic> json) =>
+      _$SduiBulletListItemDTOFromJson(json);
 }
 
 /// Strictly typed DTO representing a single layout block dynamically defining how to render axes.

@@ -9,7 +9,7 @@ void main() {
         'preset_view': 'default',
         'title': {
           'default_locale': 'en',
-          'translations': {'fi': 'Otsikko', 'en': 'Title'}
+          'translations': {'fi': 'Otsikko', 'en': 'Title'},
         },
         'text_delivery_mode': 'full',
         'synthesis_blocks': [
